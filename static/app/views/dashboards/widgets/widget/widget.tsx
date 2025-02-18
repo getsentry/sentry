@@ -72,15 +72,15 @@ function WidgetLayout(props: Widget) {
       </Header>
 
       {props.Visualization && (
-        <ErrorBoundary
-          customComponent={({error}) => (
-            <WidgetError error={error?.message ?? undefined} />
-          )}
-        >
-          <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+        <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+          <ErrorBoundary
+            customComponent={({error}) => (
+              <WidgetError error={error?.message ?? undefined} />
+            )}
+          >
             {props.Visualization}
-          </VisualizationWrapper>
-        </ErrorBoundary>
+          </ErrorBoundary>
+        </VisualizationWrapper>
       )}
 
       {props.Footer && (

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -174,12 +174,12 @@ export function ExploreCharts({
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
           const Title = (
-            <Fragment>
+            <ChartTitle>
               {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
               <Widget.WidgetTitle
                 title={chartInfo.formattedYAxes.filter(Boolean).join(', ')}
               />
-            </Fragment>
+            </ChartTitle>
           );
 
           if (chartInfo.loading) {
@@ -343,4 +343,9 @@ const ChartLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
   margin-right: ${space(1)};
+`;
+
+const ChartTitle = styled('div')`
+  display: flex;
+  margin-left: ${space(2)};
 `;
