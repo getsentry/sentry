@@ -113,7 +113,7 @@ export const sortedFlags = ({
   }
 };
 
-// Supported Feature Flag Providers. Ordered by display order in FeatureFlagOnboardingDrawer.
+// Supported Feature Flag Providers. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
 export enum ProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   STATSIG = 'Statsig',
@@ -121,7 +121,7 @@ export enum ProviderEnum {
   GENERIC = 'Generic',
 }
 
-// Feature Flag SDKs we support integrations for. Ordered by display order in FeatureFlagOnboardingDrawer.
+// Feature Flag SDKs we support integrations for. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
 export enum SdkIntegrationEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
