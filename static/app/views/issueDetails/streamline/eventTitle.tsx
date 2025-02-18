@@ -162,7 +162,7 @@ function useIntersectionObserver(elementId: string) {
   useEffect(() => {
     const element = document.getElementById(elementId);
     if (!element) {
-      return;
+      return () => {};
     }
 
     // Create observer with multiple thresholds for smooth tracking
