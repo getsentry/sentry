@@ -1,0 +1,79 @@
+---
+created: '2025-02-18T19:51:37.347990+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "42c70f7a2c1e62b73ca800ef40aef432"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "exe_common.inl"
+              symbol*
+                "__scrt_common_main_seh()"
+            frame*
+              filename*
+                "exe_common.inl"
+              symbol*
+                "invoke_main()"
+            frame*
+              filename*
+                "SentryPlaygroundUtils.gen.cpp"
+              context-line*
+                "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));"
+            frame*
+              filename*
+                "SentryPlaygroundUtils.cpp"
+              context-line*
+                "\t\t\t\tensure(ensurePtr != nullptr);"
+            frame*
+              filename*
+                "DelegateInstancesImpl.h"
+              context-line*
+                "\t\t(void)this->Payload.ApplyAfter(Functor, Forward<ParamTypes>(Params)...);"
+            frame*
+              filename*
+                "Tuple.h"
+              symbol*
+                "UE::Core::Private::Tuple::TTupleBase<TIntegerSequence<unsigned int> >::ApplyAfter(USentrySubsystem::Initialize::__l2::<lambda_1>&) const"
+            frame*
+              filename*
+                "Invoke.h"
+              context-line*
+                "\treturn Forward<FuncType>(Func)(Forward<ArgTypes>(Args)...);"
+            frame*
+              filename*
+                "SentrySubsystem.cpp"
+              context-line*
+                "\t\tSubsystemNativeImpl->CaptureEnsure(TEXT(\"Ensure failed\"), EnsureMessage.TrimStartAndEnd());"
+            frame*
+              filename*
+                "SentrySubsystemDesktop.cpp"
+              context-line*
+                "\tsentry_value_set_stacktrace(exceptionEvent, nullptr, 0);"
+          type*
+            "Ensure failed"

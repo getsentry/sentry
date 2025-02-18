@@ -1,0 +1,26 @@
+---
+created: '2025-02-18T19:51:40.941601+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (logentry takes precedence)
+      threads (ignored because contains 63 threads)
+--------------------------------------------------------------------------
+default:
+  hash: "5738610e83ae31822805f0f3e687fc97"
+  contributing component: message
+  component:
+    default*
+      message*
+        "Message for scoped event"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  component:
+    system (logentry takes precedence)
+      threads (ignored because contains 63 threads)

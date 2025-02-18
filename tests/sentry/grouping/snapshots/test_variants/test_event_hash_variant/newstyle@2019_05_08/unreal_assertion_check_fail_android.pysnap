@@ -1,0 +1,164 @@
+---
+created: '2025-02-18T19:51:40.741894+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "__start_thread"
+          frame (non app frame)
+            function*
+              "__pthread_start"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "android_main"
+          frame (non app frame)
+            function*
+              "AndroidMain"
+          frame (non app frame)
+            function*
+              "FEngineLoop::Tick"
+          frame (non app frame)
+            function*
+              "UGameEngine::Tick"
+          frame (non app frame)
+            function*
+              "UWorld::Tick"
+          frame (non app frame)
+            function*
+              "FLatentActionManager::ProcessLatentActions"
+          frame (non app frame)
+            function*
+              "FLatentActionManager::TickLatentActionForObject"
+          frame (non app frame)
+            function*
+              "AActor::ProcessEvent"
+          frame (non app frame)
+            function*
+              "UObject::ProcessEvent"
+          frame (non app frame)
+            function*
+              "UFunction::Invoke"
+          frame (non app frame)
+            function*
+              "UObject::ProcessInternal"
+          frame (non app frame)
+            function*
+              "ProcessLocalScriptFunction"
+          frame (non app frame)
+            function*
+              "UObject::execCallMathFunction"
+          frame (non app frame)
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame (non app frame)
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame (non app frame)
+            function*
+              "FDebug::CheckVerifyFailedImpl2"
+          frame (non app frame)
+            function*
+              "FOutputDevice::LogfImpl"
+          frame (non app frame)
+            function*
+              "FSentryOutputDeviceError::Serialize"
+          frame (non app frame)
+            function*
+              "TMulticastDelegateBase<T>::Broadcast<T>"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "tgkill"
+        type (ignored because exception is synthetic)
+          "SIGTRAP"
+        value*
+          "Trap"
+--------------------------------------------------------------------------
+system:
+  hash: "e6f1156fdf6a67a91cdf25a641446338"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "__start_thread"
+          frame*
+            function*
+              "__pthread_start"
+          frame
+          frame*
+            function*
+              "android_main"
+          frame*
+            function*
+              "AndroidMain"
+          frame*
+            function*
+              "FEngineLoop::Tick"
+          frame*
+            function*
+              "UGameEngine::Tick"
+          frame*
+            function*
+              "UWorld::Tick"
+          frame*
+            function*
+              "FLatentActionManager::ProcessLatentActions"
+          frame*
+            function*
+              "FLatentActionManager::TickLatentActionForObject"
+          frame*
+            function*
+              "AActor::ProcessEvent"
+          frame*
+            function*
+              "UObject::ProcessEvent"
+          frame*
+            function*
+              "UFunction::Invoke"
+          frame*
+            function*
+              "UObject::ProcessInternal"
+          frame*
+            function*
+              "ProcessLocalScriptFunction"
+          frame*
+            function*
+              "UObject::execCallMathFunction"
+          frame*
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame*
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame*
+            function*
+              "FDebug::CheckVerifyFailedImpl2"
+          frame*
+            function*
+              "FOutputDevice::LogfImpl"
+          frame*
+            function*
+              "FSentryOutputDeviceError::Serialize"
+          frame*
+            function*
+              "TMulticastDelegateBase<T>::Broadcast<T>"
+          frame
+          frame*
+            function*
+              "tgkill"
+        type (ignored because exception is synthetic)
+          "SIGTRAP"
+        value (ignored because stacktrace takes precedence)
+          "Trap"

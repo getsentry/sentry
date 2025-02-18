@@ -1,0 +1,202 @@
+---
+created: '2025-02-18T19:51:37.210378+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "e7fcadedd547b7ab9677f58d2547d479"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "RtlUserThreadStart"
+            frame*
+              function*
+                "BaseThreadInitThunk"
+            frame*
+              filename*
+                "exe_common.inl"
+              function*
+                "__scrt_common_main_seh"
+            frame*
+              filename*
+                "exe_common.inl"
+              function*
+                "invoke_main"
+            frame*
+              function*
+                "WinMain"
+            frame*
+              function*
+                "LaunchWindowsStartup"
+            frame*
+              function*
+                "GuardedMainWrapper"
+            frame*
+              function*
+                "GuardedMain"
+            frame*
+              function*
+                "FEngineLoop::Tick"
+            frame*
+              function*
+                "FWindowsPlatformApplicationMisc::PumpMessages"
+            frame*
+              function*
+                "DispatchMessageWorker"
+            frame*
+              function*
+                "UserCallWinProcCheckWow"
+            frame*
+              function*
+                "FWindowsApplication::AppWndProc"
+            frame*
+              function*
+                "FWindowsApplication::ProcessMessage"
+            frame*
+              function*
+                "FWindowsApplication::DeferMessage"
+            frame*
+              function*
+                "FWindowsApplication::ProcessDeferredMessage"
+            frame*
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame*
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame*
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame*
+              function*
+                "SharedPointerInternals::NewIntrusiveReferenceController<T>"
+            frame*
+              function*
+                "`TArray<T>::Remove'::`2'::<T>::operator()"
+            frame*
+              function*
+                "SButton::OnMouseButtonUp"
+            frame*
+              function*
+                "SButton::ExecuteOnClick"
+            frame*
+              function*
+                "TBaseUObjectMethodDelegateInstance<T>::Execute"
+            frame*
+              function*
+                "UButton::SlateHandleClicked"
+            frame*
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame*
+              function*
+                "UObject::ProcessEvent"
+            frame*
+              function*
+                "UFunction::Invoke"
+            frame*
+              function*
+                "UObject::ProcessInternal"
+            frame*
+              function*
+                "ProcessLocalScriptFunction"
+            frame*
+              function*
+                "ProcessLocalFunction"
+            frame*
+              function*
+                "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
+            frame*
+              function*
+                "ProcessScriptFunction<T>"
+            frame*
+              function*
+                "ProcessLocalScriptFunction"
+            frame*
+              function*
+                "UObject::execCallMathFunction"
+            frame*
+              filename*
+                "sentryplaygroundutils.gen.cpp"
+              function*
+                "USentryPlaygroundUtils::execTerminate"
+            frame*
+              filename*
+                "sentryplaygroundutils.cpp"
+              function*
+                "USentryPlaygroundUtils::Terminate"
+            frame*
+              function*
+                "UE::Assert::Private::ExecCheckImplInternal"
+            frame*
+              function*
+                "CheckVerifyImpl"
+            frame*
+              function*
+                "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl"
+            frame*
+              function*
+                "FDebug::EnsureFailed"
+            frame*
+              function*
+                "TMulticastDelegate<T>::Broadcast"
+            frame*
+              filename*
+                "delegateinstancesimpl.h"
+              function*
+                "TBaseFunctorDelegateInstance<T>::ExecuteIfSafe"
+            frame*
+              filename*
+                "tuple.h"
+              function*
+                "UE::Core::Private::Tuple::TTupleBase<T>::ApplyAfter"
+            frame*
+              filename*
+                "invoke.h"
+              function*
+                "Invoke"
+            frame*
+              filename*
+                "sentrysubsystem.cpp"
+              function*
+                "`USentrySubsystem::Initialize'::`2'::<T>::operator()"
+            frame*
+              filename*
+                "sentrysubsystemdesktop.cpp"
+              function*
+                "SentrySubsystemDesktop::CaptureEnsure"
+            frame*
+              function*
+                "sentry_value_set_stacktrace"
+            frame*
+              function*
+                "sentry_value_new_stacktrace"
+            frame*
+              function*
+                "sentry_unwind_stack_from_ucontext"
+          type*
+            "Ensure failed"
