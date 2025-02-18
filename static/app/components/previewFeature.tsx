@@ -1,5 +1,4 @@
-import type {AlertProps} from 'sentry/components/alert';
-import {Alert} from 'sentry/components/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 type Props = {

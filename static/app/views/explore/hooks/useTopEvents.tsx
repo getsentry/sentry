@@ -7,7 +7,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
-export const TOP_EVENTS_LIMIT: number = 5;
+export const TOP_EVENTS_LIMIT = 5;
 
 export function useTopEvents(): number | undefined {
   const visualizes = useExploreVisualizes();

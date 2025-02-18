@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
@@ -10,7 +10,11 @@ import {IconClose, IconDelete, IconSad, IconSentry, IconStar} from 'sentry/icons
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-export default storyBook('Alert', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/alert';
+
+export default storyBook('Alert', (story, APIReference) => {
+  APIReference(types.Alert);
   story('Default', () => {
     return (
       <Fragment>

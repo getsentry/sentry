@@ -33,7 +33,7 @@ type DashboardsEventParametersWidgetBuilder = {
     title: string;
     widget_type: string;
   };
-  'dashboards_views.widget_builder.templates.open': {};
+  'dashboards_views.widget_builder.templates.open': Record<string, unknown>;
   'dashboards_views.widget_builder.templates.selected': {
     title: string;
     widget_type: string;
@@ -57,31 +57,31 @@ const dashboardsEventMapWidgetBuilder: Record<
 };
 
 export type DashboardsEventParameters = {
-  'dashboards2.create.cancel': {};
-  'dashboards2.create.complete': {};
-  'dashboards2.delete': {};
-  'dashboards2.edit.cancel': {};
-  'dashboards2.edit.complete': {};
-  'dashboards2.edit.start': {};
+  'dashboards2.create.cancel': Record<string, unknown>;
+  'dashboards2.create.complete': Record<string, unknown>;
+  'dashboards2.delete': Record<string, unknown>;
+  'dashboards2.edit.cancel': Record<string, unknown>;
+  'dashboards2.edit.complete': Record<string, unknown>;
+  'dashboards2.edit.start': Record<string, unknown>;
   'dashboards2.edit_access.save': {
     editable_by: 'owner_only' | 'all' | 'team_selection';
     team_count?: number;
   };
-  'dashboards2.edit_access.start': {};
-  'dashboards2.filter.cancel': {};
+  'dashboards2.edit_access.start': Record<string, unknown>;
+  'dashboards2.filter.cancel': Record<string, unknown>;
   'dashboards2.filter.change': {filter_type: string};
-  'dashboards2.filter.save': {};
+  'dashboards2.filter.save': Record<string, unknown>;
   'dashboards_manage.change_sort': {
     sort: string;
   };
   'dashboards_manage.change_view_type': {
     view_type: DashboardsLayout;
   };
-  'dashboards_manage.create.start': {};
+  'dashboards_manage.create.start': Record<string, unknown>;
   'dashboards_manage.delete': {dashboard_id: number; view_type: DashboardsLayout};
   'dashboards_manage.duplicate': {dashboard_id: number; view_type: DashboardsLayout};
-  'dashboards_manage.paginate': {};
-  'dashboards_manage.search': {};
+  'dashboards_manage.paginate': Record<string, unknown>;
+  'dashboards_manage.search': Record<string, unknown>;
   'dashboards_manage.templates.add': {
     dashboard_id: string;
     dashboard_title: string;
@@ -115,7 +115,7 @@ export type DashboardsEventParameters = {
   'dashboards_views.widget_library.add_widget': {
     title: string;
   };
-  'dashboards_views.widget_library.opened': {};
+  'dashboards_views.widget_library.opened': Record<string, unknown>;
   'dashboards_views.widget_viewer.edit': {
     display_type: string;
     widget_type: string;

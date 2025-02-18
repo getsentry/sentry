@@ -2,7 +2,7 @@ import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -11,6 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
@@ -57,7 +58,10 @@ function AlertBuilderProjectProvider(props: Props) {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`,
+      makeAlertsPathname({
+        path: '/wizard/',
+        organization,
+      }) + `?referrer=${props.location.query.referrer}&project=:projectId`,
       props.router
     );
   }
