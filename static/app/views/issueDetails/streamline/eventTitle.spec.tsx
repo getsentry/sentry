@@ -220,7 +220,7 @@ describe('EventNavigationLink highlighting', () => {
         this.elements.clear();
       }
 
-      static trigger(entries: Partial<IntersectionObserverEntry>[]) {
+      static trigger(entries: Array<Partial<IntersectionObserverEntry>>) {
         observers.forEach(observer => {
           const relevantEntries = entries.filter(entry =>
             observer.elements.has(entry.target as Element)

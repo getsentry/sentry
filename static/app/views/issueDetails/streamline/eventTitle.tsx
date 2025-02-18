@@ -1,13 +1,14 @@
 import 'intersection-observer'; // polyfill
+
 import {
+  createContext,
   type CSSProperties,
   forwardRef,
   Fragment,
+  useCallback,
+  useContext,
   useEffect,
   useState,
-  createContext,
-  useContext,
-  useCallback,
 } from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
