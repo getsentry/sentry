@@ -306,7 +306,7 @@ def _fix_issue_paths(result: Any) -> Any:
 
     for path in modified_paths:
         updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
-        if path.startswith("/api/0/issues/"):
+        if updated_path.startswith("/api/0/issues/"):
             updated_path = updated_path.replace(
                 "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
             )
@@ -315,9 +315,7 @@ def _fix_issue_paths(result: Any) -> Any:
             endpoint[method]["parameters"] = [
                 param
                 for param in endpoint[method]["parameters"]
-                if not (
-                    param["in"] == "path" and param["name"] in ("var", "organization_id_or_slug")
-                )
+                if not (param["in"] == "path" and param["name"] == "var")
             ]
         result["paths"][updated_path] = endpoint
         del result["paths"][path]
