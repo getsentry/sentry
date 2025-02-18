@@ -30,7 +30,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve the custom integrations created by the given organization",
+        operation_id="Retrieve the custom integrations created by an organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -47,6 +47,9 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
     ) -> Response:
+        """
+        Retrieve the custom integrations for an organization
+        """
         queryset = SentryApp.objects.filter(owner_id=organization.id, application__isnull=False)
 
         status = request.GET.get("status")
