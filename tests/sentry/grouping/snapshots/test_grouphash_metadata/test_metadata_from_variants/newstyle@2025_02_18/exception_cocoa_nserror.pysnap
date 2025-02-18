@@ -1,0 +1,34 @@
+---
+created: '2025-02-18T18:18:24.360078+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "029f3b967068b1539f96957b7c0451d7"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          type*
+            "iOS_Swift.SampleError"
+          ns-error*
+            "iOS_Swift.SampleError"
+            0

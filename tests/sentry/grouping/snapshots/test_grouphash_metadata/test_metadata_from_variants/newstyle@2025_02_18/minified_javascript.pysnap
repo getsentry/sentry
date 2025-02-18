@@ -1,0 +1,126 @@
+---
+created: '2025-02-18T18:18:27.031223+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "dcfcd48a02c100bbe4023cbc783054f0"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "M"
+            frame*
+              module*
+                "sentry/dist/vendor"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "i"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "b"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "n"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "g/</t[e]"
+            frame*
+              module*
+                "sentry/dist/vendor"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "W"
+            frame*
+              module*
+                "sentry/dist/app"
+            frame*
+              module*
+                "sentry/dist/app"
+            frame*
+              module*
+                "sentry/dist/vendor"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "L"
+            frame*
+              module*
+                "sentry/dist/vendor"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "c"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "n"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "g/</t[e]"
+            frame*
+              module*
+                "sentry/dist/vendor"
+            frame*
+              module*
+                "sentry/dist/vendor"
+              function*
+                "W"
+            frame*
+              module*
+                "sentry/dist/app"
+            frame*
+              module*
+                "sentry/dist/app"
+              function*
+                "componentPromise"
+            frame*
+              module*
+                "sentry/dist/app"
+              function* (trimmed javascript function)
+                "e"
+            frame*
+              module*
+                "sentry/dist/vendor"
+          type*
+            "NS_ERROR_NOT_INITIALIZED"

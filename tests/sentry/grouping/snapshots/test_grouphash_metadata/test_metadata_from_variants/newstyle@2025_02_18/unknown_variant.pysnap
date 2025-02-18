@@ -1,0 +1,20 @@
+---
+created: '2025-02-18T18:18:29.450464+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: unknown
+hashing_metadata: {}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "unknown"
+  }
+}
+---
+contributing variants:
+  dogs*
+    hash: "d41d8cd98f00b204e9800998ecf8427e"
+    contributing component: null
+    component:
+      not_a_known_component_type*

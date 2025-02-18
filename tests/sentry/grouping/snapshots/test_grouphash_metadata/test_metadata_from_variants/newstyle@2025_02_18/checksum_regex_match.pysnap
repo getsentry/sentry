@@ -1,0 +1,21 @@
+---
+created: '2025-02-18T18:18:23.952915+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: checksum
+hashing_metadata: {
+  "checksum": "11212012123120120415201309082013"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "checksum",
+    "is_hybrid_fingerprint": "False"
+  }
+}
+---
+contributing variants:
+  checksum*
+    hash: "11212012123120120415201309082013"
+    checksum: "11212012123120120415201309082013"

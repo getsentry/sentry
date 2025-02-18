@@ -1,0 +1,155 @@
+---
+created: '2025-02-18T18:18:24.005251+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "6b059b9febc815ac18ac4d2082e38a9b"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              function*
+                "safe_execute"
+              context-line*
+                "result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.utils.services"
+              function*
+                "<lambda>"
+              context-line*
+                "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+            frame*
+              module*
+                "getsentry.quotas"
+              function*
+                "is_rate_limited"
+              context-line*
+                "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+            frame*
+              module*
+                "sentry.quotas.redis"
+              function*
+                "is_rate_limited"
+              context-line*
+                "rejections = is_rate_limited(client, keys, args)"
+            frame*
+              module*
+                "sentry.utils.redis"
+              function*
+                "call_script"
+              context-line*
+                "return script(keys, args, client)"
+          type*
+            "ConnectionError"
+  system*
+    hash: "013d3477a774fe20c468dc8accd516f1"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              function*
+                "safe_execute"
+              context-line*
+                "result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.utils.services"
+              function*
+                "<lambda>"
+              context-line*
+                "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+            frame*
+              module*
+                "getsentry.quotas"
+              function*
+                "is_rate_limited"
+              context-line*
+                "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+            frame*
+              module*
+                "sentry.quotas.redis"
+              function*
+                "is_rate_limited"
+              context-line*
+                "rejections = is_rate_limited(client, keys, args)"
+            frame*
+              module*
+                "sentry.utils.redis"
+              function*
+                "call_script"
+              context-line*
+                "return script(keys, args, client)"
+            frame*
+              module*
+                "redis.client"
+              function*
+                "__call__"
+              context-line*
+                "return client.evalsha(self.sha, len(keys), *args)"
+            frame*
+              module*
+                "redis.client"
+              function*
+                "evalsha"
+              context-line*
+                "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+            frame*
+              module*
+                "redis.client"
+              function*
+                "execute_command"
+              context-line*
+                "return self.parse_response(connection, command_name, **options)"
+            frame*
+              module*
+                "redis.client"
+              function*
+                "parse_response"
+              context-line*
+                "response = connection.read_response()"
+            frame*
+              module*
+                "redis.connection"
+              function*
+                "read_response"
+              context-line*
+                "response = self._parser.read_response()"
+            frame*
+              module*
+                "redis.connection"
+              function*
+                "read_response"
+              context-line*
+                "(e.args,))"
+          type*
+            "ConnectionError"

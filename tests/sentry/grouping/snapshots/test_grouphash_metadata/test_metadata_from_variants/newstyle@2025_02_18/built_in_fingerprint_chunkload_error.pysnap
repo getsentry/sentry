@@ -1,0 +1,28 @@
+---
+created: '2025-02-18T18:18:23.872427+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: fingerprint
+hashing_metadata: {
+  "fingerprint": "['chunkloaderror']",
+  "fingerprint_source": "server_builtin_rule",
+  "is_hybrid_fingerprint": false,
+  "matched_fingerprinting_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "fingerprint",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.fingerprint": {
+    "fingerprint_source": "server_builtin_rule"
+  }
+}
+---
+contributing variants:
+  built_in_fingerprint*
+    hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
+    info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
+    values: ["chunkloaderror"]

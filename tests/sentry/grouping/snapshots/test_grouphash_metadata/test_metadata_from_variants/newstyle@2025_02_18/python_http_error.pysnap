@@ -1,0 +1,78 @@
+---
+created: '2025-02-18T18:18:27.404133+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "d59239f5aad3304d60beb1fde3369b78"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              function*
+                "safe_execute"
+              context-line*
+                "result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.integrations.slack.notify_action"
+              function*
+                "send_notification"
+              context-line*
+                "resp.raise_for_status()"
+          type*
+            "HTTPError"
+  system*
+    hash: "133db3f366b1327dab4e661f66dfb961"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              function*
+                "safe_execute"
+              context-line*
+                "result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.integrations.slack.notify_action"
+              function*
+                "send_notification"
+              context-line*
+                "resp.raise_for_status()"
+            frame*
+              module*
+                "requests.models"
+              function*
+                "raise_for_status"
+              context-line*
+                "raise HTTPError(http_error_msg, response=self)"
+          type*
+            "HTTPError"
