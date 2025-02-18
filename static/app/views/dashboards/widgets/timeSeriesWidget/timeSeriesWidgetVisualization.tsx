@@ -283,7 +283,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // https://github.com/apache/echarts/issues/15562
         left: 2,
         top: showLegend ? 25 : 10,
-        right: 4,
+        right: 8,
         bottom: 0,
         containLabel: true,
       }}
