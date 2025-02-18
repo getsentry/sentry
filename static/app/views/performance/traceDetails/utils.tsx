@@ -37,7 +37,7 @@ function getBaseTraceUrl(
   const url =
     source && source in TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
       ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]
-      : 'performance';
+      : 'traces';
 
   return normalizeUrl(`/organizations/${organization.slug}/${url}`);
 }
