@@ -90,7 +90,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 404, response.content
 
     def test_simple(self):
-        self.load_trace()
+        self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"project": -1},

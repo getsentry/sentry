@@ -1234,7 +1234,7 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span, is_eap=True):
+    def store_span(self, span, is_eap=False):
         span["ingest_in_eap"] = is_eap
         assert (
             requests.post(
@@ -1244,7 +1244,7 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_spans(self, spans, is_eap=True):
+    def store_spans(self, spans, is_eap=False):
         for span in spans:
             span["ingest_in_eap"] = is_eap
         assert (
@@ -3326,6 +3326,7 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
+        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3400,7 +3401,7 @@ class TraceTestCase(SpanTestCase):
                             )
                         )
                 spans_to_store.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans_to_store, is_eap=True)
+                self.store_spans(spans_to_store, is_eap=is_eap)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3409,16 +3410,20 @@ class TraceTestCase(SpanTestCase):
         end_ts = event.data["timestamp"]
         span_data = self.create_span(
             {
-                "segment_id": event.event_id[:16],
+                "event_id": event.event_id,
                 "organization_id": event.organization.id,
                 "project_id": event.project.id,
                 "trace_id": trace_context["trace_id"],
                 "span_id": trace_context["span_id"],
                 "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
+                "segment_id": event.event_id[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts * 1000),
+                "timestamp": int(start_ts * 1000),
                 "start_timestamp_precise": start_ts,
                 "end_timestamp_precise": end_ts,
                 "received": start_ts,

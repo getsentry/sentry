@@ -47,7 +47,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    def load_trace(self):
+    def load_trace(self, is_eap=False):
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",
@@ -71,6 +71,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             slow_db_performance_issue=True,
             project_id=self.project.id,
             milliseconds=3000,
+            is_eap=is_eap,
         )
 
         # First Generation
@@ -96,6 +97,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 parent_span_id=root_span_id,
                 project_id=self.gen1_project.id,
                 milliseconds=2000,
+                is_eap=is_eap,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
                 zip(self.root_span_ids, self.gen1_span_ids)
@@ -127,6 +129,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 span_id=self.gen2_span_id if i == 0 else None,
                 project_id=self.gen2_project.id,
                 milliseconds=1000,
+                is_eap=is_eap,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
                 zip(self.gen1_span_ids, self.gen2_span_ids)
@@ -142,6 +145,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             project_id=self.gen3_project.id,
             parent_span_id=self.gen2_span_id,
             milliseconds=500,
+            is_eap=is_eap,
         )
 
 
