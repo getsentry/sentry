@@ -380,7 +380,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
-            output = []
+            output: list[dict[str, Any]] = []
 
             page_number = 1
             resp = self.get(path, params={"per_page": self.page_size})

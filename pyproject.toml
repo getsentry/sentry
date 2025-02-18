@@ -240,7 +240,6 @@ disable_error_code = [
     "override",
     "union-attr",
     "unreachable",
-    "var-annotated",
 ]
 # end: sentry modules with typing issues
 

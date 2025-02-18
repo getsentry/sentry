@@ -1010,7 +1010,7 @@ class CliTestCase(TestCase):
     def command(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    default_args = []
+    default_args: list[str] = []
 
     def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
@@ -1941,7 +1941,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "d": EntityKey.MetricsDistributions.value,
         "s": EntityKey.MetricsSets.value,
     }
-    METRIC_STRINGS = []
+    METRIC_STRINGS: list[str] = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
