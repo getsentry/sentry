@@ -46,7 +46,9 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   }
   if (isError) {
     return (
-      <Alert type="error">{t('There was an error loading your organization.')}</Alert>
+      <Alert.Container>
+        <Alert type="error">{t('There was an error loading your organization.')}</Alert>
+      </Alert.Container>
     );
   }
   if (data.status.id === 'active') {

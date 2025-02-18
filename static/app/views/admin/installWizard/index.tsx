@@ -42,11 +42,13 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
 
   if (isError) {
     return (
-      <Alert type="error" showIcon>
-        {t(
-          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {t(
+            'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

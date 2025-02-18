@@ -40,11 +40,13 @@ export class InstalledPlugin extends Component<Props> {
   getConfirmMessage() {
     return (
       <Fragment>
-        <Alert type="error" showIcon>
-          {t(
-            'Deleting this installation will disable the integration for this project and remove any configurations.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t(
+              'Deleting this installation will disable the integration for this project and remove any configurations.'
+            )}
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   }
@@ -88,7 +90,7 @@ export class InstalledPlugin extends Component<Props> {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
-  toggleEnablePlugin = async (projectId: string, status: boolean = true) => {
+  toggleEnablePlugin = async (projectId: string, status = true) => {
     try {
       addLoadingMessage(t('Enabling...'));
       await this.updatePluginEnableStatus(status);

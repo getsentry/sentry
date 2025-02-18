@@ -136,9 +136,9 @@ function Content() {
                 <DatePageFilter defaultPeriod="2h" />
               </PageFilterBar>
               {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
-                <StyledAlert type="error" showIcon>
+                <Alert type="error" showIcon>
                   {tracesQuery.error?.responseJSON?.detail}
-                </StyledAlert>
+                </Alert>
               ) : null}
               <TracesSearchBar
                 queries={queries}
@@ -175,8 +175,4 @@ const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;

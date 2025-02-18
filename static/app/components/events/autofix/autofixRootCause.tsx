@@ -272,7 +272,11 @@ function AutofixRootCauseDisplay({
   const cause = causes[0];
 
   if (!cause) {
-    return <Alert type="error">{t('No root cause available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="error">{t('No root cause available.')}</Alert>
+      </Alert.Container>
+    );
   }
 
   if (rootCauseSelection && 'custom_root_cause' in rootCauseSelection) {
@@ -375,9 +379,11 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
       <AnimatePresence initial>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
-            <Alert type="warning">
-              {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
+              </Alert>
+            </Alert.Container>
           </NoCausesPadding>
         </AnimationWrapper>
       </AnimatePresence>

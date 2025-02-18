@@ -537,6 +537,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
 @delayed_processing_registry.register("delayed_processing")  # default delayed processing
 class DelayedRule(DelayedProcessingBase):
     buffer_key = PROJECT_ID_BUFFER_LIST_KEY
+    option = None
 
     @property
     def hash_args(self) -> BufferHashKeys:

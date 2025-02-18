@@ -120,7 +120,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 
-        result = OrderedSet()
+        result: OrderedSet[str] = OrderedSet()
 
         for j in exact_search_resp.get("values", []):
             result.add(j["full_name"])

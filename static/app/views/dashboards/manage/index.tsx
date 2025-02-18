@@ -300,7 +300,9 @@ function ManageDashboards() {
   function renderNoAccess() {
     return (
       <Layout.Page>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }

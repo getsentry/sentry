@@ -12,6 +12,7 @@ import {metric} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -74,10 +75,13 @@ export function MetricRulesEdit({
     metric.endSpan({name: 'saveAlertRule'});
     navigate(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/details/${params.ruleId}/`,
+        pathname: makeAlertsPathname({
+          path: `/rules/details/${params.ruleId}/`,
+          organization,
+        }),
       })
     );
-  }, [params.ruleId, navigate, organization.slug]);
+  }, [navigate, params.ruleId, organization]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -86,9 +90,11 @@ export function MetricRulesEdit({
   if (isError) {
     if (error?.status === 404) {
       return (
-        <Alert type="error" showIcon>
-          {t('This alert rule could not be found.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('This alert rule could not be found.')}
+          </Alert>
+        </Alert.Container>
       );
     }
 

@@ -144,8 +144,7 @@ const getFields = ({
   return null;
 };
 
-type Props = DeprecatedAsyncComponent['props'] &
-  WithRouterProps<{authId: string}, {}> & {};
+type Props = DeprecatedAsyncComponent['props'] & WithRouterProps<{authId: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   authenticator: Authenticator | null;
@@ -459,9 +458,11 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
         <TextBlock>{authenticator.description}</TextBlock>
 
         {authenticator.rotationWarning && authenticator.status === 'rotation' && (
-          <Alert type="warning" showIcon>
-            {authenticator.rotationWarning}
-          </Alert>
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {authenticator.rotationWarning}
+            </Alert>
+          </Alert.Container>
         )}
 
         {!!authenticator.form?.length && (
