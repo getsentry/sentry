@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from datetime import datetime
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -20,11 +20,16 @@ from sentry.snuba.spans_rpc import RPCSpan, run_trace_query
 
 class SerializedEvent(TypedDict):
     children: list["SerializedEvent"]
-    id: str
+    event_id: str
+    parent_span_id: str | None
     project_id: int
     project_slug: str
-    start_timestamp: str
-    timestamp: str
+    start_timestamp: datetime | None
+    end_timestamp: datetime | None
+    transaction: str
+    description: str
+    duration: float
+    is_transaction: bool
 
 
 @region_silo_endpoint
@@ -35,12 +40,17 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
 
     def serialize_rpc_span(self, span: RPCSpan) -> SerializedEvent:
         return SerializedEvent(
-            children=[self.serialize_rpc_span(child) for child in span.children],
-            id=span.id,
-            project_id=span.project_id,
-            project_slug=span.project_slug,
-            start_timestamp=span.timestamp,
-            timestamp=span.end_timestamp,
+            children=[self.serialize_rpc_span(child) for child in span["children"]],
+            event_id=span["id"],
+            project_id=span["project.id"],
+            project_slug=span["project.slug"],
+            parent_span_id=None if span["parent_span"] == "0" * 16 else span["parent_span"],
+            start_timestamp=span["precise.start_ts"],
+            end_timestamp=span["precise.finish_ts"],
+            duration=span["span.duration"],
+            transaction=span["transaction"],
+            is_transaction=span["is_transaction"],
+            description=span["description"],
         )
 
     @sentry_sdk.tracing.trace
@@ -49,13 +59,12 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
             trace_id, snuba_params, Referrer.API_TRACE_VIEW_GET_EVENTS.value, {}
         )
         result = []
-        id_to_event = {event.id: event for event in trace_data}
+        id_to_event = {event["id"]: event for event in trace_data}
         for span in trace_data:
-            if span.parent_span is not None and span.parent_span in id_to_event:
-                parent = id_to_event.get(span.parent_span)
-                parent.children.append(span)
+            if span["parent_span"] in id_to_event:
+                parent = id_to_event.get(span["parent_span"])
+                parent["children"].append(span)
             else:
-                breakpoint()
                 result.append(span)
         return [self.serialize_rpc_span(root) for root in result]
 

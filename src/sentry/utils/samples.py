@@ -184,6 +184,9 @@ def load_data(
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
     timestamp = timestamp.replace(tzinfo=timezone.utc)
     data.setdefault("timestamp", timestamp.timestamp())
+    if start_timestamp:
+        start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
+        data.setdefault("start_timestamp", start_timestamp.timestamp())
 
     if data.get("type") == "transaction":
         if start_timestamp is None:

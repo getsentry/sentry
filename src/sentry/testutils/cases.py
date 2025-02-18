@@ -3419,11 +3419,10 @@ class TraceTestCase(SpanTestCase):
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,
-                # Multiply by 1000 cause it needs to be ms
-                "start_timestamp_ms": int(start_ts * 1000),
-                "timestamp": int(start_ts * 1000),
+                "start_timestamp_precise": start_ts,
+                "end_timestamp_precise": end_ts,
                 "received": start_ts,
-                "duration_ms": int(end_ts - start_ts),
+                "duration_ms": int((end_ts - start_ts) * 1000),
             }
         )
         if "parent_span_id" in trace_context:
@@ -3431,10 +3430,11 @@ class TraceTestCase(SpanTestCase):
         else:
             del span_data["parent_span_id"]
 
-        if "sentry_tags" in span_data:
-            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
-        else:
-            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
+        if "sentry_tags" not in span_data:
+            span_data["sentry_tags"] = {}
+
+        span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        span_data["sentry_tags"]["transaction"] = event.data["transaction"]
 
         return span_data
 

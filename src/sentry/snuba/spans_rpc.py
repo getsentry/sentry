@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Type
+from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
@@ -14,7 +14,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
+from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
@@ -395,6 +395,7 @@ class RPCSpan:
     id: str
     parent_span: None | str = None
     description: None | str = None
+    duration: None | float = None
     op: None | str = None
     is_transaction: bool = False
     transaction_id: None | str = None
@@ -417,10 +418,12 @@ def run_trace_query(
         "op",
         "is_transaction",
         "transaction.span_id",
-        "timestamp",
-        "end_timestamp",
+        "transaction",
+        "precise.start_ts",
+        "precise.finish_ts",
         "project.slug",
         "project.id",
+        "span.duration",
     ]
     resolver = get_resolver(params=params, config=SearchResolverConfig())
     columns, _ = resolver.resolve_attributes(trace_attributes)
@@ -440,24 +443,16 @@ def run_trace_query(
     columns_by_name = {col.proto_definition.name: col for col in columns}
     for item_group in response.item_groups:
         for span_item in item_group.items:
-            span = RPCSpan(span_item.id)
+            span = {"id": span_item.id, "children": []}
             for attribute in span_item.attributes:
-                if attribute.key.name not in columns_by_name:
-                    raise Exception(f"no idea what {attribute.key.name} is")
                 resolved_column = columns_by_name[attribute.key.name]
                 if resolved_column.proto_definition.type == STRING:
-                    if resolved_column.public_alias == "transaction.span_id":
-                        span.transaction_id = attribute.value.val_str
-                    elif resolved_column.public_alias == "project.slug":
-                        span.project_slug = attribute.value.val_str
-                    else:
-                        setattr(span, resolved_column.public_alias, attribute.value.val_str)
-                if resolved_column.proto_definition.type == DOUBLE:
-                    if resolved_column.public_alias == "project.id":
-                        span.project_id = attribute.value.val_double
-                    else:
-                        setattr(span, resolved_column.public_alias, attribute.value.val_double)
+                    span[resolved_column.public_alias] = attribute.value.val_str
+                elif resolved_column.proto_definition.type == DOUBLE:
+                    span[resolved_column.public_alias] = attribute.value.val_double
                 elif resolved_column.search_type == "boolean":
-                    setattr(span, resolved_column.public_alias, attribute.value.val_int == 1)
+                    span[resolved_column.public_alias] = attribute.value.val_int == 1
+                elif resolved_column.proto_definition.type == INT:
+                    span[resolved_column.public_alias] = attribute.value.val_int
             spans.append(span)
     return spans

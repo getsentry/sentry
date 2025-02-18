@@ -741,7 +741,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
-        breakpoint()
         self.assert_trace_data(trace_transaction)
         # We shouldn't have detailed fields here
         assert "transaction.status" not in trace_transaction
