@@ -211,7 +211,6 @@ export function SpansTabContentImpl({
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
             confidences={confidences}
-            isAllowedSelection={isAllowedSelection}
             query={query}
             timeseriesResult={timeseriesResult}
           />

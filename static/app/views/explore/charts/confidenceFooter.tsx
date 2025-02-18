@@ -9,17 +9,23 @@ import {defined} from 'sentry/utils';
 type Props = {
   confidence?: Confidence;
   sampleCount?: number;
+  topEvents?: number;
 };
 
-export function ConfidenceFooter({sampleCount, confidence}: Props) {
+export function ConfidenceFooter({sampleCount, confidence, topEvents}: Props) {
+  const prefix =
+    defined(topEvents) && topEvents > 0
+      ? t('Chart for top %s groups', topEvents)
+      : t('Chart');
   return (
     <Container>
       {!defined(sampleCount)
-        ? t('* Chart extrapolated from \u2026')
+        ? tct('* [prefix] extrapolated from \u2026', {prefix})
         : confidence === 'low'
           ? tct(
-              '* Chart extrapolated from [sampleCount] samples ([insufficientSamples])',
+              '* [prefix]  extrapolated from [sampleCount] samples ([insufficientSamples])',
               {
+                prefix,
                 sampleCount: <Count value={sampleCount} />,
                 insufficientSamples: (
                   <Tooltip
@@ -34,7 +40,8 @@ export function ConfidenceFooter({sampleCount, confidence}: Props) {
                 ),
               }
             )
-          : tct('* Chart extrapolated from [sampleCount] samples', {
+          : tct('* [prefix] extrapolated from [sampleCount] samples', {
+              prefix,
               sampleCount: <Count value={sampleCount} />,
             })}
     </Container>
