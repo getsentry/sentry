@@ -179,8 +179,8 @@ function RootCauseDescription({
             stepIndex={previousDefaultStepIndex ?? 0}
             retainInsightCardIndex={
               previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount - 1
-                : -1
+                ? previousInsightCount
+                : null
             }
           />
         )}
