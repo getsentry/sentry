@@ -96,6 +96,7 @@ class BaseGuideAnchor extends Component<Props, State> {
   }
 
   // TODO(TS): Reflux returns "Function" instead of () => void
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   unsubscribe: Function | undefined;
 
   onGuideStateChange(data: GuideStoreState) {

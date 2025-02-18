@@ -7,7 +7,11 @@ const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
+const respond = (
+  asyncDelay: AsyncDelay,
+  fn: FunctionCallback | undefined,
+  ...args: any[]
+): void => {
   if (!fn) {
     return;
   }
