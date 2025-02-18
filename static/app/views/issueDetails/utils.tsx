@@ -278,7 +278,7 @@ export function useHasStreamlinedUI() {
     return location.query.streamline === '1';
   }
 
-  // If the organzation option is set, it determines which interface is used.
+  // If the organzation option is set to true, the new UI is used.
   if (organization.streamlineOnly) {
     return true;
   }
