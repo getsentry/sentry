@@ -36,7 +36,7 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -262,7 +262,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
       {noPerformanceSupport && (
         <UnsupportedAlert projectSlug={project.slug} featureName="Performance" />
       )}
-      <OnboardingPanel image={<PerfImage src={emptyStateImg} />}>
+      <LegacyOnboardingPanel image={<PerfImage src={emptyStateImg} />}>
         <h3>{t('Pinpoint problems')}</h3>
         <p>
           {t(
@@ -299,7 +299,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
             </Button>
           )}
         </FeatureTourModal>
-      </OnboardingPanel>
+      </LegacyOnboardingPanel>
     </Fragment>
   );
 }
@@ -412,6 +412,65 @@ function ConfigurationStep({
   );
 }
 
+function OnboardingPanel({
+  project,
+  children,
+}: {
+  children: React.ReactNode;
+  project: Project;
+}) {
+  return (
+    <Panel>
+      <PanelBody>
+        <AuthTokenGeneratorProvider projectSlug={project?.slug}>
+          <div>
+            <HeaderWrapper>
+              <HeaderText>
+                <Title>{t('Query for Traces, Get Answers')}</Title>
+                <SubTitle>
+                  {t(
+                    'You can query and aggregate spans to create metrics that help you debug busted API calls, slow image loads, or any other metrics you’d like to track.'
+                  )}
+                </SubTitle>
+                <BulletList>
+                  <li>
+                    {t(
+                      'Find traces tied to a user complaint and pinpoint exactly what broke'
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'Debug persistent issues by investigating API payloads, cache sizes, user tokens, and more'
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'Track any span attribute as a metric to catch slowdowns before they escalate'
+                    )}
+                  </li>
+                </BulletList>
+              </HeaderText>
+              <Image src={emptyTraceImg} />
+            </HeaderWrapper>
+            <Divider />
+            <Body>
+              <Setup>{children}</Setup>
+              <Preview>
+                <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
+                <Arcade
+                  src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </Preview>
+            </Body>
+          </div>
+        </AuthTokenGeneratorProvider>
+      </PanelBody>
+    </Panel>
+  );
+}
+
 export function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
@@ -445,31 +504,33 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   if (doesNotSupportPerformance) {
     return (
-      <Fragment>
+      <OnboardingPanel project={project}>
         <div>
           {tct(
             'Fiddlesticks. Performance isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
             {platform: currentPlatform?.name || project.slug}
           )}
         </div>
+        <br />
         <div>
           <LinkButton size="sm" href="https://docs.sentry.io/platforms/" external>
             {t('Go to Sentry Documentation')}
           </LinkButton>
         </div>
-      </Fragment>
+      </OnboardingPanel>
     );
   }
 
   if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
     return (
-      <Fragment>
+      <OnboardingPanel project={project}>
         <div>
           {tct(
-            'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+            'Fiddlesticks. The tracing onboarding checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
             {project: project.slug}
           )}
         </div>
+        <br />
         <div>
           <LinkButton
             size="sm"
@@ -479,7 +540,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
             {t('Go to documentation')}
           </LinkButton>
         </div>
-      </Fragment>
+      </OnboardingPanel>
     );
   }
 
@@ -529,157 +590,102 @@ export function Onboarding({organization, project}: OnboardingProps) {
   );
 
   return (
-    <Panel>
-      <PanelBody>
-        <AuthTokenGeneratorProvider projectSlug={project?.slug}>
+    <OnboardingPanel project={project}>
+      <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+      <GuidedSteps>
+        <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
           <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Query for Traces, Get Answers')}</Title>
-                <SubTitle>
-                  {t(
-                    'You can query and aggregate spans to create metrics that help you debug busted API calls, slow image loads, or any other metrics you’d like to track.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
-                    {t(
-                      'Find traces tied to a user complaint and pinpoint exactly what broke'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug persistent issues by investigating API payloads, cache sizes, user tokens, and more'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Track any span attribute as a metric to catch slowdowns before they escalate'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>
-                <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
-                <GuidedSteps>
-                  <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
-                    <div>
-                      <div>
-                        <DescriptionWrapper>{installStep.description}</DescriptionWrapper>
-                        {installStep.configurations?.map((configuration, index) => (
-                          <div key={index}>
-                            <DescriptionWrapper>
-                              {configuration.description}
-                            </DescriptionWrapper>
-                            <CodeSnippetWrapper>
-                              {configuration.code ? (
-                                Array.isArray(configuration.code) ? (
-                                  <TabbedCodeSnippet tabs={configuration.code} />
-                                ) : (
-                                  <OnboardingCodeSnippet
-                                    language={configuration.language}
-                                  >
-                                    {configuration.code}
-                                  </OnboardingCodeSnippet>
-                                )
-                              ) : null}
-                            </CodeSnippetWrapper>
-                          </div>
-                        ))}
-                        {!configureStep.configurations && !verifyStep.configurations
-                          ? eventWaitingIndicator
-                          : null}
-                      </div>
-                      <GuidedSteps.ButtonWrapper>
-                        <GuidedSteps.BackButton size="md" />
-                        <GuidedSteps.NextButton size="md" />
-                      </GuidedSteps.ButtonWrapper>
-                    </div>
-                  </GuidedSteps.Step>
-                  {sentryConfiguration ? (
-                    <ConfigurationStep
-                      stepKey={'configure-sentry'}
-                      title={t('Configure Sentry')}
-                      configuration={sentryConfiguration}
-                      api={api}
-                      organization={organization}
-                      project={project}
-                      showWaitingIndicator={!hasVerifyStep}
-                    />
-                  ) : null}
-                  {addingDistributedTracing ? (
-                    <ConfigurationStep
-                      stepKey={'add-distributed-tracing'}
-                      title={tct('Add Distributed Tracing [optional:(Optional)]', {
-                        optional: <OptionalText />,
-                      })}
-                      configuration={addingDistributedTracing}
-                      api={api}
-                      organization={organization}
-                      project={project}
-                      showWaitingIndicator={!hasVerifyStep}
-                    />
-                  ) : null}
-                  {verifyStep.configurations || verifyStep.description ? (
-                    <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
-                      <div>
-                        <DescriptionWrapper>{verifyStep.description}</DescriptionWrapper>
-                        {verifyStep.configurations?.map((configuration, index) => (
-                          <div key={index}>
-                            <DescriptionWrapper>
-                              {configuration.description}
-                            </DescriptionWrapper>
-                            <CodeSnippetWrapper>
-                              {configuration.code ? (
-                                Array.isArray(configuration.code) ? (
-                                  <TabbedCodeSnippet tabs={configuration.code} />
-                                ) : (
-                                  <OnboardingCodeSnippet
-                                    language={configuration.language}
-                                  >
-                                    {configuration.code}
-                                  </OnboardingCodeSnippet>
-                                )
-                              ) : null}
-                            </CodeSnippetWrapper>
-                          </div>
-                        ))}
-                        {eventWaitingIndicator}
-                      </div>
-                      <GuidedSteps.ButtonWrapper>
-                        <GuidedSteps.BackButton size="md" />
-                        <SampleButton
-                          triggerText={t('Take me to an example')}
-                          loadingMessage={t('Processing sample trace...')}
-                          errorMessage={t('Failed to create sample trace')}
-                          organization={organization}
-                          project={project}
-                          api={api}
-                        />
-                      </GuidedSteps.ButtonWrapper>
-                    </GuidedSteps.Step>
-                  ) : (
-                    <Fragment />
-                  )}
-                </GuidedSteps>
-              </Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
+            <div>
+              <DescriptionWrapper>{installStep.description}</DescriptionWrapper>
+              {installStep.configurations?.map((configuration, index) => (
+                <div key={index}>
+                  <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+                  <CodeSnippetWrapper>
+                    {configuration.code ? (
+                      Array.isArray(configuration.code) ? (
+                        <TabbedCodeSnippet tabs={configuration.code} />
+                      ) : (
+                        <OnboardingCodeSnippet language={configuration.language}>
+                          {configuration.code}
+                        </OnboardingCodeSnippet>
+                      )
+                    ) : null}
+                  </CodeSnippetWrapper>
+                </div>
+              ))}
+              {!configureStep.configurations && !verifyStep.configurations
+                ? eventWaitingIndicator
+                : null}
+            </div>
+            <GuidedSteps.ButtonWrapper>
+              <GuidedSteps.BackButton size="md" />
+              <GuidedSteps.NextButton size="md" />
+            </GuidedSteps.ButtonWrapper>
           </div>
-        </AuthTokenGeneratorProvider>
-      </PanelBody>
-    </Panel>
+        </GuidedSteps.Step>
+        {sentryConfiguration ? (
+          <ConfigurationStep
+            stepKey={'configure-sentry'}
+            title={t('Configure Sentry')}
+            configuration={sentryConfiguration}
+            api={api}
+            organization={organization}
+            project={project}
+            showWaitingIndicator={!hasVerifyStep}
+          />
+        ) : null}
+        {addingDistributedTracing ? (
+          <ConfigurationStep
+            stepKey={'add-distributed-tracing'}
+            title={tct('Add Distributed Tracing [optional:(Optional)]', {
+              optional: <OptionalText />,
+            })}
+            configuration={addingDistributedTracing}
+            api={api}
+            organization={organization}
+            project={project}
+            showWaitingIndicator={!hasVerifyStep}
+          />
+        ) : null}
+        {verifyStep.configurations || verifyStep.description ? (
+          <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
+            <div>
+              <DescriptionWrapper>{verifyStep.description}</DescriptionWrapper>
+              {verifyStep.configurations?.map((configuration, index) => (
+                <div key={index}>
+                  <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+                  <CodeSnippetWrapper>
+                    {configuration.code ? (
+                      Array.isArray(configuration.code) ? (
+                        <TabbedCodeSnippet tabs={configuration.code} />
+                      ) : (
+                        <OnboardingCodeSnippet language={configuration.language}>
+                          {configuration.code}
+                        </OnboardingCodeSnippet>
+                      )
+                    ) : null}
+                  </CodeSnippetWrapper>
+                </div>
+              ))}
+              {eventWaitingIndicator}
+            </div>
+            <GuidedSteps.ButtonWrapper>
+              <GuidedSteps.BackButton size="md" />
+              <SampleButton
+                triggerText={t('Take me to an example')}
+                loadingMessage={t('Processing sample trace...')}
+                errorMessage={t('Failed to create sample trace')}
+                organization={organization}
+                project={project}
+                api={api}
+              />
+            </GuidedSteps.ButtonWrapper>
+          </GuidedSteps.Step>
+        ) : (
+          <Fragment />
+        )}
+      </GuidedSteps>
+    </OnboardingPanel>
   );
 }
 
