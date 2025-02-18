@@ -82,8 +82,11 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             if len(project_ids) != len(input_projects):
                 return Response({"error": "One or more projects are invalid"}, status=400)
 
-            if not self.has_release_permission(request, organization, project_ids=set(project_ids)):
-                raise ResourceDoesNotExist
+            with sentry_sdk.start_span(op="artifact_bundle.assemble.check_release_permission"):
+                if not self.has_release_permission(
+                    request, organization, project_ids=set(project_ids)
+                ):
+                    raise ResourceDoesNotExist
 
             checksum = data.get("checksum")
             chunks = data.get("chunks", [])
@@ -135,19 +138,20 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                     {"error": "You need to specify a release together with a dist"}, status=400
                 )
 
-            assemble_artifacts.apply_async(
-                kwargs={
-                    "org_id": organization.id,
-                    "project_ids": list(project_ids),
-                    # We don't perform any validation of the version, since the user might bind a bundle to a specific
-                    # release version without actually having created the release object itself.
-                    "version": version,
-                    "dist": dist,
-                    "checksum": checksum,
-                    "chunks": chunks,
-                    "upload_as_artifact_bundle": True,
-                }
-            )
+            with sentry_sdk.start_span(op="artifact_bundle.assemble.start_assemble_artifacts"):
+                assemble_artifacts.apply_async(
+                    kwargs={
+                        "org_id": organization.id,
+                        "project_ids": list(project_ids),
+                        # We don't perform any validation of the version, since the user might bind a bundle to a specific
+                        # release version without actually having created the release object itself.
+                        "version": version,
+                        "dist": dist,
+                        "checksum": checksum,
+                        "chunks": chunks,
+                        "upload_as_artifact_bundle": True,
+                    }
+                )
 
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, list(project_ids))
