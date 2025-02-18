@@ -99,10 +99,8 @@ class IntegrationPipeline(Pipeline):
             id=self.organization.id, user_id=self.request.user.id
         )
 
-        if (
-            org_context
-            and org_context.member
-            and "org:integrations" not in org_context.member.scopes
+        if org_context and (
+            not org_context.member or "org:integrations" not in org_context.member.scopes
         ):
             error_message = (
                 "You must be an organization owner, manager or admin to install this integration."
