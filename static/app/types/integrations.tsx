@@ -138,7 +138,12 @@ export type PullRequest = {
 /**
  * Sentry Apps
  */
-export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
+export type SentryAppStatus =
+  | 'unpublished'
+  | 'published'
+  | 'internal'
+  | 'publish_request_inprogress'
+  | 'deletion_in_progress';
 
 export type SentryAppSchemaIssueLink = {
   create: {
@@ -159,6 +164,21 @@ export type SentryAppSchemaStacktraceLink = {
   uri: string;
   url: string;
   params?: string[];
+};
+
+export type SentryAppSchemaAlertRuleAction = {
+  settings: SentryAppSchemaAlertRuleActionSettings;
+  title: string;
+  type: 'alert-rule-action';
+};
+
+export type SentryAppSchemaAlertRuleActionSettings = {
+  description: string;
+  // a list of FormFields
+  required_fields: any[];
+  type: 'alert-rule-settings';
+  uri: string;
+  optional_fields?: any[];
 };
 
 export enum Coverage {
@@ -197,6 +217,7 @@ export type StacktraceErrorMessage =
 
 export type SentryAppSchemaElement =
   | SentryAppSchemaIssueLink
+  | SentryAppSchemaAlertRuleAction
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
@@ -218,7 +239,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
-  avatars?: Avatar[];
+  avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
   // optional params below
@@ -266,6 +287,12 @@ export type SentryAppComponent<
   uuid: string;
   error?: string | boolean;
 };
+
+export type SentryAppAvatar = Avatar & {
+  photoType: SentryAppAvatarPhotoType;
+};
+
+export type SentryAppAvatarPhotoType = 'icon' | 'logo';
 
 export type SentryAppWebhookRequest = {
   date: string;
