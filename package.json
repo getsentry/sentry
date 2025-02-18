@@ -65,7 +65,7 @@
     "@spotlightjs/spotlight": "^2.0.0-alpha.1",
     "@tanstack/react-query": "^5.64.1",
     "@tanstack/react-query-devtools": "^5.64.1",
-    "@tanstack/react-virtual": "^3.5.1",
+    "@tanstack/react-virtual": "^3.11.3",
     "@types/color": "^3.0.3",
     "@types/diff": "5.2.1",
     "@types/dompurify": "^3.0.5",
