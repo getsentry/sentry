@@ -39,7 +39,6 @@ export const enum TraceViewSources {
   MOBILE_SCREENS_MODULE = 'mobile_screens_module',
   SCREEN_RENDERING_MODULE = 'screen_rendering_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
-  INSIGHTS_TRANSACTION_SUMMARY = 'insights_transaction_summary',
   ISSUE_DETAILS = 'issue_details',
   DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
@@ -444,7 +443,6 @@ export function getTraceViewBreadcrumbs(
     case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
-    case TraceViewSources.INSIGHTS_TRANSACTION_SUMMARY:
       return getPerformanceBreadCrumbs(organization, location, view);
     default:
       return [{label: t('Trace View')}];
