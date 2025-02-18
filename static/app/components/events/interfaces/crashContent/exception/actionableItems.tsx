@@ -338,7 +338,7 @@ function groupedErrors(
   event: Event,
   data?: ActionableItemsResponse,
   progaurdErrors?: EventErrorData[]
-): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
+): Partial<Record<ActionableItemTypes, ErrorMessageType[]>> {
   if (!data || !progaurdErrors || !event) {
     return {};
   }

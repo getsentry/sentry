@@ -47,7 +47,7 @@ export type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 export const useModuleURL = (
   moduleName: RoutableModuleNames,
-  bare: boolean = false,
+  bare = false,
   view?: DomainView // Todo - this should be required when a module belongs to multiple views
 ): string => {
   const builder = useModuleURLBuilder(bare);
@@ -66,10 +66,7 @@ export type URLBuilder = (
  *    2. (when detectDomainView=true) The current domain view (i.e if the current url is `/performance/frontend`, the current view is frontned)
  *    3. The default view for the module
  */
-export function useModuleURLBuilder(
-  bare: boolean = false,
-  detectDomainView: boolean = true
-): URLBuilder {
+export function useModuleURLBuilder(bare = false, detectDomainView = true): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
   const {view: currentView} = useDomainViewFilters();
 

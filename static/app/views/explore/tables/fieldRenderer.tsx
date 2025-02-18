@@ -69,7 +69,7 @@ export function MultiQueryFieldRenderer({
   index,
 }: MultiQueryFieldProps) {
   const queries = useReadQueriesFromLocation();
-  const userQuery = queries[index]!.query;
+  const userQuery = queries[index]?.query ?? '';
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
   return (

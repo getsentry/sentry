@@ -1,11 +1,14 @@
 import {useCallback, useMemo} from 'react';
-import type {Location} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -127,24 +130,24 @@ export type WritableExploreQueryParts = {
   yAxes?: string[];
 };
 
+function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
+  return queries.map(query =>
+    JSON.stringify({
+      chartType: query.chartType,
+      fields: query.fields,
+      groupBys: query.groupBys,
+      query: query.query,
+      sortBys: query.sortBys?.map(encodeSort),
+      yAxes: query.yAxes,
+    })
+  );
+}
+
 function getUpdatedLocationWithQueries(
   location: Location,
   queries: WritableExploreQueryParts[] | null | undefined
 ) {
-  let targetQueries: string[] | null = null;
-  if (defined(queries)) {
-    targetQueries = queries.map(query =>
-      JSON.stringify({
-        chartType: query.chartType,
-        fields: query.fields,
-        groupBys: query.groupBys,
-        query: query.query,
-        sortBys: query.sortBys?.map(encodeSort),
-        yAxes: query.yAxes,
-      })
-    );
-  }
-
+  const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
   return {
     ...location,
     query: {
@@ -255,4 +258,52 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
 
 export function getQueryMode(groupBys?: string[]): Mode {
   return groupBys?.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
+}
+
+function getCompareBaseUrl(organization: Organization) {
+  return normalizeUrl(`/organizations/${organization.slug}/traces/compare`);
+}
+
+type CompareRouteProps = {
+  location: Location;
+  mode: Mode;
+  organization: Organization;
+  chartType?: ChartType;
+  fields?: string[];
+  groupBys?: string[];
+  query?: string;
+  sortBys?: Sort[];
+  yAxes?: string[];
+};
+
+export function generateExploreCompareRoute({
+  organization,
+  location,
+  mode,
+  chartType,
+  groupBys,
+  query,
+  sortBys,
+  yAxes,
+}: CompareRouteProps): LocationDescriptorObject {
+  const url = getCompareBaseUrl(organization);
+  const compareQuery: WritableExploreQueryParts = {
+    chartType,
+    groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+    query,
+    sortBys,
+    yAxes,
+  };
+  return {
+    pathname: url,
+    query: {
+      [URL_PARAM.END]: location.query.end,
+      [URL_PARAM.START]: location.query.start,
+      [URL_PARAM.UTC]: location.query.utc,
+      [URL_PARAM.PERIOD]: location.query.statsPeriod,
+      [URL_PARAM.PROJECT]: location.query.project,
+      [URL_PARAM.ENVIRONMENT]: location.query.environment,
+      queries: getQueriesAsUrlParam([compareQuery]),
+    },
+  };
 }

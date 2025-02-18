@@ -28,22 +28,16 @@ export function useMultiQueryTableAggregateMode({
   const {selection} = usePageFilters();
 
   const fields = useMemo(() => {
-    const allFields: string[] = [];
+    const allFields: Set<string> = new Set();
 
     for (const groupBy of groupBys) {
-      if (allFields.includes(groupBy)) {
-        continue;
-      }
-      allFields.push(groupBy);
+      allFields.add(groupBy);
     }
 
     for (const yAxis of yAxes) {
-      if (allFields.includes(yAxis)) {
-        continue;
-      }
-      allFields.push(yAxis);
+      allFields.add(yAxis);
     }
-    return allFields.filter(Boolean);
+    return Array.from(allFields).filter(Boolean);
   }, [groupBys, yAxes]);
 
   const eventView = useMemo(() => {

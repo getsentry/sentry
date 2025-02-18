@@ -123,10 +123,7 @@ type OrganizationHeaderProps = {
   organization: Organization;
 };
 
-type ProductSelectionAvailabilityProps = Omit<
-  ProductSelectionProps,
-  'disabledProducts' | 'productsPerPlatform'
->;
+type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -190,8 +187,8 @@ export type ComponentHooks = {
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
-  'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
-  'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
+  'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
+  'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
@@ -201,7 +198,7 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
-  'component:insights-date-range-query-limit-footer': () => React.ComponentType<{}>;
+  'component:insights-date-range-query-limit-footer': () => React.ComponentType;
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
@@ -217,7 +214,7 @@ export type ComponentHooks = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
-  'component:replay-settings-alert': () => React.ComponentType<{}> | null;
+  'component:replay-settings-alert': () => React.ComponentType | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
@@ -308,7 +305,7 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
+  'onboarding-wizard:skip-help': () => React.ComponentType;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
