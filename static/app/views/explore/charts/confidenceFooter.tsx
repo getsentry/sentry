@@ -12,39 +12,58 @@ type Props = {
   topEvents?: number;
 };
 
-export function ConfidenceFooter({sampleCount, confidence, topEvents}: Props) {
-  const prefix =
-    defined(topEvents) && topEvents > 0
-      ? t('Chart for top %s groups', topEvents)
-      : t('Chart');
+export function ConfidenceFooter(props: Props) {
+  return <Container>{confidenceMessage(props)}</Container>;
+}
+
+function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
+  const isTopN = defined(topEvents) && topEvents > 0;
+  if (!defined(sampleCount)) {
+    return isTopN
+      ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
+      : t('* Chart extrapolated from \u2026');
+  }
+
+  if (confidence === 'low') {
+    return isTopN
+      ? tct(
+          '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample(s) ([lowAccuracy])',
+          {
+            topEvents,
+            sampleCount: <Count value={sampleCount} />,
+            lowAccuracy: <LowAccuracy />,
+          }
+        )
+      : tct('* Chart extrapolated from [sampleCount] sample(s) ([lowAccuracy])', {
+          sampleCount: <Count value={sampleCount} />,
+          lowAccuracy: <LowAccuracy />,
+        });
+  }
+
+  return isTopN
+    ? tct(
+        '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample(s)',
+        {
+          topEvents,
+          sampleCount: <Count value={sampleCount} />,
+        }
+      )
+    : tct('* Chart extrapolated from [sampleCount] sample(s)', {
+        sampleCount: <Count value={sampleCount} />,
+      });
+}
+
+function LowAccuracy() {
   return (
-    <Container>
-      {!defined(sampleCount)
-        ? tct('* [prefix] extrapolated from \u2026', {prefix})
-        : confidence === 'low'
-          ? tct(
-              '* [prefix]  extrapolated from [sampleCount] samples ([insufficientSamples])',
-              {
-                prefix,
-                sampleCount: <Count value={sampleCount} />,
-                insufficientSamples: (
-                  <Tooltip
-                    title={t(
-                      'Increase your sampling rates to get more samples and more accurate trends.'
-                    )}
-                  >
-                    <InsufficientSamples>
-                      {t('Sampling rate may be low for accuracy')}
-                    </InsufficientSamples>
-                  </Tooltip>
-                ),
-              }
-            )
-          : tct('* [prefix] extrapolated from [sampleCount] samples', {
-              prefix,
-              sampleCount: <Count value={sampleCount} />,
-            })}
-    </Container>
+    <Tooltip
+      title={t(
+        'Increase your sampling rates to get more samples and more accurate trends.'
+      )}
+    >
+      <InsufficientSamples>
+        {t('Sampling rate may be low for accuracy')}
+      </InsufficientSamples>
+    </Tooltip>
   );
 }
 
