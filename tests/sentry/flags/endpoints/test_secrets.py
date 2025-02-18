@@ -89,17 +89,76 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
+    def test_post_statsig(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "secret": "webhook-Xk9pL8NQaR5Ym2cx7vHnWtBj4M3f6qyZdC12mnspk8",
+                    "provider": "statsig",
+                },
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="statsig").all()
+        assert len(models) == 1
+        assert models[0].secret == "webhook-Xk9pL8NQaR5Ym2cx7vHnWtBj4M3f6qyZdC12mnspk8"
+
     def test_post_disabled(self):
         response = self.client.post(self.url, data={})
         assert response.status_code == 404, response.content
 
-    def test_post_invalid(self):
+    def test_post_invalid_provider(self):
         with self.feature(self.features):
             url = reverse(self.endpoint, args=(self.organization.id,))
             response = self.client.post(url, data={"secret": "123", "provider": "other"})
             assert response.status_code == 400, response.content
             assert response.json()["provider"] == ['"other" is not a valid choice.']
             assert response.json()["secret"] == ["Ensure this field has at least 32 characters."]
+
+    def test_post_invalid_secret(self):
+        with self.feature(self.features):
+            for provider in ["launchdarkly", "generic", "unleash"]:
+                response = self.client.post(
+                    self.url, data={"secret": "a" * 31, "provider": provider}
+                )
+                assert response.status_code == 400, response.content
+                assert response.json()["secret"] == [
+                    "Ensure this field has at least 32 characters."
+                ], provider
+
+                response = self.client.post(
+                    self.url, data={"secret": "a" * 33, "provider": provider}
+                )
+                assert response.status_code == 400, response.content
+                assert response.json()["secret"] == [
+                    "Ensure this field has no more than 32 characters."
+                ], provider
+
+            # Statsig
+            response = self.client.post(self.url, data={"secret": "a" * 32, "provider": "statsig"})
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field is of the format webhook-<hash>"
+            ], "statsig"
+
+            response = self.client.post(
+                self.url,
+                data={"secret": "webhook-" + "a" * (31 - len("webhook-")), "provider": "statsig"},
+            )
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field has at least 32 characters."
+            ], "statsig"
+
+            response = self.client.post(
+                self.url,
+                data={"secret": "webhook-" + "a" * (65 - len("webhook-")), "provider": "statsig"},
+            )
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field has no more than 64 characters."
+            ], "statsig"
 
     def test_post_empty_request(self):
         with self.feature(self.features):
