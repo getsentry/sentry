@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -33,8 +32,13 @@ const DEFAULT_BEYOND_THE_BASICS_TASKS = [
   {task: OnboardingTaskKey.FIRST_TRANSACTION, title: 'Set up Tracing'},
 ];
 
+const organization = OrganizationFixture({
+  features: ['onboarding'],
+});
+
 describe('OnboardingSidebarContent', function () {
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
       method: 'GET',
@@ -45,7 +49,7 @@ describe('OnboardingSidebarContent', function () {
   });
 
   it('should render the sidebar with the correct groups and tasks', async function () {
-    render(<OnboardingSidebarContent onClose={jest.fn()} />);
+    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
 
     // Group 1
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
@@ -95,6 +99,22 @@ describe('OnboardingSidebarContent', function () {
     }
   });
 
+  it('marks task as completed when task is completed', async function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/onboarding-tasks/',
+      method: 'GET',
+      body: {
+        onboardingTasks: [{task: OnboardingTaskKey.FIRST_PROJECT, status: 'complete'}],
+      },
+    });
+
+    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+
+    expect(await screen.findByText('1 out of 6 tasks completed')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+  });
+
   it('if first group completed, second group should be expanded by default', async function () {
     render(<OnboardingSidebarContent onClose={jest.fn()} />, {
       organization: OrganizationFixture({
@@ -115,14 +135,12 @@ describe('OnboardingSidebarContent', function () {
   });
 
   it('show skipable confirmation when skipping a task', async function () {
-    const {organization} = initializeOrg();
-
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'POST',
     });
 
-    render(<OnboardingSidebarContent onClose={jest.fn()} />);
+    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
 
     // Click skip task
     await userEvent.click(

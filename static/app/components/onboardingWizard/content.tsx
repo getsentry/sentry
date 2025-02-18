@@ -119,6 +119,7 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
+          data-test-id="task-status-icon-complete"
           css={css`
             color: ${theme.success};
             height: ${theme.fontSizeLarge};
@@ -128,6 +129,7 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
         />
       ) : status === 'skipped' ? (
         <IconNot
+          data-test-id="task-status-icon-skipped"
           css={css`
             color: ${theme.disabled};
             height: ${theme.fontSizeLarge};
@@ -136,6 +138,7 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
         />
       ) : status === 'pending' ? (
         <IconSync
+          data-test-id="task-status-icon-pending"
           css={css`
             color: ${theme.pink400};
             height: ${theme.fontSizeLarge};
@@ -144,6 +147,7 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
         />
       ) : (
         <ProgressRing
+          data-test-id="task-status-icon-progress"
           value={progressValue * 100}
           progressEndcaps="round"
           size={16}
