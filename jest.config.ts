@@ -232,6 +232,7 @@ const config: Config.InitialOptions = {
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
