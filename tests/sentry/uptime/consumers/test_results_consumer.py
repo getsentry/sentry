@@ -910,7 +910,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 new=2,
             ),
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.PROVIDER_NAMES_TO_INCLUDE_AS_TAGS",
+                "sentry.uptime.consumers.results_consumer.TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS",
                 new=1,
             ),
         ):

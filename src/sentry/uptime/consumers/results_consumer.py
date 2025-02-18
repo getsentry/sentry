@@ -68,7 +68,7 @@ ACTIVE_RECOVERY_THRESHOLD = 1
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
 # We want to limit cardinality for provider tags. This controls how many tags we should include
-PROVIDER_NAMES_TO_INCLUDE_AS_TAGS = 30
+TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 
 def _get_snuba_uptime_checks_producer() -> KafkaProducer:
@@ -155,7 +155,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
     def get_host_provider_if_valid(self, subscription: UptimeSubscription) -> str:
         if subscription.host_provider_name in get_top_hosting_provider_names(
-            PROVIDER_NAMES_TO_INCLUDE_AS_TAGS
+            TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS
         ):
             return subscription.host_provider_name
         return "other"
