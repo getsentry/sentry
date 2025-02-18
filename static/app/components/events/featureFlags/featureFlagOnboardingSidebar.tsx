@@ -10,8 +10,8 @@ import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
 import {FLAG_HASH_SKIP_CONFIG} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
-  ProviderEnum,
-  SdkIntegrationEnum,
+  SdkProviderEnum,
+  WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -206,7 +206,7 @@ function OnboardingContent({
   const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
 
   // First dropdown: OpenFeature providers
-  const openFeatureProviderOptions = Object.values(ProviderEnum).map(provider => {
+  const openFeatureProviderOptions = Object.values(WebhookProviderEnum).map(provider => {
     return {
       value: provider,
       textValue: provider,
@@ -221,8 +221,8 @@ function OnboardingContent({
   }>(openFeatureProviderOptions[0]!);
 
   // Second dropdown: other SDK providers
-  const sdkProviderOptions = Object.values(SdkIntegrationEnum)
-    .filter(provider => provider !== SdkIntegrationEnum.OPENFEATURE)
+  const sdkProviderOptions = Object.values(SdkProviderEnum)
+    .filter(provider => provider !== SdkProviderEnum.OPENFEATURE)
     .map(provider => {
       return {
         value: provider,
@@ -356,7 +356,7 @@ function OnboardingContent({
           integration={
             // either OpenFeature or the SDK selected from the second dropdown
             setupMode() === 'openFeature'
-              ? SdkIntegrationEnum.OPENFEATURE
+              ? SdkProviderEnum.OPENFEATURE
               : sdkProvider.value
           }
           provider={
@@ -394,9 +394,7 @@ function OnboardingContent({
         projectSlug={currentProject.slug}
         integration={
           // either OpenFeature or the SDK selected from the second dropdown
-          setupMode() === 'openFeature'
-            ? SdkIntegrationEnum.OPENFEATURE
-            : sdkProvider.value
+          setupMode() === 'openFeature' ? SdkProviderEnum.OPENFEATURE : sdkProvider.value
         }
         provider={
           // dropdown value (from either dropdown)

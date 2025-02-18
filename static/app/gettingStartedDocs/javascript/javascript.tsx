@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import {SdkIntegrationEnum as FeatureFlagIntegrationEnum} from 'sentry/components/events/featureFlags/utils';
+import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -71,10 +71,10 @@ type FeatureFlagConfiguration = {
 };
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
-  FeatureFlagIntegrationEnum,
+  FeatureFlagProviderEnum,
   FeatureFlagConfiguration
 > = {
-  [FeatureFlagIntegrationEnum.GENERIC]: {
+  [FeatureFlagProviderEnum.GENERIC]: {
     integrationName: `featureFlagsIntegration`,
     makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
 
@@ -95,7 +95,7 @@ if (flagsIntegration) {
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
-  [FeatureFlagIntegrationEnum.LAUNCHDARKLY]: {
+  [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
     integrationName: `launchDarklyIntegration`,
     makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import * as LaunchDarkly from "launchdarkly-js-client-sdk";
@@ -117,7 +117,7 @@ ldClient?.variation("test-flag", false);
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
-  [FeatureFlagIntegrationEnum.OPENFEATURE]: {
+  [FeatureFlagProviderEnum.OPENFEATURE]: {
     integrationName: `openFeatureIntegration`,
     makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { OpenFeature } from "@openfeature/web-sdk";
@@ -135,7 +135,7 @@ const result = client.getBooleanValue("test-flag", false); // evaluate with a de
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
-  [FeatureFlagIntegrationEnum.STATSIG]: {
+  [FeatureFlagProviderEnum.STATSIG]: {
     integrationName: `statsigIntegration`,
     makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { StatsigClient } from "@statsig/js-client";
@@ -159,7 +159,7 @@ const result = statsigClient.checkGate("my-feature-gate");
 Sentry.captureException(new Error("something went wrong"));`,
   },
 
-  [FeatureFlagIntegrationEnum.UNLEASH]: {
+  [FeatureFlagProviderEnum.UNLEASH]: {
     integrationName: `unleashIntegration`,
     makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { UnleashClient } from "unleash-proxy-client";
