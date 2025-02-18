@@ -646,7 +646,6 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     assigneeType: string;
     user: Team | User;
     assigneeEmail?: string;
-    assigneeName?: string;
     /**
      * If the user was assigned via an integration
      */
