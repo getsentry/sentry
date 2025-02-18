@@ -619,17 +619,17 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
-              field: ['count_unique(user)'],
+              field: ['p50(transaction.duration)'],
             },
           }),
         }),
       }
     );
 
-    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
-      'count_unique'
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent('p50');
+    expect(screen.getByLabelText('Column Selection')).toHaveTextContent(
+      'transaction.duration'
     );
-    expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
 
     // Add 3 fields
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
@@ -637,15 +637,15 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
-    expect(screen.getAllByText('count')).toHaveLength(3);
+    expect(screen.getAllByText('count_unique')).toHaveLength(3);
 
     // Change the last field
-    await userEvent.click(screen.getAllByText('count')[2]!);
+    await userEvent.click(screen.getAllByText('count_unique')[2]!);
     await userEvent.click(screen.getByRole('option', {name: 'epm'}));
 
     // The other fields should not be affected
-    expect(screen.getByText('count_unique')).toBeInTheDocument();
-    expect(screen.getAllByText('count')).toHaveLength(2);
+    expect(screen.getByText('p50')).toBeInTheDocument();
+    expect(screen.getAllByText('count_unique')).toHaveLength(2);
     expect(screen.getAllByText('epm')).toHaveLength(1);
   });
 
