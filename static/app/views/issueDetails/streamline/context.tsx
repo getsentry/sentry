@@ -102,7 +102,6 @@ export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   navScrollMargin: 0,
   eventCount: 0,
   activeSection: null,
-  sectionVisibility: {},
   dispatch: () => {},
 });
 
@@ -134,13 +133,10 @@ export interface IssueDetailsState {
     [key in SectionKey]?: SectionConfig;
   };
   /**
-   * Tracks which section is currently most visible in the viewport
+   * Tracks which section is currently most visible in the viewport based on
+   * its proximity to the activation offset
    */
   activeSection: string | null;
-  /**
-   * Tracks intersection ratios for all sections (0 to 1)
-   */
-  sectionVisibility: Record<string, number>;
 }
 
 type UpdateEventSectionAction = {
@@ -211,7 +207,6 @@ export function useIssueDetailsReducer() {
     eventCount: 0,
     navScrollMargin: 0,
     activeSection: null,
-    sectionVisibility: {},
   };
 
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
@@ -227,28 +222,13 @@ export function useIssueDetailsReducer() {
           return {...state, eventCount: action.count};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
-        case 'UPDATE_SECTION_VISIBILITY': {
-          const nextVisibility = {
-            ...state.sectionVisibility,
-            [action.sectionId]: action.ratio,
-          };
-
-          // Find section with highest visibility ratio
-          let maxRatio = 0;
-          let maxSection: string | null = null;
-          Object.entries(nextVisibility).forEach(([section, ratio]) => {
-            if (ratio > maxRatio) {
-              maxRatio = ratio;
-              maxSection = section;
-            }
-          });
-
+        case 'UPDATE_SECTION_VISIBILITY':
+          // When ratio is 1, it indicates this section should be active based on
+          // its proximity to the activation offset
           return {
             ...state,
-            sectionVisibility: nextVisibility,
-            activeSection: maxRatio > 0 ? maxSection : null,
+            activeSection: action.ratio === 1 ? action.sectionId : state.activeSection,
           };
-        }
         default:
           return state;
       }

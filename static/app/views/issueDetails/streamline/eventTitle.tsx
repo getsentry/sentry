@@ -116,6 +116,48 @@ function useIntersectionObserver(elementId: string) {
   }, [elementId, dispatch]);
 }
 
+/**
+ * Hook that updates the active section based on a fixed activation offset from the viewport top.
+ * This provides more stable navigation highlighting compared to pure intersection ratios.
+ */
+function useActiveSectionUpdater(sectionKeys: string[], activationOffset = 100) {
+  const {dispatch} = useIssueDetails();
+
+  const handleScroll = useCallback(() => {
+    let activeKey = null;
+    let minDiff = Infinity;
+
+    sectionKeys.forEach(key => {
+      const element = document.getElementById(key);
+      if (element) {
+        const {top} = element.getBoundingClientRect();
+        const diff = Math.abs(top - activationOffset);
+        if (diff < minDiff) {
+          minDiff = diff;
+          activeKey = key;
+        }
+      }
+    });
+
+    if (activeKey) {
+      dispatch({
+        type: 'UPDATE_SECTION_VISIBILITY',
+        sectionId: activeKey,
+        ratio: 1, // Using ratio=1 to indicate this section should be active
+      });
+    }
+  }, [sectionKeys, activationOffset, dispatch]);
+
+  useEffect(() => {
+    // Initial check on mount
+    handleScroll();
+
+    // Add passive scroll listener
+    window.addEventListener('scroll', handleScroll, {passive: true});
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+}
+
 export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
   function EventNavigation({event, group, ...props}, ref) {
     const organization = useOrganization();
@@ -180,6 +222,9 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           streamline: true,
         }),
     });
+
+    const eventSectionKeys = eventSectionConfigs.map(config => config.key);
+    useActiveSectionUpdater(eventSectionKeys);
 
     return (
       <div {...props} ref={ref}>
@@ -296,7 +341,6 @@ function EventNavigationLink({
     config?.initialCollapse ?? false
   );
   const {activeSection} = useIssueDetails();
-  useIntersectionObserver(config.key);
 
   const activeCss = css`
     color: ${theme.activeText} !important;
@@ -305,19 +349,31 @@ function EventNavigationLink({
 
   const isActive = activeSection === config.key;
 
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setIsCollapsed(false);
+
+      const targetElement = document.getElementById(config.key);
+      if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        const targetTop = rect.top + window.scrollY;
+        window.scrollTo({
+          top: targetTop - 100, // 100px activation offset
+          behavior: 'smooth',
+        });
+      }
+    },
+    [config.key, setIsCollapsed]
+  );
+
   return (
     <LinkButton
       to={{
         ...location,
         hash: `#${config.key}`,
       }}
-      onClick={event => {
-        event.preventDefault();
-        setIsCollapsed(false);
-        document
-          .getElementById(config.key)
-          ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-      }}
+      onClick={handleClick}
       borderless
       size="xs"
       css={[propCss, isActive && activeCss]}
