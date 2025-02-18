@@ -79,7 +79,7 @@ export function recordFinish(
   if (isDemoModeEnabled() && tourTask && org) {
     const {tour, task} = tourTask;
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
-    fetchOrganizationDetails(api, org.slug, true, false);
+    fetchOrganizationDetails(api, org.slug);
     demoEndModal({tour, orgSlug});
   }
 

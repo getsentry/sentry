@@ -93,7 +93,7 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     // Reload organization details since we've created a new project
-    fetchOrganizationDetails(this.api, orgSlug, true, false);
+    fetchOrganizationDetails(this.api, orgSlug);
 
     this.trigger(new Set([project.id]));
   },
