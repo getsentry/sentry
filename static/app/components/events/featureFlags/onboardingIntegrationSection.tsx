@@ -11,8 +11,8 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {
-  PROVIDER_OPTION_TO_URLS,
-  ProviderOptions,
+  PROVIDER_TO_SETUP_WEBHOOK_URL,
+  ProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -120,7 +120,7 @@ export default function OnboardingIntegrationSection({
                 {
                   link: (
                     <ExternalLink
-                      href={PROVIDER_OPTION_TO_URLS[provider as ProviderOptions]}
+                      href={PROVIDER_TO_SETUP_WEBHOOK_URL[provider as ProviderEnum]}
                     />
                   ),
                 }
@@ -138,7 +138,7 @@ export default function OnboardingIntegrationSection({
         </SubSection>
         <SubSection>
           <div>
-            {provider === ProviderOptions.UNLEASH
+            {provider === ProviderEnum.UNLEASH
               ? t(
                   `During the process of creating a webhook integration, you'll be given the option to add an authorization header. This is a string (or "secret") that you choose so that Sentry can verify requests from your feature flag service. Paste your authorization string below.`
                 )

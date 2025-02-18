@@ -113,24 +113,29 @@ export const sortedFlags = ({
   }
 };
 
-export enum ProviderOptions {
-  LAUNCHDARKLY = 'LaunchDarkly',
+//
+export enum ProviderEnum {
   GENERIC = 'Generic',
+  LAUNCHDARKLY = 'LaunchDarkly',
+  STATSIG = 'Statsig',
   UNLEASH = 'Unleash',
 }
 
-export enum IntegrationOptions {
+export enum SdkIntegrationEnum {
+  GENERIC = 'Generic',
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
-  GENERIC = 'Generic',
+  STATSIG = 'Statsig',
   UNLEASH = 'Unleash',
 }
 
-export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string | undefined> = {
-  [ProviderOptions.LAUNCHDARKLY]:
-    'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
-  [ProviderOptions.UNLEASH]:
-    'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
-  [ProviderOptions.GENERIC]:
+export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<ProviderEnum, string | undefined> = {
+  [ProviderEnum.GENERIC]:
     'https://docs.sentry.io/organization/integrations/feature-flag/generic/#set-up-change-tracking',
+  [ProviderEnum.LAUNCHDARKLY]:
+    'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
+  [ProviderEnum.STATSIG]:
+    'https://docs.sentry.io/organization/integrations/feature-flag/statsig/#set-up-change-tracking',
+  [ProviderEnum.UNLEASH]:
+    'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
 };

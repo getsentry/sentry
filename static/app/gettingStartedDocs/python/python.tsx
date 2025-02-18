@@ -1,4 +1,4 @@
-import {IntegrationOptions} from 'sentry/components/events/featureFlags/utils';
+import {SdkIntegrationEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -21,20 +21,20 @@ type FlagImports = {
   module: string; // what's imported from sentry_sdk.integrations
 };
 
-const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
-  [IntegrationOptions.LAUNCHDARKLY]: {
+const FLAG_OPTION_TO_IMPORT: Record<SdkIntegrationEnum, FlagImports> = {
+  [SdkIntegrationEnum.LAUNCHDARKLY]: {
     module: 'integrations.launchdarkly',
     integration: 'LaunchDarklyIntegration',
   },
-  [IntegrationOptions.OPENFEATURE]: {
+  [SdkIntegrationEnum.OPENFEATURE]: {
     module: 'integrations.openfeature',
     integration: 'OpenFeatureIntegration',
   },
-  [IntegrationOptions.UNLEASH]: {
+  [SdkIntegrationEnum.UNLEASH]: {
     module: 'integrations.unleash',
     integration: 'UnleashIntegration',
   },
-  [IntegrationOptions.GENERIC]: {
+  [SdkIntegrationEnum.GENERIC]: {
     module: 'feature_flags',
     integration: '',
   },
@@ -259,7 +259,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description:
-        featureFlagOptions.integration === IntegrationOptions.GENERIC
+        featureFlagOptions.integration === SdkIntegrationEnum.GENERIC
           ? `This provider doesn't use an integration. Simply initialize Sentry and import the API.`
           : tct('Add [name] to your integrations list.', {
               name: (
@@ -270,7 +270,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         {
           language: 'python',
           code:
-            featureFlagOptions.integration === IntegrationOptions.GENERIC
+            featureFlagOptions.integration === SdkIntegrationEnum.GENERIC
               ? `import sentry_sdk
 from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag
 
