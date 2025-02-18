@@ -17,7 +17,7 @@ export type SearchEventParameters = {
   'command_palette.open': OpenEvent;
   'command_palette.query': QueryEvent;
   'command_palette.select': SelectEvent;
-  'omnisearch.open': {};
+  'omnisearch.open': Record<string, unknown>;
   'organization_saved_search.selected': {
     id: number;
     is_global: boolean;
