@@ -83,7 +83,7 @@ describe('useHasStreamlinedUI', () => {
     expect(result.current).toBe(true);
   });
 
-  it('ignores preferences if organization option is set', () => {
+  it('ignores preferences if organization option is set to true', () => {
     jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
     const streamlineOrg = OrganizationFixture({streamlineOnly: true});
@@ -104,7 +104,7 @@ describe('useHasStreamlinedUI', () => {
     act(() => ConfigStore.set('user', user));
 
     const {result: legacyResult} = renderHook(useHasStreamlinedUI);
-    expect(legacyResult.current).toBe(false);
+    expect(legacyResult.current).toBe(true);
   });
 
   it('ignores the option if unset', () => {

@@ -35,7 +35,7 @@ describe('NewIssueExperienceButton', function () {
     expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
-  it('does not appear when an organization has the single interface option', function () {
+  it('appears correctly when organization has the single interface option', function () {
     const {unmount: unmountOptionTrue} = render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
@@ -61,7 +61,7 @@ describe('NewIssueExperienceButton', function () {
         },
       }
     );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
     unmountOptionFalse();
   });
 
