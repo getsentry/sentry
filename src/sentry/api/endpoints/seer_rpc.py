@@ -231,10 +231,8 @@ def safe_for_fetching_issues(pr_files: list[PrFile]) -> list[PrFile]:
         filtered_pr_files.append(file)
 
         if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
-            # TODO: metrics like in open_pr_comment?
             return []
         if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
-            # TODO: metrics like in open_pr_comment?
             return []
 
     return filtered_pr_files
@@ -373,9 +371,7 @@ def _get_issues_for_file(
                 ),
             ]
         )
-        .set_limit(
-            max_num_issues_per_file
-        )  # TODO: order by something? Should be made reproducible.
+        .set_limit(max_num_issues_per_file)
     )
     request = SnubaRequest(
         dataset=Dataset.Events.value,
@@ -383,7 +379,6 @@ def _get_issues_for_file(
         tenant_ids={"organization_id": projects[0].organization_id},
         query=query,
     )
-    # TODO: error handling.
     return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
 
 
@@ -490,7 +485,6 @@ def get_issues_related_to_file_patches(
             organization_id, repo.id, file.filename
         )
         if not len(projects) or not len(sentry_filenames):
-            # TODO: metrics like in open_pr_comment?
             logger.error("No projects or filenames", extra={"file": file.filename})
             continue
 
