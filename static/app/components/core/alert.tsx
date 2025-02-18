@@ -10,6 +10,8 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
+import {DO_NOT_USE_ChonkAlert, type DO_NOT_USE_ChonkAlertProps} from './alert.chonk';
+
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
@@ -306,8 +308,12 @@ Alert.Container = Container;
 
 export function Alert(props: AlertProps) {
   const theme = useTheme();
+  console.log('theme', theme);
   if (theme.isChonk) {
-    return <ChonkAlert {...props} />;
+    const {type, ...rest} = props;
+    const chonkType: DO_NOT_USE_ChonkAlertProps['type'] =
+      type === 'muted' ? 'subtle' : type === 'error' ? 'danger' : type;
+    return <DO_NOT_USE_ChonkAlert type={chonkType} {...rest} />;
   }
   return <LegacyAlert {...props} />;
 }
