@@ -144,8 +144,7 @@ const getFields = ({
   return null;
 };
 
-type Props = DeprecatedAsyncComponent['props'] &
-  WithRouterProps<{authId: string}, {}> & {};
+type Props = DeprecatedAsyncComponent['props'] & WithRouterProps<{authId: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   authenticator: Authenticator | null;

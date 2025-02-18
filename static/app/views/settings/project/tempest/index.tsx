@@ -41,7 +41,7 @@ export default function TempestSettings({organization, project}: Props) {
 
   const api = useApi();
   const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    {},
+    unknown,
     RequestError,
     {id: number}
   >({

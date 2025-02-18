@@ -61,7 +61,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
   },
 };
 
-const applyMaxSize: Modifier<'applyMaxSize', {}> = {
+const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
   name: 'applyMaxSize',
   phase: 'beforeWrite',
   requires: ['maxSize'],
@@ -73,7 +73,7 @@ const applyMaxSize: Modifier<'applyMaxSize', {}> = {
   },
 };
 
-const applyMinWidth: Modifier<'applyMinWidth', {}> = {
+const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
   name: 'applyMinWidth',
   phase: 'beforeWrite',
   enabled: false, // will be enabled when overlay is open

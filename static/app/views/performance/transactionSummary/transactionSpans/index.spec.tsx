@@ -23,7 +23,10 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
+function initializeData(options: {
+  query: Record<string, unknown>;
+  additionalFeatures?: string[];
+}) {
   const {query, additionalFeatures} = options;
 
   const defaultFeatures = ['performance-view'];

@@ -88,7 +88,7 @@ export function OrganizationFeatureFlagsIndex() {
   );
 
   const {mutate: handleRemoveSecret, isPending: isRemoving} = useMutation<
-    {},
+    unknown,
     RequestError,
     RemoveSecretQueryVariables
   >({

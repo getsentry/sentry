@@ -203,7 +203,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
   }
 `;
 
-const ReleaseBody = styled(ContextBody)<{}>`
+const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
   color: ${p => p.theme.subText};
 `;

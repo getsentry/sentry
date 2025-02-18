@@ -33,7 +33,7 @@ type Props = {
   isError?: boolean;
   isLoading?: boolean;
   showStoredOutcome?: boolean;
-} & WithRouterProps<{}, {}>;
+} & WithRouterProps;
 
 export type TableStat = {
   accepted: number;

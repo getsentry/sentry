@@ -118,9 +118,9 @@ export type DataPoint = Pick<SeriesDataUnit, 'name' | 'value'>;
 
 export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 
-export type EChartFinishedHandler = EChartEventHandler<{}>;
+export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 
-export type EChartRenderedHandler = EChartEventHandler<{}>;
+export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
 type EchartBrushAreas = Array<{
   coordRange: number[][];

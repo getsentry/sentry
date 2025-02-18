@@ -52,6 +52,6 @@ export function TraceLink({event, traceMeta, source, quickTrace}: TraceLinkProps
   );
 }
 
-const StyledLink = styled(Link)<{}>`
+const StyledLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;

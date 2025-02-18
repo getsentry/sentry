@@ -12,7 +12,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import type {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
 
-interface Props extends WithRouterProps<{}> {
+interface Props extends WithRouterProps {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
