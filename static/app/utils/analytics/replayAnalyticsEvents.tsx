@@ -65,8 +65,8 @@ export type ReplayEventParameters = {
     max_gap: number;
     replay_duration: number;
   };
-  'replay.hydration-error.issue-details-opened': {};
-  'replay.hydration-modal.slider-interaction': {};
+  'replay.hydration-error.issue-details-opened': Record<string, unknown>;
+  'replay.hydration-modal.slider-interaction': Record<string, unknown>;
   'replay.hydration-modal.tab-change': {
     tabKey: string;
   };
@@ -89,7 +89,7 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
-  'replay.list-view-setup-sidebar': {};
+  'replay.list-view-setup-sidebar': Record<string, unknown>;
   'replay.play-pause': {
     context: string;
     mobile: boolean;
