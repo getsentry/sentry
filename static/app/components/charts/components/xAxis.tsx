@@ -34,7 +34,7 @@ function XAxis({
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {
-  function axisLabelFormatter(value: string | number, index: number): string | undefined {
+  const AxisLabelFormatter = (value: string | number, index: number) => {
     const firstItem = index === 0;
     // Always show the date of the first item. Otherwise check the interval duration
     const showDate = firstItem ? true : !computeShortInterval({start, end, period});
@@ -56,7 +56,7 @@ function XAxis({
     }
 
     return undefined;
-  }
+  };
 
   const defaults: XAXisComponentOption = {
     type: isGroupedByDate ? 'time' : 'category',
@@ -85,7 +85,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      formatter: axisLabelFormatter as TimeAxisLabelFormatterOption,
+      formatter: AxisLabelFormatter as TimeAxisLabelFormatterOption,
     },
     axisPointer: {
       show: true,
