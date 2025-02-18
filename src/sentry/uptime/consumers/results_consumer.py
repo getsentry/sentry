@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
+from enum import IntEnum
 from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
@@ -80,6 +81,11 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
 
 
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
+
+
+class IncidentStatus(IntEnum):
+    NO_INCIDENT = 0
+    IN_INCIDENT = 1
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
@@ -528,6 +534,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 quotas.backend.get_event_retention(organization=project.organization) or 90
             )
 
+            if project_subscription.uptime_status == UptimeStatus.FAILED:
+                incident_status = IncidentStatus.IN_INCIDENT
+            else:
+                incident_status = IncidentStatus.NO_INCIDENT
+
             snuba_message: SnubaUptimeResult = {
                 # Copy over fields from original result
                 "guid": result["guid"],
@@ -544,6 +555,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organization_id": project.organization_id,
                 "project_id": project.id,
                 "retention_days": retention_days,
+                "incident_status": incident_status.value,
                 "region": result["region"],
             }
 
