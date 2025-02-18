@@ -75,7 +75,7 @@
     "@types/jest": "29.5.12",
     "@types/js-beautify": "^1.14.3",
     "@types/js-cookie": "^3.0.2",
-    "@types/lodash": "^4.14.182",
+    "@types/lodash": "^4.17.15",
     "@types/mini-css-extract-plugin": "^2.5.1",
     "@types/papaparse": "^5.3.5",
     "@types/prismjs": "^1.26.0",
