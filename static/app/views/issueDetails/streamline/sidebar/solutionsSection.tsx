@@ -58,6 +58,10 @@ export default function SolutionsSection({
 
   const aiConfig = useAiConfig(group, event, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const showCtaButton =
+    aiConfig.needsGenAIConsent ||
+    aiConfig.hasAutofix ||
+    (aiConfig.hasSummary && aiConfig.hasResources);
 
   const renderContent = () => {
     if (aiConfig.needsGenAIConsent) {
@@ -124,7 +128,7 @@ export default function SolutionsSection({
     >
       <SolutionsSectionContainer>
         {renderContent()}
-        {event && aiConfig.hasAutofix && (
+        {event && showCtaButton && (
           <SolutionsSectionCtaButton
             aiConfig={aiConfig}
             event={event}
