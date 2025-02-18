@@ -17,6 +17,7 @@ from arroyo.types import Topic as ArroyoTopic
 from arroyo.types import Value
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.utils import metrics
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,7 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
 
             if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
+                metrics.incr(key="stale-messages.routed", sample_rate=1.0)
                 raise InvalidMessage(
                     message.value.partition,
                     message.value.offset,
