@@ -24,7 +24,7 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
 export function getDateFromMoment(
   m: moment.Moment,
   interval: IntervalPeriod = '1d',
-  useUtc: boolean = false
+  useUtc = false
 ) {
   const days = parsePeriodToHours(interval) / 24;
   if (days >= 1) {
@@ -51,7 +51,7 @@ export function getDateFromUnixTimestamp(timestamp: number) {
 export function getXAxisDates(
   dateStart: moment.MomentInput,
   dateEnd: moment.MomentInput,
-  dateUtc: boolean = false,
+  dateUtc = false,
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
@@ -80,8 +80,7 @@ export function getXAxisDates(
 }
 
 export function getTooltipFormatter(dataCategory: DataCategoryInfo['plural']) {
-  return (val: number = 0) =>
-    formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
+  return (val = 0) => formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
 }
 
 const MAX_NUMBER_OF_LABELS = 10;

@@ -59,7 +59,7 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type Props = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
   onRowClick: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   organization: Organization;
@@ -302,7 +302,7 @@ function NewTraceView({
     transactionGroups: [],
   };
 
-  let lastIndex: number = 0;
+  let lastIndex = 0;
   const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
     (acc, trace, index) => {
       const isLastTransaction = index === traces.length - 1;

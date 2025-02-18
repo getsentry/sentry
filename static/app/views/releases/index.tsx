@@ -2,7 +2,7 @@ import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Rout
 import Redirect from 'sentry/components/redirect';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   children: React.ReactNode;
 };
 

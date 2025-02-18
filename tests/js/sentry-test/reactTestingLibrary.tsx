@@ -102,10 +102,7 @@ type RenderReturn<T extends boolean = boolean> = T extends true
 
 // Inject legacy react-router 3 style router mocked navigation functions
 // into the memory history used in react router 6
-function patchBrowserHistoryMocksEnabled(
-  history: MemoryHistory,
-  router: InjectedRouter<Record<string, string>, any>
-) {
+function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: InjectedRouter) {
   Object.defineProperty(history, 'location', {get: () => router.location});
   history.replace = router.replace;
   history.push = (path: any) => {

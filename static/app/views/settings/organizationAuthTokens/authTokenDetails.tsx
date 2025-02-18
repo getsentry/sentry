@@ -78,7 +78,11 @@ function AuthTokenDetailsForm({
     [navigate, organization.slug]
   );
 
-  const {mutate: submitToken} = useMutation<{}, RequestError, UpdateTokenQueryVariables>({
+  const {mutate: submitToken} = useMutation<
+    unknown,
+    RequestError,
+    UpdateTokenQueryVariables
+  >({
     mutationFn: ({name}) =>
       api.requestPromise(
         `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,

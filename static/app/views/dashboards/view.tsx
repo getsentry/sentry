@@ -31,10 +31,11 @@ const ALLOWED_PARAMS = [
   'statsPeriod',
 ];
 
-type Props = RouteComponentProps<
-  {dashboardId: string; orgId: string; widgetId?: number},
-  {}
-> & {
+type Props = RouteComponentProps<{
+  dashboardId: string;
+  orgId: string;
+  widgetId?: number | string;
+}> & {
   children: React.ReactNode;
   organization: Organization;
 };
@@ -104,7 +105,9 @@ type FeatureProps = {
 export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
     <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
     </Layout.Page>
   );
 

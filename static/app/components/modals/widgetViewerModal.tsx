@@ -94,7 +94,6 @@ import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widge
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
@@ -879,11 +878,13 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <Alert type="info" showIcon>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+              )}
+            </Alert>
+          </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>
@@ -981,87 +982,85 @@ function WidgetViewerModal(props: Props) {
 
   return (
     <Fragment>
-      <OrganizationContext.Provider value={organization}>
-        <DashboardsMEPProvider>
-          <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher
-              organization={organization}
-              eventView={eventView}
-              location={location}
-              hideLoadingIndicator
-            >
-              {metricsDataSide => (
-                <MEPSettingProvider
-                  location={location}
-                  forceTransactions={metricsDataSide.forceTransactionsOnly}
-                >
-                  <Header closeButton>
-                    <WidgetHeader>
-                      <WidgetTitleRow>
-                        <h3>{widget.title}</h3>
-                        <DiscoverSplitAlert widget={widget} />
-                      </WidgetTitleRow>
-                      {widget.description && (
-                        <Tooltip
-                          title={widget.description}
-                          containerDisplayMode="grid"
-                          showOnlyOnOverflow
-                          isHoverable
-                          position="bottom"
+      <DashboardsMEPProvider>
+        <MetricsCardinalityProvider organization={organization} location={location}>
+          <MetricsDataSwitcher
+            organization={organization}
+            eventView={eventView}
+            location={location}
+            hideLoadingIndicator
+          >
+            {metricsDataSide => (
+              <MEPSettingProvider
+                location={location}
+                forceTransactions={metricsDataSide.forceTransactionsOnly}
+              >
+                <Header closeButton>
+                  <WidgetHeader>
+                    <WidgetTitleRow>
+                      <h3>{widget.title}</h3>
+                      <DiscoverSplitAlert widget={widget} />
+                    </WidgetTitleRow>
+                    {widget.description && (
+                      <Tooltip
+                        title={widget.description}
+                        containerDisplayMode="grid"
+                        showOnlyOnOverflow
+                        isHoverable
+                        position="bottom"
+                      >
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      </Tooltip>
+                    )}
+                  </WidgetHeader>
+                </Header>
+                <Body>{renderWidgetViewer()}</Body>
+                <Footer>
+                  <ResultsContainer>
+                    {renderTotalResults(totalResults, widget.widgetType)}
+                    <ButtonBar gap={1}>
+                      {onEdit && widget.id && (
+                        <Button
+                          onClick={() => {
+                            closeModal();
+                            onEdit();
+                            trackAnalytics('dashboards_views.widget_viewer.edit', {
+                              organization,
+                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              display_type: widget.displayType,
+                            });
+                          }}
+                          disabled={!hasEditAccess}
+                          title={
+                            !hasEditAccess &&
+                            t('You do not have permission to edit this widget')
+                          }
                         >
-                          <WidgetDescription>{widget.description}</WidgetDescription>
-                        </Tooltip>
+                          {t('Edit Widget')}
+                        </Button>
                       )}
-                    </WidgetHeader>
-                  </Header>
-                  <Body>{renderWidgetViewer()}</Body>
-                  <Footer>
-                    <ResultsContainer>
-                      {renderTotalResults(totalResults, widget.widgetType)}
-                      <ButtonBar gap={1}>
-                        {onEdit && widget.id && (
-                          <Button
-                            onClick={() => {
-                              closeModal();
-                              onEdit();
-                              trackAnalytics('dashboards_views.widget_viewer.edit', {
-                                organization,
-                                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                                display_type: widget.displayType,
-                              });
-                            }}
-                            disabled={!hasEditAccess}
-                            title={
-                              !hasEditAccess &&
-                              t('You do not have permission to edit this widget')
-                            }
-                          >
-                            {t('Edit Widget')}
-                          </Button>
-                        )}
-                        {widget.widgetType && (
-                          <OpenButton
-                            widget={primaryWidget}
-                            organization={organization}
-                            selection={modalSelection}
-                            selectedQueryIndex={selectedQueryIndex}
-                            disabled={isUsingPerformanceScore(widget)}
-                            disabledTooltip={
-                              isUsingPerformanceScore(widget)
-                                ? performanceScoreTooltip
-                                : undefined
-                            }
-                          />
-                        )}
-                      </ButtonBar>
-                    </ResultsContainer>
-                  </Footer>
-                </MEPSettingProvider>
-              )}
-            </MetricsDataSwitcher>
-          </MetricsCardinalityProvider>
-        </DashboardsMEPProvider>
-      </OrganizationContext.Provider>
+                      {widget.widgetType && (
+                        <OpenButton
+                          widget={primaryWidget}
+                          organization={organization}
+                          selection={modalSelection}
+                          selectedQueryIndex={selectedQueryIndex}
+                          disabled={isUsingPerformanceScore(widget)}
+                          disabledTooltip={
+                            isUsingPerformanceScore(widget)
+                              ? performanceScoreTooltip
+                              : undefined
+                          }
+                        />
+                      )}
+                    </ButtonBar>
+                  </ResultsContainer>
+                </Footer>
+              </MEPSettingProvider>
+            )}
+          </MetricsDataSwitcher>
+        </MetricsCardinalityProvider>
+      </DashboardsMEPProvider>
     </Fragment>
   );
 }

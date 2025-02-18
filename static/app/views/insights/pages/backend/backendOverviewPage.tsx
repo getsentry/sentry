@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -33,7 +34,11 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravelOverviewPage';
+import {
+  BACKEND_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {
   FRONTEND_PLATFORMS,
@@ -84,6 +89,27 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const selectedProjects: Project[] = useMemo(
+    () => getSelectedProjectList(selection.projects, projects),
+    [projects, selection.projects]
+  );
+
+  const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
+  if (
+    selectedProject?.platform === 'php-laravel' &&
+    organization.features.includes('laravel-insights')
+  ) {
+    return <LaravelOverviewPage />;
+  }
+
+  return <GenericBackendOverviewPage />;
+}
+
+function GenericBackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -139,6 +165,8 @@ function BackendOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addOp('(');
+  existingQuery.addOp('(');
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
@@ -150,6 +178,10 @@ function BackendOverviewPage() {
       ]}]`
     );
   }
+  existingQuery.addOp(')');
+  existingQuery.addOp('OR');
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 

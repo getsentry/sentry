@@ -27,6 +27,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
       events: {enabled: true},
       openPeriods: {enabled: false},
       checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
       attachments: {enabled: true},
       userFeedback: {enabled: true},
       replays: {enabled: true},

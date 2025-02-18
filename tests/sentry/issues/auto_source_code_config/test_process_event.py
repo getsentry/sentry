@@ -6,6 +6,8 @@ from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
+from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -20,6 +22,7 @@ pytestmark = [requires_snuba]
 GET_TREES_FOR_ORG = (
     "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
 )
+CODE_ROOT = "sentry.issues.auto_source_code_config"
 
 
 class BaseDeriveCodeMappings(TestCase):
@@ -36,9 +39,7 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
 
-    def create_event(
-        self, frames: Sequence[Mapping[str, str | bool]], platform: str | None = None
-    ) -> Event:
+    def create_event(self, frames: Sequence[Mapping[str, str | bool]], platform: str) -> Event:
         """Helper function to prevent creating an event without a platform."""
         test_data = {"platform": platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id)
@@ -55,10 +56,11 @@ class BaseDeriveCodeMappings(TestCase):
             assert code_mapping.stack_root == stack_root
             assert code_mapping.source_root == source_root
 
-    def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> None:
+    def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> list[CodeMapping]:
         with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            code_mappings = process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
+            return code_mappings
 
 
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -84,10 +86,17 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             assert_halt_metric(mock_record, error)
 
     def test_generic_errors_fail(self, mock_record: Any) -> None:
-        """Failures require manual investigation."""
         with patch(GET_TREES_FOR_ORG, side_effect=Exception("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
+            # Failures require manual investigation.
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
+
+    def test_installation_not_found(self, mock_record: Any) -> None:
+        with patch(
+            f"{CODE_ROOT}.task.get_installation",
+            side_effect=InstallationNotFoundError("foo"),
+        ):
+            process_event(self.project.id, self.event.group_id, self.event.event_id)
 
 
 class TestGenericBehaviour(BaseDeriveCodeMappings):
@@ -126,6 +135,18 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         all_cm = RepositoryProjectPathConfig.objects.all()
         assert len(all_cm) == 1
         assert all_cm[0].automatically_generated is False
+
+    def test_dry_run_platform(self) -> None:
+        with (
+            patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
+            patch(f"{CODE_ROOT}.task.DRY_RUN_PLATFORMS", ["other"]),
+        ):
+            self.event = self.create_event([{"filename": "foo/bar.py", "in_app": True}], "other")
+            # No code mapping will be stored, however, we get what would have been created
+            code_mappings = self._process_and_assert_no_code_mapping(["src/foo/bar.py"])
+            assert len(code_mappings) == 1
+            assert code_mappings[0].stacktrace_root == "foo/"
+            assert code_mappings[0].source_path == "src/foo/"
 
 
 class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):

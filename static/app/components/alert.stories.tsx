@@ -10,7 +10,11 @@ import {IconClose, IconDelete, IconSad, IconSentry, IconStar} from 'sentry/icons
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-export default storyBook('Alert', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/alert';
+
+export default storyBook('Alert', (story, APIReference) => {
+  APIReference(types.Alert);
   story('Default', () => {
     return (
       <Fragment>
@@ -43,21 +47,23 @@ export default storyBook('Alert', story => {
           The <JSXProperty name="type" value /> prop specifies the alert category, and
           changes the color and default icon of the alert.
         </p>
-        <Alert type="error" showIcon>
-          This is an error alert. Something went wrong.
-        </Alert>
-        <Alert type="info" showIcon>
-          Info alert. Put some exciting info here.
-        </Alert>
-        <Alert type="muted" showIcon>
-          Muted alerts look like this.
-        </Alert>
-        <Alert type="success" showIcon>
-          Success alert. Yay!
-        </Alert>
-        <Alert type="warning" showIcon>
-          Warning alert. Something is about to go wrong, probably.
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            This is an error alert. Something went wrong.
+          </Alert>
+          <Alert type="info" showIcon>
+            Info alert. Put some exciting info here.
+          </Alert>
+          <Alert type="muted" showIcon>
+            Muted alerts look like this.
+          </Alert>
+          <Alert type="success" showIcon>
+            Success alert. Yay!
+          </Alert>
+          <Alert type="warning" showIcon>
+            Warning alert. Something is about to go wrong, probably.
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   });
@@ -70,12 +76,14 @@ export default storyBook('Alert', story => {
           customize the default icon. Just directly pass in the icon, like{' '}
           <JSXNode name="IconDelete" /> for example, to the prop.
         </p>
-        <Alert type="warning" showIcon icon={<IconDelete />}>
-          Are you sure you want to delete?
-        </Alert>
-        <Alert type="error" showIcon icon={<IconSad />}>
-          Oh no!
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon icon={<IconDelete />}>
+            Are you sure you want to delete?
+          </Alert>
+          <Alert type="error" showIcon icon={<IconSad />}>
+            Oh no!
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   });
@@ -88,12 +96,14 @@ export default storyBook('Alert', story => {
           <code>false</code> by default.
         </p>
         <SizingWindow display="block">
-          <Alert type="success" showIcon opaque>
-            This one is opaque.
-          </Alert>
-          <Alert type="success" showIcon>
-            This is not opaque.
-          </Alert>
+          <Alert.Container>
+            <Alert type="success" showIcon opaque>
+              This one is opaque.
+            </Alert>
+            <Alert type="success" showIcon>
+              This is not opaque.
+            </Alert>
+          </Alert.Container>
         </SizingWindow>
       </Fragment>
     );
@@ -107,12 +117,14 @@ export default storyBook('Alert', story => {
           <JSXProperty name="defaultExpanded" value /> props can be used to show
           additional content when the alert is expanded.
         </p>
-        <Alert type="info" showIcon expand="Some extra info here.">
-          Expand me
-        </Alert>
-        <Alert type="info" showIcon defaultExpanded expand="Some extra info here.">
-          This one is expanded by default.
-        </Alert>
+        <Alert.Container>
+          <Alert type="info" showIcon expand="Some extra info here.">
+            Expand me
+          </Alert>
+          <Alert type="info" showIcon defaultExpanded expand="Some extra info here.">
+            This one is expanded by default.
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   });
@@ -131,23 +143,26 @@ export default storyBook('Alert', story => {
           enable this functionality with local storage. Or you can use{' '}
           <code>useState</code> to bring it back on re-render.
         </p>
+
         {isDismissed ? null : (
-          <Alert
-            type="info"
-            showIcon
-            icon={<IconSentry />}
-            trailingItems={
-              <Button
-                aria-label="Dismiss banner"
-                icon={<IconClose />}
-                onClick={dismiss}
-                size="zero"
-                borderless
-              />
-            }
-          >
-            This alert can be dismissed!
-          </Alert>
+          <Alert.Container>
+            <Alert
+              type="info"
+              showIcon
+              icon={<IconSentry />}
+              trailingItems={
+                <Button
+                  aria-label="Dismiss banner"
+                  icon={<IconClose />}
+                  onClick={dismiss}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              This alert can be dismissed!
+            </Alert>
+          </Alert.Container>
         )}
         {stateDismissed ? (
           <Button onClick={() => setStateDismissed(false)}>Bring the alert back</Button>
@@ -169,6 +184,27 @@ export default storyBook('Alert', story => {
             Try dismissing this one
           </Alert>
         )}
+      </Fragment>
+    );
+  });
+
+  story('Alert.Container', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXNode name="Alert" /> component is marginless by default. The{' '}
+          <JSXNode name="Alert.Container" /> component is an exported wrapper in the same
+          file that adds the original bottom margin back in, and also automatically spaces
+          all items within the container evenly.
+        </p>
+        <Alert.Container>
+          <Alert type="info" showIcon>
+            These two alerts...
+          </Alert>
+          <Alert type="info" showIcon>
+            ...are both in one container.
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   });
