@@ -1,5 +1,5 @@
 ---
-created: '2025-02-18T19:53:15.477153+00:00'
+created: '2025-02-18T21:12:11.003254+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,130 +24,252 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "1c053a21627de524cfd7490ede00cfe7"
+    hash: "a27e168f67ce2d3f12bba36eba67d076"
     contributing component: exception
     component:
       app*
         exception*
           stacktrace*
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              function*
-                "RtlUserThreadStart"
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              function*
-                "BaseThreadInitThunk"
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              filename*
-                "exe_common.inl"
-              function*
-                "__scrt_common_main_seh"
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              filename*
-                "exe_common.inl"
-              function*
-                "invoke_main"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "WinMain"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "LaunchWindowsStartup"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "GuardedMainWrapper"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "GuardedMain"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FEngineLoop::Tick"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FWindowsPlatformApplicationMisc::PumpMessages"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "DispatchMessageWorker"
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              function*
-                "UserCallWinProcCheckWow"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FWindowsApplication::AppWndProc"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FWindowsApplication::ProcessMessage"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FWindowsApplication::DeferMessage"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FWindowsApplication::ProcessDeferredMessage"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FSlateApplication::OnMouseUp"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FSlateApplication::ProcessMouseButtonUpEvent"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "FSlateApplication::RoutePointerUpEvent"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "SharedPointerInternals::NewIntrusiveReferenceController<T>"
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              function*
-                "`TArray<T>::Remove'::`2'::<T>::operator()"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "SButton::OnMouseButtonUp"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "SButton::ExecuteOnClick"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "TBaseUObjectMethodDelegateInstance<T>::Execute"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "UButton::SlateHandleClicked"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "UObject::ProcessEvent"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "UFunction::Invoke"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "UObject::ProcessInternal"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "ProcessLocalScriptFunction"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "ProcessLocalFunction"
-            frame* (un-ignored by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
-              function*
-                "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "ProcessScriptFunction<T>"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "ProcessLocalScriptFunction"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               function*
                 "UObject::execCallMathFunction"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               filename*
                 "sentryplaygroundutils.gen.cpp"
               function*
                 "USentryPlaygroundUtils::execTerminate"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group))
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
               filename*
                 "sentryplaygroundutils.cpp"
               function*
                 "USentryPlaygroundUtils::Terminate"
+          type*
+            "Ensure failed"
+  system*
+    hash: "65244b22630821cacd0be603ebcef671"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "WinMain"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "LaunchWindowsStartup"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "GuardedMainWrapper"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "GuardedMain"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FEngineLoop::Tick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FWindowsPlatformApplicationMisc::PumpMessages"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "DispatchMessageWorker"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FWindowsApplication::AppWndProc"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FWindowsApplication::ProcessMessage"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FWindowsApplication::DeferMessage"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FWindowsApplication::ProcessDeferredMessage"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "SharedPointerInternals::NewIntrusiveReferenceController<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "SButton::OnMouseButtonUp"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "SButton::ExecuteOnClick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "TBaseUObjectMethodDelegateInstance<T>::Execute"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "UButton::SlateHandleClicked"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "UObject::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "UFunction::Invoke"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "UObject::ProcessInternal"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "ProcessLocalFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "ProcessScriptFunction<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "UObject::execCallMathFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              filename*
+                "sentryplaygroundutils.gen.cpp"
+              function*
+                "USentryPlaygroundUtils::execTerminate"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              filename*
+                "sentryplaygroundutils.cpp"
+              function*
+                "USentryPlaygroundUtils::Terminate"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "UE::Assert::Private::ExecCheckImplInternal"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "CheckVerifyImpl"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "FDebug::EnsureFailed"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "TMulticastDelegate<T>::Broadcast"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              filename*
+                "delegateinstancesimpl.h"
+              function*
+                "TBaseFunctorDelegateInstance<T>::ExecuteIfSafe"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              filename*
+                "tuple.h"
+              function*
+                "UE::Core::Private::Tuple::TTupleBase<T>::ApplyAfter"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              filename*
+                "invoke.h"
+              function*
+                "Invoke"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              filename*
+                "sentrysubsystemdesktop.cpp"
+              function*
+                "SentrySubsystemDesktop::CaptureEnsure"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "sentry_value_set_stacktrace"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "sentry_value_new_stacktrace"
+            frame* (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app))
+              function*
+                "sentry_unwind_stack_from_ucontext"
           type*
             "Ensure failed"
