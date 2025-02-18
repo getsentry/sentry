@@ -156,11 +156,13 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
-      <Alert type="warning" showIcon>
-        {t(
-          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

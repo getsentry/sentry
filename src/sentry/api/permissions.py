@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
@@ -23,7 +23,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.utils import auth
+from sentry.utils import auth, demo_mode
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -272,3 +272,17 @@ class SentryPermission(ScopedPermission):
                     extra=extra,
                 )
                 raise MemberDisabledOverLimit(organization)
+
+
+class SentryIsAuthenticated(IsAuthenticated):
+    def has_permission(self, request: Request, view: object) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            return False
+
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            return False
+
+        return super().has_object_permission(request, view, obj)

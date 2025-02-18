@@ -19,7 +19,11 @@ export default function DynamicSamplingSettings() {
   const hasWriteAccess = useHasDynamicSamplingWriteAccess();
 
   if (!hasDynamicSamplingCustomFeature(organization)) {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
+    );
   }
 
   return (
@@ -29,7 +33,7 @@ export default function DynamicSamplingSettings() {
         title={
           <Fragment>
             {t('Dynamic Sampling')}
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="new" />
           </Fragment>
         }
         action={
@@ -42,11 +46,13 @@ export default function DynamicSamplingSettings() {
         }
       />
       {!hasWriteAccess && (
-        <Alert type="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning">
+            {t(
+              'These settings can only be edited by users with the organization owner or manager role.'
+            )}
+          </Alert>
+        </Alert.Container>
       )}
       <Paragraph>
         {t(

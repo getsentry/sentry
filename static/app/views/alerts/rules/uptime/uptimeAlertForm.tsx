@@ -282,16 +282,18 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
             />
           </ConfigurationPanel>
-          <Alert type="muted" showIcon>
-            {tct(
-              'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
-                ),
-              }
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="muted" showIcon>
+              {tct(
+                'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
           <Observer>
             {() => (
               <HTTPSnippet

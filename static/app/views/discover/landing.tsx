@@ -230,7 +230,9 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
   renderNoAccess() {
     return (
       <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }

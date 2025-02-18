@@ -8,9 +8,8 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {MISSING_DATA_MESSAGE, NO_PLOTTABLE_VALUES} from '../common/settings';
+import {MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';
-import {LoadingPanel} from '../widgetLayout/loadingPanel';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
@@ -30,7 +29,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
         revealActions={props.revealActions}
         revealTooltip={props.revealTooltip}
       >
-        <LoadingPanel />
+        <TimeSeriesWidgetVisualization.LoadingPlaceholder />
       </WidgetFrame>
     );
   }
@@ -39,15 +38,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
   if (!defined(timeseries)) {
     parsingError = MISSING_DATA_MESSAGE;
-  } else if (
-    timeseries.flatMap(timeSeries => timeSeries.data).every(item => item.value === null)
-  ) {
-    parsingError = NO_PLOTTABLE_VALUES;
   }
-
-  // TODO: It would be polite to also scan for gaps (i.e., the items don't all
-  // have the same difference in `timestamp`s) even though this is rare, since
-  // the backend zerofills the
 
   const error = props.error ?? parsingError;
 

@@ -8,6 +8,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
@@ -38,7 +39,10 @@ export function getDetectorDetails({
     return {
       detectorType: 'metric_alert',
       detectorId: metricAlertRuleId,
-      detectorPath: `/organizations/${organization.slug}/alerts/rules/details/${metricAlertRuleId}/`,
+      detectorPath: makeAlertsPathname({
+        path: `/rules/details/${metricAlertRuleId}/`,
+        organization,
+      }),
       // TODO(issues): We can probably enrich this description with details from the alert itself.
       description: t(
         'This issue was created by a metric alert detector. View the detector details to learn more.'
@@ -53,7 +57,10 @@ export function getDetectorDetails({
       detectorType: 'cron_monitor',
       detectorId: cronId,
       detectorSlug: cronSlug,
-      detectorPath: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${cronSlug}/details/`,
+      detectorPath: makeAlertsPathname({
+        path: `/rules/crons/${project.slug}/${cronSlug}/details/`,
+        organization,
+      }),
       description: t(
         'This issue was created by a cron monitor. View the monitor details to learn more.'
       ),
@@ -65,7 +72,10 @@ export function getDetectorDetails({
     return {
       detectorType: 'uptime_monitor',
       detectorId: uptimeAlertRuleId,
-      detectorPath: `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
+      detectorPath: makeAlertsPathname({
+        path: `/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
+        organization,
+      }),
       // TODO(issues): Update this to mention detectors when that language is user-facing
       description: t(
         'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'

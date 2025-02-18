@@ -136,12 +136,14 @@ function VersionHoverCard({
                     {release.authors.length}{' '}
                     {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
                   </h6>
-                  <AvatarList
-                    users={authors}
-                    avatarSize={25}
-                    tooltipOptions={{container: 'body'} as any}
-                    typeAvatars="authors"
-                  />
+                  <AvatarListContainer>
+                    <AvatarList
+                      users={authors}
+                      avatarSize={25}
+                      tooltipOptions={{container: 'body'} as any}
+                      typeAvatars="authors"
+                    />
+                  </AvatarListContainer>
                 </div>
               ) : null}
             </Flex>
@@ -243,4 +245,9 @@ const StyledVersion = styled(Version)`
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
+`;
+
+const AvatarListContainer = styled('div')`
+  display: flex;
+  padding-left: ${space(0.5)};
 `;

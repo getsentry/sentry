@@ -40,7 +40,11 @@ function RegisterForm({authConfig}: Props) {
         </PrivacyPolicyLink>
       }
     >
-      {error && <Alert type="error">{error}</Alert>}
+      {error && (
+        <Alert.Container>
+          <Alert type="error">{error}</Alert>
+        </Alert.Container>
+      )}
       <TextField
         name="name"
         placeholder={t('Jane Bloggs')}
