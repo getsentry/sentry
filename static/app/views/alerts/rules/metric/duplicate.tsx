@@ -10,6 +10,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   DuplicateActionFields,
   DuplicateMetricFields,
@@ -57,10 +58,16 @@ function MetricRuleDuplicate({
 
     const target = alertRuleId
       ? {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/details/${alertRuleId}/`,
+            organization,
+          }),
         }
       : {
-          pathname: `/organizations/${organization.slug}/alerts/rules/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/`,
+            organization,
+          }),
           query: {project: project.id},
         };
     otherProps.router.push(normalizeUrl(target));
