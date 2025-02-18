@@ -246,7 +246,7 @@ describe('Performance GridEditable Table', function () {
 
     expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/traces/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
   });
 
