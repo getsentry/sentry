@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 
@@ -174,7 +175,8 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             scope.set_tag("stacktrace_link.used_version", False)
             source_url = self.check_file(repo, filepath, default)
 
-            return source_url
+            # Encode elements of the filepath that are not safe for urls
+            return urlquote(source_url, safe="/:?=&")
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None
