@@ -232,7 +232,7 @@ class AssignedNotificationAPITest(APITestCase):
             "assignee": str(team2.id),
             "assigneeEmail": None,
             "assigneeName": team2.name,
-            "assigneeType": "team"
+            "assigneeType": "team",
         }
         assert Activity.objects.filter(
             group_id=group.id, user_id=user1.id, type=ActivityType.ASSIGNED.value, data=data
