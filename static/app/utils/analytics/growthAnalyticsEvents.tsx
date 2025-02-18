@@ -62,7 +62,7 @@ export type GrowthEventParameters = {
   'assistant.guide_finished': {
     guide: string;
   };
-  'github_invite_banner.snoozed': {};
+  'github_invite_banner.snoozed': Record<string, unknown>;
   'github_invite_banner.viewed': {members_shown: number; total_members: number};
   'growth.clicked_enter_sandbox': {
     scenario: string;
@@ -73,18 +73,18 @@ export type GrowthEventParameters = {
   'growth.clicked_sidebar': {
     item: string;
   };
-  'growth.demo_click_docs': {};
+  'growth.demo_click_docs': Record<string, unknown>;
   'growth.demo_click_get_started': {cta?: string};
-  'growth.demo_click_request_demo': {};
-  'growth.demo_modal_clicked_close': {};
-  'growth.demo_modal_clicked_continue': {};
-  'growth.demo_modal_clicked_demo': {};
-  'growth.demo_modal_clicked_signup': {};
-  'growth.email_form_pressed_back': {};
-  'growth.end_modal_close': {};
-  'growth.end_modal_more_tours': {};
-  'growth.end_modal_restart_tours': {};
-  'growth.end_modal_signup': {};
+  'growth.demo_click_request_demo': Record<string, unknown>;
+  'growth.demo_modal_clicked_close': Record<string, unknown>;
+  'growth.demo_modal_clicked_continue': Record<string, unknown>;
+  'growth.demo_modal_clicked_demo': Record<string, unknown>;
+  'growth.demo_modal_clicked_signup': Record<string, unknown>;
+  'growth.email_form_pressed_back': Record<string, unknown>;
+  'growth.end_modal_close': Record<string, unknown>;
+  'growth.end_modal_more_tours': Record<string, unknown>;
+  'growth.end_modal_restart_tours': Record<string, unknown>;
+  'growth.end_modal_signup': Record<string, unknown>;
   'growth.metric_alert_preset_sidebar_clicked': {
     preset: string;
   };
@@ -96,7 +96,7 @@ export type GrowthEventParameters = {
     project_id: string;
   };
   'growth.onboarding_clicked_skip': {source?: string};
-  'growth.onboarding_load_choose_platform': {};
+  'growth.onboarding_load_choose_platform': Record<string, unknown>;
   'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_start_onboarding': {
@@ -105,7 +105,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {
     platform?: string;
   };
-  'growth.onboarding_view_full_docs': {};
+  'growth.onboarding_view_full_docs': Record<string, unknown>;
   'growth.onboarding_view_sample_event': SampleEventParam;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
@@ -137,16 +137,16 @@ export type GrowthEventParameters = {
     todo_id: string;
     todo_title: string;
   };
-  'onboarding.wizard_opened': {};
+  'onboarding.wizard_opened': Record<string, unknown>;
   'sample_event.button_viewed': {
     project_id: string;
     source: string;
   };
   'sample_event.created': SampleEvent;
   'sample_event.failed': SampleEvent;
-  'sdk_updates.clicked': {};
-  'sdk_updates.seen': {};
-  'sdk_updates.snoozed': {};
+  'sdk_updates.clicked': Record<string, unknown>;
+  'sdk_updates.seen': Record<string, unknown>;
+  'sdk_updates.snoozed': Record<string, unknown>;
   'setup_wizard.clicked_viewed_docs': SetupWizard;
   'setup_wizard.clicked_viewed_issues': SetupWizard;
   'setup_wizard.complete': SetupWizard;

@@ -1,5 +1,5 @@
 export type ProjectCreationEventParameters = {
-  'project_creation.back_button_clicked': {};
+  'project_creation.back_button_clicked': Record<string, unknown>;
   'project_creation.data_removal_modal_confirm_button_clicked': {
     platform: string;
     project_id: string;
