@@ -32,6 +32,9 @@ interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsP
 interface StreamlineGroupEventParams extends GroupEventParams {
   streamline: boolean;
 }
+interface StreamlineGroupParams extends CommonGroupAnalyticsData {
+  streamline: boolean;
+}
 
 interface EventDropdownParams {
   event_id: string;
@@ -72,30 +75,30 @@ export type IssueEventParameters = {
   'device.classification.unclassified.ios.device': {
     model: string;
   };
-  'event_cause.dismissed': {};
-  'event_cause.docs_clicked': {};
-  'event_cause.snoozed': {};
+  'event_cause.dismissed': Record<string, unknown>;
+  'event_cause.docs_clicked': Record<string, unknown>;
+  'event_cause.snoozed': Record<string, unknown>;
   'event_cause.viewed': {
     platform?: string;
     project_id?: string;
   };
-  'highlights.edit_modal.add_context_key': {};
-  'highlights.edit_modal.add_tag': {};
-  'highlights.edit_modal.cancel_clicked': {};
-  'highlights.edit_modal.remove_context_key': {};
-  'highlights.edit_modal.remove_tag': {};
-  'highlights.edit_modal.save_clicked': {};
-  'highlights.edit_modal.use_default_clicked': {};
-  'highlights.issue_details.edit_clicked': {};
-  'highlights.issue_details.view_all_clicked': {};
-  'highlights.project_settings.updated_manually': {};
+  'highlights.edit_modal.add_context_key': Record<string, unknown>;
+  'highlights.edit_modal.add_tag': Record<string, unknown>;
+  'highlights.edit_modal.cancel_clicked': Record<string, unknown>;
+  'highlights.edit_modal.remove_context_key': Record<string, unknown>;
+  'highlights.edit_modal.remove_tag': Record<string, unknown>;
+  'highlights.edit_modal.save_clicked': Record<string, unknown>;
+  'highlights.edit_modal.use_default_clicked': Record<string, unknown>;
+  'highlights.issue_details.edit_clicked': Record<string, unknown>;
+  'highlights.issue_details.view_all_clicked': Record<string, unknown>;
+  'highlights.project_settings.updated_manually': Record<string, unknown>;
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
   'issue-details.replay-cta-dismiss': {type: string};
-  'issue.search_sidebar_clicked': {};
-  'issue.share_from_icon': {};
-  'issue.shared_publicly': {};
+  'issue.search_sidebar_clicked': Record<string, unknown>;
+  'issue.share_from_icon': Record<string, unknown>;
+  'issue.shared_publicly': Record<string, unknown>;
   'issue_details.comment_created': {
     org_streamline_only: boolean | undefined;
     streamline: boolean;
@@ -110,6 +113,9 @@ export type IssueEventParameters = {
   };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
     is_high_priority: boolean;
@@ -131,9 +137,10 @@ export type IssueEventParameters = {
   'issue_details.issue_content_selected': {
     content: string;
   };
-  'issue_details.issue_status_docs_clicked': {};
-  'issue_details.performance.autogrouped_siblings_toggle': {};
-  'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.issue_status_docs_clicked': Record<string, unknown>;
+  'issue_details.issue_tags_click': Record<string, unknown>;
+  'issue_details.performance.autogrouped_siblings_toggle': Record<string, unknown>;
+  'issue_details.performance.hidden_spans_expanded': Record<string, unknown>;
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -168,7 +175,7 @@ export type IssueEventParameters = {
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
-  'issue_details.view_full_trace_waterfall_clicked': {};
+  'issue_details.view_full_trace_waterfall_clicked': Record<string, unknown>;
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -247,9 +254,9 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
-  'issue_views.add_view.all_saved_searches_saved': {};
-  'issue_views.add_view.banner_dismissed': {};
-  'issue_views.add_view.clicked': {};
+  'issue_views.add_view.all_saved_searches_saved': Record<string, unknown>;
+  'issue_views.add_view.banner_dismissed': Record<string, unknown>;
+  'issue_views.add_view.clicked': Record<string, unknown>;
   'issue_views.add_view.custom_query_saved': {
     query: string;
   };
@@ -261,21 +268,21 @@ export type IssueEventParameters = {
   'issue_views.add_view.saved_search_saved': {
     query: string;
   };
-  'issue_views.deleted_view': {};
-  'issue_views.discarded_changes': {};
-  'issue_views.duplicated_view': {};
+  'issue_views.deleted_view': Record<string, unknown>;
+  'issue_views.discarded_changes': Record<string, unknown>;
+  'issue_views.duplicated_view': Record<string, unknown>;
   'issue_views.page_filters_logged': {
     user_id: string;
   };
-  'issue_views.renamed_view': {};
-  'issue_views.reordered_views': {};
-  'issue_views.saved_changes': {};
+  'issue_views.renamed_view': Record<string, unknown>;
+  'issue_views.reordered_views': Record<string, unknown>;
+  'issue_views.saved_changes': Record<string, unknown>;
   'issue_views.shared_view_opened': {
     query: string;
   };
-  'issue_views.switched_views': {};
-  'issue_views.temp_view_discarded': {};
-  'issue_views.temp_view_saved': {};
+  'issue_views.switched_views': Record<string, unknown>;
+  'issue_views.temp_view_discarded': Record<string, unknown>;
+  'issue_views.temp_view_saved': Record<string, unknown>;
   'issues_stream.archived': {
     action_status_details?: string;
     action_substatus?: string | null;
@@ -353,8 +360,8 @@ export type IssueEventParameters = {
   };
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;
   'source_map_debug.expand_clicked': SourceMapDebugParam;
-  'span_view.embedded_child.hide': {};
-  'span_view.embedded_child.show': {};
+  'span_view.embedded_child.hide': Record<string, unknown>;
+  'span_view.embedded_child.show': Record<string, unknown>;
   'tag.clicked': {
     is_clickable: boolean;
   };
@@ -385,12 +392,17 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
   'highlights.project_settings.updated_manually':
     'Highlights: Updated Manually from Settings',
+  'issue_details.copy_issue_short_id_clicked': 'Issue Details: Copy Issue Short ID',
+  'issue_details.copy_issue_url_clicked': 'Issue Details: Copy Issue URL',
+  'issue_details.copy_issue_markdown_link_clicked':
+    'Issue Details: Copy Issue Markdown Link',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
+  'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':

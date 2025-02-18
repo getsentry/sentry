@@ -189,16 +189,11 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Double quote to escape ':' character, which is used by our search syntax.
-      const key = tag.key.includes(':') ? `"${tag.key}"` : tag.key;
+      // Wrap with flags[] and if necessary, quote to escape ':', which is used by our search syntax.
+      const key = tag.key.includes(':') ? `flags["${tag.key}"]` : `flags[${tag.key}]`;
       if (allTagsCollection[key]) {
-        if (allTagsCollection[key]!.kind === FieldKind.FEATURE_FLAG) {
-          allTagsCollection[key]!.totalValues =
-            (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
-        } else {
-          // pass. When a feature flag collides with a custom tag, we only suggest the tag.
-          // The search filter will still check both columns (cond(tags) OR cond(flags)).
-        }
+        allTagsCollection[key]!.totalValues =
+          (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
         allTagsCollection[key] = {
           ...tag,

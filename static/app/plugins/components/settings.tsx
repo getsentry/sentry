@@ -2,8 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -183,7 +183,9 @@ class PluginSettings<
       }
       return (
         <div className="m-b-1">
-          <Alert type="warning">{data.config_error}</Alert>
+          <Alert.Container>
+            <Alert type="warning">{data.config_error}</Alert>
+          </Alert.Container>
           <LinkButton priority="primary" href={authUrl}>
             {t('Associate Identity')}
           </LinkButton>
@@ -193,11 +195,16 @@ class PluginSettings<
 
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
-        <Alert type="error">
-          {tct('An unknown error occurred. Need help with this? [link:Contact support]', {
-            link: <a href="https://sentry.io/support/" />,
-          })}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error">
+            {tct(
+              'An unknown error occurred. Need help with this? [link:Contact support]',
+              {
+                link: <a href="https://sentry.io/support/" />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 

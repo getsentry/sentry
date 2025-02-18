@@ -30,6 +30,7 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    */
   end?: boolean;
   isActive?: boolean;
+  trailingItems?: ReactNode;
 }
 
 export function SecondaryNav({children, group}: SecondaryNavProps) {
@@ -90,6 +91,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   activeTo = to,
   isActive: incomingIsActive,
   end = false,
+  trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
   const location = useLocation();
@@ -106,7 +108,8 @@ SecondaryNav.Item = function SecondaryNavItem({
       layout={layout}
     >
       <InteractionStateLayer hasSelectedBackground={isActive} />
-      {children}
+      <ItemText>{children}</ItemText>
+      {trailingItems}
     </Item>
   );
 };
@@ -167,7 +170,7 @@ const SectionSeparator = styled('hr')`
 const Item = styled(Link)<{layout: NavLayout}>`
   position: relative;
   display: flex;
-  padding: 5px ${space(1.5)};
+  padding: 4px ${space(1.5)};
   height: 34px;
   align-items: center;
   color: inherit;
@@ -201,6 +204,10 @@ const Item = styled(Link)<{layout: NavLayout}>`
       padding: 0 ${space(1.5)} 0 48px;
       border-radius: 0;
     `}
+`;
+
+const ItemText = styled('span')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`

@@ -3,6 +3,7 @@ import Color from 'color';
 import BarSeries from 'sentry/components/charts/series/barSeries';
 
 import type {TimeSeries} from '../../common/types';
+import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
 export function BarChartWidgetSeries(timeSeries: TimeSeries, stack?: string) {
   return BarSeries({
@@ -18,8 +19,6 @@ export function BarChartWidgetSeries(timeSeries: TimeSeries, stack?: string) {
       },
       opacity: 1.0,
     },
-    data: timeSeries.data.map(datum => {
-      return [datum.timestamp, datum.value];
-    }),
+    data: timeSeries.data.map(timeSeriesItemToEChartsDataPoint),
   });
 }

@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -110,9 +110,11 @@ class ErrorBoundary extends Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" showIcon className={className}>
-          {message || t('There was a problem rendering this component')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon className={className}>
+            {message || t('There was a problem rendering this component')}
+          </Alert>
+        </Alert.Container>
       );
     }
 

@@ -260,12 +260,12 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   selection: PageFilters,
   organization: Organization,
-  index: number = 0,
-  isMetricsData: boolean = false
+  index = 0,
+  isMetricsData = false
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) && widget.widgetType
       ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

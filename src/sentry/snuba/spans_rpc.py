@@ -28,6 +28,14 @@ from sentry.utils.snuba import SnubaTSResult, process_value
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
+@dataclass
+class ProcessedTimeseries:
+    timeseries: SnubaData = field(default_factory=list)
+    confidence: SnubaData = field(default_factory=list)
+    sampling_rate: SnubaData = field(default_factory=list)
+    sample_count: SnubaData = field(default_factory=list)
+
+
 def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
     return SearchResolver(
         params=params,
@@ -137,25 +145,22 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
 
     """Process the results"""
-    result: SnubaData = []
-    confidences: SnubaData = []
+    result = ProcessedTimeseries()
     final_meta: EventsMeta = EventsMeta(fields={})
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
     for timeseries in rpc_response.result_timeseries:
-        processed, confidence = _process_all_timeseries([timeseries], params, granularity_secs)
-        if len(result) == 0:
+        processed = _process_all_timeseries([timeseries], params, granularity_secs)
+        if len(result.timeseries) == 0:
             result = processed
-            confidences = confidence
         else:
-            for existing, new in zip(result, processed):
-                existing.update(new)
-            for existing, new in zip(confidences, confidence):
-                existing.update(new)
-    if len(result) == 0:
+            for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
+                for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
+                    existing.update(new)
+    if len(result.timeseries) == 0:
         # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
-        result = zerofill(
+        result.timeseries = zerofill(
             [],
             params.start_date,
             params.end_date,
@@ -180,15 +185,15 @@ def run_timeseries_query(
 
         if comp_rpc_response.result_timeseries:
             timeseries = comp_rpc_response.result_timeseries[0]
-            processed, _ = _process_all_timeseries([timeseries], params, granularity_secs)
-            for existing, new in zip(result, processed):
+            processed = _process_all_timeseries([timeseries], params, granularity_secs)
+            for existing, new in zip(result.timeseries, processed.timeseries):
                 existing["comparisonCount"] = new[timeseries.label]
         else:
-            for existing in result:
+            for existing in result.timeseries:
                 existing["comparisonCount"] = 0
 
     return SnubaTSResult(
-        {"data": result, "confidence": confidences, "meta": final_meta},
+        {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
         params.start,
         params.end,
         granularity_secs,
@@ -327,15 +332,15 @@ def run_top_events_timeseries_query(
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
-        result_data, result_confidence = _process_all_timeseries(
+        result = _process_all_timeseries(
             map_result_key_to_timeseries[result_key],
             params,
             granularity_secs,
         )
         final_result[result_key] = SnubaTSResult(
             {
-                "data": result_data,
-                "confidence": result_confidence,
+                "data": result.timeseries,
+                "processed_timeseries": result,
                 "order": index,
                 "meta": final_meta,
             },
@@ -344,15 +349,15 @@ def run_top_events_timeseries_query(
             granularity_secs,
         )
     if other_response.result_timeseries:
-        result_data, result_confidence = _process_all_timeseries(
+        result = _process_all_timeseries(
             [timeseries for timeseries in other_response.result_timeseries],
             params,
             granularity_secs,
         )
         final_result[OTHER_KEY] = SnubaTSResult(
             {
-                "data": result_data,
-                "confidence": result_confidence,
+                "data": result.timeseries,
+                "processed_timeseries": result,
                 "order": limit,
                 "meta": final_meta,
             },
@@ -368,26 +373,31 @@ def _process_all_timeseries(
     params: SnubaParams,
     granularity_secs: int,
     order: int | None = None,
-) -> tuple[SnubaData, SnubaData]:
-    result: SnubaData = []
-    confidence: SnubaData = []
+) -> ProcessedTimeseries:
+    result = ProcessedTimeseries()
 
     for timeseries in all_timeseries:
         label = timeseries.label
-        if result:
+        if result.timeseries:
             for index, bucket in enumerate(timeseries.buckets):
-                assert result[index]["time"] == bucket.seconds
-                assert confidence[index]["time"] == bucket.seconds
+                assert result.timeseries[index]["time"] == bucket.seconds
+                assert result.confidence[index]["time"] == bucket.seconds
+                assert result.sampling_rate[index]["time"] == bucket.seconds
+                assert result.sample_count[index]["time"] == bucket.seconds
         else:
             for bucket in timeseries.buckets:
-                result.append({"time": bucket.seconds})
-                confidence.append({"time": bucket.seconds})
+                result.timeseries.append({"time": bucket.seconds})
+                result.confidence.append({"time": bucket.seconds})
+                result.sampling_rate.append({"time": bucket.seconds})
+                result.sample_count.append({"time": bucket.seconds})
 
         for index, data_point in enumerate(timeseries.data_points):
-            result[index][label] = process_value(data_point.data)
-            confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+            result.timeseries[index][label] = process_value(data_point.data)
+            result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+            result.sampling_rate[index][label] = data_point.avg_sampling_rate
+            result.sample_count[index][label] = data_point.sample_count
 
-    return result, confidence
+    return result
 
 
 @dataclass

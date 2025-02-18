@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -46,7 +47,7 @@ import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
 import {getFilter, getPeriodInterval} from './utils';
 
-export interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
+export interface MetricDetailsBodyProps extends RouteComponentProps {
   api: Client;
   location: Location;
   organization: Organization;
@@ -70,6 +71,7 @@ export default function MetricDetailsBody({
   router,
   anomalies,
 }: MetricDetailsBodyProps) {
+  const theme = useTheme();
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
@@ -137,28 +139,30 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <StyledAlert type="warning" showIcon>
+          <Alert type="warning" showIcon>
             {t('Alert Rule settings have been updated since this alert was triggered.')}
-          </StyledAlert>
+          </Alert>
         </StyledLayoutBody>
       )}
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert type="warning" showIcon>
-              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                ? tct(
-                    "[creator] muted this alert so these notifications won't be sent in the future.",
-                    {creator: rule.snoozeCreatedBy}
-                  )
-                : tct(
-                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                    }
-                  )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning" showIcon>
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            </Alert.Container>
           )}
           <StyledSubHeader>
             <StyledTimeRangeSelector
@@ -219,6 +223,7 @@ export default function MetricDetailsBody({
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter(rule)}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
+            theme={theme}
           />
           <DetailWrapper>
             <ActivityWrapper>
@@ -278,10 +283,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`

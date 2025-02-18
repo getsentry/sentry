@@ -376,11 +376,11 @@ export default typescript.config([
         'error',
         {
           types: {
-            // TODO(scttcper): Turn object on to make our types more strict
-            // object: {
-            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-            //   fixWith: 'Record<string, unknown>'
-            // },
+            object: {
+              message:
+                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+              fixWith: 'Record<PropertyKey, unknown>',
+            },
             Buffer: {
               message:
                 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
@@ -414,7 +414,7 @@ export default typescript.config([
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -435,7 +435,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [

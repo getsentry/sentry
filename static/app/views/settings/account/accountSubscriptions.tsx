@@ -13,7 +13,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconToggle} from 'sentry/icons';
+import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -144,7 +144,7 @@ function AccountSubscriptions() {
                 <Fragment key={email}>
                   {subGroups.length > 1 && (
                     <Heading>
-                      <IconToggle /> {t('Subscriptions for %s', email)}
+                      <IconSliders /> {t('Subscriptions for %s', email)}
                     </Heading>
                   )}
 

@@ -5,53 +5,61 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
     percent_increase,
 )
+from sentry.workflow_engine.handlers.condition.tagged_event_handler import (
+    TaggedEventConditionHandler,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(DataConditionHandler[WorkflowJob]):
+class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
             "value": {"type": "integer", "minimum": 0},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value"],
         "additionalProperties": False,
     }
 
     @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 1:
+    def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
+        if not isinstance(value, list) or len(value) != 1:
             return False
-        return value["snuba_results"][0] > comparison["value"]
+        return value[0] > comparison["value"]
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(DataConditionHandler[WorkflowJob]):
+class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
             "value": {"type": "integer", "minimum": 0},
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value", "comparison_interval"],
         "additionalProperties": False,
     }
 
     @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 2:
+    def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
+        if not isinstance(value, list) or len(value) != 2:
             return False
-        return (
-            percent_increase(value["snuba_results"][0], value["snuba_results"][1])
-            > comparison["value"]
-        )
+        return percent_increase(value[0], value[1]) > comparison["value"]
 
 
 # Percent sessions values must be between 0-100 (%)
@@ -62,6 +70,10 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
             "value": {"type": "number", "minimum": 0, "maximum": 100},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value"],
         "additionalProperties": False,
@@ -76,6 +88,10 @@ class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
             "value": {"type": "number", "minimum": 0, "maximum": 100},
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value", "comparison_interval"],
         "additionalProperties": False,

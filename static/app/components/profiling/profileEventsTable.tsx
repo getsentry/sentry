@@ -151,7 +151,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     }
 
     const flamegraphTarget = generateProfileFlamechartRoute({
-      orgSlug: props.baggage.organization.slug,
+      organization: props.baggage.organization,
       projectSlug: project.slug,
       profileId: value,
     });

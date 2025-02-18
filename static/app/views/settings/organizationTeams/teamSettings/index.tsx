@@ -4,9 +4,9 @@ import cloneDeep from 'lodash/cloneDeep';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -25,7 +25,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
+interface TeamSettingsProps extends RouteComponentProps<{teamId: string}> {
   team: Team;
 }
 
@@ -84,11 +84,13 @@ function TeamSettings({team, params}: TeamSettingsProps) {
 
       <ProjectPermissionAlert access={['team:write']} team={team} />
       {isIdpProvisioned && (
-        <Alert type="warning" showIcon>
-          {t(
-            "This team is managed through your organization's identity provider. These settings cannot be modified."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {t(
+              "This team is managed through your organization's identity provider. These settings cannot be modified."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
 
       <Form

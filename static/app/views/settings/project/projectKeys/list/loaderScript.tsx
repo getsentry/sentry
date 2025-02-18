@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -15,7 +15,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = {
   projectKey: ProjectKey;
-} & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
+} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
 export function LoaderScript({projectKey, routes, params, location}: Props) {
   const loaderLink = getDynamicText({

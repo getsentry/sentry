@@ -8,10 +8,10 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -300,7 +300,9 @@ function ManageDashboards() {
   function renderNoAccess() {
     return (
       <Layout.Page>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }

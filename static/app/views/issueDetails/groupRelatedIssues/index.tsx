@@ -7,7 +7,7 @@ import GroupList from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -113,7 +113,10 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
           </HeaderWrapper>
           <GroupList
             orgSlug={organization.slug}
-            queryParams={{query}}
+            queryParams={{
+              query,
+              ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
+            }}
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}
@@ -135,8 +138,9 @@ const getTraceConnectedContent = (
   const url = `/organizations/${organization.slug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
   const extraInfo = (
     <small>
-      {t('These issues were all found within')}
-      <Link to={url}>{t('this trace')}</Link>.
+      {tct('These issues were all found within [traceLink:this trace]', {
+        traceLink: <Link to={url}>{t('this trace')}</Link>,
+      })}
     </small>
   );
   const openIssuesButton = getLinkButton(

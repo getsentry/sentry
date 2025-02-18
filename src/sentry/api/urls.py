@@ -284,6 +284,7 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.sentry_apps.api.endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from sentry.sentry_apps.api.endpoints.installation_details import (
     SentryAppInstallationDetailsEndpoint,
 )
@@ -413,7 +414,6 @@ from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
-from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
@@ -514,7 +514,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
     OrganizationOnDemandMetricsEstimationStatsEndpoint,
@@ -2092,11 +2091,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
         OrganizationMetricsTagsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tags",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
-        OrganizationMetricsTagDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-tag-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",

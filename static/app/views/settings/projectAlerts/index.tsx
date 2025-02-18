@@ -5,8 +5,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-interface Props
-  extends RouteComponentProps<{organizationId: string; projectId: string}, {}> {
+interface Props extends RouteComponentProps<{organizationId: string; projectId: string}> {
   children: React.ReactNode;
   organization: Organization;
   project: Project;

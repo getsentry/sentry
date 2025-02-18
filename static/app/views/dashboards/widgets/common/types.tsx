@@ -1,4 +1,4 @@
-import type {Confidence} from 'sentry/types/organization';
+import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
@@ -12,7 +12,7 @@ export type TableData = TableRow[];
 
 export type TimeSeriesItem = {
   timestamp: string;
-  value: number;
+  value: number | null;
   delayed?: boolean;
 };
 
@@ -22,6 +22,8 @@ export type TimeSeries = {
   meta: Meta;
   color?: string;
   confidence?: Confidence;
+  sampleCount?: AccuracyStats<number>;
+  samplingRate?: AccuracyStats<number | null>;
 };
 
 export type ErrorProp = Error | string;
