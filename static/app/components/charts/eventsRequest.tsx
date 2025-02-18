@@ -303,7 +303,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     this.unmounting = true;
   }
 
-  private unmounting: boolean = false;
+  private unmounting = false;
 
   fetchData = async () => {
     const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
@@ -434,7 +434,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries(data: EventsStatsData, seriesName: string = ''): Series {
+  transformAggregatedTimeseries(data: EventsStatsData, seriesName = ''): Series {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),
@@ -488,7 +488,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     ];
   }
 
-  processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
+  processData(response: EventsStats, seriesIndex = 0, seriesName?: string) {
     const {data, isMetricsData, totals, meta, isExtrapolatedData} = response;
     const {
       includeTransformedData,

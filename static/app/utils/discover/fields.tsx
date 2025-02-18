@@ -910,8 +910,8 @@ export function parseArguments(columnText: string): string[] {
   let inTag = false;
   let escaped = false;
 
-  let i: number = 0;
-  let j: number = 0;
+  let i = 0;
+  let j = 0;
 
   while (j < columnText?.length) {
     if (!inTag && i === j && columnText[j] === '"') {

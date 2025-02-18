@@ -65,7 +65,7 @@ class NoGroupsHandler extends Component<Props, State> {
    *
    * This is something to revisit if we refactor API client
    */
-  private _isMounted: boolean = false;
+  private _isMounted = false;
 
   async fetchSentFirstEvent() {
     this.setState({

@@ -32,7 +32,7 @@ export function severityTextRenderer(
   severityNumber: number,
   severityText: string,
   logColors: ReturnType<typeof getLogColors>,
-  useFullSeverityText: boolean = false
+  useFullSeverityText = false
 ) {
   const level = getLogSeverityLevel(severityNumber, severityText);
   const levelLabel = useFullSeverityText ? level : severityLevelToText(level);
@@ -47,11 +47,7 @@ export function TimestampRenderer({timestamp}: {timestamp: string}) {
   );
 }
 
-export function bodyRenderer(
-  body: string,
-  highlightTerms: string[],
-  wrap: boolean = false
-) {
+export function bodyRenderer(body: string, highlightTerms: string[], wrap = false) {
   const highlightTerm = highlightTerms[0] ?? '';
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (

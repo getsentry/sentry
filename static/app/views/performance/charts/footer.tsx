@@ -80,7 +80,7 @@ class ChartFooter extends Component<Props, State> {
     });
   }
 
-  mounted: boolean = false;
+  mounted = false;
 
   async fetchTotalCount() {
     const {api, organization, location, eventView} = this.props;

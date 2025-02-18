@@ -14,7 +14,7 @@ export enum TokenKind {
 export abstract class Token {
   kind: TokenKind = TokenKind.UNKNOWN;
 
-  key: string = '';
+  key = '';
   location: LocationRange;
 
   constructor(location: LocationRange) {

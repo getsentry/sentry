@@ -90,7 +90,7 @@ export class InstalledPlugin extends Component<Props> {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
-  toggleEnablePlugin = async (projectId: string, status: boolean = true) => {
+  toggleEnablePlugin = async (projectId: string, status = true) => {
     try {
       addLoadingMessage(t('Enabling...'));
       await this.updatePluginEnableStatus(status);

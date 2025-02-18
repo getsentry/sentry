@@ -33,7 +33,7 @@ export function handleCreateQuery(
   yAxis: string[],
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
-  isNewQuery: boolean = true
+  isNewQuery = true
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;

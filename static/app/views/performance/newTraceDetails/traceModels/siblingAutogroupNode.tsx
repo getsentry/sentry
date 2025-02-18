@@ -3,7 +3,7 @@ import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
-  groupCount: number = 0;
+  groupCount = 0;
   profiles: TraceTree.Profile[] = [];
 
   private _autogroupedSegments: Array<[number, number]> | undefined;

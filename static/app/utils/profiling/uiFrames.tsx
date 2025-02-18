@@ -29,7 +29,7 @@ function sortFramesByStartedTime(a: UIFrameMeasurement, b: UIFrameMeasurement) {
 
 class UIFrames {
   frames: readonly UIFrameNode[] = [];
-  toUnit: string = 'nanoseconds';
+  toUnit = 'nanoseconds';
   minFrameDuration: number = Number.MAX_SAFE_INTEGER;
   configSpace: Rect = Rect.Empty();
 

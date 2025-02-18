@@ -46,9 +46,9 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   value: T;
 
-  canFetch: boolean = false;
-  expanded: boolean = true;
-  zoomedIn: boolean = false;
+  canFetch = false;
+  expanded = true;
+  zoomedIn = false;
 
   metadata: TraceTree.Metadata = {
     project_slug: undefined,

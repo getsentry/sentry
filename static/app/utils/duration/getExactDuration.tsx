@@ -22,7 +22,7 @@ const SUFFIX_ABBR = {
  */
 export function getExactDuration(
   seconds: number,
-  abbreviation: boolean = false,
+  abbreviation = false,
   precision: keyof typeof SUFFIX_ABBR = 'milliseconds'
 ) {
   const minSuffix = ` ${precision}`;

@@ -40,7 +40,7 @@ class GridRenderer {
     physicalViewRect: Rect,
     configViewToPhysicalSpace: mat3,
     logicalSpaceToConfigView: mat3,
-    drawGridTicks: boolean = true
+    drawGridTicks = true
   ): void {
     this.context.font = `${
       this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio

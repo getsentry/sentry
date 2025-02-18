@@ -7,7 +7,7 @@ import clamp from 'sentry/utils/number/clamp';
 export class TraceView {
   // Represents the space of the entire trace, for example
   // a trace starting at 0 and ending at 1000 would have a space of [0, 1000]
-  to_origin: number = 0;
+  to_origin = 0;
   trace_space: DOMView = DOMView.Empty();
   // The view defines what the user is currently looking at, it is a subset
   // of the trace space. For example, if the user is currently looking at the

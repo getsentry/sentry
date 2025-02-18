@@ -274,7 +274,7 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 export function getTransactionSummaryBaseUrl(
   organization: Organization,
   view?: DomainView,
-  bare: boolean = false
+  bare = false
 ) {
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'

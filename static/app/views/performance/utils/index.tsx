@@ -215,7 +215,7 @@ export function getPerformanceTrendsUrl(
   return `${getPerformanceBaseUrl(organization.slug, view)}/trends/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query: string = '') {
+export function getTransactionSearchQuery(location: Location, query = '') {
   return decodeScalar(location.query.query, query).trim();
 }
 
@@ -412,11 +412,7 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   );
 }
 
-export function getPerformanceBaseUrl(
-  orgSlug: string,
-  view?: DomainView,
-  bare: boolean = false
-) {
+export function getPerformanceBaseUrl(orgSlug: string, view?: DomainView, bare = false) {
   let url = 'performance';
   if (view) {
     url = `${DOMAIN_VIEW_BASE_URL}/${view}`;

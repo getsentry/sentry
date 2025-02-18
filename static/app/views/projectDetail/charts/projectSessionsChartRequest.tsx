@@ -91,7 +91,7 @@ class ProjectSessionsChartRequest extends Component<
     this.unmounting = true;
   }
 
-  private unmounting: boolean = false;
+  private unmounting = false;
 
   fetchData = async () => {
     const {

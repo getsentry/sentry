@@ -236,7 +236,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     };
 
     const handleZoom =
-      (direction: 'in' | 'out', scalingFactor: number = 1.1, zoomOrigin?: vec2) =>
+      (direction: 'in' | 'out', scalingFactor = 1.1, zoomOrigin?: vec2) =>
       () => {
         const newScale = direction === 'in' ? scalingFactor : 1 / scalingFactor;
 

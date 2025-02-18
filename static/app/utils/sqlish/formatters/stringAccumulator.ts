@@ -36,7 +36,7 @@ export class StringAccumulator {
     this.lastLine.unindent();
   }
 
-  indentTo(level: number = 1) {
+  indentTo(level = 1) {
     this.lastLine.indentTo(level);
   }
 
@@ -79,7 +79,7 @@ class Line {
   tokens: string[];
   indentation: number;
 
-  constructor(tokens: string[] = [], indentation: number = 0) {
+  constructor(tokens: string[] = [], indentation = 0) {
     this.tokens = tokens;
     this.indentation = indentation;
   }

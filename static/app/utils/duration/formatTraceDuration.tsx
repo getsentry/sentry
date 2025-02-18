@@ -8,7 +8,7 @@ const format = (v: number, abbrev: string, precision: number) => {
 // We avoid the moment date formatter as it creates a lot of intermediary strings,
 // which the trace view is already doing a lot of, so we try to avoid it here as
 // gc during scrolling causes jank
-export function formatTraceDuration(duration_ms: number, precision: number = 2) {
+export function formatTraceDuration(duration_ms: number, precision = 2) {
   if (duration_ms <= 0) {
     return '0ms';
   }

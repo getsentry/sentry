@@ -119,8 +119,8 @@ export class Provider extends Component<Props, State> {
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
-  isDragging: boolean = false;
-  isWheeling: boolean = false;
+  isDragging = false;
+  isWheeling = false;
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;

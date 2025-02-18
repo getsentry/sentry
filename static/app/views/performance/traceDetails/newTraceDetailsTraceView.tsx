@@ -302,7 +302,7 @@ function NewTraceView({
     transactionGroups: [],
   };
 
-  let lastIndex: number = 0;
+  let lastIndex = 0;
   const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
     (acc, trace, index) => {
       const isLastTransaction = index === traces.length - 1;

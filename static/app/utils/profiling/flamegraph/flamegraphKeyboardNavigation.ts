@@ -153,7 +153,7 @@ const keyDirectionMap: Record<string, Direction> = {
 export function handleFlamegraphKeyboardNavigation(
   evt: KeyboardEvent,
   currentFrame: FlamegraphFrame | undefined,
-  inverted: boolean = false
+  inverted = false
 ) {
   if (!currentFrame) {
     return null;

@@ -32,7 +32,7 @@ class SpanChart {
     children: [],
   };
   spanTrees: SpanTree[];
-  depth: number = 0;
+  depth = 0;
   minSpanDuration: number = Number.POSITIVE_INFINITY;
   configSpace: Rect;
 

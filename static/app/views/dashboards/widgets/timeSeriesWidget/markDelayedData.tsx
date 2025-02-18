@@ -34,7 +34,7 @@ function getTimeSeriesBucketSize(timeSeries: TimeSeries): number {
   const penultimateDatum = timeSeries.data.at(-2);
   const finalDatum = timeSeries.data.at(-1);
 
-  let bucketSize: number = 0;
+  let bucketSize = 0;
   if (penultimateDatum && finalDatum) {
     bucketSize =
       new Date(finalDatum.timestamp).getTime() -
