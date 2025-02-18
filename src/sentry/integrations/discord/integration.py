@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import urlencode
 
+from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -296,7 +297,7 @@ class DiscordInstallPipeline(PipelineView):
                 }
             )
             redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return self.redirect(redirect_uri)
+            return HttpResponseRedirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])

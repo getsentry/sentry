@@ -7,7 +7,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
@@ -195,7 +195,7 @@ class OAuthLoginView(PipelineView):
 
             authorize_url = client.get_authorize_url(request_token)
 
-            return self.redirect(authorize_url)
+            return HttpResponseRedirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
