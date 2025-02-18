@@ -18,8 +18,10 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 
+const MAX_QUERIES_ALLOWED = 5;
+
 function Content() {
-  const queries = useReadQueriesFromLocation();
+  const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
   return (
@@ -44,7 +46,7 @@ function Content() {
           aria-label={t('Add Query')}
           onClick={addQuery}
           icon={<IconAdd />}
-          disabled={queries.length >= 5}
+          disabled={queries.length >= MAX_QUERIES_ALLOWED}
         >
           {t('Add Query')}
         </Button>
