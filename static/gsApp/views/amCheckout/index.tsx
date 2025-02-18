@@ -105,7 +105,7 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    let step: number = 1;
+    let step = 1;
     if (props.location?.hash) {
       const stepMatch = /^#step(\d)$/.exec(props.location.hash);
       if (stepMatch) {

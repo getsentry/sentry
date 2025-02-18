@@ -43,7 +43,7 @@ export const getSlot = (
   events?: number,
   price?: number,
   slots?: EventBucket[],
-  shouldMinimize: boolean = false
+  shouldMinimize = false
 ) => {
   let s = 0;
   if (!slots?.length || (typeof events !== 'number' && typeof price !== 'number')) {
@@ -142,7 +142,7 @@ export function formatReservedWithUnits(
  * Note: usageQuantity for Attachments should be in BYTES
  */
 export function formatUsageWithUnits(
-  usageQuantity: number = 0,
+  usageQuantity = 0,
   dataCategory: string,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
@@ -216,7 +216,7 @@ function formatReservedNumberToString(
  * For storage/memory/file sizes, please take a look at the function in
  * sentry/utils/formatBytes.
  */
-function formatAttachmentUnits(bytes: number, u: number = 0) {
+function formatAttachmentUnits(bytes: number, u = 0) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 
@@ -232,7 +232,7 @@ function formatAttachmentUnits(bytes: number, u: number = 0) {
  * Do not export.
  * Use formatReservedWithUnits or formatUsageWithUnits with options.isAbbreviated to true
  */
-function displayNumber(n: number, fractionDigits: number = 0) {
+function displayNumber(n: number, fractionDigits = 0) {
   if (n >= BILLION) {
     return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
   }

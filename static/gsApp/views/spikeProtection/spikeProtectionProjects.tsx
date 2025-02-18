@@ -68,7 +68,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   const hasOrgWrite = organization.access.includes('org:write') || hasOrgAdmin;
 
   const fetchProjects = useCallback(
-    async (query: string = '') => {
+    async (query = '') => {
       let accessibleProjectsQuery = query;
       if (!organization.openMembership && !isActiveSuperuser() && !hasOrgAdmin) {
         accessibleProjectsQuery += ' is_member:1';

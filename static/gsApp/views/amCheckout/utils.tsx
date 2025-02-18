@@ -509,9 +509,9 @@ export async function submitCheckout(
   onHandleCardAction: (intentDetails: IntentDetails) => void,
   onSubmitting?: (b: boolean) => void,
   intentId?: string,
-  referrer: string = 'billing',
-  codecovReferrer: string = 'checkout',
-  shouldUpdateOnDemand: boolean = true
+  referrer = 'billing',
+  codecovReferrer = 'checkout',
+  shouldUpdateOnDemand = true
 ) {
   const endpoint = `/customers/${organization.slug}/subscription/`;
 

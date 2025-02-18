@@ -135,7 +135,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   const fetchSpendAllocations = useCallback(
     // Target timestamp allows us to specify a period
     // Periods allows us to specify how many periods we want to fetch
-    async (targetTimestamp: number | undefined = undefined, periods: number = 1) => {
+    async (targetTimestamp: number | undefined = undefined, periods = 1) => {
       try {
         setIsLoading(true);
         // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
