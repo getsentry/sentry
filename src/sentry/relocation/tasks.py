@@ -58,18 +58,7 @@ from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
 )
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
-from sentry.signals import relocated, relocation_redeem_promo_code
-from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
-from sentry.types.region import get_local_region
-from sentry.users.models.lostpasswordhash import LostPasswordHash
-from sentry.users.models.user import User
-from sentry.users.services.lost_password_hash import lost_password_hash_service
-from sentry.users.services.user.service import user_service
-from sentry.utils import json
-from sentry.utils.db import atomic_transaction
-from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
-from sentry.utils.relocation import (
+from sentry.relocation.utils import (
     TASK_TO_STEP,
     LoggingPrinter,
     OrderedTask,
@@ -82,6 +71,17 @@ from sentry.utils.relocation import (
     start_relocation_task,
     uuid_to_identifier,
 )
+from sentry.signals import relocated, relocation_redeem_promo_code
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.types.region import get_local_region
+from sentry.users.models.lostpasswordhash import LostPasswordHash
+from sentry.users.models.user import User
+from sentry.users.services.lost_password_hash import lost_password_hash_service
+from sentry.users.services.user.service import user_service
+from sentry.utils import json
+from sentry.utils.db import atomic_transaction
+from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 
 logger = logging.getLogger("sentry.relocation.tasks")
 

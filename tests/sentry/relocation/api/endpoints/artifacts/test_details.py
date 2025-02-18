@@ -17,10 +17,10 @@ from sentry.backup.crypto import (
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.api.endpoints.artifacts.index import ERR_NEED_RELOCATION_ADMIN
 from sentry.relocation.models.relocation import Relocation
+from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 RELOCATION_ADMIN_PERMISSION = "relocation.admin"

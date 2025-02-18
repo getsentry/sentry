@@ -25,8 +25,8 @@ from sentry.relocation.services.relocation_export.service import (
     ControlRelocationExportService,
     RegionRelocationExportService,
 )
+from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, uuid_to_identifier
 from sentry.utils.db import atomic_transaction
-from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, uuid_to_identifier
 
 logger = logging.getLogger(__name__)
 

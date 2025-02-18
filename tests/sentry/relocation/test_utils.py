@@ -4,13 +4,13 @@ from uuid import uuid4
 import pytest
 
 from sentry.relocation.models.relocation import Relocation
-from sentry.testutils.cases import TestCase
-from sentry.utils.relocation import (
+from sentry.relocation.utils import (
     OrderedTask,
     fail_relocation,
     retry_task_or_fail_relocation,
     start_relocation_task,
 )
+from sentry.testutils.cases import TestCase
 
 
 class RelocationUtilsTestCase(TestCase):

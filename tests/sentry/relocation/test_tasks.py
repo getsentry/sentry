@@ -80,6 +80,12 @@ from sentry.relocation.tasks import (
     validating_poll,
     validating_start,
 )
+from sentry.relocation.utils import (
+    RELOCATION_BLOB_SIZE,
+    RELOCATION_FILE_TYPE,
+    OrderedTask,
+    StorageBackedCheckpointExporter,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
@@ -94,12 +100,6 @@ from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, re
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.utils.relocation import (
-    RELOCATION_BLOB_SIZE,
-    RELOCATION_FILE_TYPE,
-    OrderedTask,
-    StorageBackedCheckpointExporter,
-)
 
 IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 

@@ -17,7 +17,7 @@ from sentry.relocation.api.endpoints import (
 )
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks import TASK_MAP
-from sentry.utils.relocation import OrderedTask
+from sentry.relocation.utils import OrderedTask
 
 ERR_NOT_RECOVERABLE_STATUS = Template(
     """Relocations can only be recovered if they have already failed; this relocation is

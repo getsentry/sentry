@@ -16,6 +16,7 @@ from sentry.relocation.api.endpoints.retry import (
     ERR_OWNER_NO_LONGER_EXISTS,
 )
 from sentry.relocation.models.relocation import Relocation, RelocationFile
+from sentry.relocation.utils import RELOCATION_FILE_TYPE, OrderedTask
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
@@ -23,7 +24,6 @@ from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
-from sentry.utils.relocation import RELOCATION_FILE_TYPE, OrderedTask
 
 FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)

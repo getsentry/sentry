@@ -19,12 +19,12 @@ from sentry.relocation.api.endpoints.index import (
     RelocationIndexEndpoint,
 )
 from sentry.relocation.models.relocation import Relocation, RelocationFile
+from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.relocation import OrderedTask
 
 FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)

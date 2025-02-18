@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from sentry.api.serializers import serialize
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.relocation.models.relocation import Relocation
+from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 TEST_DATE_UPDATED = datetime(2023, 1, 23, 1, 24, 45, tzinfo=timezone.utc)

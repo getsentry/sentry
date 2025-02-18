@@ -3,9 +3,9 @@ from uuid import uuid4
 
 from sentry.relocation.api.endpoints.abort import ERR_NOT_ABORTABLE_STATUS
 from sentry.relocation.models.relocation import Relocation
+from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 

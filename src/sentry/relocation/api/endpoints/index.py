@@ -27,6 +27,7 @@ from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.tasks import uploading_start
+from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
@@ -34,7 +35,6 @@ from sentry.users.models.user import MAX_USERNAME_LENGTH, User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
-from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner."
 ERR_INVALID_ORG_SLUG = Template("Org slug is invalid: `$org_slug`.")
