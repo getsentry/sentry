@@ -213,7 +213,6 @@ module = [
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.spans_metrics",
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.testutils.cases",
