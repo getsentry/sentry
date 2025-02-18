@@ -7,11 +7,13 @@ import _Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {
   generateProfileFlamechartRouteWithQuery,
-  generateProfileSummaryRouteWithQuery,
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
+import useProjects from 'sentry/utils/useProjects';
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 export interface ProfilingBreadcrumbsProps {
   organization: Organization;
@@ -19,9 +21,10 @@ export interface ProfilingBreadcrumbsProps {
 }
 
 function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps) {
+  const {projects} = useProjects();
   const crumbs = useMemo(
-    () => trails.map(trail => trailToCrumb(trail, {organization})),
-    [organization, trails]
+    () => trails.map(trail => trailToCrumb(trail, {organization, projects})),
+    [organization, trails, projects]
   );
   return <_Breadcrumbs crumbs={crumbs} />;
 }
@@ -30,8 +33,10 @@ function trailToCrumb(
   trail: Trail,
   {
     organization,
+    projects,
   }: {
     organization: Organization;
+    projects: Project[];
   }
 ): Crumb {
   switch (trail.type) {
@@ -48,15 +53,16 @@ function trailToCrumb(
       };
     }
     case 'profile summary': {
+      const project = projects.find(p => p.slug === trail.payload.projectSlug);
       return {
-        to: generateProfileSummaryRouteWithQuery({
-          // cursor and query are not used in the summary page
-          // and break the API call as the qs gets forwarded to the API
-          query: omit(trail.payload.query, ['cursor', 'query']),
-          organization,
-          projectSlug: trail.payload.projectSlug,
-          transaction: trail.payload.transaction,
-        }),
+        to: defined(project)
+          ? profilesRouteWithQuery({
+              organization,
+              transaction: trail.payload.transaction,
+              projectID: project.id,
+              query: omit(trail.payload.query, ['cursor', 'query']),
+            })
+          : undefined,
         label: t('Profile Summary'),
         preservePageFilters: true,
       };

@@ -24,20 +24,6 @@ export function generateProfilingRoute({
   return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/`;
 }
 
-export function generateProfileSummaryRoute({
-  organization,
-  projectSlug,
-}: {
-  organization: Organization;
-  projectSlug: Project['slug'];
-}): Path {
-  if (organization.features.includes('navigation-sidebar-v2')) {
-    return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/summary/${projectSlug}/`;
-  }
-
-  return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/summary/${projectSlug}/`;
-}
-
 export function generateProfileFlamechartRoute({
   organization,
   projectSlug,
@@ -139,27 +125,6 @@ export function generateProfilingRouteWithQuery({
   return {
     pathname,
     query,
-  };
-}
-
-export function generateProfileSummaryRouteWithQuery({
-  organization,
-  projectSlug,
-  transaction,
-  query,
-}: {
-  organization: Organization;
-  projectSlug: Project['slug'];
-  transaction: string;
-  query?: Location['query'];
-}): LocationDescriptor {
-  const pathname = generateProfileSummaryRoute({organization, projectSlug});
-  return {
-    pathname,
-    query: {
-      ...query,
-      transaction,
-    },
   };
 }
 
