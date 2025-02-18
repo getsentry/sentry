@@ -55,6 +55,50 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
+/**
+ * Ordered array of sections that matches the order in EventDetailsContent
+ */
+const ORDERED_SECTIONS: SectionKey[] = [
+  SectionKey.HIGHLIGHTS,
+  SectionKey.USER_FEEDBACK,
+  SectionKey.LLM_MONITORING,
+  SectionKey.UPTIME,
+  SectionKey.CRON_TIMELINE,
+  SectionKey.CORRELATED_ISSUES,
+  SectionKey.EVIDENCE,
+  SectionKey.MESSAGE,
+  SectionKey.EXCEPTION,
+  SectionKey.STACKTRACE,
+  SectionKey.THREADS,
+  SectionKey.SUSPECT_ROOT_CAUSE,
+  SectionKey.SPAN_EVIDENCE,
+  SectionKey.REGRESSION_SUMMARY,
+  SectionKey.REGRESSION_BREAKPOINT_CHART,
+  SectionKey.REGRESSION_FLAMEGRAPH,
+  SectionKey.HYDRATION_DIFF,
+  SectionKey.REPLAY,
+  SectionKey.HPKP,
+  SectionKey.CSP,
+  SectionKey.EXPECTCT,
+  SectionKey.EXPECTSTAPLE,
+  SectionKey.TEMPLATE,
+  SectionKey.BREADCRUMBS,
+  SectionKey.TRACE,
+  SectionKey.REQUEST,
+  SectionKey.TAGS,
+  SectionKey.CONTEXTS,
+  SectionKey.FEATURE_FLAGS,
+  SectionKey.EXTRA,
+  SectionKey.PACKAGES,
+  SectionKey.DEVICE,
+  SectionKey.VIEW_HIERARCHY,
+  SectionKey.ATTACHMENTS,
+  SectionKey.SDK,
+  SectionKey.PROCESSING_ERROR,
+  SectionKey.GROUPING_INFO,
+  SectionKey.RRWEB,
+];
+
 const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
@@ -164,9 +208,11 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
     const theme = useTheme();
 
     const {sectionData} = useIssueDetails();
-    const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
-      config => sectionLabels[config.key]
+    // Filter sections based on the ordered array and ensure they have labels
+    const eventSectionConfigs = ORDERED_SECTIONS.map(key => sectionData[key]).filter(
+      (config): config is SectionConfig => Boolean(config && sectionLabels[config.key])
     );
+
     const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
       getFoldSectionKey(SectionKey.PROCESSING_ERROR),
       true
