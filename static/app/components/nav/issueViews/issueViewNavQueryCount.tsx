@@ -79,6 +79,7 @@ export function IssueViewNavQueryCount({view}: IssueViewNavQueryCountProps) {
           ease: 'easeInOut',
         },
       }}
+      data-issue-view-query-count
     >
       <motion.span
         // Prevents count from fading in if it's already cached on mount

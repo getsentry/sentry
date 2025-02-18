@@ -86,9 +86,16 @@ const StyledSecondaryNavReordableItem = styled(SecondaryNav.ReordableItem)`
     [data-ellipsis-menu-trigger] {
       display: flex;
     }
+    [data-issue-view-query-count] {
+      display: none;
+    }
   }
 
   [data-ellipsis-menu-trigger][aria-expanded='true'] {
     display: flex;
+  }
+  &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
+    [data-issue-view-query-count] {
+    display: none;
   }
 `;
