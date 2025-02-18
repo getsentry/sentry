@@ -129,8 +129,8 @@ async function fetchProjectsAndTeams(
 export async function fetchOrganizationDetails(
   api: Client,
   slug: string,
-  silent: boolean,
-  usePreload?: boolean
+  silent = true,
+  usePreload = false
 ): Promise<void> {
   if (!silent) {
     OrganizationStore.reset();
