@@ -322,7 +322,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           padding: [0, 10, 0, 10],
           width: 60,
         },
-        splitNumber: 0,
+        splitNumber: 5,
       }}
       yAxis={{
         animation: false,
