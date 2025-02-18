@@ -22,7 +22,7 @@ export function NewIssueExperienceButton() {
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
-  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
+  const hasNewUIOnly = organization.streamlineOnly === true;
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
@@ -42,8 +42,8 @@ export function NewIssueExperienceButton() {
     !hasStreamlinedUIFlag ||
     // has the 'remove opt-out' flag,
     hasEnforceStreamlinedUIFlag ||
-    // has access to only one interface (via the organization option).
-    hasOnlyOneUIOption
+    // has access to only the updated experience through the experiment
+    hasNewUIOnly
   ) {
     return null;
   }
