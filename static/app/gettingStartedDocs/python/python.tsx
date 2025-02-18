@@ -1,4 +1,4 @@
-import {SdkIntegrationEnum} from 'sentry/components/events/featureFlags/utils';
+import {SdkIntegrationEnum as FeatureFlagIntegrationEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -16,27 +16,116 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-type FlagImports = {
-  integration: string; // what's in the integrations array
-  module: string; // what's imported from sentry_sdk.integrations
+type FeatureFlagConfiguration = {
+  integrationName: string;
+  makeCodeSnippet: (dsn: string) => string;
 };
 
-const FLAG_OPTION_TO_IMPORT: Record<SdkIntegrationEnum, FlagImports> = {
-  [SdkIntegrationEnum.LAUNCHDARKLY]: {
-    module: 'integrations.launchdarkly',
-    integration: 'LaunchDarklyIntegration',
+const FEATURE_FLAG_CONFIGURATION_MAP: Record<
+  FeatureFlagIntegrationEnum,
+  FeatureFlagConfiguration
+> = {
+  [FeatureFlagIntegrationEnum.GENERIC]: {
+    integrationName: ``,
+    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+from sentry_sdk.feature_flags import add_feature_flag
+
+sentry_sdk.init(
+  dsn="${dsn}",
+  integrations=[
+    # your other integrations here
+  ]
+)
+
+add_feature_flag('test-flag', False)  # Records an evaluation and its result.
+sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
-  [SdkIntegrationEnum.OPENFEATURE]: {
-    module: 'integrations.openfeature',
-    integration: 'OpenFeatureIntegration',
+
+  [FeatureFlagIntegrationEnum.LAUNCHDARKLY]: {
+    integrationName: `LaunchDarklyIntegration`,
+    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+from sentry_sdk.integrations.launchdarkly import LaunchDarklyIntegration
+import ldclient
+
+sentry_sdk.init(
+    dsn="${dsn}",
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        LaunchDarklyIntegration(),
+    ],
+)
+
+client = ldclient.get()
+client.variation("hello", Context.create("test-context"), False)  # Evaluate a flag with a default value.
+sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
-  [SdkIntegrationEnum.UNLEASH]: {
-    module: 'integrations.unleash',
-    integration: 'UnleashIntegration',
+
+  [FeatureFlagIntegrationEnum.OPENFEATURE]: {
+    integrationName: `OpenFeatureIntegration`,
+    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+from sentry_sdk.integrations.openfeature import OpenFeatureIntegration
+from openfeature import api
+
+sentry_sdk.init(
+    dsn="${dsn}",
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        OpenFeatureIntegration(),
+    ],
+)
+
+client = api.get_client()
+client.get_boolean_value("hello", default_value=False)  # Evaluate a flag with a default value.
+sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
-  [SdkIntegrationEnum.GENERIC]: {
-    module: 'feature_flags',
-    integration: '',
+
+  [FeatureFlagIntegrationEnum.STATSIG]: {
+    integrationName: `StatsigIntegration`,
+    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+from sentry_sdk.integrations.statsig import StatsigIntegration
+from statsig.statsig_user import StatsigUser
+from statsig import statsig
+import time
+
+sentry_sdk.init(
+    dsn="${dsn}",
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[StatsigIntegration()],
+)
+
+statsig.initialize("server-secret-key")
+while not statsig.is_initialized():
+    time.sleep(0.2)
+
+result = statsig.check_gate(StatsigUser("my-user-id"), "my-feature-gate")  # Evaluate a flag.
+sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
+  },
+
+  [FeatureFlagIntegrationEnum.UNLEASH]: {
+    integrationName: `UnleashIntegration`,
+    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+from sentry_sdk.integrations.unleash import UnleashIntegration
+from UnleashClient import UnleashClient
+
+sentry_sdk.init(
+    dsn="${dsn}",
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[UnleashIntegration()],
+)
+
+unleash = UnleashClient(...)  # See Unleash quickstart.
+unleash.initialize_client()
+
+test_flag_enabled = unleash.is_enabled("test-flag")  # Evaluate a flag.
+sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
@@ -255,44 +344,29 @@ export function AlternativeConfiguration() {
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
-  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
-    {
-      type: StepType.CONFIGURE,
-      description:
-        featureFlagOptions.integration === SdkIntegrationEnum.GENERIC
-          ? `This provider doesn't use an integration. Simply initialize Sentry and import the API.`
-          : tct('Add [name] to your integrations list.', {
-              name: (
-                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}()`}</code>
-              ),
-            }),
-      configurations: [
-        {
-          language: 'python',
-          code:
-            featureFlagOptions.integration === SdkIntegrationEnum.GENERIC
-              ? `import sentry_sdk
-from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag
-
-sentry_sdk.init(
-  dsn="${dsn.public}",
-  integrations=[
-    # your other integrations here
-  ]
-)`
-              : `import sentry_sdk
-from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}
-
-sentry_sdk.init(
-  dsn="${dsn.public}",
-  integrations=[
-    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}(),
-  ]
-)`,
-        },
-      ],
-    },
-  ],
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
+    const {integrationName, makeCodeSnippet} =
+      FEATURE_FLAG_CONFIGURATION_MAP[
+        featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
+      ]!;
+    return [
+      {
+        type: StepType.CONFIGURE,
+        description:
+          featureFlagOptions.integration === FeatureFlagIntegrationEnum.GENERIC
+            ? `You don't need an integration for a generic usecase. Simply initialize Sentry and use the API.`
+            : tct('Add [name] to your integrations list.', {
+                name: <code>{`${integrationName}`}</code>,
+              }),
+        configurations: [
+          {
+            language: 'python',
+            code: makeCodeSnippet(dsn.public),
+          },
+        ],
+      },
+    ];
+  },
   verify: () => [],
   nextSteps: () => [],
 };

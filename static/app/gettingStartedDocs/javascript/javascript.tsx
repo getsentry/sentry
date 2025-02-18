@@ -741,8 +741,8 @@ export const featureFlagOnboarding: OnboardingConfig = {
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
     const {integrationName, makeCodeSnippet} =
       FEATURE_FLAG_CONFIGURATION_MAP[
-        featureFlagOptions.integration as FeatureFlagIntegrationEnum
-      ];
+        featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
+      ]!;
     return [
       {
         type: StepType.CONFIGURE,

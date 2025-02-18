@@ -129,7 +129,7 @@ export enum SdkIntegrationEnum {
   UNLEASH = 'Unleash',
 }
 
-export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<ProviderEnum, string | undefined> = {
+export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<ProviderEnum, string> = {
   [ProviderEnum.GENERIC]:
     'https://docs.sentry.io/organization/integrations/feature-flag/generic/#set-up-change-tracking',
   [ProviderEnum.LAUNCHDARKLY]:
