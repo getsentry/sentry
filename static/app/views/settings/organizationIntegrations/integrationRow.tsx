@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
@@ -12,6 +12,7 @@ import type {
   IntegrationInstallationStatus,
   PluginWithProjectList,
   SentryApp,
+  SentryAppStatus,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -28,7 +29,7 @@ type Props = {
   configurations: number;
   displayName: string;
   organization: Organization;
-  publishStatus: 'unpublished' | 'published' | 'internal';
+  publishStatus: SentryAppStatus;
   slug: string;
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
   /**

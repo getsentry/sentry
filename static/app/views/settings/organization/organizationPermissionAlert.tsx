@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import Access from 'sentry/components/acl/access';
-import {Alert, type AlertProps} from 'sentry/components/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 
