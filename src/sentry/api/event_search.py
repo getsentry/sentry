@@ -227,6 +227,39 @@ def translate_wildcard(pat: str) -> str:
     return "^" + res + "$"
 
 
+def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
+    """
+    Translate a wildcard pattern to clickhouse pattern.
+
+    See https://clickhouse.com/docs/en/sql-reference/functions/string-search-functions#like
+    """
+    chars: list[str] = []
+
+    i = 0
+    n = len(pattern)
+
+    while i < n:
+        c = pattern[i]
+        i += 1
+        if c == "\\" and i < n:
+            c = pattern[i]
+            if c not in {"*"}:
+                raise InvalidSearchQuery(f"Unexpected escape character: {c}")
+            chars.append(c)
+            i += 1
+        elif c == "*":
+            # sql uses % as the wildcard character
+            chars.append("%")
+        elif c in {"%", "_"}:
+            # these are special characters and need to be escaped
+            chars.append("\\")
+            chars.append(c)
+        else:
+            chars.append(c)
+
+    return "".join(chars)
+
+
 def translate_escape_sequences(string: str) -> str:
     """
     A non-wildcard pattern can contain escape sequences that we need to handle.

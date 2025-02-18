@@ -408,15 +408,8 @@ class SearchResolver:
                 operator = ComparisonFilter.OP_NOT_LIKE
             else:
                 raise InvalidSearchQuery(f"Cannot use a wildcard with a {term.operator} filter")
-            # Slashes have to be double escaped so they are
-            # interpreted as a string literal.
-            value = (
-                str(term.value.raw_value)
-                .replace("\\", "\\\\")
-                .replace("%", "\\%")
-                .replace("_", "\\_")
-                .replace("*", "%")
-            )
+            value = str(term.value.raw_value)
+            value = event_search.translate_wildcard_as_clickhouse_pattern(value)
         elif term.operator in constants.OPERATOR_MAP:
             operator = constants.OPERATOR_MAP[term.operator]
         else:
