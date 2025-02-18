@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -59,7 +59,7 @@ export function useProfilingOnboardingDrawer() {
 
   const {openDrawer} = useDrawer();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isActive && hasProjectAccess) {
       openDrawer(() => <DrawerContent />, {
         ariaLabel: t('Profile Code'),
@@ -72,7 +72,7 @@ export function useProfilingOnboardingDrawer() {
 }
 
 function DrawerContent() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       SidebarPanelStore.hidePanel();
     };
@@ -81,6 +81,9 @@ function DrawerContent() {
   return <SidebarContent />;
 }
 
+/**
+ * @deprecated Use useProfilingOnboardingDrawer instead.
+ */
 export function LegacyProfilingOnboardingSidebar(props: CommonSidebarProps) {
   if (props.currentPanel !== SidebarPanelKey.PROFILING_ONBOARDING) {
     return null;
