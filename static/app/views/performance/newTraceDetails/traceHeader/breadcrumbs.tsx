@@ -9,7 +9,10 @@ import type {
   RoutableModuleNames,
   URLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  DOMAIN_VIEW_BASE_URL,
+} from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -36,6 +39,7 @@ export const enum TraceViewSources {
   MOBILE_SCREENS_MODULE = 'mobile_screens_module',
   SCREEN_RENDERING_MODULE = 'screen_rendering_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
+  INSIGHTS_TRANSACTION_SUMMARY = 'insights_transaction_summary',
   ISSUE_DETAILS = 'issue_details',
   DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
@@ -89,13 +93,24 @@ function getPerformanceBreadCrumbs(
 ) {
   const crumbs: Crumb[] = [];
 
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
+
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
-  crumbs.push({
-    label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
-    to: getBreadCrumbTarget(performanceUrl, location.query, organization),
-  });
+  if (!view && hasPerfLandingRemovalFlag) {
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
+    });
+  } else {
+    crumbs.push({
+      label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
+      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+    });
+  }
 
   switch (location.query.tab) {
     case Tab.EVENTS:
@@ -429,6 +444,7 @@ export function getTraceViewBreadcrumbs(
     case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
+    case TraceViewSources.INSIGHTS_TRANSACTION_SUMMARY:
       return getPerformanceBreadCrumbs(organization, location, view);
     default:
       return [{label: t('Trace View')}];
