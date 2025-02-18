@@ -18,7 +18,7 @@ function DisableInDemoMode({children}: Props) {
   }
 
   return (
-    <Tooltip title={t('Disabled in demo mode!')} delay={500}>
+    <Tooltip title={t('This action is disabled in demo mode.')} delay={500}>
       <div
         data-test-id="demo-mode-disabled-wrapper"
         style={{

@@ -84,7 +84,7 @@ export function addLoadingMessage(
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
   if (isDemoModeEnabled()) {
     return addMessageWithType('error')(
-      t('This action is not allowed in demo mode!'),
+      t('This action is not allowed in demo mode.'),
       options
     );
   }
