@@ -1,8 +1,9 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,6 +21,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -49,7 +51,44 @@ const PROFILING_ONBOARDING_STEPS = [
   ProductSolution.PROFILING,
 ];
 
-export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
+export function useProfilingOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.PROFILING_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
+
+  const {openDrawer} = useDrawer();
+
+  useLayoutEffect(() => {
+    if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Profile Code'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location => {
+          return location.pathname !== initialPathname.current;
+        },
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useLayoutEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+/**
+ * @deprecated Use useProfilingOnboardingDrawer instead.
+ */
+export function LegacyProfilingOnboardingSidebar(props: CommonSidebarProps) {
   if (props.currentPanel !== SidebarPanelKey.PROFILING_ONBOARDING) {
     return null;
   }
@@ -58,6 +97,20 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function ProfilingOnboarding(props: CommonSidebarProps) {
+  return (
+    <TaskSidebar
+      orientation={props.orientation}
+      collapsed={props.collapsed}
+      hidePanel={() => {
+        props.hidePanel();
+      }}
+    >
+      <SidebarContent />
+    </TaskSidebar>
+  );
+}
+
+function SidebarContent() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -68,6 +121,15 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
     () => splitProjectsByProfilingSupport(projects),
     [projects]
   );
+
+  useEffect(() => {
+    return () => {
+      trackAnalytics('profiling_views.onboarding_action', {
+        organization,
+        action: 'dismissed',
+      });
+    };
+  }, [organization]);
 
   useEffect(() => {
     if (currentProject) {
@@ -163,17 +225,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
     : undefined;
 
   return (
-    <TaskSidebar
-      orientation={props.orientation}
-      collapsed={props.collapsed}
-      hidePanel={() => {
-        trackAnalytics('profiling_views.onboarding_action', {
-          organization,
-          action: 'dismissed',
-        });
-        props.hidePanel();
-      }}
-    >
+    <Fragment>
       <Content>
         <Heading>{t('Profile Code')}</Heading>
         <div
@@ -215,7 +267,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
           />
         ) : null}
       </Content>
-    </TaskSidebar>
+    </Fragment>
   );
 }
 
