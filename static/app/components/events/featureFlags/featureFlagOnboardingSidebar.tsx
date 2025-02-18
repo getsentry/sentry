@@ -48,24 +48,17 @@ export function useFeatureFlagOnboardingDrawer() {
     if (isActive && hasProjectAccess) {
       initialPathname.current = window.location.pathname;
 
-      openDrawer(() => <DrawerContent />, {
+      openDrawer(() => <SidebarContent />, {
         ariaLabel: t('Debug Issues with Feature Flag Context'),
         // Prevent the drawer from closing when the query params change
         shouldCloseOnLocationChange: location =>
           location.pathname !== initialPathname.current,
       });
+
+      // Reset store
+      SidebarPanelStore.hidePanel();
     }
   }, [isActive, hasProjectAccess, openDrawer]);
-}
-
-function DrawerContent() {
-  useEffect(() => {
-    return () => {
-      SidebarPanelStore.hidePanel();
-    };
-  }, []);
-
-  return <SidebarContent />;
 }
 
 /**
