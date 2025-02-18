@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import Badge from 'sentry/components/badge/badge';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -134,7 +134,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Tag>{t('New')}</Tag>}
+        {isModuleConsideredNew(moduleName) && <Badge type="new" text={t('New')} />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );
