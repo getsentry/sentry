@@ -9,6 +9,7 @@ import {
   MONTH,
   SECOND,
   WEEK,
+  YEAR,
 } from '../formatters';
 
 function roundWithFixed(
@@ -29,6 +30,9 @@ function roundWithFixed(
  * Use `getExactDuration` for exact durations
  */
 const DURATION_LABELS = {
+  y: t('y'),
+  yr: t('yr'),
+  year: t('year'),
   mo: t('mo'),
   w: t('w'),
   wk: t('wk'),
@@ -80,6 +84,11 @@ export default function getDuration(
 
   // value in milliseconds
   const msValue = absolute ? absValue : seconds * 1000;
+
+  if ((absValue >= YEAR && !extraShort) || minimumUnit === YEAR) {
+    const {label, result} = roundWithFixed(msValue / YEAR, fixedDigits);
+    return `${label}${abbreviation ? DURATION_LABELS.yr : ` ${tn('year', 'years', result)}`}`;
+  }
 
   if ((absValue >= MONTH && !extraShort) || minimumUnit === MONTH) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
