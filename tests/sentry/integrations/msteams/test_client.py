@@ -25,7 +25,7 @@ from tests.sentry.integrations.test_helpers import add_control_silo_proxy_respon
 class MsTeamsClientTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -116,6 +116,8 @@ class MsTeamsClientTest(TestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
@@ -152,6 +154,8 @@ class MsTeamsClientTest(TestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
