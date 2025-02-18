@@ -316,9 +316,27 @@ function propSort(a: PropTreeNode, b: PropTreeNode) {
     }
   }
 
-  const nameA = 'name' in a.prop ? a.prop.name : a.prop.definitionFilePath;
-  const nameB = 'name' in b.prop ? b.prop.name : b.prop.definitionFilePath;
-  return nameA.localeCompare(nameB);
+  if ('definitionFilePath' in a.prop && 'definitionFilePath' in b.prop) {
+    return a.prop.definitionFilePath.localeCompare(b.prop.definitionFilePath);
+  }
+
+  if ('definitionFilePath' in a.prop) {
+    return 0;
+  }
+
+  if ('definitionFilePath' in b.prop) {
+    return 0;
+  }
+
+  if (!a.prop.required && b.prop.required) {
+    return 1;
+  }
+
+  if (a.prop.required && !b.prop.required) {
+    return -1;
+  }
+
+  return a.prop.name.localeCompare(b.prop.name);
 }
 
 function stripNodeModulesPrefix(str: string): string {
