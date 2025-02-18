@@ -72,5 +72,6 @@ export const useAiConfig = (
     needsAutofixSetup,
     hasResources,
     isAutofixSetupLoading,
+    areAiFeaturesAllowed,
   };
 };
