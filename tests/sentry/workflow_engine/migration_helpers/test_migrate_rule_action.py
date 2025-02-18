@@ -1093,7 +1093,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             }
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data, dry_run=True)
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
         assert len(actions) == 1
         assert Action.objects.count() == 0
 

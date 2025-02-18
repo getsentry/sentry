@@ -78,7 +78,7 @@ def translate_rule_data_actions_to_notification_actions(
 
 
 def build_notification_actions_from_rule_data_actions(
-    actions: list[dict[str, Any]], dry_run: bool = False
+    actions: list[dict[str, Any]], is_dry_run: bool = False
 ) -> list[Action]:
     """
     Builds notification actions from action field in Rule's data blob.
@@ -91,7 +91,7 @@ def build_notification_actions_from_rule_data_actions(
     notification_actions = translate_rule_data_actions_to_notification_actions(actions)
 
     # Bulk create the actions if not a dry run
-    if not dry_run:
+    if not is_dry_run:
         Action.objects.bulk_create(notification_actions)
 
     return notification_actions
