@@ -123,10 +123,7 @@ type OrganizationHeaderProps = {
   organization: Organization;
 };
 
-type ProductSelectionAvailabilityProps = Omit<
-  ProductSelectionProps,
-  'disabledProducts' | 'productsPerPlatform'
->;
+type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
