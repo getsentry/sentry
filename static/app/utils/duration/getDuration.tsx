@@ -85,13 +85,25 @@ export default function getDuration(
   // value in milliseconds
   const msValue = absolute ? absValue : seconds * 1000;
 
-  if ((absValue >= YEAR && !extraShort) || minimumUnit === YEAR) {
+  if (absValue >= YEAR || minimumUnit === YEAR) {
     const {label, result} = roundWithFixed(msValue / YEAR, fixedDigits);
+    if (extraShort) {
+      return `${label}${DURATION_LABELS.y}`;
+    }
+    if (abbreviation) {
+      return `${label}${DURATION_LABELS.yr}`;
+    }
     return `${label}${abbreviation ? DURATION_LABELS.yr : ` ${tn('year', 'years', result)}`}`;
   }
 
-  if ((absValue >= MONTH && !extraShort) || minimumUnit === MONTH) {
+  if (absValue >= MONTH || minimumUnit === MONTH) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
+    if (extraShort) {
+      return `${label}${DURATION_LABELS.m}`;
+    }
+    if (abbreviation) {
+      return `${label}${DURATION_LABELS.mo}`;
+    }
     return `${label}${abbreviation ? DURATION_LABELS.mo : ` ${tn('month', 'months', result)}`}`;
   }
 
