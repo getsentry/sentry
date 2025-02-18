@@ -5,7 +5,7 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding, Onboarding} from './onboarding';
 
 describe('Performance Onboarding View > Unsupported Banner', function () {
   const organization = OrganizationFixture();
@@ -14,7 +14,7 @@ describe('Performance Onboarding View > Unsupported Banner', function () {
     const project = ProjectFixture({
       platform: 'nintendo-switch',
     });
-    render(<Onboarding organization={organization} project={project} />);
+    render(<LegacyOnboarding organization={organization} project={project} />);
 
     expect(screen.getByTestId('unsupported-alert')).toBeInTheDocument();
   });
@@ -23,7 +23,7 @@ describe('Performance Onboarding View > Unsupported Banner', function () {
     const project = ProjectFixture({
       platform: 'java',
     });
-    render(<Onboarding organization={organization} project={project} />);
+    render(<LegacyOnboarding organization={organization} project={project} />);
 
     expect(screen.queryByTestId('unsupported-alert')).not.toBeInTheDocument();
   });

@@ -188,7 +188,7 @@ type OnboardingProps = {
   project: Project;
 };
 
-function LegacyOnboarding({organization, project}: OnboardingProps) {
+export function LegacyOnboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const {projects} = useProjects();
   const location = useLocation();
@@ -412,10 +412,11 @@ function ConfigurationStep({
   );
 }
 
-function NewOnboarding({organization, project}: OnboardingProps) {
+export function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
+  const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -427,6 +428,10 @@ function NewOnboarding({organization, project}: OnboardingProps) {
     projSlug: project.slug,
     productType: 'performance',
   });
+
+  if (!showNewUi) {
+    return <LegacyOnboarding organization={organization} project={project} />;
+  }
 
   const performanceDocs = docs?.performanceOnboarding;
 
@@ -823,15 +828,3 @@ const DescriptionWrapper = styled('div')`
     color: ${p => p.theme.pink400};
   }
 `;
-
-function Onboarding(props: OnboardingProps) {
-  const showNewUi = props.organization.features.includes('tracing-onboarding-new-ui');
-
-  if (!showNewUi) {
-    return <LegacyOnboarding {...props} />;
-  }
-
-  return <NewOnboarding {...props} />;
-}
-
-export default Onboarding;

@@ -56,7 +56,7 @@ import {
   type MaxPickableDays,
 } from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {Onboarding} from 'sentry/views/performance/onboarding';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
