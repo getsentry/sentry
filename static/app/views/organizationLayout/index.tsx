@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -64,6 +65,7 @@ function AppLayout({children, organization}: LayoutProps) {
   useReplaysOnboardingDrawer();
   usePerformanceOnboardingDrawer();
   useProfilingOnboardingDrawer();
+  useFeatureFlagOnboardingDrawer();
 
   return (
     <NavContextProvider>
