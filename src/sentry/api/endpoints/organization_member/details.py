@@ -507,7 +507,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
         if member.user_id is None:
-            uos = ()
+            uos = []
         else:
             uos = user_option_service.get_many(
                 filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")

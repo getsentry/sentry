@@ -6,7 +6,6 @@ from sentry.testutils.cases import CliTestCase
 
 class TestCreateFlag(CliTestCase):
     command = createflag
-    default_args: list[str] = []
 
     def convert_output_to_feature(self, output: str) -> Feature:
         split_output = output.split("=== GENERATED YAML ===\n")

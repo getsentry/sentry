@@ -108,10 +108,10 @@ ENFORCE_PAGINATION = True if DEBUG else False
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-INTERNAL_IPS = ()
+INTERNAL_IPS: tuple[str, ...] = ()
 
 # List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS = ()
+SENTRY_DISALLOWED_IPS: tuple[str, ...] = ()
 
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
@@ -527,7 +527,7 @@ STATIC_URL = "/_static/{version}/"
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # URL origin from where the static files are served.
-STATIC_ORIGIN = None
+STATIC_ORIGIN: str | None = None
 
 # The webpack output directory
 STATICFILES_DIRS = [
