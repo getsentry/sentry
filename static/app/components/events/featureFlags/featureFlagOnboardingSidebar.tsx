@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
@@ -44,7 +44,7 @@ export function useFeatureFlagOnboardingDrawer() {
 
   const {openDrawer} = useDrawer();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (isActive && hasProjectAccess) {
       initialPathname.current = window.location.pathname;
 
@@ -59,7 +59,7 @@ export function useFeatureFlagOnboardingDrawer() {
 }
 
 function DrawerContent() {
-  useLayoutEffect(() => {
+  useEffect(() => {
     return () => {
       SidebarPanelStore.hidePanel();
     };
