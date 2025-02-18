@@ -11,7 +11,7 @@ import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/alert';
+import types from '!!type-loader!sentry/components/core/alert';
 
 export default storyBook('Alert', (story, APIReference) => {
   APIReference(types.Alert);
