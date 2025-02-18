@@ -19,13 +19,13 @@ import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRul
 import {
   useMetricIssueAlertId,
   useMetricTimePeriod,
-} from 'sentry/views/issueDetails/metric/utils';
+} from 'sentry/views/issueDetails/metricIssues/utils';
 
 const MetricChart = lazy(
   () => import('sentry/views/alerts/rules/metric/details/metricChart')
 );
 
-export function MetricIssueChart({group, project}: {group: Group; project: Project}) {
+export function MetricIssuesChart({group, project}: {group: Group; project: Project}) {
   const theme = useTheme();
   const api = useApi();
   const organization = useOrganization();

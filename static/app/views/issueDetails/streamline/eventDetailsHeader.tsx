@@ -16,7 +16,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MetricIssueChart} from 'sentry/views/issueDetails/metric/metricIssueChart';
+import {MetricIssuesChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
@@ -121,7 +121,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               <EventGraph event={event} group={group} style={{flex: 1}} />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssueChart group={group} project={project} event={event} />
+              <MetricIssuesChart group={group} project={project} event={event} />
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />

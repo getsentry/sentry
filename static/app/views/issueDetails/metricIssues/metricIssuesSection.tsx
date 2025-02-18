@@ -13,7 +13,7 @@ import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRul
 import {
   useMetricIssueAlertId,
   useMetricTimePeriod,
-} from 'sentry/views/issueDetails/metric/utils';
+} from 'sentry/views/issueDetails/metricIssues/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
