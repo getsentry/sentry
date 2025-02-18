@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import {Alert} from 'sentry/components/alert';
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -83,11 +83,13 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             confirmText={t('Disconnect')}
             message={
               <Fragment>
-                <Alert type="error" showIcon>
-                  {tct('Disconnect Your [provider] Identity?', {
-                    provider: identity.provider.name,
-                  })}
-                </Alert>
+                <Alert.Container>
+                  <Alert type="error" showIcon>
+                    {tct('Disconnect Your [provider] Identity?', {
+                      provider: identity.provider.name,
+                    })}
+                  </Alert>
+                </Alert.Container>
                 <TextBlock>
                   {identity.isLogin
                     ? t(

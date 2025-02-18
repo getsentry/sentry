@@ -1,9 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -87,11 +86,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
     }
   }
 
-  return <StyledAlert type="info">{getAlertInfoMessage()}</StyledAlert>;
+  return <Alert type="info">{getAlertInfoMessage()}</Alert>;
 }
 
 export default ReprocessAlert;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;

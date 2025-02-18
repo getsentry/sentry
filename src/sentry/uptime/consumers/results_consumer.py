@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
+from enum import IntEnum
 from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
@@ -32,6 +33,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_top_hosting_provider_names,
 )
 from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.uptime.subscriptions.subscriptions import (
@@ -66,6 +68,8 @@ ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
+# We want to limit cardinality for provider tags. This controls how many tags we should include
+TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 
 def _get_snuba_uptime_checks_producer() -> KafkaProducer:
@@ -77,6 +81,11 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
 
 
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
+
+
+class IncidentStatus(IntEnum):
+    NO_INCIDENT = 0
+    IN_INCIDENT = 1
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
@@ -151,6 +160,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         update_remote_uptime_subscription.delay(subscription.id)
 
     def get_host_provider_if_valid(self, subscription: UptimeSubscription) -> str:
+        if subscription.host_provider_name in get_top_hosting_provider_names(
+            TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS
+        ):
+            return subscription.host_provider_name
         return "other"
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
@@ -521,6 +534,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 quotas.backend.get_event_retention(organization=project.organization) or 90
             )
 
+            if project_subscription.uptime_status == UptimeStatus.FAILED:
+                incident_status = IncidentStatus.IN_INCIDENT
+            else:
+                incident_status = IncidentStatus.NO_INCIDENT
+
             snuba_message: SnubaUptimeResult = {
                 # Copy over fields from original result
                 "guid": result["guid"],
@@ -537,6 +555,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organization_id": project.organization_id,
                 "project_id": project.id,
                 "retention_days": retention_days,
+                "incident_status": incident_status.value,
                 "region": result["region"],
             }
 

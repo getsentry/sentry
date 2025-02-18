@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -198,11 +198,13 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
-      <Alert type="warning" showIcon>
-        {t(
-          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

@@ -2,13 +2,13 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
-import {Alert} from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Alert} from 'sentry/components/core/alert';
 import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -34,6 +34,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {
   CheckStatus,
@@ -47,7 +48,7 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
@@ -120,7 +121,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             crumbs={[
               {
                 label: t('Alerts'),
-                to: `/organizations/${organization.slug}/alerts/rules/`,
+                to: makeAlertsPathname({
+                  path: `/rules/`,
+                  organization,
+                }),
               },
               {
                 label: t('Uptime Monitor'),
@@ -147,7 +151,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <LinkButton
               size="sm"
               icon={<IconEdit />}
-              to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
+              to={makeAlertsPathname({
+                path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
+                organization,
+              })}
             >
               {t('Edit Rule')}
             </LinkButton>
@@ -160,21 +167,23 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <DatePageFilter />
           </StyledPageFilterBar>
           {uptimeRule.status === 'disabled' && (
-            <Alert
-              type="muted"
-              showIcon
-              trailingItems={
-                <StatusToggleButton
-                  uptimeRule={uptimeRule}
-                  size="xs"
-                  onToggleStatus={status => handleUpdate({status})}
-                >
-                  {t('Enable')}
-                </StatusToggleButton>
-              }
-            >
-              {t('This monitor is disabled and not recording uptime checks.')}
-            </Alert>
+            <Alert.Container>
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    uptimeRule={uptimeRule}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and not recording uptime checks.')}
+              </Alert>
+            </Alert.Container>
           )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />

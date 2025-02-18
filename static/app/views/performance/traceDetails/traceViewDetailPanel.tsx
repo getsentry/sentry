@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -309,34 +309,36 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       </Title>
 
       {hasIssues && (
-        <Alert
-          system
-          defaultExpanded
-          type="error"
-          expand={[
-            ...detail.traceFullDetailedEvent.errors,
-            ...detail.traceFullDetailedEvent.performance_issues,
-          ].map(error => (
-            <ErrorMessageContent key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        >
-          <ErrorMessageTitle>
-            {tn(
-              '%s issue occurred in this transaction.',
-              '%s issues occurred in this transaction.',
-              detail.traceFullDetailedEvent.errors.length +
-                detail.traceFullDetailedEvent.performance_issues.length
-            )}
-          </ErrorMessageTitle>
-        </Alert>
+        <Alert.Container>
+          <Alert
+            system
+            defaultExpanded
+            type="error"
+            expand={[
+              ...detail.traceFullDetailedEvent.errors,
+              ...detail.traceFullDetailedEvent.performance_issues,
+            ].map(error => (
+              <ErrorMessageContent key={error.event_id}>
+                <ErrorDot level={error.level} />
+                <ErrorLevel>{error.level}</ErrorLevel>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </ErrorMessageContent>
+            ))}
+          >
+            <ErrorMessageTitle>
+              {tn(
+                '%s issue occurred in this transaction.',
+                '%s issues occurred in this transaction.',
+                detail.traceFullDetailedEvent.errors.length +
+                  detail.traceFullDetailedEvent.performance_issues.length
+              )}
+            </ErrorMessageTitle>
+          </Alert>
+        </Alert.Container>
       )}
 
       <StyledTable className="table key-value">

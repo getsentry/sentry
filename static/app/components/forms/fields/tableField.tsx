@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import FormField from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import Input from 'sentry/components/input';
@@ -117,15 +117,18 @@ export default class TableField extends Component<InputFieldProps> {
     const renderConfirmMessage = () => {
       return (
         <Fragment>
-          <Alert type="error">
-            <span
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(
-                  confirmDeleteMessage || t('Are you sure you want to delete this item?')
-                ),
-              }}
-            />
-          </Alert>
+          <Alert.Container>
+            <Alert type="error">
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(
+                    confirmDeleteMessage ||
+                      t('Are you sure you want to delete this item?')
+                  ),
+                }}
+              />
+            </Alert>
+          </Alert.Container>
         </Fragment>
       );
     };

@@ -35,6 +35,7 @@ from sentry.sentry_metrics.utils import (
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import (
+    CompositeEntityDerivedMetric,
     SnubaDataType,
     get_derived_metrics,
     org_id_from_projects,
@@ -51,6 +52,7 @@ from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
+    METRIC_TYPE_TO_METRIC_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
@@ -100,7 +102,7 @@ def _get_metrics_for_entity(
 
 def get_available_derived_metrics(
     projects: Sequence[Project],
-    supported_metric_ids_in_entities: dict[MetricType, Sequence[int]],
+    supported_metric_ids_in_entities: dict[MetricType, list[int]],
     use_case_id: UseCaseID,
 ) -> set[str]:
     """
@@ -139,14 +141,16 @@ def get_available_derived_metrics(
         # derived metric and check if they have already been found and if that is the case,
         # then we add that instance of composite metric to the found derived metric.
         composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_mri]
+        assert isinstance(
+            composite_derived_metric_obj, CompositeEntityDerivedMetric
+        ), composite_derived_metric_obj
         single_entity_constituents = (
             composite_derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
         )
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
 
-    all_derived_metrics = set(get_derived_metrics().keys())
-    return found_derived_metrics.intersection(all_derived_metrics)
+    return found_derived_metrics.intersection(get_derived_metrics())
 
 
 def get_custom_measurements(
@@ -173,7 +177,7 @@ def get_custom_measurements(
         mris = bulk_reverse_resolve(use_case_id, organization_id, mri_indexes)
 
         for row in rows:
-            mri_index = row.get("metric_id")
+            mri_index = row["metric_id"]
             parsed_mri = parse_mri(mris.get(mri_index))
             if parsed_mri is not None and is_custom_measurement(parsed_mri):
                 metrics_meta.append(
@@ -181,7 +185,7 @@ def get_custom_measurements(
                         name=parsed_mri.name,
                         type=metric_type,
                         operations=AVAILABLE_GENERIC_OPERATIONS[
-                            METRIC_TYPE_TO_ENTITY[metric_type].value
+                            METRIC_TYPE_TO_METRIC_ENTITY[metric_type]
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
@@ -193,7 +197,7 @@ def get_custom_measurements(
 
 
 def _get_metrics_filter_ids(
-    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseID
+    projects: Sequence[Project], metric_mris: Sequence[str] | None, use_case_id: UseCaseID
 ) -> set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
@@ -223,13 +227,13 @@ def _get_metrics_filter_ids(
             _add_metric_ids(indexer.resolve(use_case_id, org_id, mri))
         else:
             derived_metric_obj = all_derived_metrics[mri]
-            try:
-                _add_metric_ids(*derived_metric_obj.generate_metric_ids(projects, use_case_id))
-            except NotSupportedOverCompositeEntityException:
+            if isinstance(derived_metric_obj, CompositeEntityDerivedMetric):
                 single_entity_constituents = (
                     derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
                 )
                 metric_mris_deque.extend(single_entity_constituents)
+            else:
+                _add_metric_ids(*derived_metric_obj.generate_metric_ids(projects, use_case_id))
 
     return metric_ids
 
@@ -237,7 +241,7 @@ def _get_metrics_filter_ids(
 def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
     metric_mris: Sequence[str],
-    supported_metric_ids_in_entities: dict[MetricType, Sequence[int]],
+    supported_metric_ids_in_entities: dict[MetricType, list[int]],
     use_case_id: UseCaseID,
 ) -> None:
     """
@@ -270,7 +274,7 @@ def _fetch_tags_or_values_for_metrics(
     use_case_id: UseCaseID,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
+) -> tuple[Sequence[Tag] | Sequence[TagValue], MetricType | None]:
     metric_mris = []
 
     # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
@@ -295,7 +299,7 @@ def _fetch_tags_or_values_for_mri(
     use_case_id: UseCaseID,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
+) -> tuple[Sequence[Tag] | Sequence[TagValue], MetricType | None]:
     """
     Function that takes as input projects, metric_mris, and a column, and based on the column
     selection, either returns tags or tag values for the combination of projects and metric_names

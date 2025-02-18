@@ -1,8 +1,8 @@
 import type React from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -52,18 +52,20 @@ export function OnDemandMetricAlert({
   }
 
   return (
-    <InfoAlert type="info" showIcon>
-      {message}
-      {dismissable && (
-        <DismissButton
-          priority="link"
-          size="sm"
-          icon={<IconClose />}
-          aria-label={t('Close Alert')}
-          onClick={dismiss}
-        />
-      )}
-    </InfoAlert>
+    <Alert.Container>
+      <InfoAlert type="info" showIcon>
+        {message}
+        {dismissable && (
+          <DismissButton
+            priority="link"
+            size="sm"
+            icon={<IconClose />}
+            aria-label={t('Close Alert')}
+            onClick={dismiss}
+          />
+        )}
+      </InfoAlert>
+    </Alert.Container>
   );
 }
 

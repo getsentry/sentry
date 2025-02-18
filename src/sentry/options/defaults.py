@@ -2497,6 +2497,13 @@ register(
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relocation.outbox-orgslug.killswitch",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
@@ -2839,6 +2846,12 @@ register(
 )
 register(
     "delayed_processing.emit_logs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "delayed_workflow.rollout",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

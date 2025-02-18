@@ -227,7 +227,8 @@ export enum SpanIndexedField {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
-  ID = 'span_id',
+  ID = 'id',
+  SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
@@ -257,11 +258,14 @@ export enum SpanIndexedField {
   USER_DISPLAY = 'user.display', // Field alias that coalesces `user.id`, `user.email`, `user.username`, `user.ip`, and `user`
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
+  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   LCP = 'measurements.lcp',
   LCP_SCORE = 'measurements.score.lcp',
+  LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
   CLS = 'measurements.cls',
   CLS_SCORE = 'measurements.score.cls',
+  CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   TTFB = 'measurements.ttfb',
   FCP = 'measurements.fcp',
   TOTAL_SCORE = 'measurements.score.total',
@@ -279,6 +283,8 @@ export enum SpanIndexedField {
 }
 
 export type SpanIndexedResponse = {
+  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
@@ -309,7 +315,7 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
@@ -337,10 +343,13 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.INP_SCORE_RATIO]: number;
   [SpanIndexedField.LCP]: number;
   [SpanIndexedField.LCP_SCORE]: number;
+  [SpanIndexedField.LCP_SCORE_RATIO]: number;
   [SpanIndexedField.CLS]: number;
   [SpanIndexedField.CLS_SCORE]: number;
+  [SpanIndexedField.CLS_SCORE_RATIO]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
@@ -433,7 +442,11 @@ export const subregionCodeToName = {
 export type SubregionCode = keyof typeof subregionCodeToName;
 
 export type OurlogsFields = {
-  'sentry.body': string;
-  'sentry.severity_text': string;
-  'sentry.timestamp': string;
+  'log.body': string;
+  'log.severity_number': number;
+  'log.severity_text': string;
+  'sentry.organization_id': number;
+  'sentry.project_id': number;
+  'sentry.span_id': string;
+  timestamp: string;
 };

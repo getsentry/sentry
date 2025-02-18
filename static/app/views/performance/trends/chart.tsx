@@ -36,8 +36,8 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getUnselectedSeries,
+  makeTrendToColorMapping,
   transformEventStatsSmoothed,
-  trendToColor,
 } from './utils';
 
 type Props = ViewProps & {
@@ -122,6 +122,8 @@ export function Chart({
   const derivedTrendChangeType = organization.features.includes('performance-new-trends')
     ? transaction?.change
     : trendChangeType;
+
+  const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];

@@ -2,7 +2,7 @@ export type QuickStartEventParameters = {
   'quick_start.completed': {
     referrer: string;
   };
-  'quick_start.opened': {};
+  'quick_start.opened': Record<string, unknown>;
   'quick_start.task_card_clicked': {
     action: string;
     todo_id: string;

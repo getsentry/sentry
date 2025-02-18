@@ -155,7 +155,7 @@ export function CacheSamplePanel() {
           SpanIndexedField.PROJECT,
           SpanIndexedField.TRACE,
           SpanIndexedField.TRANSACTION_ID,
-          SpanIndexedField.ID,
+          SpanIndexedField.SPAN_ID,
           SpanIndexedField.TIMESTAMP,
           SpanIndexedField.SPAN_DESCRIPTION,
           SpanIndexedField.CACHE_HIT,

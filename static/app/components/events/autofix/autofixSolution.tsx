@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,
@@ -339,7 +339,11 @@ function AutofixSolutionDisplay({
   const [userCustomSolution, setUserCustomSolution] = useState('');
 
   if (!solution || solution.length === 0) {
-    return <Alert type="error">{t('No solution available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="error">{t('No solution available.')}</Alert>
+      </Alert.Container>
+    );
   }
 
   if (customSolution) {

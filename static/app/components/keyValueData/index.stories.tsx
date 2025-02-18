@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Alert} from 'sentry/components/core/alert';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
@@ -277,7 +277,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         subject: 'null-subject-node',
         subjectNode: null,
         value: (
-          <Alert type="warning" showIcon style={{margin: 0}}>
+          <Alert type="warning" showIcon>
             Custom value can also span full length
           </Alert>
         ),

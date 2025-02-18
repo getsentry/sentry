@@ -4,8 +4,8 @@ import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
@@ -253,9 +253,9 @@ function SudoModal({
               : t('You will need to reauthenticate to continue')}
           </StyledTextBlock>
           {error && (
-            <StyledAlert type="error" showIcon>
+            <Alert type="error" showIcon>
               {errorType}
-            </StyledAlert>
+            </Alert>
           )}
           {isSuperuser ? (
             <Form
@@ -306,9 +306,9 @@ function SudoModal({
         </StyledTextBlock>
 
         {error && (
-          <StyledAlert type="error" showIcon>
+          <Alert type="error" showIcon>
             {errorType}
-          </StyledAlert>
+          </Alert>
         )}
 
         <Form
@@ -357,10 +357,6 @@ const StyledTextBlock = styled(TextBlock)`
 
 const StyledSecretField = styled(SecretField)`
   padding-left: 0;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const BackWrapper = styled('div')`

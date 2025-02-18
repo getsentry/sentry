@@ -65,6 +65,9 @@ function getSentryIntegrations() {
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
+      _experiments: {
+        enableStandaloneClsSpans: true,
+      },
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
