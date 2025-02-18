@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
+import {Alert} from 'sentry/components/core/alert';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';

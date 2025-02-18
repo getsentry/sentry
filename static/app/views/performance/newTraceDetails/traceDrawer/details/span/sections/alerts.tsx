@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {isOrphanSpan} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
 

@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
