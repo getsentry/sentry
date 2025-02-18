@@ -23,6 +23,7 @@ import {getOperatingSystemContextData} from 'sentry/components/events/contexts/k
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
+import {getSpringContextData} from 'sentry/components/events/contexts/knownContext/spring';
 import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
@@ -308,6 +309,8 @@ export function getContextTitle({
       return t('Profile');
     case 'replay':
       return t('Replay');
+    case 'spring':
+      return t('Spring Context');
     default:
       return contextType;
   }
@@ -452,6 +455,8 @@ export function getFormattedContextData({
       return getCultureContextData({data: contextValue, meta});
     case 'missing_instrumentation':
       return getMissingInstrumentationContextData({data: contextValue, meta});
+    case 'spring':
+      return getSpringContextData({data: contextValue, meta});
     default:
       return getContextKeys({data: contextValue}).map(ctxKey => ({
         key: ctxKey,
