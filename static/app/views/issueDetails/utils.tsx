@@ -279,7 +279,7 @@ export function useHasStreamlinedUI() {
   }
 
   // If the organzation option is set, it determines which interface is used.
-  if (organization.streamlineOnly === true) {
+  if (organization.streamlineOnly) {
     return true;
   }
 
