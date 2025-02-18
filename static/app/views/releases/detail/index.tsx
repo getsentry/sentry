@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -180,9 +180,11 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     if (possiblyWrongProject) {
       return (
         <Layout.Page>
-          <Alert type="error" showIcon>
-            {t('This release may not be in your selected project.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {t('This release may not be in your selected project.')}
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       );
     }
@@ -311,9 +313,11 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
         <Layout.Page withPadding>
-          <Alert type="error" showIcon>
-            {t('This release could not be found.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {t('This release could not be found.')}
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       );
     }

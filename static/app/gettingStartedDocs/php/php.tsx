@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -104,14 +104,16 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: (
-            <Alert type="warning">
-              {tct(
-                'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-                {
-                  code: <code />,
-                }
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {tct(
+                  'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
           ),
         },
       ],
@@ -178,7 +180,7 @@ const performanceOnboarding: OnboardingConfig = {
 ]);
 `,
           additionalInfo: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
@@ -204,14 +206,6 @@ const performanceOnboarding: OnboardingConfig = {
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
-          ),
-        }
-      ),
-      additionalInfo: tct(
-        'You have the option to manually construct a transaction using [link:custom instrumentation].',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
           ),
         }
       ),

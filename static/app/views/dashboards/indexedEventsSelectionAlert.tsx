@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';
@@ -88,5 +88,4 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
 
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
-  margin-bottom: 0;
 `;

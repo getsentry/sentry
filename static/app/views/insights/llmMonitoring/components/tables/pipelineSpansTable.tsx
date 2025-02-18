@@ -30,7 +30,7 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Column = GridColumnHeader<
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.USER
@@ -38,7 +38,7 @@ type Column = GridColumnHeader<
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -60,14 +60,14 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_ID,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.TIMESTAMP,
 ];
 
 type ValidSort = Sort & {
   field:
-    | SpanIndexedField.ID
+    | SpanIndexedField.SPAN_ID
     | SpanIndexedField.SPAN_DURATION
     | SpanIndexedField.TIMESTAMP;
 };
@@ -103,7 +103,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
       limit: 30,
       sorts: [sort],
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRACE,
         SpanIndexedField.SPAN_DURATION,
         SpanIndexedField.TRANSACTION_ID,
@@ -127,7 +127,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
       limit: 30,
       sorts: [sort],
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRACE,
         SpanIndexedField.SPAN_DURATION,
         SpanIndexedField.TRANSACTION_ID,
@@ -185,12 +185,12 @@ function renderBodyCell(
   groupId: string,
   view: DomainView | undefined
 ) {
-  if (column.key === SpanIndexedField.ID) {
-    if (!row[SpanIndexedField.ID]) {
+  if (column.key === SpanIndexedField.SPAN_ID) {
+    if (!row[SpanIndexedField.SPAN_ID]) {
       return <span>(unknown)</span>;
     }
     if (!row[SpanIndexedField.TRACE]) {
-      return <span>{row[SpanIndexedField.ID]}</span>;
+      return <span>{row[SpanIndexedField.SPAN_ID]}</span>;
     }
     return (
       <Link
@@ -208,12 +208,12 @@ function renderBodyCell(
             },
           },
           eventView: EventView.fromLocation(location),
-          spanId: row[SpanIndexedField.ID],
+          spanId: row[SpanIndexedField.SPAN_ID],
           source: TraceViewSources.LLM_MODULE,
           view,
         })}
       >
-        {row[SpanIndexedField.ID]}
+        {row[SpanIndexedField.SPAN_ID]}
       </Link>
     );
   }

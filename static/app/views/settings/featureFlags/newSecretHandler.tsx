@@ -1,8 +1,8 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -25,9 +25,9 @@ function NewSecretHandler({
 
   return (
     <div>
-      <StyledAlert type="success" showIcon system>
+      <Alert type="success" showIcon system>
         {t('The secret has been posted.')}
-      </StyledAlert>
+      </Alert>
 
       <StyledPanelItem>
         <InputWrapper>
@@ -94,7 +94,4 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1.5)};
 `;
 
-const StyledAlert = styled(Alert)`
-  margin: 0;
-`;
 export default NewSecretHandler;

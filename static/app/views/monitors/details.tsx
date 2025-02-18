@@ -6,7 +6,7 @@ import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -157,21 +157,23 @@ function MonitorDetails({params, location}: Props) {
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {monitor.status === 'disabled' && (
-              <Alert
-                type="muted"
-                showIcon
-                trailingItems={
-                  <StatusToggleButton
-                    monitor={monitor}
-                    size="xs"
-                    onToggleStatus={status => handleUpdate({status})}
-                  >
-                    {t('Enable')}
-                  </StatusToggleButton>
-                }
-              >
-                {t('This monitor is disabled and is not accepting check-ins.')}
-              </Alert>
+              <Alert.Container>
+                <Alert
+                  type="muted"
+                  showIcon
+                  trailingItems={
+                    <StatusToggleButton
+                      monitor={monitor}
+                      size="xs"
+                      onToggleStatus={status => handleUpdate({status})}
+                    >
+                      {t('Enable')}
+                    </StatusToggleButton>
+                  }
+                >
+                  {t('This monitor is disabled and is not accepting check-ins.')}
+                </Alert>
+              </Alert.Container>
             )}
             {!!checkinErrors?.length && (
               <MonitorProcessingErrors

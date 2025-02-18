@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +18,7 @@ function AlertMessage({alert, system}: Props) {
   const {url, message, type, opaque} = alert;
 
   return (
-    <StyledAlert
+    <Alert
       type={type}
       showIcon
       system={system}
@@ -34,15 +34,11 @@ function AlertMessage({alert, system}: Props) {
       }
     >
       {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
-    </StyledAlert>
+    </Alert>
   );
 }
 
 export default AlertMessage;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
-`;
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;

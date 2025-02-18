@@ -140,7 +140,7 @@ function useSavedSearches() {
   };
 }
 
-const parsePageQueryParam = (location: Location, defaultPage: number = 0) => {
+const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   const page = location.query.page;
   const pageInt = Array.isArray(page)
     ? parseInt(page[0] ?? '', 10)

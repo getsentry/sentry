@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -41,20 +41,22 @@ export function SampleDataAlert({query}: {query?: string}) {
   }
 
   return (
-    <Alert type="warning" showIcon>
-      <AlertContent>
-        {t(
-          'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
-        )}
-        <DismissButton
-          priority="link"
-          icon={<IconClose />}
-          onClick={dismiss}
-          aria-label={t('Dismiss Alert')}
-          title={t('Dismiss Alert')}
-        />
-      </AlertContent>
-    </Alert>
+    <Alert.Container>
+      <Alert type="warning" showIcon>
+        <AlertContent>
+          {t(
+            'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
+          )}
+          <DismissButton
+            priority="link"
+            icon={<IconClose />}
+            onClick={dismiss}
+            aria-label={t('Dismiss Alert')}
+            title={t('Dismiss Alert')}
+          />
+        </AlertContent>
+      </Alert>
+    </Alert.Container>
   );
 }
 

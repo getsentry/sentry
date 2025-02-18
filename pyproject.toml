@@ -131,17 +131,14 @@ module = [
     "sentry.api.endpoints.project_ownership",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
-    "sentry.api.endpoints.user_subscriptions",
     "sentry.api.invite_helper",
     "sentry.api.paginator",
     "sentry.api.permissions",
-    "sentry.api.serializers.models.event",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.db.mixin",
     "sentry.db.postgres.base",
     "sentry.eventstore.models",
-    "sentry.grouping.strategies.legacy",
     "sentry.identity.bitbucket.provider",
     "sentry.identity.gitlab.provider",
     "sentry.identity.oauth2",
@@ -201,7 +198,6 @@ module = [
     "sentry.pipeline.views.base",
     "sentry.pipeline.views.nested",
     "sentry.plugins.config",
-    "sentry.receivers.releases",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.history.preview",
@@ -216,9 +212,7 @@ module = [
     "sentry.shared_integrations.client.proxy",
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
-    "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.spans_metrics",
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.testutils.cases",
@@ -233,7 +227,6 @@ module = [
     "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
     "tests.sentry.api.helpers.test_group_index",
-    "tests.sentry.api.test_base",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
@@ -247,7 +240,6 @@ disable_error_code = [
     "override",
     "union-attr",
     "unreachable",
-    "var-annotated",
 ]
 # end: sentry modules with typing issues
 

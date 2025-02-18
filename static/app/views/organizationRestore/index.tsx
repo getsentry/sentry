@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -46,7 +46,9 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   }
   if (isError) {
     return (
-      <Alert type="error">{t('There was an error loading your organization.')}</Alert>
+      <Alert.Container>
+        <Alert type="error">{t('There was an error loading your organization.')}</Alert>
+      </Alert.Container>
     );
   }
   if (data.status.id === 'active') {

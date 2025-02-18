@@ -12,9 +12,9 @@ import moment from 'moment-timezone';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
@@ -878,11 +878,13 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <Alert type="info" showIcon>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+              )}
+            </Alert>
+          </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>

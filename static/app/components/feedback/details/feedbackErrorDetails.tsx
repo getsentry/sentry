@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props extends ComponentProps<typeof FluidHeight> {
@@ -10,9 +10,11 @@ interface Props extends ComponentProps<typeof FluidHeight> {
 
 const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
   <FluidHeight {...props}>
-    <Alert type="error" showIcon>
-      {error}
-    </Alert>
+    <Alert.Container>
+      <Alert type="error" showIcon>
+        {error}
+      </Alert>
+    </Alert.Container>
   </FluidHeight>
 ))`
   display: grid;

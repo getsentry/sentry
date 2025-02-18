@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -104,11 +104,13 @@ export default function ReplayComparisonModal({
         </Header>
         <Body>
           {isSameTimestamp ? (
-            <Alert type="warning" showIcon>
-              {t(
-                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning" showIcon>
+                {t(
+                  "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
+                )}
+              </Alert>
+            </Alert.Container>
           ) : null}
           <RelativePosition>
             <ReplayDiffChooser />

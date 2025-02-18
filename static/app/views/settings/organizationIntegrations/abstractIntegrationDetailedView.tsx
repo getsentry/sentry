@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import type {AlertProps} from 'sentry/components/alert';
-import {Alert} from 'sentry/components/alert';
 import Tag from 'sentry/components/badge/tag';
+import type {AlertProps} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -350,11 +350,13 @@ abstract class AbstractIntegrationDetailedView<
             />
             {this.renderPermissions()}
             {this.alerts.map((alert, i) => (
-              <Alert key={i} type={alert.type} showIcon>
-                <span
-                  dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
-                />
-              </Alert>
+              <Alert.Container key={i}>
+                <Alert key={i} type={alert.type} showIcon>
+                  <span
+                    dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
+                  />
+                </Alert>
+              </Alert.Container>
             ))}
           </FlexContainer>
           <Metadata>

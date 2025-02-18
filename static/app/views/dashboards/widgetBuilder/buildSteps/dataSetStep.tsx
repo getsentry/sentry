@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -30,21 +30,23 @@ function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
     : null;
 
   return (
-    <Alert
-      type="warning"
-      showIcon
-      trailingItems={
-        <StyledCloseButton
-          icon={<IconClose size="sm" />}
-          aria-label={t('Close')}
-          onClick={onDismiss}
-          size="zero"
-          borderless
-        />
-      }
-    >
-      {splitAlertMessage}
-    </Alert>
+    <Alert.Container>
+      <Alert
+        type="warning"
+        showIcon
+        trailingItems={
+          <StyledCloseButton
+            icon={<IconClose size="sm" />}
+            aria-label={t('Close')}
+            onClick={onDismiss}
+            size="zero"
+            borderless
+          />
+        }
+      >
+        {splitAlertMessage}
+      </Alert>
+    </Alert.Container>
   );
 }
 

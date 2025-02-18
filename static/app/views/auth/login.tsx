@@ -2,8 +2,8 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
@@ -124,19 +124,21 @@ class Login extends Component<Props, State> {
         {!loading && authConfig !== null && !error && (
           <FormWrapper hasAuthProviders={this.hasAuthProviders}>
             {orgId !== undefined && (
-              <Alert
-                type="warning"
-                trailingItems={
-                  <LinkButton to="/" size="xs">
-                    Reload
-                  </LinkButton>
-                }
-              >
-                {tct(
-                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
-                  {org: this.props.params.orgId}
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert
+                  type="warning"
+                  trailingItems={
+                    <LinkButton to="/" size="xs">
+                      Reload
+                    </LinkButton>
+                  }
+                >
+                  {tct(
+                    "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
+                    {org: this.props.params.orgId}
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
             <FormComponent {...{authConfig}} />
           </FormWrapper>

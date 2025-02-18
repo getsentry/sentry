@@ -3,13 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Alert} from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
@@ -190,6 +190,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
     const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
+    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -198,7 +199,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: translucentGray300,
+            color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -224,7 +225,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: translucentGray300,
+            color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,

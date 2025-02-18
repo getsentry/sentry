@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import Color from 'color';
 import moment, {type Moment} from 'moment-timezone';
 
-import {Alert} from 'sentry/components/alert';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
+import {Alert} from 'sentry/components/core/alert';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconExclamation} from 'sentry/icons';
@@ -101,7 +101,9 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           skipWrapper
           body={
             <Fragment>
-              <Alert type="warning">{alertMessage}</Alert>
+              <Alert.Container>
+                <Alert type="warning">{alertMessage}</Alert>
+              </Alert.Container>
               <ServiceIncidentDetails incident={inc} />
             </Fragment>
           }

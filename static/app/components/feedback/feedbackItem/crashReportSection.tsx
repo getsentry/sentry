@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
@@ -32,9 +32,9 @@ export default function CrashReportSection({
 
   if (!groupData) {
     return (
-      <AlertNoMargin type="error" showIcon>
+      <Alert type="error" showIcon>
         {tct('Unable to find error [id]', {id: crashReportId})}
-      </AlertNoMargin>
+      </Alert>
     );
   }
 
@@ -49,10 +49,6 @@ export default function CrashReportSection({
     </IssueDetailsContainer>
   );
 }
-
-const AlertNoMargin = styled(Alert)`
-  margin: 0;
-`;
 
 const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};

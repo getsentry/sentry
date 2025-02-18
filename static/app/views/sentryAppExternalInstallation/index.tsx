@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import {Alert} from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {Alert} from 'sentry/components/core/alert';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -245,28 +245,32 @@ function CheckAndRenderError({
 }: CheckAndRenderProps) {
   if (selectedOrgSlug && organization && !hasAccess(organization)) {
     return (
-      <Alert type="error" showIcon>
-        <p>
-          {tct(
-            `You do not have permission to install integrations in
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          <p>
+            {tct(
+              `You do not have permission to install integrations in
         [organization]. Ask an organization owner or manager to
         visit this page to finish installing this integration.`,
-            {organization: <strong>{organization.slug}</strong>}
-          )}
-        </p>
-        <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
-      </Alert>
+              {organization: <strong>{organization.slug}</strong>}
+            )}
+          </p>
+          <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+        </Alert>
+      </Alert.Container>
     );
   }
 
   if (isInstalled && organization && sentryApp) {
     return (
-      <Alert type="error" showIcon>
-        {tct('Integration [sentryAppName] already installed for [organization]', {
-          organization: <strong>{organization.name}</strong>,
-          sentryAppName: <strong>{sentryApp.name}</strong>,
-        })}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {tct('Integration [sentryAppName] already installed for [organization]', {
+            organization: <strong>{organization.name}</strong>,
+            sentryAppName: <strong>{sentryApp.name}</strong>,
+          })}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -274,15 +278,17 @@ function CheckAndRenderError({
     // use the slug of the owner if we have it, otherwise use 'another organization'
     const ownerSlug = sentryApp?.owner?.slug ?? 'another organization';
     return (
-      <Alert type="error" showIcon>
-        {tct(
-          'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
-          {
-            sentryAppName: <strong>{sentryApp.name}</strong>,
-            otherOrg: <strong>{ownerSlug}</strong>,
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {tct(
+            'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
+            {
+              sentryAppName: <strong>{sentryApp.name}</strong>,
+              otherOrg: <strong>{ownerSlug}</strong>,
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
