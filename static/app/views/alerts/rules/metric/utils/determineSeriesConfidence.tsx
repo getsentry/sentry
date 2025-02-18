@@ -12,6 +12,38 @@ export function determineSeriesConfidence(
   data: EventsStats,
   threshold = LOW_CONFIDENCE_THRESHOLD
 ): Confidence {
+  if (
+    !defined(data.meta?.accuracy?.confidence) ||
+    data.meta.accuracy.confidence.length < 1
+  ) {
+    // for back compat but this code path should always return null because top
+    // level confidence should be returned in the same cases as the confidence
+    // inside the accuracy object
+    return determineSeriesConfidenceDeprecated(data, threshold);
+  }
+
+  const {lowConfidence, highConfidence, nullConfidence} =
+    data.meta.accuracy.confidence.reduce(
+      (acc, item) => {
+        if (item.value === 'low') {
+          acc.lowConfidence += 1;
+        } else if (item.value === 'high') {
+          acc.highConfidence += 1;
+        } else {
+          acc.nullConfidence += 1;
+        }
+        return acc;
+      },
+      {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
+    );
+
+  return finalConfidence(lowConfidence, highConfidence, nullConfidence, threshold);
+}
+
+function determineSeriesConfidenceDeprecated(
+  data: EventsStats,
+  threshold: number
+): Confidence {
   if (!defined(data.confidence) || data.confidence.length < 1) {
     return null;
   }
@@ -37,6 +69,15 @@ export function determineSeriesConfidence(
     {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
   );
 
+  return finalConfidence(lowConfidence, highConfidence, nullConfidence, threshold);
+}
+
+function finalConfidence(
+  lowConfidence: number,
+  highConfidence: number,
+  nullConfidence: number,
+  threshold: number
+): Confidence {
   if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
     return null;
   }

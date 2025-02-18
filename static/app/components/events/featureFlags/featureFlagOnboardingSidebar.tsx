@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
@@ -14,6 +14,7 @@ import {
   SdkIntegrationEnum,
 } from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,19 +27,66 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
+export function useFeatureFlagOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
+      openDrawer(() => <SidebarContent />, {
+        ariaLabel: t('Debug Issues with Feature Flag Context'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== initialPathname.current,
+      });
+
+      // Reset store
+      SidebarPanelStore.hidePanel();
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+/**
+ * @deprecated Use useFeatureFlagOnboardingDrawer instead.
+ */
+function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
   const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
   const {
     hasDocs,
     projects,
@@ -48,7 +96,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel,
+    currentPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
     targetPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
     onboardingPlatforms: featureFlagOnboardingPlatforms,
     allPlatforms: featureFlagOnboardingPlatforms,
@@ -92,16 +140,13 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   }, [supportedProjects, unsupportedProjects]);
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-  if (!isActive || !hasProjectAccess || !selectedProject) {
-    return null;
+
+  if (!selectedProject) {
+    return <LoadingIndicator />;
   }
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Debug Issues with Feature Flag Context')}</Heading>
@@ -140,7 +185,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
         </HeaderActions>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -430,4 +475,4 @@ const Header = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export default FeatureFlagOnboardingSidebar;
+export default LegacyFeatureFlagOnboardingSidebar;

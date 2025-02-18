@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {AlertProps} from 'sentry/components/alert';
-import {Alert} from 'sentry/components/alert';
 import {Button, ButtonLabel} from 'sentry/components/button';
+import type {AlertProps} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';

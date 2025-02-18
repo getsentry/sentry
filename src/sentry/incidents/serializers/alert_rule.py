@@ -278,8 +278,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
             self._handle_triggers(alert_rule, triggers)
             if should_dual_write:
-                # create the resolution data triggers once we've migrated the critical/warning triggers
                 migrate_resolve_threshold_data_conditions(alert_rule)
+
             return alert_rule
 
     def update(self, instance, validated_data):
@@ -319,6 +319,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
+                # TODO: wrap these in a transaction
                 dual_delete_migrated_alert_rule_trigger(trigger)
                 delete_alert_rule_trigger(trigger)
 
