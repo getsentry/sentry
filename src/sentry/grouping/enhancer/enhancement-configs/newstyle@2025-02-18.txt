@@ -433,3 +433,18 @@ module:io.netty.* -app
 module:newrelic -app -group
 path:**/*newrelic*/** -app -group
 path:**/*LogRocket*/** -app -group
+
+## Unreal Engine
+
+### Unreal Engine internal assertion handling
+family:native stack.function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group
+
+### Unreal Engine internal ensure handling
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app ^-group -group v+group
+
+### UE SDK USentrySubsystem event capturing
+family:native stack.function:USentrySubsystem::CaptureMessage* ^-app -app v+app ^-group -group v+group
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope* ^-app -app v+app ^-group -group v+group
+family:native stack.function:USentrySubsystem::CaptureEvent* ^-app -app v+app ^-group -group v+group
+family:native stack.function:USentrySubsystem::CaptureEventWithScope* ^-app -app v+app ^-group -group v+group
+family:native stack.function:USentrySubsystem::*execCapture* ^-app -app v+app ^-group -group v+group
