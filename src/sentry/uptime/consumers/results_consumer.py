@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
-from enum import IntEnum
 from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
@@ -45,6 +44,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
+from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -81,11 +81,6 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
 
 
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
-
-
-class IncidentStatus(IntEnum):
-    NO_INCIDENT = 0
-    IN_INCIDENT = 1
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
