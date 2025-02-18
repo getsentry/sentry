@@ -162,7 +162,7 @@ export const platformProductAvailability = {
   'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -192,6 +192,16 @@ export const platformProductAvailability = {
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
+
+/**
+ * Defines which products are selected per default for each platform
+ * If not defined in here, all products are selected
+ */
+const platformDefaultProducts: Partial<Record<PlatformKey, ProductSolution[]>> = {
+  php: [ProductSolution.PERFORMANCE_MONITORING],
+  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING],
+  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING],
+};
 
 type ProductProps = {
   /**
@@ -296,17 +306,12 @@ export type ProductSelectionProps = {
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
-  /**
-   * A custom list of products per platform. If not provided, the default list is used.
-   */
-  productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
 };
 
 export function ProductSelection({
   disabledProducts: disabledProductsProp,
   organization,
   platform,
-  productsPerPlatform = platformProductAvailability,
   onChange,
   onLoad,
 }: ProductSelectionProps) {
@@ -314,16 +319,27 @@ export function ProductSelection({
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
 
   const products: ProductSolution[] | undefined = platform
-    ? productsPerPlatform[platform]
+    ? platformProductAvailability[platform]
     : undefined;
 
   const disabledProducts = useMemo(
     () => disabledProductsProp ?? getDisabledProducts(organization),
     [organization, disabledProductsProp]
   );
+
   const defaultProducts = useMemo(() => {
-    return products?.filter(product => !(product in disabledProducts)) ?? [];
-  }, [products, disabledProducts]);
+    const productsArray = products ?? [];
+    const definedDefaults = platform ? platformDefaultProducts[platform] : undefined;
+    let selectedDefaults: ProductSolution[] = productsArray;
+
+    if (definedDefaults) {
+      selectedDefaults = definedDefaults.filter(product =>
+        // Make sure the default product is available for the platform
+        productsArray.includes(product)
+      );
+    }
+    return selectedDefaults.filter(product => !(product in disabledProducts));
+  }, [products, platform, disabledProducts]);
 
   useEffect(() => {
     onLoad?.(defaultProducts);
