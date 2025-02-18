@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
@@ -71,13 +73,9 @@ def test_update_project() -> None:
     project = Project.objects.get(id=project.id)
     assert project.external_id == "abcde"
 
-    import pytest
-
     with pytest.raises(Exception):
         project_service.update_project(
             organization_id=org.id,
             project_id=project.id,
             updates={"does_not_exist": "test"},
         )
-        project = Project.objects.get(id=project.id)
-        assert project.external_id == "abcde"
