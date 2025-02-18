@@ -246,7 +246,7 @@ class RelocationTaskTestCase(TestCase):
     "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.uploading_complete.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
@@ -580,7 +580,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
@@ -651,7 +651,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
     "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1049,7 +1049,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.preprocessing_baseline_config.apply_async")
 class PreprocessingTransferTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1113,7 +1113,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
     "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1219,7 +1219,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1327,7 +1327,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.validating_start.apply_async")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1475,7 +1475,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
     "sentry.relocation.tasks.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.validating_poll.apply_async")
 class ValidatingStartTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1626,7 +1626,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
     "sentry.relocation.tasks.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 class ValidatingPollTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -1846,7 +1846,7 @@ def mock_invalid_finding(storage: Storage, uuid: UUID):
     )
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.importing.apply_async")
 class ValidatingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
@@ -2158,7 +2158,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         assert relocation.latest_task == OrderedTask.IMPORTING.name
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
 @patch("sentry.signals.relocation_redeem_promo_code.send_robust")
 @patch("sentry.relocation.tasks.notifying_unhide.apply_async")
@@ -2358,7 +2358,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         relocation_redeem_promo_code_signal_mock.assert_not_called()
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.notifying_users.apply_async")
 class NotifyingUnhideTest(RelocationTaskTestCase):
     def setUp(self):
@@ -2442,7 +2442,7 @@ class NotifyingUnhideTest(RelocationTaskTestCase):
         assert relocation.latest_task == OrderedTask.NOTIFYING_UNHIDE.name
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.notifying_owner.apply_async")
 class NotifyingUsersTest(RelocationTaskTestCase):
     def setUp(self):
@@ -2585,7 +2585,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.completed.apply_async")
 class NotifyingOwnerTest(RelocationTaskTestCase):
     def setUp(self):
@@ -2723,7 +2723,7 @@ class CompletedTest(RelocationTaskTestCase):
     "sentry.relocation.tasks.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
 )
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
 @patch("sentry.signals.relocation_redeem_promo_code.send_robust")
 @patch("sentry.analytics.record")

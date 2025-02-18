@@ -34,7 +34,7 @@ class RelocationUtilsTestCase(TestCase):
         fake_message_builder.return_value.send_async.return_value = MagicMock()
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 class RelocationStartTestCase(RelocationUtilsTestCase):
     def test_bad_relocation_not_found(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
@@ -259,7 +259,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.failure_reason is None
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 class RelocationFailTestCase(RelocationUtilsTestCase):
     def test_no_reason(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
@@ -294,7 +294,7 @@ class RelocationFailTestCase(RelocationUtilsTestCase):
         assert relocation.failure_reason == "foo"
 
 
-@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.relocation.utils.MessageBuilder")
 class RelocationRetryOrFailTestCase(RelocationUtilsTestCase):
     def test_no_reason_attempts_left(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
