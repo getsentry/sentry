@@ -26,8 +26,6 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
     except ExternalIssue.DoesNotExist:
         return
 
-    assert isinstance(external_issue, ExternalIssue)
-
     try:
         installation = external_issue.get_installation()
     except AssertionError:
