@@ -105,7 +105,9 @@ describe('OrganizationContext', function () {
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
-    expect(OrganizationStore.getState().organization).toEqual(organization);
+    expect(JSON.stringify(OrganizationStore.getState().organization)).toEqual(
+      JSON.stringify(organization)
+    );
 
     const anotherOrg = OrganizationFixture({slug: 'another-org'});
 
@@ -121,7 +123,9 @@ describe('OrganizationContext', function () {
     expect(projectMock).toHaveBeenCalled();
     expect(teamMock).toHaveBeenCalled();
     expect(switchOrganization).toHaveBeenCalled();
-    expect(OrganizationStore.getState().organization).toEqual(anotherOrg);
+    expect(JSON.stringify(OrganizationStore.getState().organization)).toEqual(
+      JSON.stringify(anotherOrg)
+    );
   });
 
   it('opens sudo modal for superusers for nonmember org with active staff', async function () {

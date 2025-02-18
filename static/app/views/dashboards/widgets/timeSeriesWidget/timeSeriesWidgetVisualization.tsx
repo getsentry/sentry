@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
@@ -11,8 +12,10 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -27,6 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
 import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
@@ -56,6 +60,18 @@ export interface TimeSeriesWidgetVisualizationProps {
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
+  if (
+    props.timeSeries
+      .flatMap(timeSeries => timeSeries.data)
+      .every(item => item.value === null)
+  ) {
+    throw new Error(NO_PLOTTABLE_VALUES);
+  }
+
+  // TODO: It would be polite to also scan for gaps (i.e., the items don't all
+  // have the same difference in `timestamp`s) even though this is rare, since
+  // the backend zerofills the data
+
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
@@ -337,5 +353,31 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
+
+function LoadingPanel() {
+  return (
+    <LoadingPlaceholder>
+      <LoadingMask visible />
+      <LoadingIndicator mini />
+    </LoadingPlaceholder>
+  );
+}
+
+const LoadingPlaceholder = styled('div')`
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: ${Y_GUTTER} ${X_GUTTER};
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
+`;
+
+TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
 
 const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

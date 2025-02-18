@@ -15,7 +15,7 @@ import type {
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
-export interface AsyncComponentProps extends Partial<RouteComponentProps<{}, {}>> {}
+export interface AsyncComponentProps extends Partial<RouteComponentProps> {}
 
 export interface AsyncComponentState {
   [key: string]: any;

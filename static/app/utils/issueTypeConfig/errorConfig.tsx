@@ -26,7 +26,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
       landingPage: Tab.DETAILS,
       events: {enabled: true},
       openPeriods: {enabled: false},
-      cronChecks: {enabled: false},
+      checkIns: {enabled: false},
       uptimeChecks: {enabled: false},
       attachments: {enabled: true},
       userFeedback: {enabled: true},

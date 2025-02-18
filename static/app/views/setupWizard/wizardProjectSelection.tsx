@@ -31,6 +31,10 @@ const urlParams = new URLSearchParams(location.search);
 const platformParam = urlParams.get('project_platform');
 const orgSlugParam = urlParams.get('org_slug');
 
+function getOrgDisplayName(organization: Organization) {
+  return organization.name || organization.slug;
+}
+
 function getInitialOrgId(organizations: Organization[]) {
   if (organizations.length === 1) {
     return organizations[0]!.id;
@@ -105,7 +109,7 @@ export function WizardProjectSelection({
       organizations
         .map(org => ({
           value: org.id,
-          label: org.name || org.slug,
+          label: getOrgDisplayName(org),
           leadingItems: <OrganizationAvatar size={16} organization={org} />,
         }))
         .toSorted((a: any, b: any) => a.label.localeCompare(b.label)),
@@ -116,7 +120,7 @@ export function WizardProjectSelection({
     () =>
       (orgProjectsRequest.data || []).map(project => ({
         value: project.id,
-        label: project.name,
+        label: project.slug,
         leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
         project,
       })),
@@ -227,8 +231,9 @@ export function WizardProjectSelection({
             ) : null,
           }}
           triggerLabel={
-            selectedOrg?.name ||
-            selectedOrg?.slug || (
+            selectedOrg ? (
+              getOrgDisplayName(selectedOrg)
+            ) : (
               <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
             )
           }
@@ -268,7 +273,7 @@ export function WizardProjectSelection({
             triggerLabel={
               isCreateProjectSelected
                 ? t('Create Project')
-                : selectedProject?.name || (
+                : selectedProject?.slug || (
                     <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
                   )
             }

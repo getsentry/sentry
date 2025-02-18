@@ -25,7 +25,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
+interface TeamSettingsProps extends RouteComponentProps<{teamId: string}> {
   team: Team;
 }
 

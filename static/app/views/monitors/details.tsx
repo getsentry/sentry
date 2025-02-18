@@ -41,7 +41,7 @@ import {makeMonitorDetailsQueryKey} from './utils';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
-type Props = RouteComponentProps<{monitorSlug: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);

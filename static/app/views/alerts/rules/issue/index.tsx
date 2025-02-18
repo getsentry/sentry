@@ -67,9 +67,9 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
@@ -146,7 +146,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
@@ -468,9 +468,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
-      makeAlertsPathname({
-        path: `/rules/${project.slug}/${rule.id}/details/`,
-        organization,
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
       })
     );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
@@ -602,12 +601,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   handleCancel = () => {
     const {organization, router} = this.props;
 
-    router.push(
-      makeAlertsPathname({
-        path: `/rules/`,
-        organization,
-      })
-    );
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   };
 
   hasError = (field: string) => {
@@ -917,10 +911,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         openInNewTab
         priority="error"
         icon={<IconNot color="red300" />}
-        href={makeAlertsPathname({
-          path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
-          organization,
-        })}
+        href={normalizeUrl(
+          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
+        )}
       >
         {tct(
           'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
