@@ -906,8 +906,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-                new=2,
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=2,
             ),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS",
@@ -986,11 +986,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
     @mock.patch(
-        "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-        new=1,
+        "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+        return_value=1,
     )
     @override_options({"uptime.snuba_uptime_results.enabled": True})
-    def test_produces_snuba_uptime_results_in_incident(self, mock_produce) -> None:
+    def test_produces_snuba_uptime_results_in_incident(self, _, mock_produce) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
         """
