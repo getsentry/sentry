@@ -21,7 +21,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   trailingItems?: React.ReactNode;
 }
 
-export function Alert({
+function LegacyAlert({
   showIcon,
   icon,
   opaque,
@@ -35,6 +35,7 @@ export function Alert({
   ...props
 }: AlertProps) {
   const theme = useTheme();
+
   const showExpand = defined(expand);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -303,4 +304,11 @@ const Container = styled('div')`
 
 Alert.Container = Container;
 
+export function Alert(props: AlertProps) {
+  const theme = useTheme();
+  if (theme.isChonk) {
+    return <ChonkAlert {...props} />;
+  }
+  return <LegacyAlert {...props} />;
+}
 export default Alert;
