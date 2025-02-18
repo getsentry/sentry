@@ -20,16 +20,16 @@ import type {AvatarProject} from 'sentry/types/project';
 export type Automation = {
   actions: Action[];
   id: string;
-  lastTriggered: Date;
   link: string;
   monitors: Item[];
   name: string;
   project: AvatarProject;
   details?: string[];
   disabled?: boolean;
+  lastTriggered?: Date;
 };
 
-type DetectorListRowProps = Automation & {
+type AutomationListRowProps = Automation & {
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
 };
@@ -46,7 +46,7 @@ export function AutomationListRow({
   handleSelect,
   selected,
   disabled,
-}: DetectorListRowProps) {
+}: AutomationListRowProps) {
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />

@@ -11,62 +11,17 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Automation} from 'sentry/views/automations/components/automationListRow';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-
-  const automations: Automation[] = [
-    {
-      actions: ['email'],
-      lastTriggered: new Date(Date.now() - 25 * 60 * 60 * 1000),
-      monitors: [
-        {
-          name: 'test automation',
-          project: {slug: 'bruh', platform: 'android'},
-          description: 'transaction.duration',
-          link: 'automations/jkl012',
-        },
-        {
-          name: 'test python automation',
-          project: {slug: 'bruh.py', platform: 'python'},
-          link: 'automations/mno345',
-        },
-        {
-          name: 'test swift automation',
-          project: {slug: 'bruh.swift', platform: 'swift'},
-          link: 'automations/pqr678',
-        },
-      ],
-      id: '123',
-      link: 'hello.com',
-      name: 'Email suggested assignees',
-      project: {
-        slug: 'javascript',
-        platform: 'javascript',
-      },
-    },
-    {
-      actions: ['email', 'slack'],
-      lastTriggered: new Date(Date.now() - 60 * 60 * 60 * 1000),
-      monitors: [],
-      id: '234',
-      link: 'hello.com',
-      name: 'Email and slack suggested assignees',
-      project: {
-        slug: 'sentry',
-        platform: 'python',
-      },
-    },
-  ];
 
   return (
     <SentryDocumentTitle title={t('Automations')} noSuffix>
       <ActionsProvider actions={<Actions />}>
         <ListLayout>
           <TableHeader />
-          <AutomationListTable automations={automations} />
+          <AutomationListTable automations={[]} />
         </ListLayout>
       </ActionsProvider>
     </SentryDocumentTitle>
