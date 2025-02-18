@@ -2851,12 +2851,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_workflow.rollout",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
