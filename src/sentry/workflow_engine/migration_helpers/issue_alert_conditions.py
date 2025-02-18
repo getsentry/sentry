@@ -317,3 +317,49 @@ def create_percent_sessions_data_condition(
         count_type=Condition.PERCENT_SESSIONS_COUNT,
         percent_type=Condition.PERCENT_SESSIONS_PERCENT,
     )
+
+
+def create_event_unique_user_frequency_condition_with_conditions(
+    data: dict[str, Any], dcg: DataConditionGroup, conditions: list[dict[str, Any]] | None = None
+) -> DataCondition:
+    comparison_type = data.get("comparisonType", ComparisonType.COUNT)
+
+    comparison = {
+        "interval": data["interval"],
+        "value": data["value"],
+    }
+
+    if comparison_type == ComparisonType.COUNT:
+        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+    else:
+        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
+        comparison["comparison_interval"] = data["comparisonInterval"]
+
+    comparison_filters = []
+
+    if conditions:
+        for condition in conditions:
+            if condition["id"] in (EventAttributeFilter.id, TaggedEventFilter.id):
+                comparison_filter = {
+                    "match": condition["match"],
+                    "key": (
+                        condition["attribute"]
+                        if condition["id"] == EventAttributeFilter.id
+                        else condition["key"]
+                    ),
+                }
+                if comparison_filter["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+                    comparison_filter["value"] = condition["value"]
+            else:
+                raise ValueError(f"Unsupported nested condition: {condition["id"]}")
+
+            comparison_filters.append(comparison_filter)
+
+    comparison["filters"] = comparison_filters
+
+    return DataCondition(
+        type=type,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )

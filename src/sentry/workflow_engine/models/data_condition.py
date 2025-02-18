@@ -50,12 +50,6 @@ class Condition(StrEnum):
     EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
     PERCENT_SESSIONS_COUNT = "percent_sessions_count"
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
-    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = (
-        "event_unique_user_frequency_with_conditions_count"
-    )
-    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = (
-        "event_unique_user_frequency_with_conditions_percent"
-    )
 
 
 CONDITION_OPS = {
@@ -71,14 +65,12 @@ PERCENT_CONDITIONS = [
     Condition.EVENT_FREQUENCY_PERCENT,
     Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
     Condition.PERCENT_SESSIONS_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
 ]
 
 SLOW_CONDITIONS = [
     Condition.EVENT_FREQUENCY_COUNT,
     Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
     Condition.PERCENT_SESSIONS_COUNT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
 ] + PERCENT_CONDITIONS
 
 
