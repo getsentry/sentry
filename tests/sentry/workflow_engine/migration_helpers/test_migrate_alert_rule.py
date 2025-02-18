@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from django.forms import ValidationError
 
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
@@ -24,7 +25,6 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     PRIORITY_MAP,
-    InvalidActionType,
     MissingDataConditionGroup,
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
@@ -890,7 +890,7 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         with assume_test_silo_mode_of(Integration, OrganizationIntegration):
             self.integration.update(provider="hellboy")
             self.integration.save()
-        with pytest.raises(InvalidActionType):
+        with pytest.raises(ValidationError):
             migrate_metric_action(self.alert_rule_trigger_action_integration)
         mock_logger.warning.assert_called_with(
             "Could not find a matching Action.Type for the trigger action",
@@ -1011,7 +1011,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_trigger_action_type_invalid(self):
         self.alert_rule_trigger_action.update(integration_id=12345)
-        with pytest.raises(InvalidActionType):
+        with pytest.raises(ValidationError):
             dual_update_migrated_alert_rule_trigger_action(
                 self.alert_rule_trigger_action, updated_fields={}
             )  # don't care about updated fields in this test
