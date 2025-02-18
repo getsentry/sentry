@@ -126,18 +126,19 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 }
 
 // @TODO(jonasbadalic): keep these for future reference - they are not being used rn
-// const _chonkShared = {
-//   space: {
-//     // @TODO(jonasbadalic): none doesn't need to exist
-//     // none: 0,
-//     nano: 1,
-//     micro: 2,
-//     mini: 4,
-//     small: 6,
-//     medium: 8,
-//     large: 12,
-//     huge: 16,
-//   },
+
+export const DO_NOT_USE_chonk_space = {
+  // @TODO(jonasbadalic): none doesn't need to exist
+  // none: 0,
+  nano: '1px',
+  micro: '2px',
+  mini: '4px',
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+} satisfies Record<string, `${number}px`>;
+
 //   borderRadius: {
 //     // @TODO(jonasbadalic): none doesn't need to exist
 //     // none: 0,
