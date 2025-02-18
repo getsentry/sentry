@@ -43,7 +43,7 @@ let JEST_TESTS;
 
 // prevents forkbomb as we don't want jest --listTests --json
 // to reexec itself here
-if (!process.env.JEST_LIST_TESTS_INNER) {
+if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
     const stdout = execFileSync('yarn', ['-s', 'jest', '--listTests', '--json'], {
       stdio: 'pipe',
