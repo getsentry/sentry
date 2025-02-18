@@ -789,6 +789,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.delay")
     def test_batched_cleanup(self, mock_process_delayed):
         self._push_base_events()
+        all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
         process_in_batches(self.project.id, "delayed_workflow")
         batch_one_key = mock_process_delayed.call_args_list[0][0][1]
@@ -798,14 +799,9 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
         assert data == {}
 
-        first_batch = {
-            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}": json.dumps(
-                {"event_id": self.event1.event_id, "occurrence_id": None}
-            ),
-            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[0].id}:{DataConditionHandlerType.WORKFLOW_TRIGGER}": json.dumps(
-                {"event_id": self.event2.event_id, "occurrence_id": None}
-            ),
-        }
+        first_batch = buffer.backend.get_hash(
+            model=Workflow, field={"project_id": self.project.id, "batch_key": batch_one_key}
+        )
         cleanup_redis_buffer(self.project.id, first_batch, batch_one_key)
 
         # Verify the batch we "executed" is removed
@@ -818,11 +814,6 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         data = buffer.backend.get_hash(
             Workflow, {"project_id": self.project.id, "batch_key": batch_two_key}
         )
-        assert data == {
-            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[0].id}:{DataConditionHandlerType.WORKFLOW_TRIGGER}": json.dumps(
-                {"event_id": self.event1.event_id, "occurrence_id": None}
-            ),
-            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}": json.dumps(
-                {"event_id": self.event2.event_id, "occurrence_id": None}
-            ),
-        }
+        for key in first_batch.keys():
+            all_data.pop(key)
+        assert data == all_data
