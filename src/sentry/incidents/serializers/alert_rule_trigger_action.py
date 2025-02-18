@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
@@ -192,6 +193,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # TODO (mifu67): wrap the two create calls in a transaction
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
 
@@ -212,7 +214,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "organizations:workflow-engine-metric-alert-dual-write",
             action.alert_rule_trigger.alert_rule.organization,
         ):
-            migrate_metric_action(action)
+            try:
+                migrate_metric_action(action)
+            except ValidationError as e:
+                # invalid action type
+                raise serializers.ValidationError(str(e))
 
         return action
 
