@@ -10,7 +10,7 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -133,15 +133,19 @@ function ProjectStabilityScoreCard(props: Props) {
 
   if (hasSessions === false) {
     return (
-      <WidgetFrame title={cardTitle} description={cardHelp}>
-        <ActionWrapper>
-          <MissingReleasesButtons
-            organization={organization}
-            health
-            platform={props.project?.platform}
-          />
-        </ActionWrapper>
-      </WidgetFrame>
+      <Widget
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={<Widget.WidgetDescription description={cardHelp} />}
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons
+              organization={organization}
+              health
+              platform={props.project?.platform}
+            />
+          </ActionWrapper>
+        }
+      />
     );
   }
 
