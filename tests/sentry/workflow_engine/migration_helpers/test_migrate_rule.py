@@ -3,12 +3,19 @@ from jsonschema.exceptions import ValidationError
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.rules.age import AgeComparisonType
+from sentry.rules.conditions.event_frequency import (
+    ComparisonType,
+    EventUniqueUserFrequencyConditionWithConditions,
+)
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
+from sentry.rules.match import MatchType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.workflow_engine.migration_helpers.rule import (
@@ -63,6 +70,48 @@ class RuleMigrationHelpersTest(APITestCase):
         self.issue_alert.data["frequency"] = 5
         self.issue_alert.save()
 
+        self.filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": MatchType.EQUAL,
+                "key": "LOGGER",
+                "value": "sentry.example",
+            },
+            {
+                "id": TaggedEventFilter.id,
+                "match": MatchType.IS_SET,
+                "key": "environment",
+            },
+            {
+                "id": EventAttributeFilter.id,
+                "match": MatchType.EQUAL,
+                "value": "hi",
+                "attribute": "message",
+            },
+        ]
+        self.conditions = [
+            {
+                "interval": "1h",
+                "id": EventUniqueUserFrequencyConditionWithConditions.id,
+                "value": 50,
+                "comparisonType": ComparisonType.COUNT,
+            }
+        ] + self.filters
+
+        self.expected_filters = [
+            {
+                "match": MatchType.EQUAL,
+                "key": self.filters[0]["key"],
+                "value": self.filters[0]["value"],
+            },
+            {"match": MatchType.IS_SET, "key": self.filters[1]["key"]},
+            {
+                "match": MatchType.EQUAL,
+                "key": self.filters[2]["attribute"],
+                "value": self.filters[2]["value"],
+            },
+        ]
+
     def test_create_issue_alert(self):
         migrate_issue_alert(self.issue_alert, self.user.id)
 
@@ -116,7 +165,7 @@ class RuleMigrationHelpersTest(APITestCase):
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK  # tested fully in test_migrate_rule_action.py
 
-    def test_create_issue_alert_detector_exists(self):
+    def test_create_issue_alert__detector_exists(self):
         project_detector = self.create_detector(project=self.project)
         migrate_issue_alert(self.issue_alert, self.user.id)
 
@@ -124,6 +173,23 @@ class RuleMigrationHelpersTest(APITestCase):
 
         detector = Detector.objects.get(project_id=self.project.id)
         assert detector == project_detector
+
+    def test_create_issue_alert__with_conditions(self):
+        issue_alert = self.create_project_rule(
+            condition_data=self.conditions,
+            action_match="all",
+            filter_match="any",
+            action_data=self.action_data,
+        )
+
+        migrate_issue_alert(issue_alert, self.user.id)
+        assert DataCondition.objects.all().count() == 1
+        dc = DataCondition.objects.get(type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
+        assert dc.comparison == {
+            "interval": "1h",
+            "value": 50,
+            "filters": self.expected_filters,
+        }
 
     def test_skip_every_event_condition__any(self):
         conditions = [
@@ -226,6 +292,41 @@ class RuleMigrationHelpersTest(APITestCase):
         dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
         action = dcg_actions.action
         assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
+
+    def test_update_issue_alert__with_conditions(self):
+        migrate_issue_alert(self.issue_alert, self.user.id)
+
+        rule_data = self.issue_alert.data
+        rule_data.update(
+            {
+                "action_match": "none",
+                "filter_match": "all",
+                "conditions": self.conditions,
+                "frequency": 60,
+                "actions": [
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "uuid": "test-uuid",
+                    }
+                ],
+            }
+        )
+
+        self.issue_alert.update(
+            label="hello world",
+            owner_user_id=self.user.id,
+            environment_id=self.environment.id,
+            data=rule_data,
+        )
+        update_migrated_issue_alert(self.issue_alert)
+
+        assert DataCondition.objects.all().count() == 1
+        dc = DataCondition.objects.get(type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
+        assert dc.comparison == {
+            "interval": "1h",
+            "value": 50,
+            "filters": self.expected_filters,
+        }
 
     def test_required_fields_only(self):
         migrate_issue_alert(self.issue_alert, self.user.id)

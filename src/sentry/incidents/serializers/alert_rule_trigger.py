@@ -43,6 +43,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
+        # TODO (mifu67): wrap the two calls in a transaction
         try:
             actions = validated_data.pop("actions", None)
             alert_rule_trigger = create_alert_rule_trigger(
@@ -86,6 +87,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 alert_rule_trigger=alert_rule_trigger
             ).exclude(id__in=action_ids)
             for action in actions_to_delete:
+                # TODO (mifu67): wrap these two calls in a transaction
                 dual_delete_migrated_alert_rule_trigger_action(action)
                 delete_alert_rule_trigger_action(action)
 

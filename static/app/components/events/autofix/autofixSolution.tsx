@@ -3,31 +3,23 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
-  type AutofixTimelineEvent,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconEdit,
-  IconEllipsis,
-  IconFix,
-} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconEdit, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -147,19 +139,6 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-const VerticalEllipsis = styled(IconEllipsis)`
-  height: 16px;
-  color: ${p => p.theme.subText};
-  transform: rotate(90deg);
-  position: relative;
-  left: -1px;
-`;
-
-type ExtendedTimelineEvent = AutofixTimelineEvent & {
-  isTruncated?: boolean;
-  originalIndex?: number;
-};
-
 function SolutionDescription({
   solution,
   groupId,
@@ -176,68 +155,11 @@ function SolutionDescription({
   const containerRef = useRef<HTMLDivElement>(null);
   const selection = useTextSelection(containerRef);
 
-  // Filter events to keep only 1 event before and after modified events
-  const filteredEvents = (() => {
-    const events = solution.map((event, index) => ({
-      ...event,
-      is_most_important_event: event.is_new_event,
-      originalIndex: index,
-    }));
-
-    const firstModifiedIndex = events.findIndex(e => e.is_new_event);
-    const lastModifiedIndex = events.findLastIndex(e => e.is_new_event);
-
-    if (firstModifiedIndex === -1) {
-      return events;
-    }
-
-    const startIndex = Math.max(0, firstModifiedIndex - 1);
-    const endIndex = Math.min(events.length - 1, lastModifiedIndex + 1);
-
-    const truncatedEvents = events.slice(startIndex, endIndex + 1);
-
-    if (truncatedEvents.length === 0) {
-      return events;
-    }
-
-    // Add truncation indicators if needed
-    const finalEvents: ExtendedTimelineEvent[] = [];
-
-    // Add truncation at start if we removed events
-    if (startIndex > 0) {
-      const firstEvent = truncatedEvents[0];
-      if (firstEvent) {
-        finalEvents.push({
-          title: '',
-          timeline_item_type: 'internal_code' as const,
-          code_snippet_and_analysis: '',
-          relevant_code_file: firstEvent.relevant_code_file,
-          is_most_important_event: false,
-          isTruncated: true,
-        });
-      }
-    }
-
-    // Add all filtered events
-    finalEvents.push(...truncatedEvents);
-
-    // Add truncation at end if we removed events
-    if (endIndex < events.length - 1) {
-      const lastEvent = truncatedEvents[truncatedEvents.length - 1];
-      if (lastEvent) {
-        finalEvents.push({
-          title: '',
-          timeline_item_type: 'internal_code' as const,
-          code_snippet_and_analysis: '',
-          relevant_code_file: lastEvent.relevant_code_file,
-          is_most_important_event: false,
-          isTruncated: true,
-        });
-      }
-    }
-
-    return finalEvents;
-  })();
+  const events = solution.map((event, index) => ({
+    ...event,
+    is_most_important_event: event.is_new_event,
+    originalIndex: index,
+  }));
 
   return (
     <SolutionDescriptionWrapper>
@@ -258,13 +180,7 @@ function SolutionDescription({
         )}
       </AnimatePresence>
       <div ref={containerRef}>
-        <AutofixTimeline
-          events={filteredEvents}
-          activeColor="green400"
-          getCustomIcon={(event: AutofixTimelineEvent & {isTruncated?: boolean}) =>
-            event.isTruncated ? <VerticalEllipsis /> : undefined
-          }
-        />
+        <AutofixTimeline events={events} activeColor="green400" />
       </div>
     </SolutionDescriptionWrapper>
   );

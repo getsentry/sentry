@@ -40,7 +40,7 @@ import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/setting
 import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
 
-import Onboarding from '../onboarding';
+import {LegacyOnboarding} from '../onboarding';
 import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
 import {getPerformanceBaseUrl, getTransactionSearchQuery} from '../utils';
 
@@ -271,7 +271,7 @@ export function PerformanceLanding(props: Props) {
                           {showOnboarding ? (
                             <Fragment>
                               {pageFilters}
-                              <Onboarding
+                              <LegacyOnboarding
                                 organization={organization}
                                 project={onboardingProject}
                               />
