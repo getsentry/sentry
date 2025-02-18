@@ -40,6 +40,29 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         )
         assert batch_query == {self.event3.group_id: 1}
 
+    def test_batch_query_with_conditions(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            conditions=[("tags[region]", "=", "US")],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
+
+        batch_query = self.handler().batch_query(
+            group_ids={self.event3.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+            conditions=[("tags[biz]", "LIKE", "%%b%")],
+        )
+        assert batch_query == {self.event3.group_id: 1}
+
     def test_get_error_and_generic_group_ids(self):
         groups = Group.objects.filter(
             id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
@@ -72,6 +95,29 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: 1}
+
+    def test_batch_query_user_with_conditions(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            conditions=[("tags[region]", "=", "US")],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
+
+        batch_query = self.handler().batch_query(
+            group_ids={self.event3.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+            conditions=[("tags[biz]", "LIKE", "%%b%")],
         )
         assert batch_query == {self.event3.group_id: 1}
 

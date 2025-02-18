@@ -61,6 +61,7 @@ class UniqueConditionQuery:
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
+    filters: list[dict[str, Any]] | None = None
 
 
 def fetch_project(project_id: int) -> Project | None:
@@ -177,6 +178,7 @@ def generate_unique_queries(
             handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
+            filters=condition.comparison.get("filters"),
         )
     ]
     if condition_type in PERCENT_CONDITIONS:
@@ -186,6 +188,7 @@ def generate_unique_queries(
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
+                filters=condition.comparison.get("filters"),
             )
         )
     return unique_queries
@@ -235,6 +238,7 @@ def get_condition_group_results(
             environment_id=unique_condition.environment_id,
             current_time=current_time,
             comparison_interval=comparison_interval,
+            filters=unique_condition.filters,
         )
         condition_group_results[unique_condition] = result or {}
 

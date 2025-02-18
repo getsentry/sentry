@@ -64,6 +64,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
                 "timestamp": before_now(seconds=30).isoformat(),
                 "fingerprint": ["group-1"],
                 "user": {"id": uuid4().hex},
+                "tags": {"foo": "bar", "baz": "quux", "region": "US"},
             },
             project_id=self.project.id,
         )
@@ -74,6 +75,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
                 "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-2"],
                 "user": {"id": uuid4().hex},
+                "tags": {"foo": "bar", "baz": "biz", "region": "EU"},
             },
             project_id=self.project.id,
         )
@@ -85,6 +87,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
                 "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-3"],
                 "user": {"id": uuid4().hex},
+                "tags": {"foo": None, "biz": "baz", "region": "US"},
             },
             project_id=self.project.id,
         )

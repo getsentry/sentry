@@ -7,6 +7,7 @@ from typing import Any, ClassVar, Literal, TypedDict
 
 from django.core.cache import cache
 from django.db.models import QuerySet
+from snuba_sdk import Op
 
 from sentry import release_health, tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
@@ -18,6 +19,7 @@ from sentry.rules.conditions.event_frequency import (
     SNUBA_LIMIT,
     STANDARD_INTERVALS,
 )
+from sentry.rules.match import MatchType
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
@@ -65,6 +67,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         referrer_suffix: str,
+        conditions: list[tuple[str, str, str | None]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -76,6 +79,7 @@ class BaseEventFrequencyQueryHandler(ABC):
             jitter_value=group_id,
             tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
+            conditions=conditions,
         )
         return result
 
@@ -89,6 +93,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         referrer_suffix: str,
+        conditions: list[tuple[str, str, str | None]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -103,6 +108,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
+                conditions=conditions,
             )
             batch_totals.update(result)
         return batch_totals
@@ -134,9 +140,68 @@ class BaseEventFrequencyQueryHandler(ABC):
             result = group.get(value)
         return result
 
+    @staticmethod
+    def convert_filter_to_snuba_condition(
+        condition: dict[str, Any]
+    ) -> tuple[str, str, str | None] | None:
+        lhs = f"tags[{condition['key']}]"
+        rhs = (
+            condition["value"]
+            if condition["match"] not in (MatchType.IS_SET, MatchType.NOT_SET)
+            else None
+        )
+        match condition["match"]:
+            case MatchType.EQUAL:
+                operator = Op.EQ
+            case MatchType.NOT_EQUAL:
+                operator = Op.NEQ
+            case MatchType.STARTS_WITH:
+                operator = Op.LIKE
+                rhs = f"{rhs}%"
+            case MatchType.NOT_STARTS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"{rhs}%"
+            case MatchType.ENDS_WITH:
+                operator = Op.LIKE
+                rhs = f"%{rhs}"
+            case MatchType.NOT_ENDS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}"
+            case MatchType.CONTAINS:
+                operator = Op.LIKE
+                rhs = f"%{rhs}%"
+            case MatchType.NOT_CONTAINS:
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}%"
+            case MatchType.IS_SET:
+                operator = Op.IS_NOT_NULL
+                rhs = None
+            case MatchType.NOT_SET:
+                operator = Op.IS_NULL
+                rhs = None
+            case MatchType.IS_IN:
+                operator = Op.IN
+                if not isinstance(rhs, str):
+                    raise ValueError(f"Unsupported value type for {condition['match']}")
+                rhs = rhs.split(",")
+            case MatchType.NOT_IN:
+                operator = Op.NOT_IN
+                if not isinstance(rhs, str):
+                    raise ValueError(f"Unsupported value type for {condition['match']}")
+                rhs = rhs.split(",")
+            case _:
+                raise ValueError(f"Unsupported match type: {condition['match']}")
+
+        return (lhs, operator.value, rhs)
+
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        conditions: list[tuple[str, str, str | None]] | None = None,
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -151,6 +216,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
+        filters: list[dict[str, Any]] | None,
     ) -> dict[int, int]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
@@ -164,6 +230,13 @@ class BaseEventFrequencyQueryHandler(ABC):
         if comparison_interval:
             current_time -= comparison_interval
         start, end = self.get_query_window(end=current_time, duration=duration)
+        conditions = []
+
+        if filters:
+            for filter in filters:
+                snuba_condition = self.convert_filter_to_snuba_condition(filter)
+                if snuba_condition:
+                    conditions.append(snuba_condition)
 
         with self.disable_consistent_snuba_mode(duration):
             result = self.batch_query(
@@ -171,6 +244,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 start=start,
                 end=end,
                 environment_id=environment_id,
+                conditions=conditions or None,
             )
         return result
 
@@ -184,7 +258,12 @@ slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHan
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        conditions: list[tuple[str, str, str | None]] | None = None,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -206,6 +285,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
+                conditions=conditions,
             )
 
         for category, issue_ids in category_group_ids.items():
@@ -219,7 +299,12 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        conditions: list[tuple[str, str, str | None]] | None = None,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -241,6 +326,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
+                conditions=conditions,
             )
 
         for category, issue_ids in category_group_ids.items():
@@ -280,7 +366,12 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
         return None
 
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        conditions: list[tuple[str, str, str | None]] | None = None,
     ) -> dict[int, int]:
 
         batch_percents: dict[int, int] = defaultdict(int)
@@ -316,6 +407,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
+                conditions=conditions,
             )
 
         for category, issue_ids in category_group_ids.items():
