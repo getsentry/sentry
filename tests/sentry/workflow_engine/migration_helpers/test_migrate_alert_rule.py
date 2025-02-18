@@ -493,6 +493,21 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
         assert not DataCondition.objects.filter(id=action_filter.id).exists()
 
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_dual_delete_twice(self, mock_logger):
+        """
+        Test that nothing happens if dual delete is run twice. We should just quit early the
+        second time.
+        """
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        mock_logger.info.assert_called_with(
+            "alert rule was not dual written or objects were already deleted, returning early",
+            extra={"alert_rule_id": self.metric_alert.id},
+        )
+
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
     def setUp(self):
