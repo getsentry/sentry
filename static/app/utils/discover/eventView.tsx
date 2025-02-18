@@ -1233,7 +1233,7 @@ class EventView {
 
   getResultsViewUrlTarget(
     organization: Organization,
-    isHomepage: boolean = false,
+    isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';

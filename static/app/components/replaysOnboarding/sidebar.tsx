@@ -238,7 +238,7 @@ function OnboardingContent({
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const defaultTab: string = 'jsLoader';
+  const defaultTab = 'jsLoader';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab
