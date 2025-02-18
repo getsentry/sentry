@@ -87,27 +87,29 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          <SecondaryNav.Section title={t('Views')}>
-            <Reorder.Group
-              as="div"
-              axis="y"
-              values={views ?? []}
-              onReorder={setViews}
-              initial={false}
-              ref={sectionRef}
-            >
-              {views &&
-                views.length > 0 &&
-                views.map(view => (
-                  <IssueViewNavItemContent
-                    key={view.id}
-                    view={view}
-                    dragConstraints={sectionRef}
-                    sectionBodyRef={bodyRef}
-                  />
-                ))}
-            </Reorder.Group>
-          </SecondaryNav.Section>
+          {hasIssueViewsInLeftNav && (
+            <SecondaryNav.Section title={t('Views')}>
+              <Reorder.Group
+                as="div"
+                axis="y"
+                values={views ?? []}
+                onReorder={setViews}
+                initial={false}
+                ref={sectionRef}
+              >
+                {views &&
+                  views.length > 0 &&
+                  views.map(view => (
+                    <IssueViewNavItemContent
+                      key={view.id}
+                      view={view}
+                      dragConstraints={sectionRef}
+                      sectionBodyRef={bodyRef}
+                    />
+                  ))}
+              </Reorder.Group>
+            </SecondaryNav.Section>
+          )}
         </SecondaryNav.Body>
         <SecondaryNav.Footer>
           <SecondaryNav.Item
