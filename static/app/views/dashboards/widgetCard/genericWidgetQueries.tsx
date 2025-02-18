@@ -20,7 +20,7 @@ import type {DashboardFilters, Widget, WidgetQuery} from '../types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 
 function getReferrer(displayType: DisplayType) {
-  let referrer: string = '';
+  let referrer = '';
 
   if (displayType === DisplayType.TABLE) {
     referrer = 'api.dashboards.tablewidget';
@@ -203,7 +203,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     this._isMounted = false;
   }
 
-  private _isMounted: boolean = false;
+  private _isMounted = false;
 
   applyDashboardFilters(widget: Widget): Widget {
     const {dashboardFilters, skipDashboardFilterParens} = this.props;

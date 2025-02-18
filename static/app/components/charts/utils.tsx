@@ -42,7 +42,7 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 export function truncationFormatter(
   value: string,
   truncate: number | boolean | undefined,
-  escaped: boolean = true
+  escaped = true
 ): string {
   // Whitespace characters such as newlines and tabs can
   // mess up the formatting in legends where it's part of

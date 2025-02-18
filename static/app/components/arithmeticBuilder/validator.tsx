@@ -134,7 +134,7 @@ class ExpressionValidator {
     return this.stack.length === 0;
   }
 
-  private end(i: number = 0): Part | undefined {
+  private end(i = 0): Part | undefined {
     return this.stack[this.stack.length - i - 1];
   }
 }

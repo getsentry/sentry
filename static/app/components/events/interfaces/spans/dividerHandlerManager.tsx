@@ -59,7 +59,7 @@ export class Provider extends Component<PropType, StateType> {
 
   previousUserSelect: UserSelectValues | null = null;
   dividerHandlePosition: number = DEFAULT_DIVIDER_POSITION;
-  isDragging: boolean = false;
+  isDragging = false;
   dividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
   ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
 

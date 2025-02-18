@@ -90,7 +90,7 @@ function extractSelector(node: Node): string | null {
   return null;
 }
 
-function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {
+function removeChildLevel(max: number, collection: HTMLCollection, current = 0) {
   for (const child of collection) {
     if (child.nodeName === 'STYLE') {
       child.textContent = '/* Inline CSS */';

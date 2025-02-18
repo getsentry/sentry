@@ -104,7 +104,7 @@ export function getDisabledOptions<Value extends SelectKey>(
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit: number = Infinity,
+  limit = Infinity,
   filterOption?: (opt: SelectOption<Value>, search: string) => boolean
 ): Set<SelectKey> {
   //

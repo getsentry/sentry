@@ -176,7 +176,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   config = ReleasesConfig;
-  private _isMounted: boolean = false;
+  private _isMounted = false;
 
   fetchReleases = async () => {
     this.setState({loading: true, errorMessage: undefined});

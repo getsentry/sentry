@@ -405,7 +405,7 @@ function getReleasesRequest(
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
 
-  let showIncompleteDataAlert: boolean = false;
+  let showIncompleteDataAlert = false;
 
   if (start) {
     let startDate: Date | undefined = undefined;

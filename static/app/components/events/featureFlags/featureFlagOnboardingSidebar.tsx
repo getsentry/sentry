@@ -192,7 +192,7 @@ function OnboardingContent({
     textValue?: string;
   }>(sdkProviderOptions[0]!);
 
-  const defaultTab: string = 'openFeature';
+  const defaultTab = 'openFeature';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab

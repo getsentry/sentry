@@ -37,7 +37,7 @@ export abstract class FlamegraphRenderer {
   colorBuffer: number[];
   colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
 
-  isDifferentialFlamegraph: boolean = false;
+  isDifferentialFlamegraph = false;
 
   constructor(
     canvas: HTMLCanvasElement,

@@ -19,8 +19,8 @@ export default storyBook('Widget', (story, APIReference) => {
   APIReference(types.exported);
 
   story('Getting Started', () => {
-    const isLoading: boolean = false;
-    const hasError: boolean = false;
+    const isLoading = false;
+    const hasError = false;
 
     return (
       <Fragment>

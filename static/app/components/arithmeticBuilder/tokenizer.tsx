@@ -102,7 +102,7 @@ export function tokenizeExpression(expression: string): Token[] {
   return tokens;
 }
 
-export function makeTokenKey(kind: TokenKind, i: number = 0): string {
+export function makeTokenKey(kind: TokenKind, i = 0): string {
   return `${kind}:${i}`;
 }
 

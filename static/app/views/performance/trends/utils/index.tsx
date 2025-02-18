@@ -251,7 +251,7 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  canUseMetricsTrends: boolean = false
+  canUseMetricsTrends = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);

@@ -411,7 +411,7 @@ function generateAdditionalConditions(
  * hit the Transactions dataset.
  */
 export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
-  let usesTransactions: boolean = false;
+  let usesTransactions = false;
   const parsedQuery = new MutableSearch(eventView.query);
   for (const yAxis of yAxisValue) {
     const aggregateArg = getAggregateArg(yAxis) ?? '';

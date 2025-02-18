@@ -202,7 +202,7 @@ export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
   exception?: ExceptionValue,
-  hasSimilarityEmbeddingsFeature: boolean = false
+  hasSimilarityEmbeddingsFeature = false
 ) {
   const rawFrames = data?.frames || [];
 

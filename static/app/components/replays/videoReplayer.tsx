@@ -46,7 +46,7 @@ export class VideoReplayer {
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: Array<[ts: number, index: number]>;
-  private _isPlaying: boolean = false;
+  private _isPlaying = false;
   private _listeners: RemoveListener[] = [];
   /**
    * Maps attachment index to the video element.
@@ -546,9 +546,7 @@ export class VideoReplayer {
    * segment's timestamp and duration. Displays the closest prior segment if
    * offset exists in a gap where there is no recorded segment.
    */
-  protected async loadSegmentAtTime(
-    videoOffsetMs: number = 0
-  ): Promise<number | undefined> {
+  protected async loadSegmentAtTime(videoOffsetMs = 0): Promise<number | undefined> {
     if (!this._trackList.length) {
       return undefined;
     }

@@ -49,7 +49,7 @@ export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
   project: Project,
-  forceEvent: boolean = false
+  forceEvent = false
 ) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, event, project);

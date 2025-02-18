@@ -826,7 +826,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const projectThresholdConfig = 'project_threshold_config';
-    let countMiserableUserField: string = '';
+    let countMiserableUserField = '';
 
     let miseryLimit: number | undefined = parseInt(
       userMiseryField.split('(').pop()?.slice(0, -1) || '',
@@ -1064,7 +1064,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export function getFieldRenderer(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1109,7 +1109,7 @@ type FieldTypeFormatterRenderFunctionPartial = (
 export function getFieldFormatter(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName] || meta.fields?.[fieldName];

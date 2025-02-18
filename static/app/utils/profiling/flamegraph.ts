@@ -40,7 +40,7 @@ export class Flamegraph {
   profile: Profile;
   frames: readonly FlamegraphFrame[] = [];
 
-  inverted: boolean = false;
+  inverted = false;
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;

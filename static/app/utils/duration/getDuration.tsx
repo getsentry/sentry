@@ -70,10 +70,10 @@ const DURATION_LABELS = {
  */
 export default function getDuration(
   seconds: number,
-  fixedDigits: number = 0,
-  abbreviation: boolean = false,
-  extraShort: boolean = false,
-  absolute: boolean = false,
+  fixedDigits = 0,
+  abbreviation = false,
+  extraShort = false,
+  absolute = false,
   minimumUnit: number = MILLISECOND
 ): string {
   const absValue = Math.abs(seconds * 1000);
