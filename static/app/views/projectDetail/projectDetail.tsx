@@ -83,7 +83,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId!, true, false);
+    fetchOrganizationDetails(api, params.orgId!);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(

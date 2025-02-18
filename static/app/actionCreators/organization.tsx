@@ -9,7 +9,6 @@ import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -19,27 +18,14 @@ import {
   addOrganizationFeaturesHandler,
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
-import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-async function fetchOrg(
-  api: Client,
-  slug: string,
-  usePreload?: boolean
-): Promise<Organization> {
-  const [org] = await getPreloadedDataPromise(
-    'organization',
-    slug,
-    () =>
-      // This data should get preloaded in static/sentry/index.ejs
-      // If this url changes make sure to update the preload
-      api.requestPromise(`/organizations/${slug}/`, {
-        includeAllArgs: true,
-        query: {detailed: 0, include_feature_flags: 1},
-      }),
-    usePreload
-  );
+async function fetchOrg(api: Client, slug: string): Promise<Organization> {
+  const [org] = await api.requestPromise(`/organizations/${slug}/`, {
+    includeAllArgs: true,
+    query: {detailed: 0, include_feature_flags: 1},
+  });
 
   if (!org) {
     throw new Error('retrieved organization is falsey');
@@ -64,39 +50,25 @@ async function fetchOrg(
 }
 
 async function fetchProjectsAndTeams(
-  slug: string,
-  usePreload?: boolean
+  slug: string
 ): Promise<[ApiResult<Project[]>, ApiResult<Team[]>]> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
 
-  const projectsPromise = getPreloadedDataPromise(
-    'projects',
-    slug,
-    () =>
-      // This data should get preloaded in static/sentry/index.ejs
-      // If this url changes make sure to update the preload
-      uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
-        includeAllArgs: true,
-        query: {
-          all_projects: 1,
-          collapse: ['latestDeploys', 'unusedFeatures'],
-        },
-      }),
-    usePreload
+  const projectsPromise = uncancelableApi.requestPromise(
+    `/organizations/${slug}/projects/`,
+    {
+      includeAllArgs: true,
+      query: {
+        all_projects: 1,
+        collapse: ['latestDeploys', 'unusedFeatures'],
+      },
+    }
   );
 
-  const teamsPromise = getPreloadedDataPromise(
-    'teams',
-    slug,
-    // This data should get preloaded in static/sentry/index.ejs
-    // If this url changes make sure to update the preload
-    () =>
-      uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
-        includeAllArgs: true,
-      }),
-    usePreload
-  );
+  const teamsPromise = uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
+    includeAllArgs: true,
+  });
 
   try {
     return await Promise.all([projectsPromise, teamsPromise]);
@@ -124,21 +96,8 @@ async function fetchProjectsAndTeams(
  * @param slug The organization slug
  * @param silent Should we silently update the organization (do not clear the
  *               current organization in the store)
- * @param usePreload Should the preloaded data be used if available?
  */
-export async function fetchOrganizationDetails(
-  api: Client,
-  slug: string,
-  silent: boolean,
-  usePreload?: boolean
-): Promise<void> {
-  if (!silent) {
-    OrganizationStore.reset();
-    ProjectsStore.reset();
-    TeamStore.reset();
-    PageFiltersStore.onReset();
-  }
-
+export async function fetchOrganizationDetails(api: Client, slug: string): Promise<void> {
   const getErrorMessage = (err: RequestError) => {
     if (typeof err.responseJSON?.detail === 'string') {
       return err.responseJSON?.detail;
@@ -152,7 +111,7 @@ export async function fetchOrganizationDetails(
   const loadOrganization = async () => {
     let org: Organization | undefined = undefined;
     try {
-      org = await fetchOrg(api, slug, usePreload);
+      org = await fetchOrg(api, slug);
     } catch (err) {
       if (!err) {
         throw err;
@@ -176,7 +135,7 @@ export async function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug);
 
     ProjectsStore.loadInitialData(projects ?? []);
 
