@@ -19,7 +19,6 @@ class Model(Generic[Item]):
     can_flush: Callable[[], bool]
     do_flush: Callable[[], None]
     offsets: MutableMapping[Partition, int]
-    retries: int
 
 
 class Msg(Generic[Item]):
@@ -41,12 +40,14 @@ class Flush(Msg[Item]):
 
 
 def process(
-    process_fn: Callable[[bytes], Item],
+    process_fn: Callable[[bytes], Item | None],
     model: Model[Item],
     message: bytes,
     offset: MutableMapping[Partition, int],
 ) -> Msg[Item] | None:
-    return Append(item=process_fn(message), offset=offset)
+    item = process_fn(message)
+    if item:
+        return Append(item=item, offset=offset)
 
 
 def init(
@@ -90,7 +91,7 @@ def subscription(model: Model[Item]) -> Msg[Item] | None:
 
 def buffering_runtime(
     init_fn: Callable[[dict[str, str]], Model[Item]],
-    process_fn: Callable[[bytes], Item],
+    process_fn: Callable[[bytes], Item | None],
 ) -> RunTime[Model[Item], Msg[Item]]:
     return RunTime(
         init=partial(init, init_fn),

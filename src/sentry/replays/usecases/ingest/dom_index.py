@@ -233,13 +233,14 @@ def _get_testid(container: dict[str, str]) -> str:
     )
 
 
-def _initialize_publisher() -> KafkaPublisher:
+def _initialize_publisher(asynchronous: bool = True) -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
         config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"])
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
+            asynchronous=asynchronous,
         )
 
     return replay_publisher
