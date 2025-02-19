@@ -3,7 +3,7 @@ from rest_framework import serializers
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.types import PERSONAL_NOTIFICATION_PROVIDERS
-from sentry.notifications.api.validators.notifications import (
+from sentry.notifications.api.parsers.notifications import (
     validate_scope_type,
     validate_type,
     validate_value,
