@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from sentry.api.permissions import (
     DemoUserPermission,
     SentryIsAuthenticated,
@@ -113,7 +111,6 @@ class DemoUserPermissionsTest(DRFPermissionTestCase):
         )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
-    @patch
     def test_unsafe_methods_demo_mode_disabled(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             assert not self.user_permission.has_permission(
