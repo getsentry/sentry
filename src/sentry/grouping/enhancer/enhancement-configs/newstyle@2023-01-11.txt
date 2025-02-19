@@ -448,5 +448,4 @@ family:native stack.function:USentrySubsystem::CaptureMessageWithScope* v+app
 family:native stack.function:USentrySubsystem::CaptureEvent* v+app
 family:native stack.function:USentrySubsystem::CaptureEventWithScope* v+app
 family:native stack.function:USentrySubsystem::*execCapture* v+app
-family:native function:__start_thread -app
-family:native function:__pthread_start -app
+family:native function:__pthread_start -app v-app
