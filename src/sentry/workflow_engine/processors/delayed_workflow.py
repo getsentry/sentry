@@ -4,15 +4,23 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+from celery import Task
 from django.utils import timezone
 
 from sentry import buffer, nodestore
+from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
+from sentry.rules.processing.buffer_processing import (
+    BufferHashKeys,
+    DelayedProcessingBase,
+    FilterKeys,
+    delayed_processing_registry,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
@@ -35,7 +43,10 @@ from sentry.workflow_engine.models.data_condition_group import get_slow_conditio
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.processors.workflow import evaluate_workflows_action_filters
+from sentry.workflow_engine.processors.workflow import (
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    evaluate_workflows_action_filters,
+)
 from sentry.workflow_engine.types import DataConditionHandlerType, WorkflowJob
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
@@ -403,6 +414,17 @@ def fire_actions_for_groups(
             action.trigger(job, detector)
 
 
+def cleanup_redis_buffer(
+    project_id: int, workflow_event_dcg_data: dict[str, str], batch_key: str | None
+) -> None:
+    hashes_to_delete = list(workflow_event_dcg_data.keys())
+    filters: dict[str, BufferField] = {"project_id": project_id}
+    if batch_key:
+        filters["batch_key"] = batch_key
+
+    buffer.backend.delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
+
+
 @instrumented_task(
     name="sentry.workflow_engine.processors.delayed_workflow",
     queue="delayed_rules",
@@ -458,7 +480,18 @@ def process_delayed_workflows(
 
     fire_actions_for_groups(groups_to_dcgs, trigger_type_to_dcg_model, group_to_groupevent)
 
-    # TODO(cathy): clean up redis buffer
+    cleanup_redis_buffer(project_id, workflow_event_dcg_data, batch_key)
 
 
-# TODO: add to registry
+@delayed_processing_registry.register("delayed_workflow")
+class DelayedWorkflow(DelayedProcessingBase):
+    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
+    option = "delayed_workflow.rollout"
+
+    @property
+    def hash_args(self) -> BufferHashKeys:
+        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
+
+    @property
+    def processing_task(self) -> Task:
+        return process_delayed_workflows
