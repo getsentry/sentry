@@ -270,6 +270,28 @@ def _process_resource_change(
         ]
 
         for installation in installations:
+            try:
+                service_hook = ServiceHook.objects.get(
+                    organization_id=org.id,
+                    actor_id=installation.id,
+                )
+            except ServiceHook.DoesNotExist:
+                logger.info(
+                    "send_webhooks.missing_servicehook",
+                    extra={"installation_id": installation.id, "event": event},
+                )
+                continue
+
+            # Check if service hook is limited to specific projects.
+            # (applies to all projects if there are no ServiceHookProject records)
+            if ServiceHookProject.objects.filter(service_hook_id=service_hook.id).exists():
+                project_allowed = ServiceHookProject.objects.filter(
+                    service_hook_id=service_hook.id, project_id=instance.project_id
+                ).exists()
+
+                if not project_allowed:
+                    continue
+
             data = {}
             if isinstance(instance, (Event, GroupEvent)):
                 assert instance.group_id, "group id is required to create webhook event data"
@@ -507,11 +529,6 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     if event not in servicehook.events:
         return None
 
-    # The service hook applies to all projects if there are no
-    # ServiceHookProject records. Otherwise we want check if
-    # the event is within the allowed projects.
-    project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
-
     # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
     # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
     # # Make sure we don't send the request, to prevent potential infinite loops
@@ -527,19 +544,18 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     #     )
     #     return
 
-    if not project_limited:
-        resource, action = event.split(".")
+    resource, action = event.split(".")
 
-        kwargs["resource"] = resource
-        kwargs["action"] = action
-        kwargs["install"] = installation
+    kwargs["resource"] = resource
+    kwargs["action"] = action
+    kwargs["install"] = installation
 
-        request_data = AppPlatformEvent(**kwargs)
-        send_and_save_webhook_request(
-            installation.sentry_app,
-            request_data,
-            installation.sentry_app.webhook_url,
-        )
+    request_data = AppPlatformEvent(**kwargs)
+    send_and_save_webhook_request(
+        installation.sentry_app,
+        request_data,
+        installation.sentry_app.webhook_url,
+    )
 
 
 @instrumented_task(

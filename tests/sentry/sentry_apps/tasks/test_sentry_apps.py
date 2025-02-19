@@ -25,6 +25,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
     installation_webhook,
@@ -414,6 +415,107 @@ class TestProcessResourceChange(TestCase):
             "Sentry-Hook-Timestamp",
             "Sentry-Hook-Signature",
         }
+
+    def test_project_filter_no_filters_sends_webhook(self, safe_urlopen):
+        with assume_test_silo_mode_of(ServiceHookProject):
+            ServiceHookProject.objects.all().delete()
+            ServiceHook.objects.all().delete()
+
+        self.create_service_hook(
+            project_ids=[],  # no project filter
+            installation=self.install,
+            application=self.sentry_app,
+            events=["issue.created"],
+            org=self.organization,
+            actor=self.install,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+    def test_project_filter_matches_project_sends_webhook(self, safe_urlopen):
+        with assume_test_silo_mode_of(ServiceHookProject):
+            ServiceHookProject.objects.all().delete()
+            ServiceHook.objects.all().delete()
+
+        self.create_service_hook(
+            project_ids=[self.project.id],  # matches project of issue
+            installation=self.install,
+            application=self.sentry_app,
+            events=["issue.created"],
+            org=self.organization,
+            actor=self.install,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+    def test_project_filter_no_match_does_not_send_webhook(self, safe_urlopen):
+        with assume_test_silo_mode_of(ServiceHookProject):
+            ServiceHookProject.objects.all().delete()
+            ServiceHook.objects.all().delete()
+
+        project_2 = self.create_project(
+            name="Bar2", slug="bar2", teams=[self.team], fire_project_created=False
+        )
+
+        self.create_service_hook(
+            project_ids=[project_2.id],  # no match
+            installation=self.install,
+            application=self.sentry_app,
+            events=["issue.created"],
+            org=self.organization,
+            actor=self.install,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert not safe_urlopen.called
 
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
     @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")
