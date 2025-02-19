@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -23,13 +23,8 @@ export function ArithmeticBuilder({
 }: ArithmeticBuilderProps) {
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: expression || '',
+    updateExpression: setExpression,
   });
-
-  useEffect(() => {
-    if (state.validated === 'valid') {
-      setExpression?.(state.expression);
-    }
-  }, [setExpression, state.expression, state.validated]);
 
   const contextValue = useMemo(() => {
     return {
@@ -45,9 +40,9 @@ export function ArithmeticBuilder({
           className={className}
           aria-disabled={disabled}
           data-test-id="arithmetic-builder"
-          state={state.validated}
+          state={state.expression.valid}
         >
-          <TokenGrid tokens={state.tokens} />
+          <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>
       </ArithmeticBuilderContext.Provider>
     </PanelProvider>

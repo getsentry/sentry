@@ -1,6 +1,7 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 describe('useArithmeticBuilderAction', function () {
@@ -19,10 +20,8 @@ describe('useArithmeticBuilderAction', function () {
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
       state: {
-        expression: 'initial expression',
+        expression: new Expression('initial expression'),
         focusOverride: null,
-        tokens: expect.any(Array),
-        validated: 'invalid',
       },
     });
   });
@@ -56,12 +55,10 @@ describe('useArithmeticBuilderAction', function () {
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
       state: {
-        expression: '( sum(span.duration) )',
+        expression: new Expression('( sum(span.duration) )'),
         focusOverride: {
           itemKey: 'foo',
         },
-        tokens: expect.any(Array),
-        validated: 'valid',
       },
     });
 
@@ -74,10 +71,8 @@ describe('useArithmeticBuilderAction', function () {
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
       state: {
-        expression: '( sum(span.duration) )',
+        expression: new Expression('( sum(span.duration) )'),
         focusOverride: null,
-        tokens: expect.any(Array),
-        validated: 'valid',
       },
     });
   });
@@ -109,10 +104,8 @@ describe('useArithmeticBuilderAction', function () {
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
       state: {
-        expression: '( )',
+        expression: new Expression('( )'),
         focusOverride: null,
-        tokens: expect.any(Array),
-        validated: 'invalid',
       },
     });
   });
@@ -145,10 +138,8 @@ describe('useArithmeticBuilderAction', function () {
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
       state: {
-        expression: '( sum(span.duration) )',
+        expression: new Expression('( sum(span.duration) )'),
         focusOverride: null,
-        tokens: expect.any(Array),
-        validated: 'valid',
       },
     });
   });
