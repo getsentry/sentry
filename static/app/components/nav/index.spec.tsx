@@ -48,6 +48,7 @@ describe('Nav', function () {
       <NavContextProvider>
         <Nav />
         <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+          <SecondaryNav.Header>Issues</SecondaryNav.Header>
           <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
             Foo
           </SecondaryNav.Item>
@@ -117,7 +118,7 @@ describe('Nav', function () {
     });
 
     describe('collapse behavior', function () {
-      it('can collpase and expand secondary sidebar', async function () {
+      it('can collapse and expand secondary sidebar', async function () {
         renderNav();
 
         expect(

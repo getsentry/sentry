@@ -6,7 +6,6 @@ import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {CollapseButton} from 'sentry/components/nav/primary/collapse';
 import {
   SeparatorItem,
   SidebarLink,
@@ -164,7 +163,6 @@ export function PrimaryNavigationItems() {
         <SeparatorItem />
 
         <WhatsNew />
-        <CollapseButton />
       </SidebarFooter>
     </Fragment>
   );
