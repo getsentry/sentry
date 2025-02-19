@@ -7,7 +7,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
+import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -131,7 +131,7 @@ export default function NewProviderForm({
           "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
           {
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[selectedProvider]} />,
+            link: <ExternalLink href={PROVIDER_TO_SETUP_WEBHOOK_URL[selectedProvider]} />,
           }
         )}
         inline
