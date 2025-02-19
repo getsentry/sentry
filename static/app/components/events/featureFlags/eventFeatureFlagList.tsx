@@ -20,8 +20,9 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconEllipsis, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -217,21 +218,6 @@ export function EventFeatureFlagList({
         {hasFlags && (
           <Fragment>
             <Button
-              size="xs"
-              aria-label={t('View All')}
-              ref={viewAllButtonRef}
-              title={t('View All Flags')}
-              onClick={() => {
-                if (isDrawerOpen) {
-                  closeDrawer();
-                } else {
-                  onViewAllFlags();
-                }
-              }}
-            >
-              {t('View All')}
-            </Button>
-            <Button
               aria-label={t('Open Feature Flag Search')}
               icon={<IconSearch size="xs" />}
               size="xs"
@@ -278,6 +264,23 @@ export function EventFeatureFlagList({
           {t('No feature flags were found for this event')}
         </StyledEmptyStateWarning>
       )}
+      {hydratedFlags.length > 20 && (
+        <ViewAllContainer>
+          <VerticalEllipsis />
+          <div>
+            <ViewAllButton
+              size="sm"
+              // Since we've disabled the button as an 'outside click' for the drawer we can change
+              // the operation based on the drawer state.
+              onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
+              aria-label={t('View All Breadcrumbs')}
+              ref={viewAllButtonRef}
+            >
+              {t('View %d More Flags', hydratedFlags.length - 20)}
+            </ViewAllButton>
+          </div>
+        </ViewAllContainer>
+      )}
     </InterimSection>
   );
 }
@@ -297,4 +300,30 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   display: flex;
   flex-direction: column;
   align-items: center;
+`;
+
+const ViewAllContainer = styled('div')`
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: -${space(1)};
+    height: ${space(1)};
+    background: ${p => p.theme.border};
+  }
+`;
+
+const VerticalEllipsis = styled(IconEllipsis)`
+  height: 22px;
+  color: ${p => p.theme.subText};
+  margin: ${space(0.5)};
+  transform: rotate(90deg);
+`;
+
+const ViewAllButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
 `;
