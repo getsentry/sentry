@@ -77,7 +77,7 @@ class DeprecatedAsyncComponent<
     }
   }
 
-  componentDidUpdate(prevProps: P) {
+  componentDidUpdate(prevProps: P, _prevState: S) {
     const isLocationInProps = prevProps.location !== undefined;
 
     const currentLocation = isLocationInProps ? this.props.location : null;
