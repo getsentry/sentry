@@ -367,3 +367,25 @@ class DataExportTest(APITestCase):
         with self.feature(["organizations:discover-query"]):
             response = self.get_response(self.org.slug, **payload)
         assert response.status_code == 400
+
+    def test_is_query(self):
+        """
+        is queries shoudl work with the errors dataset
+        """
+        payload = self.make_payload(
+            "discover",
+            {
+                "field": ["title", "project", "user.display", "timestamp"],
+                "dataset": "errors",
+                "query": "is:unresolved",
+                "per_page": 50,
+                "sort": "-timestamp",
+            },
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "project", "user.display", "timestamp"]
+        assert query_info["dataset"] == "errors"
+        assert query_info["query"] == "is:unresolved"
