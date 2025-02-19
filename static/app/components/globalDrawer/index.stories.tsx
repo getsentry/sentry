@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Alert} from 'sentry/components/core/alert';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import storyBook from 'sentry/stories/storyBook';
@@ -73,16 +73,18 @@ function MyDrawer({title}: {title: string}) {
           <LeftButton onClick={showDetails}>Open Drawer</LeftButton>
         </div>
 
-        <Alert type="warning" showIcon>
-          Calling <code>openDrawer</code> updates a global context. All components that
-          subscribe to that context will be re-rendered, and this can cause infinite
-          rendering loops. Avoid calling <code>openDrawer</code> repeatedly. This can
-          happen inside a <code>useEffect</code>, in a loop, in a callback, or other
-          situations. Check <code>isDrawerOpen</code> before opening the drawer (see
-          example above), wrap <code>openDrawer</code> in a <code>useCallback</code> with
-          stable dependencies, or otherwise make sure not to repeatedly call{' '}
-          <code>openDrawer</code>.
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            Calling <code>openDrawer</code> updates a global context. All components that
+            subscribe to that context will be re-rendered, and this can cause infinite
+            rendering loops. Avoid calling <code>openDrawer</code> repeatedly. This can
+            happen inside a <code>useEffect</code>, in a loop, in a callback, or other
+            situations. Check <code>isDrawerOpen</code> before opening the drawer (see
+            example above), wrap <code>openDrawer</code> in a <code>useCallback</code>{' '}
+            with stable dependencies, or otherwise make sure not to repeatedly call{' '}
+            <code>openDrawer</code>.
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   });

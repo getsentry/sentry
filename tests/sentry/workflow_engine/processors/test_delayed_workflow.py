@@ -1,6 +1,7 @@
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
+from unittest.mock import patch
 
 from sentry import buffer
 from sentry.eventstore.models import Event
@@ -9,7 +10,9 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -17,24 +20,39 @@ from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers imp
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    Detector,
+    Workflow,
+)
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
     Condition,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
+    DataConditionGroupEvent,
     DataConditionGroupGroups,
     UniqueConditionQuery,
+    bulk_fetch_events,
+    cleanup_redis_buffer,
     fetch_group_to_event_data,
     fetch_workflows_envs,
+    fire_actions_for_groups,
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
     get_dcg_group_workflow_detector_data,
+    get_group_to_groupevent,
     get_groups_to_fire,
+    parse_dcg_group_event_data,
 )
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.processors.workflow import (
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    WorkflowDataConditionGroupType,
+)
 from sentry.workflow_engine.types import DataConditionHandlerType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
@@ -94,8 +112,8 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
             defaultdict(dict)
         )
 
-        workflow_dcgs = self.workflow1_dcgs + self.workflow2_dcgs
-        for i, dcg in enumerate(workflow_dcgs):
+        self.workflow_dcgs = self.workflow1_dcgs + self.workflow2_dcgs
+        for i, dcg in enumerate(self.workflow_dcgs):
             handler_type = (
                 DataConditionHandlerType.WORKFLOW_TRIGGER
                 if i % 2 == 0
@@ -639,3 +657,163 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
                 self.workflow1_dcgs + [self.workflow2_dcgs[0]],
             ),
         }
+
+
+class TestFireActionsForGroups(TestDelayedWorkflowBase):
+    def setUp(self):
+        super().setUp()
+
+        action1 = self.create_action(
+            type=Action.Type.DISCORD,
+            integration_id="1234567890",
+            target_identifier="channel456",
+            data={"tags": "environment,user,my_tag"},
+        )
+        self.create_data_condition_group_action(
+            condition_group=self.workflow1_dcgs[1], action=action1
+        )
+
+        action2 = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id="1234567890",
+            target_identifier="channel789",
+            target_display="#general",
+            data={"tags": "environment,user", "notes": "Important alert"},
+        )
+        self.create_data_condition_group_action(
+            condition_group=self.workflow2_dcgs[1], action=action2
+        )
+
+        self.groups_to_dcgs = {
+            self.group1.id: set(self.workflow1_dcgs),
+            self.group2.id: set(self.workflow2_dcgs),
+        }
+        self.dcg_group_to_event_data: DataConditionGroupEvent = {}
+        for i, dcg in enumerate(self.workflow_dcgs):
+            if i < 2:
+                group = self.group1
+                event = self.event1
+            else:
+                group = self.group2
+                event = self.event2
+
+            self.dcg_group_to_event_data[(dcg.id, group.id)] = {
+                "event_id": event.event_id,
+                "occurrence_id": None,
+            }
+
+        self.group_to_groupevent = {
+            self.group1: self.event1.for_group(self.group1),
+            self.group2: self.event2.for_group(self.group2),
+        }
+
+    def test_parse_dcg_group_event_data(self):
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
+            buffer_data, self.groups_to_dcgs
+        )
+
+        assert dcg_group_to_event_data == self.dcg_group_to_event_data
+        assert event_ids == {self.event1.event_id, self.event2.event_id}
+        assert occurrence_ids == set()
+
+    def test_bulk_fetch_events(self):
+        event_ids = [self.event1.event_id, self.event2.event_id]
+        events = bulk_fetch_events(event_ids, self.project.id)
+
+        for event in list(events.values()):
+            assert event.event_id in event_ids
+
+    def test_get_group_to_groupevent(self):
+        group_to_groupevent = get_group_to_groupevent(
+            self.dcg_group_to_event_data,
+            [self.group1.id, self.group2.id],
+            {self.event1.event_id, self.event2.event_id},
+            set(),
+            self.project.id,
+        )
+        assert group_to_groupevent == self.group_to_groupevent
+
+    @patch("sentry.workflow_engine.models.action.Action.trigger")
+    def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
+        fire_actions_for_groups(
+            self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
+        )
+
+        assert mock_trigger.call_count == 2
+        assert mock_trigger.call_args_list[0][0] == (
+            {"event": self.event1.for_group(self.group1)},
+            self.detector,
+        )
+        assert mock_trigger.call_args_list[1][0] == (
+            {"event": self.event2.for_group(self.group2)},
+            self.detector,
+        )
+
+    @patch("sentry.workflow_engine.processors.workflow.enqueue_workflow")
+    def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
+        # enqueue the IF DCGs with slow conditions!
+
+        fire_actions_for_groups(
+            self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
+        )
+
+        assert mock_enqueue.call_count == 2
+        assert mock_enqueue.call_args_list[0][0] == (
+            self.workflow1,
+            [self.workflow1_dcgs[1].conditions.all()[0]],
+            self.event1.for_group(self.group1),
+            WorkflowDataConditionGroupType.ACTION_FILTER,
+        )
+        assert mock_enqueue.call_args_list[1][0] == (
+            self.workflow2,
+            [self.workflow2_dcgs[1].conditions.all()[0]],
+            self.event2.for_group(self.group2),
+            WorkflowDataConditionGroupType.ACTION_FILTER,
+        )
+
+
+class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
+    def test_cleanup_redis(self):
+        self._push_base_events()
+
+        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        assert set(data.keys()) == self.workflow_group_dcg_mapping
+
+        cleanup_redis_buffer(self.project.id, data, None)
+        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        assert data == {}
+
+    @override_options({"delayed_processing.batch_size": 2})
+    @patch("sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.delay")
+    def test_batched_cleanup(self, mock_process_delayed):
+        self._push_base_events()
+        all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+
+        process_in_batches(self.project.id, "delayed_workflow")
+        batch_one_key = mock_process_delayed.call_args_list[0][0][1]
+        batch_two_key = mock_process_delayed.call_args_list[1][0][1]
+
+        # Verify we removed the data from the buffer
+        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        assert data == {}
+
+        first_batch = buffer.backend.get_hash(
+            model=Workflow, field={"project_id": self.project.id, "batch_key": batch_one_key}
+        )
+        cleanup_redis_buffer(self.project.id, first_batch, batch_one_key)
+
+        # Verify the batch we "executed" is removed
+        data = buffer.backend.get_hash(
+            Workflow, {"project_id": self.project.id, "batch_key": batch_one_key}
+        )
+        assert data == {}
+
+        # Verify the batch we didn't execute is still in redis
+        data = buffer.backend.get_hash(
+            Workflow, {"project_id": self.project.id, "batch_key": batch_two_key}
+        )
+        for key in first_batch.keys():
+            all_data.pop(key)
+        assert data == all_data

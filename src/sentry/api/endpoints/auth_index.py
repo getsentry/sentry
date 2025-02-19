@@ -22,10 +22,12 @@ from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.organizations.services.organization import organization_service
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
+from sentry.utils.demo_mode import is_demo_user
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -126,6 +128,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     authentication methods from JS endpoints by relying on internal sessions
     and simple HTTP authentication.
     """
+    enforce_rate_limit = True
+    rate_limits = {
+        "PUT": {
+            RateLimitCategory.USER: RateLimit(
+                limit=5, window=60 * 60
+            ),  # 5 PUT requests per hour per user
+        }
+    }
 
     def _validate_superuser(
         self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
@@ -182,6 +192,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         """
         if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if is_demo_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
@@ -296,6 +309,11 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
+
+        # Allows demo user to log out from its current session but not others
+        if is_demo_user(request.user) and request.data.get("all", None) is True:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         # If there is an SLO URL, return it to frontend so the browser can redirect
         # the user back to the IdP site to delete the IdP session cookie
         slo_url = handle_saml_single_logout(request)

@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -328,12 +328,15 @@ function PageLayout(props: Props) {
 }
 
 export function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  return (
+    <Alert.Container>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Alert.Container>
+  );
 }
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
-  margin: 0;
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`

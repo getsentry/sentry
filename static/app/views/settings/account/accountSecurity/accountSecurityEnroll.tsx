@@ -13,10 +13,10 @@ import {
   fetchOrganizationByMember,
   fetchOrganizations,
 } from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -144,8 +144,7 @@ const getFields = ({
   return null;
 };
 
-type Props = DeprecatedAsyncComponent['props'] &
-  WithRouterProps<{authId: string}, {}> & {};
+type Props = DeprecatedAsyncComponent['props'] & WithRouterProps<{authId: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   authenticator: Authenticator | null;
@@ -459,9 +458,11 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
         <TextBlock>{authenticator.description}</TextBlock>
 
         {authenticator.rotationWarning && authenticator.status === 'rotation' && (
-          <Alert type="warning" showIcon>
-            {authenticator.rotationWarning}
-          </Alert>
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {authenticator.rotationWarning}
+            </Alert>
+          </Alert.Container>
         )}
 
         {!!authenticator.form?.length && (

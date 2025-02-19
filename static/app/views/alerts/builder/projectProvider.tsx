@@ -2,7 +2,7 @@ import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -11,8 +11,9 @@ import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   organization: Organization;
   children?: React.ReactNode;
@@ -57,7 +58,10 @@ function AlertBuilderProjectProvider(props: Props) {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`,
+      makeAlertsPathname({
+        path: '/wizard/',
+        organization,
+      }) + `?referrer=${props.location.query.referrer}&project=:projectId`,
       props.router
     );
   }
@@ -65,7 +69,11 @@ function AlertBuilderProjectProvider(props: Props) {
   // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
   if (!project || fetchError) {
     return (
-      <Alert type="warning">{t('The project you were looking for was not found.')}</Alert>
+      <Alert.Container>
+        <Alert type="warning">
+          {t('The project you were looking for was not found.')}
+        </Alert>
+      </Alert.Container>
     );
   }
 

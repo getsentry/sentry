@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
@@ -34,7 +34,11 @@ function SsoForm({authConfig}: Props) {
         padding: 0,
       }}
     >
-      {error && <Alert type="error">{error}</Alert>}
+      {error && (
+        <Alert.Container>
+          <Alert type="error">{error}</Alert>
+        </Alert.Container>
+      )}
       <TextField
         name="organization"
         placeholder="acme"

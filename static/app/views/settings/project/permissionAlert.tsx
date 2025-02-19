@@ -1,6 +1,6 @@
 import Access from 'sentry/components/acl/access';
-import type {AlertProps} from 'sentry/components/alert';
-import {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
@@ -29,9 +29,11 @@ function PermissionAlert({
     <Access access={access} project={project} team={team}>
       {({hasAccess}) =>
         !hasAccess && (
-          <Alert data-test-id="project-permission-alert" type="warning" {...props}>
-            {permissionAlertText}
-          </Alert>
+          <Alert.Container>
+            <Alert data-test-id="project-permission-alert" type="warning" {...props}>
+              {permissionAlertText}
+            </Alert>
+          </Alert.Container>
         )
       }
     </Access>

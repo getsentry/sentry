@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
@@ -45,7 +44,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
+        <Alert type="info">
           {tct(
             'The Unity SDK now supports line numbers for IL2CPP. The feature is currently in beta, but you can enable it at [code:Tools -> Sentry -> Advanced -> IL2CPP] line numbers. To learn more check out our [link:docs].',
             {
@@ -55,7 +54,7 @@ const onboarding: OnboardingConfig = {
               ),
             }
           )}
-        </AlertWithoutMarginBottom>
+        </Alert>
       ),
     },
   ],
@@ -174,7 +173,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

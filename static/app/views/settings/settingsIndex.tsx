@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -14,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -42,7 +43,7 @@ const LINKS = {
 
 const HOME_ICON_SIZE = 56;
 
-interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
+interface SettingsIndexProps extends RouteComponentProps {
   organization: Organization;
 }
 
@@ -71,6 +72,21 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     isSelfHosted,
     organizationSettingsUrl,
   };
+
+  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+
+  // For the new navigation, we are removing this page. The default base route should
+  // be the organization settings page.
+  // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
+  if (hasNavigationV2) {
+    return (
+      <Redirect
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/settings/${organization.slug}/`
+        )}
+      />
+    );
+  }
 
   const myAccount = (
     <GridPanel>
@@ -250,11 +266,11 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     >
       <SettingsLayout {...props}>
         <GridLayout>
-          <DemoModeGate>{myAccount}</DemoModeGate>
+          {myAccount}
           {orgSettings}
           {documentation}
           {support}
-          <DemoModeGate>{apiKeys} </DemoModeGate>
+          {apiKeys}
         </GridLayout>
       </SettingsLayout>
     </SentryDocumentTitle>

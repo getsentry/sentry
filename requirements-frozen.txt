@@ -125,9 +125,9 @@ rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.19.9
 sentry-forked-email-reply-parser==0.5.12.post1
-sentry-kafka-schemas==1.0.6
+sentry-kafka-schemas==1.0.8
 sentry-ophio==1.0.0
-sentry-protos==0.1.58
+sentry-protos==0.1.61
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.6
 sentry-sdk==2.22.0

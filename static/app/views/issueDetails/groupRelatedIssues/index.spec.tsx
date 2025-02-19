@@ -180,7 +180,7 @@ describe('Related Issues View', function () {
       body: onlyTraceConnectedData,
     });
     MockApiClient.addMockResponse({
-      url: orgIssuesEndpoint,
+      url: `/organizations/${orgSlug}/issues/?project=${group.project.id}&query=${encodeURIComponent(`issue.id:[${group1},${group2}]`)}`,
       body: issuesData,
     });
     const noGlobalViewsOrganization = OrganizationFixture({features: []});

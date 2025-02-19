@@ -4,12 +4,12 @@ import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -38,6 +38,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {getRuleActionCategory} from 'sentry/views/alerts/rules/utils';
@@ -47,7 +48,7 @@ import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
 interface AlertRuleDetailsProps
-  extends RouteComponentProps<{projectId: string; ruleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; ruleId: string}> {}
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -270,7 +271,10 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const ruleActionCategory = getRuleActionCategory(rule);
 
   const duplicateLink = {
-    pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
+    pathname: makeAlertsPathname({
+      path: `/new/issue/`,
+      organization,
+    }),
     query: {
       project: project.slug,
       duplicateRuleId: rule.id,
@@ -282,18 +286,23 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     const incompatibleRule = findIncompatibleRules(rule);
     if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
-        <Alert type="error" showIcon>
-          {tct(
-            'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
-            {
-              link: (
-                <Link
-                  to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
-                />
-              ),
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {tct(
+              'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
+              {
+                link: (
+                  <Link
+                    to={makeAlertsPathname({
+                      path: `/rules/${projectSlug}/${ruleId}/`,
+                      organization,
+                    })}
+                  />
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
     return null;
@@ -303,55 +312,61 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     // Rule has been disabled and has a disabled date indicating it was disabled due to lack of activity
     if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
       return (
-        <Alert type="warning" showIcon>
-          {tct(
-            'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
-            {
-              keepAlive: (
-                <BoldButton priority="link" size="sm" onClick={handleReEnable}>
-                  {t('click here')}
-                </BoldButton>
-              ),
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {tct(
+              'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
+              {
+                keepAlive: (
+                  <BoldButton priority="link" size="sm" onClick={handleReEnable}>
+                    {t('click here')}
+                  </BoldButton>
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
     // Generic rule disabled banner
     if (rule?.status === 'disabled') {
       return (
-        <Alert type="warning" showIcon>
-          {rule.actions?.length === 0
-            ? t(
-                'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
-              )
-            : t(
-                'This alert is disabled due to its configuration and needs to be edited to be enabled.'
-              )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {rule.actions?.length === 0
+              ? t(
+                  'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+                )
+              : t(
+                  'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+                )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
     // Rule to be disabled soon
     if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
       return (
-        <Alert type="warning" showIcon>
-          {tct(
-            'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
-            {
-              date: <TimeSince date={rule.disableDate} />,
-              keepAlive: (
-                <BoldButton priority="link" size="sm" onClick={handleKeepAlertAlive}>
-                  {t('click here')}
-                </BoldButton>
-              ),
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/alerts/#disabled-alerts" />
-              ),
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {tct(
+              'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
+              {
+                date: <TimeSince date={rule.disableDate} />,
+                keepAlive: (
+                  <BoldButton priority="link" size="sm" onClick={handleKeepAlertAlive}>
+                    {t('click here')}
+                  </BoldButton>
+                ),
+                docs: (
+                  <ExternalLink href="https://docs.sentry.io/product/alerts/#disabled-alerts" />
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -379,7 +394,10 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             crumbs={[
               {
                 label: t('Alerts'),
-                to: `/organizations/${organization.slug}/alerts/rules/`,
+                to: makeAlertsPathname({
+                  path: `/rules/`,
+                  organization,
+                }),
               },
               {
                 label: t('Issue Alert'),
@@ -423,7 +441,10 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             <LinkButton
               size="sm"
               icon={<IconEdit />}
-              to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
+              to={makeAlertsPathname({
+                path: `/rules/${projectSlug}/${ruleId}/`,
+                organization,
+              })}
               onClick={() =>
                 trackAnalytics('issue_alert_rule_details.edit_clicked', {
                   organization,
@@ -441,20 +462,22 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {renderIncompatibleAlert()}
           {renderDisabledAlertBanner()}
           {isSnoozed && (
-            <Alert type="info" showIcon>
-              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                ? tct(
-                    "[creator] muted this alert so these notifications won't be sent in the future.",
-                    {creator: rule.snoozeCreatedBy}
-                  )
-                : tct(
-                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                    }
-                  )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon>
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            </Alert.Container>
           )}
           <StyledTimeRangeSelector
             relative={period ?? ''}

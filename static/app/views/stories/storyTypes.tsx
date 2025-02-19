@@ -7,7 +7,7 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {StoryTitle} from 'sentry/stories/storyBook';
+import {StorySection, StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
@@ -20,7 +20,7 @@ export function StoryTypes(props: StoryTypesProps) {
   const nodes = usePropTree(props.types?.props ?? {}, query);
 
   return (
-    <Fragment>
+    <StorySection>
       <StoryTitle>API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
@@ -87,7 +87,7 @@ export function StoryTypes(props: StoryTypesProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Fragment>
+    </StorySection>
   );
 }
 
@@ -316,9 +316,27 @@ function propSort(a: PropTreeNode, b: PropTreeNode) {
     }
   }
 
-  const nameA = 'name' in a.prop ? a.prop.name : a.prop.definitionFilePath;
-  const nameB = 'name' in b.prop ? b.prop.name : b.prop.definitionFilePath;
-  return nameA.localeCompare(nameB);
+  if ('definitionFilePath' in a.prop && 'definitionFilePath' in b.prop) {
+    return a.prop.definitionFilePath.localeCompare(b.prop.definitionFilePath);
+  }
+
+  if ('definitionFilePath' in a.prop) {
+    return 0;
+  }
+
+  if ('definitionFilePath' in b.prop) {
+    return 0;
+  }
+
+  if (!a.prop.required && b.prop.required) {
+    return 1;
+  }
+
+  if (a.prop.required && !b.prop.required) {
+    return -1;
+  }
+
+  return a.prop.name.localeCompare(b.prop.name);
 }
 
 function stripNodeModulesPrefix(str: string): string {

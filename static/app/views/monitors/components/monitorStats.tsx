@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -18,7 +19,6 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -30,6 +30,7 @@ type Props = {
 };
 
 export function MonitorStats({monitor, monitorEnvs}: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;

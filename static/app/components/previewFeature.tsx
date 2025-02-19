@@ -1,5 +1,4 @@
-import type {AlertProps} from 'sentry/components/alert';
-import {Alert} from 'sentry/components/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -8,11 +7,13 @@ type Props = {
 
 function PreviewFeature({type = 'info'}: Props) {
   return (
-    <Alert type={type} showIcon>
-      {t(
-        'This feature is a preview and may change in the future. Thanks for being an early adopter!'
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type={type} showIcon>
+        {t(
+          'This feature is a preview and may change in the future. Thanks for being an early adopter!'
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

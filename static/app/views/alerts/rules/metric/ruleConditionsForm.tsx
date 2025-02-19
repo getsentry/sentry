@@ -7,11 +7,11 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
+import {Alert} from 'sentry/components/core/alert';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
@@ -115,7 +115,6 @@ type Props = {
   disableProjectSelector?: boolean;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
-  isForLlmMetric?: boolean;
   isLowConfidenceChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
@@ -482,15 +481,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {
-      organization,
-      timeWindow,
-      disabled,
-      alertType,
-      project,
-      isForLlmMetric,
-      onTimeWindowChange,
-    } = this.props;
+    const {organization, timeWindow, disabled, alertType, project, onTimeWindowChange} =
+      this.props;
 
     return (
       <Fragment>
@@ -500,24 +492,22 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {isForLlmMetric ? null : (
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              project={project}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            project={project}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+          />
           <SelectControl
             name="timeWindow"
             styles={this.selectControlStyles}
@@ -589,11 +579,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 />
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert showIcon type="warning">
-                  {t(
-                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
-                  )}
-                </Alert>
+                <Alert.Container>
+                  <Alert showIcon type="warning">
+                    {t(
+                      'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                    )}
+                  </Alert>
+                </Alert.Container>
               )}
               {!isErrorMigration && this.renderInterval()}
               <StyledListItem>{t('Filter events')}</StyledListItem>

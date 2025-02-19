@@ -73,7 +73,7 @@ function Access({
     project,
   });
 
-  if (isRenderFunc<ChildFunction>(children)) {
+  if (isRenderFunc(children)) {
     return children({
       hasAccess,
       hasSuperuser,

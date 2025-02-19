@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -202,9 +202,9 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
           ) : (
             <React.Fragment>
               {error && (
-                <StyledAlert type="error" showIcon>
+                <Alert type="error" showIcon>
                   {errorType}
-                </StyledAlert>
+                </Alert>
               )}
               <U2fContainer
                 authenticators={authenticators}
@@ -228,9 +228,9 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             resetOnError
           >
             {error && (
-              <StyledAlert type="error" showIcon>
+              <Alert type="error" showIcon>
                 {errorType}
-              </StyledAlert>
+              </Alert>
             )}
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
@@ -260,10 +260,6 @@ export default function SuperuserStaffAccessForm({hasStaff}: Props) {
   );
   return <RouterProvider router={router} />;
 }
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;
 
 const BackWrapper = styled('div')`
   width: 100%;

@@ -32,6 +32,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
@@ -49,7 +50,7 @@ import {
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
@@ -123,6 +124,8 @@ function FrontendOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
+  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
+  existingQuery.addOp('(');
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
@@ -132,6 +135,8 @@ function FrontendOverviewPage() {
       `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
     );
   }
+  existingQuery.addOp(')');
+  existingQuery.addFilterValues('!transaction.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -251,7 +256,10 @@ function FrontendOverviewPage() {
               )}
 
               {showOnboarding && (
-                <Onboarding project={onboardingProject} organization={organization} />
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

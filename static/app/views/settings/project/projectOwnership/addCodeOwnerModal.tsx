@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import Link from 'sentry/components/links/link';
@@ -297,32 +297,34 @@ function ErrorMessage({
   const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
   const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
   return (
-    <Alert type="error" showIcon>
-      {errActors}
-      {codeMapping && (
-        <p>
-          {tct(
-            'Configure [userMappingsLink:User Mappings] or [teamMappingsLink:Team Mappings] for any missing associations.',
-            {
-              userMappingsLink: (
-                <Link
-                  to={`${baseUrl}${codeMapping.provider?.key ?? ''}/${codeMapping.integrationId ?? ''}/?tab=userMappings&referrer=add-codeowners`}
-                />
-              ),
-              teamMappingsLink: (
-                <Link
-                  to={`${baseUrl}${codeMapping.provider?.key ?? ''}/${codeMapping.integrationId ?? ''}/?tab=teamMappings&referrer=add-codeowners`}
-                />
-              ),
-            }
-          )}
-        </p>
-      )}
-      {tct(
-        '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
-        {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="error" showIcon>
+        {errActors}
+        {codeMapping && (
+          <p>
+            {tct(
+              'Configure [userMappingsLink:User Mappings] or [teamMappingsLink:Team Mappings] for any missing associations.',
+              {
+                userMappingsLink: (
+                  <Link
+                    to={`${baseUrl}${codeMapping.provider?.key ?? ''}/${codeMapping.integrationId ?? ''}/?tab=userMappings&referrer=add-codeowners`}
+                  />
+                ),
+                teamMappingsLink: (
+                  <Link
+                    to={`${baseUrl}${codeMapping.provider?.key ?? ''}/${codeMapping.integrationId ?? ''}/?tab=teamMappings&referrer=add-codeowners`}
+                  />
+                ),
+              }
+            )}
+          </p>
+        )}
+        {tct(
+          '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
+          {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

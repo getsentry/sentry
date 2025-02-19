@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -226,9 +226,11 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
         />
       </SearchbarContainer>
       {transactionsError && (
-        <Alert type="error" showIcon>
-          {transactionsError}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {transactionsError}
+          </Alert>
+        </Alert.Container>
       )}
       <ProfileEventsTable
         columns={fields.slice()}

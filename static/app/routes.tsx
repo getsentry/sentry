@@ -1932,7 +1932,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
       {traceViewRoute}
       <Route
-        path="multi-query/"
+        path="compare/"
         component={make(() => import('sentry/views/explore/multiQueryMode'))}
       />
     </Fragment>
@@ -2065,6 +2065,10 @@ function buildRoutes() {
       <Route
         path={TabPaths[Tab.UPTIME_CHECKS]}
         component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
+      />
+      <Route
+        path={TabPaths[Tab.CHECK_INS]}
+        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
         path={TabPaths[Tab.TAGS]}

@@ -10,7 +10,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import EarlyFeaturesSettingsForm from 'sentry/views/settings/earlyFeatures/settingsForm';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-export default function OrganizationGeneralSettings(props: RouteComponentProps<{}, {}>) {
+export default function OrganizationGeneralSettings(props: RouteComponentProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
   const organization = useOrganization();
 

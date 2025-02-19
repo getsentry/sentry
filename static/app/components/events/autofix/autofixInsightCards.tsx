@@ -9,7 +9,7 @@ import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRo
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
-import {IconAdd, IconChevron, IconClose, IconEdit, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
@@ -133,11 +133,10 @@ function AutofixInsightCard({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
-    const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
     updateInsight({
       message: editText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCardAboveIndex,
+      retain_insight_card_index: index,
     });
   };
 
@@ -242,7 +241,7 @@ function AutofixInsightCard({
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    icon={<IconEdit size="sm" />}
+                    icon={<IconRefresh size="sm" />}
                     aria-label={t('Edit insight')}
                     title={t('Replace insight and rethink')}
                   />
@@ -483,7 +482,7 @@ function ChainLink({
     updateInsight({
       message: newInsightText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCount - 1,
+      retain_insight_card_index: insightCount,
     });
     setNewInsightText('');
   };
@@ -536,7 +535,7 @@ function ChainLink({
               size="zero"
               borderless
               onClick={() => setIsAdding(true)}
-              icon={<IconAdd size="sm" />}
+              icon={<IconRefresh size="sm" />}
               title={t('Add insight and rethink')}
               aria-label={t('Add insight and rethink')}
             />

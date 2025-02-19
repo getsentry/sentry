@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -47,12 +48,18 @@ type Options = {
 
 function getIssueAlertUrl({projects, organization}: Options) {
   if (!projects || !projects.length) {
-    return `/organizations/${organization.slug}/alerts/rules/`;
+    return makeAlertsPathname({
+      path: '/rules/',
+      organization,
+    });
   }
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
   const project = firstProjectWithEvents ?? projects[0]!;
-  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
+  return makeAlertsPathname({
+    path: `/${project.slug}/wizard/`,
+    organization,
+  });
 }
 
 function getOnboardingInstructionsUrl({projects, organization}: Options) {
@@ -101,7 +108,6 @@ export function getOnboardingTasks({
           'Here’s a list of errors and performance problems. And everything you need to know to fix it.'
         ),
         skippable: false,
-        requisites: [],
         actionType: 'app',
         location: `/organizations/${organization.slug}/issues/`,
         display: true,
@@ -114,7 +120,6 @@ export function getOnboardingTasks({
           'See slow fast. Trace slow-loading pages back to their API calls as well as all related errors'
         ),
         skippable: false,
-        requisites: [],
         actionType: 'app',
         location: performanceUrl,
         display: true,
@@ -127,7 +132,6 @@ export function getOnboardingTasks({
           'Track the health of every release. See differences between releases from crash analytics to adoption rates.'
         ),
         skippable: false,
-        requisites: [],
         actionType: 'app',
         location: `/organizations/${organization.slug}/releases/`,
         display: true,
@@ -138,7 +142,6 @@ export function getOnboardingTasks({
         title: t('Check out the different tabs'),
         description: t('Press the start button for a guided tour through each tab.'),
         skippable: false,
-        requisites: [],
         actionType: 'app',
         location: `/organizations/${organization.slug}/projects/`,
         display: true,
@@ -155,7 +158,6 @@ export function getOnboardingTasks({
         'Select your platform and install the Sentry SDK by adding a few lines of code to your application. HINT: Set up a separate project for each part of your application (for example, your API server and frontend client).'
       ),
       skippable: false,
-      requisites: [],
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
@@ -168,12 +170,11 @@ export function getOnboardingTasks({
         'Throw an error using our example code to make sure things are working as expected.'
       ),
       skippable: false,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
       location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+        if (!projects?.length || taskIsDone(task)) {
           return null;
         }
         return <EventWaitingIndicator text={t('Waiting for error')} />;
@@ -187,7 +188,6 @@ export function getOnboardingTasks({
         'Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.'
       ),
       skippable: true,
-      requisites: [],
       actionType: 'action',
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
@@ -203,7 +203,6 @@ export function getOnboardingTasks({
         'Triage and resolve issues faster by integrating Sentry with messaging platforms like Slack, Discord, and MS Teams.'
       ),
       skippable: true,
-      requisites: [],
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=chat`,
       display: true,
@@ -215,7 +214,6 @@ export function getOnboardingTasks({
         'Resolve bugs faster with commit data and stack trace linking to your source code in GitHub, Gitlab, and more.'
       ),
       skippable: true,
-      requisites: [],
       actionType: 'app',
       location: {
         pathname: `/settings/${organization.slug}/integrations/`,
@@ -231,7 +229,6 @@ export function getOnboardingTasks({
         'Create a new project and install Sentry in other parts of your app—such as the backend, frontend, API server—to quickly see where a problem’s coming from'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
@@ -244,7 +241,6 @@ export function getOnboardingTasks({
         'Instrument tracing in your frontend and backend to identify application performance issues and debug errors across your stack.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
       action: router => {
         // Use `features?.` because getsentry has a different `Organization` type/payload
@@ -286,7 +282,7 @@ export function getOnboardingTasks({
       },
       display: true,
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+        if (!projects?.length || taskIsDone(task)) {
           return null;
         }
         return <EventWaitingIndicator />;
@@ -299,7 +295,6 @@ export function getOnboardingTasks({
         'Get video-like reproductions of user sessions to see what happened before, during, and after an error or performance issue occurred.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'action',
       action: router => {
         router.push({
@@ -317,7 +312,7 @@ export function getOnboardingTasks({
       },
       display: organization.features?.includes('session-replay'),
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+        if (!projects?.length || taskIsDone(task)) {
           return null;
         }
 
@@ -331,7 +326,6 @@ export function getOnboardingTasks({
         'Identify which release introduced an issue and track release health with crash analytics, errors, and adoption data.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/organizations/${organization.slug}/releases/`,
       display: true,
@@ -344,7 +338,6 @@ export function getOnboardingTasks({
         'Enable readable stack traces in Sentry errors by uploading your source maps.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'external',
       location: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       display: hasPlatformWithSourceMaps(projects),
@@ -356,7 +349,6 @@ export function getOnboardingTasks({
         'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
       location: getIssueAlertUrl({projects, organization, onboardingContext}),
       display: true,
@@ -380,18 +372,11 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
           serverTask =>
             serverTask.task === desc.task || serverTask.task === desc.serverTask
         ),
-        requisiteTasks: [],
       }) as OnboardingTask
   );
 
   const supportedTasks = filterSupportedTasks(projects, allTasks);
-  // Map incomplete requisiteTasks as full task objects
-  return supportedTasks.map(task => ({
-    ...task,
-    requisiteTasks: task.requisites
-      .map(key => supportedTasks.find(task2 => task2.task === key)!)
-      .filter(reqTask => reqTask.status !== 'complete'),
-  }));
+  return supportedTasks;
 }
 
 const PulsingIndicator = styled('div')`

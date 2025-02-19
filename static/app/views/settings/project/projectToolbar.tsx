@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -23,7 +23,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };
@@ -95,13 +95,15 @@ export default function ProjectToolbarSettings({
         </TextBlock>
         <ProjectPermissionAlert project={project} />
         {domain && (
-          <Alert type="info" showIcon>
-            {tct(
-              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
-              {domain: <strong>{domain}</strong>}
-            )}
-            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {tct(
+                'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+                {domain: <strong>{domain}</strong>}
+              )}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+            </Alert>
+          </Alert.Container>
         )}
 
         <Form

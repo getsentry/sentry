@@ -1,9 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -54,7 +54,7 @@ import {getSelectedProjectPlatforms} from '../utils';
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> &
+type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location'> &
   WithRouteAnalyticsProps & {
     eventSlug: string;
     organization: Organization;
@@ -338,9 +338,11 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error.message}
+        </Alert>
+      </Alert.Container>
     );
   }
 
