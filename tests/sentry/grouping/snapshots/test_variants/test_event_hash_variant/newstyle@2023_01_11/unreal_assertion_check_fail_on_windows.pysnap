@@ -1,0 +1,306 @@
+---
+created: '2025-02-19T15:26:15.524825+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "RtlUserThreadStart"
+          frame (non app frame)
+            function*
+              "BaseThreadInitThunk"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (non app frame)
+            function*
+              "WinMain"
+          frame (non app frame)
+            function*
+              "LaunchWindowsStartup"
+          frame (non app frame)
+            function*
+              "GuardedMainWrapper"
+          frame (non app frame)
+            function*
+              "GuardedMain"
+          frame (non app frame)
+            function*
+              "FEngineLoop::Tick"
+          frame (non app frame)
+            function*
+              "FWindowsPlatformApplicationMisc::PumpMessages"
+          frame (non app frame)
+            function*
+              "DispatchMessageWorker"
+          frame (non app frame)
+            function*
+              "UserCallWinProcCheckWow"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::AppWndProc"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::ProcessMessage"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::DeferMessage"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::ProcessDeferredMessage"
+          frame (non app frame)
+            function*
+              "FSlateApplication::OnMouseUp"
+          frame (non app frame)
+            function*
+              "FSlateApplication::ProcessMouseButtonUpEvent"
+          frame (non app frame)
+            function*
+              "FSlateApplication::RoutePointerUpEvent"
+          frame (non app frame)
+            function*
+              "SharedPointerInternals::NewIntrusiveReferenceController<T>"
+          frame (non app frame)
+            function*
+              "`TArray<T>::Remove'::`2'::<T>::operator()"
+          frame (non app frame)
+            function*
+              "SButton::OnMouseButtonUp"
+          frame (non app frame)
+            function*
+              "SButton::ExecuteOnClick"
+          frame (non app frame)
+            function*
+              "TBaseUObjectMethodDelegateInstance<T>::Execute"
+          frame (non app frame)
+            function*
+              "UButton::SlateHandleClicked"
+          frame (non app frame)
+            function*
+              "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+          frame (non app frame)
+            function*
+              "UObject::ProcessEvent"
+          frame (non app frame)
+            function*
+              "UFunction::Invoke"
+          frame (non app frame)
+            function*
+              "UObject::ProcessInternal"
+          frame (non app frame)
+            function*
+              "ProcessLocalScriptFunction"
+          frame (non app frame)
+            function*
+              "ProcessLocalFunction"
+          frame (non app frame)
+            function*
+              "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
+          frame (non app frame)
+            function*
+              "ProcessScriptFunction<T>"
+          frame (non app frame)
+            function*
+              "ProcessLocalScriptFunction"
+          frame (non app frame)
+            function*
+              "UObject::execCallMathFunction"
+          frame (non app frame)
+            filename*
+              "sentryplaygroundutils.gen.cpp"
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame (non app frame)
+            filename*
+              "sentryplaygroundutils.cpp"
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame (non app frame)
+            function*
+              "FDebug::CheckVerifyFailedImpl2"
+          frame (non app frame)
+            function*
+              "FDebug::AssertFailed"
+          frame (non app frame)
+            function*
+              "FOutputDevice::LogfImpl"
+          frame (non app frame)
+            filename*
+              "sentryoutputdeviceerror.cpp"
+            function*
+              "FSentryOutputDeviceError::Serialize"
+          frame (non app frame)
+            function*
+              "FWindowsErrorOutputDevice::Serialize"
+          frame (non app frame)
+            function*
+              "RaiseException"
+        type (ignored because exception is synthetic)
+          "unknown 0x00004000 / 0x7ff89574837a"
+        value* (stripped event-specific values)
+          "Fatal Error: unknown <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "d0669f63f03ddaec66ac8b9f4e3e449d"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlUserThreadStart"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "BaseThreadInitThunk"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            function*
+              "WinMain"
+          frame*
+            function*
+              "LaunchWindowsStartup"
+          frame*
+            function*
+              "GuardedMainWrapper"
+          frame*
+            function*
+              "GuardedMain"
+          frame*
+            function*
+              "FEngineLoop::Tick"
+          frame*
+            function*
+              "FWindowsPlatformApplicationMisc::PumpMessages"
+          frame*
+            function*
+              "DispatchMessageWorker"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "UserCallWinProcCheckWow"
+          frame*
+            function*
+              "FWindowsApplication::AppWndProc"
+          frame*
+            function*
+              "FWindowsApplication::ProcessMessage"
+          frame*
+            function*
+              "FWindowsApplication::DeferMessage"
+          frame*
+            function*
+              "FWindowsApplication::ProcessDeferredMessage"
+          frame*
+            function*
+              "FSlateApplication::OnMouseUp"
+          frame*
+            function*
+              "FSlateApplication::ProcessMouseButtonUpEvent"
+          frame*
+            function*
+              "FSlateApplication::RoutePointerUpEvent"
+          frame*
+            function*
+              "SharedPointerInternals::NewIntrusiveReferenceController<T>"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "`TArray<T>::Remove'::`2'::<T>::operator()"
+          frame*
+            function*
+              "SButton::OnMouseButtonUp"
+          frame*
+            function*
+              "SButton::ExecuteOnClick"
+          frame*
+            function*
+              "TBaseUObjectMethodDelegateInstance<T>::Execute"
+          frame*
+            function*
+              "UButton::SlateHandleClicked"
+          frame*
+            function*
+              "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+          frame*
+            function*
+              "UObject::ProcessEvent"
+          frame*
+            function*
+              "UFunction::Invoke"
+          frame*
+            function*
+              "UObject::ProcessInternal"
+          frame*
+            function*
+              "ProcessLocalScriptFunction"
+          frame*
+            function*
+              "ProcessLocalFunction"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
+          frame*
+            function*
+              "ProcessScriptFunction<T>"
+          frame*
+            function*
+              "ProcessLocalScriptFunction"
+          frame*
+            function*
+              "UObject::execCallMathFunction"
+          frame*
+            filename*
+              "sentryplaygroundutils.gen.cpp"
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame*
+            filename*
+              "sentryplaygroundutils.cpp"
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame*
+            function*
+              "FDebug::CheckVerifyFailedImpl2"
+          frame*
+            function*
+              "FDebug::AssertFailed"
+          frame*
+            function*
+              "FOutputDevice::LogfImpl"
+          frame*
+            filename*
+              "sentryoutputdeviceerror.cpp"
+            function*
+              "FSentryOutputDeviceError::Serialize"
+          frame*
+            function*
+              "FWindowsErrorOutputDevice::Serialize"
+          frame*
+            function*
+              "RaiseException"
+        type (ignored because exception is synthetic)
+          "unknown 0x00004000 / 0x7ff89574837a"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: unknown <hex> / <hex>"

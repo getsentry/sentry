@@ -1,0 +1,33 @@
+---
+created: '2025-02-19T15:23:47.175713+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "167687c4a2bda32bad1ad4dce59bf44e"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          type*
+            "SIGTRAP"
+          value*
+            "Trap"
