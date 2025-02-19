@@ -18,6 +18,7 @@ export const enum SectionKey {
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
   SOLUTIONS_HUB = 'solutions-hub',
+  EXTERNAL_ISSUES = 'external-issues',
 
   UPTIME = 'uptime', // Only Uptime issues
   DOWNTIME = 'downtime',
