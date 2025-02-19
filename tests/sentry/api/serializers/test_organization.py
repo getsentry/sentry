@@ -84,6 +84,7 @@ class OrganizationSerializerTest(TestCase):
             "integrations-issue-sync",
             "integrations-stacktrace-link",
             "integrations-ticket-rules",
+            "integrations-vercel",
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
