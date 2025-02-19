@@ -9,8 +9,8 @@ from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.superuser import is_active_superuser
 from sentry.integrations.api.bases.integration import PARANOID_GET
+from sentry.integrations.api.parsers.doc_integration import METADATA_PROPERTIES
 from sentry.integrations.models.doc_integration import DocIntegration
-from sentry.integrations.validators.doc_integration import METADATA_PROPERTIES
 from sentry.utils.sdk import Scope
 
 
