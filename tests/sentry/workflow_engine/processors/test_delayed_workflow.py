@@ -10,7 +10,9 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -35,6 +37,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     DataConditionGroupGroups,
     UniqueConditionQuery,
     bulk_fetch_events,
+    cleanup_redis_buffer,
     fetch_group_to_event_data,
     fetch_workflows_envs,
     fire_actions_for_groups,
@@ -769,3 +772,48 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.event2.for_group(self.group2),
             WorkflowDataConditionGroupType.ACTION_FILTER,
         )
+
+
+class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
+    def test_cleanup_redis(self):
+        self._push_base_events()
+
+        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        assert set(data.keys()) == self.workflow_group_dcg_mapping
+
+        cleanup_redis_buffer(self.project.id, data, None)
+        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        assert data == {}
+
+    @override_options({"delayed_processing.batch_size": 2})
+    @patch("sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.delay")
+    def test_batched_cleanup(self, mock_process_delayed):
+        self._push_base_events()
+        all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+
+        process_in_batches(self.project.id, "delayed_workflow")
+        batch_one_key = mock_process_delayed.call_args_list[0][0][1]
+        batch_two_key = mock_process_delayed.call_args_list[1][0][1]
+
+        # Verify we removed the data from the buffer
+        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        assert data == {}
+
+        first_batch = buffer.backend.get_hash(
+            model=Workflow, field={"project_id": self.project.id, "batch_key": batch_one_key}
+        )
+        cleanup_redis_buffer(self.project.id, first_batch, batch_one_key)
+
+        # Verify the batch we "executed" is removed
+        data = buffer.backend.get_hash(
+            Workflow, {"project_id": self.project.id, "batch_key": batch_one_key}
+        )
+        assert data == {}
+
+        # Verify the batch we didn't execute is still in redis
+        data = buffer.backend.get_hash(
+            Workflow, {"project_id": self.project.id, "batch_key": batch_two_key}
+        )
+        for key in first_batch.keys():
+            all_data.pop(key)
+        assert data == all_data
