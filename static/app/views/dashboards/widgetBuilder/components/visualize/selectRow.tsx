@@ -121,7 +121,9 @@ export function SelectRow({
     : BuilderStateAction.SET_FIELDS;
 
   const openColumnSelect = useCallback(() => {
-    columnSelectRef.current?.querySelector('button')?.click();
+    requestAnimationFrame(() => {
+      columnSelectRef.current?.querySelector('button')?.click();
+    });
   }, []);
 
   return (
