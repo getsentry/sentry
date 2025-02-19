@@ -16,8 +16,8 @@ T = TypeVar("T")
 @dataclass
 class Model(Generic[Item]):
     buffer: list[Item]
-    can_flush: Callable[[], bool]
-    do_flush: Callable[[], None]
+    can_flush: Callable[["Model[Item]"], bool]
+    do_flush: Callable[["Model[Item]"], None]
     offsets: MutableMapping[Partition, int]
 
 

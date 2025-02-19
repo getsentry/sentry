@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
+import sentry_sdk.consts
 import sentry_sdk.scope
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -186,15 +187,15 @@ def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
     storage_kv.set(recording.filename, recording.filedata)
 
     # Write to billing consumer if its a billable event.
-    if recording.segment_id == 0:
-        track_initial_segment_event(
-            recording.org_id,
-            recording.project_id,
-            recording.replay_id,
-            recording.key_id,
-            recording.received,
-            is_replay_video=recording.is_replay_video,
-        )
+    track_initial_segment_event(
+        recording.org_id,
+        recording.project_id,
+        recording.replay_id,
+        recording.segment_id,
+        recording.key_id,
+        recording.received,
+        is_replay_video=recording.is_replay_video,
+    )
 
     # Write to replay-event consumer.
     if recording.actions_event:
@@ -239,11 +240,32 @@ def track_recording_metadata(recording: ProcessedRecordingMessage) -> None:
         )
 
 
-@sentry_sdk.trace
 def track_initial_segment_event(
     org_id: int,
     project_id: int,
-    replay_id,
+    replay_id: str,
+    segment_id: int,
+    key_id: int | None,
+    received: int,
+    is_replay_video: bool,
+) -> None:
+    # Only segment 0 is billed.
+    if segment_id == 0:
+        _track_initial_segment_event(
+            org_id,
+            project_id,
+            replay_id,
+            key_id,
+            received,
+            is_replay_video,
+        )
+
+
+@sentry_sdk.trace
+def _track_initial_segment_event(
+    org_id: int,
+    project_id: int,
+    replay_id: str,
     key_id: int | None,
     received: int,
     is_replay_video: bool,
