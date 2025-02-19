@@ -95,14 +95,6 @@ describe('Incident Rules Form', () => {
       body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/meta/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/tags/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/recent-searches/',
       body: [],

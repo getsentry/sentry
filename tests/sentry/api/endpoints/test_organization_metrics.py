@@ -39,11 +39,6 @@ MOCKED_DERIVED_METRICS.update(
 
 class OrganizationMetricsPermissionTest(APITestCase):
     endpoints = [
-        ["get", "sentry-api-0-organization-metrics-details"],
-        [
-            "get",
-            "sentry-api-0-organization-metrics-tags",
-        ],
         [
             "get",
             "sentry-api-0-organization-metrics-data",
