@@ -18,6 +18,7 @@ import type {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 type FilterKeyProps = {
   item: Node<ParseResultToken>;
@@ -68,7 +69,8 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
       {...filterButtonProps}
     >
       <InteractionStateLayer />
-      {token.key.text}
+      {/* Filter keys have no expected format, so we attempt to split by whitespace, dash, colon, and underscores. */}
+      {middleEllipsis(getKeyName(token.key), 40, /[\s-_:]/)}
     </KeyButton>
   );
 }
