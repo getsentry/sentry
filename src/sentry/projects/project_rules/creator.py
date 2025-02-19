@@ -9,7 +9,7 @@ from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.rule import migrate_issue_alert
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 
 
 @dataclass
@@ -33,7 +33,7 @@ class ProjectRuleCreator:
                 "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
             ):
                 # TODO(cathy): handle errors from broken actions
-                migrate_issue_alert(self.rule, self.request.user.id if self.request else None)
+                IssueAlertMigrator(self.rule, self.request.user.id if self.request else None).run()
 
             return self.rule
 

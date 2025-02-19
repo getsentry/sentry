@@ -5,7 +5,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
-from sentry.workflow_engine.migration_helpers.rule import migrate_issue_alert
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -118,7 +118,7 @@ class TestUpdater(TestCase):
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine(self):
-        migrate_issue_alert(self.rule, user_id=self.user.id)
+        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
 
         conditions = [
             {
