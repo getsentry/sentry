@@ -1,5 +1,4 @@
 import logging
-from dataclasses import dataclass
 from typing import Any
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -34,7 +33,6 @@ logger = logging.getLogger(__name__)
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
 
 
-@dataclass
 class IssueAlertMigrator:
     def __init__(self, rule: Rule, user_id: int | None = None, is_dry_run: bool | None = False):
         self.rule = rule
