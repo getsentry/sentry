@@ -456,7 +456,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0029_ds_query_id_to_pending"),
+        ("workflow_engine", "0031_make_detector_project_non_nullable"),
     ]
 
     operations = [
