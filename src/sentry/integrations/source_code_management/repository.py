@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote as urlquote
+from urllib.parse import urlparse, urlunparse
 
 import sentry_sdk
 
@@ -166,20 +167,23 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             )
             scope = sentry_sdk.Scope.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
+
+            def encode_url(url: str) -> str:
+                parsed = urlparse(url)
+                # Encode elements of the filepath like square brackets
+                # Preserve path separators and query params etc.
+                return urlunparse(parsed._replace(path=urlquote(parsed.path, safe="/")))
+
             if version:
                 scope.set_tag("stacktrace_link.tried_version", True)
                 source_url = self.check_file(repo, filepath, version)
                 if source_url:
                     scope.set_tag("stacktrace_link.used_version", True)
-                    return urlquote(source_url, safe="/:?=&")
+                    return encode_url(source_url)
+
             scope.set_tag("stacktrace_link.used_version", False)
             source_url = self.check_file(repo, filepath, default)
-
-            if source_url:
-                # Encode elements of the filepath like square brackets
-                # Preserve path separators and query params etc.
-                return urlquote(source_url, safe="/:?=&")
-            return None
+            return encode_url(source_url) if source_url else None
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None

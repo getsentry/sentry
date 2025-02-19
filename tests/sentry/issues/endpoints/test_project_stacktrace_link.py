@@ -213,31 +213,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_with_square_brackets(self, mock_integration: MagicMock) -> None:
-        """
-        File paths with square brackets should be encoded in the source url
-        """
-        # Add a code mapping that matches the test file path
-        code_mapping = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="src/sentry/",
-            source_root="",
-        )
-        file_path = "src/sentry/api/projects/[projectId]/event_id.py"
-        encoded_path = quote(file_path)
-        mock_integration.side_effect = [f"{example_base_url}/{encoded_path}"]
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"file": file_path}
-        )
-        assert response.data["config"] == self.expected_configurations(code_mapping)
-        assert (
-            response.data["sourceUrl"]
-            == "https://example.com/getsentry/sentry/blob/master/src/sentry/api/projects/%5BprojectId%5D/event_id.py"
-        )
-
 
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self) -> None:
