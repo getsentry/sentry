@@ -1,4 +1,3 @@
-import {useMemo, useState} from 'react';
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -17,7 +16,6 @@ import {
   parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -26,10 +24,8 @@ import {
   getAggregateValueKey,
   getColumnOptions,
   NONE,
-  NONE_AGGREGATE,
   parseAggregateFromValueKey,
   PrimarySelectRow,
-  renderTag,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -116,7 +112,6 @@ export function SelectRow({
   const datasetConfig = getDatasetConfig(state.dataset);
   const aggregateSelectRef = useRef<HTMLDivElement>(null);
   const columnSelectRef = useRef<HTMLDivElement>(null);
-  const [filterAggregates, setFilterAggregates] = useState(false);
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -126,45 +121,11 @@ export function SelectRow({
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
-  useOnClickOutside(aggregateSelectRef, () => setFilterAggregates(false));
-  useOnClickOutside(columnSelectRef, () => setFilterAggregates(false));
-
   const openColumnSelect = useCallback(() => {
     requestAnimationFrame(() => {
       columnSelectRef.current?.querySelector('button')?.click();
     });
   }, []);
-
-  const openAggregateSelect = useCallback(() => {
-    setFilterAggregates(true);
-    requestAnimationFrame(() => {
-      aggregateSelectRef.current?.querySelector('button')?.click();
-    });
-  }, []);
-
-  const aggregateDropdownOptions = useMemo(() => {
-    if (filterAggregates) {
-      const filteredAggregateOptions: Array<
-        | {
-            label: string | React.ReactNode;
-            trailingItems: React.ReactNode | null;
-            value: string;
-            textValue?: string;
-          }
-        | SelectValue<string>
-      > = aggregates.map(option => ({
-        value:
-          option.value.kind === FieldValueKind.FUNCTION
-            ? getAggregateValueKey(option.value.meta.name)
-            : option.value.meta.name,
-        label: option.value.meta.name,
-        trailingItems: renderTag(option.value.kind, option.value.meta.name) ?? null,
-      }));
-      return [NONE_AGGREGATE, ...filteredAggregateOptions];
-    }
-
-    return aggregateOptions;
-  }, [aggregateOptions, filterAggregates, aggregates]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -172,8 +133,8 @@ export function SelectRow({
         <AggregateCompactSelect
           searchable
           hasColumnParameter={hasColumnParameter}
-          disabled={aggregateDropdownOptions.length <= 1}
-          options={aggregateDropdownOptions}
+          disabled={aggregateOptions.length <= 1}
+          options={aggregateOptions}
           value={
             parseFunction(stringFields?.[index] ?? '')?.name
               ? getAggregateValueKey(parseFunction(stringFields?.[index] ?? '')?.name)
@@ -237,8 +198,6 @@ export function SelectRow({
                 widget_type: state.dataset ?? '',
                 organization,
               });
-              setFilterAggregates(true);
-              openAggregateSelect();
             } else if (!isNone) {
               if (currentField.kind === FieldValueKind.FUNCTION) {
                 // Handle setting an aggregate from an aggregate
@@ -301,9 +260,7 @@ export function SelectRow({
                   }
                 }
 
-                if (!filterAggregates) {
-                  openColumnSelect();
-                }
+                openColumnSelect();
               } else {
                 if (
                   !selectedAggregate ||
@@ -359,9 +316,7 @@ export function SelectRow({
                   kind: FieldValueKind.FUNCTION,
                   function: newFunction,
                 };
-                if (!filterAggregates) {
-                  openColumnSelect();
-                }
+                openColumnSelect();
               }
               trackAnalytics('dashboards_views.widget_builder.change', {
                 builder_version: WidgetBuilderVersion.SLIDEOUT,
@@ -414,9 +369,7 @@ export function SelectRow({
                 widget_type: state.dataset ?? '',
                 organization,
               });
-              if (!filterAggregates) {
-                openColumnSelect();
-              }
+              openColumnSelect();
             }
             dispatch({
               type: updateAction,
