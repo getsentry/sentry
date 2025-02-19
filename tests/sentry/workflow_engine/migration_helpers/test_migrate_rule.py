@@ -371,17 +371,24 @@ class IssueAlertMigratorTest(TestCase):
             },
         ]
 
-    def test_run(self):
-        migrator = IssueAlertMigrator(self.issue_alert, self.user.id)
-        migrator.run()
+    def assert_nothing_migrated(self, issue_alert):
+        assert not AlertRuleWorkflow.objects.filter(rule=issue_alert).exists()
+        assert not AlertRuleDetector.objects.filter(rule=issue_alert).exists()
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule=self.issue_alert)
+        assert Workflow.objects.all().count() == 0
+        assert Detector.objects.all().count() == 0
+        assert DataConditionGroup.objects.all().count() == 0
+        assert DataCondition.objects.all().count() == 0
+        assert Action.objects.all().count() == 0
+
+    def assert_issue_alert_migrated(self, issue_alert):
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=issue_alert)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule=issue_alert)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
-        assert workflow.name == self.issue_alert.label
-        assert self.issue_alert.project
-        assert workflow.organization_id == self.issue_alert.project.organization.id
+        assert workflow.name == issue_alert.label
+        assert issue_alert.project
+        assert workflow.organization_id == issue_alert.project.organization.id
         assert workflow.config == {"frequency": 5}
 
         detector = Detector.objects.get(id=issue_alert_detector.detector.id)
@@ -421,11 +428,26 @@ class IssueAlertMigratorTest(TestCase):
             condition_result=True,
         ).exists()
 
-        dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
+    def test_run(self):
+        migrator = IssueAlertMigrator(self.issue_alert, self.user.id)
+        migrator.run()
+
+        self.assert_issue_alert_migrated(self.issue_alert)
+
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
-    def test_run_no_double_migrate(self):
+    def test_run__skip_actions(self):
+        migrator = IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False)
+        migrator.run()
+
+        self.assert_issue_alert_migrated(self.issue_alert)
+
+        assert DataConditionGroupAction.objects.all().count() == 0
+        assert Action.objects.all().count() == 0
+
+    def test_run__no_double_migrate(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         # there should be only 1
@@ -497,14 +519,7 @@ class IssueAlertMigratorTest(TestCase):
     def test_dry_run(self):
         IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
-        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
-        assert not AlertRuleDetector.objects.filter(rule=self.issue_alert).exists()
-
-        assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
-        assert DataConditionGroup.objects.all().count() == 0
-        assert DataCondition.objects.all().count() == 0
-        assert Action.objects.all().count() == 0
+        self.assert_nothing_migrated(self.issue_alert)
 
     def test_dry_run__already_exists(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
@@ -526,14 +541,7 @@ class IssueAlertMigratorTest(TestCase):
         with pytest.raises(ValidationError):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
-        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
-        assert not AlertRuleDetector.objects.filter(rule=self.issue_alert).exists()
-
-        assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
-        assert DataConditionGroup.objects.all().count() == 0
-        assert DataCondition.objects.all().count() == 0
-        assert Action.objects.all().count() == 0
+        self.assert_nothing_migrated(self.issue_alert)
 
     def test_dry_run__dcg_validation_fails(self):
         self.issue_alert.data["action_match"] = "asdf"
@@ -541,14 +549,7 @@ class IssueAlertMigratorTest(TestCase):
         with pytest.raises(ValueError):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
-        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
-        assert not AlertRuleDetector.objects.filter(rule=self.issue_alert).exists()
-
-        assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
-        assert DataConditionGroup.objects.all().count() == 0
-        assert DataCondition.objects.all().count() == 0
-        assert Action.objects.all().count() == 0
+        self.assert_nothing_migrated(self.issue_alert)
 
     def test_dry_run__workflow_validation_fails(self):
         self.issue_alert.data["frequency"] = -1
@@ -556,14 +557,7 @@ class IssueAlertMigratorTest(TestCase):
         with pytest.raises(ValidationError):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
-        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
-        assert not AlertRuleDetector.objects.filter(rule=self.issue_alert).exists()
-
-        assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
-        assert DataConditionGroup.objects.all().count() == 0
-        assert DataCondition.objects.all().count() == 0
-        assert Action.objects.all().count() == 0
+        self.assert_nothing_migrated(self.issue_alert)
 
     def test_dry_run__action_validation_fails(self):
         self.issue_alert.data["actions"] = [
@@ -578,11 +572,4 @@ class IssueAlertMigratorTest(TestCase):
         with pytest.raises(ValueError):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
-        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
-        assert not AlertRuleDetector.objects.filter(rule=self.issue_alert).exists()
-
-        assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
-        assert DataConditionGroup.objects.all().count() == 0
-        assert DataCondition.objects.all().count() == 0
-        assert Action.objects.all().count() == 0
+        self.assert_nothing_migrated(self.issue_alert)

@@ -34,10 +34,17 @@ SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
 
 
 class IssueAlertMigrator:
-    def __init__(self, rule: Rule, user_id: int | None = None, is_dry_run: bool | None = False):
+    def __init__(
+        self,
+        rule: Rule,
+        user_id: int | None = None,
+        is_dry_run: bool | None = False,
+        should_create_actions: bool | None = True,
+    ):
         self.rule = rule
         self.user_id = user_id
         self.is_dry_run = is_dry_run
+        self.should_create_actions = should_create_actions
         self.data = rule.data
         self.project = rule.project
         self.organization = self.project.organization
@@ -57,7 +64,8 @@ class IssueAlertMigrator:
             conditions=conditions,
             filters=filters,
         )
-        self._create_workflow_actions(if_dcg=if_dcg, actions=self.data["actions"])
+        if self.should_create_actions:
+            self._create_workflow_actions(if_dcg=if_dcg, actions=self.data["actions"])
 
     def _create_detector_lookup(self) -> Detector:
         if self.is_dry_run:
