@@ -52,7 +52,7 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
     queryParams.sort = defaultSort;
   }
 
-  return [`/organizations/${orgSlug}/ondemand-rules/`, {query: queryParams}];
+  return [`/organizations/${orgSlug}/combined-rules/`, {query: queryParams}];
 }
 
 const DataConsentBanner = HookOrDefault({
