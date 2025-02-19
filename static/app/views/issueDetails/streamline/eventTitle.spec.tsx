@@ -250,7 +250,6 @@ describe('EventNavigationLink highlighting', () => {
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_SECTION_VISIBILITY',
       sectionId: SectionKey.HIGHLIGHTS,
-      ratio: 1,
     });
 
     // Update context to reflect the active section
@@ -335,7 +334,6 @@ describe('EventNavigationLink highlighting', () => {
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_SECTION_VISIBILITY',
       sectionId: SectionKey.REPLAY,
-      ratio: 1,
     });
 
     // Update context to reflect the active section
@@ -393,7 +391,6 @@ describe('EventNavigationLink highlighting', () => {
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_SECTION_VISIBILITY',
       sectionId: SectionKey.TAGS,
-      ratio: 1,
     });
 
     // Update context to reflect the active section

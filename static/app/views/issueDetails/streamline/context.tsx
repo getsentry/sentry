@@ -168,7 +168,6 @@ type UpdateDetectorDetailsAction = {
 type UpdateSectionVisibilityAction = {
   type: 'UPDATE_SECTION_VISIBILITY';
   sectionId: string;
-  ratio: number;
 };
 
 export type IssueDetailsActions =
@@ -223,11 +222,9 @@ export function useIssueDetailsReducer() {
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
         case 'UPDATE_SECTION_VISIBILITY':
-          // When ratio is 1, it indicates this section should be active based on
-          // its proximity to the activation offset
           return {
             ...state,
-            activeSection: action.ratio === 1 ? action.sectionId : state.activeSection,
+            activeSection: action.sectionId,
           };
         default:
           return state;

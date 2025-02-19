@@ -138,7 +138,6 @@ function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 1
         dispatch({
           type: 'UPDATE_SECTION_VISIBILITY',
           sectionId: lastSectionKey,
-          ratio: 1,
         });
         return;
       }
@@ -169,7 +168,6 @@ function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 1
       dispatch({
         type: 'UPDATE_SECTION_VISIBILITY',
         sectionId: activeKey,
-        ratio: 1, // Using ratio=1 to indicate this section should be active
       });
     }
   }, [sectionKeys, activationOffset, dispatch]);
