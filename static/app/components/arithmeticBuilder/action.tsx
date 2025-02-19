@@ -58,7 +58,7 @@ export interface ArithmeticBuilderState {
 
 interface UseArithmeticBuilderActionOptions {
   initialExpression: string;
-  updateExpression?: (expression: string) => void;
+  updateExpression?: (expression: Expression) => void;
 }
 
 export function useArithmeticBuilderAction({
@@ -81,7 +81,7 @@ export function useArithmeticBuilderAction({
       } else if (isArithmeticBuilderDeleteAction(action)) {
         const newExpression = deleteToken(expression.text, action);
         if (newExpression.valid === 'valid') {
-          updateExpression?.(newExpression.text);
+          updateExpression?.(newExpression);
         }
         setExpression(newExpression);
         if (defined(action.focusOverride)) {

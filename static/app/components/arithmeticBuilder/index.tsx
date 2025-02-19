@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import {inputStyles} from 'sentry/components/input';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -12,7 +13,7 @@ export interface ArithmeticBuilderProps {
   expression: string;
   className?: string;
   disabled?: boolean;
-  setExpression?: (expression: string) => void;
+  setExpression?: (expression: Expression) => void;
 }
 
 export function ArithmeticBuilder({

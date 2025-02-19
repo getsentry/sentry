@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {Button} from 'sentry/components/button';
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -298,7 +299,7 @@ function VisualizeEquation({
   yAxis,
 }: VisualizeEquationProps) {
   const setExpression = useCallback(
-    (expression: string) => setChartYAxis(group, index, expression),
+    (expression: Expression) => setChartYAxis(group, index, expression.text),
     [group, index, setChartYAxis]
   );
 
