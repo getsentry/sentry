@@ -11,6 +11,7 @@ def find_missing_chunks(organization_id: int, chunks: Sequence[str]):
     """Returns a list of chunks which are missing for an org."""
     # Refresh the timestamp of all files we are interested in, so they don't disappear from under us.
     with sentry_sdk.start_span(op="find_missing_chunks") as span:
+        span.set_tag("organization_id", organization_id)
         span.set_data("chunks_size", len(chunks))
 
         now = timezone.now()
