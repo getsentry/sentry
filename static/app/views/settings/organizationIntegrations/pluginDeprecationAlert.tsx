@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -13,7 +13,7 @@ type Props = {
   plugin: PluginWithProjectList;
 };
 
-type State = {};
+type State = Record<string, unknown>;
 
 class PluginDeprecationAlert extends Component<Props, State> {
   render() {

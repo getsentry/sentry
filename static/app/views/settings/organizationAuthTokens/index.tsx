@@ -111,7 +111,7 @@ export function OrganizationAuthTokensIndex({
   );
 
   const {mutate: handleRevokeToken, isPending: isRevoking} = useMutation<
-    {},
+    unknown,
     RequestError,
     RevokeTokenQueryVariables
   >({

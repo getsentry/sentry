@@ -2,6 +2,8 @@ import dataclasses
 import logging
 from typing import Any
 
+from django.forms import ValidationError
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -58,10 +60,6 @@ class MissingDataConditionGroup(Exception):
 
 
 class UnresolvableResolveThreshold(Exception):
-    pass
-
-
-class InvalidActionType(Exception):
     pass
 
 
@@ -144,7 +142,7 @@ def get_target_identifier(
     if action_type == Action.Type.SENTRY_APP:
         # Ensure we have a valid sentry_app_id
         if not alert_rule_trigger_action.sentry_app_id:
-            raise InvalidActionType(
+            raise ValidationError(
                 f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
             )
         return str(alert_rule_trigger_action.sentry_app_id)
@@ -218,7 +216,9 @@ def migrate_metric_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {alert_rule_trigger_action.id}"
+        )
 
     # Ensure action_type is Action.Type before passing to functions
     action_type_enum = Action.Type(action_type)
@@ -696,7 +696,9 @@ def dual_update_migrated_alert_rule_trigger_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {trigger_action.id}"
+        )
     updated_action_fields["type"] = action_type
     data = action.data.copy()
     for field in LEGACY_ACTION_FIELDS:
@@ -741,7 +743,7 @@ def dual_delete_migrated_alert_rule(
     except AlertRuleDetector.DoesNotExist:
         # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
-            "alert rule was not dual written, returning early",
+            "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": alert_rule.id},
         )
         return

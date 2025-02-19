@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -234,7 +234,7 @@ function AlertBanner(props: any) {
   );
 }
 
-const LIMIT: number = 25;
+const LIMIT = 25;
 
 function PageWithProviders() {
   return (

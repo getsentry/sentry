@@ -113,7 +113,7 @@ function getSuspectSpanSort(sort: string): SpanSortOption {
 
 export function getSuspectSpanSortFromLocation(
   location: Location,
-  sortKey: string = 'sort'
+  sortKey = 'sort'
 ): SpanSortOption {
   const sort = decodeScalar(location?.query?.[sortKey]) ?? DEFAULT_SORT;
   return getSuspectSpanSort(sort);

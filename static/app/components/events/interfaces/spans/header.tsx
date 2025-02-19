@@ -175,10 +175,7 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(
-    dragProps: DragManagerChildrenProps,
-    hasProfileMeasurementsChart: boolean = false
-  ) {
+  renderFog(dragProps: DragManagerChildrenProps, hasProfileMeasurementsChart = false) {
     return (
       <Fragment>
         <Fog
@@ -377,7 +374,7 @@ class TraceViewHeader extends Component<PropType, State> {
     });
   }
 
-  renderSecondaryHeader(hasProfileMeasurementsChart: boolean = false) {
+  renderSecondaryHeader(hasProfileMeasurementsChart = false) {
     const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;

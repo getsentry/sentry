@@ -19,7 +19,7 @@ export interface InitializeDataSettings {
   features?: string[];
   project?: any; // TODO(k-fish): Fix this project type.
   projects?: Project[];
-  query?: {};
+  query?: Record<string, unknown>;
   selectedProject?: any;
 }
 

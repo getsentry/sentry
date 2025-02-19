@@ -271,7 +271,7 @@ export default function SpanSummaryTable(props: Props) {
 function renderBodyCell(
   location: Location,
   organization: Organization,
-  spanOp: string = '',
+  spanOp = '',
   isTxnDurationDataLoading: boolean
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {

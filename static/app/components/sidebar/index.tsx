@@ -82,7 +82,7 @@ import {
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
-import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
+import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
@@ -579,7 +579,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <ProfilingOnboardingSidebar
+            <LegacyProfilingOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
               hidePanel={hidePanel}
