@@ -27,18 +27,8 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
     integrationName: ``,
-    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+    makeCodeSnippet: (_dsn: string) => `import sentry_sdk
 from sentry_sdk.feature_flags import add_feature_flag
-
-sentry_sdk.init(
-  dsn="${dsn}",
-  # Add data like request headers and IP for users, if applicable;
-  # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-  send_default_pii=True,
-  integrations=[
-    # your other integrations here
-  ]
-)
 
 add_feature_flag('test-flag', False)  # Records an evaluation and its result.
 sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
@@ -357,7 +347,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         type: StepType.CONFIGURE,
         description:
           featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-            ? `You don't need an integration for a generic usecase. Simply initialize Sentry and use the API.`
+            ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
             : tct('Add [name] to your integrations list.', {
                 name: <code>{`${integrationName}`}</code>,
               }),
