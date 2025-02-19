@@ -6,7 +6,7 @@ from enum import Enum, IntEnum, StrEnum
 from typing import Any
 
 from django.apps.registry import Apps
-from django.db import migrations
+from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from sentry.integrations.services.integration import integration_service
@@ -181,263 +181,283 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             )
             continue
 
-        organization_id = alert_rule.organization_id
-        project = alert_rule.projects.get()
-        snoozed = None
-        try:
-            snoozed = RuleSnooze.objects.get(alert_rule_id=alert_rule.id, user_id=None)
-        except RuleSnooze.DoesNotExist:
-            pass
-        enabled = True if snoozed is not None else False
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            try:
+                organization_id = alert_rule.organization_id
+                project = alert_rule.projects.get()
+                snoozed = None
+                try:
+                    snoozed = RuleSnooze.objects.get(alert_rule_id=alert_rule.id, user_id=None)
+                except RuleSnooze.DoesNotExist:
+                    pass
+                enabled = True if snoozed is not None else False
 
-        create_activity = AlertRuleActivity.objects.get(
-            alert_rule_id=alert_rule.id, type=AlertRuleActivityType.CREATED.value
-        )
-
-        # create data source
-        snuba_query = alert_rule.snuba_query
-        if not snuba_query:
-            logger.info("alert rule missing snuba query", extra={"alert_rule_id": alert_rule.id})
-            continue
-        try:
-            query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
-        except QuerySubscription.DoesNotExist:
-            logger.info(
-                "query subscription does not exist", extra={"snuba_query_id": snuba_query.id}
-            )
-            continue
-        data_source = DataSource.objects.create_or_update(
-            organization_id=organization_id,
-            source_id=str(query_subscription.id),
-            type="snuba_query_subscription",
-        )
-
-        # create DCG
-        data_condition_group = DataConditionGroup.objects.create_or_update(
-            organization_id=organization_id,
-        )
-        # create detector
-        detector = Detector.objects.create_or_update(
-            project_id=project.id,
-            enabled=enabled,
-            created_by_id=create_activity.user_id,
-            name=alert_rule.name,
-            workflow_condition_group=data_condition_group,
-            type="metric_alert_fire",
-            description=alert_rule.description,
-            owner_user_id=alert_rule.user_id,
-            owner_team=alert_rule.team,
-            config={
-                "threshold_period": alert_rule.threshold_period,
-                "sensitivity": alert_rule.sensitivity,
-                "seasonality": alert_rule.seasonality,
-                "comparison_delta": alert_rule.comparison_delta,
-                "detection_type": alert_rule.detection_type,
-            },
-        )
-        # create workflow
-        workflow = Workflow.objects.create_or_update(
-            name=alert_rule.name,
-            organization_id=organization_id,
-            when_condition_group=None,
-            enabled=enabled,
-            created_by_id=create_activity.user_id,
-            config={},
-        )
-
-        open_incident = Incident.objects.get_active_incident(alert_rule, project)
-        if open_incident:
-            state = (
-                DetectorPriorityLevel.MEDIUM
-                if open_incident.status == IncidentStatus.WARNING.value
-                else DetectorPriorityLevel.HIGH
-            )
-        else:
-            state = DetectorPriorityLevel.OK
-
-        data_source.detectors.set([detector])
-        # create detector state
-        DetectorState.objects.create_or_update(
-            detector=detector,
-            active=False,
-            state=state,
-        )
-        # create lookup tables
-        AlertRuleDetector.objects.create_or_update(alert_rule=alert_rule, detector=detector)
-        alert_rule_workflow = AlertRuleWorkflow.objects.create_or_update(
-            alert_rule=alert_rule, workflow=workflow
-        )
-        DetectorWorkflow.objects.create_or_update(detector=detector, workflow=workflow)
-
-        # migrate triggers
-        triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
-        for trigger in triggers:
-            threshold_type = (
-                Condition.GREATER
-                if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-                else Condition.LESS
-            )
-            condition_result = PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH)
-            # create detector trigger
-            DataCondition.objects.create_or_update(
-                comparison=trigger.alert_threshold,
-                condition_result=condition_result,
-                type=threshold_type,
-                condition_group=detector.workflow_condition_group,
-            )
-            # create action filter
-            data_condition_group = DataConditionGroup.objects.create_or_update(
-                organization_id=alert_rule.organization_id
-            )
-            WorkflowDataConditionGroup.objects.create_or_update(
-                condition_group=data_condition_group,
-                workflow=alert_rule_workflow.workflow,
-            )
-            action_filter = DataCondition.objects.create_or_update(
-                comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
-                condition_result=True,
-                type=Condition.ISSUE_PRIORITY_EQUALS,
-                condition_group=data_condition_group,
-            )
-
-            trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-            for trigger_action in trigger_actions:
-                if trigger_action.sentry_app_id:
-                    action_type = ActionType.SENTRY_APP
-
-                elif trigger_action.integration_id:
-                    integration = integration_service.get_integration(
-                        integration_id=trigger_action.integration_id
-                    )
-                    if not integration:
-                        logger.info(
-                            "could not find a matching action type for the trigger action",
-                            extra={"trigger_action_id": trigger_action.id},
-                        )
-                        continue
-                    try:
-                        action_type = ActionType(integration.provider)
-                    except Exception:
-                        logger.info(
-                            "could not find a matching action type for the trigger action",
-                            extra={"trigger_action_id": trigger_action.id},
-                        )
-                        continue
-                else:
-                    action_type = ActionType.EMAIL
-
-                # build data blob
-                if action_type == ActionType.SENTRY_APP:
-                    if not trigger_action.sentry_app_config:
-                        data = {}
-                    settings = (
-                        [trigger_action.sentry_app_config]
-                        if isinstance(trigger_action.sentry_app_config, dict)
-                        else trigger_action.sentry_app_config
-                    )
-                    data = dataclasses.asdict(SentryAppDataBlob.from_list(settings))
-                elif action_type in (ActionType.OPSGENIE, ActionType.PAGERDUTY):
-                    default_priority = (
-                        OPSGENIE_DEFAULT_PRIORITY
-                        if action_type == ActionType.OPSGENIE
-                        else PAGERDUTY_DEFAULT_SEVERITY
-                    )
-
-                    if not trigger_action.sentry_app_config:
-                        data = {"priority": default_priority}
-
-                    # Ensure sentry_app_config is a dict before accessing
-                    config = trigger_action.sentry_app_config
-                    if not isinstance(config, dict):
-                        data = {"priority": default_priority}
-
-                    priority = config.get("priority", default_priority)
-                    data = dataclasses.asdict(OnCallDataBlob(priority=priority))
-                else:
-                    data = {
-                        "type": trigger_action.type,
-                        "sentry_app_id": trigger_action.sentry_app_id,
-                        "sentry_app_config": trigger_action.sentry_app_config,
-                    }
-
-                # get target identifier
-                if action_type == ActionType.SENTRY_APP:
-                    if not trigger_action.sentry_app_id:
-                        logger.info(
-                            "trigger action missing sentry app ID",
-                            extra={"trigger_action_id": trigger_action.id},
-                        )
-                    target_identifier = str(trigger_action.sentry_app_id)
-                else:
-                    target_identifier = trigger_action.target_identifier
-
-                # create the models
-                action = Action.objects.create_or_update(
-                    type=action_type,
-                    data=data,
-                    integration_id=trigger_action.integration_id,
-                    target_display=trigger_action.target_display,
-                    target_identifier=target_identifier,
-                    target_type=trigger_action.target_type,
-                )
-                DataConditionGroupAction.objects.create_or_update(
-                    condition_group_id=action_filter.condition_group.id,
-                    action_id=action.id,
-                )
-                ActionAlertRuleTriggerAction.objects.create_or_update(
-                    action_id=action.id,
-                    alert_rule_trigger_action_id=trigger_action.id,
+                create_activity = AlertRuleActivity.objects.get(
+                    alert_rule_id=alert_rule.id, type=AlertRuleActivityType.CREATED.value
                 )
 
-        # migrate resolve threshold
-        resolve_threshold_type = (
-            Condition.LESS_OR_EQUAL
-            if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-            else Condition.GREATER_OR_EQUAL
-        )
-        if alert_rule.resolve_threshold is not None:
-            resolve_threshold = alert_rule.resolve_threshold
-        else:
-            detector_triggers = DataCondition.objects.filter(
-                condition_group=detector.workflow_condition_group
-            )
-            warning_data_condition = detector_triggers.filter(
-                condition_result=DetectorPriorityLevel.MEDIUM
-            ).first()
-            if warning_data_condition is not None:
-                resolve_threshold = warning_data_condition.comparison
-            else:
-                critical_data_condition = detector_triggers.filter(
-                    condition_result=DetectorPriorityLevel.HIGH
-                ).first()
-                if critical_data_condition is None:
+                # create data source
+                snuba_query = alert_rule.snuba_query
+                if not snuba_query:
                     logger.info(
-                        "no critical or warning data conditions exist for detector data condition group",
-                        extra={"detector_data_condition_group": detector_triggers},
+                        "alert rule missing snuba query", extra={"alert_rule_id": alert_rule.id}
                     )
-                    continue
+                    raise Exception("Alert rule missing snuba query")
+                try:
+                    query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+                except QuerySubscription.DoesNotExist:
+                    logger.info(
+                        "query subscription does not exist",
+                        extra={"snuba_query_id": snuba_query.id},
+                    )
+                    raise Exception("Query subscription does not exist")
+                data_source = DataSource.objects.create_or_update(
+                    organization_id=organization_id,
+                    source_id=str(query_subscription.id),
+                    type="snuba_query_subscription",
+                )
+
+                # create detector DCG
+                data_condition_group = DataConditionGroup.objects.create_or_update(
+                    organization_id=organization_id,
+                )
+                # create detector
+                detector = Detector.objects.create_or_update(
+                    project_id=project.id,
+                    enabled=enabled,
+                    created_by_id=create_activity.user_id,
+                    name=alert_rule.name,
+                    workflow_condition_group=data_condition_group,
+                    type="metric_alert_fire",
+                    description=alert_rule.description,
+                    owner_user_id=alert_rule.user_id,
+                    owner_team=alert_rule.team,
+                    config={
+                        "threshold_period": alert_rule.threshold_period,
+                        "sensitivity": alert_rule.sensitivity,
+                        "seasonality": alert_rule.seasonality,
+                        "comparison_delta": alert_rule.comparison_delta,
+                        "detection_type": alert_rule.detection_type,
+                    },
+                )
+                # create workflow
+                workflow = Workflow.objects.create_or_update(
+                    name=alert_rule.name,
+                    organization_id=organization_id,
+                    when_condition_group=None,
+                    enabled=enabled,
+                    created_by_id=create_activity.user_id,
+                    config={},
+                )
+
+                open_incident = Incident.objects.get_active_incident(alert_rule, project)
+                if open_incident:
+                    state = (
+                        DetectorPriorityLevel.MEDIUM
+                        if open_incident.status == IncidentStatus.WARNING.value
+                        else DetectorPriorityLevel.HIGH
+                    )
                 else:
-                    resolve_threshold = critical_data_condition.comparison
-            DataCondition.objects.create_or_update(
-                comparison=resolve_threshold,
-                condition_result=DetectorPriorityLevel.OK,
-                type=resolve_threshold_type,
-                condition_group=detector.workflow_condition_group,
-            )
+                    state = DetectorPriorityLevel.OK
 
-            DataConditionGroup.objects.create_or_update(organization_id=alert_rule.organization_id)
-            AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-            WorkflowDataConditionGroup.objects.create_or_update(
-                condition_group=data_condition_group,
-                workflow=alert_rule_workflow.workflow,
-            )
+                data_source.detectors.set([detector])
+                # create detector state
+                DetectorState.objects.create_or_update(
+                    detector=detector,
+                    active=False,
+                    state=state,
+                )
+                # create lookup tables
+                AlertRuleDetector.objects.create_or_update(alert_rule=alert_rule, detector=detector)
+                alert_rule_workflow = AlertRuleWorkflow.objects.create_or_update(
+                    alert_rule=alert_rule, workflow=workflow
+                )
+                DetectorWorkflow.objects.create_or_update(detector=detector, workflow=workflow)
 
-            DataCondition.objects.create_or_update(
-                comparison=DetectorPriorityLevel.OK,
-                condition_result=True,
-                type=Condition.ISSUE_PRIORITY_EQUALS,
-                condition_group=data_condition_group,
-            )
+                # migrate triggers
+                triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
+                for trigger in triggers:
+                    threshold_type = (
+                        Condition.GREATER
+                        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                        else Condition.LESS
+                    )
+                    condition_result = PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH)
+                    # create detector trigger
+                    DataCondition.objects.create_or_update(
+                        comparison=trigger.alert_threshold,
+                        condition_result=condition_result,
+                        type=threshold_type,
+                        condition_group=detector.workflow_condition_group,
+                    )
+                    # create action filter
+                    data_condition_group = DataConditionGroup.objects.create_or_update(
+                        organization_id=alert_rule.organization_id
+                    )
+                    WorkflowDataConditionGroup.objects.create_or_update(
+                        condition_group=data_condition_group,
+                        workflow=alert_rule_workflow.workflow,
+                    )
+                    action_filter = DataCondition.objects.create_or_update(
+                        comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
+                        condition_result=True,
+                        type=Condition.ISSUE_PRIORITY_EQUALS,
+                        condition_group=data_condition_group,
+                    )
+
+                    trigger_actions = AlertRuleTriggerAction.objects.filter(
+                        alert_rule_trigger=trigger
+                    )
+                    for trigger_action in trigger_actions:
+                        if trigger_action.sentry_app_id:
+                            action_type = ActionType.SENTRY_APP
+
+                        elif trigger_action.integration_id:
+                            integration = integration_service.get_integration(
+                                integration_id=trigger_action.integration_id
+                            )
+                            if not integration:
+                                logger.info(
+                                    "could not find a matching action type for the trigger action",
+                                    extra={"trigger_action_id": trigger_action.id},
+                                )
+                                raise Exception(
+                                    "Could not find a matching action type for the trigger action"
+                                )
+                            try:
+                                action_type = ActionType(integration.provider)
+                            except Exception:
+                                logger.info(
+                                    "could not find a matching action type for the trigger action",
+                                    extra={"trigger_action_id": trigger_action.id},
+                                )
+                                raise
+                        else:
+                            action_type = ActionType.EMAIL
+
+                        # build data blob
+                        if action_type == ActionType.SENTRY_APP:
+                            if not trigger_action.sentry_app_config:
+                                data = {}
+                            settings = (
+                                [trigger_action.sentry_app_config]
+                                if isinstance(trigger_action.sentry_app_config, dict)
+                                else trigger_action.sentry_app_config
+                            )
+                            data = dataclasses.asdict(SentryAppDataBlob.from_list(settings))
+                        elif action_type in (ActionType.OPSGENIE, ActionType.PAGERDUTY):
+                            default_priority = (
+                                OPSGENIE_DEFAULT_PRIORITY
+                                if action_type == ActionType.OPSGENIE
+                                else PAGERDUTY_DEFAULT_SEVERITY
+                            )
+
+                            if not trigger_action.sentry_app_config:
+                                data = {"priority": default_priority}
+
+                            # Ensure sentry_app_config is a dict before accessing
+                            config = trigger_action.sentry_app_config
+                            if not isinstance(config, dict):
+                                data = {"priority": default_priority}
+
+                            priority = config.get("priority", default_priority)
+                            data = dataclasses.asdict(OnCallDataBlob(priority=priority))
+                        else:
+                            data = {
+                                "type": trigger_action.type,
+                                "sentry_app_id": trigger_action.sentry_app_id,
+                                "sentry_app_config": trigger_action.sentry_app_config,
+                            }
+
+                        # get target identifier
+                        if action_type == ActionType.SENTRY_APP:
+                            if not trigger_action.sentry_app_id:
+                                logger.info(
+                                    "trigger action missing sentry app ID",
+                                    extra={"trigger_action_id": trigger_action.id},
+                                )
+                                raise Exception("Trigger action missing Sentry app ID")
+                            target_identifier = str(trigger_action.sentry_app_id)
+                        else:
+                            target_identifier = trigger_action.target_identifier
+
+                        # create the models
+                        action = Action.objects.create_or_update(
+                            type=action_type,
+                            data=data,
+                            integration_id=trigger_action.integration_id,
+                            target_display=trigger_action.target_display,
+                            target_identifier=target_identifier,
+                            target_type=trigger_action.target_type,
+                        )
+                        DataConditionGroupAction.objects.create_or_update(
+                            condition_group_id=action_filter.condition_group.id,
+                            action_id=action.id,
+                        )
+                        ActionAlertRuleTriggerAction.objects.create_or_update(
+                            action_id=action.id,
+                            alert_rule_trigger_action_id=trigger_action.id,
+                        )
+
+                # migrate resolve threshold
+                resolve_threshold_type = (
+                    Condition.LESS_OR_EQUAL
+                    if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                    else Condition.GREATER_OR_EQUAL
+                )
+                if alert_rule.resolve_threshold is not None:
+                    resolve_threshold = alert_rule.resolve_threshold
+                else:
+                    detector_triggers = DataCondition.objects.filter(
+                        condition_group=detector.workflow_condition_group
+                    )
+                    warning_data_condition = detector_triggers.filter(
+                        condition_result=DetectorPriorityLevel.MEDIUM
+                    ).first()
+                    if warning_data_condition is not None:
+                        resolve_threshold = warning_data_condition.comparison
+                    else:
+                        critical_data_condition = detector_triggers.filter(
+                            condition_result=DetectorPriorityLevel.HIGH
+                        ).first()
+                        if critical_data_condition is None:
+                            logger.info(
+                                "no critical or warning data conditions exist for detector data condition group",
+                                extra={"detector_data_condition_group": detector_triggers},
+                            )
+                            raise Exception(
+                                "No critical or warning data conditions exist for detector data condition group"
+                            )
+                        else:
+                            resolve_threshold = critical_data_condition.comparison
+                    DataCondition.objects.create_or_update(
+                        comparison=resolve_threshold,
+                        condition_result=DetectorPriorityLevel.OK,
+                        type=resolve_threshold_type,
+                        condition_group=detector.workflow_condition_group,
+                    )
+
+                    DataConditionGroup.objects.create_or_update(
+                        organization_id=alert_rule.organization_id
+                    )
+                    AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+                    WorkflowDataConditionGroup.objects.create_or_update(
+                        condition_group=data_condition_group,
+                        workflow=alert_rule_workflow.workflow,
+                    )
+
+                    DataCondition.objects.create_or_update(
+                        comparison=DetectorPriorityLevel.OK,
+                        condition_result=True,
+                        type=Condition.ISSUE_PRIORITY_EQUALS,
+                        condition_group=data_condition_group,
+                    )
+            except Exception as e:
+                logger.info(
+                    "error when migrating alert rule",
+                    extra={"error": str(e), "alert_rule_id": alert_rule.id},
+                )
+                continue
 
 
 class Migration(CheckedMigration):
