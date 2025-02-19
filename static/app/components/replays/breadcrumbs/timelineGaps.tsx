@@ -18,7 +18,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
   const organization = useOrganization();
 
   const gaps = useMemo(() => {
-    const ranges: {left: string; width: string}[] = [];
+    const ranges: Array<{left: string; width: string}> = [];
     let previousVideoEnd = startTimestampMs;
 
     // create gap in timeline when there is a gap between video events larger than 1.1s

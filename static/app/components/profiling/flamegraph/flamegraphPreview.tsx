@@ -68,8 +68,8 @@ export function FlamegraphPreview({
     const {configView, mode} = computePreviewConfigView(
       flamegraph,
       canvasView.configView,
-      formatTo(relativeStartTimestamp, 'second', 'nanosecond'),
-      formatTo(relativeStopTimestamp, 'second', 'nanosecond')
+      formatTo(relativeStartTimestamp, 'second', flamegraph.unit),
+      formatTo(relativeStopTimestamp, 'second', flamegraph.unit)
     );
 
     canvasView.setConfigView(configView);
@@ -331,8 +331,8 @@ export function computePreviewConfigView(
       }
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]!);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 

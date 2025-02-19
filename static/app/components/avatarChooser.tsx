@@ -16,7 +16,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SentryApp} from 'sentry/types/integrations';
+import type {SentryApp, SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import withApi from 'sentry/utils/withApi';
@@ -129,6 +129,7 @@ class AvatarChooser extends Component<Props, State> {
       avatar_photo?: string;
       avatar_type?: string;
       color?: boolean;
+      photoType?: SentryAppAvatarPhotoType;
     } = {avatar_type: avatarType};
 
     // If an image has been uploaded, then another option is selected, we should not submit the uploaded image
@@ -138,6 +139,7 @@ class AvatarChooser extends Component<Props, State> {
 
     if (type?.startsWith('sentryApp')) {
       data.color = type === 'sentryAppColor';
+      data.photoType = data.color ? 'logo' : 'icon';
     }
 
     api.request(endpoint, {
@@ -198,7 +200,7 @@ class AvatarChooser extends Component<Props, State> {
     const isOrganization = type === 'organization';
     const isSentryApp = type?.startsWith('sentryApp');
 
-    const choices: [AvatarType, string][] = [];
+    const choices: Array<[AvatarType, string]> = [];
 
     if (allowDefault && preview) {
       choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);

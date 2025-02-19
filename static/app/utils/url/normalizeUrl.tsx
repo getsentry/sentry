@@ -3,7 +3,7 @@ import type {Location, LocationDescriptor} from 'history';
 import ConfigStore from 'sentry/stores/configStore';
 
 // If you change this also update the patterns in sentry.api.utils
-const NORMALIZE_PATTERNS: [pattern: RegExp, replacement: string][] = [
+const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
   [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
@@ -80,7 +80,7 @@ export default function normalizeUrl(
   }
 
   for (const patternData of NORMALIZE_PATTERNS) {
-    // @ts-ignore TS(7022): 'replacement' implicitly has type 'any' because it... Remove this comment to see the full error message
+    // @ts-expect-error TS(7022): 'replacement' implicitly has type 'any' because it... Remove this comment to see the full error message
     const replacement = resolved.pathname.replace(patternData[0], patternData[1]);
     if (replacement !== resolved.pathname) {
       return {...resolved, pathname: replacement};

@@ -18,7 +18,7 @@ const callbackWithArgs = function (context: any, callback: any, ...args: any) {
 
 type GenericFieldProps = Parameters<typeof GenericField>[0];
 
-type Props = {};
+type Props = Record<string, unknown>;
 
 type State = {state: FormState};
 
@@ -37,7 +37,7 @@ class PluginComponentBase<
       'onSaveError',
       'onSaveComplete',
       'renderField',
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     ].map(method => (this[method] = this[method].bind(this)));
 
     if (this.fetchData) {

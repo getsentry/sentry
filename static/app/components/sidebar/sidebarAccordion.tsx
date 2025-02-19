@@ -12,6 +12,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {Overlay} from 'sentry/components/overlay';
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar/constants';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,7 +66,7 @@ function SidebarAccordion({
   const isActive = isItemActive(itemProps);
   const hasMainLink = Boolean(itemProps.to);
 
-  const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
+  const childSidebarItems = findChildElementsInTree(children, SidebarItem.displayName);
 
   const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
@@ -205,7 +209,7 @@ function findChildElementsInTree(
       typeof child.type === 'string'
         ? child.type
         : 'displayName' in child.type
-          ? (child.type.displayName as string) // `.displayName` is added by `babel-plugin-add-react-displayname` in production builds
+          ? (child.type.displayName as string) // `.displayName` is added manually
           : child.type.name; // `.name` is available in development builds
 
     if (currentComponentName === componentName) {
@@ -233,10 +237,9 @@ const StyledOverlay = styled(Overlay)<{
   padding: ${space(0.5)};
   top: ${p =>
     p.horizontal
-      ? p.theme.sidebar.mobileHeight
+      ? SIDEBAR_MOBILE_HEIGHT
       : p.accordionRef.current?.getBoundingClientRect().top};
-  left: ${p =>
-    p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
+  left: ${p => (p.horizontal ? 0 : `calc(${SIDEBAR_COLLAPSED_WIDTH} + ${space(1)})`)};
 `;
 
 const SidebarAccordionWrapper = styled('div')`

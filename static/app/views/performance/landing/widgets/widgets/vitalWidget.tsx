@@ -267,7 +267,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
       const transactionTarget = transactionSummaryRouteWithQuery({
-        orgSlug: props.organization.slug,
+        organization: props.organization,
         projectID: listItem['project.id'] as string,
         transaction: listItem.transaction as string,
         query: _eventView.generateQueryStringObject(),
@@ -437,7 +437,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 function getVitalDataForListItem(
   listItem: TableDataRow,
   vital: WebVital,
-  useAggregateAlias: boolean = true
+  useAggregateAlias = true
 ) {
   const vitalFields = getVitalFields(vital);
   const transformFieldName = (fieldName: string) =>

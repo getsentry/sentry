@@ -544,6 +544,16 @@ class SentryAppStatus:
         else:
             raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
+    @classmethod
+    def as_int_choices(cls) -> Sequence[int]:
+        return [
+            cls.UNPUBLISHED,
+            cls.PUBLISHED,
+            cls.INTERNAL,
+            cls.PUBLISH_REQUEST_INPROGRESS,
+            cls.DELETION_IN_PROGRESS,
+        ]
+
 
 class SentryAppInstallationStatus:
     PENDING = 0
@@ -710,8 +720,6 @@ HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
-METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
-METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0

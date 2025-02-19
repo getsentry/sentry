@@ -18,7 +18,6 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
-import {hasSetupWizardCreateProjectFeature} from 'sentry/views/setupWizard/utils/features';
 import {useCreateProjectFromWizard} from 'sentry/views/setupWizard/utils/useCreateProjectFromWizard';
 import {useOrganizationDetails} from 'sentry/views/setupWizard/utils/useOrganizationDetails';
 import {useOrganizationProjects} from 'sentry/views/setupWizard/utils/useOrganizationProjects';
@@ -31,6 +30,10 @@ const CREATE_PROJECT_VALUE = 'create-new-project';
 const urlParams = new URLSearchParams(location.search);
 const platformParam = urlParams.get('project_platform');
 const orgSlugParam = urlParams.get('org_slug');
+
+function getOrgDisplayName(organization: Organization) {
+  return organization.name || organization.slug;
+}
 
 function getInitialOrgId(organizations: Organization[]) {
   if (organizations.length === 1) {
@@ -87,10 +90,9 @@ export function WizardProjectSelection({
 
   const isCreationEnabled =
     orgDetailsRequest.data &&
+    canCreateProject(orgDetailsRequest.data) &&
     teamsRequest.data &&
     teamsRequest.data.length > 0 &&
-    hasSetupWizardCreateProjectFeature(orgDetailsRequest.data) &&
-    canCreateProject(orgDetailsRequest.data) &&
     platformParam;
 
   const updateWizardCacheMutation = useUpdateWizardCache(hash);
@@ -107,7 +109,7 @@ export function WizardProjectSelection({
       organizations
         .map(org => ({
           value: org.id,
-          label: org.name || org.slug,
+          label: getOrgDisplayName(org),
           leadingItems: <OrganizationAvatar size={16} organization={org} />,
         }))
         .toSorted((a: any, b: any) => a.label.localeCompare(b.label)),
@@ -118,7 +120,7 @@ export function WizardProjectSelection({
     () =>
       (orgProjectsRequest.data || []).map(project => ({
         value: project.id,
-        label: project.name,
+        label: project.slug,
         leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
         project,
       })),
@@ -229,8 +231,9 @@ export function WizardProjectSelection({
             ) : null,
           }}
           triggerLabel={
-            selectedOrg?.name ||
-            selectedOrg?.slug || (
+            selectedOrg ? (
+              getOrgDisplayName(selectedOrg)
+            ) : (
               <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
             )
           }
@@ -270,7 +273,7 @@ export function WizardProjectSelection({
             triggerLabel={
               isCreateProjectSelected
                 ? t('Create Project')
-                : selectedProject?.name || (
+                : selectedProject?.slug || (
                     <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
                   )
             }

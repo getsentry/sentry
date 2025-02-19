@@ -72,26 +72,10 @@ class DummyTSDB(BaseTSDB):
         jitter_value=None,
         tenant_ids=None,
         referrer_suffix=None,
-    ):
-        self.validate_arguments([model], [environment_id])
-        return {k: 0 for k in keys}
-
-    def get_distinct_counts_totals_with_conditions(
-        self,
-        model,
-        keys: Sequence[int],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
         conditions=None,
     ):
         self.validate_arguments([model], [environment_id])
-        return 0
+        return {k: 0 for k in keys}
 
     def merge_distinct_counts(
         self, model, destination, sources, timestamp=None, environment_ids=None

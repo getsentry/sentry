@@ -77,7 +77,6 @@ def get_first_last_release_for_env(
 
 class LatestAdoptedReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
-    form_cls = LatestAdoptedReleaseForm
     label = "The {oldest_or_newest} adopted release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
 
     form_fields = {
@@ -145,9 +144,8 @@ class LatestAdoptedReleaseFilter(EventFilter):
 
         return False
 
-    def get_form_instance(self) -> forms.Form:
-        form: forms.Form = self.form_cls(self.project, self.data)
-        return form
+    def get_form_instance(self) -> LatestAdoptedReleaseForm:
+        return LatestAdoptedReleaseForm(self.project, self.data)
 
 
 def is_newer_release(

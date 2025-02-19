@@ -1,15 +1,16 @@
 import enum
 from datetime import timedelta
-from typing import ClassVar, Literal, Self
+from typing import ClassVar, Literal, Self, cast
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
@@ -17,12 +18,13 @@ from sentry.db.models import (
     JSONField,
     region_silo_model,
 )
+from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
-from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
 
 headers_json_encoder = JSONEncoder(
@@ -79,13 +81,17 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     method: models.CharField[SupportedHTTPMethodsLiteral, SupportedHTTPMethodsLiteral] = (
         models.CharField(max_length=20, choices=SupportedHTTPMethods, db_default="GET")
     )
+    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
     headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
+    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
+    # Temporary column we'll use to migrate away from the url based unique constraint
+    migrated = models.BooleanField(db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -105,7 +111,8 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 "trace_sampling",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
-                name="uptime_uptimesubscription_unique_subscription_check_3",
+                condition=Q(migrated=False),
+                name="uptime_uptimesubscription_unique_subscription_check_4",
             ),
         ]
 
@@ -156,6 +163,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         "sentry.Environment", db_index=True, db_constraint=False, null=True
     )
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
+    status = BoundedPositiveBigIntegerField(
+        choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
+    )
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
@@ -228,6 +238,20 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+@cache_func(cache_ttl=timedelta(hours=1))
+def get_top_hosting_provider_names(limit: int) -> set[str]:
+    return set(
+        cast(
+            list[str],
+            UptimeSubscription.objects.filter(status=UptimeSubscription.Status.ACTIVE.value)
+            .values("host_provider_name")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .values_list("host_provider_name", flat=True)[:limit],
+        )
+    )
 
 
 class UptimeRegionScheduleMode(enum.StrEnum):

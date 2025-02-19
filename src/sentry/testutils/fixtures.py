@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
@@ -25,6 +26,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import (
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
     MonitorType,
@@ -464,6 +466,9 @@ class Fixtures:
     def create_monitor_incident(self, **kwargs):
         return MonitorIncident.objects.create(**kwargs)
 
+    def create_monitor_checkin(self, **kwargs):
+        return MonitorCheckIn.objects.create(**kwargs)
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
@@ -670,6 +675,7 @@ class Fixtures:
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
         url: str | None = None,
         host_provider_id="TEST",
+        host_provider_name="TEST",
         url_domain="sentry",
         url_domain_suffix="io",
         interval_seconds=60,
@@ -696,6 +702,7 @@ class Fixtures:
             url_domain=url_domain,
             url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
+            host_provider_name=host_provider_name,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -714,6 +721,7 @@ class Fixtures:
         project: Project | None = None,
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
+        status: int = ObjectStatus.ACTIVE,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
@@ -730,6 +738,7 @@ class Fixtures:
             project,
             env,
             uptime_subscription,
+            status,
             mode,
             name,
             Actor.from_object(owner) if owner else None,

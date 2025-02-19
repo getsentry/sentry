@@ -186,7 +186,7 @@ export enum LockType {
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
-  context: [number, string][];
+  context: Array<[number, string]>;
   filename: string | null;
   function: string | null;
   inApp: boolean;
@@ -284,7 +284,7 @@ export enum EntryType {
 
 export type EntryDebugMeta = {
   data: {
-    images: (Image | null)[];
+    images: Array<Image | null>;
   };
   type: EntryType.DEBUGMETA;
 };
@@ -335,17 +335,17 @@ export interface EntryRequestDataDefault {
   apiTarget: null;
   method: string;
   url: string;
-  cookies?: ([key: string, value: string] | null)[];
-  data?: string | null | Record<string, any> | [key: string, value: any][];
+  cookies?: Array<[key: string, value: string] | null>;
+  data?: string | null | Record<string, any> | Array<[key: string, value: any]>;
   env?: Record<string, string>;
   fragment?: string | null;
-  headers?: ([key: string, value: string] | null)[];
+  headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:
     | null
     | 'application/json'
     | 'application/x-www-form-urlencoded'
     | 'multipart/form-data';
-  query?: ([key: string, value: string] | null)[] | string;
+  query?: Array<[key: string, value: string] | null> | string;
 }
 
 export interface EntryRequestDataGraphQl
@@ -697,10 +697,7 @@ export type PerformanceDetectorData = {
   issueType?: IssueType;
 };
 
-type EventEvidenceDisplay = {
-  /**
-   * Used for alerting, probably not useful for the UI
-   */
+export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
   value: string;
@@ -810,13 +807,9 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (
-    | EntrySpans
-    | EntryRequest
-    | EntryDebugMeta
-    | AggregateEntrySpans
-    | EntryBreadcrumbs
-  )[];
+  entries: Array<
+    EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans | EntryBreadcrumbs
+  >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;
@@ -851,13 +844,9 @@ export interface AggregateEventTransaction
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
-  entries: (
-    | EntryException
-    | EntryStacktrace
-    | EntryRequest
-    | EntryThreads
-    | EntryDebugMeta
-  )[];
+  entries: Array<
+    EntryException | EntryStacktrace | EntryRequest | EntryThreads | EntryDebugMeta
+  >;
   type: EventOrGroupType.ERROR;
 }
 

@@ -207,16 +207,16 @@ def should_filter_feedback(
         # Temporary log for debugging.
         if random.random() < 0.1:
             project = Project.objects.get_from_cache(id=project_id)
-            contexts = event.get("contexts", {})
-            feedback = contexts.get("feedback", {})
+            contexts = event.get("contexts") or {}
+            feedback = contexts.get("feedback") or {}
             feedback_msg = feedback.get("message")
             logger.info(
                 "Filtered missing context or message.",
                 extra={
                     "project_id": project_id,
                     "organization_id": project.organization_id,
-                    "has_contexts": contexts != {},
-                    "has_feedback": feedback != {},
+                    "has_contexts": bool(contexts),
+                    "has_feedback": bool(feedback),
                     "event_type": event.get("type"),
                     "feedback_message": feedback_msg,
                     "platform": project.platform,

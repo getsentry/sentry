@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+import random
+from typing import Any, TypeIs, cast
 
-from typing_extensions import TypeIs
-
+from sentry import features, options
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
@@ -41,8 +41,7 @@ from sentry.types.grouphash_metadata import (
     StacktraceHashingMetadata,
     TemplateHashingMetadata,
 )
-from sentry.utils import metrics
-from sentry.utils.metrics import MutableTags
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +96,22 @@ METRICS_TAGS_BY_HASH_BASIS = {
 }
 
 
+def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
+    # Killswitches
+    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled") or not features.has(
+        "organizations:grouphash-metadata-creation", project.organization
+    ):
+        return False
+
+    # While we're backfilling metadata for existing grouphash records, if the load is too high, we
+    # want to prioritize metadata for new grouphashes because there's certain information
+    # (timestamp, Seer data) which is only available at group creation time.
+    if grouphash_is_new:
+        return True
+    else:
+        return random.random() <= options.get("grouping.grouphash_metadata.backfill_sample_rate")
+
+
 def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
@@ -108,33 +123,61 @@ def create_or_update_grouphash_metadata_if_needed(
     # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
     # we'll have to override the metadata creation date for them.
 
+    db_hit_metadata: dict[str, Any] = {}
+
     if grouphash_is_new:
-        with metrics.timer(
-            "grouping.grouphashmetadata.get_hash_basis_and_metadata"
-        ) as metrics_timer_tags:
-            hash_basis, hashing_metadata = get_hash_basis_and_metadata(
-                event, project, variants, metrics_timer_tags
+        new_data: dict[str, Any] = {"grouphash": grouphash}
+        new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
+
+        db_hit_metadata = {"reason": "new_grouphash"}
+
+        GroupHashMetadata.objects.create(**new_data)
+
+    elif grouphash.metadata:
+        updated_data: dict[str, Any] = {}
+
+        # Keep track of the most recent config which computed this hash, so that once a config is
+        # deprecated, we can clear out the GroupHash records which are no longer being produced
+        if grouphash.metadata.latest_grouping_config != grouping_config:
+            updated_data = {"latest_grouping_config": grouping_config}
+            db_hit_metadata = {
+                "reason": "old_grouping_config",
+                "current_config": grouphash.metadata.latest_grouping_config,
+                "new_config": grouping_config,
+            }
+
+        # Only hit the DB if there's something to change
+        if updated_data:
+            grouphash.metadata.update(**updated_data)
+
+    # If we did something, collect a metric
+    if db_hit_metadata:
+        metrics.incr("grouping.grouphash_metadata.db_hit", tags=db_hit_metadata)
+
+        if db_hit_metadata["reason"] != "new_grouphash":
+            # Temporary log to get a sense of how often we're encountering a race condition and
+            # backfilling the same grouphash more than once. Note that this data won't be reliable
+            # until we increase the sample rate to 100%.
+            logger.info(
+                "grouping.grouphash_metadata.handle_existing_grouphash",
+                extra={
+                    "grouphash": grouphash.id,
+                    "group_id": grouphash.group_id,
+                    "reason": db_hit_metadata["reason"],
+                },
             )
 
-        GroupHashMetadata.objects.create(
-            grouphash=grouphash,
-            latest_grouping_config=grouping_config,
-            hash_basis=hash_basis,
-            hashing_metadata=hashing_metadata,
-        )
-    elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
-        # Keep track of the most recent config which computed this hash, so that once a
-        # config is deprecated, we can clear out the GroupHash records which are no longer
-        # being produced
-        grouphash.metadata.update(latest_grouping_config=grouping_config)
 
-
-def get_hash_basis_and_metadata(
+def get_grouphash_metadata_data(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
-    metrics_timer_tags: MutableTags,
-) -> tuple[HashBasis, HashingMetadata]:
+    grouping_config: str,
+) -> dict[str, Any]:
+    base_data = {
+        "latest_grouping_config": grouping_config,
+        "platform": event.platform or "unknown",
+    }
     hashing_metadata: HashingMetadata = {}
     # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
     # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
@@ -151,61 +194,66 @@ def get_hash_basis_and_metadata(
     is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
     method_description = contributing_variant.description.replace("modified ", "")
 
-    try:
-        hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
-    except KeyError:
-        logger.exception(
-            "Encountered unknown grouping method '%s'.",
-            contributing_variant.description,
-            extra={"project": project.id, "event_id": event.event_id},
-        )
-        return (HashBasis.UNKNOWN, {})
+    with metrics.timer(
+        "grouping.grouphashmetadata.get_grouphash_metadata_data"
+    ) as metrics_timer_tags:
+        try:
+            hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
+        except KeyError:
+            logger.exception(
+                "Encountered unknown grouping method '%s'.",
+                contributing_variant.description,
+                extra={"project": project.id, "event_id": event.event_id},
+            )
+            return {**base_data, "hash_basis": HashBasis.UNKNOWN, "hashing_metadata": {}}
 
-    metrics_timer_tags["hash_basis"] = hash_basis
+        metrics_timer_tags["hash_basis"] = hash_basis
 
-    # Gather different metadata depending on the grouping method
+        # Gather different metadata depending on the grouping method
 
-    if hash_basis == HashBasis.STACKTRACE:
-        hashing_metadata = _get_stacktrace_hashing_metadata(
-            contributing_variant, contributing_component
-        )
+        if hash_basis == HashBasis.STACKTRACE:
+            hashing_metadata = _get_stacktrace_hashing_metadata(
+                contributing_variant, contributing_component
+            )
 
-    elif hash_basis == HashBasis.MESSAGE:
-        hashing_metadata = _get_message_hashing_metadata(contributing_component)
+        elif hash_basis == HashBasis.MESSAGE:
+            hashing_metadata = _get_message_hashing_metadata(contributing_component)
 
-    elif hash_basis == HashBasis.FINGERPRINT:
-        hashing_metadata = _get_fingerprint_hashing_metadata(contributing_variant)
+        elif hash_basis == HashBasis.FINGERPRINT:
+            hashing_metadata = _get_fingerprint_hashing_metadata(contributing_variant)
 
-    elif hash_basis == HashBasis.SECURITY_VIOLATION:
-        hashing_metadata = _get_security_hashing_metadata(contributing_component)
+        elif hash_basis == HashBasis.SECURITY_VIOLATION:
+            hashing_metadata = _get_security_hashing_metadata(contributing_component)
 
-    elif hash_basis == HashBasis.TEMPLATE:
-        hashing_metadata = _get_template_hashing_metadata(contributing_component)
+        elif hash_basis == HashBasis.TEMPLATE:
+            hashing_metadata = _get_template_hashing_metadata(contributing_component)
 
-    elif hash_basis == HashBasis.CHECKSUM:
-        hashing_metadata = _get_checksum_hashing_metadata(contributing_variant)
+        elif hash_basis == HashBasis.CHECKSUM:
+            hashing_metadata = _get_checksum_hashing_metadata(contributing_variant)
 
-    elif hash_basis == HashBasis.FALLBACK:
-        hashing_metadata = _get_fallback_hashing_metadata(
-            # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but
-            # theoretically on track for 3.14), we can mark `VariantsByDescriptor` as closed and
-            # annotate `variants` as a `VariantsByDescriptor` instance in the spot where it's created
-            # and in all of the spots where it gets passed function to function. (Without the
-            # closed-ness, the return values of `.items()` and `.values()` don't get typed as
-            # `BaseVariant`, so for now we need to keep `variants` typed as `dict[str, BaseVariant]`
-            # until we get here.)
-            cast(VariantsByDescriptor, variants)
-        )
+        elif hash_basis == HashBasis.FALLBACK:
+            hashing_metadata = _get_fallback_hashing_metadata(
+                # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but
+                # theoretically on track for 3.14), we can mark `VariantsByDescriptor` as closed and
+                # annotate `variants` as a `VariantsByDescriptor` instance in the spot where it's
+                # created and in all of the spots where it gets passed function to function.
+                # (Without the closed-ness, the return values of `.items()` and `.values()` don't
+                # get typed as `BaseVariant`, so for now we need to keep `variants` typed as
+                # `dict[str, BaseVariant]` until we get here.)
+                cast(VariantsByDescriptor, variants)
+            )
 
-    if is_hybrid_fingerprint:
-        hashing_metadata.update(
-            _get_fingerprint_hashing_metadata(contributing_variant, is_hybrid=True)
-        )
+        if is_hybrid_fingerprint:
+            hashing_metadata.update(
+                _get_fingerprint_hashing_metadata(contributing_variant, is_hybrid=True)
+            )
 
-    return hash_basis, hashing_metadata
+        return {**base_data, "hash_basis": hash_basis, "hashing_metadata": hashing_metadata}
 
 
-def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> None:
+def record_grouphash_metadata_metrics(
+    grouphash_metadata: GroupHashMetadata, platform: str | None
+) -> None:
     # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but theoretically on
     # track for 3.14), we can mark the various hashing metadata types as closed and that should
     # narrow the types for the tag values such that we can stop stringifying everything
@@ -224,7 +272,7 @@ def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> 
     hashing_metadata = grouphash_metadata.hashing_metadata
 
     if hash_basis:
-        hash_basis_tags: dict[str, str] = {"hash_basis": hash_basis}
+        hash_basis_tags: dict[str, str | None] = {"hash_basis": hash_basis, "platform": platform}
         if hashing_metadata:
             hash_basis_tags["is_hybrid_fingerprint"] = str(
                 hashing_metadata.get("is_hybrid_fingerprint", False)
@@ -246,7 +294,12 @@ def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> 
                 metrics.incr(
                     f"grouping.grouphashmetadata.event_hashing_metadata.{hash_basis}",
                     sample_rate=1.0,
-                    tags=hashing_metadata_tags,
+                    tags={
+                        **hashing_metadata_tags,
+                        # Add this in at the end so it's not the reason we log the metric if it's
+                        # the only tag we have
+                        "platform": platform,
+                    },
                 )
 
 
@@ -318,7 +371,7 @@ def _get_fingerprint_hashing_metadata(
     metadata: FingerprintHashingMetadata = {
         # For simplicity, we stringify fingerprint values (which are always lists) to keep
         # `hashing_metadata` a flat structure
-        "fingerprint": str(contributing_variant.values),
+        "fingerprint": json.dumps(contributing_variant.values),
         "fingerprint_source": (
             "client"
             if not matched_rule
@@ -337,7 +390,7 @@ def _get_fingerprint_hashing_metadata(
     if matched_rule:
         metadata["matched_fingerprinting_rule"] = matched_rule["text"]
     if client_fingerprint:
-        metadata["client_fingerprint"] = str(client_fingerprint)
+        metadata["client_fingerprint"] = json.dumps(client_fingerprint)
 
     return metadata
 
@@ -427,3 +480,22 @@ def _get_fallback_hashing_metadata(
         reason = "other"
 
     return {"fallback_reason": reason}
+
+
+def check_grouphashes_for_positive_fingerprint_match(
+    grouphash1: GroupHash, grouphash2: GroupHash
+) -> bool:
+    """
+    Given two grouphashes, see if a) they both have associated fingerprints, and b) if their
+    resolved fingerprints match.
+
+    Returns False if either grouphash doesn't have an associated fingerprint. (In other words, both
+    fingerprints being None doesn't count as a match.)
+    """
+    fingerprint1 = grouphash1.get_associated_fingerprint()
+    fingerprint2 = grouphash2.get_associated_fingerprint()
+
+    if not fingerprint1 or not fingerprint2:
+        return False
+
+    return fingerprint1 == fingerprint2

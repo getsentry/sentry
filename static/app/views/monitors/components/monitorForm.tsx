@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {Alert} from 'sentry/components/core/alert';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -30,6 +30,7 @@ import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
@@ -38,7 +39,7 @@ import {ScheduleType} from '../types';
 
 import {platformsWithGuides} from './monitorQuickStartGuide';
 
-const SCHEDULE_OPTIONS: SelectValue<string>[] = [
+const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
@@ -98,7 +99,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const targetType = RULE_TARGET_MAP[type!];
 
         return {targetType, targetIdentifier: Number(id)};
@@ -131,12 +132,12 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
     }
 
     if (k.startsWith('config.')) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       data.config[k.substring(7)] = v;
       return data;
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     data[k] = v;
     return data;
   }, {});
@@ -310,11 +311,11 @@ function MonitorForm({
         </ListItemSubText>
         <InputGroup noPadding>
           {monitor !== undefined && (
-            <StyledAlert type="info">
+            <Alert type="info">
               {t(
                 'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}
-            </StyledAlert>
+            </Alert>
           )}
           <SelectField
             name="config.scheduleType"
@@ -431,7 +432,7 @@ function MonitorForm({
                   DEFAULT_MAX_RUNTIME
                 )}
                 help={t(
-                  'Number of a minutes before an in-progress check-in is marked timed out.'
+                  'Number of minutes before an in-progress check-in is marked timed out.'
                 )}
                 label={t('Max Runtime')}
               />
@@ -494,7 +495,10 @@ function MonitorForm({
           {monitor?.config.alert_rule_id && (
             <AlertLink
               priority="muted"
-              to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
+              to={makeAlertsPathname({
+                path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
+                organization,
+              })}
               withoutMarginBottom
             >
               {t('Customize this monitors notification configuration in Alerts')}
@@ -551,10 +555,6 @@ export default MonitorForm;
 
 const StyledList = styled(List)`
   width: 800px;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledListItem = styled(ListItem)`

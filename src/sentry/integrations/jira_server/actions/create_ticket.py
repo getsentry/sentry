@@ -14,7 +14,6 @@ class JiraServerCreateTicketAction(TicketEventAction):
     ticket_type = "a Jira Server issue"
     link = "https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
     provider = "jira_server"
-    form_cls = JiraServerNotifyServiceForm
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -31,3 +30,6 @@ class JiraServerCreateTicketAction(TicketEventAction):
 
     def translate_integration(self, integration: RpcIntegration) -> str:
         return integration.metadata.get("domain_name", integration.name)
+
+    def get_form_instance(self) -> JiraServerNotifyServiceForm:
+        return JiraServerNotifyServiceForm(self.data, integrations=self.get_integrations())

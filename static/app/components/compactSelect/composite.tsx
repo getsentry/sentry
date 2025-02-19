@@ -15,7 +15,7 @@ import type {SelectKey, SelectOption} from './types';
 import {getItemsWithKeys} from './utils';
 
 interface BaseCompositeSelectRegion<Value extends SelectKey> {
-  options: SelectOption<Value>[];
+  options: Array<SelectOption<Value>>;
   key?: SelectKey;
   label?: React.ReactNode;
 }

@@ -10,7 +10,9 @@ import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles'
 import {hasSDKContext} from './sdk';
 
 type Props = {
-  cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
+  cacheMetrics: Array<
+    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
+  >;
   event: EventTransaction;
 };
 

@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -402,7 +402,7 @@ class ActionsPanel extends PureComponent<Props> {
                         options={availableAction?.allowedTargetTypes?.map(
                           allowedType => ({
                             value: allowedType,
-                            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             label: TargetLabel[allowedType],
                           })
                         )}
@@ -477,7 +477,7 @@ class ActionsPanel extends PureComponent<Props> {
                         isDisabled={disabled || loading}
                         value={action.priority}
                         placeholder={
-                          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           DefaultPriorities[availableAction.type][triggerIndex]
                         }
                         options={PriorityOptions[availableAction.type].map(priority => ({
@@ -570,7 +570,6 @@ const MarginlessAlert = styled(Alert)`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.border} solid;
   border-top-width: 0;
-  margin: 0;
   padding: ${space(1)} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

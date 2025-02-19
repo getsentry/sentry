@@ -40,7 +40,7 @@ export function useOverflowTabs({
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
 }) {
-  const [overflowTabs, setOverflowTabs] = useState<(string | number)[]>([]);
+  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
   useEffect(() => {
     if (disabled) {
@@ -91,7 +91,7 @@ export function useOverflowTabs({
 
   // Tabs that are hidden will be rendered with display: none so won't intersect,
   // but we don't want to show them in the overflow menu
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 

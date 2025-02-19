@@ -1,0 +1,248 @@
+---
+created: '2025-02-19T15:24:59.510803+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "__start_thread"
+            function (function name is not used if module or filename are available)
+              "__start_thread"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZL15__pthread_startPv"
+            function (function name is not used if module or filename are available)
+              "__pthread_start(void*)"
+          frame (frame considered in-app because no frame is in-app)
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "android_main"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_Z11AndroidMainP11android_app"
+            function (function name is not used if module or filename are available)
+              "AndroidMain(android_app*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN11FEngineLoop4TickEv"
+            function (function name is not used if module or filename are available)
+              "FEngineLoop::Tick()"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN11UGameEngine4TickEfb"
+            function (function name is not used if module or filename are available)
+              "UGameEngine::Tick(float, bool)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN6UWorld4TickE10ELevelTickf"
+            function (function name is not used if module or filename are available)
+              "UWorld::Tick(ELevelTick, float)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN20FLatentActionManager20ProcessLatentActionsEP7UObjectf"
+            function (function name is not used if module or filename are available)
+              "FLatentActionManager::ProcessLatentActions(UObject*, float)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN20FLatentActionManager25TickLatentActionForObjectEfR9TMultiMapIiP20FPendingLatentAction20FDefaultSetAllocator27TDefaultMapHashableKeyFuncsIiS2_Lb1EEEP7UObject"
+            function (function name is not used if module or filename are available)
+              "FLatentActionManager::TickLatentActionForObject(float, TMultiMap<int, FPendingLatentAction*, FDefaultSetAllocator, TDefaultMapHashableKeyFuncs<int, FPendingLatentAction*, true> >&, UObject*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN6AActor12ProcessEventEP9UFunctionPv"
+            function (function name is not used if module or filename are available)
+              "AActor::ProcessEvent(UFunction*, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN7UObject12ProcessEventEP9UFunctionPv"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessEvent(UFunction*, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN9UFunction6InvokeEP7UObjectR6FFramePv"
+            function (function name is not used if module or filename are available)
+              "UFunction::Invoke(UObject*, FFrame&, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN7UObject15ProcessInternalEPS_R6FFramePv"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessInternal(UObject*, FFrame&, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv"
+            function (function name is not used if module or filename are available)
+              "UObject::execCallMathFunction(UObject*, FFrame&, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv"
+            function (function name is not used if module or filename are available)
+              "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType"
+            function (function name is not used if module or filename are available)
+              "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz"
+            function (function name is not used if module or filename are available)
+              "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, char16_t const*, ...)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN13FOutputDevice8LogfImplEPKDsz"
+            function (function name is not used if module or filename are available)
+              "FOutputDevice::LogfImpl(char16_t const*, ...)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName"
+            function (function name is not used if module or filename are available)
+              "FSentryOutputDeviceError::Serialize(char16_t const*, ELogVerbosity::Type, FName const&)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZNK22TMulticastDelegateBaseI28FDefaultTSDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvRK7FStringES0_EJS6_EEEvDpT0_"
+            function (function name is not used if module or filename are available)
+              "TMulticastDelegateBase<FDefaultTSDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (FString const&), FDefaultTSDelegateUserPolicy>, FString const&>(FString const&) const"
+          frame (frame considered in-app because no frame is in-app)
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "tgkill"
+            function (function name is not used if module or filename are available)
+              "tgkill"
+        type*
+          "SIGTRAP"
+        value*
+          "Trap"
+--------------------------------------------------------------------------
+system:
+  hash: "167687c4a2bda32bad1ad4dce59bf44e"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "__start_thread"
+            function (function name is not used if module or filename are available)
+              "__start_thread"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZL15__pthread_startPv"
+            function (function name is not used if module or filename are available)
+              "__pthread_start(void*)"
+          frame
+          frame
+            function (function name is not used if module or filename are available)
+              "android_main"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_Z11AndroidMainP11android_app"
+            function (function name is not used if module or filename are available)
+              "AndroidMain(android_app*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN11FEngineLoop4TickEv"
+            function (function name is not used if module or filename are available)
+              "FEngineLoop::Tick()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN11UGameEngine4TickEfb"
+            function (function name is not used if module or filename are available)
+              "UGameEngine::Tick(float, bool)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN6UWorld4TickE10ELevelTickf"
+            function (function name is not used if module or filename are available)
+              "UWorld::Tick(ELevelTick, float)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN20FLatentActionManager20ProcessLatentActionsEP7UObjectf"
+            function (function name is not used if module or filename are available)
+              "FLatentActionManager::ProcessLatentActions(UObject*, float)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN20FLatentActionManager25TickLatentActionForObjectEfR9TMultiMapIiP20FPendingLatentAction20FDefaultSetAllocator27TDefaultMapHashableKeyFuncsIiS2_Lb1EEEP7UObject"
+            function (function name is not used if module or filename are available)
+              "FLatentActionManager::TickLatentActionForObject(float, TMultiMap<int, FPendingLatentAction*, FDefaultSetAllocator, TDefaultMapHashableKeyFuncs<int, FPendingLatentAction*, true> >&, UObject*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN6AActor12ProcessEventEP9UFunctionPv"
+            function (function name is not used if module or filename are available)
+              "AActor::ProcessEvent(UFunction*, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN7UObject12ProcessEventEP9UFunctionPv"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessEvent(UFunction*, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN9UFunction6InvokeEP7UObjectR6FFramePv"
+            function (function name is not used if module or filename are available)
+              "UFunction::Invoke(UObject*, FFrame&, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN7UObject15ProcessInternalEPS_R6FFramePv"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessInternal(UObject*, FFrame&, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv"
+            function (function name is not used if module or filename are available)
+              "UObject::execCallMathFunction(UObject*, FFrame&, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv"
+            function (function name is not used if module or filename are available)
+              "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType"
+            function (function name is not used if module or filename are available)
+              "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz"
+            function (function name is not used if module or filename are available)
+              "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, char16_t const*, ...)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN13FOutputDevice8LogfImplEPKDsz"
+            function (function name is not used if module or filename are available)
+              "FOutputDevice::LogfImpl(char16_t const*, ...)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName"
+            function (function name is not used if module or filename are available)
+              "FSentryOutputDeviceError::Serialize(char16_t const*, ELogVerbosity::Type, FName const&)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZNK22TMulticastDelegateBaseI28FDefaultTSDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvRK7FStringES0_EJS6_EEEvDpT0_"
+            function (function name is not used if module or filename are available)
+              "TMulticastDelegateBase<FDefaultTSDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (FString const&), FDefaultTSDelegateUserPolicy>, FString const&>(FString const&) const"
+          frame
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "tgkill"
+            function (function name is not used if module or filename are available)
+              "tgkill"
+        type*
+          "SIGTRAP"
+        value*
+          "Trap"

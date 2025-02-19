@@ -55,11 +55,11 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   const mergeMap: MergeMap = {};
 
   keys.forEach(key => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const query = collectedQueries[key];
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
     mergeMap[mergeKey(query)]!.push(query);
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     delete collectedQueries[key];
   });
 

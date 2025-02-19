@@ -38,7 +38,7 @@ function OrganizationDeveloperSettings() {
   const value =
     ['public', 'internal'].find(tab => tab === location?.query?.type) || 'internal';
   const analyticsView = 'developer_settings';
-  const tabs: [id: Tab, label: string][] = [
+  const tabs: Array<[id: Tab, label: string]> = [
     ['internal', t('Internal Integration')],
     ['public', t('Public Integration')],
   ];
@@ -82,6 +82,7 @@ function OrganizationDeveloperSettings() {
         app={app}
         organization={organization}
         onRemoveApp={removeApp}
+        onPublishSubmission={refetch}
       />
     );
   };

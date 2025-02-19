@@ -61,7 +61,7 @@ const getFunctionTags = (fields: readonly Field[] | undefined) => {
     ) {
       const parsedFunction = parseFunction(item.field);
       if (parsedFunction) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[parsedFunction.name] = {
           key: parsedFunction.name,
           name: parsedFunction.name,
@@ -83,7 +83,7 @@ const getMeasurementTags = (
     | undefined
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...measurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -96,7 +96,7 @@ const getMeasurementTags = (
   }
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -167,7 +167,7 @@ function ResultsSearchQueryBuilder(props: Props) {
   // with data when ready
   const getEventFieldValues = useCallback(
     async (tag: any, query: any): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
@@ -201,7 +201,7 @@ function ResultsSearchQueryBuilder(props: Props) {
               includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
             });
 

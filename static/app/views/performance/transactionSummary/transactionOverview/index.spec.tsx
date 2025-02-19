@@ -71,7 +71,7 @@ function initializeData({
 function TestComponent({
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
-  router: InjectedRouter<Record<string, string>, any>;
+  router: InjectedRouter;
 }) {
   if (!props.organization) {
     throw new Error('Missing organization');
@@ -530,8 +530,7 @@ describe('Performance > TransactionSummary', function () {
     ProjectsStore.reset();
     jest.clearAllMocks();
 
-    // Cleanup clientWidth mock
-    // @ts-expect-error
+    // @ts-expect-error Cleanup clientWidth mock
     delete HTMLElement.prototype.clientWidth;
   });
 

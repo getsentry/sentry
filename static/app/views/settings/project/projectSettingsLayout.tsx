@@ -1,4 +1,4 @@
-import {cloneElement, isValidElement} from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -12,7 +12,7 @@ import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSett
 type Props = {
   children: React.ReactNode;
   organization: Organization;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 type InnerProps = Props & {project: Project};
 
@@ -29,6 +29,22 @@ function InnerProjectSettingsLayout({
     project_id: project.id,
     project_platform: project.platform,
   });
+
+  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+
+  if (hasNavigationV2) {
+    return (
+      <Fragment>
+        <ProjectSettingsNavigation organization={organization} />
+        <SettingsLayout params={params} routes={routes} {...props}>
+          {children && isValidElement(children)
+            ? cloneElement<any>(children, {organization, project})
+            : children}
+        </SettingsLayout>
+      </Fragment>
+    );
+  }
+
   return (
     <SettingsLayout
       params={params}

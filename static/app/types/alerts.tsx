@@ -58,7 +58,7 @@ export const enum IssueAlertFilterType {
 
 interface IssueAlertFormFieldChoice {
   type: 'choice';
-  choices?: [key: string | number, name: string][];
+  choices?: Array<[key: string | number, name: string]>;
   initial?: string;
   placeholder?: string;
 }
@@ -263,7 +263,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
    */
   disableDate?: string;
   disableReason?: 'noisy';
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   lastTriggered?: string;
   /**
    * Set to true to opt out of the rule being automatically disabled

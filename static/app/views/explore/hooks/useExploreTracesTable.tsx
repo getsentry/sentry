@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
@@ -8,6 +7,7 @@ import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 
 interface UseExploreTracesTableOptions {
   enabled: boolean;
+  limit: number;
   query: string;
 }
 
@@ -17,6 +17,7 @@ export interface TracesTableResult {
 
 export function useExploreTracesTable({
   enabled,
+  limit,
   query,
 }: UseExploreTracesTableOptions): TracesTableResult {
   const location = useLocation();
@@ -27,7 +28,7 @@ export function useExploreTracesTable({
     enabled,
     dataset,
     query,
-    limit: DEFAULT_PER_PAGE,
+    limit,
     sort: '-timestamp',
     cursor,
   });

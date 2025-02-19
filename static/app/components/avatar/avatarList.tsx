@@ -26,7 +26,7 @@ type Props = {
   teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
   typeAvatars?: string;
-  users?: (Actor | AvatarUser)[];
+  users?: Array<Actor | AvatarUser>;
 };
 
 export const CollapsedAvatars = forwardRef(function CollapsedAvatars(

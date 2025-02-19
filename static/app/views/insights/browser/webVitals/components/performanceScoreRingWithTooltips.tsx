@@ -17,7 +17,6 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
@@ -163,11 +162,7 @@ function PerformanceScoreRingWithTooltips({
     });
   }
 
-  const weights = organization.features.includes(
-    'performance-vitals-handle-missing-webvitals'
-  )
-    ? getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]))
-    : PERFORMANCE_SCORE_WEIGHTS;
+  const weights = getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]));
 
   const commonWebVitalLabelProps = {
     organization,
@@ -222,7 +217,7 @@ function PerformanceScoreRingWithTooltips({
           <Fragment>
             {Object.keys(weights).map((key, index) => {
               const webVital = key as WebVitals;
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (weights[key] > 0 && coordinates[webVital] !== undefined) {
                 return (
                   <WebVitalLabel
@@ -323,7 +318,7 @@ function calculateLabelCoordinates(
 
   const results: {[key in WebVitals]?: {x: number; y: number}} = {};
   Object.keys(weights).forEach((key, index) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     results[key] = {
       // Padding hack for now since ttfb label is longer than the others
       x: coordinates[index]!.x + (key === 'ttfb' ? -12 : 0),

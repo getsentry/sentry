@@ -1,58 +1,75 @@
 import pytest
 from jsonschema import ValidationError
 
-from sentry.issues.grouptype import GroupCategory
-from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
-from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
-    EventFrequencyCountHandler,
+from sentry.rules.conditions.event_frequency import (
+    ComparisonType,
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+    EventUniqueUserFrequencyConditionWithConditions,
+)
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
+from sentry.rules.match import MatchType
+from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
+    create_event_unique_user_frequency_condition_with_conditions,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
-from tests.sentry.workflow_engine.handlers.condition.test_base import (
-    ConditionTestCase,
-    EventFrequencyQueryTestBase,
-)
-
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
 class TestEventFrequencyCountCondition(ConditionTestCase):
     condition = Condition.EVENT_FREQUENCY_COUNT
-    rule_cls = EventFrequencyCondition
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 1000,
+        "value": 50,
         "comparisonType": ComparisonType.COUNT,
     }
-
-    def setUp(self):
-        super().setUp()
-        self.job = WorkflowJob({"event": self.group_event})
 
     def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
-            comparison={"interval": "1h", "value": 1000},
+            comparison={"interval": self.payload["interval"], "value": self.payload["value"]},
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [1001]
-        self.assert_passes(dc, self.job)
+        results = [self.payload["value"] + 1]
+        self.assert_slow_condition_passes(dc, results)
 
-        self.job["snuba_results"] = [999]
-        self.assert_does_not_pass(dc, self.job)
+        results = [self.payload["value"] - 1]
+        self.assert_slow_condition_does_not_pass(dc, results)
+
+    def test_count_with_filters(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "filters": [
+                    {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
+                    {"match": MatchType.IS_SET, "key": "environment"},
+                ],
+            },
+            condition_result=True,
+        )
+
+        results = [self.payload["value"] + 1]
+        self.assert_slow_condition_passes(dc, results)
+
+        results = [self.payload["value"] - 1]
+        self.assert_slow_condition_does_not_pass(dc, results)
 
     def test_dual_write_count(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "interval": "1h",
-            "value": 1000,
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -78,48 +95,79 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
                 condition_result=True,
             )
 
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                    "filters": [
+                        {"match": MatchType.IS_SET, "key": "LOGGER", "value": "sentry.example"}
+                    ],
+                },
+                condition_result=True,
+            )
+
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
     condition = Condition.EVENT_FREQUENCY_PERCENT
-    rule_cls = EventFrequencyCondition
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 1000,
+        "value": 50,
         "comparisonType": ComparisonType.PERCENT,
+        "comparisonInterval": "1d",
     }
-
-    def setUp(self):
-        super().setUp()
-        self.job = WorkflowJob({"event": self.group_event})
 
     def test_percent(self):
         dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "interval": "1h",
-                "value": 100,
-                "comparison_interval": "1d",
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "comparison_interval": self.payload["comparisonInterval"],
             },
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [21, 10]
-        self.assert_passes(dc, self.job)
+        results = [16, 10]
+        self.assert_slow_condition_passes(dc, results)
 
-        self.job["snuba_results"] = [20, 10]
-        self.assert_does_not_pass(dc, self.job)
+        results = [10, 10]
+        self.assert_slow_condition_does_not_pass(dc, results)
+
+    def test_percent_with_filters(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "comparison_interval": self.payload["comparisonInterval"],
+                "filters": [
+                    {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
+                    {"match": MatchType.IS_SET, "key": "environment"},
+                ],
+            },
+            condition_result=True,
+        )
+
+        results = [16, 10]
+        self.assert_slow_condition_passes(dc, results)
+
+        results = [10, 10]
+        self.assert_slow_condition_does_not_pass(dc, results)
 
     def test_dual_write_percent(self):
-        self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "interval": "1h",
-            "value": 1000,
-            "comparison_interval": "1d",
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
+            "comparison_interval": self.payload["comparisonInterval"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -158,37 +206,180 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 condition_result=True,
             )
 
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                    "filters": [{"match": "asdf", "key": "LOGGER", "value": "sentry.example"}],
+                },
+                condition_result=True,
+            )
 
-class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
-    handler = EventFrequencyCountHandler
 
-    def test_batch_query(self):
-        batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
-            start=self.start,
-            end=self.end,
-            environment_id=self.environment.id,
+class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountCondition):
+    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+    payload = {
+        "interval": "1h",
+        "id": EventUniqueUserFrequencyCondition.id,
+        "value": 50,
+        "comparisonType": ComparisonType.COUNT,
+    }
+
+
+class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCondition):
+    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
+    payload = {
+        "interval": "1h",
+        "id": EventUniqueUserFrequencyCondition.id,
+        "value": 50,
+        "comparisonType": ComparisonType.PERCENT,
+        "comparisonInterval": "1d",
+    }
+
+
+class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
+    condition = Condition.PERCENT_SESSIONS_COUNT
+    payload = {
+        "interval": "1h",
+        "id": EventFrequencyPercentCondition.id,
+        "value": 17.2,
+        "comparisonType": ComparisonType.COUNT,
+    }
+
+
+class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
+    condition = Condition.PERCENT_SESSIONS_PERCENT
+    payload = {
+        "interval": "1h",
+        "id": EventFrequencyPercentCondition.id,
+        "value": 17.2,
+        "comparisonType": ComparisonType.PERCENT,
+        "comparisonInterval": "1d",
+    }
+
+
+class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
+    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+    payload = {
+        "interval": "1h",
+        "id": EventUniqueUserFrequencyConditionWithConditions.id,
+        "value": 50,
+        "comparisonType": ComparisonType.COUNT,
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.conditions = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": MatchType.EQUAL,
+                "key": "LOGGER",
+                "value": "sentry.example",
+            },
+            {
+                "id": TaggedEventFilter.id,
+                "match": MatchType.IS_SET,
+                "key": "environment",
+            },
+            {
+                "id": EventAttributeFilter.id,
+                "match": MatchType.EQUAL,
+                "value": "hi",
+                "attribute": "message",
+            },
+        ]
+        self.expected_filters = [
+            {
+                "match": MatchType.EQUAL,
+                "key": self.conditions[0]["key"],
+                "value": self.conditions[0]["value"],
+            },
+            {"match": MatchType.IS_SET, "key": self.conditions[1]["key"]},
+            {
+                "match": MatchType.EQUAL,
+                "key": self.conditions[2]["attribute"],
+                "value": self.conditions[2]["value"],
+            },
+        ]
+        self.dcg = self.create_data_condition_group()
+
+    def test_dual_write_count(self):
+        dc = create_event_unique_user_frequency_condition_with_conditions(
+            self.payload, self.dcg, self.conditions
         )
-        assert batch_query == {
-            self.event.group_id: 1,
-            self.event2.group_id: 1,
-            self.perf_event.group_id: 1,
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
+            "filters": self.expected_filters,
         }
+        assert dc.condition_result is True
+        assert dc.condition_group == self.dcg
 
-        batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
-            start=self.start,
-            end=self.end,
-            environment_id=self.environment2.id,
+    def test_dual_write_percent(self):
+        self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
+        dc = create_event_unique_user_frequency_condition_with_conditions(
+            self.payload, self.dcg, self.conditions
         )
-        assert batch_query == {self.event3.group_id: 1}
 
-    def test_get_error_and_generic_group_ids(self):
-        groups = Group.objects.filter(
-            id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
-        ).values("id", "type", "project_id", "project__organization_id")
-        category_group_ids = self.handler().get_group_ids_by_category(groups)
-        error_group_ids = category_group_ids[GroupCategory.ERROR]
-        assert self.event.group_id in error_group_ids
-        assert self.event2.group_id in error_group_ids
-        assert self.perf_event.group_id in category_group_ids[GroupCategory.PERFORMANCE]
+        assert dc.type == Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
+        assert dc.comparison == {
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
+            "comparison_interval": self.payload["comparisonInterval"],
+            "filters": self.expected_filters,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == self.dcg
+
+    def test_dual_write__invalid(self):
+        with pytest.raises(KeyError):
+            create_event_unique_user_frequency_condition_with_conditions(
+                self.payload,
+                self.dcg,
+                [
+                    {
+                        "id": EventAttributeFilter.id,
+                        "match": MatchType.EQUAL,
+                        "value": "hi",
+                    },
+                ],
+            )
+
+        with pytest.raises(ValueError):  # unsupported filter condition
+            create_event_unique_user_frequency_condition_with_conditions(
+                self.payload,
+                self.dcg,
+                [
+                    {
+                        "id": FirstSeenEventCondition.id,
+                    },
+                ],
+            )
+
+    def test_json_schema(self):
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "asdf",
+                    "value": 100,
+                    "filters": "asdf",
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "filters": [{"interval": "1d", "value": 100}],
+                },
+                condition_result=True,
+            )

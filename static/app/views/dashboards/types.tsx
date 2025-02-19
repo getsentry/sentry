@@ -174,4 +174,5 @@ export enum DashboardWidgetSource {
   DASHBOARDS = 'dashboards',
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
+  TRACE_EXPLORER = 'traceExplorer',
 }

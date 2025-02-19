@@ -228,7 +228,7 @@ const getDiscoverUrl = (
     version: 2,
   });
   return discoverView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
@@ -309,7 +309,7 @@ export function getIssueFieldRenderer(
   field: string
 ): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 

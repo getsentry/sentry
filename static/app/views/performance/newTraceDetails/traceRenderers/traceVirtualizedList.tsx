@@ -18,7 +18,7 @@ export interface VirtualizedRow {
 }
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
-  items: readonly TraceTreeNode<TraceTree.NodeValue>[];
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
   scheduler: TraceScheduler;
@@ -62,7 +62,7 @@ export const useVirtualizedList = (
 
   const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
   renderRef.current = props.render;
-  const itemsRef = useRef<readonly TraceTreeNode<TraceTree.NodeValue>[]>(props.items);
+  const itemsRef = useRef<ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>>(props.items);
   itemsRef.current = props.items;
   const managerRef = useRef<VirtualizedViewManager>(props.manager);
   managerRef.current = props.manager;
@@ -242,7 +242,7 @@ export const useVirtualizedList = (
       overscroll: 5,
       rowHeight: 24,
       scrollHeight: scrollHeightRef.current,
-      styleCache: styleCache.current!,
+      styleCache: styleCache.current,
       renderCache: renderCache.current,
       render: renderRef.current,
       manager: managerRef.current,
@@ -254,7 +254,7 @@ export const useVirtualizedList = (
   return {
     virtualized: items.virtualized,
     rendered: items.rendered,
-    list: list.current!,
+    list: list.current,
   };
 };
 
@@ -269,7 +269,7 @@ function findRenderedItems({
   render,
   manager,
 }: {
-  items: readonly TraceTreeNode<TraceTree.NodeValue>[];
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   overscroll: number;
   render: (arg: VirtualizedRow) => React.ReactNode;
@@ -353,7 +353,7 @@ export function findOptimisticStartIndex({
   scrollTop,
   viewport,
 }: {
-  items: readonly TraceTreeNode<TraceTree.NodeValue>[];
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   overscroll: number;
   rowHeight: number;
   scrollTop: number;

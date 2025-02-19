@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import GenericFooter from './genericFooter';
 
@@ -31,6 +32,8 @@ export default function FirstEventFooter({
   onClickSetupLater,
   isLast,
 }: FirstEventFooterProps) {
+  const {activateSidebar} = useOnboardingSidebar();
+
   const source = 'targeted_onboarding_first_event_footer';
 
   const getSecondaryCta = useCallback(() => {
@@ -83,6 +86,7 @@ export default function FirstEventFooter({
             organization,
             source,
           });
+          activateSidebar();
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >

@@ -4,12 +4,14 @@ import type * as ApiNamespace from 'sentry/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
-export class Request {}
-
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
+const respond = (
+  asyncDelay: AsyncDelay,
+  fn: FunctionCallback | undefined,
+  ...args: any[]
+): void => {
   if (!fn) {
     return;
   }
@@ -191,7 +193,7 @@ class Client implements ApiNamespace.Client {
   wrapCallback<T extends any[]>(
     _id: string,
     func: FunctionCallback<T> | undefined,
-    _cleanup: boolean = false
+    _cleanup = false
   ) {
     const asyncDelay = Client.asyncDelay;
 

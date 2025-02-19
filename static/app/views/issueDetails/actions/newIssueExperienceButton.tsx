@@ -22,7 +22,7 @@ export function NewIssueExperienceButton() {
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
-  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
+  const hasNewUIOnly = organization.streamlineOnly;
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
@@ -42,8 +42,8 @@ export function NewIssueExperienceButton() {
     !hasStreamlinedUIFlag ||
     // has the 'remove opt-out' flag,
     hasEnforceStreamlinedUIFlag ||
-    // has access to only one interface (via the organization option).
-    hasOnlyOneUIOption
+    // has access to only the updated experience through the experiment
+    hasNewUIOnly
   ) {
     return null;
   }
@@ -52,6 +52,7 @@ export function NewIssueExperienceButton() {
     const label = hasStreamlinedUI
       ? t('Switch to the old issue experience')
       : t('Switch to the new issue experience');
+    const text = hasStreamlinedUI ? null : t('Try New UI');
 
     return (
       <ToggleButtonWrapper>
@@ -83,7 +84,8 @@ export function NewIssueExperienceButton() {
           borderless={!hasStreamlinedUI}
           onClick={handleToggle}
         >
-          <ToggleBorder />
+          {text ? <span>{text}</span> : null}
+          {!hasStreamlinedUI && <ToggleBorder />}
         </ToggleButton>
       </ToggleButtonWrapper>
     );
@@ -158,7 +160,6 @@ const ToggleButton = styled(Button)<{enabled: boolean}>`
   }
   span {
     z-index: 1;
-    margin: 0;
   }
 `;
 
@@ -174,8 +175,8 @@ const ToggleBorder = styled('div')`
   position: absolute;
   content: '';
   z-index: -1;
-  width: 46px;
-  height: 46px;
+  width: 125px;
+  height: 125px;
   border-radius: 7px;
   background: ${p => p.theme.badge.beta.background};
   animation: rotating 10s linear infinite;

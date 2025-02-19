@@ -68,7 +68,7 @@ export type Guide = BaseGuide & {
 
 export type GuidesContent = BaseGuide[];
 
-export type GuidesServerData = {
+export type GuidesServerData = Array<{
   /**
    * Guide key
    */
@@ -77,4 +77,4 @@ export type GuidesServerData = {
    * Has this guide already been seen?
    */
   seen: boolean;
-}[];
+}>;

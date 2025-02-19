@@ -4,8 +4,9 @@ export const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
+  'log.body',
 ];
-export const EMPTY_OPTION_VALUE = '(empty)' as const;
+export const EMPTY_OPTION_VALUE = '(empty)';
 
 export enum TokenType {
   OPERATOR = 0,

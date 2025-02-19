@@ -6,7 +6,7 @@ import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -41,7 +41,7 @@ import {makeMonitorDetailsQueryKey} from './utils';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
-type Props = RouteComponentProps<{monitorSlug: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
@@ -157,21 +157,23 @@ function MonitorDetails({params, location}: Props) {
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {monitor.status === 'disabled' && (
-              <Alert
-                type="muted"
-                showIcon
-                trailingItems={
-                  <StatusToggleButton
-                    monitor={monitor}
-                    size="xs"
-                    onToggleStatus={status => handleUpdate({status})}
-                  >
-                    {t('Enable')}
-                  </StatusToggleButton>
-                }
-              >
-                {t('This monitor is disabled and is not accepting check-ins.')}
-              </Alert>
+              <Alert.Container>
+                <Alert
+                  type="muted"
+                  showIcon
+                  trailingItems={
+                    <StatusToggleButton
+                      monitor={monitor}
+                      size="xs"
+                      onToggleStatus={status => handleUpdate({status})}
+                    >
+                      {t('Enable')}
+                    </StatusToggleButton>
+                  }
+                >
+                  {t('This monitor is disabled and is not accepting check-ins.')}
+                </Alert>
+              </Alert.Container>
             )}
             {!!checkinErrors?.length && (
               <MonitorProcessingErrors
@@ -186,23 +188,9 @@ function MonitorDetails({params, location}: Props) {
             ) : (
               <Fragment>
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorStats
-                  orgSlug={organization.slug}
-                  monitor={monitor}
-                  monitorEnvs={monitor.environments}
-                />
-
-                <MonitorIssues
-                  orgSlug={organization.slug}
-                  monitor={monitor}
-                  monitorEnvs={monitor.environments}
-                />
-
-                <MonitorCheckIns
-                  orgSlug={organization.slug}
-                  monitor={monitor}
-                  monitorEnvs={monitor.environments}
-                />
+                <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
+                <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                <MonitorCheckIns monitor={monitor} monitorEnvs={monitor.environments} />
               </Fragment>
             )}
           </Layout.Main>

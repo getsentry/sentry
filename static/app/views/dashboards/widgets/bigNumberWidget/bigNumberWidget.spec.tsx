@@ -28,6 +28,14 @@ describe('BigNumberWidget', () => {
   });
 
   describe('Visualization', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.resetAllMocks();
+    });
+
     it('Explains missing data', () => {
       render(
         <BigNumberWidget
@@ -37,6 +45,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'p95(span.duration)': 'number',
             },
+            units: {},
           }}
         />
       );
@@ -53,6 +62,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'count()': 'number',
             },
+            units: {},
           }}
         />
       );
@@ -88,6 +98,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'max(timestamp)': 'string',
             },
+            units: {},
           }}
         />
       );
@@ -146,6 +157,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'count()': 'integer',
             },
+            units: {},
           }}
         />
       );

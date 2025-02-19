@@ -20,13 +20,13 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
         detector = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
         )
         result = serialize(detector)
 
         assert result == {
             "id": str(detector.id),
-            "organizationId": str(self.organization.id),
+            "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricAlertFire.slug,
             "dateCreated": detector.date_added,
@@ -50,7 +50,7 @@ class TestDetectorSerializer(TestCase):
         action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         detector = self.create_detector(
-            organization_id=self.organization.id,
+            project_id=self.project.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
             workflow_condition_group=condition_group,
@@ -71,15 +71,14 @@ class TestDetectorSerializer(TestCase):
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
         data_source.detectors.set([detector])
 
         result = serialize(detector)
-        # print("result: ", result)
         assert result == {
             "id": str(detector.id),
-            "organizationId": str(self.organization.id),
+            "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricAlertFire.slug,
             "dateCreated": detector.date_added,
@@ -89,7 +88,7 @@ class TestDetectorSerializer(TestCase):
                     "id": str(data_source.id),
                     "organizationId": str(self.organization.id),
                     "type": type_name,
-                    "queryId": str(subscription.id),
+                    "sourceId": str(subscription.id),
                     "queryObj": {
                         "id": str(subscription.id),
                         "snubaQuery": {
@@ -108,13 +107,13 @@ class TestDetectorSerializer(TestCase):
             "conditionGroup": {
                 "id": str(condition_group.id),
                 "organizationId": str(self.organization.id),
-                "logicType": DataConditionGroup.Type.ANY,
+                "logicType": DataConditionGroup.Type.ANY.value,
                 "conditions": [
                     {
                         "id": str(condition.id),
                         "condition": Condition.GREATER.value,
                         "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH,
+                        "result": DetectorPriorityLevel.HIGH.value,
                     }
                 ],
                 "actions": [
@@ -131,7 +130,7 @@ class TestDetectorSerializer(TestCase):
     def test_serialize_bulk(self):
         detectors = [
             self.create_detector(
-                organization_id=self.organization.id,
+                project_id=self.project.id,
                 name=f"Test Detector {i}",
                 type=MetricAlertFire.slug,
             )
@@ -159,10 +158,11 @@ class TestDataSourceSerializer(TestCase):
         subscription = create_snuba_subscription(
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
+
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
 
         result = serialize(data_source)
@@ -171,7 +171,7 @@ class TestDataSourceSerializer(TestCase):
             "id": str(data_source.id),
             "organizationId": str(self.organization.id),
             "type": type_name,
-            "queryId": str(subscription.id),
+            "sourceId": str(subscription.id),
             "queryObj": {
                 "id": str(subscription.id),
                 "snubaQuery": {
@@ -290,10 +290,11 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "organizationId": str(self.organization.id),
+            "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": None,
-            "dataConditionGroups": [],
+            "triggers": None,
+            "actionFilters": [],
             "environment": None,
         }
 
@@ -339,12 +340,13 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "organizationId": str(self.organization.id),
+            "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": {
+            "triggers": {
                 "id": str(when_condition_group.id),
                 "organizationId": str(self.organization.id),
-                "logicType": DataConditionGroup.Type.ANY,
+                "logicType": DataConditionGroup.Type.ANY.value,
                 "conditions": [
                     {
                         "id": str(trigger_condition.id),
@@ -355,17 +357,17 @@ class TestWorkflowSerializer(TestCase):
                 ],
                 "actions": [],
             },
-            "dataConditionGroups": [
+            "actionFilters": [
                 {
                     "id": str(condition_group.id),
                     "organizationId": str(self.organization.id),
-                    "logicType": DataConditionGroup.Type.ALL,
+                    "logicType": DataConditionGroup.Type.ALL.value,
                     "conditions": [
                         {
                             "id": str(condition.id),
                             "condition": "gt",
                             "comparison": 100,
-                            "result": DetectorPriorityLevel.HIGH,
+                            "result": DetectorPriorityLevel.HIGH.value,
                         }
                     ],
                     "actions": [

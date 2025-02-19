@@ -10,6 +10,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -32,6 +33,8 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -40,22 +43,81 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
+export function useFeedbackOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Getting Started with User Feedback'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== window.location.pathname,
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+// Used by legacy navigation
+function LegacyFeedbackOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
   const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
+  const organization = useOrganization();
+
   const {allProjects, currentProject, setCurrentProject} = useCurrentProjectState({
-    currentPanel,
+    currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
     targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
     onboardingPlatforms: feedbackOnboardingPlatforms,
     allPlatforms: feedbackOnboardingPlatforms,
   });
 
+  useEffect(() => {
+    // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
+    if (currentProject) {
+      trackAnalytics('feedback.list-view-setup-sidebar', {
+        organization,
+        platform: currentProject?.platform ?? 'unknown',
+      });
+    }
+  }, [currentProject, organization, setCurrentProject]);
+
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = allProjects
+    const supportedProjectItems: Array<SelectValue<string>> = allProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o feedback alphabetical sort
         if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {
@@ -82,26 +144,12 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [allProjects]);
 
-  useEffect(() => {
-    if (isActive && currentProject && hasProjectAccess) {
-      // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
-      trackAnalytics('feedback.list-view-setup-sidebar', {
-        organization,
-        platform: currentProject?.platform ?? 'unknown',
-      });
-    }
-  }, [organization, currentProject, isActive, hasProjectAccess]);
-
-  if (!isActive || !hasProjectAccess || !currentProject) {
+  if (!currentProject) {
     return null;
   }
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with User Feedback')}</Heading>
@@ -140,7 +188,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
         </HeaderActions>
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -417,4 +465,4 @@ const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
 
-export default FeedbackOnboardingSidebar;
+export default LegacyFeedbackOnboardingSidebar;

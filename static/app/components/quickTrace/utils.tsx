@@ -61,7 +61,7 @@ function generateDiscoverEventTarget(
     },
   };
   return eventDetailsRouteWithEventView({
-    orgSlug: organization.slug,
+    organization,
     eventSlug,
     eventView: EventView.fromLocation(newLocation),
     isHomepage: location.query.homepage === 'true' || undefined,
@@ -113,7 +113,7 @@ export function generateMultiTransactionsTarget(
     end,
   });
   return traceEventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );
@@ -130,10 +130,10 @@ export function getEventTimestamp(event: Event): string | number | undefined {
   for (const key of timestampsFieldCandidates) {
     if (
       key in event &&
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       (typeof event[key] === 'string' || typeof event[key] === 'number')
     ) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return event[key];
     }
   }
@@ -177,7 +177,7 @@ export function generateTraceTarget(
     ...dateSelection,
   });
   return eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

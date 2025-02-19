@@ -1,13 +1,13 @@
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
-import ControlState from './controlState';
-import ControlWrapper from './controlWrapper';
-import FieldDescription from './fieldDescription';
-import FieldHelp from './fieldHelp';
-import FieldLabel from './fieldLabel';
-import FieldQuestion from './fieldQuestion';
-import FieldRequiredBadge from './fieldRequiredBadge';
-import FieldWrapper from './fieldWrapper';
+import {ControlState} from './controlState';
+import {ControlWrapper} from './controlWrapper';
+import {FieldDescription} from './fieldDescription';
+import {FieldHelp} from './fieldHelp';
+import {FieldLabel} from './fieldLabel';
+import {FieldQuestion} from './fieldQuestion';
+import {FieldRequiredBadge} from './fieldRequiredBadge';
+import {FieldWrapper} from './fieldWrapper';
 import type {FieldGroupProps} from './types';
 
 /**
@@ -51,10 +51,7 @@ function FieldGroup({
     style,
   } = props;
 
-  const isVisible = typeof visible === 'function' ? visible(props) : visible;
-  const isDisabled = typeof disabled === 'function' ? disabled(props) : disabled;
-
-  if (!isVisible) {
+  if (!visible) {
     return null;
   }
 
@@ -62,7 +59,6 @@ function FieldGroup({
     <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />
   );
 
-  const helpElement = typeof help === 'function' ? help(props) : help;
   const shouldRenderLabel = !hideLabel && !!label;
 
   // Provide an `aria-label` to the FieldDescription label if our label is a
@@ -83,32 +79,32 @@ function FieldGroup({
       style={style}
     >
       <FieldDescription
-        displayNone={!shouldRenderLabel && !helpElement}
+        displayNone={!shouldRenderLabel && !help}
         inline={inline}
         htmlFor={id}
         aria-label={ariaLabel}
       >
         {shouldRenderLabel && (
-          <FieldLabel disabled={isDisabled}>
+          <FieldLabel disabled={disabled}>
             <span>
               {label}
               {required && <FieldRequiredBadge />}
             </span>
-            {helpElement && showHelpInTooltip && (
+            {help && showHelpInTooltip && (
               <FieldQuestion>
                 <QuestionTooltip
                   position="top"
                   size="sm"
                   {...(showHelpInTooltip !== true ? showHelpInTooltip : {})}
-                  title={helpElement}
+                  title={help}
                 />
               </FieldQuestion>
             )}
           </FieldLabel>
         )}
-        {helpElement && !showHelpInTooltip && (
+        {help && !showHelpInTooltip && (
           <FieldHelp id={helpId} stacked={stacked} inline={inline}>
-            {helpElement}
+            {help}
           </FieldHelp>
         )}
       </FieldDescription>

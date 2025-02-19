@@ -7,7 +7,6 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
-from sentry.shared_integrations.client.base import BaseApiResponseX
 
 LEVEL_SEVERITY_MAP = {
     "debug": "info",
@@ -29,7 +28,7 @@ class PagerDutyClient(ApiClient):
         self.integration_key = integration_key
         super().__init__(integration_id=integration_id)
 
-    def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
         headers = kwargs.pop("headers", None)
         if headers is None:
             headers = {"Content-Type": "application/json"}

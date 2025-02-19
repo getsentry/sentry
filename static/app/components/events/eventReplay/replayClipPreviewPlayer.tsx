@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import type {LinkButtonProps} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Alert} from 'sentry/components/core/alert';
 import {
   REPLAY_LOADING_HEIGHT,
   REPLAY_LOADING_HEIGHT_LARGE,
@@ -91,12 +91,14 @@ function ReplayClipPreviewPlayer({
 
   if (replayReaderResult.replayRecord?.is_archived) {
     return (
-      <Alert type="warning" data-test-id="replay-error">
-        <Flex gap={space(0.5)}>
-          <IconDelete color="gray500" size="sm" />
-          {t('The replay for this event has been deleted.')}
-        </Flex>
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" data-test-id="replay-error">
+          <Flex gap={space(0.5)}>
+            <IconDelete color="gray500" size="sm" />
+            {t('The replay for this event has been deleted.')}
+          </Flex>
+        </Alert>
+      </Alert.Container>
     );
   }
 

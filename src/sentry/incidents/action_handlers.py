@@ -346,7 +346,6 @@ def generate_incident_trigger_email_context(
 ):
     trigger = alert_rule_trigger
     alert_rule = trigger.alert_rule
-    assert alert_rule.snuba_query is not None
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value

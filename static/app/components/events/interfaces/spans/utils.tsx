@@ -315,7 +315,7 @@ export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   return false;
 }
 
-export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
+export function getSpanID(span: ProcessedSpanType, defaultSpanID = ''): string {
   if (isGapSpan(span)) {
     return defaultSpanID;
   }
@@ -470,7 +470,7 @@ export function parseTrace(
     }
   );
 
-  const spans: (RawSpanType | AggregateSpanType)[] = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = traceContext?.trace_id || '';
@@ -584,7 +584,7 @@ export function parseTrace(
       return acc;
     }
 
-    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
+    if (hasEndTimestamp && span.timestamp > acc.traceEndTimestamp) {
       acc.traceEndTimestamp = span.timestamp;
       return acc;
     }
@@ -1001,7 +1001,7 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level' | 'type'>[]
+  errors?: Array<Pick<TraceError, 'level' | 'type'>>
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
     errors || [],

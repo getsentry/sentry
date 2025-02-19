@@ -75,18 +75,6 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
-    /**
-     * Is populated with promises/strings of commonly used data.
-     */
-    __sentry_preload: {
-      orgSlug?: string;
-      organization?: Promise<ApiResult>;
-      organization_fallback?: Promise<ApiResult>;
-      projects?: Promise<ApiResult>;
-      projects_fallback?: Promise<ApiResult>;
-      teams?: Promise<ApiResult>;
-      teams_fallback?: Promise<ApiResult>;
-    };
 
     // typing currently used for demo add on
     // TODO: improve typing
@@ -108,6 +96,18 @@ declare global {
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
+    /**
+     * Is populated with promises/strings of commonly used data.
+     */
+    __sentry_preload?: {
+      orgSlug?: string;
+      organization?: Promise<ApiResult>;
+      organization_fallback?: Promise<ApiResult>;
+      projects?: Promise<ApiResult>;
+      projects_fallback?: Promise<ApiResult>;
+      teams?: Promise<ApiResult>;
+      teams_fallback?: Promise<ApiResult>;
+    };
     /**
      * Set to true if adblock could be installed.
      * See sentry/js/ads.js for how this global is disabled.
@@ -173,7 +173,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: {level: keyof Theme['alert']; message: string}[];
+  messages: Array<{level: keyof Theme['alert']; message: string}>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
   // The list of regions the user has has access to.

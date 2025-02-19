@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import getDuration from 'sentry/utils/duration/getDuration';
 import toPercent from 'sentry/utils/number/toPercent';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -124,7 +123,7 @@ function TraceViewHeader(props: PropType) {
 const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   left: 0;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: 0;
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

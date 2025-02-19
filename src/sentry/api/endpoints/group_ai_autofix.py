@@ -107,6 +107,28 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if not profile_id and results:  # fallback to a similar transaction in the trace
             profile_matches_event = False
             profile_id = results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
+        if (
+            not profile_id
+        ):  # fallback to any profile in that kind of transaction, not just the same trace
+            event_filter = eventstore.Filter(
+                project_ids=[project.id],
+                conditions=[
+                    ["transaction", "=", transaction_name],
+                    ["profile_id", "IS NOT NULL", None],
+                ],
+            )
+            results = eventstore.backend.get_events(
+                filter=event_filter,
+                dataset=Dataset.Transactions,
+                referrer=Referrer.API_GROUP_AI_AUTOFIX,
+                tenant_ids={"organization_id": project.organization_id},
+                limit=1,
+            )
+            if results:
+                profile_id = (
+                    results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
+                )
+
         if not profile_id:
             return None
 
@@ -239,16 +261,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         return execution_tree
 
-    def _make_error_metadata(self, autofix: dict, reason: str):
-        return {
-            **autofix,
-            "completed_at": datetime.now().isoformat(),
-            "status": "ERROR",
-            "fix": None,
-            "error_message": reason,
-            "steps": [],
-        }
-
     def _respond_with_error(self, reason: str, status: int):
         return Response(
             {
@@ -345,7 +357,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if serialized_event is None:
             return self._respond_with_error("Cannot fix issues without an event.", 400)
 
-        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
+        if not any(
+            [
+                entry.get("type") == "exception" or entry.get("type") == "threads"
+                for entry in serialized_event["entries"]
+            ]
+        ):
             return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
@@ -399,6 +416,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
         check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
         return Response(
+            {
+                "run_id": run_id,
+            },
             status=202,
         )
 

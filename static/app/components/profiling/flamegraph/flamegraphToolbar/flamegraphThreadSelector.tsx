@@ -24,11 +24,11 @@ function FlamegraphThreadSelector({
   profileGroup,
 }: FlamegraphThreadSelectorProps) {
   const [profileOptions, emptyProfileOptions]: [
-    SelectOption<number>[],
-    SelectOption<number>[],
+    Array<SelectOption<number>>,
+    Array<SelectOption<number>>,
   ] = useMemo(() => {
-    const profiles: SelectOption<number>[] = [];
-    const emptyProfiles: SelectOption<number>[] = [];
+    const profiles: Array<SelectOption<number>> = [];
+    const emptyProfiles: Array<SelectOption<number>> = [];
     const activeThreadId =
       typeof profileGroup.activeProfileIndex === 'number'
         ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId

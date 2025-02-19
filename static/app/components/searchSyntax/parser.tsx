@@ -42,6 +42,9 @@ export enum Token {
   LOGIC_GROUP = 'logicGroup',
   LOGIC_BOOLEAN = 'logicBoolean',
   KEY_SIMPLE = 'keySimple',
+  KEY_EXPLICIT_FLAG = 'keyExplicitFlag',
+  KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
+  KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
@@ -133,6 +136,8 @@ const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
   Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_FLAG,
+  Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
 
 /**
@@ -383,7 +388,9 @@ export class TokenConverter {
     isNumeric: (key: string) =>
       this.config.numericKeys.has(key) ||
       isMeasurement(key) ||
-      isSpanOperationBreakdownField(key),
+      isSpanOperationBreakdownField(key) ||
+      this.keyValidation.isDuration(key) ||
+      this.keyValidation.isSize(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -457,11 +464,11 @@ export class TokenConverter {
   });
 
   tokenLogicGroup = (
-    inner: (
+    inner: Array<
       | ReturnType<TokenConverter['tokenLogicBoolean']>
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
-    )[]
+    >
   ) => ({
     ...this.defaultTokenFields,
     type: Token.LOGIC_GROUP as const,
@@ -480,6 +487,36 @@ export class TokenConverter {
     type: Token.KEY_SIMPLE as const,
     value,
     quoted,
+  });
+
+  tokenKeyExplicitFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitStringFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_STRING_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitNumberFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_NUMBER_FLAG as const,
+    prefix,
+    key,
   });
 
   tokenKeyExplicitTag = (
@@ -535,7 +572,7 @@ export class TokenConverter {
 
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
-    args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
+    args: Array<ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>>
   ) => {
     return {
       ...this.defaultTokenFields,
@@ -546,9 +583,9 @@ export class TokenConverter {
 
   tokenValueIso8601Date = (
     value: string,
-    date: (string | string[])[],
-    time?: (string | string[] | string[][])[],
-    tz?: (string | string[])[]
+    date: Array<string | string[]>,
+    time?: Array<string | string[] | string[][]>,
+    tz?: Array<string | string[]>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
@@ -643,7 +680,7 @@ export class TokenConverter {
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueNumber']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER_LIST as const,
@@ -652,7 +689,7 @@ export class TokenConverter {
 
   tokenValueTextList = (
     item1: ReturnType<TokenConverter['tokenValueText']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueText']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_TEXT_LIST as const,
@@ -803,6 +840,9 @@ export class TokenConverter {
         Token.KEY_AGGREGATE,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_FLAG,
+        Token.KEY_EXPLICIT_NUMBER_FLAG,
+        Token.KEY_EXPLICIT_STRING_FLAG,
       ].includes(key.type)
     ) {
       return null;
@@ -812,9 +852,12 @@ export class TokenConverter {
       key as TokenResult<
         | Token.KEY_SIMPLE
         | Token.KEY_EXPLICIT_TAG
+        | Token.KEY_EXPLICIT_FLAG
         | Token.KEY_AGGREGATE
         | Token.KEY_EXPLICIT_NUMBER_TAG
+        | Token.KEY_EXPLICIT_NUMBER_FLAG
         | Token.KEY_EXPLICIT_STRING_TAG
+        | Token.KEY_EXPLICIT_STRING_FLAG
       >
     );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
@@ -878,7 +921,9 @@ export class TokenConverter {
     // Explicit tag keys will always be treated as text filters
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
-      key.type === Token.KEY_EXPLICIT_STRING_TAG
+      key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_FLAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {
       return this.checkInvalidTextValue(value);
     }
@@ -985,7 +1030,7 @@ export class TokenConverter {
 
     if (
       this.config.disallowWildcard &&
-      // @ts-ignore TS(2531): Object is possibly 'null'.
+      // @ts-expect-error TS(2531): Object is possibly 'null'.
       items.some(item => item.value.value.includes('*'))
     ) {
       return {

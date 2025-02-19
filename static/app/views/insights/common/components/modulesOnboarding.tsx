@@ -34,7 +34,7 @@ import {
   MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import PerformanceOnboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 export function ModulesOnboarding({
   children,
@@ -61,7 +61,7 @@ export function ModulesOnboarding({
   if (onboardingProject) {
     return (
       <ModuleLayout.Full>
-        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+        <LegacyOnboarding organization={organization} project={onboardingProject} />
       </ModuleLayout.Full>
     );
   }
@@ -78,7 +78,7 @@ export function ModulesOnboarding({
 }
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
@@ -120,7 +120,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -297,7 +297,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
-  // Mobile UI is not released yet
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -305,9 +304,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile Screens is not released yet
-  'mobile-screens': {
-    heading: t('Mobile Screens'),
+  'mobile-vitals': {
+    heading: t('Mobile Vitals'),
     description: t('Explore mobile app metrics.'),
     valuePropDescription: '',
     valuePropPoints: [],
@@ -497,5 +495,22 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: null,
     valuePropDescription: null,
     valuePropPoints: [],
+  },
+  sessions: {
+    heading: t(`Get insights about your application's session health`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+    ],
+    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    supportedSdks: [], // TODO: add supported sdks
   },
 };

@@ -26,7 +26,7 @@ describe('ProjectExpectCtReports', function () {
 
     // Heading
     expect(
-      await screen.findByText('Certificate Transparency', {selector: 'h4'})
+      await screen.findByText('Certificate Transparency', {selector: 'h1'})
     ).toBeInTheDocument();
   });
 

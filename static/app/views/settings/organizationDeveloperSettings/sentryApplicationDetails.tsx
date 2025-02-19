@@ -10,12 +10,12 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import {Alert} from 'sentry/components/alert';
 import Avatar from 'sentry/components/avatar';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
@@ -38,7 +38,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
-import type {SentryApp} from 'sentry/types/integrations';
+import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
@@ -139,7 +139,7 @@ class SentryAppFormModel extends FormModel {
   getData() {
     return this.fields.toJSON().reduce((data, [k, v]) => {
       if (!k.endsWith('--permission')) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[k] = v;
       }
       return data;
@@ -147,7 +147,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{appSlug?: string}, {}> & {
+type Props = RouteComponentProps<{appSlug?: string}> & {
   organization: Organization;
 };
 
@@ -176,7 +176,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
       if (this.hasTokenAccess) {
         endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
       }
-      return endpoints as [string, string][];
+      return endpoints as Array<[string, string]>;
     }
 
     return [];
@@ -327,9 +327,11 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
-            <Alert type="info" showIcon>
-              {t('This will be the only time your client secret is visible!')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon>
+                {t('This will be the only time your client secret is visible!')}
+              </Alert>
+            </Alert.Container>
             <TextCopyInput aria-label={t('new-client-secret')}>
               {rotateResponse.clientSecret}
             </TextCopyInput>
@@ -353,7 +355,8 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
     if (app && avatar) {
       const avatars =
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
-      avatars.push(avatar);
+
+      avatars.push(avatar as SentryAppAvatar);
       this.setState({app: {...app, avatars}});
     }
   };

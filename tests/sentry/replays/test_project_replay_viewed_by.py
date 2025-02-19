@@ -182,3 +182,22 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert len(response.data["data"]["viewed_by"]) == 0
+
+    def test_get_replay_viewed_by_denylist(self):
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
+
+        self.store_replays(
+            mock_replay_viewed(time.time(), self.project.id, self.replay_id, self.user.id)
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            with self.options({"replay.viewed-by.project-denylist": [self.project.id]}):
+                response = self.client.get(self.url)
+                assert response.status_code == 400
+                assert (
+                    response.json()["detail"]["message"]
+                    == "Viewed by search has been disabled for your project due to a data irregularity."
+                )

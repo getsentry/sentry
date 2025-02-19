@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,74 +12,71 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 // tour is a string that tells which tour the user is completing in the walkthrough
 type Props = ModalRenderProps & {orgSlug: Organization['slug'] | null; tour: string};
 
 export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}: Props) {
-  const api = useApi();
   const navigate = useNavigate();
 
-  let cardTitle = '',
-    body = '',
-    guides = [''],
-    path = '';
+  const {cardTitle, body, path} = useMemo(() => {
+    switch (tour) {
+      case 'issues':
+        return {
+          cardTitle: t('Issues Tour'),
+          body: t(
+            'Thank you for completing the Issues tour. Learn about other Sentry features by starting another tour.'
+          ),
+          guides: ['issues_v3', 'issue_stream_v3'],
+          path: `/organizations/${orgSlug}/issues/`,
+        };
 
-  switch (tour) {
-    case 'issues':
-      cardTitle = t('Issues Tour');
-      body = t(
-        'Thank you for completing the Issues tour. Learn about other Sentry features by starting another tour.'
-      );
-      guides = ['issues_v3', 'issue_stream_v3'];
-      path = `/organizations/${orgSlug}/issues/`;
-      break;
-    case 'performance':
-      cardTitle = t('Performance Tour');
-      body = t(
-        'Thank you for completing the Performance tour. Learn about other Sentry features by starting another tour.'
-      );
-      guides = ['performance', 'transaction_summary', 'transaction_details_v2'];
-      path = `/organizations/${orgSlug}/performance/`;
-      break;
-    case 'releases':
-      cardTitle = t('Releases Tour');
-      body = t(
-        'Thank you for completing the Releases tour. Learn about other Sentry features by starting another tour.'
-      );
-      guides = ['releases_v2', 'react-native-release', 'release-details_v2'];
-      path = `/organizations/${orgSlug}/releases/`;
-      break;
-    case 'tabs':
-      cardTitle = t('Check out the different tabs');
-      body = t(
-        'Thank you for checking out the different tabs. Learn about other Sentry features by starting another tour.'
-      );
-      guides = ['sidebar_v2'];
-      path = `/organizations/${orgSlug}/projects/`;
-      break;
-    default:
-  }
+      case 'performance':
+        return {
+          cardTitle: t('Performance Tour'),
+          body: t(
+            'Thank you for completing the Performance tour. Learn about other Sentry features by starting another tour.'
+          ),
+          guides: ['performance', 'transaction_summary', 'transaction_details_v2'],
+          path: `/organizations/${orgSlug}/performance/`,
+        };
 
-  const sandboxData = window.SandboxData;
-  const url = sandboxData?.cta?.url || 'https://sentry.io/signup/';
+      case 'releases':
+        return {
+          cardTitle: t('Releases Tour'),
+          body: t(
+            'Thank you for completing the Releases tour. Learn about other Sentry features by starting another tour.'
+          ),
+          guides: ['releases_v2', 'react-native-release', 'release-details_v2'],
+          path: `/organizations/${orgSlug}/releases/`,
+        };
+
+      case 'tabs':
+        return {
+          cardTitle: t('Check out the different tabs'),
+          body: t(
+            'Thank you for checking out the different tabs. Learn about other Sentry features by starting another tour.'
+          ),
+          guides: ['sidebar_v2'],
+          path: `/organizations/${orgSlug}/projects/`,
+        };
+
+      default:
+        return {
+          cardTitle: '',
+          body: '',
+          guides: [''],
+          path: '',
+        };
+    }
+  }, [orgSlug, tour]);
 
   const navigation = useCallback(() => {
     navigate(path);
   }, [path, navigate]);
 
-  async function handleRestart() {
-    await Promise.all(
-      guides.map(guide =>
-        api.requestPromise('/assistant/', {
-          method: 'PUT',
-          data: {guide, status: 'restart'},
-        })
-      )
-    );
-
+  function handleRestart() {
     trackAnalytics('growth.end_modal_restart_tours', {
       organization: null,
     });
@@ -121,14 +118,14 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
       <ButtonContainer>
         <SignUpButton
           external
-          href={url}
+          href={'https://sentry.io/signup/'}
           onClick={() => {
             trackAnalytics('growth.end_modal_signup', {
               organization: null,
             });
           }}
         >
-          {sandboxData?.cta?.title || t('Sign up for Sentry')}
+          {t('Sign up for Sentry')}
         </SignUpButton>
         <ButtonBar>
           <Button onClick={handleMoreTours}>{t('More Tours')} </Button>

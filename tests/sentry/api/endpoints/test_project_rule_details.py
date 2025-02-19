@@ -20,6 +20,8 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -27,6 +29,12 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -1508,10 +1516,118 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filters": [],
         }
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_with_public_context(self, result):
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=SentryAppErrorType.CLIENT,
+            public_context={"bruh": "bruhhhh"},
+            status_code=409,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=409, **payload
+        )
+        assert error_message in response.json().get("actions")[0]
+        assert response.json().get("context") == {"bruh": "bruhhhh"}
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_sentry_error(self, result):
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=SentryAppErrorType.SENTRY,
+            public_context={"bruh": "bro!"},
+            webhook_context={"swig": "swoog"},
+            status_code=510,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=510, **payload
+        )
+        assert error_message not in response.json().get("actions")[0]
+        assert (
+            response.json().get("actions")[0]
+            == "Something went wrong during the custom integration process!"
+        )
+        assert response.json().get("context") == {"bruh": "bro!"}
+        assert list(response.json().keys()) == ["context", "actions"]
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_missing_error_type(self, result):
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=None,
+            status_code=500,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
+        )
+        assert error_message not in response.json().get("actions")[0]
+        assert (
+            response.json().get("actions")[0]
+            == "Something went wrong during the custom integration process!"
+        )
+        assert list(response.json().keys()) == ["actions"]
 
     def test_edit_condition_metric(self):
         payload = {
@@ -1552,3 +1668,45 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not Rule.objects.filter(
             id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_dual_delete_workflow_engine(self):
+        rule = self.create_project_rule(
+            self.project,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                    "name": "The event occurs",
+                },
+            ],
+        )
+        IssueAlertMigrator(rule, user_id=self.user.id).run()
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
+        workflow = alert_rule_workflow.workflow
+        when_dcg = workflow.when_condition_group
+        assert when_dcg
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
+        )
+
+        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
+        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
+        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
+        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+
+    def test_dual_delete_workflow_engine_no_migrated_models(self):
+        rule = self.create_project_rule(self.project)
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
+        )
+
+        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()

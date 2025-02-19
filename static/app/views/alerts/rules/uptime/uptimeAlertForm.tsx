@@ -5,7 +5,8 @@ import {Observer} from 'mobx-react';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {Alert} from 'sentry/components/core/alert';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
@@ -26,10 +27,10 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {HTTPSnippet} from './httpSnippet';
@@ -102,9 +103,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
         function onSubmitSuccess(response: any) {
           navigate(
-            normalizeUrl(
-              `/organizations/${organization.slug}/alerts/rules/uptime/${projectSlug}/${response.id}/details/`
-            )
+            makeAlertsPathname({
+              path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
+              organization,
+            })
           );
         }
         formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
@@ -113,7 +115,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization.slug, projects, rule]
+    [formModel, navigate, organization, projects, rule]
   );
 
   return (
@@ -166,6 +168,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="environment"
             label={t('Environment')}
             placeholder={t('Select an environment')}
+            noOptionsMessage={() => t('Start typing to create an environment')}
             hideLabel
             onCreateOption={(env: any) => {
               setNewEnvironment(env);
@@ -194,6 +197,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               label={t('Interval')}
               defaultValue={60}
               flexibleControlStateSize
+              showHelpInTooltip={{isHoverable: true}}
+              help={({model}) =>
+                tct(
+                  'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                    ),
+                    interval: (
+                      <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
+                    ),
+                    expectedFailureInterval: (
+                      <strong>
+                        {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
+                      </strong>
+                    ),
+                  }
+                )
+              }
               required
             />
             <RangeField
@@ -261,6 +283,18 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
             />
           </ConfigurationPanel>
+          <Alert.Container>
+            <Alert type="muted" showIcon>
+              {tct(
+                'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
           <Observer>
             {() => (
               <HTTPSnippet

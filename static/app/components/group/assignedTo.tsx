@@ -51,7 +51,7 @@ type Rule = [RuleDefinition, RuleOwner[]];
 function findMatchedRules(
   rules: EventOwners['rules'],
   owner: Actor
-): Rule[0][] | undefined {
+): Array<Rule[0]> | undefined {
   if (!rules) {
     return undefined;
   }
@@ -79,7 +79,7 @@ type IssueOwner = {
   actor: Actor;
   source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
   commits?: Commit[];
-  rules?: [string, string][] | null;
+  rules?: Array<[string, string]> | null;
 };
 export interface EventOwners {
   owners: Actor[];
@@ -141,7 +141,7 @@ export function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | undefined,
   assignedTo: Actor | null
-): Omit<SuggestedAssignee, 'assignee'>[] {
+): Array<Omit<SuggestedAssignee, 'assignee'>> {
   const owners: IssueOwner[] = committers.map(commiter => ({
     actor: {...commiter.author, type: 'user'},
     commits: commiter.commits,

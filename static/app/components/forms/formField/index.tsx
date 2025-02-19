@@ -9,8 +9,8 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react';
 
-import type {AlertProps} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import type {AlertProps} from 'sentry/components/core/alert';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -54,14 +54,14 @@ const propsToObserve = [
   'visible',
   'disabled',
   'disabledReason',
-] satisfies (keyof FormFieldProps)[];
+] satisfies Array<keyof FormFieldProps>;
 
 interface FormFieldPropModel extends FormFieldProps {
   model: FormModel;
 }
 
-type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
-type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
+type ObservedFn<T> = (props: FormFieldPropModel) => T;
+type ObservedFnOrValue<T> = T | ObservedFn<T>;
 
 type ObserverdPropNames = (typeof propsToObserve)[number];
 
@@ -74,12 +74,12 @@ type ObservedPropResolver = [
  * Construct the type for properties that may be given observed functions
  */
 interface ObservableProps {
-  disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
-  disabledReason?: ObservedFnOrValue<{}, FieldGroupProps['disabledReason']>;
-  help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
-  highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
-  inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
-  visible?: ObservedFnOrValue<{}, FieldGroupProps['visible']>;
+  disabled?: ObservedFnOrValue<FieldGroupProps['disabled']>;
+  disabledReason?: ObservedFnOrValue<FieldGroupProps['disabledReason']>;
+  help?: ObservedFnOrValue<FieldGroupProps['help']>;
+  highlighted?: ObservedFnOrValue<FieldGroupProps['highlighted']>;
+  inline?: ObservedFnOrValue<FieldGroupProps['inline']>;
+  visible?: ObservedFnOrValue<FieldGroupProps['visible']>;
 }
 
 /**
@@ -109,7 +109,7 @@ interface BaseProps {
   // TODO(ts): These are actually props that are needed for some lower
   // component. We should let the rendering component pass these in instead
   defaultValue?: FieldValue;
-  formatMessageValue?: boolean | Function;
+  formatMessageValue?: boolean | ((value: any, props: any) => React.ReactNode);
   /**
    * Transform data when saving on blur.
    */
@@ -121,7 +121,7 @@ interface BaseProps {
   onBlur?: (value: any, event: any) => void;
   onChange?: (value: any, event: any) => void;
   onKeyDown?: (value: any, event: any) => void;
-  placeholder?: ObservedFnOrValue<{}, React.ReactNode>;
+  placeholder?: ObservedFnOrValue<React.ReactNode>;
 
   resetOnError?: boolean;
   /**
@@ -159,7 +159,7 @@ interface BaseProps {
    */
   transformInput?: (value: any) => any;
   // used in prettyFormString
-  validate?: Function;
+  validate?: (props: any) => Array<[string, string]>;
 }
 
 export interface FormFieldProps
@@ -386,14 +386,9 @@ function FormField(props: FormFieldProps) {
                 const error = model.getError(name);
                 const value = model.getValue(name);
 
-                const isVisible =
-                  typeof fieldProps.visible === 'function'
-                    ? fieldProps.visible({...props, ...fieldProps} as ResolvedProps)
-                    : true;
-
                 return (
                   <Fragment>
-                    {isVisible
+                    {fieldProps.visible
                       ? selectionInfoFunction({...fieldProps, error, value})
                       : null}
                   </Fragment>
@@ -413,7 +408,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
-                    type={saveMessageAlertType}
+                    type={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>
                         <Button onClick={handleCancelField} size="xs">
@@ -454,7 +449,7 @@ function FormField(props: FormFieldProps) {
     .filter(p => typeof props[p] === 'function')
     .map<ObservedPropResolver>(p => [
       p,
-      () => (props[p] as ObservedFn<{}, any>)({...props, model}),
+      () => (props[p] as ObservedFn<any>)({...props, model}),
     ]);
 
   // This field has no properties that require observation to compute their

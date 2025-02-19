@@ -29,8 +29,8 @@ function assertImmutability(baseNode: FlamegraphFrame, newNode: FlamegraphFrame)
       }
       map.set(n.key, n);
 
-      for (let i = 0; i < n.children.length; i++) {
-        stack.push(n.children[i]!);
+      for (const child of n.children) {
+        stack.push(child);
       }
     }
   }

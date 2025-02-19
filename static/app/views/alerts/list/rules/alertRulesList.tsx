@@ -32,7 +32,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {MetricsRemovedAlertsWidgetsAlert} from '../../../metrics/metricsRemovedAlertsWidgetsAlert';
 import FilterBar from '../../filterBar';
 import type {CombinedAlerts} from '../../types';
 import {AlertRuleType, CombinedAlertType} from '../../types';
@@ -82,7 +81,7 @@ function AlertRulesList() {
     getResponseHeader,
     isPending,
     isError,
-  } = useApiQuery<(CombinedAlerts | null)[]>(
+  } = useApiQuery<Array<CombinedAlerts | null>>(
     getAlertListQueryKey(organization.slug, location.query),
     {
       staleTime: 0,
@@ -160,7 +159,7 @@ function AlertRulesList() {
 
     try {
       await api.requestPromise(deleteEndpoints[rule.type], {method: 'DELETE'});
-      setApiQueryData<(CombinedAlerts | null)[]>(
+      setApiQueryData<Array<CombinedAlerts | null>>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
         data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)
@@ -205,7 +204,6 @@ function AlertRulesList() {
         <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricsRemovedAlertsWidgetsAlert organization={organization} />
             <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}
@@ -286,7 +284,7 @@ function AlertRulesList() {
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
-                          orgId={organization.slug}
+                          organization={organization}
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}

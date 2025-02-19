@@ -24,7 +24,7 @@ export type EventsResultsMeta<F extends string> = {
 };
 
 export type EventsResults<F extends string> = {
-  data: EventsResultsDataRow<F>[];
+  data: Array<EventsResultsDataRow<F>>;
   meta: EventsResultsMeta<F>;
 };
 

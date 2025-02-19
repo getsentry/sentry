@@ -300,7 +300,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _featureFlags: string[] | undefined = [];
-  private _fetching: boolean = true;
+  private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -669,7 +669,9 @@ export default class ReplayReader {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(
         frame =>
-          ['navigation', 'ui.click', 'ui.tap', 'ui.swipe'].includes(frame.category) ||
+          ['navigation', 'ui.click', 'ui.tap', 'ui.swipe', 'ui.scroll'].includes(
+            frame.category
+          ) ||
           (frame.category === 'ui.slowClickDetected' &&
             (isDeadClick(frame as SlowClickFrame) ||
               isDeadRageClick(frame as SlowClickFrame)))
@@ -724,6 +726,8 @@ export default class ReplayReader {
 
   isVideoReplay = () => this.getVideoEvents().length > 0;
 
+  isNetworkCaptureBodySetup = () => Boolean(this.getSDKOptions()?.networkCaptureBodies);
+
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();
     if (sdkOptions) {
@@ -736,9 +740,9 @@ export default class ReplayReader {
     return this.getNetworkFrames().some(
       frame =>
         // We'd need to `filter()` before calling `some()` in order for TS to be happy
-        // @ts-ignore TS(2339): Property 'request' does not exist on type 'WebVita... Remove this comment to see the full error message
+        // @ts-expect-error TS(2339): Property 'request' does not exist on type 'WebVita... Remove this comment to see the full error message
         Object.keys(frame?.data?.request?.headers ?? {}).length ||
-        // @ts-ignore TS(2339): Property 'response' does not exist on type 'WebVit... Remove this comment to see the full error message
+        // @ts-expect-error TS(2339): Property 'response' does not exist on type 'WebVit... Remove this comment to see the full error message
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
@@ -766,7 +770,7 @@ function findCanvasInMutation(event: incrementalSnapshotEvent) {
   );
 }
 
-// @ts-ignore TS(7023): 'findCanvasInChildNodes' implicitly has return typ... Remove this comment to see the full error message
+// @ts-expect-error TS(7023): 'findCanvasInChildNodes' implicitly has return typ... Remove this comment to see the full error message
 function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
   return nodes.find(
     node =>

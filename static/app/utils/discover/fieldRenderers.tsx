@@ -238,7 +238,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         <NumberContainer>
           {typeof data[field] === 'number' ? (
             <Duration
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               seconds={(data[field] * ((unit && DURATION_UNITS[unit]) ?? 1)) / 1000}
               fixedDigits={2}
               abbreviation
@@ -457,7 +457,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   minidump: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
-      const attachments: (IssueAttachment & {url: string})[] = data.attachments;
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
       const minidump = attachments.find(
         attachment => attachment.type === 'event.minidump'
@@ -644,7 +644,7 @@ const SPECIAL_FIELDS: SpecialFields = {
           username: '',
           ip_address: '',
         };
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         userObj[key] = value;
 
         const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
@@ -826,7 +826,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const projectThresholdConfig = 'project_threshold_config';
-    let countMiserableUserField: string = '';
+    let countMiserableUserField = '';
 
     let miseryLimit: number | undefined = parseInt(
       userMiseryField.split('(').pop()?.slice(0, -1) || '',
@@ -907,7 +907,7 @@ export function getSortField(
 
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }
@@ -1064,10 +1064,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export function getFieldRenderer(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
@@ -1080,13 +1080,13 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
@@ -1109,13 +1109,13 @@ type FieldTypeFormatterRenderFunctionPartial = (
 export function getFieldFormatter(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);

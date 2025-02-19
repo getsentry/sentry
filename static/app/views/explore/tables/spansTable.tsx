@@ -4,13 +4,12 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   Table,
   TableBody,
@@ -23,34 +22,23 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useExploreDataset,
   useExploreFields,
-  useExploreQuery,
   useExploreSortBys,
-  useExploreTitle,
-  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
-  confidences: Confidence[];
   spansTableResult: SpansTableResult;
 }
 
-export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
-  const dataset = useExploreDataset();
-  const title = useExploreTitle();
+export function SpansTable({spansTableResult}: SpansTableProps) {
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const setSortBys = useSetExploreSortBys();
-  const query = useExploreQuery();
-  const visualizes = useExploreVisualizes();
-  const organization = useOrganization();
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? fields : ['id', ...fields]),
@@ -61,21 +49,14 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
 
   const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
 
-  useAnalytics({
-    dataset,
-    resultLength: result.data?.length,
-    resultMode: 'span samples',
-    resultStatus: result.status,
-    visualizes,
-    organization,
-    columns: fields,
-    userQuery: query,
-    confidences,
-    title,
-  });
-
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(visibleFields, tableRef);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    visibleFields,
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+    }
+  );
 
   const meta = result.meta ?? {};
 
@@ -104,10 +85,14 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
                 setSortBys([{field, kind}]);
               }
 
+              const label = tag?.name ?? prettifyTagKey(field);
+
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
                   <TableHeadCellContent onClick={updateSort}>
-                    <span>{tag?.name ?? prettifyTagKey(field)}</span>
+                    <Tooltip showOnlyOnOverflow title={label}>
+                      {label}
+                    </Tooltip>
                     {defined(direction) && (
                       <IconArrow
                         size="xs"

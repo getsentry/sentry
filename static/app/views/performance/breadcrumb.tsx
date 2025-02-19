@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 
@@ -29,6 +30,9 @@ type Props = {
 
 function Breadcrumb(props: Props) {
   function getCrumbs() {
+    const hasPerfLandingRemovalFlag = props.organization.features.includes(
+      'insights-performance-landing-removal'
+    );
     const crumbs: Crumb[] = [];
     const {
       organization,
@@ -40,20 +44,26 @@ function Breadcrumb(props: Props) {
       traceSlug,
     } = props;
 
-    const performanceTarget: LocationDescriptor = {
-      pathname: getPerformanceLandingUrl(organization),
-      query: {
-        ...location.query,
-        // clear out the transaction name
-        transaction: undefined,
-      },
-    };
+    if (hasPerfLandingRemovalFlag) {
+      crumbs.push({
+        label: DOMAIN_VIEW_BASE_TITLE,
+      });
+    } else {
+      const performanceTarget: LocationDescriptor = {
+        pathname: getPerformanceLandingUrl(organization),
+        query: {
+          ...location.query,
+          // clear out the transaction name
+          transaction: undefined,
+        },
+      };
 
-    crumbs.push({
-      to: performanceTarget,
-      label: t('Performance'),
-      preservePageFilters: true,
-    });
+      crumbs.push({
+        to: performanceTarget,
+        label: t('Performance'),
+        preservePageFilters: true,
+      });
+    }
 
     crumbs.push(
       ...getTabCrumbs({
@@ -117,7 +127,7 @@ export const getTabCrumbs = ({
   }
 
   const routeQuery = {
-    orgSlug: organization.slug,
+    organization,
     transaction: transaction.name,
     projectID: transaction.project,
     query: location.query,

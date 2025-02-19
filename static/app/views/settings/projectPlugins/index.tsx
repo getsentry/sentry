@@ -10,11 +10,11 @@ import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import ProjectPlugins from './projectPlugins';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   plugins: {
     error: React.ComponentProps<typeof ProjectPlugins>['error'];
@@ -64,7 +64,7 @@ class ProjectPluginsContainer extends Component<Props> {
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
 
         <ProjectPlugins
           {...this.props}

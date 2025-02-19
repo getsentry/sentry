@@ -6,7 +6,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconSentry} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(AlertLink, story => {
+export default storyBook('AlertLink', story => {
   story('Default', () => {
     return (
       <Fragment>

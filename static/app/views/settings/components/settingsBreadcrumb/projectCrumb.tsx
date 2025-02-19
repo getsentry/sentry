@@ -17,7 +17,7 @@ import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}, {}> & {
+type Props = RouteComponentProps<{projectId?: string}> & {
   organization: Organization;
   project: Project;
   projects: Project[];

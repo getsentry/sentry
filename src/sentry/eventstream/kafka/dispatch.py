@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def _sampled_eventstream_timer(instance: str) -> Generator[None, None, None]:
+def _sampled_eventstream_timer(instance: str) -> Generator[None]:
     record_metric = random.random() < 0.1
     if record_metric is True:
         with metrics.timer(_DURATION_METRIC, instance=instance):

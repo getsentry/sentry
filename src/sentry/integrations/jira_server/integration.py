@@ -10,7 +10,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
@@ -40,6 +40,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -223,7 +224,7 @@ class OAuthLoginView(PipelineView):
 
         authorize_url = client.get_authorize_url(request_token)
 
-        return self.redirect(authorize_url)
+        return HttpResponseRedirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -928,7 +929,9 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         issue_type_meta = client.get_issue_fields(jira_project, issue_type)
         if not issue_type_meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+            raise IntegrationInstallationConfigurationError(
+                "Could not fetch issue create configuration from Jira."
+            )
 
         user_id_field = client.user_id_field()
 
@@ -1060,6 +1063,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             total_queried_jira_users = 0
             total_available_jira_emails = 0
             for ue in user.emails:
+                assert ue, "Expected a valid user email, received falsy value"
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue)
                 except ApiUnauthorized:
@@ -1081,7 +1085,18 @@ class JiraServerIntegration(IssueSyncIntegration):
                     continue
 
                 total_queried_jira_users += len(possible_users)
+
+                if len(possible_users) == 1:
+                    # Assume the only user returned is a full match for the email,
+                    # as we search by username. This addresses visibility issues
+                    # in some cases where Jira server does not populate `emailAddress`
+                    # fields on user responses.
+                    jira_user = possible_users[0]
+                    break
+
                 for possible_user in possible_users:
+                    # Continue matching on email address, since we can't guarantee
+                    # a clean match.
                     email = possible_user.get("emailAddress")
 
                     if not email:
@@ -1103,7 +1118,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                         "total_available_jira_emails": total_available_jira_emails,
                     },
                 )
-                return
+                raise IntegrationError("Failed to assign user to Jira Server issue")
 
         try:
             id_field = client.user_id_field()
@@ -1115,6 +1130,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     **logging_context,
                 },
             )
+            raise IntegrationError("Insufficient permissions to assign user to Jira Server issue")
         except ApiError as e:
             logger.info(
                 "jira.user-assignment-request-error",
@@ -1123,6 +1139,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     "error": str(e),
                 },
             )
+            raise IntegrationError("Failed to assign user to Jira Server issue")
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         """

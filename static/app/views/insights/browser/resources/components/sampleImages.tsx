@@ -130,7 +130,7 @@ function SampleImagesChartPanelBody(props: {
         let src = resource[SPAN_DESCRIPTION]!;
         if (isRelativeUrl && hasRawDomain) {
           try {
-            const url = new URL(resource[SPAN_DESCRIPTION]!, resource[RAW_DOMAIN]!);
+            const url = new URL(resource[SPAN_DESCRIPTION]!, resource[RAW_DOMAIN]);
             src = url.href;
           } catch {
             Sentry.setContext('resource', {
@@ -208,15 +208,6 @@ function ImageContainer(props: {
 
   const handleError = () => {
     setHasError(true);
-    Sentry.metrics.increment('performance.resource.image_load', 1, {
-      tags: {status: 'error'},
-    });
-  };
-
-  const handleLoad = () => {
-    Sentry.metrics.increment('performance.resource.image_load', 1, {
-      tags: {status: 'success'},
-    });
   };
 
   return (
@@ -231,7 +222,6 @@ function ImageContainer(props: {
           <img
             data-test-id="sample-image"
             onError={handleError}
-            onLoad={handleLoad}
             src={src}
             style={{
               width: '100%',

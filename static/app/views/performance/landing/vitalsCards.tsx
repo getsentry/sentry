@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -33,7 +34,6 @@ import type {
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
@@ -305,6 +305,7 @@ type SparklineChartProps = {
 };
 
 function SparklineChart(props: SparklineChartProps) {
+  const theme = useTheme();
   const {data} = props;
   const width = 150;
   const height = 24;
@@ -396,7 +397,7 @@ export function VitalBar(props: VitalBarProps) {
   const vitals = toArray(vital);
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
-    (Object.keys(counts) as (keyof typeof counts)[]).forEach(
+    (Object.keys(counts) as Array<keyof typeof counts>).forEach(
       countKey => (counts[countKey] += (c as any)[countKey])
     );
   });

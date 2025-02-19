@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
@@ -108,7 +108,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   );
 
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(props.node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
@@ -169,7 +169,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         data-test-id="view-child-transactions"
         size="xs"
         to={childrenEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
@@ -208,7 +208,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.value.project_id),
@@ -267,7 +267,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: props.node.value.op, group: groupHash},
@@ -286,11 +286,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     return (
-      <Alert type="info" showIcon system>
-        {t(
-          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon system>
+          {t(
+            'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

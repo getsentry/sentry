@@ -72,7 +72,7 @@ describe('TagDetailsDrawerContent', () => {
 
     // Affected user column
     expect(screen.getByText('David Cramer')).toBeInTheDocument();
-    expect(screen.getByText('17%')).toBeInTheDocument();
+    expect(screen.getByText('16%')).toBeInTheDocument();
     // Count column
     expect(screen.getByText('3')).toBeInTheDocument();
 

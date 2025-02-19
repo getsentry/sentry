@@ -32,7 +32,9 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     # fingerprint is an UInt32
     fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
-    dataSource = serializers.ChoiceField(["transactions", "profiles", "functions"], required=False)
+    dataSource = serializers.ChoiceField(
+        ["transactions", "profiles", "functions", "spans"], required=False
+    )
     query = serializers.CharField(required=False)
     expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
 
@@ -52,6 +54,8 @@ class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
             )
         elif source == "profiles":
             attrs["dataSource"] = "profiles"
+        elif source == "spans":
+            attrs["dataSource"] = "spans"
         else:
             attrs["dataSource"] = "transactions"
 

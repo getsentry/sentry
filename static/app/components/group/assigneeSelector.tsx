@@ -21,7 +21,7 @@ interface AssigneeSelectorProps {
   handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
-  owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
 }
 
 export type OnAssignCallback = (

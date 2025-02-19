@@ -60,12 +60,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: 14
+          mode: backend-ci
       - name: Download Codecov CLI
         run: |
           pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.1

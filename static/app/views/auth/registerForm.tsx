@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import RadioBooleanField from 'sentry/components/forms/fields/radioField';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -40,7 +40,11 @@ function RegisterForm({authConfig}: Props) {
         </PrivacyPolicyLink>
       }
     >
-      {error && <Alert type="error">{error}</Alert>}
+      {error && (
+        <Alert.Container>
+          <Alert type="error">{error}</Alert>
+        </Alert.Container>
+      )}
       <TextField
         name="name"
         placeholder={t('Jane Bloggs')}

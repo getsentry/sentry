@@ -39,7 +39,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: undefined,
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -59,7 +60,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -87,7 +89,55 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
         }),
-      })
+      }),
+      {replace: true}
+    );
+  });
+
+  it('displays error', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds
+          dataType="duration"
+          dataUnit="millisecond"
+          error={{thresholds: {max1: 'error on max 1', max2: 'error on max 2'}}}
+        />
+      </WidgetBuilderProvider>,
+      {
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              thresholds: '{"max_values":{"max1":-200,"max2":100},"unit":"millisecond"}',
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('error on max 1')).toBeInTheDocument();
+    expect(await screen.findByText('error on max 2')).toBeInTheDocument();
+  });
+
+  it('accepts decimal values', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="millisecond" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.type(screen.getByLabelText('First Maximum'), '0.5');
+    await userEvent.type(screen.getByLabelText('Second Maximum'), '100.5456');
+
+    expect((await screen.findAllByDisplayValue('0.5'))[0]).toBeInTheDocument();
+    expect((await screen.findAllByDisplayValue('100.5456'))[0]).toBeInTheDocument();
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
+        }),
+      }),
+      {replace: true}
     );
   });
 });

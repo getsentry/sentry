@@ -92,6 +92,10 @@ const restrictedImportPaths = [
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
   },
   {
+    name: 'react-select',
+    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+  },
+  {
     name: 'sentry/utils/withSentryRouter',
     message:
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
@@ -107,7 +111,7 @@ const restrictedImportPaths = [
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
-const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
+const ecmaVersion = 'latest';
 
 export default typescript.config([
   {
@@ -288,10 +292,8 @@ export default typescript.config([
       // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
-      'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
+      'no-prototype-builtins': 'off',
+      'no-useless-escape': 'off',
     },
   },
   {
@@ -341,7 +343,7 @@ export default typescript.config([
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
-      'react/no-unescaped-entities': 'off', // TODO(ryan953): Fix violations and delete this line
+      'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],
       'react/prop-types': 'off', // TODO(ryan953): Fix violations and delete this line
     },
@@ -374,11 +376,11 @@ export default typescript.config([
         'error',
         {
           types: {
-            // TODO(scttcper): Turn object on to make our types more strict
-            // object: {
-            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-            //   fixWith: 'Record<string, unknown>'
-            // },
+            object: {
+              message:
+                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+              fixWith: 'Record<PropertyKey, unknown>',
+            },
             Buffer: {
               message:
                 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
@@ -408,36 +410,30 @@ export default typescript.config([
     // https://typescript-eslint.io/rules/
     plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      'prefer-spread': 'off', // TODO(ryan953): Fix violations and delete this line
+      'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-explicit-any': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-extra-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-namespace': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-unsafe-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Strict overrides
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-extraneous-class': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/unified-signatures': 'off',
 
       // Stylistic overrides
+      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [

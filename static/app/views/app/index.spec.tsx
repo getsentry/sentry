@@ -1,12 +1,15 @@
+import {useTheme} from '@emotion/react';
 import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import App from 'sentry/views/app';
 
 function HookWrapper(props: any) {
@@ -62,7 +65,7 @@ describe('App', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders', async function () {
@@ -242,8 +245,39 @@ describe('App', function () {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     expect(getMock).toHaveBeenCalled();
-    expect(
-      await screen.findByText(/Celery workers have not checked in/)
-    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(AlertStore.getState()).toEqual([
+        expect.objectContaining({
+          id: 'abc123',
+          message: 'Celery workers have not checked in',
+          opaque: true,
+          type: 'error',
+        }),
+      ]);
+    });
+  });
+
+  it('sets theme property for chonk-ui depending on feature flag', async function () {
+    function Component() {
+      const theme = useTheme();
+      return <div>isChonk: {String(theme.isChonk)}</div>;
+    }
+
+    render(
+      <App {...routerProps}>
+        <Component />
+      </App>
+    );
+
+    expect(await screen.findByText('isChonk: false')).toBeInTheDocument();
+
+    const chonkOrganization = OrganizationFixture({features: ['chonk-ui']});
+
+    act(() => {
+      OrganizationStore.onUpdate(chonkOrganization, {replace: true});
+    });
+
+    expect(await screen.findByText('isChonk: true')).toBeInTheDocument();
   });
 });

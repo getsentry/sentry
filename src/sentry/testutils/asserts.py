@@ -94,3 +94,19 @@ def assert_slo_metric(
     start, end = mock_record.mock_calls
     assert start.args[0] == EventLifecycleOutcome.STARTED
     assert end.args[0] == event_outcome
+
+
+def assert_slo_metric_calls(
+    mock_calls, event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS
+):
+    start, end = mock_calls
+    assert start.args[0] == EventLifecycleOutcome.STARTED
+    assert end.args[0] == event_outcome
+
+
+def assert_middleware_metrics(middleware_calls):
+    start1, end1, start2, end2 = middleware_calls
+    assert start1.args[0] == EventLifecycleOutcome.STARTED
+    assert end1.args[0] == EventLifecycleOutcome.SUCCESS
+    assert start2.args[0] == EventLifecycleOutcome.STARTED
+    assert end2.args[0] == EventLifecycleOutcome.SUCCESS

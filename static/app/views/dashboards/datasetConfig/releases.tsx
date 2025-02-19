@@ -7,7 +7,6 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {SessionsMeta} from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
@@ -27,6 +26,12 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {getWidgetInterval} from '../utils';
+import {getSeriesName} from '../utils/transformSessionsResponseToSeries';
+import {
+  changeObjectValuesToTypes,
+  getDerivedMetrics,
+  mapDerivedMetricsToFields,
+} from '../utils/transformSessionsResponseToTable';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
@@ -43,12 +48,6 @@ import {
   requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
 } from '../widgetCard/releaseWidgetQueries';
-import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
-import {
-  changeObjectValuesToTypes,
-  getDerivedMetrics,
-  mapDerivedMetricsToFields,
-} from '../widgetCard/transformSessionsResponseToTable';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -75,10 +74,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 
 const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
-export const ReleasesConfig: DatasetConfig<
-  SessionApiResponse | MetricsApiResponse,
-  SessionApiResponse | MetricsApiResponse
-> = {
+export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiResponse> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -149,7 +145,7 @@ function disableSortOptions(widgetQuery: WidgetQuery) {
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
   const {columns, aggregates} = widgetQuery;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   [...aggregates, ...columns]
     .filter(field => !!field)
     .filter(field => !DISABLED_SORT.includes(field))
@@ -217,8 +213,8 @@ function getReleasesSeriesRequest(
     displayType,
     {start, end, period},
     '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
+    // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'medium' : undefined
   );
 
   return getReleasesRequest(
@@ -278,7 +274,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
 }
 
 export function transformSessionsResponseToTable(
-  data: SessionApiResponse | MetricsApiResponse,
+  data: SessionApiResponse,
   widgetQuery: WidgetQuery
 ): TableData {
   const useSessionAPI = widgetQuery.columns.includes('session.status');
@@ -289,7 +285,7 @@ export function transformSessionsResponseToTable(
   );
   const rows = data.groups.map((group, index) => ({
     id: String(index),
-    // @ts-ignore TS(2345): Argument of type 'Record<string, string | number> ... Remove this comment to see the full error message
+    // @ts-expect-error TS(2345): Argument of type 'Record<string, string | number> ... Remove this comment to see the full error message
     ...mapDerivedMetricsToFields(group.by),
     // if `sum(session)` or `count_unique(user)` are not
     // requested as a part of the payload for
@@ -312,7 +308,7 @@ export function transformSessionsResponseToTable(
 }
 
 export function transformSessionsResponseToSeries(
-  data: SessionApiResponse | MetricsApiResponse,
+  data: SessionApiResponse,
   widgetQuery: WidgetQuery
 ) {
   if (data === null) {
@@ -352,7 +348,6 @@ export function transformSessionsResponseToSeries(
       // stripped.
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
-          // @ts-ignore TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
           seriesName: getSeriesName(field, group, queryAlias),
           data: data.intervals.map((interval, index) => ({
             name: interval,
@@ -377,7 +372,6 @@ export function transformSessionsResponseToSeries(
             }
           }
           results.push({
-            // @ts-ignore TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
             seriesName: getSeriesName(status, group, queryAlias),
             data: data.intervals.map((interval, index) => ({
               name: interval,
@@ -393,7 +387,7 @@ export function transformSessionsResponseToSeries(
 }
 
 function fieldsToDerivedMetrics(field: string): string {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 
@@ -411,7 +405,7 @@ function getReleasesRequest(
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
 
-  let showIncompleteDataAlert: boolean = false;
+  let showIncompleteDataAlert = false;
 
   if (start) {
     let startDate: Date | undefined = undefined;

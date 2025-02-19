@@ -91,8 +91,8 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
         rect.height - border
       );
 
-      for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]!);
+      for (const child of frame.children) {
+        queue.push(child);
       }
     }
   }

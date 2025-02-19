@@ -9,9 +9,11 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useMedia from 'sentry/utils/useMedia';
-import {useParams} from 'sentry/utils/useParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   type DashboardDetails,
@@ -19,6 +21,7 @@ import {
   DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
@@ -35,6 +38,8 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 type WidgetBuilderSlideoutProps = {
@@ -66,17 +71,33 @@ function WidgetBuilderSlideout({
   onDataFetched,
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
+  const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [error, setError] = useState<Record<string, any>>({});
-  const {widgetIndex} = useParams();
   const theme = useTheme();
+  const isEditing = useIsEditingWidget();
+  const source = useDashboardWidgetSource();
 
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
 
-  const isEditing = widgetIndex !== undefined;
+  useEffect(() => {
+    if (!openWidgetTemplates) {
+      trackAnalytics('dashboards_views.widget_builder.opened', {
+        builder_version: WidgetBuilderVersion.SLIDEOUT,
+        new_widget: !isEditing,
+        organization,
+        from: source,
+      });
+    }
+    // Ignore isEditing because it won't change during the
+    // useful lifetime of the widget builder, but it
+    // flickers when an edited widget is saved.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openWidgetTemplates, organization]);
+
   const title = openWidgetTemplates
     ? t('Add from Widget Library')
     : isEditing
@@ -120,6 +141,7 @@ function WidgetBuilderSlideout({
       collapsed={!isOpen}
       slidePosition="left"
       data-test-id="widget-slideout"
+      transitionProps={animationTransitionSettings}
     >
       <SlideoutHeaderWrapper>
         <SlideoutTitle>{title}</SlideoutTitle>
@@ -180,6 +202,8 @@ function WidgetBuilderSlideout({
                 <ThresholdsSection
                   dataType={thresholdMetaState?.dataType}
                   dataUnit={thresholdMetaState?.dataUnit}
+                  error={error}
+                  setError={setError}
                 />
               </Section>
             )}
@@ -255,5 +279,5 @@ const SlideoutBodyWrapper = styled('div')`
 `;
 
 const Section = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: 24px;
 `;

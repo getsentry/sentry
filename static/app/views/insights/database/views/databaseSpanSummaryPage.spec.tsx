@@ -27,7 +27,7 @@ describe('DatabaseSpanSummaryPage', function () {
         period: '10d',
         start: null,
         end: null,
-        utc: false,
+        utc: null,
       },
       environments: [],
       projects: [],
@@ -151,9 +151,6 @@ describe('DatabaseSpanSummaryPage', function () {
         {...RouteComponentPropsFixture()}
         params={{
           groupId: '1756baf8fd19c116',
-          transaction: '',
-          transactionMethod: '',
-          transactionsSort: '',
         }}
       />,
       {organization}
@@ -313,7 +310,6 @@ describe('DatabaseSpanSummaryPage', function () {
           shortIdLookup: 1,
           project: [],
           statsPeriod: '10d',
-          utc: 'false',
         },
       })
     );

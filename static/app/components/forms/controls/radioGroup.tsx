@@ -15,7 +15,7 @@ interface BaseRadioGroupProps<C extends string> {
   /**
    * The choices availiable in the group
    */
-  choices: RadioOption<C>[];
+  choices: Array<RadioOption<C>>;
   /**
    * Labels the radio group.
    */
@@ -26,7 +26,7 @@ interface BaseRadioGroupProps<C extends string> {
   /**
    * An array of [choice id, disabled reason]
    */
-  disabledChoices?: [C, React.ReactNode?][];
+  disabledChoices?: Array<[C, React.ReactNode?]>;
   /**
    * Switch the radio items to flow left to right, instead of vertically.
    */

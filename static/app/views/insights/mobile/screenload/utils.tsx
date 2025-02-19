@@ -41,7 +41,7 @@ export function transformReleaseEvents({
 
   yAxes.forEach(val => {
     [primaryRelease, secondaryRelease].filter(defined).forEach(release => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedReleaseEvents[YAXIS_COLUMNS[val]][release] = {
         seriesName: release,
         data: Array(topTransactions.length).fill(0),
@@ -56,9 +56,9 @@ export function transformReleaseEvents({
       const transaction = row.transaction;
       const index = topTransactionsIndex[transaction];
       yAxes.forEach(val => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (transformedReleaseEvents[YAXIS_COLUMNS[val]][release]) {
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
             name: row.transaction,
             value: row[YAXIS_COLUMNS[val]],
@@ -97,17 +97,17 @@ export function transformDeviceClassEvents({
   );
 
   yAxes.forEach(val => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     transformedData[YAXIS_COLUMNS[val]] = {};
     if (primaryRelease) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedData[YAXIS_COLUMNS[val]][primaryRelease] = {
         seriesName: primaryRelease,
         data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
       };
     }
     if (secondaryRelease) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedData[YAXIS_COLUMNS[val]][secondaryRelease] = {
         seriesName: secondaryRelease,
         data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
@@ -127,9 +127,9 @@ export function transformDeviceClassEvents({
       const release = row.release;
       const isPrimary = release === primaryRelease;
       yAxes.forEach(val => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (transformedData[YAXIS_COLUMNS[val]][release]) {
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedData[YAXIS_COLUMNS[val]][release].data[index] = {
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],

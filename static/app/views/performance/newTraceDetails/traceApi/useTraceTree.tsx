@@ -7,6 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {traceAnalytics} from '../traceAnalytics';
 import {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
@@ -45,6 +46,8 @@ export function useTraceTree({
 
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
 
+  const traceWaterfallSource = replay ? 'replay_details' : 'trace_view';
+
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status, meta.status);
 
@@ -57,6 +60,7 @@ export function useTraceTree({
               event_id: traceSlug,
             })
       );
+      traceAnalytics.trackTraceErrorState(organization, traceWaterfallSource);
       return;
     }
 
@@ -65,6 +69,7 @@ export function useTraceTree({
       trace?.data?.orphan_errors.length === 0
     ) {
       setTree(t => (t.type === 'empty' ? t : TraceTree.Empty()));
+      traceAnalytics.trackTraceEmptyState(organization, traceWaterfallSource);
       return;
     }
 
@@ -100,6 +105,7 @@ export function useTraceTree({
     trace.data,
     meta.data,
     traceSlug,
+    traceWaterfallSource,
   ]);
 
   return tree;

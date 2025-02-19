@@ -463,7 +463,7 @@ function TableView(props: TableViewProps) {
 
       if (projectSlug && profileId) {
         const target = generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: String(projectSlug),
           profileId: String(profileId),
         });
@@ -611,7 +611,7 @@ function TableView(props: TableViewProps) {
           browserHistory.push(
             normalizeUrl(
               nextView.getResultsViewUrlTarget(
-                organization.slug,
+                organization,
                 isHomepage,
                 hasDatasetSelector(organization) ? queryDataset : undefined
               )
@@ -627,10 +627,10 @@ function TableView(props: TableViewProps) {
           const unit = tableData?.meta?.units?.[column.name];
           if (typeof cellValue === 'number' && unit) {
             if (Object.keys(SIZE_UNITS).includes(unit)) {
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= SIZE_UNITS[unit];
             } else if (Object.keys(DURATION_UNITS).includes(unit)) {
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= DURATION_UNITS[unit];
             }
           }
@@ -640,7 +640,7 @@ function TableView(props: TableViewProps) {
       nextView.query = query.formatString();
 
       const target = nextView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         isHomepage,
         hasDatasetSelector(organization) ? queryDataset : undefined
       );
@@ -660,7 +660,7 @@ function TableView(props: TableViewProps) {
 
     const nextView = eventView.withColumns(columns);
     const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       isHomepage,
       hasDatasetSelector(organization) ? queryDataset : undefined
     );

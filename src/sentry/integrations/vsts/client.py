@@ -15,7 +15,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.silo.base import control_silo_function
 from sentry.users.models.identity import Identity
@@ -89,54 +88,40 @@ class VstsApiPath:
     work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
-def prepare_headers(
-    api_version: str,
-    method: str,
-    api_version_preview: str,
-):
-
-    headers = {
+def prepare_headers(api_version: str, method: str, api_version_preview: str) -> dict[str, str]:
+    return {
         "Accept": f"application/json; api-version={api_version}{api_version_preview}",
         "Content-Type": "application/json-patch+json" if method == "PATCH" else "application/json",
         "X-HTTP-Method-Override": method,
         "X-TFS-FedAuthRedirect": "Suppress",
     }
-    return headers
 
 
-def prepare_auth_header(
-    access_token: str,
-):
-    headers = {
+def prepare_auth_header(access_token: str) -> dict[str, str]:
+    return {
         "Authorization": f"Bearer {access_token}",
     }
-    return headers
 
 
-class VstsApiMixin:
+def _create_subscription_data(shared_secret: str) -> dict[str, Any]:
+    return {
+        "publisherId": "tfs",
+        "eventType": "workitem.updated",
+        "resourceVersion": "1.0",
+        "consumerId": "webHooks",
+        "consumerActionId": "httpRequest",
+        "consumerInputs": {
+            "url": absolute_uri("/extensions/vsts/issue-updated/"),
+            "resourceDetailsToSend": "all",
+            "httpHeaders": f"shared-secret:{shared_secret}",
+        },
+    }
+
+
+class VstsSetupApiClient(ApiClient):
+    integration_name = "vsts"
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
-
-    def create_subscription(self, shared_secret: str) -> Response:
-        return self.post(
-            VstsApiPath.subscriptions.format(instance=self.base_url),
-            data={
-                "publisherId": "tfs",
-                "eventType": "workitem.updated",
-                "resourceVersion": "1.0",
-                "consumerId": "webHooks",
-                "consumerActionId": "httpRequest",
-                "consumerInputs": {
-                    "url": absolute_uri("/extensions/vsts/issue-updated/"),
-                    "resourceDetailsToSend": "all",
-                    "httpHeaders": f"shared-secret:{shared_secret}",
-                },
-            },
-        )
-
-
-class VstsSetupApiClient(ApiClient, VstsApiMixin):
-    integration_name = "vsts"
 
     def __init__(self, base_url: str, oauth_redirect_url: str, access_token: str):
         super().__init__()
@@ -144,9 +129,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         self.oauth_redirect_url = oauth_redirect_url
         self.access_token = access_token
 
-    def request(
-        self, method, path, data=None, params=None, api_preview: bool = False
-    ) -> BaseApiResponseX:
+    def request(self, method, path, data=None, params=None, api_preview: bool = False) -> Any:
         headers = prepare_headers(
             api_version=self.api_version,
             method=method,
@@ -155,9 +138,17 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         headers.update(prepare_auth_header(access_token=self.access_token))
         return self._request(method, path, headers=headers, data=data, params=params)
 
+    def create_subscription(self, shared_secret: str) -> dict[str, Any]:
+        return self.post(
+            VstsApiPath.subscriptions.format(instance=self.base_url),
+            data=_create_subscription_data(shared_secret),
+        )
 
-class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
+
+class VstsApiClient(IntegrationProxyClient, RepositoryClient):
     integration_name = "vsts"
+    api_version = "4.1"  # TODO: update api version
+    api_version_preview = "-preview.1"
     _identity: Identity | None = None
 
     def __init__(
@@ -179,20 +170,19 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         self._identity = Identity.objects.get(id=self.identity_id)
         return self._identity
 
-    def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api_preview = kwargs.pop("api_preview", False)
-        headers = kwargs.pop("headers", {})
         new_headers = prepare_headers(
             api_version=self.api_version,
             method=method,
             api_version_preview=self.api_version_preview if api_preview else "",
         )
-        headers.update(new_headers)
+        kwargs.setdefault("headers", {}).update(new_headers)
 
-        return self._request(method, *args, headers=headers, **kwargs)
+        return self._request(method, *args, **kwargs)
 
     @control_silo_function
-    def _refresh_auth_if_expired(self):
+    def _refresh_auth_if_expired(self) -> None:
         """
         Checks if auth is expired and if so refreshes it
         """
@@ -208,6 +198,8 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             integration = integration_service.get_integration(
                 organization_integration_id=self.org_integration_id, status=ObjectStatus.ACTIVE
             )
+            if integration is None:
+                return
             # check if integration has migrated to new identity provider
             migration_version = integration.metadata.get("integration_migration_version", 0)
             if migration_version < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION:
@@ -232,6 +224,12 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         prepared_request.headers.update(headers)
         return prepared_request
 
+    def create_subscription(self, shared_secret: str) -> dict[str, Any]:
+        return self.post(
+            VstsApiPath.subscriptions.format(instance=self.base_url),
+            data=_create_subscription_data(shared_secret),
+        )
+
     def create_work_item(
         self,
         project: Project,
@@ -240,7 +238,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         description: str | None = None,
         comment: str | None = None,
         link: str | None = None,
-    ) -> Response:
+    ) -> dict[str, Any]:
         data = []
         if title:
             data.append({"op": "add", "path": FIELD_MAP["title"], "value": title})
@@ -275,7 +273,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         comment: UnsettableString = UNSET,
         assigned_to: UnsettableString = UNSET,
         state: UnsettableString = UNSET,
-    ) -> Response:
+    ) -> dict[str, Any]:
         data: list[Mapping[str, Any]] = []
 
         for f_name, f_value in (
@@ -307,16 +305,14 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
 
         return self.patch(VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data)
 
-    def get_work_item(self, id: int) -> Response:
+    def get_work_item(self, id: int) -> dict[str, Any]:
         return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
-    def get_work_item_states(self, project: str) -> Response:
+    def get_work_item_states(self, project: str) -> dict[str, Any]:
         # XXX: Until we add the option to enter the 'WorkItemType' for syncing status changes from
         # Sentry to Azure DevOps, we need will attempt to use the sequence below. There are certain
         # ADO configurations which don't have 'Bug' or 'Issue', hence iterating until we find a match.
-        check_sequence = ["Bug", "Issue", "Task"]
-        response = None
-        for check_type in check_sequence:
+        for check_type in ("Bug", "Issue", "Task"):
             response = self.get(
                 VstsApiPath.work_item_states.format(
                     instance=self.base_url,
@@ -329,12 +325,12 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
                 break
         return response
 
-    def get_work_item_categories(self, project: str) -> Response:
+    def get_work_item_categories(self, project: str) -> dict[str, Any]:
         return self.get(
             VstsApiPath.work_item_categories.format(instance=self.base_url, project=project)
         )
 
-    def get_repo(self, name_or_id: str, project: str | None = None) -> Response:
+    def get_repo(self, name_or_id: str, project: str | None = None) -> dict[str, Any]:
         return self.get(
             VstsApiPath.repository.format(
                 instance=self.base_url,
@@ -343,7 +339,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             )
         )
 
-    def get_repos(self, project: str | None = None) -> Response:
+    def get_repos(self, project: str | None = None) -> dict[str, Any]:
         return self.get(
             VstsApiPath.repositories.format(
                 instance=self.base_url, project=f"{project}/" if project else ""
@@ -351,18 +347,18 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             timeout=5,
         )
 
-    def get_commits(self, repo_id: str, commit: str, limit: int = 100) -> Response:
+    def get_commits(self, repo_id: str, commit: str, limit: int = 100) -> dict[str, Any]:
         return self.get(
             VstsApiPath.commits.format(instance=self.base_url, repo_id=repo_id),
             params={"commit": commit, "$top": limit},
         )
 
-    def get_commit(self, repo_id: str, commit: str) -> Response:
+    def get_commit(self, repo_id: str, commit: str) -> dict[str, Any]:
         return self.get(
             VstsApiPath.commit.format(instance=self.base_url, repo_id=repo_id, commit_id=commit)
         )
 
-    def get_commit_filechanges(self, repo_id: str, commit: str) -> Response:
+    def get_commit_filechanges(self, repo_id: str, commit: str) -> list[dict[str, Any]]:
         resp = self.get(
             VstsApiPath.commits_changes.format(
                 instance=self.base_url, repo_id=repo_id, commit_id=commit
@@ -371,7 +367,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         changes = resp["changes"]
         return changes
 
-    def get_commit_range(self, repo_id: str, start_sha: str, end_sha: str) -> Response:
+    def get_commit_range(self, repo_id: str, start_sha: str, end_sha: str) -> dict[str, Any]:
         return self.post(
             VstsApiPath.commits_batch.format(instance=self.base_url, repo_id=repo_id),
             data={
@@ -380,7 +376,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             },
         )
 
-    def get_project(self, project_id: str) -> Response:
+    def get_project(self, project_id: str) -> dict[str, Any]:
         return self.get(
             VstsApiPath.project.format(instance=self.base_url, project_id=project_id),
             params={"stateFilter": "WellFormed"},
@@ -404,7 +400,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             get_results=get_results,
         )
 
-    def get_users(self, account_name: str, continuation_token: str | None = None) -> Response:
+    def get_users(self, account_name: str, continuation_token: str | None = None) -> dict[str, Any]:
         """
         Gets Users with access to a given account/organization
         https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
@@ -415,29 +411,29 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             params={"continuationToken": continuation_token},
         )
 
-    def get_subscription(self, subscription_id: str) -> Response:
+    def get_subscription(self, subscription_id: str) -> dict[str, Any]:
         return self.get(
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def delete_subscription(self, subscription_id: str) -> Response:
+    def delete_subscription(self, subscription_id: str) -> dict[str, Any]:
         return self.delete(
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def update_subscription(self, subscription_id: str) -> Response:
+    def update_subscription(self, subscription_id: str) -> dict[str, Any]:
         return self.put(
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def search_issues(self, account_name: str, query: str | None = None) -> Response:
+    def search_issues(self, account_name: str, query: str | None = None) -> dict[str, Any]:
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={"searchText": query, "$top": 1000},
             api_preview=True,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.get_cached(
             path=VstsApiPath.items.format(
                 instance=repo.config["instance"],

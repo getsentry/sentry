@@ -1,33 +1,46 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
+  useExploreFields,
+  useExploreGroupBys,
+  useExploreMode,
   useExploreQuery,
+  useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
+  const location = useLocation();
   const organization = useOrganization();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
   const query = useExploreQuery();
+  const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
+  const fields = useExploreFields();
+  const sortBys = useExploreSortBys();
+  const mode = useExploreMode();
   const visualizeYAxes = visualizes.flatMap(v => v.yAxes);
 
   const [interval] = useChartInterval();
@@ -45,10 +58,17 @@ export function ToolbarSaveAs() {
       query,
       pageFilters: pageFilters.selection,
       aggregate: yAxis,
-      orgSlug: organization.slug,
+      organization,
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       interval,
     }),
+    onAction: () => {
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'alert',
+        ui_source: 'toolbar',
+        organization,
+      });
+    },
   }));
 
   const items: MenuItemProps[] = [];
@@ -76,7 +96,18 @@ export function ToolbarSaveAs() {
       return {
         key: chart.label,
         label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
-        onAction: !disableAddToDashboard ? () => addToDashboard(index) : undefined,
+        onAction: () => {
+          if (disableAddToDashboard) {
+            return undefined;
+          }
+
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'dashboard',
+            ui_source: 'toolbar',
+            organization,
+          });
+          return addToDashboard(index);
+        },
       };
     });
     items.push({
@@ -94,10 +125,18 @@ export function ToolbarSaveAs() {
       ),
       disabled: disableAddToDashboard,
       children: chartOptions.length > 1 ? chartOptions : undefined,
-      onAction:
-        !disableAddToDashboard && chartOptions.length
-          ? () => addToDashboard(0)
-          : undefined, // This is hardcoding
+      onAction: () => {
+        if (disableAddToDashboard || chartOptions.length > 1) {
+          return undefined;
+        }
+
+        trackAnalytics('trace_explorer.save_as', {
+          save_type: 'dashboard',
+          ui_source: 'toolbar',
+          organization,
+        });
+        return addToDashboard(0);
+      },
     });
   }
 
@@ -107,23 +146,40 @@ export function ToolbarSaveAs() {
 
   return (
     <ToolbarSection data-test-id="section-save-as">
-      <DropdownMenu
-        items={items}
-        trigger={triggerProps => (
-          <SaveAsButton
-            {...triggerProps}
-            aria-label={t('Save as')}
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
+      <ButtonBar gap={1}>
+        <DropdownMenu
+          items={items}
+          trigger={triggerProps => (
+            <SaveAsButton
+              {...triggerProps}
+              aria-label={t('Save as')}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
 
-              triggerProps.onClick?.(e);
-            }}
-          >
-            {`${t('Save as')}\u2026`}
-          </SaveAsButton>
+                triggerProps.onClick?.(e);
+              }}
+            >
+              {`${t('Save as')}\u2026`}
+            </SaveAsButton>
+          )}
+        />
+        {organization.features.includes('explore-multi-query') && (
+          <LinkButton
+            aria-label={t('Compare')}
+            to={generateExploreCompareRoute({
+              organization,
+              mode,
+              location,
+              query,
+              yAxes: [visualizeYAxes[0]!],
+              groupBys,
+              fields,
+              sortBys,
+            })}
+          >{`${t('Compare')}`}</LinkButton>
         )}
-      />
+      </ButtonBar>
     </ToolbarSection>
   );
 }

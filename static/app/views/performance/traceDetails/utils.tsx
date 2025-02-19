@@ -19,11 +19,28 @@ import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
-  TraceViewSources,
+  type TraceViewSources,
 } from '../newTraceDetails/traceHeader/breadcrumbs';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
+
+function getBaseTraceUrl(
+  organization: Organization,
+  source?: TraceViewSources,
+  view?: DomainView
+) {
+  if (view) {
+    return getPerformanceBaseUrl(organization.slug, view);
+  }
+
+  const url =
+    source && source in TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
+      ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]
+      : 'traces';
+
+  return normalizeUrl(`/organizations/${organization.slug}/${url}`);
+}
 
 export function getTraceDetailsUrl({
   organization,
@@ -35,7 +52,7 @@ export function getTraceDetailsUrl({
   targetId,
   demo,
   location,
-  source = TraceViewSources.TRACES,
+  source,
   view,
 }: {
   // @TODO add a type for dateSelection
@@ -53,11 +70,7 @@ export function getTraceDetailsUrl({
   timestamp?: string | number;
   view?: DomainView;
 }): LocationDescriptorObject {
-  const baseUrl = view
-    ? getPerformanceBaseUrl(organization.slug, view)
-    : normalizeUrl(
-        `/organizations/${organization.slug}/${TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]}`
-      );
+  const baseUrl = getBaseTraceUrl(organization, source, view);
   const queryParams: Record<string, string | number | undefined | DateString | string[]> =
     {
       ...location.query,

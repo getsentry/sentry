@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
+
+from django.db.models.query import QuerySet
 
 from sentry import features
 from sentry.integrations.models.integration import Integration
@@ -55,7 +57,7 @@ def where_should_sync(
     ]
 
 
-def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: Group) -> int | None:
+def get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | None:
     user_ids = [
         user_id
         for user_id, project_ids in projects_by_user.items()
@@ -73,7 +75,7 @@ def sync_group_assignee_inbound(
     email: str | None,
     external_issue_key: str | None,
     assign: bool = True,
-) -> Sequence[Group]:
+) -> QuerySet[Group] | list[Group]:
     """
     Given an integration, user email address and an external issue key,
     assign linked groups to matching users. Checks project membership.

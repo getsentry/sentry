@@ -3,7 +3,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -14,7 +13,6 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -55,14 +53,14 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
 
   const addWidgetDropdownItems: MenuItemProps[] = [
     {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, true),
-    },
-    {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
       onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, true),
     },
   ];
 
@@ -88,15 +86,7 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
           duration: 0.25,
         }}
       >
-        {hasCustomMetrics(organization) ? (
-          <InnerWrapper>
-            <AddWidgetButton
-              onAddWidget={onAddWidget}
-              aria-label={t('Add Widget')}
-              data-test-id="widget-add"
-            />
-          </InnerWrapper>
-        ) : organization.features.includes('dashboards-widget-builder-redesign') ? (
+        {organization.features.includes('dashboards-widget-builder-redesign') ? (
           <InnerWrapper onClick={() => onAddWidgetFromNewWidgetBuilder?.(defaultDataset)}>
             <DropdownMenu
               items={addWidgetDropdownItems}
@@ -185,22 +175,6 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
       details: t('Sessions, Crash rates, etc.'),
       onAction: () => handleAction(DataSet.RELEASES),
     });
-
-    if (hasCustomMetrics(organization)) {
-      menuItems.push({
-        key: DataSet.METRICS,
-        label: t('Metrics'),
-        onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: (
-          <FeatureBadge
-            type="beta"
-            title={
-              'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
-            }
-          />
-        ),
-      });
-    }
 
     return menuItems;
   }, [handleAction, organization]);

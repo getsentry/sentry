@@ -39,6 +39,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {ExternalIssueList as StreamlinedExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
@@ -92,6 +93,8 @@ export default function GroupSidebar({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const location = useLocation();
+
+  const {areAiFeaturesAllowed} = useAiConfig(group, event, project);
 
   const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
@@ -260,13 +263,11 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      {((organization.features.includes('gen-ai-features') &&
-        issueTypeConfig.issueSummary.enabled &&
-        !organization.hideAiFeatures) ||
+      {((areAiFeaturesAllowed && issueTypeConfig.issueSummary.enabled) ||
         issueTypeConfig.resources) && (
-        <SolutionsSectionContainer>
+        <ErrorBoundary mini>
           <SolutionsSection group={group} project={project} event={event} />
-        </SolutionsSectionContainer>
+        </ErrorBoundary>
       )}
 
       {hasStreamlinedUI && event && (
@@ -293,7 +294,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tagsTab.enabled && (
+      {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
@@ -318,12 +319,6 @@ export default function GroupSidebar({
     </Container>
   );
 }
-
-const SolutionsSectionContainer = styled('div')`
-  margin-bottom: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(2)};
-`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

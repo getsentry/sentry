@@ -1,8 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,8 +14,11 @@ import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -37,6 +42,7 @@ import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -49,6 +55,8 @@ import {
   type DefaultPeriod,
   type MaxPickableDays,
 } from 'sentry/views/explore/utils';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {Onboarding} from 'sentry/views/performance/onboarding';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -74,9 +82,14 @@ export function SpansTabContentImpl({
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
 
-  const toolbarExtras = organization?.features?.includes('visibility-explore-dataset')
-    ? ['dataset toggle' as const]
-    : [];
+  const toolbarExtras = [
+    ...(organization?.features?.includes('visibility-explore-dataset')
+      ? ['dataset toggle' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-equations')
+      ? ['equations' as const]
+      : []),
+  ];
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     mode === Mode.AGGREGATE
@@ -87,21 +100,30 @@ export function SpansTabContentImpl({
 
   const limit = 25;
 
+  const isAllowedSelection = useMemo(
+    () => checkIsAllowedSelection(selection, maxPickableDays),
+    [selection, maxPickableDays]
+  );
+
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit,
-    enabled: queryType === 'aggregate',
+    enabled: isAllowedSelection && queryType === 'aggregate',
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit,
-    enabled: queryType === 'samples',
+    enabled: isAllowedSelection && queryType === 'samples',
   });
   const tracesTableResult = useExploreTracesTable({
     query,
-    enabled: queryType === 'traces',
+    limit,
+    enabled: isAllowedSelection && queryType === 'traces',
   });
-  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
+  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({
+    query,
+    enabled: isAllowedSelection,
+  });
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
@@ -122,8 +144,18 @@ export function SpansTabContentImpl({
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
+  const [expanded, setExpanded] = useState(true);
+
+  useAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    tracesTableResult,
+    timeseriesResult,
+  });
+
   return (
-    <Body>
+    <Body withToolbar={expanded}>
       <TopSection>
         <StyledPageFilterBar condensed>
           <ProjectPageFilter />
@@ -164,35 +196,60 @@ export function SpansTabContentImpl({
                   }
                 : undefined
             }
-            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
             numberTags={numberTags}
             stringTags={stringTags}
           />
         )}
       </TopSection>
-      <ExploreToolbar extras={toolbarExtras} />
-      <MainSection fullWidth>
+      <SideSection withToolbar={expanded}>
+        <ExploreToolbar width={300} extras={toolbarExtras} />
+      </SideSection>
+      <section>
         {(tableError || chartError) && (
-          <Alert type="error" showIcon>
-            {tableError || chartError}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {tableError || chartError}
+            </Alert>
+          </Alert.Container>
         )}
-        <ExploreCharts
-          canUsePreviousResults={canUsePreviousResults}
-          confidences={confidences}
-          query={query}
-          timeseriesResult={timeseriesResult}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          samplesTab={samplesTab}
-          setSamplesTab={setSamplesTab}
-        />
-      </MainSection>
+        <MainContent>
+          <ExploreCharts
+            canUsePreviousResults={canUsePreviousResults}
+            confidences={confidences}
+            query={query}
+            timeseriesResult={timeseriesResult}
+          />
+          <ExploreTables
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+            tracesTableResult={tracesTableResult}
+            confidences={confidences}
+            samplesTab={samplesTab}
+            setSamplesTab={setSamplesTab}
+          />
+          <Toggle>
+            <StyledButton
+              aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+              size="xs"
+              icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
+              onClick={() => setExpanded(!expanded)}
+            />
+          </Toggle>
+        </MainContent>
+      </section>
     </Body>
+  );
+}
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
   );
 }
 
@@ -206,28 +263,74 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
+type OnboardingContentProps = SpanTabProps & {
+  onboardingProject: Project;
+};
+
+function OnboardingContent(props: OnboardingContentProps) {
+  const organization = useOrganization();
+
+  return (
+    <Layout.Body>
+      <TopSection>
+        <StyledPageFilterBar condensed>
+          <ProjectPageFilter />
+          <EnvironmentPageFilter />
+          <DatePageFilter
+            defaultPeriod={props.defaultPeriod}
+            maxPickableDays={props.maxPickableDays}
+            relativeOptions={({arbitraryOptions}) => ({
+              ...arbitraryOptions,
+              ...props.relativeOptions,
+            })}
+          />
+        </StyledPageFilterBar>
+      </TopSection>
+      <OnboardingContentSection>
+        <Onboarding project={props.onboardingProject} organization={organization} />
+      </OnboardingContentSection>
+    </Layout.Body>
+  );
+}
+
 export function SpansTabContent(props: SpanTabProps) {
   Sentry.setTag('explore.visited', 'yes');
+  const onboardingProject = useOnboardingProject();
+  const showOnboarding = onboardingProject !== undefined;
 
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        <SpansTabContentImpl {...props} />
+        {showOnboarding ? (
+          <OnboardingContent {...props} onboardingProject={onboardingProject} />
+        ) : (
+          <SpansTabContentImpl {...props} />
+        )}
       </ExploreTagsProvider>
     </PageParamsProvider>
   );
 }
 
-const Body = styled(Layout.Body)`
-  gap: ${space(2)};
+function checkIsAllowedSelection(
+  selection: PageFilters,
+  maxPickableDays: MaxPickableDays
+) {
+  const maxPickableMinutes = maxPickableDays * 24 * 60;
+  const selectedMinutes = getDiffInMinutes(selection.datetime);
+  return selectedMinutes <= maxPickableMinutes;
+}
 
+const Body = styled(Layout.Body)<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 300px minmax(100px, auto);
-    gap: ${space(2)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: 400px minmax(100px, auto);
+    display: grid;
+    ${p =>
+      p.withToolbar
+        ? `grid-template-columns: 300px minmax(100px, auto);`
+        : `grid-template-columns: 0px minmax(100px, auto);`}
+    grid-template-rows: auto 1fr;
+    align-content: start;
+    gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
+    transition: 700ms;
   }
 `;
 
@@ -237,20 +340,50 @@ const TopSection = styled('div')`
   grid-column: 1/3;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;
     margin-bottom: 0;
   }
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: minmax(400px, auto) 1fr;
+const SideSection = styled('aside')<{withToolbar: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    ${p => !p.withToolbar && 'overflow: hidden;'}
   }
 `;
 
-const MainSection = styled(Layout.Main)`
-  grid-column: 2/3;
+const MainContent = styled('div')`
+  position: relative;
+  max-width: 100%;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
+`;
+
+const OnboardingContentSection = styled('section')`
+  grid-column: 1/3;
+`;
+
+const Toggle = styled('div')`
+  display: none;
+  position: absolute;
+  top: 0px;
+
+  z-index: 1; /* place above loading mask */
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    display: block;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  width: 28px;
+  border-left: 0px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+`;
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
 `;

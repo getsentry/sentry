@@ -221,11 +221,11 @@ function sortByDepthAndStart(
 
 function sortFrameResults(
   results: FlamegraphSearchResults['results']
-): (FlamegraphFrame | SpanChartNode)[] {
+): Array<FlamegraphFrame | SpanChartNode> {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: (SpanChartNode | FlamegraphFrame)[] = new Array(results.frames.size);
+  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.frames.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }

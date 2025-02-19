@@ -102,6 +102,21 @@ class FunctionDefinition:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
+@dataclass
+class VirtualColumnDefinition:
+    constructor: Callable[[SnubaParams], VirtualColumnContext]
+    # Allows additional processing to the term after its been resolved
+    term_resolver: (
+        Callable[
+            [str | list[str]],
+            int | str | list[int] | list[str],
+        ]
+        | None
+    ) = None
+    filter_column: str | None = None
+    default_value: str | None = None
+
+
 @dataclass(frozen=True, kw_only=True)
 class ResolvedFunction(ResolvedAttribute):
     # The internal rpc alias for this column
@@ -129,7 +144,7 @@ class ResolvedFunction(ResolvedAttribute):
 
         see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
         """
-        return constants.FLOAT
+        return constants.DOUBLE
 
 
 def simple_sentry_field(field) -> ResolvedColumn:
@@ -157,9 +172,32 @@ def datetime_processor(datetime_string: str) -> str:
     return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
 
 
+def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
+    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
+        return VirtualColumnContext(
+            from_column_name="sentry.project_id",
+            to_column_name=column_name,
+            value_map={
+                str(project_id): project_name
+                for project_id, project_name in params.project_id_map.items()
+            },
+        )
+
+    return context_constructor
+
+
+def project_term_resolver(
+    raw_value: str | list[str],
+) -> list[int] | int:
+    if isinstance(raw_value, list):
+        return [int(val) for val in raw_value]
+    else:
+        return int(raw_value)
+
+
 @dataclass(frozen=True)
 class ColumnDefinitions:
     functions: dict[str, FunctionDefinition]
     columns: dict[str, ResolvedColumn]
-    contexts: dict[str, Callable[[SnubaParams], VirtualColumnContext]]
+    contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType

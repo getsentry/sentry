@@ -131,7 +131,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       defaultValue = matchedOption.value;
     }
     // if we have child types, map the default
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
       childTypes.map(childType => {
@@ -291,7 +291,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationType} = this.props;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider!.choices as [SupportedProviders, string][]
+      NOTIFICATION_SETTING_FIELDS.provider!.choices as Array<[SupportedProviders, string]>
     ).filter(([providerSlug]) => this.isProviderSupported(providerSlug));
 
     const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {

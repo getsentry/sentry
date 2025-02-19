@@ -102,6 +102,15 @@ export enum IssueType {
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
+
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'monitor_check_in_failure',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
+
+  // Metric Issues
+  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -177,7 +186,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
   if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
   }
   return undefined;
@@ -215,7 +224,7 @@ export function getIssueTypeFromOccurrenceType(
   if (!typeId) {
     return null;
   }
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
 }
 
@@ -239,7 +248,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: object;
+  headers: Record<PropertyKey, unknown>;
   id: string;
   mimetype: string;
   name: string;
@@ -422,7 +431,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -445,7 +454,7 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -663,7 +672,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 }
 
 interface GroupActivityDeletedAttachment extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
@@ -770,7 +779,7 @@ export interface MarkReviewed {
 
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
-  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
+  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | Record<string, unknown>;
   substatus?: GroupSubstatus | null;
 }
 
@@ -816,10 +825,10 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: (UserParticipant | TeamParticipant)[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: TitledPlugin[];
+  pluginActions: Array<[title: string, actionLink: string]>;
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
@@ -848,6 +857,7 @@ export interface GroupOpenPeriod {
   duration: string;
   end: string;
   isOpen: boolean;
+  lastChecked: string;
   start: string;
 }
 
@@ -868,7 +878,7 @@ export interface GroupIgnored extends BaseGroup, GroupStats {
 
 export interface GroupUnresolved extends BaseGroup, GroupStats {
   status: GroupStatus.UNRESOLVED;
-  statusDetails: {};
+  statusDetails: Record<string, unknown>;
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
@@ -897,7 +907,7 @@ export type Meta = {
 };
 
 export type MetaError = string | [string, any];
-export type MetaRemark = (string | number)[];
+export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
   rule_id: string | number;
@@ -960,7 +970,7 @@ export type Note = {
   /**
    * Array of [id, display string] tuples used for @-mentions
    */
-  mentions: [string, string][];
+  mentions: Array<[string, string]>;
 
   /**
    * Note contents (markdown allowed)

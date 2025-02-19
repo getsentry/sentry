@@ -23,7 +23,6 @@ from sentry.users.services.user.service import user_service
 class IncidentGetForSubscriptionTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        assert alert_rule.snuba_query is not None
         subscription = alert_rule.snuba_query.subscriptions.get()
         # First test fetching from database
         assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
@@ -37,7 +36,6 @@ class IncidentGetForSubscriptionTest(TestCase):
 class IncidentClearSubscriptionCacheTest(TestCase):
     def setUp(self):
         self.alert_rule = self.create_alert_rule()
-        assert self.alert_rule.snuba_query is not None
         self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
     def test_updated_subscription(self):

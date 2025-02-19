@@ -12,11 +12,11 @@ type Props<H extends HookName> = {
    * If children are provided as a function to the Hook, the hooks will be
    * passed down as a render prop.
    */
-  children?: (opts: {hooks: Hooks[H][]}) => React.ReactNode;
+  children?: (opts: {hooks: Array<Hooks[H]>}) => React.ReactNode;
 } & Omit<Parameters<Hooks[H]>[0], 'name'>;
 
 type HookState<H extends HookName> = {
-  hooks: Hooks[H][];
+  hooks: Array<Hooks[H]>;
 };
 
 /**
@@ -34,7 +34,7 @@ type HookState<H extends HookName> = {
  *   </Hook>
  */
 function Hook<H extends HookName>({name, ...props}: Props<H>) {
-  class HookComponent extends Component<{}, HookState<H>> {
+  class HookComponent extends Component<Record<string, unknown>, HookState<H>> {
     static displayName = `Hook(${name})`;
 
     state = {
@@ -45,7 +45,7 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
       this.unsubscribe();
     }
 
-    handleHooks(hookName: HookName, hooks: Hooks[H][]) {
+    handleHooks(hookName: HookName, hooks: Array<Hooks[H]>) {
       // Make sure that the incoming hook update matches this component's hook name
       if (hookName !== name) {
         return;
@@ -55,7 +55,7 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
     }
 
     unsubscribe = HookStore.listen(
-      (hookName: HookName, hooks: Hooks[H][]) => this.handleHooks(hookName, hooks),
+      (hookName: HookName, hooks: Array<Hooks[H]>) => this.handleHooks(hookName, hooks),
       undefined
     );
 

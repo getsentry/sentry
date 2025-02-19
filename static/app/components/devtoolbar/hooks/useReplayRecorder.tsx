@@ -26,7 +26,7 @@ function getReplayInternal(
   replay: ReturnType<typeof replayIntegration>
 ): ReplayInternalAPI {
   // While the toolbar is internal, we can use the private API for added functionality and reduced dependence on SDK release versions
-  // @ts-ignore TS(2341): Property '_replay' is private and only accessible ... Remove this comment to see the full error message
+  // @ts-expect-error TS(2341): Property '_replay' is private and only accessible ... Remove this comment to see the full error message
   return replay._replay;
 }
 

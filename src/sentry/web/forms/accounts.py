@@ -15,6 +15,7 @@ from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.utils.auth import logger
 from sentry.utils.dates import get_timezone_choices
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
@@ -166,6 +167,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
         initial=False,
     )
+    timezone = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -234,6 +236,10 @@ class RegistrationForm(PasswordlessRegistrationForm):
             if self.cleaned_data.get("subscribe"):
                 newsletter.backend.create_or_update_subscriptions(
                     user, list_ids=newsletter.backend.get_default_list_ids()
+                )
+            if self.cleaned_data.get("timezone"):
+                UserOption.objects.create(
+                    user=user, key="timezone", value=self.cleaned_data.get("timezone")
                 )
         return user
 

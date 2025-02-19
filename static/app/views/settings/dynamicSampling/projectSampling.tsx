@@ -1,6 +1,5 @@
-import React, {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {
   addErrorMessage,
@@ -9,17 +8,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
-import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
@@ -90,20 +85,16 @@ export function ProjectSampling() {
     });
   };
 
-  // TODO(aknaus): This calculation + stiching of the two requests is repeated in a few places
-  // and should be moved to a shared utility function.
   const initialTargetRate = useMemo(() => {
     const sampleRates = sampleRatesQuery.data ?? [];
     const spanCounts = sampleCountsQuery.data ?? [];
     const totalSpanCount = spanCounts.reduce((acc, item) => acc + item.count, 0);
 
-    const spanCountsById = spanCounts.reduce(
-      (acc, item) => {
-        acc[item.project.id] = item.count;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const spanCountsById = mapArrayToObject({
+      array: spanCounts,
+      keySelector: item => item.project.id,
+      valueSelector: item => item.count,
+    });
 
     return (
       sampleRates.reduce((acc, item) => {
@@ -128,132 +119,44 @@ export function ProjectSampling() {
             locationChange.nextLocation.pathname && formState.hasChanged
         }
       />
-      <form onSubmit={event => event.preventDefault()} noValidate>
-        <Panel>
-          <PanelHeader>{t('General Settings')}</PanelHeader>
-          <PanelBody>
-            <SamplingModeField initialTargetRate={initialTargetRate} />
-          </PanelBody>
-        </Panel>
-        <HeadingRow>
-          <h4>{t('Customize Projects')}</h4>
-          <ProjectionPeriodControl period={period} onChange={setPeriod} />
-        </HeadingRow>
-        <p>
-          {t(
-            'Configure sample rates for each of your projects. These rates stay fixed if volumes change, which can lead to a change in the overall sample rate of your organization.'
-          )}
-        </p>
-        <p>
-          {t(
-            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
-          )}
-        </p>
-        {sampleCountsQuery.isError ? (
-          <LoadingError onRetry={sampleCountsQuery.refetch} />
-        ) : (
-          <ProjectsEditTable
-            period={period}
-            editMode={editMode}
-            onEditModeChange={setEditMode}
-            isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-            sampleCounts={sampleCountsQuery.data}
-          />
-        )}
-        <FormActions>
-          <Button disabled={isFormActionDisabled} onClick={handleReset}>
-            {t('Reset')}
-          </Button>
-          <ScrollIntoViewButton enabled={!isFormActionDisabled && formState.isValid}>
-            <Button
-              priority="primary"
-              disabled={isFormActionDisabled || !formState.isValid}
-              onClick={handleSubmit}
-            >
-              {t('Apply Changes')}
-            </Button>
-          </ScrollIntoViewButton>
-        </FormActions>
-      </form>
+      <MainControlBar>
+        <ProjectionPeriodControl period={period} onChange={setPeriod} />
+        <SamplingModeSwitch initialTargetRate={initialTargetRate} />
+      </MainControlBar>
+      {sampleCountsQuery.isError ? (
+        <LoadingError onRetry={sampleCountsQuery.refetch} />
+      ) : (
+        <ProjectsEditTable
+          period={period}
+          editMode={editMode}
+          onEditModeChange={setEditMode}
+          isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+          sampleCounts={sampleCountsQuery.data}
+          actions={
+            <Fragment>
+              <Button disabled={isFormActionDisabled} onClick={handleReset}>
+                {t('Reset')}
+              </Button>
+              <Button
+                priority="primary"
+                disabled={isFormActionDisabled || !formState.isValid}
+                onClick={handleSubmit}
+              >
+                {t('Apply Changes')}
+              </Button>
+            </Fragment>
+          }
+        />
+      )}
+      <FormActions />
     </FormProvider>
   );
 }
 
-function ScrollIntoViewButton({
-  children,
-  enabled,
-}: {
-  children: React.ReactElement;
-  enabled: boolean;
-}) {
-  if (React.Children.count(children) !== 1) {
-    throw new Error('ScrollIntoViewButton only accepts a single child');
-  }
-
-  const [isVisible, setIsVisible] = useState(false);
-  const [targetElement, setTargetElement] = useState<HTMLElement>();
-
-  useEffect(() => {
-    if (!targetElement || !enabled) {
-      return () => {};
-    }
-
-    const observer = new IntersectionObserver(
-      observerEntries => {
-        const entry = observerEntries[0]!;
-        setIsVisible(!entry.isIntersecting);
-      },
-      {
-        root: null,
-        threshold: 0.5,
-      }
-    );
-
-    observer.observe(targetElement);
-    return () => {
-      observer.disconnect();
-      setIsVisible(false);
-    };
-  }, [targetElement, enabled]);
-
-  return (
-    <Fragment>
-      {React.cloneElement(children, {ref: setTargetElement})}
-      {isVisible && (
-        <Tooltip title={t('Scroll down to apply changes')} skipWrapper>
-          <FloatingButton
-            type="button"
-            onClick={() => {
-              targetElement?.scrollIntoView({behavior: 'smooth'});
-            }}
-            initial={{opacity: 0, scale: 0.5}}
-            animate={{opacity: 1, scale: 1}}
-            transition={{
-              ease: [0, 0.71, 0.2, 1.4],
-            }}
-          >
-            <IconArrow direction="down" size="sm" />
-          </FloatingButton>
-        </Tooltip>
-      )}
-    </Fragment>
-  );
-}
-
-const FloatingButton = styled(motion.button)`
-  position: fixed;
-  bottom: ${space(4)};
-  right: ${space(1)};
-  border-radius: 50%;
-  border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.purple400};
-  color: ${p => p.theme.white};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  width: 36px;
-  height: 36px;
+const MainControlBar = styled('div')`
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  margin-bottom: ${space(1.5)};
 `;
 
 const FormActions = styled('div')`
@@ -262,16 +165,4 @@ const FormActions = styled('div')`
   gap: ${space(1)};
   justify-content: flex-end;
   padding-bottom: ${space(4)};
-`;
-
-const HeadingRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: ${space(3)};
-  padding-bottom: ${space(1.5)};
-
-  & > * {
-    margin: 0;
-  }
 `;

@@ -13,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
+from sentry.options.rollout import in_random_rollout
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.flag import flag_pole_hook
@@ -20,7 +21,6 @@ from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
-from .rollout import in_random_rollout
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser

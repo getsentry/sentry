@@ -61,6 +61,7 @@ function WidgetBuilderGroupBySelector({
         onChange={handleGroupByChange}
         validatedWidgetResponse={validatedWidgetResponse}
         style={{paddingRight: 0}}
+        widgetType={state.dataset}
       />
     </Fragment>
   );

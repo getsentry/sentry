@@ -1,9 +1,9 @@
 import {Component, type Dispatch, Fragment, type SetStateAction, useState} from 'react';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
@@ -128,8 +128,8 @@ class ContextPickerModal extends Component<Props> {
   // i.e. When there is only 1 org and no project is needed or
   // there is only 1 org and only 1 project (which should be rare)
   navigateIfFinish = (
-    organizations: {slug: string}[],
-    projects: {slug: string}[],
+    organizations: Array<{slug: string}>,
+    projects: Array<{slug: string}>,
     latestOrg = this.props.organization
   ) => {
     const {needProject, onFinish, nextPath, integrationConfigs} = this.props;
@@ -461,7 +461,7 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
       projects={[]}
       loading
       organizations={organizations}
-      organization={selectedOrgSlug!}
+      organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={[]}
     />
@@ -498,7 +498,7 @@ function ConfigUrlContainer(
       projects={[]}
       loading={isPending}
       organizations={organizations}
-      organization={selectedOrgSlug!}
+      organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={data}
     />

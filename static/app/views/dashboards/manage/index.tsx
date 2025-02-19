@@ -8,10 +8,10 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -37,9 +37,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
+import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';
@@ -57,7 +56,7 @@ import {
 } from './settings';
 import TemplateCard from './templateCard';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Dashboards'), value: 'mydashboards'},
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
   {label: t('Dashboard Name (Z-A)'), value: '-title'},
@@ -72,8 +71,6 @@ export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
 const TABLE = 'table';
-
-export type DashboardsLayout = 'grid' | 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
@@ -303,7 +300,9 @@ function ManageDashboards() {
   function renderNoAccess() {
     return (
       <Layout.Page>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }
@@ -452,7 +451,6 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <DashboardImportButton />
                       <Button
                         data-test-id="dashboard-create"
                         onClick={event => {
@@ -486,8 +484,6 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main fullWidth>
-                    <MetricsRemovedAlertsWidgetsAlert organization={organization} />
-
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">

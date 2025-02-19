@@ -297,7 +297,7 @@ type Props = WithRouterProps &
      * A function that returns a warning message for a given filter key
      * will only show a render a warning if the value is truthy
      */
-    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
+    // @ts-expect-error TS(7006): Parameter 'key' implicitly has an 'any' type.
     getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
@@ -360,7 +360,11 @@ type Props = WithRouterProps &
     /**
      * Get a list of tag values for the passed tag
      */
-    onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+    onGetTagValues?: (
+      tag: Tag,
+      query: string,
+      params: Record<PropertyKey, unknown>
+    ) => Promise<string[]>;
     /**
      * Called on key down
      */
@@ -644,7 +648,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   }
 
-  moveToNextToken = (filterTokens: TokenResult<Token.FILTER>[]) => {
+  moveToNextToken = (filterTokens: Array<TokenResult<Token.FILTER>>) => {
     const token = this.cursorToken;
 
     if (this.searchInput.current && filterTokens.length > 0) {
@@ -1229,9 +1233,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     };
   }
 
-  get filterTokens(): TokenResult<Token.FILTER>[] {
+  get filterTokens(): Array<TokenResult<Token.FILTER>> {
     return (this.state.parsedQuery?.filter(tok => tok.type === Token.FILTER) ??
-      []) as TokenResult<Token.FILTER>[];
+      []) as Array<TokenResult<Token.FILTER>>;
   }
 
   /**
@@ -1569,7 +1573,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   showDefaultSearches = async () => {
     const {query} = this.state;
-    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
+    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems;
 
     // Always clear searchTerm on showing default state.
     this.setState({searchTerm: ''});

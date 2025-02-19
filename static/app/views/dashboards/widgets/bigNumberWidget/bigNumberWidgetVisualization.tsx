@@ -15,8 +15,9 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
+import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
 
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -38,6 +39,10 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     preferredPolarity,
     meta,
   } = props;
+
+  if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
+    throw new Error(NON_FINITE_NUMBER_MESSAGE);
+  }
 
   const location = useLocation();
   const organization = useOrganization();
@@ -143,7 +148,7 @@ function Wrapper({children}: any) {
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  inset: 0;
 
   color: ${p => p.theme.headingColor};
 
@@ -171,3 +176,12 @@ const NumberContainerOverride = styled('div')`
     white-space: nowrap;
   }
 `;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+BigNumberWidgetVisualization.LoadingPlaceholder = function () {
+  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+};

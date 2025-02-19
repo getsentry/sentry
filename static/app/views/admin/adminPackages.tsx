@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
-  extensions: [key: string, value: string][];
-  modules: [key: string, value: string][];
+  extensions: Array<[key: string, value: string]>;
+  modules: Array<[key: string, value: string]>;
 };
 
 export default function AdminPackages() {

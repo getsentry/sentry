@@ -74,9 +74,9 @@ import {
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type RouterParams = {groupId: string; eventId?: string};
-type RouteProps = RouteComponentProps<RouterParams, {}>;
+type RouteProps = RouteComponentProps<RouterParams>;
 
-interface GroupDetailsProps extends RouteComponentProps<{groupId: string}, {}> {
+interface GroupDetailsProps extends RouteComponentProps<{groupId: string}> {
   children: React.ReactNode;
 }
 
@@ -582,7 +582,7 @@ const trackTabChanged = ({
     ? event.tags
         .filter(({key}) => ['device', 'os', 'browser'].includes(key))
         .reduce((acc, {key, value}) => {
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           acc[key] = value;
           return acc;
         }, {})
@@ -696,7 +696,7 @@ function GroupDetailsContent({
         event={event}
         group={group}
         baseUrl={baseUrl}
-        project={project as Project}
+        project={project}
       />
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>{children}</TabPanels.Item>

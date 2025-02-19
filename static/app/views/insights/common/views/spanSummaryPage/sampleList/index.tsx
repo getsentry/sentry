@@ -64,7 +64,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
     undefined
   );
 
-  transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization.slug, view, true)}`;
+  transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization, view, true)}`;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(

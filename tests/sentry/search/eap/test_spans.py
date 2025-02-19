@@ -9,8 +9,8 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    DoubleArray,
     ExtrapolationMode,
-    FloatArray,
     Function,
     StrArray,
     VirtualColumnContext,
@@ -62,9 +62,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_float=123),
+                value=AttributeValue(val_double=123),
             )
         )
         assert having is None
@@ -110,9 +110,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
                 op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_float_array=FloatArray(values=[123, 456, 789])),
+                value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
             )
         )
         assert having is None
@@ -121,9 +121,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:>123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
                 op=ComparisonFilter.OP_GREATER_THAN,
-                value=AttributeValue(val_float=123),
+                value=AttributeValue(val_double=123),
             )
         )
         assert having is None
@@ -265,7 +265,7 @@ class SearchResolverQueryTest(TestCase):
                     aggregation=AttributeAggregation(
                         aggregate=Function.FUNCTION_COUNT,
                         key=AttributeKey(
-                            name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT
+                            name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
                         ),
                         label="count()",
                         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -291,7 +291,7 @@ class SearchResolverQueryTest(TestCase):
                     aggregation=AttributeAggregation(
                         aggregate=Function.FUNCTION_COUNT,
                         key=AttributeKey(
-                            name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT
+                            name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
                         ),
                         label="count()",
                         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -308,7 +308,7 @@ class SearchResolverQueryTest(TestCase):
             comparison_filter=AggregationComparisonFilter(
                 aggregation=AttributeAggregation(
                     aggregate=Function.FUNCTION_AVG,
-                    key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_FLOAT),
+                    key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_DOUBLE),
                     label="avg(tags[foo, number])",
                     extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                 ),
@@ -325,7 +325,7 @@ class SearchResolverQueryTest(TestCase):
                 comparison_filter=AggregationComparisonFilter(
                     aggregation=AttributeAggregation(
                         aggregate=Function.FUNCTION_AVG,
-                        key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_FLOAT),
+                        key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_DOUBLE),
                         label="avg(measurements.lcp)",
                         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                     ),
@@ -345,7 +345,7 @@ class SearchResolverQueryTest(TestCase):
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_COUNT,
                                 key=AttributeKey(
-                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT
+                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
                                 ),
                                 label="count()",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -358,7 +358,7 @@ class SearchResolverQueryTest(TestCase):
                         comparison_filter=AggregationComparisonFilter(
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_AVG,
-                                key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_FLOAT),
+                                key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_DOUBLE),
                                 label="avg(measurements.lcp)",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                             ),
@@ -381,7 +381,7 @@ class SearchResolverQueryTest(TestCase):
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_COUNT,
                                 key=AttributeKey(
-                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT
+                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
                                 ),
                                 label="count()",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -394,7 +394,7 @@ class SearchResolverQueryTest(TestCase):
                         comparison_filter=AggregationComparisonFilter(
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_AVG,
-                                key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_FLOAT),
+                                key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_DOUBLE),
                                 label="avg(measurements.lcp)",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                             ),
@@ -417,7 +417,7 @@ class SearchResolverQueryTest(TestCase):
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_COUNT,
                                 key=AttributeKey(
-                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT
+                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
                                 ),
                                 label="count()",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -430,7 +430,7 @@ class SearchResolverQueryTest(TestCase):
                         comparison_filter=AggregationComparisonFilter(
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_AVG,
-                                key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_FLOAT),
+                                key=AttributeKey(name="lcp", type=AttributeKey.Type.TYPE_DOUBLE),
                                 label="avg(measurements.lcp)",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                             ),
@@ -459,7 +459,7 @@ class SearchResolverQueryTest(TestCase):
                                             aggregate=Function.FUNCTION_COUNT,
                                             key=AttributeKey(
                                                 name="sentry.duration_ms",
-                                                type=AttributeKey.Type.TYPE_FLOAT,
+                                                type=AttributeKey.Type.TYPE_DOUBLE,
                                             ),
                                             label="count()",
                                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -474,7 +474,7 @@ class SearchResolverQueryTest(TestCase):
                                             aggregate=Function.FUNCTION_AVG,
                                             key=AttributeKey(
                                                 name="http.response_content_length",
-                                                type=AttributeKey.Type.TYPE_FLOAT,
+                                                type=AttributeKey.Type.TYPE_DOUBLE,
                                             ),
                                             label="avg(http.response_content_length)",
                                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -495,7 +495,7 @@ class SearchResolverQueryTest(TestCase):
                                             aggregate=Function.FUNCTION_COUNT,
                                             key=AttributeKey(
                                                 name="sentry.duration_ms",
-                                                type=AttributeKey.Type.TYPE_FLOAT,
+                                                type=AttributeKey.Type.TYPE_DOUBLE,
                                             ),
                                             label="count()",
                                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -509,7 +509,7 @@ class SearchResolverQueryTest(TestCase):
                                         aggregation=AttributeAggregation(
                                             aggregate=Function.FUNCTION_AVG,
                                             key=AttributeKey(
-                                                name="lcp", type=AttributeKey.Type.TYPE_FLOAT
+                                                name="lcp", type=AttributeKey.Type.TYPE_DOUBLE
                                             ),
                                             label="avg(measurements.lcp)",
                                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -548,7 +548,8 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="project", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context == VirtualColumnContext(
+        assert virtual_context is not None
+        assert virtual_context.constructor(self.resolver.params) == VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name="project",
             value_map={str(self.project.id): self.project.slug},
@@ -559,7 +560,8 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context == VirtualColumnContext(
+        assert virtual_context is not None
+        assert virtual_context.constructor(self.resolver.params) == VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name="project.slug",
             value_map={str(self.project.id): self.project.slug},
@@ -582,7 +584,7 @@ class SearchResolverColumnTest(TestCase):
     def test_simple_number_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="foo", type=AttributeKey.Type.TYPE_FLOAT
+            name="foo", type=AttributeKey.Type.TYPE_DOUBLE
         )
         assert virtual_context is None
 
@@ -590,7 +592,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_FLOAT),
+            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_DOUBLE),
             label="sum(span.self_time)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -600,7 +602,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
             label="sum()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -610,7 +612,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
             label="test",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -620,7 +622,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -628,7 +630,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
             label="count(span.duration)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -638,7 +640,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("p50()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_P50,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
             label="p50()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )

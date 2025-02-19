@@ -58,7 +58,7 @@ export function getKeyValueListData(
     case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: evidenceData.transaction,
         query: {},
         trendFunction: 'p95',

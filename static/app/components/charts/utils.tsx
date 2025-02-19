@@ -42,7 +42,7 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 export function truncationFormatter(
   value: string,
   truncate: number | boolean | undefined,
-  escaped: boolean = true
+  escaped = true
 ): string {
   // Whitespace characters such as newlines and tabs can
   // mess up the formatting in legends where it's part of
@@ -120,7 +120,7 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues' | 'spans';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -131,6 +131,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
     issues: issuesFidelityLadder,
+    spans: spansFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -178,6 +179,18 @@ const issuesFidelityLadder = new GranularityLadder([
   [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+const spansFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '30m'],
+  [TWENTY_FOUR_HOURS, '15m'],
+  [SIX_HOURS, '15m'],
+  [ONE_HOUR, '5m'],
   [0, '1m'],
 ]);
 
@@ -253,6 +266,9 @@ export function getSeriesSelection(
   );
 }
 
+/**
+ * @deprecated Prefer `isEventsStats`
+ */
 function isSingleSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
@@ -263,6 +279,9 @@ function isSingleSeriesStats(
   );
 }
 
+/**
+ * @deprecated Prefer `isMultiSeriesEventsStats`
+ */
 export function isMultiSeriesStats(
   data:
     | MultiSeriesEventsStats
@@ -330,7 +349,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
-    title: tableResult!.title ?? '',
+    title: tableResult.title ?? '',
     data: data.map(row => {
       return {
         name: row['geo.country_code'] as string,
@@ -344,7 +363,7 @@ export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;
 };
 
-function formatList(items: (string | number | undefined)[]) {
+function formatList(items: Array<string | number | undefined>) {
   const filteredItems = items.filter((item): item is string | number => !!item);
 
   return oxfordizeArray(filteredItems.map(item => item.toString()));

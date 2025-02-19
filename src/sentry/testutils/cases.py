@@ -48,6 +48,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUSREASONTYPE_TIMEOUT,
     REQUESTTYPE_HEAD,
     CheckResult,
+    CheckStatus,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -136,6 +137,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
+from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -211,7 +213,8 @@ class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
-        self.addCleanup(auth.unregister, "dummy", DummyProvider)
+        yield
+        auth.unregister("dummy", DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -1008,7 +1011,7 @@ class CliTestCase(TestCase):
     def command(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    default_args = []
+    default_args: list[str] = []
 
     def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
@@ -1939,7 +1942,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "d": EntityKey.MetricsDistributions.value,
         "s": EntityKey.MetricsSets.value,
     }
-    METRIC_STRINGS = []
+    METRIC_STRINGS: list[str] = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
@@ -1954,7 +1957,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         You can pass your own features if you do not want to use the default used by the subclass.
         """
         with self.feature(features or self.features):
-            return self.client.get(self.url, data=data, format="json")
+            ret = self.client.get(self.url, data=data, format="json")
+            assert isinstance(ret, Response), ret
+            return ret
 
     def _index_metric_strings(self):
         strings = [
@@ -2300,6 +2305,27 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
+    def store_span(self, span, is_eap=False):
+        span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans, is_eap=False):
+        for span in spans:
+            span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+
 
 @pytest.mark.snuba
 @requires_snuba
@@ -2326,6 +2352,55 @@ class ReplaysSnubaTestCase(TestCase):
             project_id=project_id,
         )
         return transform_event_for_linking_payload(replay_id, event)
+
+
+@pytest.mark.snuba
+@requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
+class UptimeCheckSnubaTestCase(TestCase):
+    def store_uptime_check(self, uptime_check):
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+        )
+        assert response.status_code == 200
+
+    def store_snuba_uptime_check(
+        self,
+        subscription_id: str | None,
+        check_status: str,
+        incident_status: IncidentStatus | None = None,
+        scheduled_check_time: datetime | None = None,
+    ):
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now() - timedelta(minutes=5)
+        if incident_status is None:
+            incident_status = IncidentStatus.NO_INCIDENT
+
+        timestamp = scheduled_check_time + timedelta(seconds=1)
+
+        http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
+
+        self.store_uptime_check(
+            {
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "retention_days": 30,
+                "region": f"region_{random.randint(1, 3)}",
+                "environment": "production",
+                "subscription_id": subscription_id,
+                "guid": str(uuid.uuid4()),
+                "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
+                "actual_check_time_ms": int(timestamp.timestamp() * 1000),
+                "duration_ms": random.randint(1, 1000),
+                "status": check_status,
+                "status_reason": None,
+                "trace_id": str(uuid.uuid4()),
+                "incident_status": incident_status.value,
+                "request_info": {
+                    "http_status_code": http_status,
+                },
+            }
+        )
 
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
@@ -3107,11 +3182,15 @@ class UptimeTestCaseMixin:
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
 
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
-        status: str = CHECKSTATUS_FAILURE,
+        status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
         uptime_region: str | None = "us-west",
     ) -> CheckResult:
@@ -3119,7 +3198,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             subscription_id = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
-        optional_fields = {}
+        optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
@@ -3320,17 +3399,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
+                spans = []
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(
+                        spans.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                self.store_span(self.convert_event_data_to_span(event))
+                spans.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3361,6 +3442,11 @@ class TraceTestCase(SpanTestCase):
             span_data["parent_span_id"] = trace_context["parent_span_id"]
         else:
             del span_data["parent_span_id"]
+
+        if "sentry_tags" in span_data:
+            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        else:
+            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
 
         return span_data
 

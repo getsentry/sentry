@@ -10,7 +10,7 @@ const defaultProps = {
     [10, 'function foo() {'],
     [11, "  return 'bar';"],
     [12, '}'],
-  ] as [number, string][],
+  ] as Array<[number, string]>,
   lineNo: 11,
   fileExtension: 'js',
 };
@@ -63,7 +63,7 @@ describe('usePrismTokensSourceContext', function () {
           [10, 'function foo() {'],
           [11, "  return 'bar';"],
           [12, '}'],
-        ] as [number, string][],
+        ] as Array<[number, string]>,
         lineNo: 11,
       },
     });
@@ -106,7 +106,7 @@ describe('usePrismTokensSourceContext', function () {
           [12, '}'],
           [13, '/*'],
           [12, 'some comment text'],
-        ] as [number, string][],
+        ] as Array<[number, string]>,
         lineNo: 11,
       },
     });
@@ -151,7 +151,7 @@ describe('usePrismTokensSourceContext', function () {
           [12, '}'],
           [13, '/*'],
           [12, 'some comment text'],
-        ] as [number, string][],
+        ] as Array<[number, string]>,
         lineNo: 11,
       },
     });
@@ -199,7 +199,7 @@ describe('usePrismTokensSourceContext', function () {
           [10, 'function foo() {'],
           [11, "  return 'bar';"],
           [12, '}'],
-        ] as [number, string][],
+        ] as Array<[number, string]>,
         lineNo: 11,
       },
     });
@@ -250,7 +250,7 @@ describe('usePrismTokensSourceContext', function () {
           [10, 'function foo() {'],
           [11, "  return 'bar';"],
           [12, '}'],
-        ] as [number, string][],
+        ] as Array<[number, string]>,
         lineNo: 11,
       },
     });
@@ -300,7 +300,7 @@ describe('usePrismTokensSourceContext', function () {
             [12, 'b = "20"'],
             [13, "'''"],
             [14, 'some comment text'],
-          ] as [number, string][],
+          ] as Array<[number, string]>,
           lineNo: 11,
           fileExtension: 'py',
         },
@@ -345,7 +345,7 @@ describe('usePrismTokensSourceContext', function () {
             [12, '$b = 20;'],
             [13, '=comment'],
             [14, 'some comment text'],
-          ] as [number, string][],
+          ] as Array<[number, string]>,
           lineNo: 11,
           fileExtension: 'pl',
         },

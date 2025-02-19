@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.test import TestCase, override_settings
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.testutils.helpers import override_options
 from sentry.uptime.subscriptions.regions import get_active_region_configs, get_region_config
 
 
@@ -11,27 +12,30 @@ class TestBase(TestCase):
             UptimeRegionConfig(
                 slug="us",
                 name="United States",
-                config_topic=Topic("uptime-results"),
-                enabled=True,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="us",
             ),
             UptimeRegionConfig(
                 slug="eu",
                 name="Europe",
-                config_topic=Topic("uptime-configs"),
-                enabled=False,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="eu",
             ),
             UptimeRegionConfig(
                 slug="ap",
                 name="Asia Pacific",
-                config_topic=Topic("monitors-clock-tasks"),
-                enabled=True,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="ap",
             ),
         ]
 
 
 class GetActiveRegionConfigsTest(TestBase):
     def test_returns_only_enabled_regions(self):
-        with override_settings(UPTIME_REGIONS=self.test_regions):
+        with (
+            override_settings(UPTIME_REGIONS=self.test_regions),
+            override_options({"uptime.disabled-checker-regions": ["eu"]}),
+        ):
             active_regions = get_active_region_configs()
             assert len(active_regions) == 2
             assert all(region.enabled for region in active_regions)

@@ -7,9 +7,14 @@ from django.utils import timezone
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.group import Group
-from sentry.workflow_engine.models import Action, ActionGroupStatus, DataConditionGroup, Workflow
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.models import (
+    Action,
+    ActionGroupStatus,
+    DataCondition,
+    DataConditionGroup,
+)
+
+EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
 def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
@@ -49,8 +54,13 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
 
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    actions: BaseQuerySet[Action], group: Group
+    filtered_action_groups: set[DataConditionGroup], group: Group
 ) -> BaseQuerySet[Action]:
+    # get the actions for any of the triggered data condition groups
+    actions = Action.objects.filter(
+        dataconditiongroupaction__condition_group__in=filtered_action_groups
+    ).distinct()
+
     now = timezone.now()
     statuses = get_action_last_updated_statuses(now, actions, group)
 
@@ -74,29 +84,3 @@ def filter_recently_fired_workflow_actions(
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
     return filtered_actions
-
-
-def evaluate_workflow_action_filters(
-    workflows: set[Workflow], job: WorkflowJob
-) -> BaseQuerySet[Action]:
-    filtered_action_groups: set[DataConditionGroup] = set()
-
-    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids = {workflow.id for workflow in workflows}
-
-    action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=workflow_ids
-    ).distinct()
-
-    for action_condition in action_conditions:
-        evaluation, result = evaluate_condition_group(action_condition, job)
-
-        if evaluation:
-            filtered_action_groups.add(action_condition)
-
-    # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
-
-    return filter_recently_fired_workflow_actions(actions, job["event"].group)

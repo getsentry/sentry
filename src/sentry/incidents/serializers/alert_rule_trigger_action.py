@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
@@ -193,13 +194,15 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     def create(self, validated_data):
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
-
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
         except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_str(e))
+        except ValidationError as e:
+            # invalid action type
+            raise serializers.ValidationError(str(e))
 
         analytics.record(
             "metric_alert_with_ui_component.created",
@@ -207,6 +210,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             alert_rule_id=getattr(self.context["alert_rule"], "id"),
             organization_id=getattr(self.context["organization"], "id"),
         )
+
         return action
 
     def update(self, instance, validated_data):

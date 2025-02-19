@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -28,13 +28,13 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
 
 MAX_RETRIES = 2
-DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
 
 
 class OrganizationDashboardsPermission(OrganizationPermission):
@@ -50,8 +50,12 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             return super().has_object_permission(request, view, obj)
 
         if isinstance(obj, Dashboard):
-            # allow for Managers and Owners
-            if request.access.has_scope("org:write"):
+            is_superuser = is_active_superuser(request)
+            # allow strictly for Owners and superusers, this allows them to delete dashboards
+            # of users that no longer have access to the organization
+            if is_superuser or request.access.has_role_in_organization(
+                role=roles.get_top_dog().id, organization=obj.organization, user_id=request.user.id
+            ):
                 return True
 
             # check if user is restricted from editing dashboard

@@ -242,11 +242,11 @@ function FunctionTrendsEntry({
     // the same bucket as the breakpoint.
 
     const beforeTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: beforeExamples[beforeExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     before = (
@@ -256,11 +256,11 @@ function FunctionTrendsEntry({
     );
 
     const afterTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: afterExamples[afterExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     after = (
@@ -324,7 +324,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       data: func.stats.data.map(([timestamp, data]) => {
         return {
           name: timestamp * 1e3,
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value: data[0].count / 1e6,
         };
       }),

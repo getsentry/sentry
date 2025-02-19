@@ -21,7 +21,11 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    IntegrationError,
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -280,6 +284,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
             try:
                 data = installation.create_issue(request.data)
+            except IntegrationInstallationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(exc.field_errors, status=400)

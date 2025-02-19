@@ -8,8 +8,8 @@ import {PlatformIcon} from 'platformicons';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -439,14 +439,16 @@ function CreateProject() {
           </CreateProjectForm>
 
           {errors && (
-            <Alert type="error">
-              {Object.keys(errors).map(key => (
-                <div key={key}>
-                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                  {(errors as any)[key]}
-                </div>
-              ))}
-            </Alert>
+            <Alert.Container>
+              <Alert type="error">
+                {Object.keys(errors).map(key => (
+                  <div key={key}>
+                    <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
+                    {(errors as any)[key]}
+                  </div>
+                ))}
+              </Alert>
+            </Alert.Container>
           )}
         </List>
       </div>

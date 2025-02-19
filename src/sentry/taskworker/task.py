@@ -61,6 +61,10 @@ class Task(Generic[P, R]):
         update_wrapper(self, func)
 
     @property
+    def fullname(self) -> str:
+        return f"{self._namespace.name}:{self.name}"
+
+    @property
     def retry(self) -> Retry | None:
         return self._retry
 

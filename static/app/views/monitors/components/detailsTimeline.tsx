@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +42,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   const queryClient = useQueryClient();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -142,6 +144,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
+  z-index: 1;
 `;
 
 const TimelineWidthTracker = styled('div')`
@@ -156,7 +159,8 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const TimelineTitle = styled(Text)`
-  ${p => p.theme.text.cardTitle};
   padding: ${space(2)};
   grid-column: 1;
+  line-height: 1.2;
+  font-weight: bold;
 `;

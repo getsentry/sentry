@@ -1,13 +1,11 @@
 import {useCallback, useState} from 'react';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -29,20 +27,24 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    trackAnalytics('dashboards_views.widget_builder.save', {
+      builder_version: WidgetBuilderVersion.SLIDEOUT,
+      data_set: state.dataset ?? '',
+      new_widget: !isEditing,
+      organization,
+    });
     const widget = convertBuilderStateToWidget(state);
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
-      addLoadingMessage(t('Saving widget'));
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
       setIsSaving(false);
-      clearIndicators();
       const errorDetails = error.responseJSON || error;
       setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
     }
-  }, [api, onSave, organization.slug, state, widgetIndex, setError]);
+  }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 
   return (
     <Button priority="primary" onClick={handleSave} busy={isSaving}>

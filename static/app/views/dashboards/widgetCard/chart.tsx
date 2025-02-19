@@ -51,8 +51,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -87,6 +87,7 @@ type WidgetCardChartProps = Pick<
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -132,7 +133,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection} = this.props;
+    const {location, widget, selection, minTableColumnWidth} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -170,6 +171,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
             getCustomFieldRenderer={getCustomFieldRenderer}
+            minColumnWidth={minTableColumnWidth}
           />
         </TableWrapper>
       );
@@ -246,7 +248,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
   chartComponent(chartProps: any): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]!?.columns.length > 0;
+    const stacked = widget.queries[0]?.columns.length! > 0;
 
     switch (widget.displayType) {
       case 'bar':

@@ -1,4 +1,3 @@
-import type {MRI} from 'sentry/types/metrics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {SpanBarProps} from './spanBar';
@@ -30,18 +29,6 @@ interface SpanDatabaseAttributes {
   'db.user'?: string;
 }
 
-export interface MetricsSummaryItem {
-  count: number | null;
-  max: number | null;
-  min: number | null;
-  sum: number | null;
-  tags: Record<string, string> | null;
-}
-
-export interface MetricsSummary {
-  [mri: MRI]: MetricsSummaryItem[] | null;
-}
-
 export type RawSpanType = {
   span_id: string;
   start_timestamp: number;
@@ -69,12 +56,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: {
+  samples: Array<{
     span: string;
     timestamp: number;
     trace: string;
     transaction: string;
-  }[];
+  }>;
   total: number;
   type: 'aggregate';
 };
@@ -248,7 +235,7 @@ export type IndexedFusedSpan = {
 };
 
 export type FilterSpans = {
-  results: Fuse.FuseResult<IndexedFusedSpan>[];
+  results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
 };
 

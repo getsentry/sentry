@@ -1955,6 +1955,7 @@ class Factories:
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
+        host_provider_name: str,
         interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
         method,
@@ -1975,6 +1976,7 @@ class Factories:
             url_domain=url_domain,
             url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
+            host_provider_name=host_provider_name,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -1989,6 +1991,7 @@ class Factories:
         project: Project,
         env: Environment | None,
         uptime_subscription: UptimeSubscription,
+        status: int,
         mode: ProjectUptimeSubscriptionMode,
         name: str | None,
         owner: Actor | None,
@@ -2008,6 +2011,7 @@ class Factories:
             uptime_subscription=uptime_subscription,
             project=project,
             environment=env,
+            status=status,
             mode=mode,
             name=name,
             owner_team_id=owner_team_id,
@@ -2127,17 +2131,17 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_data_source(
         organization: Organization | None = None,
-        query_id: int | None = None,
+        source_id: str | None = None,
         type: str | None = None,
         **kwargs,
     ) -> DataSource:
         if organization is None:
             organization = Factories.create_organization()
-        if query_id is None:
-            query_id = random.randint(1, 10000)
+        if source_id is None:
+            source_id = str(random.randint(1, 10000))
         if type is None:
             type = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
-        return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
+        return DataSource.objects.create(organization=organization, source_id=source_id, type=type)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

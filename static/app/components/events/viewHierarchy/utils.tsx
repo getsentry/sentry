@@ -7,7 +7,7 @@ import {defined} from 'sentry/utils';
 import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
-export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
+export function useResizeCanvasObserver(canvases: Array<HTMLCanvasElement | null>): Rect {
   const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
 
   useLayoutEffect(() => {
@@ -43,14 +43,14 @@ export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]):
 
 export function getHierarchyDimensions(
   hierarchies: ViewHierarchyWindow[],
-  useAbsolutePosition: boolean = false
+  useAbsolutePosition = false
 ): {
   maxHeight: number;
   maxWidth: number;
   nodes: ViewNode[];
 } {
   const nodes: ViewNode[] = [];
-  const queue: [Rect | null, ViewHierarchyWindow][] = [];
+  const queue: Array<[Rect | null, ViewHierarchyWindow]> = [];
   for (let i = hierarchies.length - 1; i >= 0; i--) {
     queue.push([null, hierarchies[i]!]);
   }
@@ -113,9 +113,8 @@ export function getDeepestNodeAtPoint(
 
   vec2.scale(point, point, scale);
   const transformedPoint = vec2.transformMat3(vec2.create(), point, inverseMatrix);
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]!;
-    if (node!.rect.contains(transformedPoint)) {
+  for (const node of nodes) {
+    if (node.rect.contains(transformedPoint)) {
       clickedNode = node;
     }
   }
