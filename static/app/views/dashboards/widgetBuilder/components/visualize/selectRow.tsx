@@ -1,3 +1,4 @@
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -109,6 +110,7 @@ export function SelectRow({
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const datasetConfig = getDatasetConfig(state.dataset);
+  const columnSelectRef = useRef<HTMLDivElement>(null);
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -117,6 +119,12 @@ export function SelectRow({
   const updateAction = isChartWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
+
+  const openColumnSelect = useCallback(() => {
+    requestAnimationFrame(() => {
+      columnSelectRef.current?.querySelector('button')?.click();
+    });
+  }, []);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -249,6 +257,8 @@ export function SelectRow({
                   currentField.function[i + 1] = undefined;
                 }
               }
+
+              openColumnSelect();
             } else {
               if (!selectedAggregate || !('parameters' in selectedAggregate.value.meta)) {
                 return;
@@ -299,6 +309,7 @@ export function SelectRow({
                 kind: FieldValueKind.FUNCTION,
                 function: newFunction,
               };
+              openColumnSelect();
             }
             trackAnalytics('dashboards_views.widget_builder.change', {
               builder_version: WidgetBuilderVersion.SLIDEOUT,
@@ -351,6 +362,7 @@ export function SelectRow({
               widget_type: state.dataset ?? '',
               organization,
             });
+            openColumnSelect();
           }
           dispatch({
             type: updateAction,
@@ -363,49 +375,45 @@ export function SelectRow({
         }}
       />
       {hasColumnParameter && (
-        <ColumnCompactSelect
-          searchable
-          position="bottom-start"
-          menuFooter={
-            state.displayType === DisplayType.TABLE &&
-            field.kind !== FieldValueKind.FUNCTION
-              ? renderDropdownMenuFooter
-              : undefined
-          }
-          options={columnOptions}
-          value={
-            field.kind === FieldValueKind.FUNCTION
-              ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
-              : field.field
-          }
-          onChange={newField => {
-            const newFields = cloneDeep(fields);
-            const currentField = newFields[index]!;
-            if (currentField.kind === FieldValueKind.FUNCTION) {
-              currentField.function[1] = newField.value as string;
+        <SelectWrapper ref={columnSelectRef}>
+          <ColumnCompactSelect
+            searchable
+            options={columnOptions}
+            value={
+              field.kind === FieldValueKind.FUNCTION
+                ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
+                : field.field
             }
-            if (currentField.kind === FieldValueKind.FIELD) {
-              currentField.field = newField.value as string;
-            }
-            dispatch({
-              type: updateAction,
-              payload: newFields,
-            });
-            setError?.({...error, queries: []});
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'visualize.updateColumn',
-              from: source,
-              new_widget: !isEditing,
-              value: currentField.kind === FieldValueKind.FIELD ? 'column' : 'aggregate',
-              widget_type: state.dataset ?? '',
-              organization,
-            });
-          }}
-          triggerProps={{
-            'aria-label': t('Column Selection'),
-          }}
-        />
+            onChange={newField => {
+              const newFields = cloneDeep(fields);
+              const currentField = newFields[index]!;
+              if (currentField.kind === FieldValueKind.FUNCTION) {
+                currentField.function[1] = newField.value as string;
+              }
+              if (currentField.kind === FieldValueKind.FIELD) {
+                currentField.field = newField.value as string;
+              }
+              dispatch({
+                type: updateAction,
+                payload: newFields,
+              });
+              setError?.({...error, queries: []});
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.updateColumn',
+                from: source,
+                new_widget: !isEditing,
+                value:
+                  currentField.kind === FieldValueKind.FIELD ? 'column' : 'aggregate',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
+            triggerProps={{
+              'aria-label': t('Column Selection'),
+            }}
+          />
+        </SelectWrapper>
       )}
     </PrimarySelectRow>
   );
@@ -428,4 +436,8 @@ const FooterWrapper = styled('div')`
   justify-content: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const SelectWrapper = styled('div')`
+  display: contents;
 `;
