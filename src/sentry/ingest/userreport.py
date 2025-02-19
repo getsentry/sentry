@@ -47,8 +47,8 @@ def save_userreport(
                 org_id=project.organization_id,
                 project_id=project.id,
                 key_id=None,
-                outcome=Outcome.ABUSE,
-                reason=None,
+                outcome=Outcome.RATE_LIMITED,
+                reason="feedback_denylist",
                 timestamp=start_time or timezone.now(),
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
@@ -66,7 +66,7 @@ def save_userreport(
                 org_id=project.organization_id,
                 project_id=project.id,
                 key_id=None,
-                outcome=Outcome.FILTERED,
+                outcome=Outcome.INVALID,
                 reason=filter_reason,
                 timestamp=start_time or timezone.now(),
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
