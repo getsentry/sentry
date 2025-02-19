@@ -10,8 +10,8 @@ import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
 import {FLAG_HASH_SKIP_CONFIG} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
-  IntegrationOptions,
-  ProviderOptions,
+  SdkProviderEnum,
+  WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -204,11 +204,9 @@ function OnboardingContent({
     return window.location.hash;
   }, []);
   const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
-  const openFeatureProviders = Object.values(ProviderOptions);
-  const sdkProviders = Object.values(ProviderOptions);
 
   // First dropdown: OpenFeature providers
-  const openFeatureProviderOptions = openFeatureProviders.map(provider => {
+  const openFeatureProviderOptions = Object.values(WebhookProviderEnum).map(provider => {
     return {
       value: provider,
       textValue: provider,
@@ -223,13 +221,15 @@ function OnboardingContent({
   }>(openFeatureProviderOptions[0]!);
 
   // Second dropdown: other SDK providers
-  const sdkProviderOptions = sdkProviders.map(provider => {
-    return {
-      value: provider,
-      textValue: provider,
-      label: <TextOverflow>{provider}</TextOverflow>,
-    };
-  });
+  const sdkProviderOptions = Object.values(SdkProviderEnum)
+    .filter(provider => provider !== SdkProviderEnum.OPENFEATURE)
+    .map(provider => {
+      return {
+        value: provider,
+        textValue: provider,
+        label: <TextOverflow>{provider}</TextOverflow>,
+      };
+    });
 
   const [sdkProvider, setsdkProvider] = useState<{
     value: string;
@@ -356,7 +356,7 @@ function OnboardingContent({
           integration={
             // either OpenFeature or the SDK selected from the second dropdown
             setupMode() === 'openFeature'
-              ? IntegrationOptions.OPENFEATURE
+              ? SdkProviderEnum.OPENFEATURE
               : sdkProvider.value
           }
           provider={
@@ -394,9 +394,7 @@ function OnboardingContent({
         projectSlug={currentProject.slug}
         integration={
           // either OpenFeature or the SDK selected from the second dropdown
-          setupMode() === 'openFeature'
-            ? IntegrationOptions.OPENFEATURE
-            : sdkProvider.value
+          setupMode() === 'openFeature' ? SdkProviderEnum.OPENFEATURE : sdkProvider.value
         }
         provider={
           // dropdown value (from either dropdown)
