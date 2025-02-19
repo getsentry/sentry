@@ -44,7 +44,7 @@ interface ExploreChartsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-const exploreChartTypeOptions = [
+export const EXPLORE_CHART_TYPE_OPTIONS = [
   {
     value: ChartType.LINE,
     label: t('Line'),
@@ -240,7 +240,7 @@ export function ExploreCharts({
                     }}
                     value={chartInfo.chartType}
                     menuTitle="Type"
-                    options={exploreChartTypeOptions}
+                    options={EXPLORE_CHART_TYPE_OPTIONS}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
                 </Tooltip>,
