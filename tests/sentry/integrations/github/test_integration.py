@@ -1163,3 +1163,35 @@ class GitHubIntegrationTest(IntegrationTestCase):
             installation.extract_source_path_from_source_url(repo, source_url)
             == "src/sentry/integrations/github/integration.py"
         )
+
+    @responses.activate
+    def test_get_stacktrace_link_with_special_chars(self):
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/[id]/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/%5Bid%5D/test.py"
+        )
