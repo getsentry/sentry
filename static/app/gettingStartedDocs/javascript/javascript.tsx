@@ -83,10 +83,7 @@ Sentry.init({
   integrations: [Sentry.featureFlagsIntegration()],
 });
 
-const flagsIntegration =
-  Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>(
-    "FeatureFlags",
-  );
+const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
 if (flagsIntegration) {
   flagsIntegration.addFeatureFlag("test-flag", false);
 } else {
