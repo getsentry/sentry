@@ -520,6 +520,8 @@ class Referrer(StrEnum):
     API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH = (
         "api.trace-explorer.trace-spans-flamegraph"
     )
+    API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
+    API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
