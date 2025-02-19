@@ -6,11 +6,11 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -57,6 +57,10 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
+)
+from sentry.relay.config.metric_extraction import (
+    _get_alert_metric_specs,
+    on_demand_metrics_feature_flags,
 )
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
@@ -149,6 +153,38 @@ class AlertRuleIndexMixin(Endpoint):
             return SnubaQuery.Type(value).name
         except ValueError:
             return "Unknown"
+
+
+@region_silo_endpoint
+class OrganizationOnDemandRuleTotalsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Returns the total number of on-demand alert rules for a project, along with
+        the maximum allowed limit of on-demand alert rules that can be created.
+        """
+        project_ids = request.GET.getlist("project")
+
+        if len(project_ids) != 1 or not project_ids[0].isdigit():
+            raise ParseError(detail="Exactly one valid project ID must be provided.")
+
+        project = int(project_ids[0])
+
+        enabled_features = on_demand_metrics_feature_flags(organization)
+        prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+
+        return Response(
+            {
+                "total_on_demand_alerts": len(alert_specs),
+                "max_allowed": options.get("on_demand.max_alert_specs"),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @region_silo_endpoint

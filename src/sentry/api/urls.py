@@ -99,6 +99,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
+    OrganizationOnDemandRuleTotalsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
@@ -1168,6 +1169,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/ondemand-rules/$",
+        OrganizationOnDemandRuleTotalsEndpoint.as_view(),
+        name="sentry-api-0-organization-ondemand-rules",
     ),
     # Data Export
     re_path(
