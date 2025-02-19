@@ -204,7 +204,8 @@ function EventTagsTreeRowDropdown({
           organization,
           originalTag.key,
           originalTag.value,
-          TraceDrawerActionKind.INCLUDE
+          TraceDrawerActionKind.INCLUDE,
+          'drawer'
         );
       },
     });

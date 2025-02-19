@@ -60,13 +60,15 @@ const trackExploreSearch = (
   organization: Organization,
   key: string,
   value: string | number,
-  kind: TraceDrawerActionKind
+  kind: TraceDrawerActionKind,
+  source: 'drawer' | 'toolbar_menu'
 ) =>
   trackAnalytics('trace.trace_drawer_explore_search', {
     organization,
     key,
     value,
     kind,
+    source,
   });
 
 const trackShowInView = (organization: Organization) =>

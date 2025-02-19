@@ -153,7 +153,8 @@ export function SpanDescription({
               organization,
               SpanIndexedField.SPAN_DESCRIPTION,
               span.description!,
-              TraceDrawerActionKind.INCLUDE
+              TraceDrawerActionKind.INCLUDE,
+              'drawer'
             );
           } else if (hasNewSpansUIFlag) {
             trackAnalytics('trace.trace_layout.view_span_summary', {
