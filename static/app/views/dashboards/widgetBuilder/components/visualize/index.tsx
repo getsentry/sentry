@@ -58,7 +58,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const NONE = 'none';
 
-const NONE_AGGREGATE = {
+export const NONE_AGGREGATE = {
   textValue: t('field (no aggregate)'),
   label: tct('[emphasis:field (no aggregate)]', {
     emphasis: <em />,
@@ -810,7 +810,7 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
+export function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
   if (dataType) {
     switch (dataType) {
       case 'boolean':
@@ -907,12 +907,12 @@ export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   width: 100%;
   min-width: 0;
 
-  & > ${ColumnCompactSelect} > button {
+  & ${ColumnCompactSelect} button {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
 
-  & > ${AggregateCompactSelect} > button {
+  & ${AggregateCompactSelect} button {
     ${p =>
       p.hasColumnParameter &&
       `
