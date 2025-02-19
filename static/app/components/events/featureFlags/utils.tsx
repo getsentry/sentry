@@ -135,8 +135,7 @@ export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<WebhookProviderEnum, string> 
     'https://docs.sentry.io/organization/integrations/feature-flag/generic/#set-up-change-tracking',
   [WebhookProviderEnum.LAUNCHDARKLY]:
     'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
-  [WebhookProviderEnum.STATSIG]:
-    'https://docs.sentry.io/organization/integrations/feature-flag/statsig/#set-up-change-tracking',
+  [WebhookProviderEnum.STATSIG]: 'https://console.statsig.com/integrations', // Expecting this to redirect to /<proj-id>/integrations
   [WebhookProviderEnum.UNLEASH]:
     'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
 };
