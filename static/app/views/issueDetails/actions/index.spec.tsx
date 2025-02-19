@@ -176,10 +176,10 @@ describe('GroupActions', function () {
     );
 
     await userEvent.click(screen.getByLabelText('More Actions'));
-    await userEvent.click(await screen.findByText('Share'));
+    await userEvent.click(await screen.findByText('Publish'));
 
     const modal = screen.getByRole('dialog');
-    expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
+    expect(within(modal).getByText('Publish Issue')).toBeInTheDocument();
   });
 
   describe('delete', function () {
