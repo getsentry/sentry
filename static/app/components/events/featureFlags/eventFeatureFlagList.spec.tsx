@@ -80,7 +80,7 @@ describe('EventFeatureFlagList', function () {
 
   it('toggles the drawer when `view n flags` is clicked', async function () {
     render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_MANY_FLAGS} />);
-    const viewAllButton = screen.getByRole('button', {name: 'View 4 More Flags'});
+    const viewAllButton = screen.getByRole('button', {name: 'View 3 More Flags'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'Feature flags drawer'});
     expect(drawer).toBeInTheDocument();
