@@ -9,7 +9,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<FlamegraphFrame['node'], ColorChannels> = new Map();
   colorBuffer: number[] = [];
 
-  isDifferentialFlamegraph: boolean = true;
+  isDifferentialFlamegraph = true;
 
   newFrames: FlamegraphFrame[] = [];
   removedFrames: FlamegraphFrame[] = [];
@@ -17,7 +17,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   decreasedFrames: FlamegraphFrame[] = [];
 
   static ALPHA_SCALING = 0.8;
-  public negated: boolean = false;
+  public negated = false;
 
   weights: Map<FlamegraphFrame['node'], {after: number; before: number}> = new Map();
 

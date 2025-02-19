@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,7 +33,7 @@ export default function DynamicSamplingSettings() {
         title={
           <Fragment>
             {t('Dynamic Sampling')}
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="new" />
           </Fragment>
         }
         action={

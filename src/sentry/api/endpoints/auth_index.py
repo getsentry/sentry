@@ -27,6 +27,7 @@ from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
+from sentry.utils.demo_mode import is_demo_user
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -192,6 +193,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        if is_demo_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
         if request.user.has_2fa():
@@ -305,6 +309,11 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
+
+        # Allows demo user to log out from its current session but not others
+        if is_demo_user(request.user) and request.data.get("all", None) is True:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         # If there is an SLO URL, return it to frontend so the browser can redirect
         # the user back to the IdP site to delete the IdP session cookie
         slo_url = handle_saml_single_logout(request)

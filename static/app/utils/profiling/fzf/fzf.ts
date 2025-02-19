@@ -173,7 +173,7 @@ function calculateScore(
 ): [number, ReadonlyArray<[number, number]>] {
   let pidx = 0;
   let score = 0;
-  let inGap: boolean = false;
+  let inGap = false;
   let firstBonus = 0;
   let consecutive = 0;
 
