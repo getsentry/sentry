@@ -39,7 +39,9 @@ from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.utils import metrics
-from sentry.workflow_engine.migration_helpers.rule import delete_migrated_issue_alert
+from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
+    delete_migrated_issue_alert,
+)
 
 logger = logging.getLogger(__name__)
 
