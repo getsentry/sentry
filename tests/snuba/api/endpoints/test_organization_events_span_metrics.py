@@ -1789,6 +1789,44 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"count_publish()": 3},
         ]
 
+    def test_count_process(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.process"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.name": "process"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.type": "process"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_process()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {"count_process()": 3},
+        ]
+
     def test_project_mapping(self):
         self.store_span_metric(
             1,
@@ -2253,3 +2291,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_count_publish(self):
         super().test_count_publish()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_process(self):
+        super().test_count_process()
