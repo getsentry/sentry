@@ -1,4 +1,3 @@
-import type {Confidence} from 'sentry/types/organization';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -10,7 +9,7 @@ export type TracingEventParameters = {
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
-    confidences: Confidence[];
+    confidences: string[];
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
     query_status: 'success' | 'error' | 'pending';
