@@ -15,7 +15,7 @@ const useLocationMock = jest.mocked(useLocation);
 
 describe('DomainViewHeader', function () {
   const organization = OrganizationFixture({
-    features: ['insights-entry-points'],
+    features: ['insights-entry-points', 'insights-mobile-screens-module'],
   });
 
   beforeEach(() => {
@@ -104,5 +104,22 @@ describe('DomainViewHeader', function () {
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Overview'})).not.toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
+  });
+
+  it('renders a new badge only for mobile vitals', () => {
+    render(
+      <DomainViewHeader
+        domainBaseUrl="domainBaseUrl"
+        domainTitle="domainTitle"
+        modules={[ModuleName.HTTP, ModuleName.MOBILE_VITALS]}
+        selectedModule={undefined}
+        hasOverviewPage={false}
+      />
+    );
+    expect(screen.getByRole('tab', {name: 'Mobile Vitals New'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', {name: 'Network Requests New'})
+    ).not.toBeInTheDocument();
   });
 });

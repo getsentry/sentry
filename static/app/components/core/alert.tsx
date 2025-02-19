@@ -35,7 +35,6 @@ export function Alert({
   ...props
 }: AlertProps) {
   const theme = useTheme();
-
   const showExpand = defined(expand);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -158,12 +157,9 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   }
 }
 
-interface AlertContainerProps extends AlertProps {
-  alertColors: ReturnType<typeof getAlertColors>;
-  hovered: boolean;
-}
-
-const AlertContainer = styled('div')<AlertContainerProps>`
+const AlertContainer = styled('div')<
+  AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
+>`
   display: grid;
   grid-template-columns:
     ${p => p.showIcon && `minmax(0, max-content)`}

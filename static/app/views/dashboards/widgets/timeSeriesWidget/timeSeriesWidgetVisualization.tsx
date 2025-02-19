@@ -39,6 +39,7 @@ import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineCh
 import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
 import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
 import {formatTooltipValue} from './formatTooltipValue';
+import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
@@ -49,13 +50,37 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 type VisualizationType = 'area' | 'line' | 'bar';
 
 export interface TimeSeriesWidgetVisualizationProps {
+  /**
+   * An array of time series, each one representing a changing value over time. This is the chart's data. See documentation for examples
+   */
   timeSeries: TimeSeries[];
+  /**
+   * Chart type
+   */
   visualizationType: VisualizationType;
+  /**
+   * A mapping of time series fields to their user-friendly labels, if needed
+   */
   aliases?: Aliases;
+  /**
+   * A duration in seconds. Any items in the time series that fall within that duration of the current time will be visually marked as "incomplete"
+   */
   dataCompletenessDelay?: number;
+  /**
+   * Callback that returns an updated `timeseriesSelection` after a user manipulations the selection via the legend
+   */
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  /**
+   * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
+   */
   releases?: Release[];
+  /**
+   * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
+   */
   stacked?: boolean;
+  /**
+   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
+   */
   timeseriesSelection?: TimeseriesSelection;
 }
 
@@ -283,7 +308,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // https://github.com/apache/echarts/issues/15562
         left: 2,
         top: showLegend ? 25 : 10,
-        right: 4,
+        right: 8,
         bottom: 0,
         containLabel: true,
       }}
@@ -321,8 +346,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
+          formatter: (value: number) => {
+            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+
+            // Adding whitespace around the label is equivalent to padding.
+            // ECharts doesn't respect padding when calculating overlaps, but it
+            // does respect whitespace. This prevents overlapping X axis labels
+            return ` ${string} `;
+          },
         },
-        splitNumber: 0,
+        splitNumber: 5,
       }}
       yAxis={{
         animation: false,

@@ -95,8 +95,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-                new=2,
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=2,
             ),
         ):
             self.send_result(result)
@@ -109,7 +109,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -118,7 +118,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         sample_rate=1.0,
                         tags={
                             "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                             "uptime_region": "us-west",
                         },
                     ),
@@ -140,7 +140,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -165,8 +165,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-                new=2,
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=2,
             ),
         ):
             self.send_result(result)
@@ -179,7 +179,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "default",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -187,7 +187,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
                         tags={
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                             "status": CHECKSTATUS_FAILURE,
                             "uptime_region": "default",
                         },
@@ -209,8 +209,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-                new=1,
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=1,
             ),
             override_options({"uptime.restrict-issue-creation-by-hosting-provider-id": ["TEST"]}),
         ):
@@ -224,7 +224,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "host_provider_id": "TEST",
                             "uptime_region": "us-west",
                             "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                     ),
                 ],
@@ -260,7 +260,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -270,7 +270,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         tags={
                             "uptime_region": "us-west",
                             "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                     ),
                 ]
@@ -292,7 +292,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -314,7 +314,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -323,7 +323,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         sample_rate=1.0,
                         tags={
                             "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                             "uptime_region": "us-west",
                         },
                     ),
@@ -341,8 +341,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-                new=1,
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=1,
             ),
         ):
             self.send_result(result)
@@ -355,7 +355,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     )
@@ -373,8 +373,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-                new=2,
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=2,
             ),
         ):
             self.send_result(
@@ -392,7 +392,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -414,7 +414,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -447,7 +447,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     )
@@ -549,7 +549,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -559,7 +559,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -587,7 +587,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     "mode": "auto_detected_active",
                     "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                     "uptime_region": "us-west",
-                    "host_provider": "other",
+                    "host_provider": "TEST",
                 },
                 sample_rate=1.0,
             )
@@ -625,7 +625,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "mode": "auto_detected_onboarding",
                             "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -660,7 +660,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "mode": "auto_detected_onboarding",
                             "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -669,7 +669,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         tags={
                             "failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                             "status": CHECKSTATUS_FAILURE,
                         },
                         sample_rate=1.0,
@@ -714,7 +714,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_onboarding",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -756,7 +756,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_onboarding",
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -765,7 +765,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         tags={
                             "status": CHECKSTATUS_SUCCESS,
                             "uptime_region": "us-west",
-                            "host_provider": "other",
+                            "host_provider": "TEST",
                         },
                         sample_rate=1.0,
                     ),
@@ -787,6 +787,181 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
         assert uptime_subscription.url == new_uptime_subscription.url
 
+    def test_parallel(self) -> None:
+        """
+        Validates that the consumer in parallel mode correctly groups check-ins
+        into groups by their monitor slug / environment
+        """
+
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
+            subscription_2 = self.create_uptime_subscription(
+                subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
+            )
+
+            result_1 = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            )
+
+            self.send_result(result_1, consumer=consumer)
+            result_2 = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            )
+
+            self.send_result(result_2, consumer=consumer)
+            # This will fill the batch
+            result_3 = self.create_uptime_result(
+                subscription_2.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            )
+            self.send_result(result_3, consumer=consumer)
+            # Should be no calls yet, since we didn't send the batch
+            assert mock_processor_call.call_count == 0
+            # One more causes the previous batch to send
+            self.send_result(
+                self.create_uptime_result(
+                    subscription_2.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
+                ),
+                consumer=consumer,
+            )
+
+            assert mock_processor_call.call_count == 3
+            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+
+    @mock.patch(
+        "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
+    )
+    def test_parallel_grouping(self, mock_process_group) -> None:
+        """
+        Validates that the consumer in parallel mode correctly groups check-ins
+        into groups by their monitor slug / environment
+        """
+
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+        subscription_2 = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
+        )
+
+        result_1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        self.send_result(result_1, consumer=consumer)
+        result_2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+
+        self.send_result(result_2, consumer=consumer)
+        # This will fill the batch
+        result_3 = self.create_uptime_result(
+            subscription_2.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+        self.send_result(result_3, consumer=consumer)
+        # Should be no calls yet, since we didn't send the batch
+        assert mock_process_group.call_count == 0
+        # One more causes the previous batch to send
+        self.send_result(result_3, consumer=consumer)
+        assert mock_process_group.call_count == 2
+        group_1 = mock_process_group.mock_calls[0].args[0]
+        group_2 = mock_process_group.mock_calls[1].args[0]
+        assert group_1 == [result_1, result_2]
+        assert group_2 == [result_3]
+
+    def test_provider_stats(self):
+        subscription = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex,
+            host_provider_name="test_provider",
+        )
+        self.create_project_uptime_subscription(self.project, uptime_subscription=subscription)
+        self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex,
+            host_provider_name="test_provider",
+        )
+        result = self.create_uptime_result(
+            subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        result_2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=2,
+            ),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS",
+                new=1,
+            ),
+        ):
+            self.send_result(result)
+            self.send_result(result_2)
+
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
+                            "host_provider": "test_provider",
+                        },
+                        sample_rate=1.0,
+                    ),
+                    call(
+                        "uptime.result_processor.active.under_threshold",
+                        sample_rate=1.0,
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "test_provider",
+                            "uptime_region": "us-west",
+                        },
+                    ),
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
+                            "host_provider": "other",
+                        },
+                        sample_rate=1.0,
+                    ),
+                    call(
+                        "uptime.result_processor.active.under_threshold",
+                        sample_rate=1.0,
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                            "uptime_region": "us-west",
+                        },
+                    ),
+                ]
+            )
+
     @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
     @override_options({"uptime.snuba_uptime_results.enabled": True})
     def test_produces_snuba_uptime_results(self, mock_produce) -> None:
@@ -795,6 +970,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
         result = self.create_uptime_result(
             self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         self.send_result(result)
@@ -805,7 +981,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         parsed_value = json.loads(mock_produce.call_args.args[1].value)
         assert parsed_value["organization_id"] == self.project.organization_id
         assert parsed_value["project_id"] == self.project.id
+        assert parsed_value["incident_status"] == 0
         assert parsed_value["retention_days"] == 90
+
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @mock.patch(
+        "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+        return_value=1,
+    )
+    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    def test_produces_snuba_uptime_results_in_incident(self, _, mock_produce) -> None:
+        """
+        Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_FAILURE,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+        mock_produce.assert_called_once()
+
+        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+
+        parsed_value = json.loads(mock_produce.call_args.args[1].value)
+        assert parsed_value["incident_status"] == 1
 
     def run_check_and_update_region_test(
         self,

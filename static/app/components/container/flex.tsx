@@ -8,11 +8,11 @@ interface FlexProps {
   align?: CSSProperties['alignItems'];
   column?: boolean;
   flex?: CSSProperties['flex'];
-  gap?: number | CssSize | `${number}px`;
-  h?: number | CssSize | `${number}px`;
+  gap?: number | CssSize;
+  h?: number | CssSize;
   justify?: CSSProperties['justifyContent'];
-  p?: number | CssSize | `${number}px`;
-  w?: number | CssSize | `${number}px`;
+  p?: number | CssSize;
+  w?: number | CssSize;
   wrap?: CSSProperties['flexWrap'];
 }
 

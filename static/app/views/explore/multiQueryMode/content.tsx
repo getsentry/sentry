@@ -9,6 +9,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
@@ -17,10 +18,12 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 
+const MAX_QUERIES_ALLOWED = 5;
+
 function Content() {
-  const queries = useReadQueriesFromLocation();
+  const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
-  const disableDelete = queries.length === 1;
+  const totalQueryRows = queries.length;
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -29,19 +32,21 @@ function Content() {
           <EnvironmentPageFilter />
           <DatePageFilter />
         </StyledPageFilterBar>
-        {queries.map((query, index) => (
-          <QueryRow
-            key={index}
-            query={query}
-            index={index}
-            disableDelete={disableDelete}
-          />
-        ))}
+        <WidgetSyncContextProvider>
+          {queries.map((query, index) => (
+            <QueryRow
+              key={index}
+              query={query}
+              index={index}
+              totalQueryRows={totalQueryRows}
+            />
+          ))}
+        </WidgetSyncContextProvider>
         <Button
           aria-label={t('Add Query')}
           onClick={addQuery}
           icon={<IconAdd />}
-          disabled={queries.length >= 5}
+          disabled={queries.length >= MAX_QUERIES_ALLOWED}
         >
           {t('Add Query')}
         </Button>

@@ -7,15 +7,16 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   DuplicateActionFields,
   DuplicateMetricFields,
   DuplicateTriggerFields,
 } from 'sentry/views/alerts/rules/metric/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
@@ -38,18 +39,16 @@ function MetricRuleDuplicate({
   ...otherProps
 }: MetricRuleDuplicateProps) {
   const organization = useOrganization();
+  const duplicateRuleId: string = otherProps.location.query.duplicateRuleId;
   const {
     data: duplicateTargetRule,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<MetricRule>(
-    [
-      `/organizations/${organization.slug}/alert-rules/${otherProps.location.query.duplicateRuleId}/`,
-    ],
-    {staleTime: 0}
-  );
-
+  } = useMetricRule({
+    orgSlug: organization.slug,
+    ruleId: duplicateRuleId,
+  });
   const handleSubmitSuccess = (data: any) => {
     const alertRuleId: string | undefined = data
       ? (data.id as string | undefined)
@@ -57,10 +56,16 @@ function MetricRuleDuplicate({
 
     const target = alertRuleId
       ? {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/details/${alertRuleId}/`,
+            organization,
+          }),
         }
       : {
-          pathname: `/organizations/${organization.slug}/alerts/rules/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/`,
+            organization,
+          }),
           query: {project: project.id},
         };
     otherProps.router.push(normalizeUrl(target));

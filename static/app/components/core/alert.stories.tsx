@@ -8,6 +8,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconClose, IconDelete, IconSad, IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/alert';
@@ -129,6 +130,8 @@ export default storyBook('Alert', (story, APIReference) => {
   });
 
   story('trailingItems', () => {
+    const LOCAL_STORAGE_KEY = 'alert-stories-banner-dismissed';
+    const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
     const [stateDismissed, setStateDismissed] = useState(false);
 
     return (
@@ -141,7 +144,7 @@ export default storyBook('Alert', (story, APIReference) => {
           <code>useState</code> to bring it back on re-render.
         </p>
 
-        {stateDismissed ? null : (
+        {isDismissed ? null : (
           <Alert.Container>
             <Alert
               type="info"
@@ -151,7 +154,7 @@ export default storyBook('Alert', (story, APIReference) => {
                 <Button
                   aria-label="Dismiss banner"
                   icon={<IconClose />}
-                  onClick={() => setStateDismissed(true)}
+                  onClick={dismiss}
                   size="zero"
                   borderless
                 />

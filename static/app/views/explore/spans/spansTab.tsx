@@ -18,6 +18,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -54,6 +55,8 @@ import {
   type DefaultPeriod,
   type MaxPickableDays,
 } from 'sentry/views/explore/utils';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {Onboarding} from 'sentry/views/performance/onboarding';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -79,9 +82,14 @@ export function SpansTabContentImpl({
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
 
-  const toolbarExtras = organization?.features?.includes('visibility-explore-dataset')
-    ? ['dataset toggle' as const]
-    : [];
+  const toolbarExtras = [
+    ...(organization?.features?.includes('visibility-explore-dataset')
+      ? ['dataset toggle' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-equations')
+      ? ['equations' as const]
+      : []),
+  ];
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     mode === Mode.AGGREGATE
@@ -211,7 +219,6 @@ export function SpansTabContentImpl({
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
             confidences={confidences}
-            isAllowedSelection={isAllowedSelection}
             query={query}
             timeseriesResult={timeseriesResult}
           />
@@ -256,13 +263,49 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
+type OnboardingContentProps = SpanTabProps & {
+  onboardingProject: Project;
+};
+
+function OnboardingContent(props: OnboardingContentProps) {
+  const organization = useOrganization();
+
+  return (
+    <Layout.Body>
+      <TopSection>
+        <StyledPageFilterBar condensed>
+          <ProjectPageFilter />
+          <EnvironmentPageFilter />
+          <DatePageFilter
+            defaultPeriod={props.defaultPeriod}
+            maxPickableDays={props.maxPickableDays}
+            relativeOptions={({arbitraryOptions}) => ({
+              ...arbitraryOptions,
+              ...props.relativeOptions,
+            })}
+          />
+        </StyledPageFilterBar>
+      </TopSection>
+      <OnboardingContentSection>
+        <Onboarding project={props.onboardingProject} organization={organization} />
+      </OnboardingContentSection>
+    </Layout.Body>
+  );
+}
+
 export function SpansTabContent(props: SpanTabProps) {
   Sentry.setTag('explore.visited', 'yes');
+  const onboardingProject = useOnboardingProject();
+  const showOnboarding = onboardingProject !== undefined;
 
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        <SpansTabContentImpl {...props} />
+        {showOnboarding ? (
+          <OnboardingContent {...props} onboardingProject={onboardingProject} />
+        ) : (
+          <SpansTabContentImpl {...props} />
+        )}
       </ExploreTagsProvider>
     </PageParamsProvider>
   );
@@ -316,6 +359,10 @@ const MainContent = styled('div')`
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
+`;
+
+const OnboardingContentSection = styled('section')`
+  grid-column: 1/3;
 `;
 
 const Toggle = styled('div')`
