@@ -207,17 +207,6 @@ const {router} = initializeOrg({
   },
 });
 
-function mockMetricsResponse() {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/metrics/query/',
-    method: 'POST',
-    body: {
-      data: [],
-      queries: [],
-    },
-  });
-}
-
 function mockEventsResponse() {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
@@ -290,7 +279,6 @@ async function keyboardNavigationTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -350,7 +338,6 @@ async function pageloadTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -409,7 +396,6 @@ async function nestedTransactionsTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -468,7 +454,6 @@ async function searchTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -531,7 +516,6 @@ async function simpleTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -637,7 +621,6 @@ async function completeTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   MockApiClient.addMockResponse({
@@ -1639,7 +1622,7 @@ describe('trace view', () => {
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
-      mockMetricsResponse();
+
       mockEventsResponse();
 
       mockTraceResponse({
