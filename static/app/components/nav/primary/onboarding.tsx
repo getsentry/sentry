@@ -135,11 +135,13 @@ export function PrimaryNavigationOnboarding() {
             textCss={() => css`
               font-size: ${showLabel ? theme.fontSizeSmall : theme.fontSizeMedium};
               font-weight: ${theme.fontWeightBold};
+              color: ${theme.purple400};
             `}
             text={doneTasks.length}
             value={(doneTasks.length / allTasks.length) * 100}
             backgroundColor="rgba(255, 255, 255, 0.15)"
             progressEndcaps="round"
+            progressColor={theme.purple400}
             size={showLabel ? 28 : 32}
             barWidth={4}
           />

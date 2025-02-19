@@ -194,7 +194,7 @@ export const NavButton = styled('button')<{isMobile: boolean}>`
 export const SidebarItemBadge = styled('span')`
   position: absolute;
   top: ${space(0.5)};
-  right: ${space(1)};
+  right: ${space(0.5)};
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
