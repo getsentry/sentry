@@ -162,6 +162,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
           },
         });
         setCurrentRunId(response.run_id ?? null);
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(group.id)});
       } catch (e) {
         setApiQueryData<AutofixResponse>(
           queryClient,
