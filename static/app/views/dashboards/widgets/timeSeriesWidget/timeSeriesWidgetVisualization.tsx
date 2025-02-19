@@ -50,13 +50,37 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 type VisualizationType = 'area' | 'line' | 'bar';
 
 export interface TimeSeriesWidgetVisualizationProps {
+  /**
+   * An array of time series, each one representing a changing value over time. This is the chart's data. See documentation for examples
+   */
   timeSeries: TimeSeries[];
+  /**
+   * Chart type
+   */
   visualizationType: VisualizationType;
+  /**
+   * A mapping of time series fields to their user-friendly labels, if needed
+   */
   aliases?: Aliases;
+  /**
+   * A duration in seconds. Any items in the time series that fall within that duration of the current time will be visually marked as "incomplete"
+   */
   dataCompletenessDelay?: number;
+  /**
+   * Callback that returns an updated `timeseriesSelection` after a user manipulations the selection via the legend
+   */
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  /**
+   * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
+   */
   releases?: Release[];
+  /**
+   * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
+   */
   stacked?: boolean;
+  /**
+   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
+   */
   timeseriesSelection?: TimeseriesSelection;
 }
 
