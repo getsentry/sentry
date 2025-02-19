@@ -176,13 +176,17 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   `}
 `;
 
-export const NavLink = styled(Link)<{isMobile: boolean}>`
+export const NavLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
   position: relative;
 
   ${baseNavItemStyles}
 `;
 
-export const NavButton = styled('button')<{isMobile: boolean}>`
+export const NavButton = styled('button', {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
   border: none;
   position: relative;
   background: transparent;
