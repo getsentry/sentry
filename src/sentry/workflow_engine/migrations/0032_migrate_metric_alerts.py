@@ -151,7 +151,6 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     AlertRuleTrigger = apps.get_model("sentry", "AlertRuleTrigger")
     AlertRuleTriggerAction = apps.get_model("sentry", "AlertRuleTriggerAction")
     AlertRuleActivity = apps.get_model("sentry", "AlertRuleActivity")
-    MetricAlertFire = apps.get_model("sentry", "MetricAlertFire")
     RuleSnooze = apps.get_model("sentry", "RuleSnooze")
     QuerySubscription = apps.get_model("sentry", "QuerySubscription")
     Incident = apps.get_model("sentry", "Incident")
@@ -223,7 +222,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             created_by_id=create_activity.user_id,
             name=alert_rule.name,
             workflow_condition_group=data_condition_group,
-            type=MetricAlertFire.slug,
+            type="metric_alert_fire",
             description=alert_rule.description,
             owner_user_id=alert_rule.user_id,
             owner_team=alert_rule.team,
