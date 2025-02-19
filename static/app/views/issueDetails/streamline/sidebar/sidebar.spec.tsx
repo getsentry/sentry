@@ -108,7 +108,7 @@ describe('StreamlinedSidebar', function () {
     expect(screen.getByText('Last seen')).toBeInTheDocument();
     expect(mockFirstLastRelease).toHaveBeenCalled();
 
-    expect(screen.getByRole('heading', {name: 'Issue Tracking'})).toBeInTheDocument();
+    expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: issueTrackingKey})
     ).toBeInTheDocument();

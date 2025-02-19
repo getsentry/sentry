@@ -187,6 +187,11 @@ export const SectionDivider = styled('hr')`
   }
 `;
 
+export const SidebarFoldSection = styled(FoldSection)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: -${space(1)};
+`;
+
 const Section = styled('section')<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
 `;

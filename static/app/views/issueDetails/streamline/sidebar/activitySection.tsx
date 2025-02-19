@@ -233,8 +233,8 @@ export default function StreamlinedActivitySection({
   return (
     <div>
       {!isDrawer && (
-        <Flex justify="space-between" align="center">
-          <SidebarSectionTitle style={{gap: space(0.75)}}>
+        <Flex justify="space-between" align="center" style={{marginBottom: space(1)}}>
+          <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
             {t('Activity')}
             {group.numComments > 0 ? (
               <CommentsLink
