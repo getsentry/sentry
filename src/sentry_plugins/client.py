@@ -6,7 +6,6 @@ from typing import Any, Literal, overload
 from requests import PreparedRequest, Response
 
 from sentry.shared_integrations.client.base import BaseApiClient
-from sentry.shared_integrations.client.internal import BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.users.services.usersocialauth.service import usersocialauth_service
 
@@ -103,13 +102,3 @@ class AuthApiClient(ApiClient):
         usersocialauth_service.refresh_token(filter={"id": self.auth.id})
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
-
-
-class InternalApiClient(BaseInternalApiClient):
-    integration_type = "plugin"
-
-    metrics_prefix = "sentry-plugins"
-
-    log_path = "sentry.plugins.client"
-
-    plugin_name = "undefined"

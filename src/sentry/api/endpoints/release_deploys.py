@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.signals import deploy_created
@@ -36,6 +37,56 @@ class DeploySerializer(serializers.Serializer):
         if not Environment.is_valid_name(value):
             raise serializers.ValidationError("Invalid value for environment")
         return value
+
+
+def create_deploy(
+    organization: Organization, release: Release, serializer: DeploySerializer
+) -> Deploy:
+    result = serializer.validated_data
+    release_projects = list(release.projects.all())
+    projects = result.get("projects", release_projects)
+    invalid_projects = {project.slug for project in projects} - {
+        project.slug for project in release_projects
+    }
+    if len(invalid_projects) > 0:
+        raise ParameterValidationError(
+            f"Invalid projects ({', '.join(invalid_projects)}) for release {release.version}"
+        )
+
+    env = Environment.objects.get_or_create(
+        name=result["environment"], organization_id=organization.id
+    )[0]
+    for project in projects:
+        env.add_project(project)
+
+    deploy = Deploy.objects.create(
+        organization_id=organization.id,
+        release=release,
+        environment_id=env.id,
+        date_finished=result.get("dateFinished", timezone.now()),
+        date_started=result.get("dateStarted"),
+        name=result.get("name"),
+        url=result.get("url"),
+    )
+    deploy_created.send_robust(deploy=deploy, sender=create_deploy)
+
+    # XXX(dcramer): this has a race for most recent deploy, but
+    # should be unlikely to hit in the real world
+    Release.objects.filter(id=release.id).update(
+        total_deploys=F("total_deploys") + 1, last_deploy_id=deploy.id
+    )
+
+    for project in projects:
+        ReleaseProjectEnvironment.objects.create_or_update(
+            release=release,
+            environment=env,
+            project=project,
+            values={"last_deploy_id": deploy.id},
+        )
+
+    Deploy.notify_if_ready(deploy.id)
+
+    return deploy
 
 
 @region_silo_endpoint
@@ -143,49 +194,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         )
 
         if serializer.is_valid():
-            result = serializer.validated_data
-            release_projects = list(release.projects.all())
-            projects = result.get("projects", release_projects)
-            invalid_projects = {project.slug for project in projects} - {
-                project.slug for project in release_projects
-            }
-            if len(invalid_projects) > 0:
-                raise ParameterValidationError(
-                    f"Invalid projects ({', '.join(invalid_projects)}) for release {release.version}"
-                )
-
-            env = Environment.objects.get_or_create(
-                name=result["environment"], organization_id=organization.id
-            )[0]
-            for project in projects:
-                env.add_project(project)
-
-            deploy = Deploy.objects.create(
-                organization_id=organization.id,
-                release=release,
-                environment_id=env.id,
-                date_finished=result.get("dateFinished", timezone.now()),
-                date_started=result.get("dateStarted"),
-                name=result.get("name"),
-                url=result.get("url"),
-            )
-            deploy_created.send_robust(deploy=deploy, sender=self.__class__)
-
-            # XXX(dcramer): this has a race for most recent deploy, but
-            # should be unlikely to hit in the real world
-            Release.objects.filter(id=release.id).update(
-                total_deploys=F("total_deploys") + 1, last_deploy_id=deploy.id
-            )
-
-            for project in projects:
-                ReleaseProjectEnvironment.objects.create_or_update(
-                    release=release,
-                    environment=env,
-                    project=project,
-                    values={"last_deploy_id": deploy.id},
-                )
-
-            Deploy.notify_if_ready(deploy.id)
+            deploy = create_deploy(organization, release, serializer)
 
             return Response(serialize(deploy, request.user), status=201)
 
