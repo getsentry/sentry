@@ -60,12 +60,10 @@ export interface ArithmeticBuilderState {
 
 interface UseArithmeticBuilderActionOptions {
   initialExpression: string;
-  setExpression?: (expression: string) => void;
 }
 
 export function useArithmeticBuilderAction({
   initialExpression,
-  setExpression,
 }: UseArithmeticBuilderActionOptions) {
   const reducer: Reducer<ArithmeticBuilderState, ArithmeticBuilderAction> = useCallback(
     (state, action): ArithmeticBuilderState => {
@@ -76,15 +74,11 @@ export function useArithmeticBuilderAction({
         newState.validated = validateTokens(newState.tokens)
           ? ('valid' as const)
           : ('invalid' as const);
-        // when the expression changes and is valid, propogate the update
-        if (newState.validated === 'valid') {
-          setExpression?.(newState.expression);
-        }
       }
 
       return newState;
     },
-    [setExpression]
+    []
   );
 
   const [state, dispatch] = useReducer(
