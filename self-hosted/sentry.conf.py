@@ -263,4 +263,3 @@ if "SENTRY_RUNNING_UWSGI" not in os.environ and len(secret_key) < 32:
 
 SENTRY_OPTIONS["system.secret-key"] = secret_key
 SENTRY_USE_RELAY = True
-SENTRY_FEATURES["organizations:integrations-vercel"] = True
