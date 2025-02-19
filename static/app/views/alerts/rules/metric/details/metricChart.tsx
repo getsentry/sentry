@@ -42,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -53,13 +52,10 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {getViableDateRange} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {
-  AlertRuleTriggerType,
-  Dataset,
-  TimePeriod,
-} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -532,47 +528,13 @@ class MetricChart extends PureComponent<Props, State> {
       location,
       isOnDemandAlert,
     } = this.props;
-    const {aggregate, timeWindow, environment, dataset} = rule;
+    const {aggregate, environment, dataset} = rule;
 
-    // Fix for 7 days * 1m interval being over the max number of results from events api
-    // 10k events is the current max
-    if (
-      timePeriod.usingPeriod &&
-      timePeriod.period === TimePeriod.SEVEN_DAYS &&
-      interval === '1m'
-    ) {
-      timePeriod.start = getUtcDateString(
-        // -5 minutes provides a small cushion for rounding up minutes. This might be able to be smaller
-        moment(moment.utc(timePeriod.end).subtract(10000 - 5, 'minutes'))
-      );
-    }
-
-    // If the chart duration isn't as long as the rollup duration the events-stats
-    // endpoint will return an invalid timeseriesData dataset
-    let viableStartDate = getUtcDateString(
-      moment.min(
-        moment.utc(timePeriod.start),
-        moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
-      )
-    );
-
-    // Events Analytics Platform Span queries only support up to 2016 buckets.
-    // 14 day 10m and 7 day 5m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
-    // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
-    if (
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-      timePeriod.usingPeriod &&
-      ((timePeriod.period === TimePeriod.FOURTEEN_DAYS && interval === '10m') ||
-        (timePeriod.period === TimePeriod.SEVEN_DAYS && interval === '5m'))
-    ) {
-      viableStartDate = getUtcDateString(
-        moment.utc(viableStartDate).add(timeWindow, 'minutes')
-      );
-    }
-
-    const viableEndDate = getUtcDateString(
-      moment.utc(timePeriod.end).add(timeWindow, 'minutes')
-    );
+    const {start: viableStartDate, end: viableEndDate} = getViableDateRange({
+      rule,
+      interval,
+      timePeriod,
+    });
 
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
