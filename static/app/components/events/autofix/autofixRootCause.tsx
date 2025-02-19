@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {
   type AutofixRepository,
   type AutofixRootCauseData,
@@ -179,8 +179,8 @@ function RootCauseDescription({
             stepIndex={previousDefaultStepIndex ?? 0}
             retainInsightCardIndex={
               previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount - 1
-                : -1
+                ? previousInsightCount
+                : null
             }
           />
         )}

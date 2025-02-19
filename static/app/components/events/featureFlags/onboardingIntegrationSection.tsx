@@ -7,9 +7,9 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import {
   PROVIDER_OPTION_TO_URLS,
   ProviderOptions,

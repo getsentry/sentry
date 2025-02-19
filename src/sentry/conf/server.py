@@ -2540,7 +2540,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.1.0"
+SELF_HOSTED_STABLE_VERSION = "25.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

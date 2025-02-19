@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client, ResponseMeta} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

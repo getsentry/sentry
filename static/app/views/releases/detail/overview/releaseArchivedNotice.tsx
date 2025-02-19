@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 type Props = {
