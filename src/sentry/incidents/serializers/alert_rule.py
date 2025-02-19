@@ -319,9 +319,9 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
-                # TODO: wrap these in a transaction
-                dual_delete_migrated_alert_rule_trigger(trigger)
-                delete_alert_rule_trigger(trigger)
+                with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
+                    dual_delete_migrated_alert_rule_trigger(trigger)
+                    delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:
                 if "id" in trigger_data:

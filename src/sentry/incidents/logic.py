@@ -881,10 +881,10 @@ def update_alert_rule(
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
-        # TODO (mifu67): wrap these two calls in a transaction
-        alert_rule.update(**updated_fields)
-        # if an exception occurs in this helper, don't catch it so we can see the full stack trace
-        dual_update_migrated_alert_rule(alert_rule, updated_fields)
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            alert_rule.update(**updated_fields)
+            # if an exception occurs in this helper, don't catch it so we can see the full stack trace
+            dual_update_migrated_alert_rule(alert_rule, updated_fields)
 
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
@@ -1111,12 +1111,10 @@ def update_alert_rule_trigger(
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
 
-    # TODO (mifu67): wrap both update calls in a transaction
-    if updated_fields:
-        # exceptions from this helper are purposely uncaught
-        dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
+            # exceptions from this helper are purposely uncaught
+            dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
             trigger.update(**updated_fields)
 
     return trigger
@@ -1272,6 +1270,8 @@ def create_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
+
     target_display: str | None = None
     if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
         raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
@@ -1305,16 +1305,23 @@ def create_alert_rule_trigger_action(
         else:
             sentry_app_config = {"priority": priority}
 
-    return AlertRuleTriggerAction.objects.create(
-        alert_rule_trigger=trigger,
-        type=type.value,
-        target_type=target_type.value,
-        target_identifier=str(target.identifier) if target.identifier is not None else None,
-        target_display=target.display,
-        integration_id=integration_id,
-        sentry_app_id=sentry_app_id,
-        sentry_app_config=sentry_app_config,
-    )
+    with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+        trigger_action = AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=trigger,
+            type=type.value,
+            target_type=target_type.value,
+            target_identifier=str(target.identifier) if target.identifier is not None else None,
+            target_display=target.display,
+            integration_id=integration_id,
+            sentry_app_id=sentry_app_id,
+            sentry_app_config=sentry_app_config,
+        )
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-write",
+            trigger.alert_rule.organization,
+        ):
+            migrate_metric_action(trigger_action)
+    return trigger_action
 
 
 def update_alert_rule_trigger_action(
@@ -1397,10 +1404,10 @@ def update_alert_rule_trigger_action(
         else:
             updated_fields["sentry_app_config"] = {"priority": priority}
 
-    # TODO (mifu67): wrap these calls in a transaction
-    trigger_action.update(**updated_fields)
-    # exceptions from this helper are purposely left uncaught
-    dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
+    with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+        trigger_action.update(**updated_fields)
+        # exceptions from this helper are purposely left uncaught
+        dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 
