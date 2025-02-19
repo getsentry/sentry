@@ -1,0 +1,98 @@
+---
+created: '2025-02-19T15:23:51.045870+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "e6f1156fdf6a67a91cdf25a641446338"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "__start_thread"
+            frame*
+              function*
+                "__pthread_start"
+            frame*
+              function*
+                "android_main"
+            frame*
+              function*
+                "AndroidMain"
+            frame*
+              function*
+                "FEngineLoop::Tick"
+            frame*
+              function*
+                "UGameEngine::Tick"
+            frame*
+              function*
+                "UWorld::Tick"
+            frame*
+              function*
+                "FLatentActionManager::ProcessLatentActions"
+            frame*
+              function*
+                "FLatentActionManager::TickLatentActionForObject"
+            frame*
+              function*
+                "AActor::ProcessEvent"
+            frame*
+              function*
+                "UObject::ProcessEvent"
+            frame*
+              function*
+                "UFunction::Invoke"
+            frame*
+              function*
+                "UObject::ProcessInternal"
+            frame*
+              function*
+                "ProcessLocalScriptFunction"
+            frame*
+              function*
+                "UObject::execCallMathFunction"
+            frame*
+              function*
+                "USentryPlaygroundUtils::execTerminate"
+            frame*
+              function*
+                "USentryPlaygroundUtils::Terminate"
+            frame*
+              function*
+                "FDebug::CheckVerifyFailedImpl2"
+            frame*
+              function*
+                "FOutputDevice::LogfImpl"
+            frame*
+              function*
+                "FSentryOutputDeviceError::Serialize"
+            frame*
+              function*
+                "TMulticastDelegateBase<T>::Broadcast<T>"
+            frame*
+              function*
+                "tgkill"
