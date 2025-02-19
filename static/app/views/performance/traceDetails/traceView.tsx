@@ -52,7 +52,7 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type TraceViewProps = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type TraceViewProps = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
   organization: Organization;
   traceEventView: EventView;
@@ -285,7 +285,7 @@ export default function TraceView({
     transactionGroups: [],
   };
 
-  let lastIndex: number = 0;
+  let lastIndex = 0;
   const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
     (acc, trace, index) => {
       const isLastTransaction = index === traces.length - 1;

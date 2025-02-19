@@ -26,6 +26,12 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {getWidgetInterval} from '../utils';
+import {getSeriesName} from '../utils/transformSessionsResponseToSeries';
+import {
+  changeObjectValuesToTypes,
+  getDerivedMetrics,
+  mapDerivedMetricsToFields,
+} from '../utils/transformSessionsResponseToTable';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
@@ -42,12 +48,6 @@ import {
   requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
 } from '../widgetCard/releaseWidgetQueries';
-import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
-import {
-  changeObjectValuesToTypes,
-  getDerivedMetrics,
-  mapDerivedMetricsToFields,
-} from '../widgetCard/transformSessionsResponseToTable';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -405,7 +405,7 @@ function getReleasesRequest(
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
 
-  let showIncompleteDataAlert: boolean = false;
+  let showIncompleteDataAlert = false;
 
   if (start) {
     let startDate: Date | undefined = undefined;

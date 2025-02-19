@@ -55,6 +55,7 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AI_LANDING_SUB_PATH,
@@ -81,8 +82,7 @@ import {
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
-import {DEMO_HEADER_HEIGHT_PX} from '../demo/demoHeader';
-import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
+import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
@@ -328,7 +328,10 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={`/organizations/${organization.slug}/alerts/rules/`}
+      to={makeAlertsPathname({
+        path: '/rules/',
+        organization,
+      })}
       id="alerts"
     />
   );
@@ -576,7 +579,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <ProfilingOnboardingSidebar
+            <LegacyProfilingOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
               hidePanel={hidePanel}
@@ -665,7 +668,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
         ? SIDEBAR_COLLAPSED_WIDTH
         : SIDEBAR_EXPANDED_WIDTH};
   position: fixed;
-  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
+  top: 0;
   left: 0;
   bottom: 0;
   justify-content: space-between;

@@ -3,13 +3,20 @@
 import 'sentry/stores/latestContextStore';
 
 import {useLayoutEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
+import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import {type ApiResult, Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import {
+  addOrganizationFeaturesHandler,
+  buildSentryFeaturesHandler,
+} from 'sentry/utils/featureFlags';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {queryOptions, skipToken, useQuery} from 'sentry/utils/queryClient';
 
@@ -27,7 +34,26 @@ export function useBootstrapOrganizationQuery(orgSlug: string | null) {
 
   useLayoutEffect(() => {
     if (organizationQuery.data) {
-      OrganizationStore.onUpdate(organizationQuery.data);
+      // Shallow copy to avoid mutating the original object
+      const organization = {...organizationQuery.data};
+
+      // FeatureFlagOverrides mutates the organization object
+      FeatureFlagOverrides.singleton().loadOrg(organization);
+      addOrganizationFeaturesHandler({
+        organization,
+        handler: buildSentryFeaturesHandler('feature.organizations:'),
+      });
+
+      OrganizationStore.onUpdate(organization, {replace: true});
+      setActiveOrganization(organization);
+
+      const scope = Sentry.getCurrentScope();
+      scope.setTag('organization', organization.id);
+      scope.setTag('organization.slug', organization.slug);
+      scope.setContext('organization', {
+        id: organization.id,
+        slug: organization.slug,
+      });
     }
     if (organizationQuery.error) {
       OrganizationStore.onFetchOrgError(organizationQuery.error as any);
@@ -65,7 +91,7 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
   return projectsQuery;
 }
 
-export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
+function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-organization', orgSlug],
     queryFn: orgSlug
@@ -114,7 +140,7 @@ function createTeamsObject(response: ApiResult): {
   return {teams, hasMore, cursor};
 }
 
-export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
+function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-teams', orgSlug],
     queryFn: orgSlug
@@ -150,7 +176,7 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   });
 }
 
-export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
+function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-projects', orgSlug],
     queryFn: orgSlug

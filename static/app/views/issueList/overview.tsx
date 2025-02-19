@@ -79,7 +79,10 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-type Props = RouteComponentProps<{}, {searchId?: string}>;
+type Props = RouteComponentProps<
+  Record<PropertyKey, string | undefined>,
+  {searchId?: string}
+>;
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
@@ -137,7 +140,7 @@ function useSavedSearches() {
   };
 }
 
-const parsePageQueryParam = (location: Location, defaultPage: number = 0) => {
+const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   const page = location.query.page;
   const pageInt = Array.isArray(page)
     ? parseInt(page[0] ?? '', 10)

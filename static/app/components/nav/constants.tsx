@@ -11,5 +11,5 @@ export const NAV_GROUP_LABELS: Record<PrimaryNavGroup, string> = {
   [PrimaryNavGroup.SETTINGS]: t('Settings'),
 };
 
-export const PRIMARY_SIDEBAR_WIDTH = 76;
+export const PRIMARY_SIDEBAR_WIDTH = 66;
 export const SECONDARY_SIDEBAR_WIDTH = 190;

@@ -41,7 +41,7 @@ describe('FrontendOverviewPage', () => {
   });
 
   describe('data fetching', () => {
-    it('fetches correct data with unkown + frontend platform', async () => {
+    it('fetches correct data with unknown + frontend platform', async () => {
       render(<FrontendOverviewPage />);
 
       expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(
@@ -52,7 +52,7 @@ describe('FrontendOverviewPage', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             query:
-              '( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) OR project.id:[1] event.type:transaction',
+              '( ( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) OR project.id:[1] ) !transaction.op:http.server event.type:transaction',
           }),
         })
       );
@@ -80,7 +80,7 @@ describe('FrontendOverviewPage', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             query:
-              '( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) event.type:transaction',
+              '( ( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) ) !transaction.op:http.server event.type:transaction',
           }),
         })
       );

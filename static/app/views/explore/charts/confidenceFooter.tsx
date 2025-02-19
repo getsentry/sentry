@@ -9,35 +9,98 @@ import {defined} from 'sentry/utils';
 type Props = {
   confidence?: Confidence;
   sampleCount?: number;
+  topEvents?: number;
 };
 
-export function ConfidenceFooter({sampleCount, confidence}: Props) {
+export function ConfidenceFooter(props: Props) {
+  return <Container>{confidenceMessage(props)}</Container>;
+}
+
+function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
+  const isTopN = defined(topEvents) && topEvents > 0;
+  if (!defined(sampleCount)) {
+    return isTopN
+      ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
+      : t('* Chart extrapolated from \u2026');
+  }
+
+  if (confidence === 'low') {
+    if (isTopN) {
+      if (sampleCount === 1) {
+        return tct(
+          '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample ([lowAccuracy])',
+          {
+            topEvents,
+            sampleCount: <Count value={sampleCount} />,
+            lowAccuracy: <LowAccuracy />,
+          }
+        );
+      }
+      return tct(
+        '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples ([lowAccuracy])',
+        {
+          topEvents,
+          sampleCount: <Count value={sampleCount} />,
+          lowAccuracy: <LowAccuracy />,
+        }
+      );
+    }
+
+    if (sampleCount === 1) {
+      return tct('* Chart extrapolated from [sampleCount] sample ([lowAccuracy])', {
+        sampleCount: <Count value={sampleCount} />,
+        lowAccuracy: <LowAccuracy />,
+      });
+    }
+
+    return tct('* Chart extrapolated from [sampleCount] samples ([lowAccuracy])', {
+      sampleCount: <Count value={sampleCount} />,
+      lowAccuracy: <LowAccuracy />,
+    });
+  }
+
+  if (isTopN) {
+    if (sampleCount === 1) {
+      return tct(
+        '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
+        {
+          topEvents,
+          sampleCount: <Count value={sampleCount} />,
+        }
+      );
+    }
+
+    return tct(
+      '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
+      {
+        topEvents,
+        sampleCount: <Count value={sampleCount} />,
+      }
+    );
+  }
+
+  if (sampleCount === 1) {
+    return tct('* Chart extrapolated from [sampleCount] sample', {
+      sampleCount: <Count value={sampleCount} />,
+    });
+  }
+
+  return tct('* Chart extrapolated from [sampleCount] samples', {
+    sampleCount: <Count value={sampleCount} />,
+  });
+}
+
+function LowAccuracy() {
   return (
-    <Container>
-      {!defined(sampleCount)
-        ? t('* Chart extrapolated from \u2026')
-        : confidence === 'low'
-          ? tct(
-              '* Chart extrapolated from [sampleCount] samples ([insufficientSamples])',
-              {
-                sampleCount: <Count value={sampleCount} />,
-                insufficientSamples: (
-                  <Tooltip
-                    title={t(
-                      'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
-                    )}
-                  >
-                    <InsufficientSamples>
-                      {t('insufficient for accuracy')}
-                    </InsufficientSamples>
-                  </Tooltip>
-                ),
-              }
-            )
-          : tct('* Chart extrapolated from [sampleCount] samples', {
-              sampleCount: <Count value={sampleCount} />,
-            })}
-    </Container>
+    <Tooltip
+      title={t(
+        'Increase your sampling rates to get more samples and more accurate trends.'
+      )}
+    >
+      <InsufficientSamples>
+        {t('Sampling rate may be low for accuracy')}
+      </InsufficientSamples>
+    </Tooltip>
   );
 }
 

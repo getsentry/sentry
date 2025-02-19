@@ -1,14 +1,11 @@
-import {useCallback, useContext, useEffect} from 'react';
+import {useCallback, useContext, useEffect, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {LegacyOnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -19,10 +16,11 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
-import theme from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
@@ -36,9 +34,11 @@ export function OnboardingStatus({
   hidePanel,
   onShowPanel,
 }: OnboardingStatusProps) {
+  const user = useUser();
+  const theme = useTheme();
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
@@ -48,12 +48,6 @@ export function OnboardingStatus({
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const demoMode = isDemoModeEnabled();
 
-  const supportedTasks = getMergedTasks({
-    organization,
-    projects,
-    onboardingContext,
-  }).filter(task => task.display);
-
   const {
     allTasks,
     gettingStartedTasks,
@@ -62,11 +56,7 @@ export function OnboardingStatus({
     completeTasks,
     refetch,
   } = useOnboardingTasks({
-    supportedTasks,
-    enabled:
-      !!organization.features?.includes('onboarding') &&
-      !supportedTasks.every(findCompleteTasks) &&
-      isActive,
+    disabled: !isActive,
   });
 
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
@@ -76,6 +66,14 @@ export function OnboardingStatus({
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
     (allTasksCompleted && !isActive);
+
+  const orgId = organization.id;
+
+  const quickStartDisplay = useMemo(() => {
+    return user?.options?.quickStartDisplay ?? {};
+  }, [user?.options?.quickStartDisplay]);
+
+  const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
 
   const handleShowPanel = useCallback(() => {
     if (!demoMode && !isActive === true) {
@@ -110,6 +108,22 @@ export function OnboardingStatus({
     setQuickStartCompleted,
     allTasksCompleted,
   ]);
+
+  useEffect(() => {
+    if (skipQuickStart || quickStartDisplayStatus > 1) {
+      return;
+    }
+
+    const newQuickStartDisplay = {...quickStartDisplay};
+    newQuickStartDisplay[orgId] = quickStartDisplayStatus + 1;
+
+    mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
+
+    if (quickStartDisplayStatus === 1) {
+      activateSidebar();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
 
   if (skipQuickStart) {
     return null;
@@ -159,7 +173,7 @@ export function OnboardingStatus({
         )}
       </Container>
       {isActive && (
-        <OnboardingSidebar
+        <LegacyOnboardingSidebar
           orientation={orientation}
           collapsed={collapsed}
           onClose={hidePanel}

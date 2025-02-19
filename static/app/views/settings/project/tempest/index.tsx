@@ -2,8 +2,8 @@ import {Fragment, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
@@ -41,7 +41,7 @@ export default function TempestSettings({organization, project}: Props) {
 
   const api = useApi();
   const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    {},
+    unknown,
     RequestError,
     {id: number}
   >({
@@ -70,7 +70,11 @@ export default function TempestSettings({organization, project}: Props) {
   }, [tempestCredentials]);
 
   if (!hasTempestAccess(organization)) {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
+    );
   }
 
   return (
@@ -82,16 +86,18 @@ export default function TempestSettings({organization, project}: Props) {
       />
 
       {credentialErrors && credentialErrors?.length > 0 && (
-        <Alert type="error" showIcon>
-          {t('There was a problem with following credentials:')}
-          <List symbol="bullet">
-            {credentialErrors.map(credential => (
-              <ListItem key={credential.id}>
-                {credential.clientId} - {credential.message}
-              </ListItem>
-            ))}
-          </List>
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('There was a problem with following credentials:')}
+            <List symbol="bullet">
+              {credentialErrors.map(credential => (
+                <ListItem key={credential.id}>
+                  {credential.clientId} - {credential.message}
+                </ListItem>
+              ))}
+            </List>
+          </Alert>
+        </Alert.Container>
       )}
 
       <Form

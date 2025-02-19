@@ -1,7 +1,7 @@
 import React, {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -217,16 +217,18 @@ export function HTTPDomainSummaryPage() {
         <Layout.Body>
           <Layout.Main fullWidth>
             {domain === '' && (
-              <Alert type="info">
-                {tct(
-                  '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
-                  {
-                    link: (
-                      <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>
-                    ),
-                  }
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert type="info">
+                  {tct(
+                    '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
+                    {
+                      link: (
+                        <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>
+                      ),
+                    }
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
 
             <ModuleLayout.Layout>
