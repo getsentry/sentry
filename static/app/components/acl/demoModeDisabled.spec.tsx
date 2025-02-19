@@ -23,6 +23,7 @@ describe('DisableInDemoMode', () => {
     );
 
     expect(screen.getByText('Test Child')).toBeInTheDocument();
+    expect(screen.queryByTestId('demo-mode-disabled-wrapper')).not.toBeInTheDocument();
   });
 
   it('renders a tooltip when demo mode is enabled', () => {
