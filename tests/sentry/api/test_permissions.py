@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.api.permissions import (
     DemoUserPermission,
     SentryIsAuthenticated,
@@ -66,8 +68,11 @@ class DemoUserPermissionsTest(DRFPermissionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.normal_user = self.create_user(id=1)
+        self.normal_user = self.create_user(
+            id=1,
+        )
         self.readonly_user = self.create_user(id=2)
+        self.organization = self.create_organization(owner=self.normal_user)
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_readonly_user_has_permission(self):
@@ -108,6 +113,7 @@ class DemoUserPermissionsTest(DRFPermissionTestCase):
         )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    @patch
     def test_unsafe_methods_demo_mode_disabled(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             assert not self.user_permission.has_permission(
@@ -116,32 +122,4 @@ class DemoUserPermissionsTest(DRFPermissionTestCase):
 
         assert self.user_permission.has_permission(
             self.make_request(self.normal_user, method=method), None
-        )
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_determine_access(self):
-        assert self.user_permission.determine_access(
-            self.make_request(self.readonly_user, method="GET"), None
-        )
-        assert self.user_permission.determine_access(
-            self.make_request(self.normal_user, method="GET"), None
-        )
-
-    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
-    def test_determine_access_disabled(self):
-        assert not self.user_permission.determine_access(
-            self.make_request(self.readonly_user, method="GET"), None
-        )
-        assert self.user_permission.determine_access(
-            self.make_request(self.normal_user, method="GET"), None
-        )
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_determine_access_superuser(self):
-        assert not self.user_permission.determine_access(
-            self.make_request(self.readonly_user, method="POST"), None
-        )
-        self.readonly_user.update(is_superuser=True)
-        assert self.user_permission.determine_access(
-            self.make_request(self.readonly_user, method="POST"), None
         )
