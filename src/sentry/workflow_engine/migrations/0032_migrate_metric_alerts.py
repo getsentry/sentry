@@ -211,18 +211,18 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         extra={"snuba_query_id": snuba_query.id},
                     )
                     raise Exception("Query subscription does not exist")
-                data_source = DataSource.objects.create_or_update(
+                data_source, _ = DataSource.objects.get_or_create(
                     organization_id=organization_id,
                     source_id=str(query_subscription.id),
                     type="snuba_query_subscription",
                 )
 
                 # create detector DCG
-                data_condition_group = DataConditionGroup.objects.create_or_update(
+                data_condition_group, _ = DataConditionGroup.objects.get_or_create(
                     organization_id=organization_id,
                 )
                 # create detector
-                detector = Detector.objects.create_or_update(
+                detector, _ = Detector.objects.get_or_create(
                     project_id=project.id,
                     enabled=enabled,
                     created_by_id=create_activity.user_id,
@@ -241,7 +241,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     },
                 )
                 # create workflow
-                workflow = Workflow.objects.create_or_update(
+                workflow, _ = Workflow.objects.get_or_create(
                     name=alert_rule.name,
                     organization_id=organization_id,
                     when_condition_group=None,
@@ -262,17 +262,17 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
 
                 data_source.detectors.set([detector])
                 # create detector state
-                DetectorState.objects.create_or_update(
+                DetectorState.objects.get_or_create(
                     detector=detector,
                     active=False,
                     state=state,
                 )
                 # create lookup tables
-                AlertRuleDetector.objects.create_or_update(alert_rule=alert_rule, detector=detector)
-                alert_rule_workflow = AlertRuleWorkflow.objects.create_or_update(
+                AlertRuleDetector.objects.get_or_create(alert_rule=alert_rule, detector=detector)
+                alert_rule_workflow, _ = AlertRuleWorkflow.objects.get_or_create(
                     alert_rule=alert_rule, workflow=workflow
                 )
-                DetectorWorkflow.objects.create_or_update(detector=detector, workflow=workflow)
+                DetectorWorkflow.objects.get_or_create(detector=detector, workflow=workflow)
 
                 # migrate triggers
                 triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
@@ -284,21 +284,21 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     )
                     condition_result = PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH)
                     # create detector trigger
-                    DataCondition.objects.create_or_update(
+                    DataCondition.objects.get_or_create(
                         comparison=trigger.alert_threshold,
                         condition_result=condition_result,
                         type=threshold_type,
                         condition_group=detector.workflow_condition_group,
                     )
                     # create action filter
-                    data_condition_group = DataConditionGroup.objects.create_or_update(
+                    data_condition_group, _ = DataConditionGroup.objects.get_or_create(
                         organization_id=alert_rule.organization_id
                     )
-                    WorkflowDataConditionGroup.objects.create_or_update(
+                    WorkflowDataConditionGroup.objects.get_or_create(
                         condition_group=data_condition_group,
                         workflow=alert_rule_workflow.workflow,
                     )
-                    action_filter = DataCondition.objects.create_or_update(
+                    action_filter, _ = DataCondition.objects.get_or_create(
                         comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
                         condition_result=True,
                         type=Condition.ISSUE_PRIORITY_EQUALS,
@@ -382,7 +382,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             target_identifier = trigger_action.target_identifier
 
                         # create the models
-                        action = Action.objects.create_or_update(
+                        action, _ = Action.objects.get_or_create(
                             type=action_type,
                             data=data,
                             integration_id=trigger_action.integration_id,
@@ -390,11 +390,11 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             target_identifier=target_identifier,
                             target_type=trigger_action.target_type,
                         )
-                        DataConditionGroupAction.objects.create_or_update(
+                        DataConditionGroupAction.objects.get_or_create(
                             condition_group_id=action_filter.condition_group.id,
                             action_id=action.id,
                         )
-                        ActionAlertRuleTriggerAction.objects.create_or_update(
+                        ActionAlertRuleTriggerAction.objects.get_or_create(
                             action_id=action.id,
                             alert_rule_trigger_action_id=trigger_action.id,
                         )
@@ -430,23 +430,23 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             )
                         else:
                             resolve_threshold = critical_data_condition.comparison
-                    DataCondition.objects.create_or_update(
+                    DataCondition.objects.get_or_create(
                         comparison=resolve_threshold,
                         condition_result=DetectorPriorityLevel.OK,
                         type=resolve_threshold_type,
                         condition_group=detector.workflow_condition_group,
                     )
 
-                    DataConditionGroup.objects.create_or_update(
+                    DataConditionGroup.objects.get_or_create(
                         organization_id=alert_rule.organization_id
                     )
                     AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-                    WorkflowDataConditionGroup.objects.create_or_update(
+                    WorkflowDataConditionGroup.objects.get_or_create(
                         condition_group=data_condition_group,
                         workflow=alert_rule_workflow.workflow,
                     )
 
-                    DataCondition.objects.create_or_update(
+                    DataCondition.objects.get_or_create(
                         comparison=DetectorPriorityLevel.OK,
                         condition_result=True,
                         type=Condition.ISSUE_PRIORITY_EQUALS,
