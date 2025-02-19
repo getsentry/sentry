@@ -1,5 +1,3 @@
-import 'intersection-observer'; // polyfill
-
 import {type CSSProperties, forwardRef, Fragment, useCallback, useEffect} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -49,7 +47,7 @@ type EventNavigationProps = {
 /**
  * Ordered array of sections that matches the order in EventDetailsContent
  */
-const ORDERED_SECTIONS: SectionKey[] = [
+export const ORDERED_SECTIONS: SectionKey[] = [
   SectionKey.HIGHLIGHTS,
   SectionKey.USER_FEEDBACK,
   SectionKey.LLM_MONITORING,
