@@ -52,7 +52,12 @@ type Props = {
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: Function;
+  onSubmitSuccess: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {new: FieldValue; old: FieldValue}
+  ) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request

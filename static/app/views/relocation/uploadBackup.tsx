@@ -19,10 +19,10 @@ import type {StepProps} from './types';
 type UploadWellProps = {
   centered: boolean;
   draggedOver: boolean;
-  onDragEnter: Function;
-  onDragLeave: Function;
-  onDragOver: Function;
-  onDrop: Function;
+  onDragEnter: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDragOver: (e: React.DragEvent | DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
 };
 
 const DEFAULT_ERROR_MSG = t(
@@ -45,7 +45,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const user = useUser();
 
-  const handleDragEnter = (event: any) => {
+  const handleDragEnter = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(dragCounter + 1);
   };
@@ -54,7 +54,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
     setDragCounter(dragCounter - 1);
   };
 
-  const handleDrop = (event: any) => {
+  const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(0);
 

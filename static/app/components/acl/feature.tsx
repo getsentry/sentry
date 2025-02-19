@@ -200,7 +200,7 @@ class Feature extends Component<Props> {
       return customDisabledRender({children, ...renderProps});
     }
 
-    if (isRenderFunc<ChildrenRenderFn>(children)) {
+    if (isRenderFunc(children)) {
       return children({renderDisabled, ...renderProps});
     }
 

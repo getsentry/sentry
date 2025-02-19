@@ -173,15 +173,13 @@ export function memoizeByReference<Arguments, Value>(
   };
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-
 export function memoizeVariadicByReference<
   T extends (...args: any[]) => V,
   V = ReturnType<T>,
->(fn: T): (...t: Arguments<T>) => V {
-  let cache: Cache<Arguments<T>, V> | null = null;
+>(fn: T): (...t: Parameters<T>) => V {
+  let cache: Cache<Parameters<T>, V> | null = null;
 
-  return function memoizeByReferenceCallback(...args: Arguments<T>): V {
+  return function memoizeByReferenceCallback(...args: Parameters<T>): V {
     // If this is the first run then eval the fn and cache the result
     if (!cache) {
       cache = {args, value: fn(...args)};

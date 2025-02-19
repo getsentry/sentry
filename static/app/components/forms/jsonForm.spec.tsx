@@ -117,7 +117,9 @@ describe('JsonForm', function () {
     it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
+        fields: accountDetailsField.fields.map(
+          field => ({...field, visible: false}) as FieldObject
+        ),
       }));
 
       render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
@@ -128,10 +130,13 @@ describe('JsonForm', function () {
     it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(field => ({
-          ...field,
-          visible: () => false,
-        })),
+        fields: accountDetailsField.fields.map(
+          field =>
+            ({
+              ...field,
+              visible: () => false,
+            }) as FieldObject
+        ),
       }));
 
       render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
@@ -150,7 +155,9 @@ describe('JsonForm', function () {
     it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
+        fields: accountDetailsField.fields.map(
+          field => ({...field, visible: false}) as FieldObject
+        ),
       }));
 
       render(
@@ -178,7 +185,9 @@ describe('JsonForm', function () {
       try {
         render(
           <JsonForm
-            fields={[{...jsonFormFields[0]!, visible: ({test}) => !!test.email}]}
+            fields={[
+              {...jsonFormFields[0]!, visible: ({test}) => !!test.email} as FieldObject,
+            ]}
           />
         );
       } catch (error) {
@@ -201,7 +210,7 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field, visible: true}))}
+          fields={jsonFormFields.map(field => ({...field, visible: true}) as FieldObject)}
         />
       );
 
@@ -214,7 +223,9 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field, visible: () => true}))}
+          fields={jsonFormFields.map(
+            field => ({...field, visible: () => true}) as FieldObject
+          )}
         />
       );
 
@@ -227,7 +238,9 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field, visible: false}))}
+          fields={jsonFormFields.map(
+            field => ({...field, visible: false}) as FieldObject
+          )}
         />
       );
 
@@ -239,7 +252,9 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field, visible: () => false}))}
+          fields={jsonFormFields.map(
+            field => ({...field, visible: () => false}) as FieldObject
+          )}
         />
       );
 

@@ -130,7 +130,7 @@ class OperationSort extends Component<Props, State> {
         {({ref: popperRef, style, placement}) => (
           <DropdownWrapper
             ref={ref => {
-              (popperRef as Function)(ref);
+              (popperRef as CallableFunction)(ref);
               this.menuEl = ref;
             }}
             style={style}

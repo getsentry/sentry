@@ -49,15 +49,15 @@ export type GetMenuPropsFn = <E extends Element = Element>(
 ) => MenuProps<E>;
 
 export type MenuActions = {
-  close: (event?: React.MouseEvent<Element>) => void;
-  open: (event?: React.MouseEvent<Element>) => void;
+  close: (event?: React.MouseEvent) => void;
+  open: (event?: React.MouseEvent) => void;
 };
 
 type RenderProps = {
   actions: MenuActions;
   getActorProps: GetActorPropsFn;
   getMenuProps: GetMenuPropsFn;
-  getRootProps: Function;
+  getRootProps: (props?: Record<string, unknown>) => Record<string, unknown> | undefined;
   isOpen: boolean;
 };
 
@@ -97,9 +97,9 @@ type Props = DefaultProps & {
    * Callback for when we get a click outside of dropdown menus.
    * Useful for when menu is controlled.
    */
-  onClickOutside?: Function;
-  onClose?: Function;
-  onOpen?: Function;
+  onClickOutside?: (e: MouseEvent) => void;
+  onClose?: (e: React.KeyboardEvent | React.MouseEvent | undefined) => void;
+  onOpen?: (e: React.MouseEvent | undefined) => void;
   /**
    * Callback function to check if we should ignore click outside to
    * hide dropdown menu
@@ -323,7 +323,7 @@ class DropdownMenu extends Component<Props, State> {
     this.handleClose(e);
   };
 
-  getRootProps<T>(props: T): T {
+  getRootProps(props?: Record<string, unknown>) {
     return props;
   }
 

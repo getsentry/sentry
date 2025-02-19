@@ -20,7 +20,7 @@ function handleChangeDate(
   onChange: OnEvent,
   onBlur: OnEvent,
   date: Date,
-  close: Function
+  close: () => void
 ) {
   onChange(date);
   onBlur(date);
