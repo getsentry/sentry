@@ -90,7 +90,7 @@ export function useArithmeticBuilderAction({
       } else if (isArithmeticBuilderReplaceAction(action)) {
         const newExpression = replaceToken(expression.text, action);
         if (newExpression.valid === 'valid') {
-          updateExpression?.(newExpression.text);
+          updateExpression?.(newExpression);
         }
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
