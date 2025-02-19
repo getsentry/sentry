@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
-from enum import IntEnum
 from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
@@ -45,6 +44,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
+from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -61,10 +61,6 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
-# When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
-# successes in a row do we need to mark it up
-ACTIVE_FAILURE_THRESHOLD = 3
-ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
@@ -83,11 +79,6 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
 
 
-class IncidentStatus(IntEnum):
-    NO_INCIDENT = 0
-    IN_INCIDENT = 1
-
-
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
     return f"project-sub-last-update:{project_subscription.id}"
 
@@ -100,6 +91,16 @@ def build_active_consecutive_status_key(
     project_subscription: ProjectUptimeSubscription, status: str
 ) -> str:
     return f"project-sub-active:{status}:{project_subscription.id}"
+
+
+def get_active_failure_threshold():
+    # When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
+    return options.get("uptime.active-failure-threshold")
+
+
+def get_active_recovery_threshold():
+    # When in active monitoring mode, how many successes in a row do we need to mark it as up
+    return options.get("uptime.active-recovery-threshold")
 
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
@@ -504,9 +505,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         pipeline.incr(key)
         pipeline.expire(key, ACTIVE_THRESHOLD_REDIS_TTL)
         status_count = int(pipeline.execute()[0])
-        result = (status == CHECKSTATUS_FAILURE and status_count >= ACTIVE_FAILURE_THRESHOLD) or (
-            status == CHECKSTATUS_SUCCESS and status_count >= ACTIVE_RECOVERY_THRESHOLD
-        )
+        result = (
+            status == CHECKSTATUS_FAILURE and status_count >= get_active_failure_threshold()
+        ) or (status == CHECKSTATUS_SUCCESS and status_count >= get_active_recovery_threshold())
         if not result:
             metrics.incr(
                 "uptime.result_processor.active.under_threshold",
