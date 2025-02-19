@@ -16,7 +16,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -70,6 +70,10 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Callback that returns an updated `timeseriesSelection` after a user manipulations the selection via the legend
    */
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  /**
+   * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
+   */
+  onZoom?: EChartDataZoomHandler;
   /**
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
@@ -377,6 +381,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         },
       }}
       {...chartZoomProps}
+      {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
