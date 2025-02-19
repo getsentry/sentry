@@ -5,6 +5,7 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type FetchGroupQueryParameters = {
@@ -40,10 +41,13 @@ export function useGroup({groupId, options}: UseGroupOptions) {
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
 
+  const [realtime, _] = useSyncedLocalStorageState('issue-details-realtime', false);
+
   return useApiQuery<Group>(
     makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
     {
-      staleTime: 30000,
+      staleTime: realtime ? 0 : 30000,
+      refetchInterval: realtime ? 5000 : false,
       gcTime: 30000,
       retry: false,
       ...options,

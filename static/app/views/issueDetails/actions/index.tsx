@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
@@ -21,6 +21,8 @@ import {
   IconCheckmark,
   IconEllipsis,
   IconLink,
+  IconPause,
+  IconPlay,
   IconSubscribed,
   IconUnsubscribed,
 } from 'sentry/icons';
@@ -46,6 +48,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
@@ -77,6 +80,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const navigate = useNavigate();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const [realtime, setRealtime] = useSyncedLocalStorageState(
+    'issue-details-realtime',
+    false
+  );
+
+  useEffect(() => {
+    return () => {
+      setRealtime(false);
+    };
+  }, [setRealtime]);
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -466,6 +480,15 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               title={t('Share Issue')}
               analyticsEventKey="issue_details.share_action_clicked"
               analyticsEventName="Issue Details: Share Action Clicked"
+            />
+            <Button
+              size="sm"
+              onClick={() => setRealtime(!realtime)}
+              icon={realtime ? <IconPause /> : <IconPlay />}
+              aria-label={t('Realtime')}
+              title={
+                realtime ? t('Disable realtime updates') : t('Enable realtime updates')
+              }
             />
           </Fragment>
         ))}

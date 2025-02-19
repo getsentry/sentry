@@ -4,6 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {
   getGroupEventQueryKey,
@@ -32,6 +33,8 @@ export function useGroupEvent({
   const eventQuery = useEventQuery({groupId});
   const eventId = eventIdProp ?? defaultIssueEvent;
 
+  const [realtime, _] = useSyncedLocalStorageState('issue-details-realtime', false);
+
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
   const isLatestOrRecommendedEvent = eventId === 'latest' || eventId === 'recommended';
 
@@ -59,7 +62,8 @@ export function useGroupEvent({
   const streamlineStaleTime = isReservedEventId ? Infinity : 30000;
 
   return useApiQuery<Event>(queryKey, {
-    staleTime: hasStreamlinedUI ? streamlineStaleTime : staleTime,
+    staleTime: hasStreamlinedUI ? (realtime ? 0 : streamlineStaleTime) : staleTime,
+    refetchInterval: realtime ? 5000 : false,
     enabled: options?.enabled && !!eventId,
     retry: false,
   });

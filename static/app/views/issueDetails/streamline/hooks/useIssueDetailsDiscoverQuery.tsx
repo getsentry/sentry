@@ -12,6 +12,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 
 export function useIssueDetailsEventView({
@@ -63,6 +64,8 @@ export function useIssueDetailsDiscoverQuery<T>({
 }) {
   const organization = useOrganization();
   const location = useLocation();
+  const [realtime, _] = useSyncedLocalStorageState('issue-details-realtime', false);
+
   return useGenericDiscoverQuery<T, DiscoverQueryProps>({
     route,
     eventView,
@@ -77,7 +80,10 @@ export function useIssueDetailsDiscoverQuery<T>({
       // Cursor on issue details can be used for other pagination
       cursor: undefined,
     }),
-    options,
+    options: {
+      ...options,
+      refetchInterval: realtime ? 5000 : false,
+    },
     referrer,
   });
 }
