@@ -34,7 +34,6 @@ export function withChonk<LegacyProps, ChonkProps extends {theme: DO_NOT_USE_Cho
     }
 
     const LegacyComponent: any = legacyComponent;
-    // @ts-expect-error there is an emotion related issue here where this somehow breaks LibraryManagedAttributes
     return <LegacyComponent {...props} />;
   };
 }
