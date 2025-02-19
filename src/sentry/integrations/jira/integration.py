@@ -124,9 +124,6 @@ class JiraProjectMapping(TypedDict):
     value: str
     label: str
 
-    def to_select_option(self) -> dict[str, str]:
-        return {"value": self.value, "label": self.label}
-
 
 class JiraIntegration(IssueSyncIntegration):
     outbound_status_key = "sync_status_forward"
