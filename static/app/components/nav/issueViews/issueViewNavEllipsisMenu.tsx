@@ -19,7 +19,19 @@ export function IssueViewNavEllipsisMenu({
     <DropdownMenu
       position="bottom-start"
       trigger={props => (
-        <TriggerWrapper {...props} data-ellipsis-menu-trigger>
+        <TriggerWrapper
+          {...props}
+          data-ellipsis-menu-trigger
+          onPointerDownCapture={e => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onPointerUp={e => {
+            e.stopPropagation();
+            e.preventDefault();
+            e.currentTarget.click();
+          }}
+        >
           <InteractionStateLayer />
           <IconEllipsis compact color="gray500" />
           <UnsavedChangesIndicator

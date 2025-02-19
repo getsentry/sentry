@@ -7,8 +7,10 @@ import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueVi
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
 import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
@@ -98,6 +100,7 @@ const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+  margin-right: ${space(0.5)};
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
