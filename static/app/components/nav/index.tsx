@@ -11,6 +11,12 @@ function useHoverWithin({isDisabled}: {isDisabled?: boolean}) {
   const [isHovered, setIsHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Resets hover state if nav is disabled
+  // Without this the menu will pop back open when collapsing
+  if (isDisabled && isHovered) {
+    setIsHovered(false);
+  }
+
   // Sets up event listeners for opening/closing the nav
   // Mouse in -> open
   // Mouse out -> close
