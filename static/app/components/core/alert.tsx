@@ -10,8 +10,6 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
-import {DO_NOT_USE_ChonkAlert, type DO_NOT_USE_ChonkAlertProps} from './alert.chonk';
-
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
@@ -23,7 +21,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   trailingItems?: React.ReactNode;
 }
 
-function LegacyAlert({
+export function Alert({
   showIcon,
   icon,
   opaque,
@@ -160,9 +158,12 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   }
 }
 
-const AlertContainer = styled('div')<
-  AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
->`
+interface AlertContainerProps extends AlertProps {
+  alertColors: ReturnType<typeof getAlertColors>;
+  hovered: boolean;
+}
+
+const AlertContainer = styled('div')<AlertContainerProps>`
   display: grid;
   grid-template-columns:
     ${p => p.showIcon && `minmax(0, max-content)`}
@@ -306,15 +307,4 @@ const Container = styled('div')`
 
 Alert.Container = Container;
 
-export function Alert(props: AlertProps) {
-  const theme = useTheme();
-  console.log('theme', theme);
-  if (theme.isChonk) {
-    const {type, ...rest} = props;
-    const chonkType: DO_NOT_USE_ChonkAlertProps['type'] =
-      type === 'muted' ? 'subtle' : type === 'error' ? 'danger' : type;
-    return <DO_NOT_USE_ChonkAlert type={chonkType} {...rest} />;
-  }
-  return <LegacyAlert {...props} />;
-}
 export default Alert;

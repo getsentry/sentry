@@ -1185,12 +1185,3 @@ export type ColorOrAlias = keyof Aliases | Color;
  */
 const commonThemeExport = {...commonTheme};
 export default commonThemeExport;
-
-/**
- * Configure Emotion to use our theme
- */
-declare module '@emotion/react' {
-  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  type SentryTheme = typeof lightTheme;
-  export interface Theme extends SentryTheme {}
-}
