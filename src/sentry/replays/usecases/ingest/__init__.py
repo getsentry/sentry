@@ -373,6 +373,7 @@ def parse_recording_actions(
             message.replay_id,
             headers["segment_id"],
         )
+        return None
 
 
 @sentry_sdk.trace
