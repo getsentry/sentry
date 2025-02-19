@@ -262,6 +262,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
+        project,
       },
       features: new Set(organization.features),
       access,
