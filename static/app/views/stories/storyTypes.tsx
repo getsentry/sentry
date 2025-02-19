@@ -7,7 +7,7 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {StoryTitle} from 'sentry/stories/storyBook';
+import {StorySection, StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
@@ -20,7 +20,7 @@ export function StoryTypes(props: StoryTypesProps) {
   const nodes = usePropTree(props.types?.props ?? {}, query);
 
   return (
-    <Fragment>
+    <StorySection>
       <StoryTitle>API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
@@ -87,7 +87,7 @@ export function StoryTypes(props: StoryTypesProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Fragment>
+    </StorySection>
   );
 }
 
