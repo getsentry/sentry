@@ -1,15 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {
-  createContext,
-  type CSSProperties,
-  forwardRef,
-  Fragment,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import {type CSSProperties, forwardRef, Fragment, useCallback, useEffect} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -116,58 +107,32 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 export const MIN_NAV_HEIGHT = 44;
 
 /**
- * Hook that sets up an IntersectionObserver to track how much of a section is visible
- * in the viewport. The observer uses multiple thresholds to accurately track the
- * intersection ratio as the user scrolls.
- *
- * The hook will:
- * 1. Find the DOM element for the section by ID
- * 2. Create an IntersectionObserver to track its visibility
- * 3. Update the section's intersection ratio in the IssueDetailsContext
- * 4. Clean up the observer when the component unmounts
- *
- * @param elementId - The ID of the DOM element to observe
- */
-function useIntersectionObserver(elementId: string) {
-  const {dispatch} = useIssueDetails();
-
-  useEffect(() => {
-    const element = document.getElementById(elementId);
-    if (!element) {
-      return () => {};
-    }
-
-    // Create observer with multiple thresholds for smooth tracking
-    const observer = new IntersectionObserver(
-      entries => {
-        const entry = entries[0];
-        if (entry) {
-          dispatch({
-            type: 'UPDATE_SECTION_VISIBILITY',
-            sectionId: elementId,
-            ratio: entry.intersectionRatio,
-          });
-        }
-      },
-      {
-        // Use many thresholds to track intersection ratio precisely
-        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-      }
-    );
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, [elementId, dispatch]);
-}
-
-/**
  * Hook that updates the active section based on a fixed activation offset from the viewport top.
  * This provides more stable navigation highlighting compared to pure intersection ratios.
+ * When near the bottom of the page, it will force the last section to be active.
  */
-function useActiveSectionUpdater(sectionKeys: string[], activationOffset = 100) {
+function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 100) {
   const {dispatch} = useIssueDetails();
 
   const handleScroll = useCallback(() => {
+    // If we are near (or past) the bottom of the page, force the last section active
+    const bottomThreshold = 50;
+    const isNearBottom =
+      window.innerHeight + window.scrollY >=
+      document.documentElement.scrollHeight - bottomThreshold;
+
+    if (isNearBottom && sectionKeys.length > 0) {
+      const lastSectionKey = sectionKeys[sectionKeys.length - 1];
+      if (lastSectionKey) {
+        return dispatch({
+          type: 'UPDATE_SECTION_VISIBILITY',
+          sectionId: lastSectionKey,
+          ratio: 1,
+        });
+      }
+    }
+
+    // Otherwise, use the normal comparison with the activationOffset
     let activeKey = null;
     let minDiff = Infinity;
 
@@ -269,6 +234,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
         }),
     });
 
+    // Get section keys from configs, they are guaranteed to be SectionKey
     const eventSectionKeys = eventSectionConfigs.map(config => config.key);
     useActiveSectionUpdater(eventSectionKeys);
 
