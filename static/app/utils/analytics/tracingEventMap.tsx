@@ -61,6 +61,7 @@ export type TracingEventParameters = {
   'trace.trace_drawer_explore_search': {
     key: string;
     kind: TraceDrawerActionKind;
+    source: 'drawer' | 'toolbar_menu';
     value: string | number;
   };
   'trace.trace_layout.change': {
