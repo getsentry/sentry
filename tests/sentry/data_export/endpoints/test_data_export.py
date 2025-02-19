@@ -370,7 +370,7 @@ class DataExportTest(APITestCase):
 
     def test_is_query(self):
         """
-        is queries shoudl work with the errors dataset
+        is queries should work with the errors dataset
         """
         payload = self.make_payload(
             "discover",
