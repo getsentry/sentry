@@ -36,7 +36,12 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
 
@@ -55,6 +60,7 @@ const MAX_ROWS = 10;
 export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const location = useLocation();
   const organization = useOrganization();
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
     location.query[SpanIndexedField.USER_GEO_SUBREGION]
@@ -203,7 +209,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
           <Link
             to={{
               ...location,
-              pathname: `${location.pathname}overview/`,
+              pathname: `${moduleUrl}/overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
