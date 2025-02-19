@@ -42,24 +42,27 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         context = TaskContext("rebalancing", 20)
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
+        p2 = self.create_project(organization=org1)
 
-        self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
-            minutes_before_now=30,
-            value=1,
-            project_id=p1.id,
-            org_id=org1.id,
-        )
+        for p in [p1, p2]:
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": "keep"},
+                minutes_before_now=30,
+                value=1,
+                project_id=p.id,
+                org_id=org1.id,
+            )
 
-        self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "drop"},
-            minutes_before_now=30,
-            value=3,
-            project_id=p1.id,
-            org_id=org1.id,
-        )
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": "drop"},
+                minutes_before_now=30,
+                value=3,
+                project_id=p.id,
+                org_id=org1.id,
+            )
+        p2.delete()
         results = fetch_projects_with_total_root_transaction_count_and_rates(
             context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
