@@ -44,7 +44,7 @@ interface ExploreChartsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-const exploreChartTypeOptions = [
+export const EXPLORE_CHART_TYPE_OPTIONS = [
   {
     value: ChartType.LINE,
     label: t('Line'),
@@ -206,6 +206,21 @@ export function ExploreCharts({
             );
           }
 
+          if (chartInfo.data.length === 0) {
+            // This happens when the `/events-stats/` endpoint returns a blank
+            // response. This is a rare error condition that happens when
+            // proxying to RPC. Adding explicit handling with a "better" message
+            return (
+              <Widget
+                key={index}
+                height={CHART_HEIGHT}
+                Title={Title}
+                Visualization={<Widget.WidgetError error={t('No data')} />}
+                revealActions="always"
+              />
+            );
+          }
+
           return (
             <Widget
               key={index}
@@ -225,7 +240,7 @@ export function ExploreCharts({
                     }}
                     value={chartInfo.chartType}
                     menuTitle="Type"
-                    options={exploreChartTypeOptions}
+                    options={EXPLORE_CHART_TYPE_OPTIONS}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
                 </Tooltip>,

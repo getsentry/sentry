@@ -202,6 +202,6 @@ function computeConfidence(
   return visualizes.map(visualize => {
     const dedupedYAxes = dedupeArray(visualize.yAxes);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-    return combineConfidenceForSeries(series);
+    return String(combineConfidenceForSeries(series));
   });
 }
