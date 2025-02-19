@@ -32,6 +32,24 @@ export const MOCK_DATA_SECTION_PROPS = {
   group: GroupFixture(),
 };
 
+export const MOCK_DATA_SECTION_PROPS_MANY_FLAGS = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {flags: {values: Array(6).fill(MOCK_FLAGS).flat()}},
+  }),
+  project: ProjectFixture(),
+  group: GroupFixture(),
+};
+
+export const MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {flags: {values: Array(6).fill(MOCK_FLAGS).flat().splice(0, 21)}},
+  }),
+  project: ProjectFixture(),
+  group: GroupFixture(),
+};
+
 export const EMPTY_STATE_SECTION_PROPS = {
   event: EventFixture({
     id: 'abc123def456ghi789jkl',

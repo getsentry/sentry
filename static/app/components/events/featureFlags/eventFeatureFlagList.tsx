@@ -244,6 +244,10 @@ export function EventFeatureFlagList({
     columnTwo = truncatedItems.slice(10, 20);
   }
 
+  const extraFlags = hydratedFlags.length - 20;
+  const label =
+    extraFlags === 1 ? t('View 1 More Flag') : t('View %d More Flags', extraFlags);
+
   return (
     <InterimSection
       help={t(
@@ -264,7 +268,7 @@ export function EventFeatureFlagList({
           {t('No feature flags were found for this event')}
         </StyledEmptyStateWarning>
       )}
-      {hydratedFlags.length > 20 && (
+      {extraFlags > 0 && (
         <ViewAllContainer>
           <VerticalEllipsis />
           <div>
@@ -273,10 +277,10 @@ export function EventFeatureFlagList({
               // Since we've disabled the button as an 'outside click' for the drawer we can change
               // the operation based on the drawer state.
               onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
-              aria-label={t('View All Breadcrumbs')}
+              aria-label={label}
               ref={viewAllButtonRef}
             >
-              {t('View %d More Flags', hydratedFlags.length - 20)}
+              {label}
             </ViewAllButton>
           </div>
         </ViewAllContainer>
