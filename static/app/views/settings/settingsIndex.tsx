@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -267,11 +266,11 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     >
       <SettingsLayout {...props}>
         <GridLayout>
-          <DemoModeGate>{myAccount}</DemoModeGate>
+          {myAccount}
           {orgSettings}
           {documentation}
           {support}
-          <DemoModeGate>{apiKeys} </DemoModeGate>
+          {apiKeys}
         </GridLayout>
       </SettingsLayout>
     </SentryDocumentTitle>

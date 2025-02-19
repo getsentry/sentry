@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import Avatar from 'sentry/components/avatar';
 import {Chevron} from 'sentry/components/chevron';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
@@ -129,49 +129,47 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                   )}
 
                   {!config.singleOrganization && (
-                    <DemoModeGate>
+                    <DisableInDemoMode>
                       <SidebarMenuItem>
                         <SwitchOrganization canCreateOrganization={canCreateOrg} />
                       </SidebarMenuItem>
-                    </DemoModeGate>
+                    </DisableInDemoMode>
                   )}
                 </Fragment>
               )}
 
-              <DemoModeGate>
-                {hasOrganization && user && <Divider />}
-                {!!user && (
-                  <Fragment>
-                    <UserSummary to="/settings/account/details/">
-                      <UserBadgeNoOverflow user={user} avatarSize={32} />
-                    </UserSummary>
+              {hasOrganization && user && <Divider />}
+              {!!user && (
+                <Fragment>
+                  <UserSummary to="/settings/account/details/">
+                    <UserBadgeNoOverflow user={user} avatarSize={32} />
+                  </UserSummary>
 
-                    <div>
-                      <SidebarMenuItem to="/settings/account/">
-                        {t('User settings')}
-                      </SidebarMenuItem>
-                      <SidebarMenuItem to="/settings/account/api/">
-                        {t('User auth tokens')}
-                      </SidebarMenuItem>
-                      {hasOrganization && (
-                        <Hook
-                          name="sidebar:organization-dropdown-menu-bottom"
-                          organization={org}
-                        />
-                      )}
-                      {user.isSuperuser && (
-                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                      )}
-                      <SidebarMenuItem
-                        data-test-id="sidebar-signout"
-                        onClick={handleLogout}
-                      >
-                        {t('Sign out')}
-                      </SidebarMenuItem>
-                    </div>
-                  </Fragment>
-                )}
-              </DemoModeGate>
+                  <div>
+                    <SidebarMenuItem to="/settings/account/">
+                      {t('User settings')}
+                    </SidebarMenuItem>
+                    <SidebarMenuItem to="/settings/account/api/">
+                      {t('User auth tokens')}
+                    </SidebarMenuItem>
+                    {hasOrganization && (
+                      <Hook
+                        name="sidebar:organization-dropdown-menu-bottom"
+                        organization={org}
+                      />
+                    )}
+                    {user.isSuperuser && (
+                      <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                    )}
+                    <SidebarMenuItem
+                      data-test-id="sidebar-signout"
+                      onClick={handleLogout}
+                    >
+                      {t('Sign out')}
+                    </SidebarMenuItem>
+                  </div>
+                </Fragment>
+              )}
             </OrgAndUserMenu>
           )}
         </SidebarDropdownRoot>
