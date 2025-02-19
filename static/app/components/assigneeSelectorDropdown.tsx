@@ -558,11 +558,10 @@ export default function AssigneeSelectorDropdown({
   );
 
   return (
-    <AssigneeWrapper>
+    <AssigneeWrapper className={className}>
       <CompactSelect
         searchable
         clearable
-        className={className}
         menuWidth={275}
         position="bottom-end"
         disallowEmptySelection={false}
