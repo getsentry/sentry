@@ -33,7 +33,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', function () {
   const organization = OrganizationFixture({
-    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit'],
+    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit', 'explore-multi-query'],
   });
 
   beforeEach(function () {
@@ -470,6 +470,42 @@ describe('ExploreToolbar', function () {
     );
   });
 
+  it('opens compare queries', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["p95(span.duration)"]}'),
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Compare/));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/traces/compare',
+      query: expect.objectContaining({
+        queries: [
+          '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["avg(span.duration)"]}',
+        ],
+      }),
+    });
+  });
+
   it('opens the right alert', async function () {
     const router = RouterFixture({
       location: {
@@ -505,6 +541,7 @@ describe('ExploreToolbar', function () {
       }),
     });
   });
+
   it('add to dashboard options correctly', async function () {
     const router = RouterFixture({
       location: {
