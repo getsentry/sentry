@@ -10,7 +10,6 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -18,13 +17,10 @@ import {
   getFilter,
   getPeriodInterval,
 } from 'sentry/views/alerts/rules/metric/details/utils';
-import {
-  Dataset,
-  type MetricRule,
-  TimePeriod,
-} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
+import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 
 const MetricChart = lazy(
   () => import('sentry/views/alerts/rules/metric/details/metricChart')
@@ -44,18 +40,19 @@ export function MetricIssueChart({
   const organization = useOrganization();
 
   const ruleId = event?.contexts?.metric_alert?.alert_rule_id;
-  const {data: rule} = useApiQuery<MetricRule>(
-    [
-      `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
-      {
-        query: {
-          expand: 'latestIncident',
-        },
+
+  const {data: rule} = useMetricRule(
+    {
+      orgSlug: organization.slug,
+      ruleId: ruleId ?? '',
+      query: {
+        expand: 'latestIncident',
       },
-    ],
+    },
     {
       staleTime: Infinity,
       retry: false,
+      enabled: !!ruleId,
     }
   );
 
