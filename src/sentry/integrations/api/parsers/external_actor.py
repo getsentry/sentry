@@ -3,7 +3,7 @@ import re
 from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
-from sentry.api.validators.integrations import validate_provider
+from sentry.integrations.api.parsers.integrations import validate_provider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
