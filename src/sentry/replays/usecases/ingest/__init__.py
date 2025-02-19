@@ -108,6 +108,30 @@ def ingest_recording(message: bytes) -> None:
 @sentry_sdk.trace
 def _ingest_recording(message_bytes: bytes) -> None:
     """Ingest recording messages."""
+    processed_recording = process_recording_message(message_bytes)
+    commit_recording_message(processed_recording)
+    track_recording_metadata(processed_recording)
+
+
+@dataclasses.dataclass
+class ProcessedRecordingMessage:
+    actions_event: ReplayActionsEvent | None
+    filedata: bytes
+    filename: str
+    is_replay_video: bool
+    key_id: int | None
+    org_id: int
+    project_id: int
+    received: int
+    recording_size_uncompressed: int
+    recording_size: int
+    replay_id: str
+    segment_id: int
+    video_size: int | None
+
+
+@sentry_sdk.trace
+def process_recording_message(message_bytes: bytes) -> ProcessedRecordingMessage:
     message = parse_recording_message(message_bytes)
 
     set_tag("org_id", message.org_id)
@@ -115,58 +139,103 @@ def _ingest_recording(message_bytes: bytes) -> None:
 
     headers, compressed_segment = parse_headers(message.payload_with_headers, message.replay_id)
     compressed_segment, recording_segment = decompress_segment(compressed_segment)
-    _report_size_metrics(len(compressed_segment), len(recording_segment))
 
-    # Normalize ingest data into a standardized ingest format.
-    segment_data = RecordingSegmentStorageMeta(
-        project_id=message.project_id,
-        replay_id=message.replay_id,
-        segment_id=headers["segment_id"],
-        retention_days=message.retention_days,
+    actions_event = parse_recording_actions(
+        message,
+        headers,
+        recording_segment,
+        message.replay_event,
+    )
+
+    filename = make_recording_filename(
+        RecordingSegmentStorageMeta(
+            project_id=message.project_id,
+            replay_id=message.replay_id,
+            segment_id=headers["segment_id"],
+            retention_days=message.retention_days,
+        )
     )
 
     if message.replay_video:
+        filedata = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
+        video_size = len(message.replay_video)
+    else:
+        filedata = compressed_segment
+        video_size = None
+
+    return ProcessedRecordingMessage(
+        actions_event,
+        filedata,
+        filename,
+        is_replay_video=message.replay_video is not None,
+        key_id=message.key_id,
+        org_id=message.org_id,
+        project_id=message.project_id,
+        received=message.received,
+        recording_size_uncompressed=len(recording_segment),
+        recording_size=len(compressed_segment),
+        replay_id=message.replay_id,
+        segment_id=headers["segment_id"],
+        video_size=video_size,
+    )
+
+
+@sentry_sdk.trace
+def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
+    # Write to GCS.
+    storage_kv.set(recording.filename, recording.filedata)
+
+    # Write to billing consumer if its a billable event.
+    if recording.segment_id == 0:
+        track_initial_segment_event(
+            recording.org_id,
+            recording.project_id,
+            recording.replay_id,
+            recording.key_id,
+            recording.received,
+            is_replay_video=recording.is_replay_video,
+        )
+
+    # Write to replay-event consumer.
+    if recording.actions_event:
+        emit_replay_actions(recording.actions_event)
+
+
+@sentry_sdk.trace
+def track_recording_metadata(recording: ProcessedRecordingMessage) -> None:
+    # Report size metrics to determine usage patterns.
+    _report_size_metrics(
+        size_compressed=recording.recording_size,
+        size_uncompressed=recording.recording_size_uncompressed,
+    )
+
+    if recording.video_size:
         # Logging org info for bigquery
         logger.info(
             "sentry.replays.slow_click",
             extra={
                 "event_type": "mobile_event",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "size": len(message.replay_video),
+                "org_id": recording.org_id,
+                "project_id": recording.project_id,
+                "size": len(recording.filedata),
             },
         )
 
-        # Record video size for COGS analysis.
+        # Track the number of replay-video events we receive.
         metrics.incr("replays.recording_consumer.replay_video_count")
+
+        # Record video size for COGS analysis.
         metrics.distribution(
             "replays.recording_consumer.replay_video_size",
-            len(message.replay_video),
+            recording.video_size,
             unit="byte",
         )
 
-        dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
-        storage_kv.set(make_recording_filename(segment_data), dat)
-
-        # Track combined payload size.
+        # Track combined payload size for COGs analysis.
         metrics.distribution(
-            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
-        )
-    else:
-        storage_kv.set(make_recording_filename(segment_data), compressed_segment)
-
-    recording_post_processor(message, headers, recording_segment, message.replay_event)
-
-    # The first segment records an accepted outcome. This is for billing purposes. Subsequent
-    # segments are not billed.
-    if headers["segment_id"] == 0:
-        track_initial_segment_event(
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            message.key_id,
-            message.received,
-            is_replay_video=message.replay_video is not None,
+            "replays.recording_consumer.replay_video_event_size",
+            len(recording.filedata),
+            unit="byte",
         )
 
 
@@ -240,28 +309,6 @@ def _report_size_metrics(
 
 
 @sentry_sdk.trace
-def recording_post_processor(
-    message: RecordingIngestMessage,
-    headers: RecordingSegmentHeaders,
-    segment_bytes: bytes,
-    replay_event_bytes: bytes | None,
-) -> None:
-    try:
-        segment, replay_event = parse_segment_and_replay_data(segment_bytes, replay_event_bytes)
-        actions_event = try_get_replay_actions(message, segment, replay_event)
-        if actions_event:
-            emit_replay_actions(actions_event)
-    except Exception:
-        logging.exception(
-            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            headers["segment_id"],
-        )
-
-
-@sentry_sdk.trace
 def parse_recording_message(message: bytes) -> RecordingIngestMessage:
     try:
         message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message)
@@ -306,6 +353,26 @@ def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
         else:
             logger.exception("Invalid recording body.")
             raise DropSilently()
+
+
+@sentry_sdk.trace
+def parse_recording_actions(
+    message: RecordingIngestMessage,
+    headers: RecordingSegmentHeaders,
+    segment_bytes: bytes,
+    replay_event_bytes: bytes | None,
+) -> ReplayActionsEvent | None:
+    try:
+        segment, replay_event = parse_segment_and_replay_data(segment_bytes, replay_event_bytes)
+        return try_get_replay_actions(message, segment, replay_event)
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            headers["segment_id"],
+        )
 
 
 @sentry_sdk.trace
