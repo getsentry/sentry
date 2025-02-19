@@ -645,6 +645,16 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_publish",
+                    snql_distribution=self._resolve_count_publish,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count_process",
+                    snql_distribution=self._resolve_count_process,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "trace_status_rate",
                     required_args=[
                         SnQLStringArg("status"),
@@ -1234,6 +1244,100 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 [
                     self.builder.column("span.op"),
                     self.builder.resolve_tag_value(op),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_count_publish(self, args, alias):
+        op = "queue.publish"
+        operation_name = "publish"
+        operation_type = "create"
+        assert isinstance(op, str), f"op: {op}"
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "or",
+                [
+                    Function(
+                        "equals",
+                        [
+                            self.builder.column("span.op"),
+                            self.builder.resolve_tag_value(op),
+                        ],
+                    ),
+                    Function(
+                        "or",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    self.builder.column("messaging.operation.type"),
+                                    self.builder.resolve_tag_value(operation_type),
+                                ],
+                            ),
+                            Function(
+                                "equals",
+                                [
+                                    self.builder.column("messaging.operation.name"),
+                                    self.builder.resolve_tag_value(operation_name),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_count_process(self, args, alias):
+        op = "queue.process"
+        operation_name = "process"
+        operation_type = "process"
+        assert isinstance(op, str), f"op: {op}"
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "or",
+                [
+                    Function(
+                        "equals",
+                        [
+                            self.builder.column("span.op"),
+                            self.builder.resolve_tag_value(op),
+                        ],
+                    ),
+                    Function(
+                        "or",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    self.builder.column("messaging.operation.type"),
+                                    self.builder.resolve_tag_value(operation_type),
+                                ],
+                            ),
+                            Function(
+                                "equals",
+                                [
+                                    self.builder.column("messaging.operation.name"),
+                                    self.builder.resolve_tag_value(operation_name),
+                                ],
+                            ),
+                        ],
+                    ),
                 ],
             ),
             alias,
