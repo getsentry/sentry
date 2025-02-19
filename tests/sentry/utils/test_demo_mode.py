@@ -3,47 +3,47 @@ from unittest.mock import patch
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils.demo_mode import get_readonly_user, is_demo_org, is_readonly_user
+from sentry.utils.demo_mode import get_demo_user, is_demo_org, is_demo_user
 
 
-@override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+@override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
 @django_db_all
-def test_is_readonly_user_demo_mode_enabled_none():
-    assert not is_readonly_user(None)
+def test_is_demo_user_demo_mode_enabled_none():
+    assert not is_demo_user(None)
 
 
-@override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+@override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
 @django_db_all
-def test_is_readonly_user_demo_mode_enabled_readonly_user():
-    user = Factories.create_user("readonly@example.com")
-    assert is_readonly_user(user)
+def test_is_demo_user_demo_mode_enabled_readonly_user():
+    user = Factories.create_user(id=1)
+    assert is_demo_user(user)
 
 
-@override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+@override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
 @django_db_all
-def test_is_readonly_user_demo_mode_enabled_non_readonly_user():
-    user = Factories.create_user("user@example.com")
-    assert not is_readonly_user(user)
+def test_is_demo_user_demo_mode_enabled_non_readonly_user():
+    user = Factories.create_user(id=2)
+    assert not is_demo_user(user)
 
 
 @override_options({"demo-mode.enabled": False})
 @django_db_all
-def test_is_readonly_user_demo_mode_disabled_none():
-    assert not is_readonly_user(None)
+def test_is_demo_user_demo_mode_disabled_none():
+    assert not is_demo_user(None)
 
 
 @override_options({"demo-mode.enabled": False})
 @django_db_all
-def test_is_readonly_user_demo_mode_disabled_readonly_user():
-    user = Factories.create_user("readonly@example.com")
-    assert not is_readonly_user(user)
+def test_is_demo_user_demo_mode_disabled_readonly_user():
+    user = Factories.create_user(id=1)
+    assert not is_demo_user(user)
 
 
 @override_options({"demo-mode.enabled": False})
 @django_db_all
-def test_is_readonly_user_demo_mode_disabled_non_readonly_user():
-    user = Factories.create_user("user@example.com")
-    assert not is_readonly_user(user)
+def test_is_demo_user_demo_mode_disabled_non_readonly_user():
+    user = Factories.create_user(id=2)
+    assert not is_demo_user(user)
 
 
 @override_options({"demo-mode.enabled": False})
@@ -75,14 +75,14 @@ def test_is_demo_org_not_in_demo_orgs():
 
 @override_options({"demo-mode.enabled": False})
 @django_db_all
-def test_get_readonly_user_demo_mode_disabled():
-    assert get_readonly_user() is None
+def test_get_demo_user_demo_mode_disabled():
+    assert get_demo_user() is None
 
 
-@override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+@override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
 @django_db_all
-def test_get_readonly_user_demo_mode_enabled():
-    user = Factories.create_user("readonly@example.com")
+def test_get_demo_user_demo_mode_enabled():
+    user = Factories.create_user(id=1)
     with patch("sentry.utils.demo_mode.User.objects.get", return_value=user) as mock_user_get:
-        assert get_readonly_user() == user
-        mock_user_get.assert_called_once_with(email="readonly@example.com")
+        assert get_demo_user() == user
+        mock_user_get.assert_called_once_with(id=1)

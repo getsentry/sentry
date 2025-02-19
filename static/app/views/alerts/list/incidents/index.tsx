@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -32,7 +32,7 @@ import AlertListRow from './row';
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   organization: Organization;
 };
 
@@ -259,17 +259,17 @@ class IncidentsList extends DeprecatedAsyncComponent<
   }
 
   renderBody() {
-    const {organization, router, location} = this.props;
+    const {organization, location} = this.props;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
         <PageFiltersContainer>
-          <AlertHeader router={router} activeTab="stream" />
+          <AlertHeader activeTab="stream" />
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert showIcon>
+                  <StyledAlert type="info" showIcon>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar
@@ -301,7 +301,9 @@ function IncidentsListContainer(props: Props) {
   const renderDisabled = () => (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Main>
     </Layout.Body>
   );

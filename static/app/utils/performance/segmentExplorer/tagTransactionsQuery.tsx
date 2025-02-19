@@ -11,7 +11,7 @@ export type TableDataRow = {
 };
 
 export type TableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: MetaType;
 };
 

@@ -5,7 +5,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum, StrEnum
+from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
@@ -22,13 +22,13 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
+    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
 
-class GroupCategory(Enum):
+class GroupCategory(IntEnum):
     ERROR = 1
     PERFORMANCE = 2
     PROFILE = 3  # deprecated, merging with PERFORMANCE
@@ -171,7 +171,7 @@ class GroupType:
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
-    detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    detector_validator: type[BaseDetectorTypeValidator] | None = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True

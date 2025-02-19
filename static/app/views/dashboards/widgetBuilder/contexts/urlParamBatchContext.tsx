@@ -37,13 +37,19 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
     if (Object.keys(pendingUpdates).length === 0) {
       return;
     }
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        ...pendingUpdates,
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          ...pendingUpdates,
+        },
       },
-    });
+
+      // TODO: Use replace until we can sync the state of the widget
+      // when the user navigates back
+      {replace: true}
+    );
     setPendingUpdates({});
   }, [location, navigate, pendingUpdates]);
 

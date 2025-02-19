@@ -250,13 +250,8 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
-        assert obj.snuba_query is not None
         env = obj.snuba_query.environment
         allow_mri = features.has(
-            "organizations:custom-metrics",
-            obj.organization,
-            actor=user,
-        ) or features.has(
             "organizations:insights-alerts",
             obj.organization,
             actor=user,

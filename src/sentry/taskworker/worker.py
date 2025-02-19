@@ -7,6 +7,7 @@ import queue
 import signal
 import sys
 import time
+from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
 from types import FrameType
 from typing import Any
@@ -17,7 +18,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
@@ -32,6 +33,7 @@ from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
+mp_context = multiprocessing.get_context("fork")
 logger = logging.getLogger("sentry.taskworker.worker")
 
 
@@ -232,9 +234,11 @@ class TaskWorker:
     def __init__(
         self,
         rpc_host: str,
+        num_brokers: int | None,
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
+        prefetch_multiplier: int = 3,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -243,15 +247,17 @@ class TaskWorker:
         self._max_task_count = max_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = multiprocessing.Queue(
-            maxsize=(concurrency * 10)
+        self.client = TaskworkerClient(rpc_host, num_brokers)
+        queuesize = concurrency * prefetch_multiplier
+        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
+            maxsize=queuesize
         )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = multiprocessing.Queue(
-            maxsize=(concurrency * 10)
+        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(
+            maxsize=queuesize
         )
-        self._children: list[multiprocessing.Process] = []
-        self._shutdown_event = multiprocessing.Event()
+        self._children: list[ForkProcess] = []
+        self._shutdown_event = mp_context.Event()
+        self.backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
         self._shutdown()
@@ -273,13 +279,19 @@ class TaskWorker:
         signal.signal(signal.SIGINT, self._handle_sigint)
 
         while True:
-            self.run_once()
+            work_remaining = self.run_once()
+            if work_remaining:
+                self.backoff_sleep_seconds = 0
+            else:
+                self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
+                time.sleep(self.backoff_sleep_seconds)
 
-    def run_once(self) -> None:
+    def run_once(self) -> bool:
         """Access point for tests to run a single worker loop"""
-        self._add_task()
-        self._drain_result()
+        task_added = self._add_task()
+        results_drained = self._drain_result()
         self._spawn_children()
+        return task_added or results_drained
 
     def _handle_sigint(self, signum: int, frame: FrameType | None) -> None:
         logger.info("taskworker.worker.sigint_received")
@@ -301,12 +313,12 @@ class TaskWorker:
             child.terminate()
             child.join()
 
-    def _add_task(self) -> None:
+    def _add_task(self) -> bool:
         """
-        Add a task to child tasks queue
+        Add a task to child tasks queue. Returns False if no new task was fetched.
         """
         if self._child_tasks.full():
-            return
+            return False
 
         task = self.fetch_task()
         if task:
@@ -316,10 +328,13 @@ class TaskWorker:
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full", extra={"task_id": task.id}
                 )
+            return True
+        else:
+            return False
 
     def _drain_result(self, fetch: bool = True) -> bool:
         """
-        Consume results from children and update taskbroker
+        Consume results from children and update taskbroker. Returns True if there are more tasks to process.
         """
         try:
             result = self._processed_tasks.get_nowait()
@@ -331,11 +346,19 @@ class TaskWorker:
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
-            next_task = self.client.update_task(
-                task_id=result.task_id,
-                status=result.status,
-                fetch_next_task=fetch_next,
-            )
+            try:
+                next_task = self.client.update_task(
+                    task_id=result.task_id,
+                    status=result.status,
+                    fetch_next_task=fetch_next,
+                )
+            except grpc.RpcError as e:
+                logger.exception(
+                    "taskworker.drain_result.update_task_failed",
+                    extra={"task_id": result.task_id, "error": e},
+                )
+                return True
+
             if next_task:
                 try:
                     self._child_tasks.put(next_task, block=False)
@@ -357,7 +380,7 @@ class TaskWorker:
         if len(active_children) >= self._concurrency:
             return
         for _ in range(self._concurrency - len(active_children)):
-            process = multiprocessing.Process(
+            process = mp_context.Process(
                 target=child_worker,
                 args=(
                     self._child_tasks,
@@ -375,9 +398,9 @@ class TaskWorker:
     def fetch_task(self) -> TaskActivation | None:
         try:
             activation = self.client.get_task(self._namespace)
-        except grpc.RpcError:
+        except grpc.RpcError as e:
             metrics.incr("taskworker.worker.fetch_task", tags={"status": "failed"})
-            logger.info("taskworker.fetch_task.failed")
+            logger.info("taskworker.fetch_task.failed", extra={"error": e})
             return None
 
         if not activation:

@@ -263,7 +263,7 @@ async function createEventIdLookupResult(
   };
 }
 
-type Props = WithRouterProps<{}> & {
+type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
@@ -326,7 +326,7 @@ class ApiSource extends Component<Props, State> {
     const orgId = organization?.slug;
 
     let searchUrls: string[] = [];
-    let directUrls: (string | null)[] = [];
+    let directUrls: Array<string | null> = [];
 
     // Only run these queries when we have an org in context
     if (orgId) {
@@ -401,8 +401,8 @@ class ApiSource extends Component<Props, State> {
 
   // Handles a list of search request promises, and then updates state with response objects
   async handleSearchRequest(
-    searchRequests: Promise<ResultItem[]>[],
-    directRequests: Promise<Result | null>[]
+    searchRequests: Array<Promise<ResultItem[]>>,
+    directRequests: Array<Promise<Result | null>>
   ) {
     const {searchOptions} = this.props;
 
@@ -453,7 +453,7 @@ class ApiSource extends Component<Props, State> {
   }
 
   // Process API requests that create result objects that should be searchable
-  async getSearchableResults(requests: Promise<any>[]) {
+  async getSearchableResults(requests: Array<Promise<any>>) {
     const {organization} = this.props;
     const orgId = organization?.slug;
 
@@ -483,7 +483,7 @@ class ApiSource extends Component<Props, State> {
 
   // Create result objects from API requests that do not require fuzzy search
   // i.e. these responses only return 1 object or they should always be displayed regardless of query input
-  async getDirectResults(requests: Promise<any>[]): Promise<Result[]> {
+  async getDirectResults(requests: Array<Promise<any>>): Promise<Result[]> {
     const [shortIdLookup, eventIdLookup] = requests;
 
     const directResults = (

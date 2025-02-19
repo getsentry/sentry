@@ -21,7 +21,7 @@ export type FieldValue =
   | Set<string>
   | number
   | boolean
-  | object
+  | Record<PropertyKey, unknown>
   | Choice
   | undefined; // is undefined valid here?
 
@@ -115,7 +115,7 @@ class FormModel {
   /**
    * Holds a list of `fields` states
    */
-  snapshots: Array<Snapshot> = [];
+  snapshots: Snapshot[] = [];
 
   /**
    * POJO of field name -> value
@@ -399,7 +399,7 @@ class FormModel {
     apiMethod,
     data,
   }: {
-    data: object;
+    data: Record<PropertyKey, unknown>;
     apiEndpoint?: string;
     apiMethod?: APIRequestMethod;
   }) {

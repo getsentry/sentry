@@ -142,8 +142,8 @@ export class SpanChartRenderer2D {
       }
 
       // Descend into the rest of the children
-      for (let i = 0; i < span.children.length; i++) {
-        queue.push(span.children[i]!);
+      for (const child of span.children) {
+        queue.push(child);
       }
     }
     return hoveredNode;
@@ -162,9 +162,7 @@ export class SpanChartRenderer2D {
 
     const spans: SpanChartNode[] = [...this.spanChart.root.children];
 
-    for (let i = 0; i < spans.length; i++) {
-      const span = spans[i]!;
-
+    for (const span of spans) {
       if (span.end < configView.left || span.start > configView.right) {
         continue;
       }
@@ -173,8 +171,8 @@ export class SpanChartRenderer2D {
         continue;
       }
 
-      for (let j = 0; j < span.children.length; j++) {
-        spans.push(span.children[j]!);
+      for (const child of span.children) {
+        spans.push(child);
       }
 
       if (span.depth < TOP_BOUNDARY) {

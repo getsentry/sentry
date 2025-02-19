@@ -4,7 +4,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
@@ -181,15 +181,17 @@ class GitHubEnterpriseIntegration(
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         if not query:
+            all_repos = self.get_client().get_repos()
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in self.get_client().get_repositories()
+                for i in all_repos
+                if not i.get("archived")
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -350,10 +352,14 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         ``oauth_config_information`` is available in the pipeline state. This
         method should be late bound into the pipeline vies.
         """
+        oauth_information = self.pipeline.fetch_state("oauth_config_information")
+        if oauth_information is None:
+            raise AssertionError("pipeline called out of order")
+
         identity_pipeline_config = dict(
             oauth_scopes=(),
             redirect_url=absolute_uri("/extensions/github-enterprise/setup/"),
-            **self.pipeline.fetch_state("oauth_config_information"),
+            **oauth_information,
         )
 
         return NestedPipelineView(
@@ -482,4 +488,4 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
             pipeline.bind_state("installation_id", request.GET["installation_id"])
             return pipeline.next_step()
 
-        return self.redirect(self.get_app_url(installation_data))
+        return HttpResponseRedirect(self.get_app_url(installation_data))

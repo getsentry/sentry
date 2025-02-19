@@ -56,7 +56,7 @@ type Query = {
   aggregate?: string;
 };
 
-type Props = RouteComponentProps<Query, {groupId: string}>;
+type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
   const location = useLocation<Query>();
@@ -69,7 +69,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     'span.group': groupId,
   };
 
-  // @ts-ignore TS(2551): Property 'transactionsCursor' does not exist on ty... Remove this comment to see the full error message
+  // @ts-expect-error TS(2551): Property 'transactionsCursor' does not exist on ty... Remove this comment to see the full error message
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   // TODO: Fetch sort information using `useLocationQuery`
@@ -217,7 +217,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('db')}
-                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`${SpanFunction.SPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
@@ -225,7 +225,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.avg}
-                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
@@ -233,11 +233,11 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.timeSpent}
-                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       tooltip={getTimeSpentExplanation(
-                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         spanMetrics?.['time_spent_percentage()'],
                         'db'
                       )}
@@ -251,7 +251,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 <DescriptionContainer>
                   <DatabaseSpanDescription
                     groupId={groupId}
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     preliminaryDescription={spanMetrics?.['span.description']}
                   />
                 </DescriptionContainer>

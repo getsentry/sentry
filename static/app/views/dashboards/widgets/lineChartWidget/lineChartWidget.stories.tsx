@@ -11,12 +11,12 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {Release, TimeseriesData, TimeseriesSelection} from '../common/types';
+import type {Release, TimeSeries, TimeseriesSelection} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -37,7 +37,23 @@ const sampleDurationTimeSeries2 = {
   },
 };
 
-export default storyBook(LineChartWidget, story => {
+const sectionSize = sampleThroughputTimeSeries.data.length / 10;
+const sectionStart = sectionSize * 2;
+const sectionEnd = sectionSize * 3;
+const sparseThroughputTimeSeries = {
+  ...sampleThroughputTimeSeries,
+  data: sampleThroughputTimeSeries.data.map((datum, index) => {
+    if (index > sectionStart && index < sectionEnd) {
+      return {
+        ...datum,
+        value: null,
+      };
+    }
+    return datum;
+  }),
+};
+
+export default storyBook('LineChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -65,13 +81,13 @@ export default storyBook(LineChartWidget, story => {
     };
 
     const throughputTimeSeries = toTimeSeriesSelection(
-      sampleThroughputTimeSeries as unknown as TimeseriesData,
+      sparseThroughputTimeSeries,
       start,
       end
     );
 
     const durationTimeSeries1 = toTimeSeriesSelection(
-      sampleDurationTimeSeries as unknown as TimeseriesData,
+      sampleDurationTimeSeries,
       start,
       end
     );
@@ -87,13 +103,14 @@ export default storyBook(LineChartWidget, story => {
         <p>
           The visualization of <JSXNode name="LineChartWidget" /> a line chart. It has
           some bells and whistles including automatic axes labels, and a hover tooltip.
-          Like other widgets, it automatically fills the parent element.
+          Like other widgets, it automatically fills the parent element. <code>null</code>{' '}
+          values are supported!
         </p>
         <SmallSizingWindow>
           <LineChartWidget
             title="eps()"
             description="Number of events per second"
-            timeseries={[throughputTimeSeries]}
+            timeSeries={[toTimeSeriesSelection(throughputTimeSeries, start, end)]}
           />
         </SmallSizingWindow>
 
@@ -115,7 +132,7 @@ export default storyBook(LineChartWidget, story => {
             <LineChartWidget
               title="span.duration"
               dataCompletenessDelay={60 * 60 * 3}
-              timeseries={[
+              timeSeries={[
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
@@ -146,6 +163,43 @@ export default storyBook(LineChartWidget, story => {
             Toggle 99th Percentile
           </Button>
         </SideBySide>
+
+        <p>
+          <JSXNode name="LineChartWidget" /> will automatically check the types and unit
+          of all the incoming timeseries. If they do not all match, it will fall back to a
+          plain number scale. If the types match but the units do not, it will fall back
+          to a sensible unit
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="span.duration"
+            timeSeries={[
+              {
+                ...durationTimeSeries1,
+                meta: {
+                  fields: durationTimeSeries1.meta?.fields!,
+                  units: {
+                    'p99(span.duration)': 'millisecond',
+                  },
+                },
+              },
+              {
+                ...durationTimeSeries2,
+                data: durationTimeSeries2.data.map(datum => ({
+                  ...datum,
+                  value: datum.value === null ? null : datum.value / 1000,
+                })),
+                meta: {
+                  fields: durationTimeSeries2.meta?.fields!,
+                  units: {
+                    'p50(span.duration)': 'second',
+                  },
+                },
+              },
+            ]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });
@@ -198,7 +252,7 @@ export default storyBook(LineChartWidget, story => {
           <LineChartWidget
             title="error_rate()"
             description="Rate of Errors"
-            timeseries={[
+            timeSeries={[
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
@@ -211,7 +265,7 @@ export default storyBook(LineChartWidget, story => {
                   },
                 },
                 color: theme.error,
-              } as unknown as TimeseriesData,
+              },
             ]}
           />
         </MediumWidget>
@@ -242,7 +296,7 @@ export default storyBook(LineChartWidget, story => {
         <MediumWidget>
           <LineChartWidget
             title="error_rate()"
-            timeseries={[
+            timeSeries={[
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
@@ -254,7 +308,7 @@ export default storyBook(LineChartWidget, story => {
                     'error_rate()': '1/second',
                   },
                 },
-              } as unknown as TimeseriesData,
+              },
             ]}
             releases={releases}
           />
@@ -280,10 +334,10 @@ const SmallSizingWindow = styled(SizingWindow)`
 `;
 
 function toTimeSeriesSelection(
-  timeSeries: TimeseriesData,
+  timeSeries: TimeSeries,
   start: DateString | null,
   end: DateString | null
-): TimeseriesData {
+): TimeSeries {
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {

@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
+from jsonschema import ValidationError
 
 from sentry.models.release import Release
 from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project_release_cache_key
@@ -17,7 +18,6 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 class TestLatestReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_RELEASE
-    rule_cls = LatestReleaseFilter
     payload = {
         "id": LatestReleaseFilter.id,
     }
@@ -43,6 +43,18 @@ class TestLatestReleaseCondition(ConditionTestCase):
         assert dc.comparison is True
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        self.dc.comparison = False
+        self.dc.save()
+
+        self.dc.comparison = {"time": "asdf"}
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison = "hello"
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
     def test_latest_release(self):
         old_release = Release.objects.create(

@@ -84,7 +84,7 @@ function EventTraceViewInner({
 
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
-  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
+  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('issue-details-trace-view-preferences') ||

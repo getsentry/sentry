@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_delete
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -153,6 +153,23 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     },
                 )
 
+    @classmethod
+    def dual_delete_alert_rule(cls, instance: AlertRule, **kwargs: Any) -> None:
+        from sentry.workflow_engine.migration_helpers.alert_rule import (
+            dual_delete_migrated_alert_rule,
+        )
+
+        try:
+            dual_delete_migrated_alert_rule(instance)
+        except Exception as e:
+            logger.exception(
+                "Error when dual deleting alert rule",
+                extra={
+                    "rule_id": instance.id,
+                    "error": str(e),
+                },
+            )
+
 
 @region_silo_model
 class AlertRuleProjects(Model):
@@ -193,13 +210,13 @@ class AlertRule(Model):
     objects: ClassVar[AlertRuleManager] = AlertRuleManager()
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    organization = FlexibleForeignKey("sentry.Organization")
     # NOTE: for now AlertRules and Projects should be 1:1
     # We do not have multi-project alert rules yet
     projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
-    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", unique=True)
 
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
@@ -601,6 +618,8 @@ class AlertRuleActivity(Model):
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
 
+
+pre_delete.connect(AlertRuleManager.dual_delete_alert_rule, sender=AlertRule)
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_delete.connect(AlertRuleManager.delete_data_in_seer, sender=AlertRule)

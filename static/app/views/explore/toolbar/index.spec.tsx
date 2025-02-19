@@ -1,7 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
@@ -19,12 +29,24 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
+jest.mock('sentry/actionCreators/modal');
+
 describe('ExploreToolbar', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit'],
+  });
 
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
+
+    const project = ProjectFixture({
+      id: '1',
+      slug: 'proj-slug',
+      organization,
+    });
+
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -149,17 +171,17 @@ describe('ExploreToolbar', function () {
 
     expect(fields).toEqual([
       'id',
-      'project',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
     ]); // default
 
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     const groupBy = screen.getByTestId('section-group-by');
-    await userEvent.click(within(groupBy).getByRole('button', {name: 'None'}));
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'span.op'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
     expect(groupBys).toEqual(['release']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
@@ -168,10 +190,10 @@ describe('ExploreToolbar', function () {
     await userEvent.click(samples);
     expect(fields).toEqual([
       'id',
-      'project',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
       'release',
     ]); // default
@@ -298,13 +320,7 @@ describe('ExploreToolbar', function () {
       {disableRouterMocks: true}
     );
 
-    const section = screen.getByTestId('section-group-by');
-
-    expect(within(section).getByRole('button', {name: 'None'})).toBeInTheDocument();
-    expect(groupBys).toEqual(['']);
-
-    // disabled in the samples mode
-    expect(within(section).getByRole('button', {name: 'None'})).toBeDisabled();
+    expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
 
     // click the aggregates mode to enable
     await userEvent.click(
@@ -313,16 +329,18 @@ describe('ExploreToolbar', function () {
       })
     );
 
-    expect(within(section).getByRole('button', {name: 'None'})).toBeEnabled();
-    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
+    const section = screen.getByTestId('section-group-by');
+
+    expect(within(section).getByRole('button', {name: 'span.op'})).toBeEnabled();
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
     const groupByOptions1 = await within(section).findAllByRole('option');
     expect(groupByOptions1.length).toBeGreaterThan(0);
 
-    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(groupBys).toEqual(['span.op']);
+    await userEvent.click(within(section).getByRole('option', {name: 'project'}));
+    expect(groupBys).toEqual(['project']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['span.op', '']);
+    expect(groupBys).toEqual(['project', '']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions2 = await within(section).findAllByRole('option');
@@ -331,7 +349,7 @@ describe('ExploreToolbar', function () {
     await userEvent.click(
       within(section).getByRole('option', {name: 'span.description'})
     );
-    expect(groupBys).toEqual(['span.op', 'span.description']);
+    expect(groupBys).toEqual(['project', 'span.description']);
 
     await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
     expect(groupBys).toEqual(['span.description']);
@@ -371,11 +389,11 @@ describe('ExploreToolbar', function () {
     // check the default field options
     const fields = [
       'id',
-      'project',
       'span.description',
       'span.duration',
       'span.op',
       'timestamp',
+      'transaction',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
     const fieldOptions = await within(section).findAllByRole('option');
@@ -450,5 +468,117 @@ describe('ExploreToolbar', function () {
         ],
       })
     );
+  });
+
+  it('opens the right alert', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.hover(within(section).getByText('An Alert for'));
+    await userEvent.click(screen.getByText('avg(span.duration)'));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/metric/',
+      query: expect.objectContaining({
+        aggregate: 'avg(span.duration)',
+        dataset: 'events_analytics_platform',
+      }),
+    });
+  });
+  it('add to dashboard options correctly', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByText('A Dashboard widget'));
+    await waitFor(() => {
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: expect.objectContaining({
+            displayType: 'line',
+            queries: [
+              {
+                aggregates: ['avg(span.duration)'],
+                columns: [],
+                conditions: '',
+                fields: ['avg(span.duration)'],
+                name: '',
+                orderby: '-timestamp',
+              },
+            ],
+            title: 'Custom Widget',
+            widgetType: 'spans',
+          }),
+          widgetAsQueryParams: expect.objectContaining({
+            dataset: 'spans',
+            defaultTableColumns: [
+              'id',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'transaction',
+              'timestamp',
+            ],
+            defaultTitle: 'Custom Widget',
+            defaultWidgetQuery:
+              'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
+            displayType: 'line',
+            end: undefined,
+            field: [
+              'id',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'transaction',
+              'timestamp',
+            ],
+            limit: undefined,
+            source: 'traceExplorer',
+            start: undefined,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+    });
   });
 });

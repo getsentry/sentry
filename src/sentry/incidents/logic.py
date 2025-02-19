@@ -6,7 +6,6 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from enum import Enum, auto
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -98,19 +97,13 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
 WINDOWED_STATS_DATA_POINTS = 200
-
-
-class NotSet(Enum):
-    TOKEN = auto()
-
-
-NOT_SET = NotSet.TOKEN
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
@@ -753,6 +746,8 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_alert_rule
+
     snuba_query = _unpack_snuba_query(alert_rule)
     organization = _unpack_organization(alert_rule)
 
@@ -886,7 +881,11 @@ def update_alert_rule(
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
+        # TODO (mifu67): wrap these two calls in a transaction
         alert_rule.update(**updated_fields)
+        # if an exception occurs in this helper, don't catch it so we can see the full stack trace
+        dual_update_migrated_alert_rule(alert_rule, updated_fields)
+
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -997,7 +996,6 @@ def delete_alert_rule(
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
@@ -1035,10 +1033,6 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-        # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
-        # the user could be removed from the dual write flag for whatever reason, and we need to make sure
-        # that the extra table data is deleted. If the rows don't exist, we'll exit early.
-        dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)
         schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
@@ -1097,6 +1091,9 @@ def update_alert_rule_trigger(
     alert rule
     :return: The updated AlertRuleTrigger
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule_trigger,
+    )
 
     if (
         AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
@@ -1114,6 +1111,10 @@ def update_alert_rule_trigger(
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
 
+    # TODO (mifu67): wrap both update calls in a transaction
+    if updated_fields:
+        # exceptions from this helper are purposely uncaught
+        dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
             trigger.update(**updated_fields)
@@ -1342,6 +1343,10 @@ def update_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule_trigger_action,
+    )
+
     updated_fields: dict[str, Any] = {}
     if type is not None:
         updated_fields["type"] = type.value
@@ -1392,7 +1397,10 @@ def update_alert_rule_trigger_action(
         else:
             updated_fields["sentry_app_config"] = {"priority": priority}
 
+    # TODO (mifu67): wrap these calls in a transaction
     trigger_action.update(**updated_fields)
+    # exceptions from this helper are purposely left uncaught
+    dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 
@@ -1711,6 +1719,12 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
 EAP_COLUMNS = [
     "span.duration",
     "span.self_time",
+    "ai.total_tokens.used",
+    "ai.total_cost",
+    "cache.item_size",
+    "http.decoded_response_content_length",
+    "http.response_content_length",
+    "http.response_transfer_size",
 ]
 EAP_FUNCTIONS = [
     "count",
@@ -1723,6 +1737,7 @@ EAP_FUNCTIONS = [
     "p100",
     "max",
     "min",
+    "sum",
 ]
 
 

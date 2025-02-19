@@ -8,13 +8,14 @@ import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   type ApiQueryKey,
   keepPreviousData,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const MAX_TAGS = 1000;
 
@@ -212,6 +213,70 @@ export function fetchSpanFieldValues({
   });
 }
 
+/**
+ * Fetch feature flag values for an organization. This is done by querying ERRORS with useFlagsBackend=1.
+ * This only returns feature flags and not tags.
+ *
+ * The `projectIds` argument can be used to subset projects.
+ */
+export function fetchFeatureFlagValues({
+  api,
+  organization,
+  tagKey,
+  endpointParams,
+  projectIds,
+  search,
+  sort,
+}: {
+  api: Client;
+  organization: Organization;
+  tagKey: string;
+  endpointParams?: Query;
+  projectIds?: string[];
+  search?: string;
+  sort?: '-last_seen' | '-count';
+}): Promise<TagValue[]> {
+  if (!organization.features.includes('feature-flag-autocomplete')) {
+    return Promise.resolve([]);
+  }
+
+  // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support it.
+  const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
+
+  const url = `/organizations/${organization.slug}/tags/${strippedKey}/values/`;
+
+  const query: Query = {
+    dataset: Dataset.ERRORS,
+    useFlagsBackend: '1',
+  };
+
+  if (search) {
+    query.query = search;
+  }
+  if (projectIds) {
+    query.project = projectIds;
+  }
+  if (endpointParams) {
+    if (endpointParams.start) {
+      query.start = endpointParams.start;
+    }
+    if (endpointParams.end) {
+      query.end = endpointParams.end;
+    }
+    if (endpointParams.statsPeriod) {
+      query.statsPeriod = endpointParams.statsPeriod;
+    }
+  }
+  if (sort) {
+    query.sort = sort;
+  }
+
+  return api.requestPromise(url, {
+    method: 'GET',
+    query,
+  });
+}
+
 type FetchOrganizationTagsParams = {
   orgSlug: string;
   dataset?: Dataset;
@@ -222,6 +287,7 @@ type FetchOrganizationTagsParams = {
   start?: string;
   statsPeriod?: string | null;
   useCache?: boolean;
+  useFlagsBackend?: boolean;
 };
 
 export const makeFetchOrganizationTags = ({
@@ -229,6 +295,7 @@ export const makeFetchOrganizationTags = ({
   dataset,
   projectIds,
   useCache = true,
+  useFlagsBackend = false,
   statsPeriod,
   start,
   end,
@@ -238,6 +305,7 @@ export const makeFetchOrganizationTags = ({
   query.dataset = dataset;
   query.useCache = useCache ? '1' : '0';
   query.project = projectIds;
+  query.useFlagsBackend = useFlagsBackend ? '1' : '0';
 
   if (statsPeriod) {
     query.statsPeriod = statsPeriod;

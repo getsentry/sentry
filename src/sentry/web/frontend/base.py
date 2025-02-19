@@ -405,7 +405,7 @@ class BaseView(View, OrganizationMixin):
 
         return self.handle(request, *args, **kwargs)
 
-    def test_csrf(self, request: HttpRequest) -> HttpResponse:
+    def test_csrf(self, request: HttpRequest) -> HttpResponseBase | None:
         middleware = CsrfViewMiddleware(placeholder_get_response)
         return middleware.process_view(request, self.dispatch, (request,), {})
 

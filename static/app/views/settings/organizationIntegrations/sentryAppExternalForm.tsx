@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
@@ -52,7 +52,12 @@ type Props = {
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: Function;
+  onSubmitSuccess: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {new: FieldValue; old: FieldValue}
+  ) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request
@@ -114,7 +119,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (element === 'alert-rule-action') {
       const defaultResetValues = this.props.resetValues?.settings || [];
       const initialData = defaultResetValues.reduce((acc, curr) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[curr.name] = curr.value;
         return acc;
       }, {});
@@ -223,7 +228,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     // instead makes the requests every 200ms
     async (field: FieldFromSchema, input, resolve) => {
       const choices = await this.makeExternalRequest(field, input);
-      // @ts-ignore TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
+      // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
       const options = choices.map(([value, label]) => ({value, label}));
       const optionsByField = new Map(this.state.optionsByField);
       optionsByField.set(field.name, options);
@@ -246,7 +251,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     if (field.depends_on) {
       const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         accum[dependentField] = this.model.getValue(dependentField);
         return accum;
       }, {});
@@ -260,7 +265,9 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
 
     // If there is a default choice prepopulate the select with it
-    defaultValue ? this.model.setValue(field.name, defaultValue) : '';
+    if (defaultValue) {
+      this.model.setValue(field.name, defaultValue);
+    }
 
     return choices || [];
   };

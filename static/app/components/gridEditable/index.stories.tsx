@@ -17,8 +17,8 @@ interface ExampleDataItem {
   name: string;
 }
 
-export default storyBook(GridEditable, story => {
-  const columns: GridColumnOrder<keyof ExampleDataItem>[] = [
+export default storyBook('GridEditable', story => {
+  const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
   ];
@@ -32,7 +32,7 @@ export default storyBook(GridEditable, story => {
     return <GridEditable data={[]} columnOrder={columns} columnSortBy={[]} grid={{}} />;
   });
 
-  const columnsWithWidth: GridColumnOrder<keyof ExampleDataItem | 'other'>[] =
+  const columnsWithWidth: Array<GridColumnOrder<keyof ExampleDataItem | 'other'>> =
     columns.map(col => {
       col.width = 200;
       return col;
@@ -49,7 +49,7 @@ export default storyBook(GridEditable, story => {
     columnIndex: number
   ) =>
     column.key in dataRow
-      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         dataRow[column.key]
       : JSON.stringify({column, dataRow, rowIndex, columnIndex});
 
@@ -136,7 +136,7 @@ export default storyBook(GridEditable, story => {
 
   function useStatefulColumnWidths() {
     const [columnsWithDynamicWidths, setColumns] =
-      useState<GridColumnOrder<keyof ExampleDataItem | 'other'>[]>(columnsWithWidth);
+      useState<Array<GridColumnOrder<keyof ExampleDataItem | 'other'>>>(columnsWithWidth);
 
     const handleResizeColumn = useCallback(
       (

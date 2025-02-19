@@ -1,31 +1,32 @@
 import type {Query} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 function generateSpanDetailsRoute({
-  orgSlug,
+  organization,
   spanSlug,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   spanSlug: SpanSlug;
   view?: DomainView;
 }): string {
   const spanComponent = `${encodeURIComponent(spanSlug.op)}:${spanSlug.group}`;
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/spans/${spanComponent}/`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/spans/${spanComponent}/`;
 }
 
 export function spanDetailsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   query,
   spanSlug,
   projectID,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   spanSlug: SpanSlug;
   transaction: string;
@@ -33,7 +34,7 @@ export function spanDetailsRouteWithQuery({
   view?: DomainView;
 }) {
   const pathname = generateSpanDetailsRoute({
-    orgSlug,
+    organization,
     spanSlug,
     view,
   });

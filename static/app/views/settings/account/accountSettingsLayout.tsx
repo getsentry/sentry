@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
@@ -10,7 +10,7 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 type Props = React.ComponentProps<typeof SettingsLayout> & {
   api: Client;
-  organization: Organization;
+  organization?: Organization;
 };
 
 class AccountSettingsLayout extends Component<Props> {
@@ -33,6 +33,17 @@ class AccountSettingsLayout extends Component<Props> {
 
   render() {
     const {organization} = this.props;
+
+    const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+
+    if (hasNavigationV2) {
+      return (
+        <Fragment>
+          <AccountSettingsNavigation organization={organization} />
+          <SettingsLayout {...this.props}>{this.props.children}</SettingsLayout>
+        </Fragment>
+      );
+    }
 
     return (
       <SettingsLayout

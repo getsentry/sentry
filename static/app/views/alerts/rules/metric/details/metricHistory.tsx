@@ -43,7 +43,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   );
 
   const triggeredActivity: ActivityType = criticalActivity
-    ? criticalActivity!
+    ? criticalActivity
     : warningActivity!;
   const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
 
@@ -83,27 +83,39 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         </Link>
       </Cell>
       <Cell>
-        {incident.alertRule.comparisonDelta ? (
+        {/* If an alert rule is a % comparison based detection type */}
+        {incident.alertRule.detectionType !== 'dynamic' &&
+          incident.alertRule.comparisonDelta && (
+            <Fragment>
+              {alertName} {curentTrigger?.alertThreshold}%
+              {t(
+                ' %s in %s compared to the ',
+                incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                  ? t('higher')
+                  : t('lower'),
+                timeWindow
+              )}
+              {COMPARISON_DELTA_OPTIONS.find(
+                ({value}) => value === incident.alertRule.comparisonDelta
+              )?.label ?? COMPARISON_DELTA_OPTIONS[0]?.label}
+            </Fragment>
+          )}
+        {/* If an alert rule is a static detection type */}
+        {incident.alertRule.detectionType !== 'dynamic' &&
+          !incident.alertRule.comparisonDelta && (
+            <Fragment>
+              {alertName}{' '}
+              {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                ? t('above')
+                : t('below')}{' '}
+              {curentTrigger?.alertThreshold} {t('in')} {timeWindow}
+            </Fragment>
+          )}
+        {/* If an alert rule is a dynamic detection type */}
+        {incident.alertRule.detectionType === 'dynamic' && (
           <Fragment>
-            {alertName} {curentTrigger?.alertThreshold}%
-            {t(
-              ' %s in %s compared to the ',
-              incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-                ? t('higher')
-                : t('lower'),
-              timeWindow
-            )}
-            {COMPARISON_DELTA_OPTIONS.find(
-              ({value}) => value === incident.alertRule.comparisonDelta
-            )?.label ?? COMPARISON_DELTA_OPTIONS[0]?.label}
-          </Fragment>
-        ) : (
-          <Fragment>
-            {alertName}{' '}
-            {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-              ? t('above')
-              : t('below')}{' '}
-            {curentTrigger?.alertThreshold} {t('in')} {timeWindow}
+            {t('Detected an anomaly in the query for ')}
+            {alertName}
           </Fragment>
         )}
       </Cell>

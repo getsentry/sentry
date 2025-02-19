@@ -135,8 +135,7 @@ function importSentrySampledProfile(
     Profiling.SentrySampledProfile['profile']['samples']
   > = {};
 
-  for (let i = 0; i < input.profile.samples.length; i++) {
-    const sample = input.profile.samples[i]!;
+  for (const sample of input.profile.samples) {
     if (!samplesByThread[sample.thread_id]) {
       samplesByThread[sample.thread_id] = [];
     }
@@ -259,9 +258,7 @@ export function importSentryContinuousProfileChunk(
 
   const minTimestamp = minTimestampInChunk(input.profile, input.measurements);
 
-  for (let i = 0; i < input.profile.samples.length; i++) {
-    const sample = input.profile.samples[i]!;
-
+  for (const sample of input.profile.samples) {
     if (!samplesByThread[sample.thread_id]) {
       samplesByThread[sample.thread_id] = [];
     }
@@ -472,8 +469,8 @@ const tryParseInputString: JSONParser = input => {
 
 type JSONParser = (input: string) => [any, null] | [null, Error];
 
-// @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
+// @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
+const TRACE_JSON_PARSERS: Array<(string) => ReturnType<JSONParser>> = [
   (input: string) => tryParseInputString(input),
   (input: string) => tryParseInputString(input + ']'),
 ];

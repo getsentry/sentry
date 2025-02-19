@@ -90,6 +90,13 @@ import {
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
 import {
+  DATA_TYPE as SESSIONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as SESSIONS_MODULE_DOC_LINK,
+  MODULE_TITLE as SESSIONS_MODULE_TITLE,
+  MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
+} from 'sentry/views/insights/sessions/settings';
+import {
   DATA_TYPE as UPTIME_DATA_TYPE,
   DATA_TYPE_PLURAL as UPTIME_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as UPTIME_MODULE_DOC_LINK,
@@ -118,10 +125,11 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_TITLE,
   [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
-  [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_MODULE_TITLE,
+  [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_MODULE_TITLE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
   [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
   [ModuleName.CRONS]: CRONS_MODULE_TITLE,
+  [ModuleName.SESSIONS]: SESSIONS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 
@@ -136,10 +144,11 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
   [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
-  [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE,
+  [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
   [ModuleName.UPTIME]: UPTIME_DATA_TYPE,
   [ModuleName.CRONS]: CRONS_DATA_TYPE,
+  [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE,
   [ModuleName.OTHER]: '',
 };
 
@@ -154,10 +163,11 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
   [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
-  [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
+  [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
   [ModuleName.UPTIME]: UPTIME_DATA_TYPE_PLURAL,
   [ModuleName.CRONS]: CRONS_DATA_TYPE_PLURAL,
+  [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
 };
 
@@ -172,10 +182,11 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_DOC_LINK,
   [ModuleName.AI]: AI_MODULE_DOC_LINK,
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
-  [ModuleName.MOBILE_SCREENS]: MODULE_SCREENS_DOC_LINK,
+  [ModuleName.MOBILE_VITALS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
   [ModuleName.UPTIME]: UPTIME_MODULE_DOC_LINK,
   [ModuleName.CRONS]: CRONS_MODULE_DOC_LINK,
+  [ModuleName.SESSIONS]: SESSIONS_MODULE_DOC_LINK,
   [ModuleName.OTHER]: '',
 };
 
@@ -193,10 +204,11 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.AI]: AI_MODULE_FEATURES,
   [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_MODULE_FEATURES,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
-  [ModuleName.MOBILE_SCREENS]: [MOBILE_SCREENS_MODULE_FEATURE],
+  [ModuleName.MOBILE_VITALS]: [MOBILE_SCREENS_MODULE_FEATURE],
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
   [ModuleName.UPTIME]: UPTIME_MODULE_FEATURES,
   [ModuleName.CRONS]: CRONS_MODULE_FEATURES,
+  [ModuleName.SESSIONS]: [],
   [ModuleName.OTHER]: [],
 };
 
@@ -214,9 +226,18 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.AI]: ['insights-entry-points'],
   [ModuleName.SCREEN_LOAD]: ['insights-entry-points'],
   [ModuleName.MOBILE_UI]: ['insights-entry-points'],
-  [ModuleName.MOBILE_SCREENS]: ['insights-entry-points'],
+  [ModuleName.MOBILE_VITALS]: ['insights-entry-points'],
   [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
-  [ModuleName.UPTIME]: ['insights-entry-points', ...UPTIME_MODULE_VISIBLE_FEATURES],
-  [ModuleName.CRONS]: ['insights-entry-points', ...CRONS_MODULE_VISIBLE_FEATURES],
+  // XXX(epurkhiser): Uptime and Crons are NOT gated by the entry-points flag
+  [ModuleName.UPTIME]: [...UPTIME_MODULE_VISIBLE_FEATURES],
+  [ModuleName.CRONS]: [...CRONS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.SESSIONS]: ['insights-entry-points', ...SESSIONS_MODULE_VISIBLE_FEATURES],
   [ModuleName.OTHER]: ['insights-entry-points'],
 };
+
+/**
+ * Modules that are considered "new", e.g. used to show a badge on the tab.
+ */
+export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
+  ModuleName.MOBILE_VITALS,
+]);

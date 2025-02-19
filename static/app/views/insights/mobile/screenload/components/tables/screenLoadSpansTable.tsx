@@ -62,9 +62,9 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
 }: Props) {
   const organization = useOrganization();
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
   const moduleURL = useModuleURL(
-    isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.SCREEN_LOAD
+    isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.SCREEN_LOAD
   );
   const baseURL = isMobileScreensEnabled
     ? `${moduleURL}/details/`

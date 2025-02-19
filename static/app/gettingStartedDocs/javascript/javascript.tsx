@@ -20,7 +20,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -95,7 +94,7 @@ const result = client.getBooleanValue('my-flag', false);`,
   },
   [IntegrationOptions.UNLEASH]: {
     importStatement: `import { UnleashClient } from 'unleash-proxy-client';`,
-    integration: 'unleashIntegration(UnleashClient)',
+    integration: 'unleashIntegration({unleashClientClass: UnleashClient})',
     sdkInit: `const unleash = new UnleashClient({
   url: "https://<your-unleash-instance>/api/frontend",
   clientKey: "<your-client-side-token>",
@@ -594,12 +593,12 @@ const performanceOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
       configurations: [
         {
           language: 'javascript',
+          description: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
           code: `
 import * as Sentry from "@sentry/browser";
 
@@ -616,7 +615,7 @@ Sentry.init({
 });
 `,
           additionalInfo: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
@@ -630,6 +629,25 @@ Sentry.init({
               ),
             }
           ),
+        },
+        {
+          language: 'javascript',
+          description: tct(
+            "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" />
+              ),
+            }
+          ),
+          code: `
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+  tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+});
+`,
         },
       ],
     },
@@ -645,25 +663,6 @@ Sentry.init({
           ),
         }
       ),
-      configurations: [
-        {
-          description: tct(
-            'You have the option to manually construct a transaction using [link:custom instrumentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/custom-instrumentation/" />
-              ),
-            }
-          ),
-          language: 'javascript',
-          code: `
-const transaction = Sentry.startTransaction({ name: "test-transaction" });
-const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
-// exampleFunctionCall();
-span.finish(); // Remember that only finished spans will be sent with the transaction
-transaction.finish(); // Finishing the transaction will send it to Sentry`,
-        },
-      ],
     },
   ],
   nextSteps: () => [],
@@ -719,7 +718,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,

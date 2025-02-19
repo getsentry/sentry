@@ -32,7 +32,7 @@ function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
 /**
  * Recursively finds and returns disabled items
  */
-function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
+function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   return source.reduce<string[]>((acc, cur) => {
     if (cur.disabled) {
       // If an item is disabled, then its children will be inaccessible, so we
@@ -238,7 +238,7 @@ function DropdownMenu({
             return (
               <Section key={item.key} title={item.label} items={item.children}>
                 {sectionItem => (
-                  <Item size={size} {...sectionItem}>
+                  <Item size={size} {...sectionItem} key={sectionItem.key}>
                     {sectionItem.label}
                   </Item>
                 )}

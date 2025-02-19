@@ -36,12 +36,11 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
-import {AI_SIDEBAR_LABEL} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
 
-import Onboarding from '../onboarding';
+import {LegacyOnboarding} from '../onboarding';
 import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
 import {getPerformanceBaseUrl, getTransactionSearchQuery} from '../utils';
 
@@ -92,7 +91,7 @@ export function PerformanceLanding(props: Props) {
     handleTrendsClick,
     onboardingProject,
   } = props;
-  const {setPageInfo, pageAlert} = usePageAlert();
+  const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
 
@@ -112,12 +111,10 @@ export function PerformanceLanding(props: Props) {
         <Link to={`${getPerformanceBaseUrl(slug, 'backend')}/`}>
           {BACKEND_SIDEBAR_LABEL}
         </Link>
-        {`, `}
+        {t(', and ')}
         <Link to={`${getPerformanceBaseUrl(slug, 'mobile')}/`}>
           {MOBILE_SIDEBAR_LABEL}
         </Link>
-        {t(', and ')}
-        <Link to={`${getPerformanceBaseUrl(slug, 'ai')}/`}>{AI_SIDEBAR_LABEL}</Link>
         {t(' performance pages. They can all be found in the Insights tab.')}
       </Fragment>
     );
@@ -134,9 +131,9 @@ export function PerformanceLanding(props: Props) {
 
   useEffect(() => {
     if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
-      setPageInfo(performanceMovingAlert);
+      setPageError(performanceMovingAlert);
     }
-  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
+  }, [pageAlert?.message, performanceMovingAlert, setPageError]);
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -181,7 +178,7 @@ export function PerformanceLanding(props: Props) {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  const ViewComponent = fieldToViewMap[landingDisplay!.field];
+  const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
@@ -202,7 +199,7 @@ export function PerformanceLanding(props: Props) {
   return (
     <Layout.Page data-test-id="performance-landing-v3">
       <Tabs
-        value={landingDisplay!.field}
+        value={landingDisplay.field}
         onChange={field =>
           handleLandingDisplayChange(field, location, projects, organization, eventView)
         }
@@ -245,7 +242,7 @@ export function PerformanceLanding(props: Props) {
         <Layout.Body data-test-id="performance-landing-body">
           <Layout.Main fullWidth>
             <TabPanels>
-              <TabPanels.Item key={landingDisplay!.field}>
+              <TabPanels.Item key={landingDisplay.field}>
                 <MetricsCardinalityProvider
                   sendOutcomeAnalytics
                   organization={organization}
@@ -274,7 +271,7 @@ export function PerformanceLanding(props: Props) {
                           {showOnboarding ? (
                             <Fragment>
                               {pageFilters}
-                              <Onboarding
+                              <LegacyOnboarding
                                 organization={organization}
                                 project={onboardingProject}
                               />

@@ -18,7 +18,7 @@ from requests.adapters import Retry
 from sentry import options
 from sentry.http import build_session
 from sentry.net.http import SafeSession
-from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
+from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_DIRECT_LOCATION_HEADER,
@@ -154,7 +154,7 @@ class RegionSiloClient(BaseApiClient):
         json: bool = True,
         raw_response: bool = False,
         prefix_hash: str | None = None,
-    ) -> BaseApiResponseX:
+    ) -> Any:
         """
         Sends a request to the region silo.
         If prefix_hash is provided, the request will be retries up to REQUEST_ATTEMPTS_LIMIT times.

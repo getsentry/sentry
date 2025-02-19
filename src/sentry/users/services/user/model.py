@@ -5,10 +5,9 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.hybridcloud.rpc import DEFAULT_DATE, RpcModel
 

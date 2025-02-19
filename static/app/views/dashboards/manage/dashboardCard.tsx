@@ -134,9 +134,13 @@ const CardWithoutMargin = styled(Card)`
 `;
 
 const Title = styled('div')`
-  ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  line-height: 1.2;
+  /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 

@@ -63,7 +63,7 @@ export interface SelectContextValue {
    */
   saveSelectedOptions: (
     index: number,
-    newSelectedOptions: SelectOption<SelectKey> | SelectOption<SelectKey>[]
+    newSelectedOptions: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>
   ) => void;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -256,7 +256,7 @@ export function Control({
   const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
-  const [listStates, setListStates] = useState<ListState<any>[]>([]);
+  const [listStates, setListStates] = useState<Array<ListState<any>>>([]);
   const registerListState = useCallback<SelectContextValue['registerListState']>(
     (index, listState) => {
       setListStates(current => [
@@ -437,7 +437,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
+    Array<SelectOption<SelectKey> | Array<SelectOption<SelectKey>>>
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {
@@ -587,7 +587,7 @@ const ControlWrap = styled('div')`
   width: max-content;
 `;
 
-const TriggerLabel = styled('span')`
+export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
   line-height: normal;

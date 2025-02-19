@@ -1,11 +1,13 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -21,6 +23,7 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
@@ -46,11 +49,64 @@ function decodeProjectIds(projectIds: unknown): string[] | null {
   return null;
 }
 
-function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
-  const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
+export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Boost Performance'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== initialPathname.current,
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+/**
+ * @deprecated Use usePerformanceOnboardingDrawer instead.
+ */
+function LegacyPerformanceOnboardingSidebar(props: CommonSidebarProps) {
+  const {currentPanel, collapsed, hidePanel, orientation} = props;
+  const organization = useOrganization();
+  const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
   const location = useLocation<{project: string[] | null}>();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -70,7 +126,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     if (
       currentProject ||
       projects.length === 0 ||
-      !isActive ||
       projectsWithoutFirstTransactionEvent.length <= 0
     ) {
       return;
@@ -79,7 +134,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     // Establish current project
     if (priorityProjectIds) {
       const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[project.id] = project;
         return acc;
       }, {});
@@ -121,24 +176,26 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   }, [
     selection.projects,
     projects,
-    isActive,
     projectsForOnboarding,
     projectsWithoutFirstTransactionEvent,
     currentProject,
     priorityProjectIds,
   ]);
 
+  // The panel shouldn't be activated in this case, but if so we'll show a message
+  if (projects?.length > 0 && !shouldShowPerformanceTasks(projects)) {
+    return (
+      <Alert type="info">{t("Performance isn't supported for your projects.")}</Alert>
+    );
+  }
+
   if (
-    !isActive ||
-    !hasProjectAccess ||
     currentProject === undefined ||
-    !shouldShowPerformanceTasks(projects) ||
     !projectsLoaded ||
     !projects ||
-    projects.length <= 0 ||
-    projectsWithoutFirstTransactionEvent.length <= 0
+    projects.length <= 0
   ) {
-    return null;
+    return <LoadingIndicator />;
   }
 
   const items: MenuItemProps[] = projectsWithoutFirstTransactionEvent.reduce(
@@ -165,11 +222,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
@@ -188,7 +241,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
         />
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -401,4 +454,4 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   color: ${p => p.theme.successText};
 `;
 
-export default PerformanceOnboardingSidebar;
+export default LegacyPerformanceOnboardingSidebar;

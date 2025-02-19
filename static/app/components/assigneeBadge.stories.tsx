@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {uuid4} from '@sentry/utils';
+import {uuid4} from '@sentry/core';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import storyBook from 'sentry/stories/storyBook';

@@ -44,7 +44,7 @@ const ADJ_OPTIONS = [
   {value: 'awesome', label: 'awesome'},
 ];
 
-export default storyBook(CompositeSelect, story => {
+export default storyBook('CompositeSelect', story => {
   story('Introduction', () => {
     return (
       <Fragment>

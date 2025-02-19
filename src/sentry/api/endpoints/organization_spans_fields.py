@@ -27,8 +27,8 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
-from sentry.search.eap.columns import translate_internal_to_public_alias
-from sentry.search.eap.spans import SearchResolver
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.span_columns import SPAN_DEFINITIONS, translate_internal_to_public_alias
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
@@ -69,7 +69,6 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
     type = serializers.ChoiceField(["string", "number"], required=False)
-    process = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         if attrs["dataset"] == "spans" and attrs.get("type") is None:
@@ -79,8 +78,6 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -110,7 +107,9 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 hour=0, minute=0, second=0, microsecond=0
             ) + timedelta(days=1)
 
-            resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
+            resolver = SearchResolver(
+                params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            )
             meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
             rpc_request = TraceItemAttributeNamesRequest(
@@ -118,7 +117,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 limit=max_span_tags,
                 offset=0,
                 type=(
-                    AttributeKey.Type.TYPE_FLOAT
+                    AttributeKey.Type.TYPE_DOUBLE
                     if serialized["type"] == "number"
                     else AttributeKey.Type.TYPE_STRING
                 ),
@@ -129,11 +128,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             paginator = ChainPaginator(
                 [
                     [
-                        (
-                            as_tag_key(attribute.name, serialized["type"])
-                            if serialized["process"]
-                            else TagKey(attribute.name)
-                        )
+                        as_tag_key(attribute.name, serialized["type"])
                         for attribute in rpc_response.attributes
                         if attribute.name
                     ],
@@ -189,8 +184,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -406,7 +399,9 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         max_span_tag_values: int,
     ):
         super().__init__(organization, snuba_params, key, query, max_span_tag_values)
-        self.resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
+        self.resolver = SearchResolver(
+            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+        )
         self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
 
     def resolve_attribute_key(

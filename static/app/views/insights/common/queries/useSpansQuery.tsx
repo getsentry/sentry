@@ -26,6 +26,7 @@ export function useSpansQuery<T = any[]>({
   referrer = 'use-spans-query',
   allowAggregateConditions,
   cursor,
+  trackResponseAnalytics = true,
 }: {
   allowAggregateConditions?: boolean;
   cursor?: string;
@@ -34,6 +35,7 @@ export function useSpansQuery<T = any[]>({
   initialData?: T;
   limit?: number;
   referrer?: string;
+  trackResponseAnalytics?: boolean;
 }) {
   const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
   const queryFunction = isTimeseriesQuery
@@ -55,7 +57,9 @@ export function useSpansQuery<T = any[]>({
       allowAggregateConditions,
     });
 
-    TrackResponse(eventView, response);
+    if (trackResponseAnalytics) {
+      TrackResponse(eventView, response);
+    }
 
     return response;
   }
@@ -211,7 +215,7 @@ function processDiscoverTimeseriesResult(
     // Result data only returned one series. This means there was only only one yAxis requested, and no sub-series. Iterate the data, and return the result
     return processSingleDiscoverTimeseriesResult(result, firstYAxis).map(data => ({
       interval: moment(parseInt(data.interval, 10) * 1000).format(DATE_FORMAT),
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       [firstYAxis]: data[firstYAxis],
       group: data.group,
     }));
@@ -222,22 +226,22 @@ function processDiscoverTimeseriesResult(
   // Result data had more than one series, grouped by a key. This means either multiple yAxes were requested _or_ a top-N query was set. Iterate the keys, and construct a series for each one.
   Object.keys(result).forEach(key => {
     // Each key has just one timeseries. Either this is a simple multi-axis query, or a top-N query with just one axis
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (result[key].data) {
       intervals = mergeIntervals(
         intervals,
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         processSingleDiscoverTimeseriesResult(result[key], key)
       );
     } else {
       // Each key has more than one timeseries. This is a multi-axis top-N query. Iterate each series, but this time set both the key _and_ the group
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       Object.keys(result[key]).forEach(innerKey => {
         if (innerKey !== 'order') {
           // `order` is a special value, each series has it in a multi-series query
           intervals = mergeIntervals(
             intervals,
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             processSingleDiscoverTimeseriesResult(result[key][innerKey], innerKey, key)
           );
         }
@@ -256,7 +260,7 @@ function processDiscoverTimeseriesResult(
 function processSingleDiscoverTimeseriesResult(result: any, key: string, group?: string) {
   const intervals = [] as Interval[];
 
-  // @ts-ignore TS(7031): Binding element 'timestamp' implicitly has an 'any... Remove this comment to see the full error message
+  // @ts-expect-error TS(7031): Binding element 'timestamp' implicitly has an 'any... Remove this comment to see the full error message
   result.data.forEach(([timestamp, [{count: value}]]) => {
     const existingInterval = intervals.find(
       interval =>
@@ -264,7 +268,7 @@ function processSingleDiscoverTimeseriesResult(result: any, key: string, group?:
     );
 
     if (existingInterval) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       existingInterval[key] = value;
       return;
     }
@@ -290,7 +294,7 @@ function mergeIntervals(first: Interval[], second: Interval[]) {
 
     if (existingInterval) {
       Object.keys(rest).forEach(key => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         existingInterval[key] = rest[key];
       });
 

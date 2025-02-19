@@ -28,7 +28,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -51,7 +50,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const projectAlertRuleDetailsRoutes: PlainRoute<any>[] = [
+const projectAlertRuleDetailsRoutes: Array<PlainRoute<any>> = [
   {
     path: '/',
   },
@@ -171,7 +170,7 @@ describe('IssueRuleEditor', function () {
         projects: [{access: []}],
       });
 
-      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
@@ -182,7 +181,7 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
 
     it('is enabled with project-level alerts:write', async () => {
@@ -192,7 +191,7 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
   });
 
@@ -460,9 +459,9 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-      });
+      expect(router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+      );
     });
 
     it('pending status keeps loading true', async function () {

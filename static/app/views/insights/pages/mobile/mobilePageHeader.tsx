@@ -35,11 +35,11 @@ export function MobileHeader({
     `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
   );
 
-  const hasMobileScreens = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const hasMobileScreens = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
   const hasMobileUi = isModuleEnabled(ModuleName.MOBILE_UI, organization);
 
   const modules = hasMobileScreens
-    ? [ModuleName.MOBILE_SCREENS, ModuleName.HTTP]
+    ? [ModuleName.MOBILE_VITALS, ModuleName.HTTP, ModuleName.SESSIONS]
     : [
         ModuleName.APP_START,
         ModuleName.SCREEN_LOAD,

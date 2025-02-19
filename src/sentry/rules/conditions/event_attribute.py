@@ -90,7 +90,6 @@ class EventAttributeCondition(EventCondition):
     """
 
     id = "sentry.rules.conditions.event_attribute.EventAttributeCondition"
-    form_cls = EventAttributeForm
     label = "The event's {attribute} value {match} {value}"
 
     form_fields = {
@@ -188,6 +187,9 @@ class EventAttributeCondition(EventCondition):
             raise NotImplementedError
         columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
         return columns
+
+    def get_form_instance(self) -> EventAttributeForm:
+        return EventAttributeForm(self.data)
 
 
 # Register attribute handlers

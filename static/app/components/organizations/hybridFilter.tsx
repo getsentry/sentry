@@ -161,13 +161,15 @@ export function HybridFilter<Value extends SelectKey>({
   const onKeyUp = useCallback(() => setModifierKeyPressed(false), []);
   const onKeyDown = useCallback(
     (e: any) => {
-      e.key === 'Escape' && commitStagedChanges();
+      if (e.key === 'Escape') {
+        commitStagedChanges();
+      }
       setModifierKeyPressed(isModifierKeyPressed(e));
     },
     [commitStagedChanges]
   );
 
-  const mappedOptions = useMemo<SelectOptionOrSection<Value>[]>(() => {
+  const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
@@ -299,7 +301,7 @@ export function HybridFilter<Value extends SelectKey>({
   );
 
   const handleChange = useCallback(
-    (selectedOptions: SelectOption<Value>[]) => {
+    (selectedOptions: Array<SelectOption<Value>>) => {
       const oldValue = stagedValue;
       const newValue = selectedOptions.map(op => op.value);
       const oldValueSet = new Set(oldValue);
@@ -323,7 +325,9 @@ export function HybridFilter<Value extends SelectKey>({
 
       // A modifier key is being pressed --> enter multiple selection mode
       if (multiple && modifierKeyPressed) {
-        !modifierTipSeen && setModifierTipSeen(true);
+        if (!modifierTipSeen) {
+          setModifierTipSeen(true);
+        }
         toggleOption(diff[0]!);
         return;
       }

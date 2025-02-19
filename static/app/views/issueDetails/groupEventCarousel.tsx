@@ -211,7 +211,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: {...location.query, referrer: `${selectedOption.value}-event`},
             });
             break;
-          case EventNavDropdownOption.ALL:
+          case EventNavDropdownOption.ALL: {
             const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
@@ -220,6 +220,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: searchTermWithoutQuery,
             });
             break;
+          }
           default:
             break;
         }
@@ -315,7 +316,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
             hidden: !organization.features.includes('discover-basic'),
             to: eventDetailsRoute({
               eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              orgSlug: organization.slug,
+              organization,
             }),
             onAction: () => {
               trackAnalytics('issue_details.event_details_clicked', {

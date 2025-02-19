@@ -66,6 +66,7 @@ backend_all: &backend_all
   - *backend_src
   - '**/*.py'
   - '**/*.pyi'
+  - 'devservices/**'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
@@ -84,6 +85,7 @@ api_docs: &api_docs
 backend_any_type: &backend_any_type
   - *backend_all
   - *api_docs
+  - 'devservices/**'
 
 migrations_added:
   - added:

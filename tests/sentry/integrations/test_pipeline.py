@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from collections.abc import Generator
 from unittest.mock import patch
 
+import pytest
 from django.db import router
 
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
@@ -8,6 +12,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -19,16 +24,13 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory
 from sentry.users.models.identity import Identity
 
 
 class ExamplePlugin(IssuePlugin2):
     slug = "example"
-
-
-plugins.register(ExamplePlugin)
 
 
 def naive_build_integration(data):
@@ -42,6 +44,12 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
+
+    @pytest.fixture(autouse=True)
+    def _register_example_plugin(self) -> Generator[None]:
+        plugins.register(ExamplePlugin)
+        yield
+        plugins.unregister(ExamplePlugin)
 
     def setUp(self):
         super().setUp()
@@ -174,17 +182,15 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with (
-            override_regions(self.regions),
-            patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
-        ):
-            self.pipeline.finish_pipeline()
-            data, success = resp.call_args[0]
+        with override_regions(self.regions):
+            response = self.pipeline.finish_pipeline()
+            error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
+            assert error_message in response.content.decode()
+
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                assert success
+                assert error_message not in response.content.decode()
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                assert not success
-                assert "resides in a different region" in str(data)
+                assert error_message in response.content.decode()
 
     def test_aliased_integration_key(self, *args):
         self.provider = AliasedIntegrationProvider
@@ -478,6 +484,51 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
 
         # attempt to finish pipeline with no 'org:integrations' scope
+        resp = self.pipeline.finish_pipeline()
+        assert (
+            "You must be an organization owner, manager or admin to install this integration."
+            in resp.content.decode()
+        )
+
+        extra = {
+            "error_message": "You must be an organization owner, manager or admin to install this integration.",
+            "organization_id": self.organization.id,
+            "user_id": member_user.id,
+            "provider_key": "example",
+        }
+        mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
+
+    @patch("sentry.integrations.pipeline.logger")
+    def test_disallow_with_removed_membership(self, mock_logger, *args):
+        member_user = self.create_user()
+        om = self.create_member(user=member_user, organization=self.organization, role="manager")
+        self.login_as(member_user)
+
+        # partially copied from IntegrationTestCase.setUp()
+        # except the user is not an owner
+        with assume_test_silo_mode(SiloMode.REGION):
+            rpc_organization = serialize_rpc_organization(self.organization)
+
+        self.request = self.make_request(member_user)
+
+        self.pipeline = IntegrationPipeline(
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
+        )
+        self.pipeline.initialize()
+        self.save_session()
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+        with outbox_runner(), assume_test_silo_mode_of(OrganizationMember):
+            om.delete()
+
+        # attempt to finish pipeline without org membership
         resp = self.pipeline.finish_pipeline()
         assert (
             "You must be an organization owner, manager or admin to install this integration."

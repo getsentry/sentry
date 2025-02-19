@@ -28,6 +28,7 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -137,7 +138,7 @@ export function PageOverview() {
     !Array.isArray(location.query.project) && // Only render button to transaction summary when one project is selected.
     transaction &&
     transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction,
       query: {...location.query},
       projectID: project.id,
@@ -225,6 +226,7 @@ export function PageOverview() {
                   />
                 </Flex>
                 <WebVitalMetersContainer>
+                  {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
                   <WebVitalMeters
                     projectData={pageData}
                     projectScore={projectScore}

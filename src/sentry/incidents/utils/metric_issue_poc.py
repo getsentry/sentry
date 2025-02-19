@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
+from sentry import features
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import get_incident_status_text
 from sentry.issues.grouptype import MetricIssuePOC
@@ -20,6 +21,7 @@ class OpenPeriod:
     end: datetime | None
     duration: timedelta | None
     is_open: bool
+    last_checked: datetime
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -27,6 +29,7 @@ class OpenPeriod:
             "end": self.end,
             "duration": self.duration,
             "isOpen": self.is_open,
+            "lastChecked": self.last_checked,
         }
 
 
@@ -67,6 +70,11 @@ def create_or_update_metric_issue(
 ) -> IssueOccurrence | None:
     project = incident.alert_rule.projects.first()
     if not project:
+        return None
+
+    if not features.has("projects:metric-issue-creation", project):
+        # We've already checked for the feature flag at the organization level,
+        # but this flag helps us test with a smaller set of projects.
         return None
 
     # collect the data from the incident to treat as an event

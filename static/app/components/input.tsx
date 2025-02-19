@@ -55,6 +55,16 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
     border-color: ${p.theme.focusBorder};
     box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
   }
+  &[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    font-variant-numeric: tabular-nums;
+  }
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 `;
 
 export interface InputProps

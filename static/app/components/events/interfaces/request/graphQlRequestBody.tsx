@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import Prism from 'prismjs';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
@@ -72,23 +72,25 @@ function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
   }
 
   return (
-    <StyledAlert
-      type="error"
-      showIcon
-      expand={
-        <List symbol="bullet">
-          {errorsWithMessage.map((error, i) => (
-            <li key={i}>{formatErrorAlertMessage(error)}</li>
-          ))}
-        </List>
-      }
-    >
-      {tn(
-        'There was %s GraphQL error raised during this request.',
-        'There were %s errors raised during this request.',
-        errorsWithMessage.length
-      )}
-    </StyledAlert>
+    <Alert.Container>
+      <StyledAlert
+        type="error"
+        showIcon
+        expand={
+          <List symbol="bullet">
+            {errorsWithMessage.map((error, i) => (
+              <li key={i}>{formatErrorAlertMessage(error)}</li>
+            ))}
+          </List>
+        }
+      >
+        {tn(
+          'There was %s GraphQL error raised during this request.',
+          'There were %s errors raised during this request.',
+          errorsWithMessage.length
+        )}
+      </StyledAlert>
+    </Alert.Container>
   );
 }
 
@@ -97,7 +99,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
-    // @ts-ignore TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
+    // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 

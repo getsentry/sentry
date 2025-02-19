@@ -8,11 +8,10 @@ import {
   LineChartWidget,
   type LineChartWidgetProps,
 } from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidget';
-import {LineChartWidgetSeries} from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidgetSeries';
 import {
-  TimeSeriesWidgetVisualization,
-  type TimeSeriesWidgetVisualizationProps,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+  LineChartWidgetVisualization,
+  type LineChartWidgetVisualizationProps,
+} from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidgetVisualization';
 
 import {
   AVG_COLOR,
@@ -37,9 +36,8 @@ export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
   const {start, end, period, utc} = pageFilters.selection.datetime;
   const {projects, environments} = pageFilters.selection;
 
-  const visualizationProps: TimeSeriesWidgetVisualizationProps = {
-    SeriesConstructor: LineChartWidgetSeries,
-    timeseries: (props.series.filter(Boolean) ?? [])?.map(serie => {
+  const visualizationProps: LineChartWidgetVisualizationProps = {
+    timeSeries: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeserie = convertSeriesToTimeseries(serie);
 
       return {
@@ -74,7 +72,7 @@ export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
                 {({releases}) => {
                   return (
                     <ModalChartContainer>
-                      <TimeSeriesWidgetVisualization
+                      <LineChartWidgetVisualization
                         {...visualizationProps}
                         aliases={props.aliases}
                         releases={

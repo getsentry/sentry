@@ -76,8 +76,8 @@ function EventEntries({
 
   return (
     <div className={className}>
-      {hasActionableItems && (
-        <ActionableItems event={event} project={project} isShare={isShare} />
+      {!isShare && hasActionableItems && (
+        <ActionableItems event={event} project={project} />
       )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits

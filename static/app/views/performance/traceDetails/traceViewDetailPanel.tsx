@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -220,7 +220,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     const {measurements} = detail.event;
 
     const measurementKeys = Object.keys(measurements ?? {})
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -233,7 +233,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             <PerformanceDuration
@@ -252,7 +252,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: detail.traceFullDetailedEvent.project_slug,
       profileId: detail.traceFullDetailedEvent.profile_id,
     });
@@ -309,34 +309,36 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       </Title>
 
       {hasIssues && (
-        <Alert
-          system
-          defaultExpanded
-          type="error"
-          expand={[
-            ...detail.traceFullDetailedEvent.errors,
-            ...detail.traceFullDetailedEvent.performance_issues,
-          ].map(error => (
-            <ErrorMessageContent key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        >
-          <ErrorMessageTitle>
-            {tn(
-              '%s issue occurred in this transaction.',
-              '%s issues occurred in this transaction.',
-              detail.traceFullDetailedEvent.errors.length +
-                detail.traceFullDetailedEvent.performance_issues.length
-            )}
-          </ErrorMessageTitle>
-        </Alert>
+        <Alert.Container>
+          <Alert
+            system
+            defaultExpanded
+            type="error"
+            expand={[
+              ...detail.traceFullDetailedEvent.errors,
+              ...detail.traceFullDetailedEvent.performance_issues,
+            ].map(error => (
+              <ErrorMessageContent key={error.event_id}>
+                <ErrorDot level={error.level} />
+                <ErrorLevel>{error.level}</ErrorLevel>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </ErrorMessageContent>
+            ))}
+          >
+            <ErrorMessageTitle>
+              {tn(
+                '%s issue occurred in this transaction.',
+                '%s issues occurred in this transaction.',
+                detail.traceFullDetailedEvent.errors.length +
+                  detail.traceFullDetailedEvent.performance_issues.length
+              )}
+            </ErrorMessageTitle>
+          </Alert>
+        </Alert.Container>
       )}
 
       <StyledTable className="table key-value">
@@ -355,7 +357,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           <Row title={t('Description')}>
             <Link
               to={transactionSummaryRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 transaction: detail.traceFullDetailedEvent.transaction,
                 query: omit(location.query, Object.values(PAGE_URL_PARAM)),
                 projectID: String(detail.traceFullDetailedEvent.project_id),

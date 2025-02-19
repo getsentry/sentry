@@ -14,7 +14,7 @@ export type ProcessedTokenResult =
   | {type: 'L_PAREN'}
   | {type: 'R_PAREN'};
 
-export function toFlattened(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+export function toFlattened(tokens: Array<TokenResult<Token>>): ProcessedTokenResult[] {
   const flattened_result: ProcessedTokenResult[] = [];
 
   function flatten(token: TokenResult<Token>): void {
@@ -50,8 +50,8 @@ export function toFlattened(tokens: TokenResult<Token>[]): ProcessedTokenResult[
     }
   }
 
-  for (let i = 0; i < tokens.length; i++) {
-    flatten(tokens[i]!);
+  for (const token of tokens) {
+    flatten(token);
   }
 
   return flattened_result;
@@ -91,7 +91,7 @@ export function insertImplicitAND(
   return with_implicit_and;
 }
 
-function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+function processTokenResults(tokens: Array<TokenResult<Token>>): ProcessedTokenResult[] {
   const flattened = toFlattened(tokens);
   const withImplicitAnd = insertImplicitAND(flattened);
 
@@ -103,7 +103,7 @@ function isBooleanAND(token: ProcessedTokenResult): boolean {
 }
 
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
-export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+export function toPostFix(tokens: Array<TokenResult<Token>>): ProcessedTokenResult[] {
   const processed = processTokenResults(tokens);
 
   const result: ProcessedTokenResult[] = [];

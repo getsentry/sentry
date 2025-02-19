@@ -54,7 +54,7 @@ export default function ProfileAndTransactionProvider(
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
-    projectSlug!,
+    projectSlug,
     decodeScalar(location.query.eventId) || null
   );
 

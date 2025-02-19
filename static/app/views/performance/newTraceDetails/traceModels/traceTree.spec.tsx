@@ -439,7 +439,7 @@ describe('TraceTree', () => {
         }),
         {
           meta: {
-            transactiontoSpanChildrenCount: {
+            transaction_child_count_map: {
               transaction: 10,
               'no-spans-transaction': 1,
               // we have no data for child transaction
@@ -448,6 +448,8 @@ describe('TraceTree', () => {
             performance_issues: 0,
             projects: 0,
             transactions: 0,
+            span_count: 0,
+            span_count_map: {},
           },
           replay: null,
         }
@@ -1257,20 +1259,6 @@ describe('TraceTree', () => {
       expect(tree.root.space[1]).toBe(10 * 1e3);
     });
   });
-
-  // @TODO: These are helper methods that are in some cases already tested indirectly through the tests above,
-  // but it wouldnt hurt to test them explicitly.
-
-  // describe('VisibleChildren', () => {
-  //   it.todo('expanded transaction children are visible');
-  //   it.todo('zoomed in transaction children are visible');
-  //   it.todo('collapsed span children are not visible');
-  //   it.todo('expanded parent autogroup children shows head to tail chain');
-  //   it.todo(
-  //     'expanded parent autogroup with intermediary collapsed span stop the chain at the collapsed span'
-  //   );
-  //   it.todo('collapsed parent autogroup shows tail chain');
-  // });
 
   describe('PathToNode', () => {
     const nestedTransactionTrace = makeTrace({

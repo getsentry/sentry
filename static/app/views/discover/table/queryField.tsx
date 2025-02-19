@@ -1,10 +1,10 @@
 import {Component, createRef} from 'react';
-import type {SingleValueProps} from 'react-select';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import Tag from 'sentry/components/badge/tag';
+import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {InputProps} from 'sentry/components/input';
@@ -53,7 +53,7 @@ export type ParameterDescription =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       value: string;
       placeholder?: string;
@@ -577,7 +577,7 @@ class QueryField extends Component<Props> {
       default:
         text = kind;
     }
-    // @ts-ignore TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
+    // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 
@@ -665,9 +665,9 @@ class QueryField extends Component<Props> {
         gridColumnsQuantity = 1;
       } else {
         const operation =
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           AGGREGATIONS[fieldValue.function[0]] ??
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           SESSIONS_OPERATIONS[fieldValue.function[0]];
         if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {

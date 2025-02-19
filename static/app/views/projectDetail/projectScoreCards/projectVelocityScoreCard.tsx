@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
@@ -148,11 +148,15 @@ function ProjectVelocityScoreCard(props: Props) {
 
   if (!isLoading && noReleaseEver) {
     return (
-      <WidgetFrame title={cardTitle} description={cardHelp}>
-        <ActionWrapper>
-          <MissingReleasesButtons organization={organization} />
-        </ActionWrapper>
-      </WidgetFrame>
+      <Widget
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={<Widget.WidgetDescription description={cardHelp} />}
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons organization={organization} />
+          </ActionWrapper>
+        }
+      />
     );
   }
 
@@ -168,6 +172,7 @@ function ProjectVelocityScoreCard(props: Props) {
         fields: {
           'count()': 'number',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}

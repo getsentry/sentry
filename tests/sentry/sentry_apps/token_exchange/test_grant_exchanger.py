@@ -1,15 +1,15 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -39,36 +39,65 @@ class TestGrantExchanger(TestCase):
         other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
+        assert e.value.message == "Forbidden grant"
+        assert e.value.webhook_context == {}
+        assert e.value.public_context == {}
 
     def test_request_user_owns_api_grant(self):
         self.grant_exchanger.user = self.create_user()
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
+        assert e.value.message == "User is not a Sentry App(custom integration)"
+        assert e.value.webhook_context == {"user": self.grant_exchanger.user.name}
+        assert e.value.public_context == {}
 
     def test_grant_must_be_active(self):
         self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
+        assert e.value.message == "Grant has already expired"
+        assert e.value.webhook_context == {}
+        assert e.value.public_context == {}
 
     def test_grant_must_exist(self):
         self.grant_exchanger.code = "123"
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
+        assert e.value.message == "Could not find grant for given code"
+        assert e.value.webhook_context == {
+            "code": self.grant_exchanger.code,
+            "installation_uuid": self.install.uuid,
+        }
+        assert e.value.public_context == {}
 
-    @patch("sentry.models.ApiGrant.application", side_effect=ApiApplication.DoesNotExist)
-    def test_application_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
-            self.grant_exchanger.run()
+    @patch("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger._validate")
+    @patch("sentry.models.ApiGrant.application", new_callable=PropertyMock)
+    def test_application_must_exist(self, application, validate):
+        application.side_effect = ApiApplication.DoesNotExist()
 
-    @patch("sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist)
-    def test_sentry_app_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppSentryError) as e:
             self.grant_exchanger.run()
+        assert e.value.message == "Could not find application from grant"
+        assert e.value.webhook_context == {
+            "code": self.code[:4],
+            "grant_id": self.orm_install.api_grant.id,
+        }
+        assert e.value.public_context == {}
+
+    @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
+    def test_sentry_app_must_exist(self, sentry_app):
+        sentry_app.side_effect = SentryApp.DoesNotExist()
+
+        with pytest.raises(SentryAppSentryError) as e:
+            self.grant_exchanger.run()
+        assert e.value.message == "Integration does not exist"
+        assert e.value.webhook_context == {"application_id": self.install.sentry_app.application_id}
+        assert e.value.public_context == {}
 
     def test_deletes_grant_on_successful_exchange(self):
         grant_id = self.orm_install.api_grant_id

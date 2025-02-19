@@ -54,7 +54,15 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             paginator: SequencePaginator[TagValue] = SequencePaginator([])
         else:
             with handle_query_errors():
-                paginator = tagstore.backend.get_tag_value_paginator_for_projects(
+                # Flags are stored on the same table as tags but on a different column. Ideally
+                # both could be queried in a single request. But at present we're not sure if we
+                # want to treat tags and flags as the same or different and in which context.
+                if request.GET.get("useFlagsBackend") == "1":
+                    backend = tagstore.flag_backend
+                else:
+                    backend = tagstore.backend
+
+                paginator = backend.get_tag_value_paginator_for_projects(
                     snuba_params.project_ids,
                     snuba_params.environment_ids,
                     key,

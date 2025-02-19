@@ -271,12 +271,14 @@ const SECTIONS: TSection[] = [
           'expand',
           'collapse',
           'arrow',
+          'double',
         ],
-        additionalProps: ['isCircled', 'direction'],
+        additionalProps: ['isCircled', 'direction', 'isDouble'],
         name: 'Chevron',
         defaultProps: {
           isCircled: false,
           direction: 'left',
+          isDouble: false,
         },
       },
       {
@@ -332,6 +334,38 @@ const SECTIONS: TSection[] = [
         name: 'Chevron',
         defaultProps: {
           isCircled: true,
+          direction: 'down',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-left',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'left',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-right',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'right',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-up',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'up',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-down',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
           direction: 'down',
         },
       },
@@ -584,6 +618,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {
           isCircled: true,
         },
+      },
+      {
+        id: 'divide',
+        groups: ['action'],
+        keywords: ['divided', 'math'],
+        name: 'Divide',
+        defaultProps: {},
       },
       {
         id: 'upload',
@@ -1319,7 +1360,7 @@ function Section({section}: {section: TSection}) {
       <Grid style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
         {section.icons.map(icon => {
           const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const Component = Icons[name];
 
           const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};
@@ -1386,8 +1427,10 @@ const StyledSticky = styled(Sticky)`
   }
 `;
 
+// Large scroll margin top due to sticky header
 const SectionHeader = styled('h5')`
   margin-block: ${space(2)};
+  scroll-margin-top: 96px;
 `;
 
 const Grid = styled('div')`

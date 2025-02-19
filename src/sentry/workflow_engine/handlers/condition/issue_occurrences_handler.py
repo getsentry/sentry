@@ -10,6 +10,15 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowJob]):
     type = DataConditionHandlerType.ACTION_FILTER
 
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "value": {"type": "integer", "minimum": 0},
+        },
+        "required": ["value"],
+        "additionalProperties": False,
+    }
+
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         group: Group = job["event"].group

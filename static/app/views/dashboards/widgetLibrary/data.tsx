@@ -235,7 +235,7 @@ export const getDefaultWidgets = (organization: Organization) => {
 
 export function getTopNConvertedDefaultWidgets(
   organization: Organization
-): Readonly<Array<WidgetTemplate>> {
+): readonly WidgetTemplate[] {
   return getDefaultWidgets(organization).map(widget => {
     if (widget.displayType === DisplayType.TOP_N) {
       return {

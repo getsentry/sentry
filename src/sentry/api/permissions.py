@@ -3,12 +3,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.api.exceptions import (
-    DataSecrecyError,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -25,7 +23,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.utils import auth
+from sentry.utils import auth, demo_mode
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -211,17 +209,7 @@ class SentryPermission(ScopedPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
-        # TODO(iamrajjoshi): Remove this check once we have fully migrated to the new data secrecy logic
         organization = org_context.organization
-        if (
-            request.user
-            and request.user.is_superuser
-            and features.has(
-                "organizations:enterprise-data-secrecy-legacy", org_context.organization
-            )
-        ):
-            raise DataSecrecyError()
-
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
                 request=request,
@@ -284,3 +272,17 @@ class SentryPermission(ScopedPermission):
                     extra=extra,
                 )
                 raise MemberDisabledOverLimit(organization)
+
+
+class SentryIsAuthenticated(IsAuthenticated):
+    def has_permission(self, request: Request, view: object) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            return False
+
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            return False
+
+        return super().has_object_permission(request, view, obj)

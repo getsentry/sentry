@@ -35,15 +35,15 @@ export function SectionHeader({
 }
 
 const StyledHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.form.md.fontSize};
+  margin-bottom: ${space(0.5)};
 `;
 
 const OptionalHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.form.md.fontSize};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const HeaderWrapper = styled('div')`

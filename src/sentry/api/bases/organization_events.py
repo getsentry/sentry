@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Sequence
 from datetime import timedelta
 from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -90,9 +92,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
-
-    def get_team_ids(self, request: Request, organization: Organization) -> list[int]:
-        return [team.id for team in self.get_teams(request, organization)]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
@@ -188,7 +187,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.PERFORMANCE
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor | None) -> str:
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
@@ -353,6 +352,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if not data:
                 return {"data": [], "meta": meta}
             if "confidence" in results:
+                meta["accuracy"] = {
+                    "confidence": results["confidence"],
+                }
+                # Confidence being a top level key is going to be deprecated in favour of confidence being in the meta
                 return {"data": data, "meta": meta, "confidence": results["confidence"]}
             return {"data": data, "meta": meta}
 
@@ -496,21 +499,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
                             dataset=dataset,
+                            transform_alias_to_input_format=transform_alias_to_input_format,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
                                 results, key, query_columns
                             )
                     else:
+                        column = resolve_axis_column(
+                            query_columns[0], 0, transform_alias_to_input_format
+                        )
                         results[key] = serializer.serialize(
                             event_result,
-                            column=resolve_axis_column(
-                                query_columns[0], 0, transform_alias_to_input_format
-                            ),
+                            column=column,
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
-                        results[key]["meta"] = self.handle_results_with_meta(
+                        meta = self.handle_results_with_meta(
                             request,
                             organization,
                             snuba_params.project_ids,
@@ -518,6 +523,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             True,
                             dataset=dataset,
                         )["meta"]
+                        self.update_meta_with_accuracy(meta, event_result, column)
+                        results[key]["meta"] = meta
 
                 serialized_result = results
             elif is_multiple_axis:
@@ -540,16 +547,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
+                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
                 serialized_result = serializer.serialize(
                     result,
-                    column=resolve_axis_column(
-                        query_columns[0], 0, transform_alias_to_input_format
-                    ),
+                    column=column,
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
+                    confidence_column=column,
                 )
-                serialized_result["meta"] = self.handle_results_with_meta(
+                meta = self.handle_results_with_meta(
                     request,
                     organization,
                     snuba_params.project_ids,
@@ -557,6 +564,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     True,
                     dataset=dataset,
                 )["meta"]
+                self.update_meta_with_accuracy(meta, result, column)
+                serialized_result["meta"] = meta
 
             return serialized_result
 
@@ -610,12 +619,43 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
+            self.update_meta_with_accuracy(meta, event_result, query_column)
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
 
         return result
+
+    def update_meta_with_accuracy(self, meta, event_result, query_column) -> None:
+        if "processed_timeseries" in event_result.data:
+            processed_timeseries = event_result.data["processed_timeseries"]
+            meta["accuracy"] = {
+                "confidence": self.serialize_accuracy_data(
+                    processed_timeseries.confidence, query_column
+                ),
+                "sampleCount": self.serialize_accuracy_data(
+                    processed_timeseries.sample_count, query_column
+                ),
+                "samplingRate": self.serialize_accuracy_data(
+                    processed_timeseries.sampling_rate, query_column, null_zero=True
+                ),
+            }
+
+    def serialize_accuracy_data(
+        self,
+        data: Any,
+        column: str,
+        null_zero: bool = False,
+    ):
+        serialized_values = []
+        for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
+            for row in group:
+                row_value = row.get(column, None)
+                if row_value == 0 and null_zero:
+                    row_value = None
+                serialized_values.append({"timestamp": timestamp, "value": row_value})
+        return serialized_values
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):

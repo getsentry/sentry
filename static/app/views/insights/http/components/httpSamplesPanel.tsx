@@ -256,7 +256,7 @@ export function HTTPSamplesPanel() {
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
         SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.RESPONSE_CODE,
@@ -348,7 +348,7 @@ export function HTTPSamplesPanel() {
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]!?.['time_spent_percentage()'],
+                  domainTransactionMetrics?.[0]?.['time_spent_percentage()']!,
                   'http.client'
                 )}
                 isLoading={areDomainTransactionMetricsFetching}

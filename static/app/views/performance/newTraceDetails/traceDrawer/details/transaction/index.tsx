@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -92,7 +92,8 @@ function TransactionNodeDetailHeader({
             {t('Transaction')}
           </TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            text={`ID: ${node.value.event_id}`}
+            subTitle={`ID: ${node.value.event_id}`}
+            clipboardText={node.value.event_id}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
@@ -191,21 +192,23 @@ export function TransactionNodeDetails({
       />
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
         {!node.canFetch ? (
-          <StyledAlert type="info" showIcon>
-            {tct(
-              'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
-              {
-                customInstrumentationLink: (
-                  <ExternalLink
-                    onClick={() => {
-                      traceAnalytics.trackMissingSpansDocLinkClicked(organization);
-                    }}
-                    href={getCustomInstrumentationLink(project)}
-                  />
-                ),
-              }
-            )}
-          </StyledAlert>
+          <Alert.Container>
+            <StyledAlert type="info" showIcon>
+              {tct(
+                'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
+                {
+                  customInstrumentationLink: (
+                    <ExternalLink
+                      onClick={() => {
+                        traceAnalytics.trackMissingSpansDocLinkClicked(organization);
+                      }}
+                      href={getCustomInstrumentationLink(project)}
+                    />
+                  ),
+                }
+              )}
+            </StyledAlert>
+          </Alert.Container>
         ) : null}
 
         <IssueList node={node} organization={organization} issues={issues} />
@@ -268,7 +271,9 @@ export function TransactionNodeDetails({
 }
 
 type TransactionSpecificSectionsProps = {
-  cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
+  cacheMetrics: Array<
+    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
+  >;
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;

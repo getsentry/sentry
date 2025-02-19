@@ -33,7 +33,7 @@ export type TimeSeriesData = {
   originalPreviousTimeseriesData?: EventsStatsData | null;
   originalTimeseriesData?: EventsStatsData;
   previousTimeseriesData?: Series[] | null;
-  timeAggregatedData?: Series | {};
+  timeAggregatedData?: Series | Record<string, unknown>;
   timeframe?: {end: number; start: number};
   // timeseries data
   timeseriesData?: Series[];
@@ -144,7 +144,7 @@ type EventsRequestPartialProps = {
   /**
    * List of environments to query
    */
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   /**
    * Is query out of retention
    */
@@ -181,7 +181,7 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   /**
    * A container for query batching data and functions.
    */
@@ -303,7 +303,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     this.unmounting = true;
   }
 
-  private unmounting: boolean = false;
+  private unmounting = false;
 
   fetchData = async () => {
     const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
@@ -396,7 +396,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     data: EventsStatsData,
     getName: (
       timestamp: number,
-      countArray: {count: number}[],
+      countArray: Array<{count: number}>,
       i: number
     ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] {
@@ -434,7 +434,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries(data: EventsStatsData, seriesName: string = ''): Series {
+  transformAggregatedTimeseries(data: EventsStatsData, seriesName = ''): Series {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),
@@ -488,7 +488,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     ];
   }
 
-  processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
+  processData(response: EventsStats, seriesIndex = 0, seriesName?: string) {
     const {data, isMetricsData, totals, meta, isExtrapolatedData} = response;
     const {
       includeTransformedData,

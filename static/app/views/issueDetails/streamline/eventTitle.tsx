@@ -141,7 +141,8 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                   {getShortEventId(event.id)}
                 </EventIdDropdownButton>
               )}
-              position="bottom"
+              position="bottom-start"
+              offset={4}
               size="xs"
               items={[
                 {
@@ -164,7 +165,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
             />
             <StyledTimeSince
               tooltipBody={<EventCreatedTooltip event={event} />}
-              tooltipProps={{maxWidth: 300}}
+              tooltipProps={{maxWidth: 300, isHoverable: true}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
               aria-label={t('Event timestamp')}

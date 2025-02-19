@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -14,9 +14,48 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import type {StoryTreeNode} from './index';
+class StoryTreeNode {
+  public name: string;
+  public path: string;
+  public visible = true;
+  public expanded = false;
+  public children: Record<string, StoryTreeNode> = {};
+
+  public result: ReturnType<typeof fzf> | null = null;
+
+  constructor(name: string, path: string) {
+    this.name = name;
+    this.path = path;
+  }
+
+  find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
+    for (const {node} of this) {
+      if (node && predicate(node)) {
+        return node;
+      }
+    }
+    return undefined;
+  }
+
+  // Iterator that yields all files in the tree, excluding folders
+  *[Symbol.iterator]() {
+    function* recurse(
+      node: StoryTreeNode,
+      path: StoryTreeNode[]
+    ): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
+      yield {node, path};
+
+      for (const child of Object.values(node.children)) {
+        yield* recurse(child, path.concat(node));
+      }
+    }
+
+    yield* recurse(this, []);
+  }
+}
 
 function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
   if (a.visible && !b.visible) {
@@ -58,13 +97,124 @@ function normalizeFilename(filename: string) {
   return filename.charAt(0).toUpperCase() + filename.slice(1).replace('.stories.tsx', '');
 }
 
+export function useStoryTree(files: string[], query: string) {
+  const location = useLocation();
+  const initialName = useRef(location.query.name);
+
+  const tree = useMemo(() => {
+    const root = new StoryTreeNode('root', '');
+
+    for (const file of files) {
+      const parts = file.split('/');
+      let parent = root;
+
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!part) {
+          continue;
+        }
+        if (!(part in parent.children)) {
+          parent.children[part] = new StoryTreeNode(
+            part,
+            parts.slice(0, i + 1).join('/')
+          );
+        }
+
+        parent = parent.children[part]!;
+      }
+    }
+
+    // If the user navigates to a story, expand to its location in the tree
+    if (initialName.current) {
+      for (const {node, path} of root) {
+        if (node.path === initialName.current) {
+          for (const p of path) {
+            p.expanded = true;
+          }
+          break;
+        }
+      }
+    }
+
+    return root;
+  }, [files]);
+
+  const nodes = useMemo(() => {
+    // Skip the top level app folder as it's where the entire project is at
+    const root = tree.find(node => node.name === 'app') ?? tree;
+
+    if (!query) {
+      if (initialName.current) {
+        initialName.current = null;
+        return Object.values(root.children);
+      }
+
+      // If there is no initial query and no story is selected, the sidebar
+      // tree is collapsed to the root node.
+      for (const {node} of root) {
+        node.visible = true;
+        node.expanded = false;
+        node.result = null;
+      }
+      return Object.values(root.children);
+    }
+
+    for (const {node} of root) {
+      node.visible = false;
+      node.expanded = false;
+      node.result = null;
+    }
+
+    // Fzf requires the input to be lowercase as it normalizes the search candidates to lowercase
+    const lowerCaseQuery = query.toLowerCase();
+
+    for (const {node, path} of root) {
+      // index files are useless when trying to match by name, so we'll special
+      // case them and match by their full path as it'll contain a more
+      // relevant path that we can match against.
+      const name = node.name.startsWith('index.')
+        ? [node.name, ...path.map(p => p.name)].join('.')
+        : node.name;
+
+      const match = fzf(name, lowerCaseQuery, false);
+      node.result = match;
+
+      if (match.score > 0) {
+        node.visible = true;
+
+        if (Object.keys(node.children).length > 0) {
+          node.expanded = true;
+          for (const child of Object.values(node.children)) {
+            child.visible = true;
+          }
+        }
+
+        // @TODO (JonasBadalic): We can trip this when we find a visible node if we reverse iterate
+        for (const p of path) {
+          p.visible = true;
+          p.expanded = true;
+          // The entire path needs to contain max score of its child results so that
+          // the entire path to it can be sorted by this score. The side effect of this is that results from the same
+          // tree path with a lower score will be placed higher in the tree if that same path has a higher score anywhere
+          // in the tree. This isn't ideal, but given that it favors the most relevant results, it makes it a good starting point.
+          p.result = match.score > (p.result?.score ?? 0) ? match : p.result;
+        }
+      }
+    }
+
+    return Object.values(root.children);
+  }, [tree, query]);
+
+  return nodes;
+}
+
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   nodes: StoryTreeNode[];
 }
 
 // @TODO (JonasBadalic): Implement treeview pattern navigation
 // https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
-export default function StoryTree({nodes, ...htmlProps}: Props) {
+export function StoryTree({nodes, ...htmlProps}: Props) {
   return (
     <nav {...htmlProps}>
       <StoryList>
@@ -100,6 +250,11 @@ function Folder(props: {node: StoryTreeNode}) {
       <FolderName
         onClick={() => {
           props.node.expanded = !props.node.expanded;
+          if (props.node.expanded) {
+            for (const child of Object.values(props.node.children)) {
+              child.visible = true;
+            }
+          }
           setExpanded(props.node.expanded);
         }}
       >
@@ -146,7 +301,7 @@ function File(props: {node: StoryTreeNode}) {
 }
 
 function StoryIcon(props: {
-  category: 'components' | 'icons' | 'styles' | 'utils' | 'views' | string | {};
+  category: 'components' | 'icons' | 'styles' | 'utils' | 'views' | (string & {});
 }) {
   const iconProps: SVGIconProps = {size: 'xs'};
   switch (props.category) {

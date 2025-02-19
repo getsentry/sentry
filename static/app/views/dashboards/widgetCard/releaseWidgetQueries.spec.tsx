@@ -179,7 +179,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           groupBy: ['release'],
           includeSeries: 1,
           includeTotals: 1,
-          interval: '12h',
+          interval: '1h',
           per_page: 100,
           project: [1],
           query: ' release:be1ddfb18126dd2cbde26bfe75488503280e716e',

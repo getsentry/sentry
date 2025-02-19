@@ -5,6 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.constants import SentryAppStatus
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -317,6 +318,26 @@ class IssueParams:
     )
 
 
+class DetectorParams:
+    DETECTOR_ID = OpenApiParameter(
+        name="detector_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+    )
+
+
+class WorkflowParams:
+    WORKFLOW_ID = OpenApiParameter(
+        name="workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+    )
+
+
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
@@ -334,6 +355,29 @@ class MetricAlertParams:
         required=True,
         type=int,
         description="The ID of the rule you'd like to query.",
+    )
+
+
+class SentryAppParams:
+    SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
+        name="sentry_app_id_or_slug",
+        location="path",
+        required=True,
+        many=False,
+        type=str,
+        description="The ID or slug of the custom integration.",
+    )
+
+
+class SentryAppStatusParams:
+    SENTRY_APP_STATUS = OpenApiParameter(
+        name="sentry_app_status",
+        location="query",
+        required=False,
+        many=False,
+        type=int,
+        description=f"The status of the custom integration, values translate to the following: {SentryAppStatus.as_choices()}",
+        enum=SentryAppStatus.as_int_choices(),
     )
 
 

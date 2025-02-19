@@ -181,7 +181,7 @@ describe('ArithmeticInput', function () {
       />
     );
 
-    const element = screen.getByRole('textbox') as HTMLInputElement;
+    const element = screen.getByRole('textbox');
 
     await userEvent.type(element, 'lcp + transaction.duration');
     await userEvent.type(element, '{ArrowLeft>24}');

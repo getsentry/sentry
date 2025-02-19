@@ -28,12 +28,14 @@ import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
+import {getProfileMeta} from '../utils';
 
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
+import Measurements, {hasSpanMeasurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
 
 function SpanNodeDetailHeader({
@@ -66,7 +68,8 @@ function SpanNodeDetailHeader({
         <TraceDrawerComponents.LegacyTitleText>
           <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            text={`ID: ${node.value.span_id}`}
+            subTitle={`ID: ${node.value.span_id}`}
+            clipboardText={node.value.span_id}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
@@ -144,7 +147,10 @@ function SpanSections({
   }
 
   const hasSpanSpecificData =
-    hasSpanHTTPInfo(node.value) || hasSpanKeys(node) || hasSpanTags(node.value);
+    hasSpanHTTPInfo(node.value) ||
+    hasSpanKeys(node) ||
+    hasSpanTags(node.value) ||
+    hasSpanMeasurements(node.value);
 
   return (
     <Fragment>
@@ -159,7 +165,10 @@ function SpanSections({
           <TraceDrawerComponents.SectionCardGroup>
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-            {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+            {hasSpanTags(node.value) ? <Tags node={node} /> : null}
+            {hasSpanMeasurements(node.value) ? (
+              <Measurements node={node} location={location} organization={organization} />
+            ) : null}
           </TraceDrawerComponents.SectionCardGroup>
         </InterimSection>
       ) : null}
@@ -187,24 +196,32 @@ function LegacySpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-      {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+      {hasSpanTags(node.value) ? <Tags node={node} /> : null}
       {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
     </TraceDrawerComponents.SectionCardGroup>
   );
 }
 
 function ProfileDetails({
+  organization,
+  project,
   event,
   span,
 }: {
   event: Readonly<EventTransaction>;
+  organization: Organization;
+  project: Project | undefined;
   span: Readonly<SpanType>;
 }) {
   const hasNewTraceUi = useHasTraceNewUi();
-  const {profile, frames} = useSpanProfileDetails(event, span);
+  const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
 
   if (!hasNewTraceUi) {
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <div>
+        <SpanProfileDetails span={span} event={event} />;
+      </div>
+    );
   }
 
   if (!defined(profile) || frames.length === 0) {
@@ -238,7 +255,9 @@ export function SpanNodeDetails({
   }, [node.errors, node.performance_issues]);
 
   const project = projects.find(proj => proj.slug === node.event?.projectSlug);
-  const profileId = node.event?.contexts?.profile?.profile_id ?? null;
+  const profileMeta = getProfileMeta(node.event) || '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -253,7 +272,7 @@ export function SpanNodeDetails({
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={node.event?.projectSlug}
-            profileMeta={profileId || ''}
+            profileMeta={profileMeta}
           >
             <ProfileContext.Consumer>
               {profiles => (
@@ -280,7 +299,12 @@ export function SpanNodeDetails({
                     onParentClick={onParentClick}
                   />
                   {organization.features.includes('profiling') ? (
-                    <ProfileDetails event={node.event!} span={node.value} />
+                    <ProfileDetails
+                      organization={organization}
+                      project={project}
+                      event={node.event!}
+                      span={node.value}
+                    />
                   ) : null}
                 </ProfileGroupProvider>
               )}

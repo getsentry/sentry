@@ -167,7 +167,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
     }
 
     let key: string = tableSort;
-    let direction: number = -1;
+    let direction = -1;
 
     if (tableSort.charAt(0) === '-') {
       key = key.slice(1);
@@ -415,7 +415,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome!] += group.totals['sum(quantity)']!;
+          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
         }
 
         if (

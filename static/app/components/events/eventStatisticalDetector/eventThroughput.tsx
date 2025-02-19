@@ -308,7 +308,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
       const timestamp = curr[0];
       const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
       const prev = acc[acc.length - 1];
-      const value = curr[1]![0]!.count;
+      const value = curr[1][0]!.count;
 
       if (prev?.timestamp === bucket) {
         prev.value += value;

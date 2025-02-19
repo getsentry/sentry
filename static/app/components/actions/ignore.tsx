@@ -31,7 +31,7 @@ const IGNORE_DURATIONS = [
 
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
 
-const IGNORE_WINDOWS: SelectValue<number>[] = [
+const IGNORE_WINDOWS: Array<SelectValue<number>> = [
   {value: ONE_HOUR, label: t('per hour')},
   {value: ONE_HOUR * 24, label: t('per day')},
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
@@ -282,11 +282,11 @@ export default IgnoreActions;
 
 const IgnoreButton = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusRight};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   border-left: none;
 `;

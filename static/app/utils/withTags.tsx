@@ -36,7 +36,13 @@ function withTags<P extends InjectedTagsProps>(
 
     render() {
       const {tags, ...props} = this.props as P;
-      return <WrappedComponent {...({tags: tags ?? this.state.tags, ...props} as P)} />;
+      return (
+        <WrappedComponent
+          tags={tags ?? this.state.tags}
+          // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+          {...(props as P as any)}
+        />
+      );
     }
   }
 

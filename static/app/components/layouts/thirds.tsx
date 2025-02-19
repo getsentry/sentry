@@ -82,9 +82,11 @@ export const HeaderActions = styled('div')`
  */
 export const Title = styled('h1')<{withMargins?: boolean}>`
   ${p => p.theme.overflowEllipsis};
-  ${p => p.theme.text.pageTitle};
-  color: ${p => p.theme.headingColor};
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0;
+  color: ${p => p.theme.headingColor};
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
   line-height: 40px;

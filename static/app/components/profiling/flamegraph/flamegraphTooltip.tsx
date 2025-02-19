@@ -87,7 +87,7 @@ interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
   frameInConfigSpace: Rect;
 }
 function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
-  const flamegraph = props.flamegraph as DifferentialFlamegraph;
+  const flamegraph = props.flamegraph;
   const count = useMemo(() => {
     return props.flamegraph.weights.get(props.frame.node);
   }, [props.frame, props.flamegraph]);

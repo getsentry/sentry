@@ -13,10 +13,10 @@ export interface PlatformOption<Value extends string = string> {
   /**
    * Array of items for the option. Each one representing a selectable value.
    */
-  items: {
+  items: Array<{
     label: string;
     value: Value;
-  }[];
+  }>;
   /**
    * The name of the option
    */
@@ -100,7 +100,7 @@ export interface OnboardingConfig<
       install: StepProps[];
       verify: StepProps[];
       introduction?: React.ReactNode | React.ReactNode[];
-      nextSteps?: (NextStep | null)[];
+      nextSteps?: Array<NextStep | null>;
       onPageLoad?: () => void;
       onPlatformOptionsChange?: (
         platformOptions: SelectedPlatformOptions<PlatformOptions>
@@ -114,7 +114,6 @@ export interface OnboardingConfig<
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
-  customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
   featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
@@ -134,5 +133,4 @@ export type ConfigType =
   | 'crashReportOnboarding'
   | 'replayOnboarding'
   | 'replayOnboardingJsLoader'
-  | 'customMetricsOnboarding'
   | 'featureFlagOnboarding';

@@ -100,7 +100,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         }
 
 
-@apply_feature_flag_on_cls("organizations:autofix")
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_no_gen_ai_consent(self):
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", False)

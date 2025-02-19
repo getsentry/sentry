@@ -22,9 +22,6 @@ ERR_NOT_UNPAUSABLE_STATUS = Template(
     """Relocations can only be unpaused if they are already paused; this relocation is
     `$status`."""
 )
-ERR_COULD_NOT_UNPAUSE_RELOCATION = (
-    "Could not unpause relocation, perhaps because it is no longer in-progress."
-)
 
 logger = logging.getLogger(__name__)
 

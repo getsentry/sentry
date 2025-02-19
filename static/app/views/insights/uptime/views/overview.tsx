@@ -12,6 +12,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
@@ -25,12 +26,14 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {UptimeAlert} from 'sentry/views/alerts/types';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 import {OwnerFilter} from 'sentry/views/monitors/components/ownerFilter';
 
+import {MODULE_DESCRIPTION, MODULE_DOC_LINK, MODULE_TITLE} from '../../uptime/settings';
 import {OverviewTimeline} from '../components/overviewTimeline';
 
 export default function UptimeOverview() {
@@ -60,13 +63,13 @@ export default function UptimeOverview() {
   }
 
   const {
-    data: uptimeList,
+    data: uptimeRules,
     getResponseHeader: uptimeListHeaders,
     isPending,
-  } = useApiQuery<UptimeAlert[]>(makeQueryKey(), {staleTime: 0});
+  } = useApiQuery<UptimeRule[]>(makeQueryKey(), {staleTime: 0});
 
   useRouteAnalyticsEventNames('uptime.page_viewed', 'Uptime: Page Viewed');
-  useRouteAnalyticsParams({empty_state: !uptimeList || uptimeList.length === 0});
+  useRouteAnalyticsParams({empty_state: !uptimeRules || uptimeRules.length === 0});
 
   const uptimeListPageLinks = uptimeListHeaders?.('Link');
 
@@ -78,16 +81,38 @@ export default function UptimeOverview() {
     });
   };
 
+  const creationDisabled = organization.features.includes('uptime-create-disabled');
+
   return (
     <ModulePageProviders moduleName="uptime" pageTitle={t('Overview')}>
       <BackendHeader
         module={ModuleName.UPTIME}
+        headerTitle={
+          <Fragment>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Fragment>
+        }
         headerActions={
           <ButtonBar gap={1}>
             <LinkButton
+              disabled={creationDisabled}
+              title={
+                creationDisabled
+                  ? t(
+                      'Creation of new uptime alerts is temporarily disabled as the beta has ended. Alert creation will be available again in a few days.'
+                    )
+                  : undefined
+              }
               size="sm"
               priority="primary"
-              to={`/organizations/${organization.slug}/alerts/new/uptime/`}
+              to={makeAlertsPathname({
+                path: `/new/uptime/`,
+                organization,
+              })}
               icon={<IconAdd isCircled />}
             >
               {t('Add Uptime Monitor')}
@@ -123,9 +148,9 @@ export default function UptimeOverview() {
           </Filters>
           {isPending ? (
             <LoadingIndicator />
-          ) : uptimeList?.length ? (
+          ) : uptimeRules?.length ? (
             <Fragment>
-              <OverviewTimeline uptimeAlerts={uptimeList} />
+              <OverviewTimeline uptimeRules={uptimeRules} />
               {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
             </Fragment>
           ) : (
@@ -136,7 +161,10 @@ export default function UptimeOverview() {
                   <LinkButton
                     size="sm"
                     priority="primary"
-                    to={`/organizations/${organization.slug}/alerts/new/uptime/`}
+                    to={makeAlertsPathname({
+                      path: `/new/uptime/`,
+                      organization,
+                    })}
                     icon={<IconAdd isCircled />}
                   >
                     {t('Add Uptime Monitor')}

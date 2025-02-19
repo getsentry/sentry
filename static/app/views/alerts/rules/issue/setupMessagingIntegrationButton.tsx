@@ -75,7 +75,7 @@ function SetupMessagingIntegrationButton({
   return (
     <IntegrationFeatures
       organization={organization}
-      features={integrationProvidersQuery[0]!.data.providers[0]!?.metadata?.features}
+      features={integrationProvidersQuery[0]!.data.providers[0]?.metadata?.features!}
     >
       {({disabled, disabledReason}) => (
         <div>

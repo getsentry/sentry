@@ -14,7 +14,9 @@ from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -222,3 +224,30 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             # The error message here is formatted by the Jira integration, and
             # only includes extracted JSON from the error
             assert metric_exception_message == "{'foo': ['bar']}"
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(MockJira, "get_create_meta_for_project", return_value=None)
+    def test_halts_with_external_api_configuration_error(
+        self, mock_get_create_meta_for_project, mock_record_event
+    ):
+        with mock.patch(
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
+        ):
+            response = self.configure_valid_alert_rule()
+
+            # Get the rule from DB
+            rule_object = Rule.objects.get(id=response.data["id"])
+            event = self.get_event()
+
+            with pytest.raises(IntegrationInstallationConfigurationError):
+                self.trigger(event, rule_object)
+
+            assert mock_record_event.call_count == 2
+            start, halt = mock_record_event.call_args_list
+            assert start.args == (EventLifecycleOutcome.STARTED,)
+            assert_halt_metric(
+                mock_record_event,
+                IntegrationInstallationConfigurationError(
+                    "Could not fetch issue create configuration from Jira."
+                ),
+            )

@@ -12,7 +12,7 @@ export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
   const piiConfig = relayPiiConfig ? JSON.parse(relayPiiConfig) : {};
   const rules: Record<string, PiiConfig> = piiConfig.rules || {};
   const applications: Applications = piiConfig.applications || {};
-  const convertedRules: Array<Rule> = [];
+  const convertedRules: Rule[] = [];
 
   for (const application in applications) {
     for (const rule of applications[application]!) {

@@ -23,12 +23,11 @@ export class MetaProxy {
     this.local = local;
   }
 
-  // @ts-ignore TS(7023): 'get' implicitly has return type 'any' because it ... Remove this comment to see the full error message
-  get<T extends {}>(
-    obj: T | Array<T>,
+  get<T extends Record<string, unknown>>(
+    obj: T | T[],
     prop: Extract<keyof T, string> | SymbolProp,
     receiver: T
-  ) {
+  ): any {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
       return (key: any) => {
@@ -82,15 +81,15 @@ export function withMeta<T>(event: T): T {
   return new Proxy(event, new MetaProxy((event as any)._meta)) as T;
 }
 
-export function getMeta<T extends {}>(
+export function getMeta<T extends Record<string, unknown>>(
   obj: T | undefined,
   prop: Extract<keyof T, string>
 ): Meta | undefined {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (!obj || typeof obj[GET_META] !== 'function') {
     return undefined;
   }
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return obj[GET_META](prop);
 }

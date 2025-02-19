@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -8,6 +8,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {useChonkTheme} from 'sentry/utils/theme/useChonkTheme';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 type Props = {
   children: React.ReactNode;
@@ -28,10 +30,32 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
+  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const [chonkTheme] = useChonkTheme();
+
+  // Theme toggle global shortcut
+  const themeToggleHotkeys = useMemo(() => {
+    return [
+      {
+        match: ['command+shift+1', 'ctrl+shift+1'],
+        includeInputs: true,
+        callback: () => {
+          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
+        },
+      },
+    ];
+  }, [config.theme]);
+
+  useHotkeys(themeToggleHotkeys);
+
+  // Use default theme or chonk theme if set.
+  let theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  if (chonkTheme) {
+    theme = chonkTheme;
+  }
 
   return (
     <ThemeProvider theme={theme}>

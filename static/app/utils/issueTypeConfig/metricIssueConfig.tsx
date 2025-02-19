@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -15,21 +16,39 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
-      allEvents: t('All Open Periods'),
+      eventUnits: t('Open Periods'),
     },
-    attachments: {enabled: false},
+    detector: {
+      enabled: true,
+      title: t('Metric Alert Detector'),
+      ctaText: t('View detector details'),
+    },
+    header: {
+      filterBar: {enabled: true, fixedEnvironment: false},
+      graph: {enabled: true, type: 'detector-history'},
+      tagDistribution: {enabled: false},
+      occurrenceSummary: {enabled: false},
+    },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: true},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     eventAndUserCounts: {enabled: false},
     resources: null,
     autofix: false,
-    events: {enabled: false},
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
     similarIssues: {enabled: false},
-    userFeedback: {enabled: false},
     usesIssuePlatform: true,
+    useOpenPeriodChecks: true,
     stats: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
     issueSummary: {enabled: false},
   },
 };

@@ -8,7 +8,6 @@ import sentry_sdk
 from django.conf import settings
 from rediscluster import RedisCluster
 
-from sentry.features.rollout import in_random_rollout
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
@@ -16,6 +15,7 @@ from sentry.ingest.transaction_clusterer.datasource import (
     TRANSACTION_SOURCE_URL,
 )
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 

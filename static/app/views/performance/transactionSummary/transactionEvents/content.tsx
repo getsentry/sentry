@@ -54,7 +54,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-export const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
+export const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -247,7 +247,7 @@ function Search(props: Props) {
       />
       <LinkButton
         to={eventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}

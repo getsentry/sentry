@@ -6,7 +6,7 @@ import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 import type {StrictStoreDefinition} from './types';
 
-function datetimeHasSameValue(
+export function datetimeHasSameValue(
   a: PageFilters['datetime'],
   b: PageFilters['datetime']
 ): boolean {
@@ -15,23 +15,23 @@ function datetimeHasSameValue(
   }
 
   for (const key in a) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (a[key] instanceof Date && b[key] instanceof Date) {
       // This will fail on invalid dates as NaN !== NaN,
       // but thats fine since we don't want invalid dates to be equal
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (a[key].getTime() === b[key].getTime()) {
         continue;
       }
       return false;
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (a[key] === null && b[key] === null) {
       continue;
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (a[key] !== b[key]) {
       return false;
     }

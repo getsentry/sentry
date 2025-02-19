@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
@@ -7,13 +7,16 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
+import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
 import {FLAG_HASH_SKIP_CONFIG} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   IntegrationOptions,
   ProviderOptions,
 } from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -24,19 +27,66 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
+export function useFeatureFlagOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
+      openDrawer(() => <SidebarContent />, {
+        ariaLabel: t('Debug Issues with Feature Flag Context'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== initialPathname.current,
+      });
+
+      // Reset store
+      SidebarPanelStore.hidePanel();
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+/**
+ * @deprecated Use useFeatureFlagOnboardingDrawer instead.
+ */
+function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
   const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
   const {
     hasDocs,
     projects,
@@ -46,14 +96,14 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel,
+    currentPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
     targetPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
     onboardingPlatforms: featureFlagOnboardingPlatforms,
     allPlatforms: featureFlagOnboardingPlatforms,
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -65,7 +115,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -90,16 +140,13 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   }, [supportedProjects, unsupportedProjects]);
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-  if (!isActive || !hasProjectAccess || !selectedProject) {
-    return null;
+
+  if (!selectedProject) {
+    return <LoadingIndicator />;
   }
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Debug Issues with Feature Flag Context')}</Heading>
@@ -138,7 +185,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
         </HeaderActions>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -190,7 +237,7 @@ function OnboardingContent({
     textValue?: string;
   }>(sdkProviderOptions[0]!);
 
-  const defaultTab: string = 'openFeature';
+  const defaultTab = 'openFeature';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab
@@ -272,53 +319,65 @@ function OnboardingContent({
     );
   }
 
-  const doesNotSupportFeatureFlags = currentProject.platform
-    ? !featureFlagOnboardingPlatforms.includes(currentProject.platform)
-    : true;
+  const doesNotSupportFeatureFlags =
+    !currentProject.platform ||
+    !featureFlagOnboardingPlatforms.concat('other').includes(currentProject.platform);
 
-  if (doesNotSupportFeatureFlags) {
+  const defaultMessage = (
+    <Fragment>
+      <StyledDefaultContent>
+        {t(
+          'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
+        )}
+        <LinkButton size="sm" href={`/settings/${organization.slug}/feature-flags/`}>
+          {t('Go to Feature Flag Settings')}
+        </LinkButton>
+      </StyledDefaultContent>
+      <div>
+        {tct(
+          'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python and JavaScript projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />
+            ),
+            platform: currentPlatform?.name || currentProject.slug,
+          }
+        )}
+      </div>
+    </Fragment>
+  );
+
+  if (currentProject.platform === 'other') {
     return (
       <Fragment>
-        <div>
-          {tct(
-            'Feature Flags isn’t available for your [platform] project. It is currently only available for Python and JavaScript projects.',
-            {platform: currentPlatform?.name || currentProject.slug}
-          )}
-        </div>
-        <div>
-          <LinkButton
-            size="sm"
-            href="https://docs.sentry.io/product/explore/feature-flags/"
-            external
-          >
-            {t('Go to Sentry Documentation')}
-          </LinkButton>
-        </div>
+        {radioButtons}
+        <FeatureFlagOtherPlatformOnboarding
+          projectSlug={currentProject.slug}
+          integration={
+            // either OpenFeature or the SDK selected from the second dropdown
+            setupMode() === 'openFeature'
+              ? IntegrationOptions.OPENFEATURE
+              : sdkProvider.value
+          }
+          provider={
+            // dropdown value (from either dropdown)
+            setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
+          }
+        />
       </Fragment>
     );
   }
 
-  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (!currentPlatform || !docs || !dsn || !hasDocs || !projectKeyId) {
-    return (
-      <Fragment>
-        <div>
-          {tct(
-            'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
-            {project: currentProject.slug}
-          )}
-        </div>
-        <div>
-          <LinkButton
-            size="sm"
-            href="https://docs.sentry.io/platforms/python/feature-flags/"
-            external
-          >
-            {t('Read Docs')}
-          </LinkButton>
-        </div>
-      </Fragment>
-    );
+  // Platform is not supported, no platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
+  if (
+    doesNotSupportFeatureFlags ||
+    !currentPlatform ||
+    !docs ||
+    !dsn ||
+    !hasDocs ||
+    !projectKeyId
+  ) {
+    return defaultMessage;
   }
 
   return (
@@ -348,6 +407,14 @@ function OnboardingContent({
     </Fragment>
   );
 }
+
+const StyledDefaultContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${space(2)};
+  margin: ${space(1)} 0;
+`;
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 600px;
@@ -408,4 +475,4 @@ const Header = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export default FeatureFlagOnboardingSidebar;
+export default LegacyFeatureFlagOnboardingSidebar;

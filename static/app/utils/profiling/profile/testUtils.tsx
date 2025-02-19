@@ -4,7 +4,7 @@ import type {DeepPartial} from 'sentry/types/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-export const f = (name: string, key: number, in_app: boolean = true) =>
+export const f = (name: string, key: number, in_app = true) =>
   new Frame({name, key, is_application: in_app});
 export const c = (fr: Frame) => new CallTreeNode(fr, null);
 export const firstCallee = (node: CallTreeNode) => node.children[0];
@@ -17,7 +17,7 @@ export const nthCallee = (node: CallTreeNode, n: number) => {
 };
 
 export const makeTestingBoilerplate = () => {
-  const timings: [Frame['name'], string][] = [];
+  const timings: Array<[Frame['name'], string]> = [];
 
   const openSpy = jest.fn();
   const closeSpy = jest.fn();

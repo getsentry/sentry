@@ -93,5 +93,8 @@ else:
     class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore[no-redef]
         pass
 
+    class BoundedPositiveBigIntegerField(BoundedPositiveIntegerField):  # type: ignore[no-redef]
+        pass
+
     class BoundedBigAutoField(BoundedAutoField):  # type: ignore[no-redef]
         pass

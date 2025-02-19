@@ -24,7 +24,7 @@ describe('ExternalIssuesList', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    SentryAppInstallationStore.init!();
+    SentryAppInstallationStore.init();
   });
 
   afterEach(() => {

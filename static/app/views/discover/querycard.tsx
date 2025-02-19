@@ -11,7 +11,7 @@ import type {User} from 'sentry/types/user';
 
 type Props = {
   renderGraph: () => React.ReactNode;
-  to: object;
+  to: Record<PropertyKey, unknown>;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
@@ -101,9 +101,13 @@ const QueryCardHeader = styled('div')`
 `;
 
 const QueryTitle = styled('div')`
-  ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  line-height: 1.2;
+  /* @TODO(jonasbadalic) font-weight: initial? */
   font-weight: initial;
 `;
 

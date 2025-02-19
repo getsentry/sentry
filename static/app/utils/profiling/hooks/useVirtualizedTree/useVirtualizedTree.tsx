@@ -246,17 +246,19 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      raf !== undefined && window.cancelAnimationFrame(raf);
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
 
       raf = window.requestAnimationFrame(() => {
         dispatch({type: 'set scroll top', payload: scrollTop});
         if (Array.isArray(props.scrollContainer)) {
-          for (let i = 0; i < props.scrollContainer.length; i++) {
-            if (props.scrollContainer[i] === evt.target) {
+          for (const element of props.scrollContainer) {
+            if (element === evt.target) {
               // our scroll event is non blocking, so we only need to update the other containers
               continue;
             }
-            props.scrollContainer[i]!.scrollTop = scrollTop;
+            element.scrollTop = scrollTop;
           }
         }
         if (Array.isArray(props.scrollContainer)) {
@@ -711,7 +713,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       // it enables us to make constant space updates to the tree and avoid doing an O(n) lookup
       // for all node children when they are expanded. Since stack size is capped, this should never
       // exceed a couple hundred iterations and **should** be a reasonable tradeoff in performance.
-      const edges: VirtualizedTreeNode<T>[] = [];
+      const edges: Array<VirtualizedTreeNode<T>> = [];
       let path: VirtualizedTreeNode<T> | null = node.parent;
 
       while (path && !path.expanded) {
@@ -846,13 +848,13 @@ export function useVirtualizedTree<T extends TreeLike>(
     // It is important that we do not create a copy of item
     // because refs will assign the dom node to the item.
     // If we map, we get a new object that our internals will not be able to access.
-    for (let i = 0; i < latestItemsRef.current.length; i++) {
+    for (const item of latestItemsRef.current) {
       renderered.push(
-        renderRow(latestItemsRef.current[i]!, {
-          handleRowClick: handleRowClick(latestItemsRef.current[i]!.key),
+        renderRow(item, {
+          handleRowClick: handleRowClick(item.key),
           handleExpandTreeNode,
           handleRowKeyDown,
-          handleRowMouseEnter: handleRowMouseEnter(latestItemsRef.current[i]!.key),
+          handleRowMouseEnter: handleRowMouseEnter(item.key),
           selectedNodeIndex: state.selectedNodeIndex,
         })
       );

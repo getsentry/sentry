@@ -457,9 +457,9 @@ describe('SpanTreeModel', () => {
     fullWaterfallExpected[0] = {
       ...fullWaterfallExpected[0]!,
     };
-    assert(fullWaterfallExpected[0]!.type === 'span');
-    fullWaterfallExpected[0]!.numOfSpanChildren += 1;
-    fullWaterfallExpected[0]!.showEmbeddedChildren = true;
+    assert(fullWaterfallExpected[0].type === 'span');
+    fullWaterfallExpected[0].numOfSpanChildren += 1;
+    fullWaterfallExpected[0].showEmbeddedChildren = true;
 
     expect(spans).toEqual(fullWaterfallExpected);
 

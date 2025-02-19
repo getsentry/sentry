@@ -1,9 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -96,14 +96,18 @@ export function FeatureFlagOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         {!skipConfig ? null : (
-          <Alert type="info" showIcon>
-            <Flex gap={space(3)}>
-              {t('Feature flag integration detected. Please follow the remaining steps.')}
-              <Button onClick={() => setSkipSteps(!skipSteps)}>
-                {skipSteps ? t('Show Full Guide') : t('Hide Full Guide')}
-              </Button>
-            </Flex>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <Flex gap={space(3)}>
+                {t(
+                  'Feature flag integration detected. Please follow the remaining steps.'
+                )}
+                <Button onClick={() => setSkipSteps(!skipSteps)}>
+                  {skipSteps ? t('Show Full Guide') : t('Hide Full Guide')}
+                </Button>
+              </Flex>
+            </Alert>
+          </Alert.Container>
         )}
         {!skipSteps && (
           <Steps>

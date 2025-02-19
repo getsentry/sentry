@@ -66,7 +66,7 @@ import {
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import TraceActionsMenu from './traceActionsMenu';
-import {traceAnalytics} from './traceAnalytics';
+import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
 import {
   isAutogroupedNode,
   isParentAutogroupedNode,
@@ -249,7 +249,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         searchingRaf.current = null;
       }
 
-      // @ts-ignore TS(7031): Binding element 'matches' implicitly has an 'any' ... Remove this comment to see the full error message
+      // @ts-expect-error TS(7031): Binding element 'matches' implicitly has an 'any' ... Remove this comment to see the full error message
       function done([matches, lookup, activeNodeSearchResult]) {
         // If the previous node is still in the results set, we want to keep it
         if (activeNodeSearchResult) {
@@ -521,6 +521,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
+  const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -530,7 +532,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        source
       );
     }
     // The tree has the data fetched, but does not yet respect the user preferences.
@@ -607,7 +610,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
         viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
         if (viewManager.isOutsideOfView(node)) {
-          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         }
       }
       viewManager.scrollToRow(index, 'center');
@@ -633,6 +636,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    source,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -846,6 +850,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         hideBottomBorder={hasTraceNewUi}
       >
         <Trace
+          metaQueryResults={props.meta}
           trace={props.tree}
           rerender={rerender}
           trace_id={props.traceSlug}

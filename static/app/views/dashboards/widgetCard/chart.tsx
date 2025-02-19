@@ -37,7 +37,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -51,8 +51,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -87,6 +87,7 @@ type WidgetCardChartProps = Pick<
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -132,13 +133,23 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection} = this.props;
+    const {location, widget, selection, minTableColumnWidth} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
 
     const datasetConfig = getDatasetConfig(widget.widgetType);
+
+    const getCustomFieldRenderer = (
+      field: string,
+      meta: MetaType,
+      organization?: Organization
+    ) => {
+      return (
+        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
+      );
+    };
 
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
@@ -159,7 +170,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             data={result.data}
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+            getCustomFieldRenderer={getCustomFieldRenderer}
+            minColumnWidth={minTableColumnWidth}
           />
         </TableWrapper>
       );
@@ -236,7 +248,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
   chartComponent(chartProps: any): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]!?.columns.length > 0;
+    const stacked = widget.queries[0]?.columns.length! > 0;
 
     switch (widget.displayType) {
       case 'bar':

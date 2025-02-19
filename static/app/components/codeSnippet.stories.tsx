@@ -7,7 +7,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(CodeSnippet, story => {
+export default storyBook('CodeSnippet', story => {
   story('Defaults', () => (
     <Fragment>
       <p>

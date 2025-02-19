@@ -33,7 +33,7 @@ export default function EventErrorCard({
   title,
   data,
 }: {
-  data: {key: string; subject: any; value: any}[];
+  data: Array<{key: string; subject: any; value: any}>;
   title: string;
 }) {
   const contentItems = data.map(datum => {
@@ -73,7 +73,7 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
       .map(([key, value]) => ({
         key,
         value,
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         subject: keyMapping[key] || startCase(key),
       }))
       .filter(d => {

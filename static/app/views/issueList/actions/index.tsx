@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -8,8 +9,8 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
+import {Alert} from 'sentry/components/core/alert';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -23,10 +24,9 @@ import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -207,6 +207,7 @@ function IssueListActions({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const theme = useTheme();
 
   const disableActions = useMedia(
     `(max-width: ${
@@ -523,7 +524,7 @@ const StickyActions = styled(Sticky)`
 
   border-bottom: 1px solid ${p => p.theme.border};
   border-top: none;
-  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
@@ -533,7 +534,7 @@ const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
   padding-bottom: ${p => (p.narrowHeader ? space(0.5) : space(1))};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
+  border-radius: 6px 6px 0 0;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
@@ -596,7 +597,6 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
   border-bottom: none;
 `;
 

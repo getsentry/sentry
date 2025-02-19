@@ -119,12 +119,12 @@ export class Provider extends Component<Props, State> {
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
-  isDragging: boolean = false;
-  isWheeling: boolean = false;
+  isDragging = false;
+  isWheeling = false;
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spanBars: (SpanBar | NewTraceDetailsSpanBar)[] = [];
+  spanBars: Array<SpanBar | NewTraceDetailsSpanBar> = [];
   currentLeftPos = 0;
 
   getReferenceSpanBar() {
@@ -560,7 +560,8 @@ export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
               ...context,
             } as P;
 
-            return <WrappedComponent {...props} />;
+            // TODO(any): HoC types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+            return <WrappedComponent {...(props as any)} />;
           }}
         </ScrollbarManagerContext.Consumer>
       );

@@ -273,7 +273,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
         )
 
-        rpc_request = get_timeseries_query(
+        rpc_request, _, _ = get_timeseries_query(
             params=snuba_params,
             query_string=query,
             y_axes=[self.aggregate],
@@ -307,17 +307,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        self.use_metrics_layer = (
-            features.has(
-                "organizations:custom-metrics",
-                Organization.objects.get_from_cache(id=self.org_id),
-            )
-            # required in order to correctly clean up the custom metric alert subscriptions
-            or features.has(
-                "organizations:custom-metrics-alerts-widgets-removal-info",
-                Organization.objects.get_from_cache(id=self.org_id),
-            )
-        )
+        self.use_metrics_layer = False
 
         self.on_demand_metrics_enabled = features.has(
             "organizations:on-demand-metrics-extraction",

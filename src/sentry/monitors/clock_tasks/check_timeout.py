@@ -79,9 +79,6 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
         metrics.incr("sentry.monitors.tasks.check_timeout.not_found")
         return
 
-    if checkin.monitor_environment is None:
-        return
-
     monitor_environment = checkin.monitor_environment
     monitor = monitor_environment.monitor
 

@@ -264,7 +264,7 @@ function BaseGroupRow({
     [group]
   );
 
-  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
@@ -274,7 +274,7 @@ function BaseGroupRow({
       : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
-  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupSecondaryStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
@@ -325,7 +325,7 @@ function BaseGroupRow({
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
       return discoverView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
       );
@@ -386,7 +386,7 @@ function BaseGroupRow({
     // Original state had an inbox reason
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
-    !group!.inbox &&
+    !group.inbox &&
     // Only apply reviewed on the "for review" tab
     isForReviewQuery(query);
 

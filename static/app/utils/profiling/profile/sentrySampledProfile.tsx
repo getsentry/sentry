@@ -71,9 +71,8 @@ export class SentrySampledProfile extends Profile {
       type: options.type,
     });
 
-    for (let i = 0; i < samples.length; i++) {
-      const sample = samples[i]!;
-      let stack = stacks[sample!.stack_id].map(resolveFrame);
+    for (const sample of samples) {
+      let stack = stacks[sample.stack_id].map(resolveFrame);
 
       if (options.frameFilter) {
         stack = stack.filter((frame: any) => options.frameFilter!(frame));

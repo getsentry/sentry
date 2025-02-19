@@ -464,7 +464,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 5, timedelta(minutes=-3))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -505,7 +505,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -543,7 +543,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -592,7 +592,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(throughput_rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -633,7 +633,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(throughput_rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -688,6 +688,33 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert has_anomaly(anomaly2, warning_label)
         assert not has_anomaly(not_anomaly, label)
         assert not has_anomaly(not_anomaly, warning_label)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        result = get_anomaly_data_from_seer(
+            alert_rule=processor.alert_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value="NULL_VALUE",  # type: ignore[arg-type]
+        )
+        logger_extra = {
+            "subscription_id": self.sub.id,
+            "organization_id": self.sub.project.organization.id,
+            "project_id": self.sub.project_id,
+            "alert_rule_id": self.dynamic_rule.id,
+            "aggregation_value": "NULL_VALUE",
+        }
+        assert result is None
+        mock_logger.info.assert_called_with(
+            "Aggregation value or snuba query is empty",
+            extra=logger_extra,
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -2115,7 +2142,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             )
 
         # Send Critical Update
-        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2182,7 +2208,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            assert rule.snuba_query is not None
             self.send_update(
                 rule,
                 trigger.alert_threshold + 5,
@@ -2248,7 +2273,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_slack_calls([])
 
         # Send update above critical
-        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2881,6 +2905,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_incident_is_latest_for_rule(new_incident)
 
     @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
         rule = self.rule
@@ -2910,6 +2935,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
 
     @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
         from sentry.models.group import GroupStatus
@@ -2960,7 +2986,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_process_data_packets_called(self, mock_process_data_packets):
         rule = self.rule
         detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
-        data_source = self.create_data_source(query_id=self.sub.id)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
         assert mock_process_data_packets.call_count == 1
@@ -2969,7 +2995,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
-        assert data_packet_list[0].query_id == self.sub.id
+        assert data_packet_list[0].source_id == str(self.sub.id)
         assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
 
 

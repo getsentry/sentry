@@ -5,7 +5,7 @@ import responses
 from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
     DEFAULT_ERROR_MESSAGE,
     DEFAULT_SUCCESS_MESSAGE,
-    AlertRuleActionRequester,
+    SentryAppAlertRuleActionRequester,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -14,7 +14,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 @control_silo_test
-class TestAlertRuleActionRequester(TestCase):
+class TestSentryAppAlertRuleActionRequester(TestCase):
     def setUp(self):
         super().setUp()
 
@@ -53,7 +53,7 @@ class TestAlertRuleActionRequester(TestCase):
             status=200,
         )
 
-        result = AlertRuleActionRequester(
+        result = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
@@ -89,7 +89,7 @@ class TestAlertRuleActionRequester(TestCase):
             json={"message": self.success_message},
         )
 
-        result = AlertRuleActionRequester(
+        result = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
@@ -105,7 +105,7 @@ class TestAlertRuleActionRequester(TestCase):
             status=200,
             body=self.success_message.encode(),
         )
-        result = AlertRuleActionRequester(
+        result = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
@@ -122,7 +122,7 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
         )
 
-        result = AlertRuleActionRequester(
+        result = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
@@ -164,7 +164,7 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
             json={"message": self.error_message},
         )
-        result = AlertRuleActionRequester(
+        result = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
@@ -180,7 +180,7 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
             body=self.error_message.encode(),
         )
-        result = AlertRuleActionRequester(
+        result = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,

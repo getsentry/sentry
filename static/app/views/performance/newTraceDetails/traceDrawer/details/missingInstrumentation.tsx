@@ -1,10 +1,8 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSpan} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useProjects from 'sentry/utils/useProjects';
@@ -21,6 +19,7 @@ import {getTraceTabTitle} from '../../traceState/traceTabs';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
+import {getProfileMeta} from './utils';
 
 export function MissingInstrumentationNodeDetails(
   props: TraceTreeNodeDetailsProps<MissingInstrumentationNode>
@@ -35,7 +34,9 @@ export function MissingInstrumentationNodeDetails(
   const {node, organization, onTabScrollToNode} = props;
   const event = node.previous.event ?? node.next.event ?? null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
+  const profileMeta = getProfileMeta(event) || '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -46,8 +47,8 @@ export function MissingInstrumentationNodeDetails(
               {t('No Instrumentation')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              hideCopyButton
-              text={t('How Awkward')}
+              clipboardText=""
+              subTitle={t('How Awkward')}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
@@ -58,22 +59,19 @@ export function MissingInstrumentationNodeDetails(
         />
       </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
-        <TextBlock>
-          {tct(
-            'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
-            {
-              customInstrumentationLink: (
-                <ExternalLink href={getCustomInstrumentationLink(project)} />
-              ),
-            }
-          )}
-        </TextBlock>
-
+        {tct(
+          'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
+          {
+            customInstrumentationLink: (
+              <ExternalLink href={getCustomInstrumentationLink(project)} />
+            ),
+          }
+        )}
         {event?.projectSlug ? (
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={event?.projectSlug ?? ''}
-            profileMeta={profileId || ''}
+            profileMeta={profileMeta}
           >
             <ProfileContext.Consumer>
               {profiles => (
@@ -82,28 +80,19 @@ export function MissingInstrumentationNodeDetails(
                   input={profiles?.type === 'resolved' ? profiles.data : null}
                   traceID={profileId || ''}
                 >
-                  <ProfilePreview event={event!} node={node} />
+                  <ProfilePreview event={event} node={node} />
                 </ProfileGroupProvider>
               )}
             </ProfileContext.Consumer>
           </ProfilesProvider>
         ) : null}
-
-        <TextBlock>
-          {t(
-            "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
-          )}
-        </TextBlock>
+        {t(
+          "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
+        )}
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  line-height: 1.5;
-  margin-bottom: ${space(2)};
-`;
 
 function LegacyMissingInstrumentationNodeDetails({
   node,
@@ -145,7 +134,7 @@ function LegacyMissingInstrumentationNodeDetails({
         <TraceDrawerComponents.CopyableCardValueWithLink
           value={profileId}
           linkTarget={generateProfileFlamechartRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             projectSlug: project.slug,
             profileId,
           })}

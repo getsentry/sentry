@@ -1,6 +1,6 @@
+'use strict';
 import '@testing-library/jest-dom';
 
-/* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {enableFetchMocks} from 'jest-fetch-mock';
@@ -28,13 +28,9 @@ setLocale(DEFAULT_LOCALE_DATA);
  */
 enableFetchMocks();
 
-/**
- * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
- * framer-motion SVG components fail
- *
- * See https://github.com/jsdom/jsdom/issues/1330
- */
-// @ts-expect-error
+// @ts-expect-error XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
+// framer-motion SVG components fail
+// See https://github.com/jsdom/jsdom/issues/1330
 SVGElement.prototype.getTotalLength ??= () => 1;
 
 /**

@@ -1,9 +1,9 @@
 import {Component, forwardRef} from 'react';
-import type ReactSelect from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import type {ReactSelect} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -17,9 +17,9 @@ export type Result = {
 };
 
 export interface SelectAsyncControlProps {
-  forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
+  forwardedRef: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
   // TODO(ts): Improve data type
-  onQuery: (query: string | undefined) => {};
+  onQuery: (query: string | undefined) => Record<string, unknown>;
   onResults: (data: any) => Result[];
   url: string;
   value: ControlProps['value'];

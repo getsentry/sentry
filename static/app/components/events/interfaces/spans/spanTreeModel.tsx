@@ -40,17 +40,17 @@ class SpanTreeModel {
 
   // readonly state
   span: Readonly<SpanType>;
-  children: Array<SpanTreeModel> = [];
+  children: SpanTreeModel[] = [];
   isRoot: boolean;
 
   // readable/writable state
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
-  showEmbeddedChildren: boolean = false;
-  embeddedChildren: Array<SpanTreeModel> = [];
-  isEmbeddedTransactionTimeAdjusted: boolean = false;
+  showEmbeddedChildren = false;
+  embeddedChildren: SpanTreeModel[] = [];
+  isEmbeddedTransactionTimeAdjusted = false;
   // This controls if a chain of nested spans that are the only sibling to be visually grouped together or not.
   // On initial render, they're visually grouped together.
-  isNestedSpanGroupExpanded: boolean = false;
+  isNestedSpanGroupExpanded = false;
   // Entries in this set will follow the format 'op.description'.
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
   expandedSiblingGroups: Set<string> = new Set();
@@ -61,7 +61,7 @@ class SpanTreeModel {
     parentSpan: SpanType,
     childSpans: SpanChildrenLookupType,
     api: Client,
-    isRoot: boolean = false,
+    isRoot = false,
     traceInfo?: TraceInfo
   ) {
     this.api = api;
@@ -69,7 +69,7 @@ class SpanTreeModel {
     this.isRoot = isRoot;
     this.traceInfo = traceInfo;
     const spanID = getSpanID(parentSpan);
-    const spanChildren: Array<RawSpanType> = childSpans?.[spanID] ?? [];
+    const spanChildren: RawSpanType[] = childSpans?.[spanID] ?? [];
 
     // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
     // For example if a span has a span_id that's identical to its parent_span_id.
@@ -152,7 +152,7 @@ class SpanTreeModel {
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     previousSiblingEndTimestamp: number | undefined,
     treeDepth: number,
-    continuingTreeDepths: Array<TreeDepthType>
+    continuingTreeDepths: TreeDepthType[]
   ): EnhancedProcessedSpanType | undefined {
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
@@ -191,7 +191,7 @@ class SpanTreeModel {
 
   getSpansList = (props: {
     addTraceBounds: (bounds: TraceBound) => void;
-    continuingTreeDepths: Array<TreeDepthType>;
+    continuingTreeDepths: TreeDepthType[];
     directParent: SpanTreeModel | null;
     event: Readonly<EventTransaction | AggregateEventTransaction>;
     filterSpans: FilterSpans | undefined;
@@ -495,12 +495,14 @@ class SpanTreeModel {
               acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
 
               // It's possible that a section in the minimap is selected so some spans in this group may be out of view
-              bounds.isSpanVisibleInView
-                ? acc.descendants.push(enhancedSibling)
-                : acc.descendants.push({
-                    type: 'filtered_out',
-                    span: spanModel.span,
-                  });
+              acc.descendants.push(
+                bounds.isSpanVisibleInView
+                  ? enhancedSibling
+                  : {
+                      type: 'filtered_out',
+                      span: spanModel.span,
+                    }
+              );
             }
           });
 

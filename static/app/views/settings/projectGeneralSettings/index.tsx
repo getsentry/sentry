@@ -37,10 +37,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = DeprecatedAsyncComponent['props'] &
-  RouteComponentProps<{projectId: string}, {}> & {
+  RouteComponentProps<{projectId: string}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
@@ -262,6 +262,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
+        project,
       },
       features: new Set(organization.features),
       access,
@@ -314,7 +315,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
       <div>
         <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Project Settings')} />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
@@ -386,7 +387,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
 
 type ContainerProps = {
   organization: Organization;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
   componentWillUnmount() {

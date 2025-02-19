@@ -59,6 +59,7 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
@@ -123,7 +124,11 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        try:
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        except SentryAppBaseError as e:
+            return e.response_from_exception()
+
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
@@ -202,16 +207,23 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ),
         )
-        crons_rules = Monitor.objects.filter(
-            project_id__in=[p.id for p in projects], status=ObjectStatus.ACTIVE
-        ).annotate(
-            # Since monitors have multiple environment's which can each have
-            # their own status, find the 'worst' status among all of the
-            # environments and use that as the status of this monitor.
-            resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
-            .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
-            .order_by("ordering")
-            .values("status")[:1]
+        crons_rules = (
+            Monitor.objects.filter(project_id__in=[p.id for p in projects])
+            .exclude(
+                status__in=[
+                    ObjectStatus.PENDING_DELETION,
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+            .annotate(
+                # Since monitors have multiple environment's which can each have
+                # their own status, find the 'worst' status among all of the
+                # environments and use that as the status of this monitor.
+                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
+                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
+                .order_by("ordering")
+                .values("status")[:1]
+            )
         )
 
         if not features.has("organizations:performance-view", organization):
@@ -322,13 +334,20 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ),
             )
 
-        intermediaries = [
-            CombinedQuerysetIntermediary(alert_rules, sort_key),
-            CombinedQuerysetIntermediary(issue_rules, rule_sort_key),
-            CombinedQuerysetIntermediary(uptime_rules, sort_key),
-        ]
+        type_filter = request.GET.getlist("alertType", [])
 
-        if features.has("organizations:insights-crons", organization):
+        def has_type(type: str) -> bool:
+            return not type_filter or type in type_filter
+
+        intermediaries: list[CombinedQuerysetIntermediary] = []
+
+        if has_type("alert_rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(alert_rules, sort_key))
+        if has_type("rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(issue_rules, rule_sort_key))
+        if has_type("uptime"):
+            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
+        if has_type("monitor") and features.has("organizations:insights-crons", organization):
             intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
 
         response = self.paginate(

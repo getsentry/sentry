@@ -31,7 +31,7 @@ type Download = {
   dateCreated: string;
   id: number;
   query: {
-    info: object;
+    info: Record<PropertyKey, unknown>;
     type: ExportQueryType;
   };
   status: DownloadStatus;
@@ -44,7 +44,7 @@ type Download = {
   dateFinished?: string;
 };
 
-type Props = {} & RouteComponentProps<RouteParams, {}>;
+type Props = {} & RouteComponentProps<RouteParams>;
 
 function DataDownload({params: {orgId, dataExportId}}: Props) {
   const {

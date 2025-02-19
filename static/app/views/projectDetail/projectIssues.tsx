@@ -25,6 +25,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
@@ -148,7 +149,10 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
   function getDiscoverUrl() {
     return {
-      pathname: `/organizations/${organization.slug}/discover/results/`,
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
@@ -164,7 +168,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
   const issueQuery = (Object.values(IssuesType) as string[]).includes(issuesType)
-    ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
@@ -198,7 +202,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
       ? null
-      : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         DEFAULT_RELATIVE_PERIODS[
           decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
         ];

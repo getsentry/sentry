@@ -146,7 +146,7 @@ export function LandingWidgetSelector({
   }
 }
 
-const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
+const WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
   {
     label: t('Slowest Functions (breakdown by AVG)'),
     value: 'slowest functions avg' as const,

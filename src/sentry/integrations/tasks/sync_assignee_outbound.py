@@ -11,6 +11,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.users.models.user import User
@@ -30,6 +31,7 @@ from sentry.users.services.user.service import user_service
         Integration.DoesNotExist,
         User.DoesNotExist,
         Organization.DoesNotExist,
+        IntegrationError,
     )
 )
 def sync_assignee_outbound(

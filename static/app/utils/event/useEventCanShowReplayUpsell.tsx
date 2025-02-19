@@ -4,6 +4,7 @@ import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
@@ -50,7 +51,13 @@ export default function useEventCanShowReplayUpsell({
   const upsellPlatform = group?.project.platform ?? group?.platform ?? 'other';
   const upsellProjectId = group?.project.id ?? event.projectID ?? '';
 
+  // Check if this group has replays compatibility. If we don't have a group, show the upsell.
+  const groupHasReplays = group
+    ? getConfigForIssueType(group, group?.project).pages.replays.enabled
+    : true;
+
   const canShowUpsell =
+    groupHasReplays &&
     projectCanUpsellReplay(project) &&
     (!hasOrgSentReplays || replayBackendPlatforms.includes(upsellPlatform));
 

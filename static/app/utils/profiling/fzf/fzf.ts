@@ -173,7 +173,7 @@ function calculateScore(
 ): [number, ReadonlyArray<[number, number]>] {
   let pidx = 0;
   let score = 0;
-  let inGap: boolean = false;
+  let inGap = false;
   let firstBonus = 0;
   let consecutive = 0;
 
@@ -238,7 +238,7 @@ function calculateScore(
   // we want to update/extend our current range, otherwise we want to add a new range.
 
   // Init range to first match, at this point we should have at least 1
-  const matches = [[pos[0], pos[0]! + 1]] as [number, number][];
+  const matches = [[pos[0], pos[0]! + 1]] as Array<[number, number]>;
 
   // iterate over all positions and check for overlaps from current and end of last
   // range. Positions are already sorted by match index, we can just check the last range.

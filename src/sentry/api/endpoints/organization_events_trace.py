@@ -20,7 +20,7 @@ from sentry import constants, eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.serializers.models.event import get_tags_with_meta
+from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -169,7 +169,7 @@ FullResponse = TypedDict(
         "sdk_name": Optional[str],
         "span_id": str,
         "start_timestamp": str | int,
-        "tags": list[tuple[str, str]],
+        "tags": list[EventTag],
         "timestamp": str | int,
         "transaction": str,
         "transaction.duration": int,
@@ -953,7 +953,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get_projects(
         self,
@@ -1706,7 +1705,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get_projects(
         self,
@@ -1754,6 +1752,16 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=1,
         )
+        span_meta_query = SpansIndexedQueryBuilder(
+            dataset=Dataset.SpansIndexed,
+            selected_columns=[
+                "count() as span_count",
+            ],
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            limit=1,
+        )
         transaction_children_query = SpansIndexedQueryBuilder(
             dataset=Dataset.SpansIndexed,
             selected_columns=[
@@ -1766,17 +1774,36 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=10_000,
         )
+        span_count_query = SpansIndexedQueryBuilder(
+            dataset=Dataset.SpansIndexed,
+            selected_columns=[
+                "span.op",
+                "count()",
+            ],
+            orderby=["-count()"],
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            limit=10_000,
+        )
 
         with handle_query_errors():
             results = bulk_snuba_queries(
                 [
                     meta_query.get_snql_query(),
                     transaction_children_query.get_snql_query(),
+                    span_meta_query.get_snql_query(),
+                    span_count_query.get_snql_query(),
                 ],
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
                 query_source=query_source,
             )
-            meta_result, children_result = results[0], results[1]
+            meta_result, children_result, span_meta_result, span_count_result = (
+                results[0],
+                results[1],
+                results[2],
+                results[3],
+            )
             if len(meta_result["data"]) == 0:
                 return Response(status=404)
             # Merge the result back into the first query
@@ -1785,14 +1812,25 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params,
                 query_source=query_source,
             )
-        return Response(self.serialize(meta_result["data"][0], children_result["data"]))
+        return Response(
+            self.serialize(
+                meta_result["data"][0],
+                children_result["data"],
+                span_count_result["data"],
+                span_meta_result["data"][0],
+            )
+        )
 
-    def serialize(self, results: Mapping[str, int], child_result: Any) -> Mapping[str, int]:
+    def serialize(
+        self, results: Mapping[str, int], child_result: Any, span_result: Any, span_meta_result: Any
+    ) -> Mapping[str, int | dict[str, int]]:
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
+            "span_count": span_meta_result.get("span_count") or 0,
             "transaction_child_count_map": child_result,
+            "span_count_map": {row["span.op"]: row["count"] for row in span_result},
         }

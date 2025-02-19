@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -31,7 +31,6 @@ import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 interface FieldProps {
   data: Props['data'];
@@ -163,7 +162,7 @@ function ChoiceField({
   // All `value`s are cast to string
   // There are integrations that give the form field choices with the value as number, but
   // when the integration configuration gets saved, it gets saved and returned as a string
-  // @ts-ignore TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
+  // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
   const options = fieldConfig.choices.map(([value, label]) => ({
     value: `${value}`,
     label,
@@ -344,7 +343,7 @@ function RuleNode({
       return (
         <Separator key={key}>
           {node.formFields?.hasOwnProperty(key)
-            ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               getField(key, node.formFields[key])
             : part}
         </Separator>
@@ -380,8 +379,8 @@ function RuleNode({
               <TicketRuleModal
                 {...deps}
                 formFields={node.formFields || {}}
-                link={node.link!}
-                ticketType={node.ticketType!}
+                link={node.link}
+                ticketType={node.ticketType}
                 instance={data}
                 index={index}
                 onSubmitAction={updateParentFromTicketRule}
@@ -406,8 +405,8 @@ function RuleNode({
               deps => (
                 <SentryAppRuleModal
                   {...deps}
-                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
-                  config={node.formFields as SchemaFormConfig}
+                  sentryAppInstallationUuid={node.sentryAppInstallationUuid}
+                  config={node.formFields}
                   appName={node.prompt ?? node.label}
                   onSubmitSuccess={updateParentFromSentryAppRule}
                   resetValues={data}
@@ -633,6 +632,5 @@ const MarginlessAlert = styled(Alert)`
   border-top-right-radius: 0;
   border-width: 0;
   border-top: 1px ${p => p.theme.innerBorder} solid;
-  margin: 0;
   padding: ${space(1)} ${space(1)};
 `;

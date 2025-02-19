@@ -33,7 +33,7 @@ import {
 
 import VitalDetailContent from './vitalDetailContent';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   api: Client;
   loadingProjects: boolean;
   organization: Organization;

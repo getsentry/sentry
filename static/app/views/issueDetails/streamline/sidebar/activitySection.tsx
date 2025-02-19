@@ -7,10 +7,11 @@ import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithSto
 import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import Link from 'sentry/components/links/link';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -30,6 +31,7 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -59,7 +61,7 @@ function TimelineItem({
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction(item.data)
+    ? iconMapping.componentFunction(item.data, item.user)
     : iconMapping?.Component ?? null;
 
   return (
@@ -220,14 +222,38 @@ export default function StreamlinedActivitySection({
     [group.activity, mutators, group.id, organization]
   );
 
+  const activityLink = {
+    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+    query: {
+      ...location.query,
+      cursor: undefined,
+    },
+  };
+
   return (
     <div>
       {!isDrawer && (
         <Flex justify="space-between" align="center">
-          <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-          <TextLinkButton
-            borderless
-            size="zero"
+          <SidebarSectionTitle style={{gap: space(0.75)}}>
+            {t('Activity')}
+            {group.numComments > 0 ? (
+              <CommentsLink
+                to={activityLink}
+                aria-label={t('Number of comments: %s', group.numComments)}
+              >
+                <IconChat
+                  size="xs"
+                  color={
+                    group.subscriptionDetails?.reason === 'mentioned'
+                      ? 'successText'
+                      : undefined
+                  }
+                />
+                <span>{group.numComments}</span>
+              </CommentsLink>
+            ) : null}
+          </SidebarSectionTitle>
+          <ViewButton
             aria-label={t('Open activity drawer')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
@@ -243,7 +269,7 @@ export default function StreamlinedActivitySection({
             }}
           >
             {t('View')}
-          </TextLinkButton>
+          </ViewButton>
         </Flex>
       )}
       <Timeline.Container>
@@ -289,13 +315,7 @@ export default function StreamlinedActivitySection({
               title={
                 <LinkButton
                   aria-label={t('View all activity')}
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-                    query: {
-                      ...location.query,
-                      cursor: undefined,
-                    },
-                  }}
+                  to={activityLink}
                   size="xs"
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
@@ -336,16 +356,17 @@ const Timestamp = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const TextLinkButton = styled(LinkButton)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-`;
-
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
 `;
 
 const NoteWrapper = styled('div')`
   ${textStyles}
+`;
+
+const CommentsLink = styled(Link)`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+  color: ${p => p.theme.subText};
 `;

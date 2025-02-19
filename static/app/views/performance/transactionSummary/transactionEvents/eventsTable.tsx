@@ -95,7 +95,7 @@ type Props = {
   transactionName: string;
   applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
-  customColumns?: ('attachments' | 'minidump')[];
+  customColumns?: Array<'attachments' | 'minidump'>;
   domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;
@@ -217,7 +217,7 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'id' || field === 'trace') {
       const {issueId, isRegressionIssue} = this.props;
-      const isIssue: boolean = !!issueId;
+      const isIssue = !!issueId;
       let target: LocationDescriptor = {};
       const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
       // TODO: set referrer properly
@@ -549,7 +549,7 @@ class EventsTable extends Component<Props, State> {
                   tableData ??= {data: []};
                   const pageEventsCount = tableData?.data?.length ?? 0;
                   const parsedPageLinks = parseLinkHeader(pageLinks);
-                  const cursor = parsedPageLinks?.next!?.cursor;
+                  const cursor = parsedPageLinks?.next?.cursor;
                   const shouldFetchAttachments: boolean =
                     organization.features.includes('event-attachments') &&
                     !!this.props.issueId &&
@@ -563,7 +563,7 @@ class EventsTable extends Component<Props, State> {
                           totalEventsCount: totalEventsCount.toLocaleString(),
                         })
                       : undefined;
-                  if (shouldFetchAttachments) {
+                  if (cursor && shouldFetchAttachments) {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);

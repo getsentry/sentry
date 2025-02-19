@@ -29,7 +29,7 @@ import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  columnOrder: TableColumn<React.ReactText>[];
+  columnOrder: Array<TableColumn<React.ReactText>>;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -127,7 +127,7 @@ function TransactionsTable(props: Props) {
   const renderRow = (
     row: TableDataRow,
     rowIndex: number,
-    colOrder: TableColumn<React.ReactText>[],
+    colOrder: Array<TableColumn<React.ReactText>>,
     tableMeta: MetaType
   ): React.ReactNode[] => {
     const fields = eventView.getFields();
@@ -217,7 +217,7 @@ function TransactionsTable(props: Props) {
       if (!tableData.meta) {
         return;
       }
-      // @ts-ignore TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
+      // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
       cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta));
     });
     return cells;

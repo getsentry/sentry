@@ -20,7 +20,7 @@ function useLoadedMembers() {
   return {members, loadMore, ...rest};
 }
 
-export default storyBook(AvatarList, story => {
+export default storyBook('AvatarList', story => {
   story('Default', () => {
     const {members, fetching} = useLoadedMembers();
 

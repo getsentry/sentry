@@ -16,12 +16,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -167,14 +165,14 @@ function Controls({
 
   const addWidgetDropdownItems: MenuItemProps[] = [
     {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
-    },
-    {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
       onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
     },
   ];
 
@@ -220,6 +218,11 @@ function Controls({
                         dashboard.id,
                         !isFavorited
                       );
+                      trackAnalytics('dashboards_manage.toggle_favorite', {
+                        organization,
+                        dashboard_id: dashboard.id,
+                        favorited: !isFavorited,
+                      });
                     } catch (error) {
                       // If the api call fails, revert the state
                       setIsFavorited(isFavorited);
@@ -259,17 +262,7 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                {hasCustomMetrics(organization) ? (
-                  <AddWidgetButton
-                    onAddWidget={onAddWidget}
-                    aria-label={t('Add Widget')}
-                    priority="primary"
-                    data-test-id="add-widget-library"
-                    disabled={widgetLimitReached}
-                  />
-                ) : organization.features.includes(
-                    'dashboards-widget-builder-redesign'
-                  ) ? (
+                {organization.features.includes('dashboards-widget-builder-redesign') ? (
                   <DropdownMenu
                     items={addWidgetDropdownItems}
                     isDisabled={widgetLimitReached || !hasEditAccess}

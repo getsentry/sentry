@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 
 import orjson
 import pytest
-from dateutil.parser import parse as parse_datetime
 from django.core.serializers import serialize
 from django.db import models
 
@@ -140,8 +139,8 @@ class SanitizationUnitTests(TestCase):
         assert isinstance(s0["uuid"], str)
 
         # Confirm sanitization.
-        assert parse_datetime(f0["date_added"]) < s0["date_added"]
-        assert parse_datetime(f0["date_updated"]) < s0["date_updated"]
+        assert datetime.fromisoformat(f0["date_added"]) < s0["date_added"]
+        assert datetime.fromisoformat(f0["date_updated"]) < s0["date_updated"]
         assert f0["email"] != s0["email"]
         assert f0["name"] != s0["name"]
         assert f0["slug"] != s0["slug"]

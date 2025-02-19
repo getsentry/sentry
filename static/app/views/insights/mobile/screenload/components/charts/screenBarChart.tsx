@@ -49,7 +49,7 @@ export function ScreensBarChart({
   const yAxis = decodeScalar(location.query[chartKey]);
   const selectedDisplay = yAxis ? chartOptions.findIndex(o => o.yAxis === yAxis) : 0;
 
-  const menuOptions: SelectOption<string>[] = [];
+  const menuOptions: Array<SelectOption<string>> = [];
 
   for (const option of chartOptions) {
     menuOptions.push({
@@ -157,7 +157,10 @@ export function ScreensBarChart({
 }
 
 const ChartLabel = styled('p')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a p */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const HeaderContainer = styled('div')`

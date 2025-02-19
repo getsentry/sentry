@@ -15,11 +15,11 @@ type Props = {
   style: CSSProperties;
 };
 
-const COLUMNS: {
+const COLUMNS: Array<{
   field: SortConfig['by'];
   label: string;
   tooltipTitle?: ComponentProps<typeof Tooltip>['title'];
-}[] = [
+}> = [
   {field: 'method', label: t('Method')},
   {
     field: 'status',

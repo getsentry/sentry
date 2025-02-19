@@ -11,9 +11,9 @@ import {
   IconClock,
   IconDelete,
   IconExclamation,
+  IconSliders,
   IconStar,
   IconTag,
-  IconToggle,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -75,7 +75,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
   // Change based on tagName and default to "icon-tag"
   switch (tagName) {
     case 'is':
-      return <IconToggle size="xs" />;
+      return <IconSliders size="xs" />;
     case 'assigned':
     case 'assigned_or_suggested':
     case 'bookmarks':
@@ -326,7 +326,7 @@ export function getValidOps(
 
   // Determine any interchangeable filter types for our valid types
   const interchangeableTypes = validTypes.map(
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     type => interchangeableFilterOperators[type] ?? []
   );
 
@@ -335,7 +335,7 @@ export function getValidOps(
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
@@ -420,7 +420,7 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * The parent will become interactive if there exists a key "device".
  */
 export const getTagItemsFromKeys = (
-  tagKeys: Readonly<Readonly<string>[]>,
+  tagKeys: ReadonlyArray<Readonly<string>>,
   supportedTags: TagCollection,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ) => {

@@ -13,14 +13,14 @@ interface Series {
   fillColor: string;
   lineColor: string;
   name: string;
-  points: {x: number; y: number}[];
+  points: Array<{x: number; y: number}>;
   type: 'line' | 'area';
 }
 
 export interface ProfileSeriesMeasurement {
   name: string;
   unit: string;
-  values: {elapsed: number; value: number}[];
+  values: Array<{elapsed: number; value: number}>;
 }
 
 function computeLabelPrecision(min: number, max: number): number {

@@ -1,134 +1,105 @@
+import {Fragment, useEffect, useMemo} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import type {BarSeriesOption} from 'echarts';
-import type {Location} from 'history';
 
 import BaseChart from 'sentry/components/charts/baseChart';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
-type Props = DeprecatedAsyncComponent['props'] & {
-  location: Location;
+type Props = {
   onTotalValuesChange: (value: number | null) => void;
-  organization: Organization;
   projectId?: string;
 };
 
-type State = DeprecatedAsyncComponent['state'] & {
-  projects: Project[] | null;
-};
+function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
+  const organization = useOrganization();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-class ProjectErrorsBasicChart extends DeprecatedAsyncComponent<Props, State> {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      projects: null,
-    };
-  }
+  const urlStatsPeriod = searchParams.get('statsPeriod') ?? '';
+  const statsPeriod = ERRORS_BASIC_CHART_PERIODS.includes(urlStatsPeriod)
+    ? urlStatsPeriod
+    : DEFAULT_STATS_PERIOD;
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, projectId} = this.props;
-
-    if (!projectId) {
-      return [];
-    }
-
-    return [
-      [
-        'projects',
-        `/organizations/${organization.slug}/projects/`,
-        {
-          query: {
-            statsPeriod: this.getStatsPeriod(),
-            query: `id:${projectId}`,
-          },
-        },
-      ],
-    ];
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    const {location} = this.props;
-    if (!ERRORS_BASIC_CHART_PERIODS.includes(location.query.statsPeriod)) {
-      browserHistory.replace({
-        pathname: location.pathname,
+  const {
+    data: projects,
+    isLoading,
+    isError,
+    isSuccess,
+  } = useApiQuery<Project[]>(
+    [
+      `/organizations/${organization.slug}/projects/`,
+      {
         query: {
-          ...location.query,
-          statsPeriod: this.getStatsPeriod(),
-          start: undefined,
-          end: undefined,
+          statsPeriod,
+          query: `id:${projectId}`,
         },
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: defined(projectId),
+    }
+  );
+  const stats = useMemo(() => {
+    return projects?.[0]?.stats ?? [];
+  }, [projects]);
+  const totalValues = stats.reduce((acc, [, value]) => acc + value, 0);
+
+  useEffect(() => {
+    if (!ERRORS_BASIC_CHART_PERIODS.includes(urlStatsPeriod)) {
+      setSearchParams(oldParams => {
+        oldParams.set('statsPeriod', DEFAULT_STATS_PERIOD);
+        oldParams.delete('start');
+        oldParams.delete('end');
+        return oldParams;
       });
     }
-  }
+  }, [setSearchParams, urlStatsPeriod]);
 
-  onLoadAllEndpointsSuccess() {
-    this.props.onTotalValuesChange(
-      this.state.projects?.[0]?.stats?.reduce((acc, [, value]) => acc + value, 0) ?? null
-    );
-  }
-
-  getStatsPeriod() {
-    const {location} = this.props;
-    const statsPeriod = location.query.statsPeriod;
-
-    if (ERRORS_BASIC_CHART_PERIODS.includes(statsPeriod)) {
-      return statsPeriod;
+  useEffect(() => {
+    if (isSuccess) {
+      onTotalValuesChange(totalValues);
     }
+  }, [isSuccess, onTotalValuesChange, totalValues]);
 
-    return DEFAULT_STATS_PERIOD;
+  if (isLoading) {
+    return <LoadingPanel height="200px" data-test-id="events-request-loading" />;
   }
 
-  getSeries(): BarSeriesOption[] {
-    const {projects} = this.state;
-
-    return [
-      {
-        cursor: 'normal' as const,
-        name: t('Errors'),
-        type: 'bar',
-        data:
-          projects?.[0]?.stats?.map(([timestamp, value]) => [timestamp * 1000, value]) ??
-          [],
-      },
-    ];
+  if (isError) {
+    return <LoadingError />;
   }
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  const series: BarSeriesOption[] = [
+    {
+      cursor: 'normal' as const,
+      name: t('Errors'),
+      type: 'bar',
+      data: stats.map(([timestamp, value]) => [timestamp * 1000, value]) ?? [],
+    },
+  ];
 
-  renderBody() {
-    const {loading, reloading} = this.state;
-
-    return getDynamicText({
-      value: (
-        <TransitionChart loading={loading} reloading={reloading}>
-          <TransparentLoadingMask visible={reloading} />
-
-          <HeaderTitleLegend>{t('Daily Errors')}</HeaderTitleLegend>
-
-          <BaseChart
-            series={this.getSeries()}
-            isGroupedByDate
-            showTimeInTooltip
-            colors={theme => [theme.purple300, theme.purple200]}
-            grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-          />
-        </TransitionChart>
-      ),
-      fixed: t('Number of Errors Chart'),
-    });
-  }
+  return (
+    <Fragment>
+      <HeaderTitleLegend>{t('Daily Errors')}</HeaderTitleLegend>
+      <BaseChart
+        series={series}
+        isGroupedByDate
+        showTimeInTooltip
+        colors={theme => [theme.purple300, theme.purple200]}
+        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+      />
+    </Fragment>
+  );
 }
 
 export default ProjectErrorsBasicChart;

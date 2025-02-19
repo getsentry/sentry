@@ -270,7 +270,7 @@ function AccountNotificationFineTuning({
     ) : (
       <Fragment>
         {isProject && hasProjects && (
-          <AccountNotificationsByProject projects={projects!} field={field} />
+          <AccountNotificationsByProject projects={projects} field={field} />
         )}
 
         {isProject && !hasProjects && (

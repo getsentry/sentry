@@ -8,10 +8,10 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -53,6 +53,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -69,12 +70,9 @@ import {
   getWidgetInterval,
   hasDatasetSelector,
 } from '../utils';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
-import {
-  flattenMultiSeriesDataWithGrouping,
-  transformSeries,
-} from '../widgetCard/widgetQueries';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -94,10 +92,8 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-export type SeriesWithOrdering = [order: number, series: Series];
-
 export const ErrorsAndTransactionsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -171,7 +167,7 @@ export function getTableSortOptions(
   widgetQuery: WidgetQuery
 ) {
   const {columns, aggregates} = widgetQuery;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   let equations = 0;
   [...aggregates, ...columns]
     .filter(field => !!field)
@@ -280,7 +276,7 @@ export function transformEventsResponseToTable(
     ...data,
     meta: {...fields, ...otherMeta, fields},
   } as TableData;
-  return tableData as TableData;
+  return tableData;
 }
 
 export function filterYAxisAggregateParams(
@@ -341,53 +337,9 @@ export function filterYAxisOptions(displayType: DisplayType) {
   };
 }
 
-export function transformEventsResponseToSeries(
-  data: EventsStats | MultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-): Series[] {
-  let output: Series[] = [];
-  const queryAlias = widgetQuery.name;
-
-  if (isMultiSeriesStats(data)) {
-    let seriesWithOrdering: SeriesWithOrdering[] = [];
-    const isMultiSeriesDataWithGrouping =
-      widgetQuery.aggregates.length > 1 && widgetQuery.columns.length;
-
-    // Convert multi-series results into chartable series. Multi series results
-    // are created when multiple yAxis are used. Convert the timeseries
-    // data into a multi-series data set.  As the server will have
-    // replied with a map like: {[titleString: string]: EventsStats}
-    if (isMultiSeriesDataWithGrouping) {
-      seriesWithOrdering = flattenMultiSeriesDataWithGrouping(data, queryAlias);
-    } else {
-      seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
-        const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-        const seriesData: EventsStats = data[seriesName]!;
-        return [
-          seriesData.order || 0,
-          transformSeries(seriesData, prefixedName, seriesName),
-        ];
-      });
-    }
-
-    output = [
-      ...seriesWithOrdering
-        .sort((itemA, itemB) => itemA[0] - itemB[0])
-        .map(item => item[1]),
-    ];
-  } else {
-    const field = widgetQuery.aggregates[0]!;
-    const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-    const transformed = transformSeries(data, prefixedName, field);
-    output.push(transformed);
-  }
-
-  return output;
-}
-
 // Get the series result type from the EventsStats meta
 function getSeriesResultType(
-  data: EventsStats | MultiSeriesEventsStats,
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Record<string, AggregationOutputType> {
   const field = widgetQuery.aggregates[0]!;
@@ -395,11 +347,11 @@ function getSeriesResultType(
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
     Object.keys(data).forEach(
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
     );
   } else {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
   }
   return resultTypes;
@@ -417,7 +369,7 @@ export function renderEventIdAsLinkable(
   const eventSlug = generateEventSlug(data);
 
   const target = eventDetailsRouteWithEventView({
-    orgSlug: organization.slug,
+    organization,
     eventSlug,
     eventView,
   });
@@ -431,39 +383,55 @@ export function renderEventIdAsLinkable(
   );
 }
 
-export function renderTraceAsLinkable(
-  data: any,
-  {eventView, organization, location}: RenderFunctionBaggage
-) {
-  const id: string | unknown = data?.trace;
-  if (!eventView || typeof id !== 'string') {
-    return null;
-  }
-  const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl({
-    organization,
-    traceSlug: String(data.trace),
-    dateSelection,
-    timestamp: getTimeStampFromTableDateField(data.timestamp),
-    location,
-  });
+export function renderTraceAsLinkable(widget?: Widget) {
+  return function (
+    data: any,
+    {eventView, organization, location}: RenderFunctionBaggage
+  ) {
+    const id: string | unknown = data?.trace;
+    if (!eventView || typeof id !== 'string') {
+      return null;
+    }
+    const dateSelection = eventView.normalizeDateSelection(location);
+    const target = getTraceDetailsUrl({
+      organization,
+      traceSlug: String(data.trace),
+      dateSelection,
+      timestamp: getTimeStampFromTableDateField(data['max(timestamp)'] ?? data.timestamp),
+      location: widget
+        ? {
+            ...location,
+            query: {
+              ...location.query,
+              widgetId: widget.id,
+              dashboardId: widget.dashboardId,
+            },
+          }
+        : location,
+      source: TraceViewSources.DASHBOARDS,
+    });
 
-  return (
-    <Tooltip title={t('View Trace')}>
-      <Link data-test-id="view-trace" to={target}>
-        <Container>{getShortEventId(id)}</Container>
-      </Link>
-    </Tooltip>
-  );
+    return (
+      <Tooltip title={t('View Trace')}>
+        <Link data-test-id="view-trace" to={target}>
+          <Container>{getShortEventId(id)}</Container>
+        </Link>
+      </Tooltip>
+    );
+  };
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
 
   if (field === 'trace') {
-    return renderTraceAsLinkable;
+    return renderTraceAsLinkable(widget);
   }
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
@@ -677,21 +645,21 @@ export async function doOnDemandMetricsRequest(
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     response[0] = {...response[0]};
 
     if (
       hasDatasetSelector(requestData.organization) &&
       widgetType === WidgetType.DISCOVER
     ) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const meta = response[0].meta ?? {};
       meta.discoverSplitDecision = 'transaction-like';
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       response[0] = {...response[0], ...{meta}};
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return [response[0], response[1], response[2]];
   } catch (err) {
     Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
