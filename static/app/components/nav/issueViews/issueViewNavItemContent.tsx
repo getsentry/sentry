@@ -6,8 +6,10 @@ import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueVi
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
 import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
@@ -23,6 +25,10 @@ export interface IssueViewNavItemContentProps {
    */
   dragConstraints?: DraggableProps['dragConstraints'];
   /**
+   * Whether the item is active.
+   */
+  isActive?: boolean;
+  /**
    * Ref to the body of the section that contains the reorderable items.
    * This is used as the portal container for the ellipsis menu.
    */
@@ -33,6 +39,7 @@ export function IssueViewNavItemContent({
   view,
   dragConstraints,
   sectionBodyRef,
+  isActive,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
@@ -47,7 +54,7 @@ export function IssueViewNavItemContent({
 
   return (
     <StyledSecondaryNavReordableItem
-      to={`${baseUrl}/?viewId=${view.id}`}
+      to={constructViewLink(baseUrl, view)}
       value={view}
       leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
       trailingItems={
@@ -60,6 +67,7 @@ export function IssueViewNavItemContent({
         </TrailingItemsWrapper>
       }
       dragConstraints={dragConstraints}
+      isActive={isActive}
     >
       <EditableTabTitle
         label={view.label}
@@ -72,10 +80,26 @@ export function IssueViewNavItemContent({
   );
 }
 
+const constructViewLink = (baseUrl: string, view: IssueViewPF) => {
+  return normalizeUrl({
+    query: {
+      query: view.unsavedChanges?.query ?? view.query,
+      sort: view.unsavedChanges?.querySort ?? view.querySort,
+      project: view.unsavedChanges?.projects ?? view.projects,
+      environment: view.unsavedChanges?.environments ?? view.environments,
+      ...normalizeDateTimeParams(view.unsavedChanges?.timeFilters ?? view.timeFilters),
+      cursor: undefined,
+      page: undefined,
+    },
+    pathname: `${baseUrl}/views/${view.id}/`,
+  });
+};
+
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+  margin-right: ${space(0.5)};
 `;
 
 const StyledSecondaryNavReordableItem = styled(SecondaryNav.ReordableItem)`

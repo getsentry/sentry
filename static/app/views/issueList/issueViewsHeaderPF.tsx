@@ -75,13 +75,16 @@ function IssueViewsPFIssueListHeader({
 
   const openForm = useFeedbackForm();
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+  const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
 
   return (
     <Layout.Header
       noActionWrap
       // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
-        groupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
+        hasLeftNavIssueViews && groupSearchViews && !router?.location.query.viewId
+          ? 'dashed'
+          : 'solid'
       }
     >
       <Layout.HeaderContent>
@@ -130,44 +133,45 @@ function IssueViewsPFIssueListHeader({
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      {groupSearchViews ? (
-        <StyledIssueViews
-          router={router}
-          initialViews={groupSearchViews.map(
-            (
-              {
-                id,
-                name,
-                query: viewQuery,
-                querySort: viewQuerySort,
-                environments: viewEnvironments,
-                projects: viewProjects,
-                timeFilters: viewTimeFilters,
-                isAllProjects,
-              },
-              index
-            ): IssueViewPF => {
-              const tabId = id ?? `default${index.toString()}`;
+      {organization.features.includes('left-nav-issue-views') &&
+        (groupSearchViews ? (
+          <StyledIssueViews
+            router={router}
+            initialViews={groupSearchViews.map(
+              (
+                {
+                  id,
+                  name,
+                  query: viewQuery,
+                  querySort: viewQuerySort,
+                  environments: viewEnvironments,
+                  projects: viewProjects,
+                  timeFilters: viewTimeFilters,
+                  isAllProjects,
+                },
+                index
+              ): IssueViewPF => {
+                const tabId = id ?? `default${index.toString()}`;
 
-              return {
-                id: tabId,
-                key: tabId,
-                label: name,
-                query: viewQuery,
-                querySort: viewQuerySort,
-                environments: viewEnvironments,
-                projects: isAllProjects ? [-1] : viewProjects,
-                timeFilters: viewTimeFilters,
-                isCommitted: true,
-              };
-            }
-          )}
-        >
-          <IssueViewsIssueListHeaderTabsContent router={router} />
-        </StyledIssueViews>
-      ) : (
-        <div style={{height: 33}} />
-      )}
+                return {
+                  id: tabId,
+                  key: tabId,
+                  label: name,
+                  query: viewQuery,
+                  querySort: viewQuerySort,
+                  environments: viewEnvironments,
+                  projects: isAllProjects ? [-1] : viewProjects,
+                  timeFilters: viewTimeFilters,
+                  isCommitted: true,
+                };
+              }
+            )}
+          >
+            <IssueViewsIssueListHeaderTabsContent router={router} />
+          </StyledIssueViews>
+        ) : (
+          <div style={{height: 33}} />
+        ))}
     </Layout.Header>
   );
 }

@@ -1,10 +1,10 @@
-import {forwardRef, type ReactNode, useLayoutEffect} from 'react';
+import {forwardRef, type ReactNode, useLayoutEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DraggableProps} from 'framer-motion';
-import {Reorder} from 'framer-motion';
+import {Reorder, useDragControls} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
@@ -13,6 +13,7 @@ import {NavLayout, type PrimaryNavGroup} from 'sentry/components/nav/types';
 import {isLinkActive} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type SecondaryNavProps = {
   children: ReactNode;
@@ -134,19 +135,18 @@ interface SecondaryNavReordableItemProps<T> extends SecondaryNavItemProps {
 SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
   children,
   to,
-  activeTo = to,
-  isActive: incomingIsActive,
-  end = false,
+  isActive,
   trailingItems,
   dragConstraints,
   value,
   leadingItems,
   className,
 }: SecondaryNavReordableItemProps<T>) {
-  const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
-
   const {layout: navLayout} = useNavContext();
+
+  const controls = useDragControls();
+  const isDragging = useRef<boolean>(false);
+  const navigate = useNavigate();
 
   return (
     <ReorderableItem
@@ -162,6 +162,20 @@ SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       className={className}
+      onDragStart={() => {
+        isDragging.current = true;
+      }}
+      onDragEnd={() => {
+        isDragging.current = false;
+      }}
+      onPointerDown={e => {
+        controls.start(e);
+      }}
+      onPointerUp={() => {
+        if (!isDragging.current) {
+          navigate(to);
+        }
+      }}
     >
       <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
       {leadingItems}
