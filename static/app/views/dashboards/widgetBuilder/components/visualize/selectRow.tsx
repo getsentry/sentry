@@ -110,7 +110,6 @@ export function SelectRow({
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const datasetConfig = getDatasetConfig(state.dataset);
-  const aggregateSelectRef = useRef<HTMLDivElement>(null);
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
   const isChartWidget =
@@ -122,14 +121,12 @@ export function SelectRow({
     : BuilderStateAction.SET_FIELDS;
 
   const openColumnSelect = useCallback(() => {
-    requestAnimationFrame(() => {
-      columnSelectRef.current?.querySelector('button')?.click();
-    });
+    columnSelectRef.current?.querySelector('button')?.click();
   }, []);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
-      <SelectWrapper ref={aggregateSelectRef}>
+      <SelectWrapper>
         <AggregateCompactSelect
           searchable
           hasColumnParameter={hasColumnParameter}
