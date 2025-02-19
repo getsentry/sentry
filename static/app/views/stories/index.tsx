@@ -143,9 +143,10 @@ function StoryRepresentationToggle(props: {
           {...triggerProps}
         />
       )}
+      defaultValue={props.storyRepresentation}
       options={[
-        {label: 'Category', value: 'category'},
         {label: 'Filesystem', value: 'filesystem'},
+        {label: 'Category', value: 'category'},
       ]}
       onChange={option => props.setStoryRepresentation(option.value)}
     />
@@ -176,6 +177,7 @@ const SidebarContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   min-height: 0;
+  position: relative;
 `;
 
 const StoryTreeContainer = styled('div')`
