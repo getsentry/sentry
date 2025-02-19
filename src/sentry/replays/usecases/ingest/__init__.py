@@ -115,6 +115,7 @@ def _ingest_recording(message_bytes: bytes) -> None:
 
     headers, compressed_segment = parse_headers(message.payload_with_headers, message.replay_id)
     compressed_segment, recording_segment = decompress_segment(compressed_segment)
+    _report_size_metrics(len(compressed_segment), len(recording_segment))
 
     # Normalize ingest data into a standardized ingest format.
     segment_data = RecordingSegmentStorageMeta(
