@@ -299,7 +299,6 @@ class MetricAlertDetails extends Component<Props, State> {
           onSnooze={this.onSnooze}
         />
         <MetricDetailsBody
-          {...this.props}
           rule={rule}
           project={project}
           incidents={incidents}
