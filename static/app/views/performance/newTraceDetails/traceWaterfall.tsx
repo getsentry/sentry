@@ -831,6 +831,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
         <TraceShortcuts />
         <TraceActionsMenu
+          traceSlug={props.traceSlug}
           rootEventResults={props.rootEvent}
           traceEventView={props.traceEventView}
         />
