@@ -17,6 +17,7 @@ export function CollapseButton() {
       <NavButton
         onClick={() => setIsCollapsed(!isCollapsed)}
         aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+        isMobile={false}
       >
         <InteractionStateLayer />
         <IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />

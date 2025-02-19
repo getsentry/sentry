@@ -12,6 +12,7 @@ import {
   SidebarLink,
   SidebarMenu,
 } from 'sentry/components/nav/primary/components';
+import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
 import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
@@ -164,6 +165,7 @@ export function PrimaryNavigationItems() {
         <SeparatorItem />
 
         <WhatsNew />
+        <PrimaryNavigationOnboarding />
         <CollapseButton />
       </SidebarFooter>
     </Fragment>

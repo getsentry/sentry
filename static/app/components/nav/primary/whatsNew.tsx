@@ -140,6 +140,7 @@ export function WhatsNew() {
           }
         }}
         aria-label={showLabel ? undefined : t("What's New")}
+        isMobile={layout === NavLayout.MOBILE}
       >
         <InteractionStateLayer />
         <IconBroadcast />
