@@ -125,11 +125,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
   };
 }
 
-// @TODO(jonasbadalic): keep these for future reference - they are not being used rn
-
-export const DO_NOT_USE_chonk_space = {
-  // @TODO(jonasbadalic): none doesn't need to exist
-  // none: 0,
+const space = {
   nano: '1px',
   micro: '2px',
   mini: '4px',
@@ -137,7 +133,7 @@ export const DO_NOT_USE_chonk_space = {
   md: '8px',
   lg: '12px',
   xl: '16px',
-} satisfies Record<string, `${number}px`>;
+} as const;
 
 //   borderRadius: {
 //     // @TODO(jonasbadalic): none doesn't need to exist
@@ -725,6 +721,7 @@ const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors)
 interface ChonkTheme extends Omit<Theme, 'isChonk'> {
   colors: {dark: typeof lightColors; light: typeof lightColors};
   isChonk: true;
+  space: typeof space;
 }
 
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
@@ -740,6 +737,8 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     ...chonkDarkColorMapping,
     ...darkAliases,
   },
+
+  space,
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
@@ -807,6 +806,8 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     light: lightColors,
     dark: darkColors,
   },
+
+  space,
 
   sidebar: {
     // @TODO: these colors need to be ported
