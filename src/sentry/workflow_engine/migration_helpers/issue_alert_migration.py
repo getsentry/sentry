@@ -208,7 +208,6 @@ class IssueAlertMigrator:
     def _create_workflow_actions(
         self, if_dcg: DataConditionGroup, actions: list[dict[str, Any]]
     ) -> None:
-        pass
         notification_actions = build_notification_actions_from_rule_data_actions(
             actions, is_dry_run=self.is_dry_run or False
         )
