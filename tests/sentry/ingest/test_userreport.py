@@ -8,23 +8,46 @@ from sentry.ingest.userreport import save_userreport, should_filter_user_report
 from sentry.models.userreport import UserReport
 from sentry.testutils.pytest.fixtures import django_db_all
 
+#################################
+# should_filter_user_report tests
+#################################
+
 
 @django_db_all
 def test_unreal_unattended_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        assert should_filter_user_report(UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1)[0] is True
+        should_filter, reason = should_filter_user_report(UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1)
+        assert should_filter is True
+        assert reason == "Sent in Unreal Unattended Mode"
 
 
 @django_db_all
 def test_unreal_unattended_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
-        assert should_filter_user_report(UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1)[0] is False
+        should_filter, reason = should_filter_user_report(UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1)
+        assert should_filter is False
+        assert reason is None
 
 
 @django_db_all
-def test_empty_message(set_sentry_option):
+def test_empty_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        assert should_filter_user_report("", 1)[0] is True
+        should_filter, reason = should_filter_user_report("", 1)
+        assert should_filter is True
+        assert reason == "Empty Feedback Messsage"
+
+
+@django_db_all
+def test_empty_message_without_option(set_sentry_option):
+    with set_sentry_option("feedback.filter_garbage_messages", False):
+        should_filter, reason = should_filter_user_report("", 1)
+        assert should_filter is False
+        assert reason is None
+
+
+#######################
+# save_userreport tests
+#######################
 
 
 @django_db_all
