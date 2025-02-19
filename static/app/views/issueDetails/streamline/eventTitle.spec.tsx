@@ -83,33 +83,9 @@ describe('EventNavigation', () => {
   it('can copy event ID', async () => {
     render(<EventTitle {...defaultProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Copy Event ID'}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
-  });
-
-  it('shows event actions dropdown', async () => {
-    render(<EventTitle {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event Link'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View JSON'}));
-
-    expect(window.open).toHaveBeenCalledWith(
-      `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
-    );
   });
 
   it('shows processing issue button if there is an event error', async () => {

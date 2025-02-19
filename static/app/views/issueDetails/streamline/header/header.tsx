@@ -2,27 +2,24 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconGlobe, IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -30,12 +27,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
-import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
+import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -68,7 +64,6 @@ export default function StreamlinedGroupHeader({
   ].includes(groupReprocessingStatus);
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const hasOnlyOneUIOption = defined(organization.streamlineOnly);
@@ -92,48 +87,10 @@ export default function StreamlinedGroupHeader({
                   },
                 },
                 {
-                  label: (
-                    <ShortIdBreadcrumb
-                      organization={organization}
-                      project={project}
-                      group={group}
-                    />
-                  ),
+                  label: <IssueIdBreadcrumb project={project} group={group} />,
                 },
               ]}
             />
-            {group.isPublic && shareUrl ? (
-              <Button
-                size="xs"
-                borderless
-                aria-label={t('View issue share settings')}
-                title={tct('This issue has been shared [link:with a public link].', {
-                  link: <ExternalLink href={shareUrl} />,
-                })}
-                tooltipProps={{isHoverable: true}}
-                icon={
-                  <IconGlobe
-                    size="xs"
-                    color="subText"
-                    onClick={() =>
-                      openModal(modalProps => (
-                        <ShareIssueModal
-                          {...modalProps}
-                          organization={organization}
-                          projectSlug={group.project.slug}
-                          groupId={group.id}
-                          onToggle={() =>
-                            trackAnalytics('issue.shared_publicly', {
-                              organization,
-                            })
-                          }
-                        />
-                      ))
-                    }
-                  />
-                }
-              />
-            ) : null}
           </Flex>
           <ButtonBar gap={0.5}>
             {!hasOnlyOneUIOption && (
