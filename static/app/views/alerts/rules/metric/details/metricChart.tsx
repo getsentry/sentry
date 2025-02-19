@@ -5,7 +5,6 @@ import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
-import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
@@ -47,8 +46,10 @@ import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/feat
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getViableDateRange} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
@@ -76,10 +77,8 @@ import {
 } from './metricChartOption';
 
 interface MetricChartProps {
-  api: Client;
   filter: string[] | null;
   interval: string;
-  organization: Organization;
   project: Project;
   query: string;
   rule: MetricRule;
@@ -146,8 +145,6 @@ function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
 
 export default function MetricChart({
   rule,
-  api,
-  organization,
   project,
   timePeriod,
   query,
@@ -161,6 +158,8 @@ export default function MetricChart({
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const api = useApi();
+  const organization = useOrganization();
 
   const handleZoom = useCallback(
     (start: DateString, end: DateString) => {
