@@ -79,8 +79,6 @@ function preloadOrganizationData(config: Config) {
   const preloadData = shouldPreloadData(config);
 
   if (!preloadData) {
-    // Don't send requests if we're not supposed to preload data.
-    // See https://github.com/getsentry/sentry/blob/760afb3ab9d2bed669df2f2a01e58c438ceafa3c/src/sentry/web/client_config.py#L394-L418
     return;
   }
   let slug = config.lastOrganization;
