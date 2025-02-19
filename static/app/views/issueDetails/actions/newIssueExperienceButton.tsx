@@ -55,39 +55,36 @@ export function NewIssueExperienceButton() {
     const text = hasStreamlinedUI ? null : t('Try New UI');
 
     return (
-      <ToggleButtonWrapper>
-        <ToggleButton
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          icon={
-            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+      <ToggleButton
+        enabled={hasStreamlinedUI}
+        size={hasStreamlinedUI ? 'xs' : 'sm'}
+        icon={
+          defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+            <IconLab isSolid={hasStreamlinedUI} />
+          ) : (
+            <motion.div
+              style={{height: 14}}
+              animate={{
+                rotate: [null, 6, -6, 12, -12, 6, -6, 0],
+              }}
+              transition={{
+                duration: 1,
+                delay: 1,
+                repeatDelay: 3,
+                repeat: 3,
+              }}
+            >
               <IconLab isSolid={hasStreamlinedUI} />
-            ) : (
-              <motion.div
-                style={{height: 14}}
-                animate={{
-                  rotate: [null, 6, -6, 12, -12, 6, -6, 0],
-                }}
-                transition={{
-                  duration: 1,
-                  delay: 1,
-                  repeatDelay: 3,
-                  repeat: 3,
-                }}
-              >
-                <IconLab isSolid={hasStreamlinedUI} />
-              </motion.div>
-            )
-          }
-          title={label}
-          aria-label={label}
-          borderless={!hasStreamlinedUI}
-          onClick={handleToggle}
-        >
-          {text ? <span>{text}</span> : null}
-          {!hasStreamlinedUI && <ToggleBorder />}
-        </ToggleButton>
-      </ToggleButtonWrapper>
+            </motion.div>
+          )
+        }
+        title={label}
+        aria-label={label}
+        borderless={!hasStreamlinedUI}
+        onClick={handleToggle}
+      >
+        {text ? <span>{text}</span> : null}
+      </ToggleButton>
     );
   }
 
@@ -139,45 +136,12 @@ const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
   }
 `;
 
-const ToggleButtonWrapper = styled('div')`
-  overflow: hidden;
-  margin: 0 -1px;
-  border-radius: 7px;
-`;
-
 const ToggleButton = styled(Button)<{enabled: boolean}>`
-  position: relative;
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  color: ${p =>
+    p.enabled ? p.theme.button.primary.background : p.theme.badge.new.color};
+  background: ${p => (p.enabled ? 'inherit' : p.theme.badge.new.background)};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p =>
+      p.enabled ? p.theme.button.primary.background : p.theme.badge.new.color};
   }
-  &:after {
-    position: absolute;
-    content: '';
-    inset: 0;
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
-  }
-  span {
-    z-index: 1;
-  }
-`;
-
-const ToggleBorder = styled('div')`
-  @keyframes rotating {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  position: absolute;
-  content: '';
-  z-index: -1;
-  width: 125px;
-  height: 125px;
-  border-radius: 7px;
-  background: ${p => p.theme.badge.beta.background};
-  animation: rotating 10s linear infinite;
 `;
