@@ -50,8 +50,7 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
 function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
