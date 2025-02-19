@@ -3,7 +3,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
-import {WidgetQuery} from '../types';
+import type {WidgetQuery} from '../types';
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
