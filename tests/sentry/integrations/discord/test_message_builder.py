@@ -29,34 +29,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
         super().setUp()
         self.alert_rule = self.create_alert_rule()
 
-    def test_metric_alert_without_incidents(self):
-        title = f"Resolved: {self.alert_rule.name}"
-        link = absolute_uri(
-            reverse(
-                "sentry-metric-alert-details",
-                kwargs={
-                    "organization_slug": self.organization.slug,
-                    "alert_rule_id": self.alert_rule.id,
-                },
-            )
-        )
-
-        uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-        ).build(notification_uuid=uuid) == {
-            "content": "",
-            "embeds": [
-                {
-                    "title": title,
-                    "description": "",
-                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&referrer=discord&notification_uuid={uuid}",
-                    "color": LEVEL_TO_COLOR["_incident_resolved"],
-                }
-            ],
-            "components": [],
-        }
-
     def test_metric_alert_with_selected_incident(self):
         new_status = IncidentStatus.CLOSED.value
         incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
@@ -79,13 +51,14 @@ class BuildMetricAlertAttachmentTest(TestCase):
         assert DiscordMetricAlertMessageBuilder(
             alert_rule=self.alert_rule,
             incident=incident,
+            new_status=IncidentStatus.CLOSED,
         ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
-                    "description": get_started_at(incident.date_started),
-                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
+                    "description": f"0 events in the last 10 minutes{get_started_at(incident.date_started)}",
+                    "url": f"{link}?alert={incident.identifier}&referrer=metric_alert_discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
             ],
@@ -112,14 +85,16 @@ class BuildMetricAlertAttachmentTest(TestCase):
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
             alert_rule=self.alert_rule,
+            incident=incident,
+            new_status=IncidentStatus.CRITICAL,
         ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
-                    "description": "0 events in the last 10 minutes",
-                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&referrer=discord&notification_uuid={uuid}",
+                    "description": f"0 events in the last 10 minutes{get_started_at(incident.date_started)}",
+                    "url": f"{link}?alert={incident.identifier}&referrer=metric_alert_discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
                 }
             ],
             "components": [],
@@ -158,7 +133,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     "title": title,
                     "color": LEVEL_TO_COLOR["fatal"],
                     "description": f"{metric_value} events in the last 10 minutes{get_started_at(incident.date_started)}",
-                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
+                    "url": f"{link}?alert={incident.identifier}&referrer=metric_alert_discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
                 }
             ],
             "components": [],
@@ -191,8 +166,8 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "embeds": [
                 {
                     "title": title,
-                    "description": get_started_at(incident.date_started),
-                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
+                    "description": f"0 events in the last 10 minutes{get_started_at(incident.date_started)}",
+                    "url": f"{link}?alert={incident.identifier}&referrer=metric_alert_discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                     "image": {"url": "chart_url"},
                 }
@@ -220,14 +195,16 @@ class BuildMetricAlertAttachmentTest(TestCase):
 
         assert DiscordMetricAlertMessageBuilder(
             alert_rule=self.alert_rule,
+            incident=incident,
+            new_status=IncidentStatus.CRITICAL,
         ).build() == {
             "content": "",
             "embeds": [
                 {
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
-                    "description": "0 events in the last 10 minutes",
-                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&referrer=discord",
+                    "description": f"0 events in the last 10 minutes{get_started_at(incident.date_started)}",
+                    "url": f"{link}?alert={incident.identifier}&referrer=metric_alert_discord&detection_type={self.alert_rule.detection_type}",
                 }
             ],
             "components": [],
@@ -265,14 +242,16 @@ class BuildMetricAlertAttachmentTest(TestCase):
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
             alert_rule=alert_rule,
+            incident=incident,
+            new_status=IncidentStatus.CRITICAL,
         ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
-                    "description": f"0 events in the last 30 minutes\nThreshold: {alert_rule.detection_type.title()}",
-                    "url": f"{link}?detection_type={alert_rule.detection_type}&referrer=discord&notification_uuid={uuid}",
+                    "description": f"0 events in the last 30 minutes\nThreshold: {alert_rule.detection_type.title()}{get_started_at(incident.date_started)}",
+                    "url": f"{link}?alert={incident.identifier}&referrer=metric_alert_discord&detection_type={alert_rule.detection_type}&notification_uuid={uuid}",
                 }
             ],
             "components": [],
