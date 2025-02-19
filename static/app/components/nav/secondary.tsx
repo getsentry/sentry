@@ -123,7 +123,8 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+  color: ${p => p.theme.subText};
+  padding: ${space(2)} ${space(3)} ${space(1)} ${space(3)};
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
@@ -173,15 +174,19 @@ const Item = styled(Link)<{layout: NavLayout}>`
   padding: 4px ${space(1.5)};
   height: 34px;
   align-items: center;
-  color: inherit;
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.purple400};
     font-weight: ${p => p.theme.fontWeightBold};
+
+    &:hover {
+      color: ${p => p.theme.purple400};
+    }
   }
 
   &:hover {
