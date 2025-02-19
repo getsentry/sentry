@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -424,7 +424,7 @@ class OAuthLoginView(PipelineView):
                 redirect_uri = absolute_uri(
                     reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
                 )
-                return self.redirect(
+                return HttpResponseRedirect(
                     f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
                 )
 
@@ -485,7 +485,7 @@ class GitHubInstallation(PipelineView):
                 "installation_id", pipeline.fetch_state("installation_id")
             )
             if installation_id is None:
-                return self.redirect(self.get_app_url())
+                return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
             self.determine_active_organization(request)
