@@ -117,6 +117,8 @@ CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
+MAX_PER_PROJECT_QUERIES = 10
+
 
 class JiraProjectMapping(TypedDict):
     value: str
@@ -185,7 +187,14 @@ class JiraIntegration(IssueSyncIntegration):
         """
         client = self.get_client()
 
-        if features.has("organizations:jira-per-project-statuses", self.organization):
+        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES and features.has(
+            "organizations:jira-per-project-statuses", self.organization
+        ):
+            # If we have less projects than the max query limit, and the feature
+            # flag is enabled for the organization, we can query the statuses
+            # for each project. This ensures we don't display statuses that are
+            # not applicable to each project when it won't result in us hitting
+            # Atlassian rate limits.
             try:
                 for project in jira_projects:
                     project_id = project["value"]
@@ -203,13 +212,24 @@ class JiraIntegration(IssueSyncIntegration):
                 if isinstance(e, ApiRateLimitedError):
                     logger.info(
                         "jira.get-project-statuses.rate-limited",
-                        extra={"org_id": self.organization_id},
+                        extra={
+                            "org_id": self.organization_id,
+                            "integration_id": self.model.id,
+                            "project_count": len(jira_projects),
+                        },
                     )
-                else:
-                    raise
+                raise
 
         # Fallback logic to the global statuses per project. This may occur if
         # there are too many projects we need to fetch.
+        logger.info(
+            "jira.get-project-statuses.fallback",
+            extra={
+                "org_id": self.organization_id,
+                "integration_id": self.model.id,
+                "project_count": len(jira_projects),
+            },
+        )
         statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
         configuration[0]["mappedSelectors"] = {
             "on_resolve": {"choices": statuses},
