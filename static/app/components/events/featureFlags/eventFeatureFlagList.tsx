@@ -236,15 +236,20 @@ export function EventFeatureFlagList({
     </ButtonBar>
   );
 
+  const NUM_PREVIEW_FLAGS = 20;
+
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(0, 20);
-  const columnOne = truncatedItems.slice(0, 10);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(
+    0,
+    NUM_PREVIEW_FLAGS
+  );
+  const columnOne = truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2);
   let columnTwo: typeof truncatedItems = [];
-  if (truncatedItems.length > 10) {
-    columnTwo = truncatedItems.slice(10, 20);
+  if (truncatedItems.length > NUM_PREVIEW_FLAGS / 2) {
+    columnTwo = truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS);
   }
 
-  const extraFlags = hydratedFlags.length - 20;
+  const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
   const label =
     extraFlags === 1 ? t('View 1 More Flag') : t('View %d More Flags', extraFlags);
 
