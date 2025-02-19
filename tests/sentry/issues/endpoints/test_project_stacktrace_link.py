@@ -1,7 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
-from urllib.parse import quote
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
