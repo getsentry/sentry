@@ -103,33 +103,80 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
 
 
-def incident_attachment_info(
-    incident: Incident,
-    new_status: IncidentStatus,
-    metric_value=None,
-    notification_uuid=None,
-    referrer="metric_alert",
-):
-    alert_rule = incident.alert_rule
+def get_metric_alert_attachment_info_unified(
+    alert_rule: AlertRule,
+    incident: Incident | None = None,
+    new_status: IncidentStatus | None = None,
+    metric_value: float | None = None,
+    notification_uuid: str | None = None,
+    referrer: str = "metric_alert",
+) -> dict:
+    """
+    Unified function for generating alert attachment info for both incident notifications
+    and general metric alert displays.
 
-    status = INCIDENT_STATUS[new_status]
+    Args:
+        alert_rule: The alert rule to generate info for
+        incident: Optional specific incident to use
+        new_status: Optional status override
+        metric_value: Optional metric value override
+        notification_uuid: Optional notification ID for tracking
+        referrer: Source of the notification/display
+    """
+    # Determine latest incident if needed
+    latest_incident = None
+    if incident is None:
+        try:
+            latest_incident = Incident.objects.filter(
+                id__in=Incident.objects.filter(alert_rule=alert_rule)
+                .values("alert_rule_id")
+                .annotate(incident_id=Max("id"))
+                .values("incident_id")
+            ).get()
+        except Incident.DoesNotExist:
+            latest_incident = None
 
+    # Determine status
+    if new_status:
+        status = INCIDENT_STATUS[new_status]
+    elif incident:
+        status = INCIDENT_STATUS[IncidentStatus(incident.status)]
+    elif latest_incident:
+        status = INCIDENT_STATUS[IncidentStatus(latest_incident.status)]
+    else:
+        status = INCIDENT_STATUS[IncidentStatus.CLOSED]
+
+    # Determine incident info for metric value
     if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
+        incident_info = None
+        if incident:
+            incident_info = incident
+        elif latest_incident and latest_incident.status != IncidentStatus.CLOSED:
+            incident_info = latest_incident
 
-    text = get_incident_status_text(alert_rule, metric_value)
+        if incident_info:
+            metric_value = get_metric_count_from_incident(incident_info)
+
+    # Generate text content
+    text = ""
+    if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
+        text = get_incident_status_text(alert_rule, metric_value)
+
     if features.has(
-        "organizations:anomaly-detection-alerts", incident.organization
-    ) and features.has("organizations:anomaly-detection-rollout", incident.organization):
+        "organizations:anomaly-detection-alerts", alert_rule.organization
+    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
+    # Build title and link
     title = f"{status}: {alert_rule.name}"
 
     title_link_params = {
-        "alert": str(incident.identifier),
-        "referrer": referrer,
         "detection_type": alert_rule.detection_type,
+        "referrer": referrer,
     }
+
+    if incident:
+        title_link_params["alert"] = str(incident.identifier)
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
@@ -144,14 +191,40 @@ def incident_attachment_info(
         query=parse.urlencode(title_link_params),
     )
 
-    return {
+    # Build response
+    result = {
         "title": title,
         "text": text,
         "logo_url": logo_url(),
         "status": status,
-        "ts": incident.date_started,
         "title_link": title_link,
     }
+
+    # Add timing information
+    if incident:
+        result["date_started"] = incident.date_started
+        result["ts"] = incident.date_started  # Maintain backward compatibility
+    elif latest_incident:
+        result["last_triggered_date"] = latest_incident.date_started
+
+    return result
+
+
+def incident_attachment_info(
+    incident: Incident,
+    new_status: IncidentStatus,
+    metric_value=None,
+    notification_uuid=None,
+    referrer="metric_alert",
+):
+    return get_metric_alert_attachment_info_unified(
+        alert_rule=incident.alert_rule,
+        incident=incident,
+        new_status=new_status,
+        metric_value=metric_value,
+        notification_uuid=notification_uuid,
+        referrer=referrer,
+    )
 
 
 def metric_alert_attachment_info(
@@ -160,81 +233,9 @@ def metric_alert_attachment_info(
     new_status: IncidentStatus | None = None,
     metric_value: float | None = None,
 ):
-    latest_incident = None
-    if selected_incident is None:
-        try:
-            # Use .get() instead of .first() to avoid sorting table by id
-            latest_incident = Incident.objects.filter(
-                id__in=Incident.objects.filter(alert_rule=alert_rule)
-                .values("alert_rule_id")
-                .annotate(incident_id=Max("id"))
-                .values("incident_id")
-            ).get()
-        except Incident.DoesNotExist:
-            latest_incident = None
-
-    if new_status:
-        status = INCIDENT_STATUS[new_status]
-    elif selected_incident:
-        status = INCIDENT_STATUS[IncidentStatus(selected_incident.status)]
-    elif latest_incident:
-        status = INCIDENT_STATUS[IncidentStatus(latest_incident.status)]
-    else:
-        status = INCIDENT_STATUS[IncidentStatus.CLOSED]
-
-    url_query = {"detection_type": alert_rule.detection_type}
-    if selected_incident:
-        url_query["alert"] = str(selected_incident.identifier)
-
-    title = f"{status}: {alert_rule.name}"
-    title_link = alert_rule.organization.absolute_url(
-        reverse(
-            "sentry-metric-alert-details",
-            kwargs={
-                "organization_slug": alert_rule.organization.slug,
-                "alert_rule_id": alert_rule.id,
-            },
-        ),
-        query=parse.urlencode(url_query),
+    return get_metric_alert_attachment_info_unified(
+        alert_rule=alert_rule,
+        incident=selected_incident,
+        new_status=new_status,
+        metric_value=metric_value,
     )
-
-    if metric_value is None:
-        if (
-            selected_incident is None
-            and latest_incident
-            and latest_incident.status != IncidentStatus.CLOSED
-        ):
-            # Without a selected incident, use latest incident if it is not resolved
-            incident_info = latest_incident
-        else:
-            incident_info = selected_incident
-
-        if incident_info:
-            metric_value = get_metric_count_from_incident(incident_info)
-
-    text = ""
-    if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
-        text = get_incident_status_text(alert_rule, metric_value)
-
-    if features.has(
-        "organizations:anomaly-detection-alerts", alert_rule.organization
-    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
-        text += f"\nThreshold: {alert_rule.detection_type.title()}"
-
-    date_started = None
-    if selected_incident:
-        date_started = selected_incident.date_started
-
-    last_triggered_date = None
-    if latest_incident:
-        last_triggered_date = latest_incident.date_started
-
-    return {
-        "title": title,
-        "text": text,
-        "logo_url": logo_url(),
-        "status": status,
-        "date_started": date_started,
-        "last_triggered_date": last_triggered_date,
-        "title_link": title_link,
-    }
