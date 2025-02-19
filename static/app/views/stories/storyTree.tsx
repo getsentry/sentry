@@ -97,30 +97,88 @@ function normalizeFilename(filename: string) {
   return filename.charAt(0).toUpperCase() + filename.slice(1).replace('.stories.tsx', '');
 }
 
-export function useStoryTree(files: string[], query: string) {
+function inferFileCategory(
+  path: string
+): 'hooks' | 'components' | 'views' | 'styles' | 'icons' {
+  const parts = path.split('/');
+
+  const filename = parts.at(-1);
+  if (filename?.startsWith('use')) {
+    return 'hooks';
+  }
+
+  if (parts[1]?.startsWith('views')) {
+    return 'views';
+  }
+
+  if (parts[1]?.startsWith('styles')) {
+    return 'styles';
+  }
+
+  if (parts[1]?.startsWith('icons')) {
+    return 'icons';
+  }
+
+  return 'components';
+}
+
+function inferComponentName(path: string): string {
+  const parts = path.split('/');
+
+  let part = parts.pop();
+  while (part?.startsWith('index.')) {
+    part = parts.pop();
+  }
+
+  return part ?? '';
+}
+
+export function useStoryTree(
+  files: string[],
+  options: {query: string; representation: 'filesystem' | 'category'}
+) {
   const location = useLocation();
   const initialName = useRef(location.query.name);
 
   const tree = useMemo(() => {
     const root = new StoryTreeNode('root', '');
 
-    for (const file of files) {
-      const parts = file.split('/');
-      let parent = root;
+    if (options.representation === 'filesystem') {
+      for (const file of files) {
+        const parts = file.split('/');
+        let parent = root;
 
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (!part) {
-          continue;
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (!part) {
+            continue;
+          }
+          if (!(part in parent.children)) {
+            parent.children[part] = new StoryTreeNode(
+              part,
+              parts.slice(0, i + 1).join('/')
+            );
+          }
+
+          parent = parent.children[part]!;
         }
-        if (!(part in parent.children)) {
-          parent.children[part] = new StoryTreeNode(
-            part,
-            parts.slice(0, i + 1).join('/')
+      }
+    } else if (options.representation === 'category') {
+      for (const file of files) {
+        const type = inferFileCategory(file);
+        const name = inferComponentName(file);
+
+        if (!root.children[type]) {
+          root.children[type] = new StoryTreeNode(type, type);
+        }
+
+        if (!root.children[type].children[name]) {
+          root.children[type].children[name] = new StoryTreeNode(name, file);
+        } else {
+          throw new Error(
+            `Naming conflict found between ${file} and ${root.children[type].children[name].path}`
           );
         }
-
-        parent = parent.children[part]!;
       }
     }
 
@@ -137,13 +195,13 @@ export function useStoryTree(files: string[], query: string) {
     }
 
     return root;
-  }, [files]);
+  }, [files, options.representation]);
 
   const nodes = useMemo(() => {
     // Skip the top level app folder as it's where the entire project is at
     const root = tree.find(node => node.name === 'app') ?? tree;
 
-    if (!query) {
+    if (!options.query) {
       if (initialName.current) {
         initialName.current = null;
         return Object.values(root.children);
@@ -166,7 +224,7 @@ export function useStoryTree(files: string[], query: string) {
     }
 
     // Fzf requires the input to be lowercase as it normalizes the search candidates to lowercase
-    const lowerCaseQuery = query.toLowerCase();
+    const lowerCaseQuery = options.query.toLowerCase();
 
     for (const {node, path} of root) {
       // index files are useless when trying to match by name, so we'll special
@@ -203,7 +261,7 @@ export function useStoryTree(files: string[], query: string) {
     }
 
     return Object.values(root.children);
-  }, [tree, query]);
+  }, [tree, options.query]);
 
   return nodes;
 }
