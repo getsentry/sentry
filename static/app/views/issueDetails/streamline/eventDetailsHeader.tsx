@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -45,6 +45,30 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
+
+  const [splitPosition, setSplitPosition] = useState(70);
+
+  const handleDrag = useCallback((event: MouseEvent) => {
+    const graphSection = document.querySelector('[data-graph-section]');
+    if (!graphSection) {
+      return;
+    }
+    const rect = graphSection.getBoundingClientRect();
+    const position = event.clientX - rect.left;
+    const percentage = (position / rect.width) * 100;
+    const clampedPercentage = Math.max(30, Math.min(80, percentage));
+    setSplitPosition(clampedPercentage);
+  }, []);
+
+  const handleDragStart = useCallback(() => {
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
+  }, [handleDrag]);
+
+  const handleDragEnd = useCallback(() => {
+    document.removeEventListener('mousemove', handleDrag);
+    document.removeEventListener('mouseup', handleDragEnd);
+  }, [handleDrag]);
 
   useEffect(() => {
     if (event) {
@@ -116,25 +140,32 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           </Fragment>
         )}
         {issueTypeConfig.header.graph.enabled && (
-          <GraphSection>
-            {issueTypeConfig.header.graph.type === 'discover-events' && (
-              <EventGraph event={event} group={group} style={{flex: 1}} />
-            )}
-            {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssuesChart group={group} project={project} />
-            )}
-            {issueTypeConfig.header.graph.type === 'uptime-checks' && (
-              <IssueUptimeCheckTimeline group={group} />
-            )}
-            {issueTypeConfig.header.graph.type === 'cron-checks' && (
-              <IssueCronCheckTimeline group={group} />
-            )}
+          <GraphSection data-graph-section>
+            <GraphContainer tagsWidth={splitPosition}>
+              {issueTypeConfig.header.graph.type === 'discover-events' && (
+                <EventGraph event={event} group={group} style={{height: '100%'}} />
+              )}
+              {issueTypeConfig.header.graph.type === 'detector-history' && (
+                <MetricIssuesChart group={group} project={project} />
+              )}
+              {issueTypeConfig.header.graph.type === 'uptime-checks' && (
+                <IssueUptimeCheckTimeline group={group} />
+              )}
+              {issueTypeConfig.header.graph.type === 'cron-checks' && (
+                <IssueCronCheckTimeline group={group} />
+              )}
+            </GraphContainer>
             {issueTypeConfig.header.tagDistribution.enabled && (
-              <IssueTagsPreview
-                groupId={group.id}
-                environments={environments}
-                project={project}
-              />
+              <React.Fragment>
+                <DragHandle splitPosition={splitPosition} onMouseDown={handleDragStart} />
+                <TagsContainer tagsWidth={splitPosition}>
+                  <IssueTagsPreview
+                    groupId={group.id}
+                    environments={environments}
+                    project={project}
+                  />
+                </TagsContainer>
+              </React.Fragment>
             )}
           </GraphSection>
         )}
@@ -224,8 +255,47 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
+  flex-direction: row;
+  position: relative;
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
+  }
+`;
+
+const GraphContainer = styled('div')<{tagsWidth: number}>`
+  flex: 1;
+  width: ${p => `${p.tagsWidth}%`};
+  min-width: 30%;
+  height: 120px;
+  overflow: hidden;
+  border-right: 1px solid ${p => p.theme.border};
+`;
+
+const TagsContainer = styled('div')<{tagsWidth: number}>`
+  width: ${p => `${100 - p.tagsWidth}%`};
+  min-width: 20%;
+  max-width: 70%;
+  height: 120px;
+  overflow: auto;
+  position: relative;
+  border-left: 1px solid ${p => p.theme.border};
+`;
+
+const DragHandle = styled('div')<{splitPosition: number}>`
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: ${p => p.theme.border};
+  position: absolute;
+  top: 0;
+  left: ${p => p.splitPosition}%;
+  z-index: ${p => p.theme.zIndex.initial + 1};
+
+  &:hover,
+  &:active {
+    background: ${p => p.theme.active};
+    width: 6px;
+    margin-left: -3px;
   }
 `;
 

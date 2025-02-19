@@ -1,3 +1,4 @@
+import {useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -38,6 +39,23 @@ export function GroupDetailsLayout({
   const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+  const [sidebarWidth, setSidebarWidth] = useState(325);
+
+  const handleDrag = useCallback((event: MouseEvent) => {
+    const windowWidth = window.innerWidth;
+    const newWidth = Math.max(200, Math.min(800, windowWidth - event.clientX));
+    setSidebarWidth(newWidth);
+  }, []);
+
+  const handleDragStart = useCallback(() => {
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
+  }, [handleDrag]);
+
+  const handleDragEnd = useCallback(() => {
+    document.removeEventListener('mousemove', handleDrag);
+    document.removeEventListener('mouseup', handleDragEnd);
+  }, [handleDrag]);
 
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
 
@@ -52,20 +70,23 @@ export function GroupDetailsLayout({
       <StyledLayoutBody
         data-test-id="group-event-details"
         sidebarOpen={issueDetails.isSidebarOpen}
+        sidebarWidth={sidebarWidth}
       >
         <div>
           <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
             <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
               <IssueEventNavigation event={event} group={group} />
-              {/* Since the event details header is disabled, display the sidebar toggle here */}
               {!hasFilterBar && <ToggleSidebar size="sm" />}
             </NavigationSidebarWrapper>
             <ContentPadding>{children}</ContentPadding>
           </GroupContent>
         </div>
         {shouldDisplaySidebar ? (
-          <StreamlinedSidebar group={group} event={event} project={project} />
+          <SidebarContainer>
+            <DragHandle onMouseDown={handleDragStart} />
+            <StreamlinedSidebar group={group} event={event} project={project} />
+          </SidebarContainer>
         ) : null}
       </StyledLayoutBody>
     </IssueDetailsContext.Provider>
@@ -74,12 +95,14 @@ export function GroupDetailsLayout({
 
 const StyledLayoutBody = styled(Layout.Body)<{
   sidebarOpen: boolean;
+  sidebarWidth: number;
 }>`
   padding: 0 !important;
   gap: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
-    grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
+    grid-template-columns: minmax(100px, auto) ${p =>
+        p.sidebarOpen ? `${p.sidebarWidth}px` : '0px'};
   }
 `;
 
@@ -109,4 +132,37 @@ const NavigationSidebarWrapper = styled('div')<{
 const ContentPadding = styled('div')`
   min-height: 100vh;
   padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
+`;
+
+const SidebarContainer = styled('div')`
+  position: relative;
+  height: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    border-left: 1px solid ${p => p.theme.border};
+  }
+`;
+
+const DragHandle = styled('div')`
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s ease;
+  z-index: ${p => p.theme.zIndex.initial + 1};
+
+  &:hover {
+    background: ${p => p.theme.border};
+  }
+
+  &:active {
+    background: ${p => p.theme.active};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;

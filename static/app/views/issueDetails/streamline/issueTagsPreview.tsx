@@ -310,17 +310,17 @@ export default function IssueTagsPreview({
 const IssueTagPreviewSection = styled('div')`
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: ${space(0.5)};
   padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.5)};
+  align-items: flex-start;
+  height: 100%;
 `;
 
 const TagsPreview = styled('div')`
-  width: 340px;
   display: grid;
   grid-template-columns: auto 30% min-content auto;
-  align-items: center;
-  align-content: center;
+  align-items: start;
+  align-content: start;
   gap: 1px;
   column-gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
