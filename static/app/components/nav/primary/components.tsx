@@ -6,7 +6,6 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
@@ -34,10 +33,13 @@ interface SidebarItemDropdownProps {
   forceLabel?: boolean;
 }
 
-export function SidebarItem({children}: {children: React.ReactNode}) {
+export function SidebarItem({
+  children,
+  ...props
+}: {children: React.ReactNode} & React.HTMLAttributes<HTMLElement>) {
   const {layout} = useNavContext();
   return (
-    <SidebarItemWrapper isMobile={layout === NavLayout.MOBILE}>
+    <SidebarItemWrapper isMobile={layout === NavLayout.MOBILE} {...props}>
       {children}
     </SidebarItemWrapper>
   );
@@ -123,7 +125,17 @@ export function SidebarLink({
   );
 }
 
+export function SeparatorItem() {
+  return (
+    <SeparatorListItem aria-hidden>
+      <Separator />
+    </SeparatorListItem>
+  );
+}
+
 const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
+  color: ${p => p.theme.gray400};
+
   svg {
     --size: 14px;
     width: var(--size);
@@ -132,7 +144,7 @@ const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
     ${p =>
       !p.isMobile &&
       css`
-        --size: 16px;
+        --size: 18px;
       `}
   }
   > a,
@@ -152,6 +164,11 @@ const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
       pointer-events: none;
     }
 
+    &[aria-selected='true'] {
+      color: ${p => p.theme.purple400};
+      box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
+    }
+
     ${p =>
       !p.isMobile &&
       css`
@@ -161,8 +178,8 @@ const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
         margin-inline: 0 auto;
         gap: ${space(0.75)};
         padding: ${space(1.5)} 0;
-        min-height: 44px;
-        width: ${PRIMARY_SIDEBAR_WIDTH - 10}px;
+        min-height: 40px;
+        width: 44px;
         letter-spacing: -0.02em;
         font-size: 10px;
       `}
@@ -194,4 +211,18 @@ export const SidebarItemBadge = styled('span')`
   height: 16px;
   border-radius: 16px;
   line-height: 16px;
+`;
+
+const SeparatorListItem = styled('li')`
+  list-style: none;
+  width: 100%;
+  padding: 0 ${space(1.5)};
+`;
+
+const Separator = styled('hr')`
+  outline: 0;
+  border: 0;
+  height: 1px;
+  background: ${p => p.theme.innerBorder};
+  margin: 0;
 `;
