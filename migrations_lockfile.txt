@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0036_uptime_status_indexes
 
-workflow_engine: 0047_migrate_issue_alerts
+workflow_engine: 0048_migrate_issue_alerts
