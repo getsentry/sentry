@@ -6,7 +6,6 @@ import LazyLoad from 'sentry/components/lazyLoad';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   getFilter,
@@ -27,7 +26,6 @@ const MetricChart = lazy(
 
 export function MetricIssuesChart({group, project}: {group: Group; project: Project}) {
   const theme = useTheme();
-  const api = useApi();
   const organization = useOrganization();
 
   const ruleId = useMetricIssueAlertId({groupId: group.id});
@@ -64,10 +62,8 @@ export function MetricIssuesChart({group, project}: {group: Group; project: Proj
       <LazyLoad
         theme={theme}
         LazyComponent={MetricChart}
-        api={api}
         rule={rule}
         timePeriod={timePeriod}
-        organization={organization}
         project={project}
         interval={getPeriodInterval(timePeriod, rule)}
         query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
