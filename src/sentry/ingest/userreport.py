@@ -37,9 +37,12 @@ def save_userreport(
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
-    with metrics.timer("sentry.ingest.userreport.save_userreport"):
+    with metrics.timer("sentry.ingest.userreport.save_userreport", tags={"referrer": source.value}):
         if is_in_feedback_denylist(project.organization):
-            metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
+            metrics.incr(
+                "user_report.create_user_report.filtered",
+                tags={"reason": "org.denylist", "referrer": source.value},
+            )
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,
@@ -52,6 +55,8 @@ def save_userreport(
                 quantity=1,
             )
             return
+
+        report["comments"] = report["comments"].strip()
 
         should_filter, filter_reason = should_filter_user_report(
             report["comments"], project.id, source=source
@@ -121,7 +126,10 @@ def save_userreport(
             )
             report_instance = existing_report
 
-            metrics.incr("user_report.create_user_report.overwrite_duplicate")
+            metrics.incr(
+                "user_report.create_user_report.overwrite_duplicate",
+                tags={"referrer": source.value},
+            )
 
         else:
             if report_instance.group_id:
@@ -139,7 +147,7 @@ def save_userreport(
         )
         metrics.incr(
             "user_report.create_user_report.saved",
-            tags={"has_event": bool(event)},
+            tags={"has_event": bool(event), "referrer": source.value},
         )
         if event:
             logger.info(
@@ -168,12 +176,16 @@ def should_filter_user_report(
     """
     if options.get("feedback.filter_garbage_messages"):  # Filter kill-switch.
         if not comments:
-            metrics.incr("user_report.create_user_report.filtered", tags={"reason": "empty"})
+            metrics.incr(
+                "user_report.create_user_report.filtered",
+                tags={"reason": "empty", "referrer": source.value},
+            )
             return True, "Empty Feedback Messsage"
 
         if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
             metrics.incr(
-                "user_report.create_user_report.filtered", tags={"reason": "unreal.unattended"}
+                "user_report.create_user_report.filtered",
+                tags={"reason": "unreal.unattended", "referrer": source.value},
             )
             return True, "Sent in Unreal Unattended Mode"
 
@@ -185,7 +197,7 @@ def should_filter_user_report(
             len(comments),
             tags={
                 "entrypoint": "save_userreport",
-                "referrer": FeedbackCreationSource.USER_REPORT_ENVELOPE.value,
+                "referrer": source.value,
             },
         )
         logger.info(
