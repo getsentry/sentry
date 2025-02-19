@@ -111,6 +111,11 @@ export function useIssueDetails() {
 
 export interface IssueDetailsState {
   /**
+   * Tracks which section is currently most visible in the viewport based on
+   * its proximity to the activation offset
+   */
+  activeSection: string | null;
+  /**
    * Detector details for the current issue
    */
   detectorDetails: DetectorDetails;
@@ -132,11 +137,6 @@ export interface IssueDetailsState {
   sectionData: {
     [key in SectionKey]?: SectionConfig;
   };
-  /**
-   * Tracks which section is currently most visible in the viewport based on
-   * its proximity to the activation offset
-   */
-  activeSection: string | null;
 }
 
 type UpdateEventSectionAction = {
@@ -166,8 +166,8 @@ type UpdateDetectorDetailsAction = {
 };
 
 type UpdateSectionVisibilityAction = {
-  type: 'UPDATE_SECTION_VISIBILITY';
   sectionId: string;
+  type: 'UPDATE_SECTION_VISIBILITY';
 };
 
 export type IssueDetailsActions =
