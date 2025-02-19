@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 
-class UserRoleValidator(serializers.Serializer):
+class UserRoleValidator(serializers.Serializer[None]):
     name = serializers.CharField()
     permissions = serializers.ListField(child=serializers.CharField(), required=False)
 
