@@ -155,7 +155,7 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
               size: 'xs',
             }}
             value={chartInfo.chartType}
-            menuTitle="Type"
+            menuTitle={t('Type')}
             options={EXPLORE_CHART_TYPE_OPTIONS}
             onChange={option => {
               updateChartType({chartType: option.value});
