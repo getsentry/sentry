@@ -9,12 +9,11 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 
 type RouteParams = {
   projectId: string;
@@ -43,13 +42,12 @@ export function MetricRulesEdit({
     isError,
     data: rule,
     error,
-  } = useApiQuery<MetricRule>(
-    [`/organizations/${organization.slug}/alert-rules/${params.ruleId}/`],
+  } = useMetricRule(
     {
-      staleTime: 0,
-      retry: false,
-      refetchOnMount: true,
-    }
+      orgSlug: organization.slug,
+      ruleId: params.ruleId,
+    },
+    {refetchOnMount: true}
   );
 
   useEffect(() => {

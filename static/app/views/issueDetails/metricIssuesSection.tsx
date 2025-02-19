@@ -8,18 +8,14 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import RelatedIssues from 'sentry/views/alerts/rules/metric/details/relatedIssues';
 import RelatedTransactions from 'sentry/views/alerts/rules/metric/details/relatedTransactions';
-import {
-  Dataset,
-  type MetricRule,
-  TimePeriod,
-} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
+import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -38,18 +34,18 @@ export default function MetricIssuesSection({
 }: MetricIssuesSectionProps) {
   const location = useLocation();
   const ruleId = event.contexts?.metric_alert?.alert_rule_id;
-  const {data: rule} = useApiQuery<MetricRule>(
-    [
-      `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
-      {
-        query: {
-          expand: 'latestIncident',
-        },
+  const {data: rule} = useMetricRule(
+    {
+      orgSlug: organization.slug,
+      ruleId: ruleId ?? '',
+      query: {
+        expand: 'latestIncident',
       },
-    ],
+    },
     {
       staleTime: Infinity,
       retry: false,
+      enabled: !!ruleId,
     }
   );
 
