@@ -1,5 +1,5 @@
 import type {Dispatch} from 'react';
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,6 @@ import {
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 interface TokensProp {
   expression: string;
@@ -21,12 +20,8 @@ interface TokensProp {
 
 function Tokens(props: TokensProp) {
   const {state, dispatch} = useArithmeticBuilderAction({
-    initialQuery: props.expression,
+    initialExpression: props.expression,
   });
-
-  const tokens = useMemo(() => {
-    return tokenizeExpression(state.query);
-  }, [state.query]);
 
   const wrappedDispatch = useCallback(
     (action: ArithmeticBuilderAction) => {
@@ -43,7 +38,7 @@ function Tokens(props: TokensProp) {
         focusOverride: state.focusOverride,
       }}
     >
-      <TokenGrid tokens={tokens} />
+      <TokenGrid tokens={state.expression.tokens} />
     </ArithmeticBuilderContext.Provider>
   );
 }
