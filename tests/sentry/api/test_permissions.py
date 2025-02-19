@@ -1,4 +1,5 @@
 from sentry.api.permissions import (
+    DemoUserPermission,
     SentryIsAuthenticated,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
@@ -57,4 +58,90 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
         )
         assert not self.user_permission.has_object_permission(
             self.make_request(self.readonly_user), None, None
+        )
+
+
+class DemoUserPermissionsTest(DRFPermissionTestCase):
+    user_permission = DemoUserPermission()
+
+    def setUp(self):
+        super().setUp()
+        self.normal_user = self.create_user(id=1)
+        self.readonly_user = self.create_user(id=2)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_readonly_user_has_permission(self):
+        assert self.user_permission.has_permission(self.make_request(self.readonly_user), None)
+
+    def test_readonly_user_has_object_permission(self):
+        assert not self.user_permission.has_object_permission(
+            self.make_request(self.readonly_user), None, None
+        )
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_safe_method(self):
+        assert self.user_permission.has_permission(
+            self.make_request(self.readonly_user, method="GET"), None
+        )
+        assert self.user_permission.has_permission(
+            self.make_request(self.normal_user, method="GET"), None
+        )
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_unsafe_methods(self):
+        for method in ("POST", "PUT", "PATCH", "DELETE"):
+            assert not self.user_permission.has_permission(
+                self.make_request(self.readonly_user, method=method), None
+            )
+
+        assert self.user_permission.has_permission(
+            self.make_request(self.normal_user, method=method), None
+        )
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    def test_safe_method_demo_mode_disabled(self):
+        assert not self.user_permission.has_permission(
+            self.make_request(self.readonly_user, method="GET"), None
+        )
+        assert self.user_permission.has_permission(
+            self.make_request(self.normal_user, method="GET"), None
+        )
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    def test_unsafe_methods_demo_mode_disabled(self):
+        for method in ("POST", "PUT", "PATCH", "DELETE"):
+            assert not self.user_permission.has_permission(
+                self.make_request(self.readonly_user, method=method), None
+            )
+
+        assert self.user_permission.has_permission(
+            self.make_request(self.normal_user, method=method), None
+        )
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_determine_access(self):
+        assert self.user_permission.determine_access(
+            self.make_request(self.readonly_user, method="GET"), None
+        )
+        assert self.user_permission.determine_access(
+            self.make_request(self.normal_user, method="GET"), None
+        )
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    def test_determine_access_disabled(self):
+        assert not self.user_permission.determine_access(
+            self.make_request(self.readonly_user, method="GET"), None
+        )
+        assert self.user_permission.determine_access(
+            self.make_request(self.normal_user, method="GET"), None
+        )
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_determine_access_superuser(self):
+        assert not self.user_permission.determine_access(
+            self.make_request(self.readonly_user, method="POST"), None
+        )
+        self.readonly_user.update(is_superuser=True)
+        assert self.user_permission.determine_access(
+            self.make_request(self.readonly_user, method="POST"), None
         )

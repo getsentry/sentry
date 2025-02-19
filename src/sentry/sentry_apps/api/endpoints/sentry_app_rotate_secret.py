@@ -8,7 +8,7 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import DemoUserPermission
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SentryAppStatus
@@ -21,7 +21,7 @@ from sentry.users.services.user.service import user_service
 logger = logging.getLogger(__name__)
 
 
-class SentryAppRotateSecretPermission(SentryPermission):
+class SentryAppRotateSecretPermission(DemoUserPermission):
     scope_map = {
         "POST": ["org:write", "org:admin"],
     }
