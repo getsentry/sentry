@@ -299,7 +299,12 @@ function VisualizeEquation({
   yAxis,
 }: VisualizeEquationProps) {
   const setExpression = useCallback(
-    (expression: Expression) => setChartYAxis(group, index, expression.text),
+    (expression: Expression) => {
+      // only update the y axis if it's a valid expression
+      if (expression.valid === 'valid') {
+        setChartYAxis(group, index, expression.text);
+      }
+    },
     [group, index, setChartYAxis]
   );
 

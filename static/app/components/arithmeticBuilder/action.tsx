@@ -80,18 +80,14 @@ export function useArithmeticBuilderAction({
         setFocusOverride(null);
       } else if (isArithmeticBuilderDeleteAction(action)) {
         const newExpression = deleteToken(expression.text, action);
-        if (newExpression.valid === 'valid') {
-          updateExpression?.(newExpression);
-        }
+        updateExpression?.(newExpression);
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
           setFocusOverride(action.focusOverride);
         }
       } else if (isArithmeticBuilderReplaceAction(action)) {
         const newExpression = replaceToken(expression.text, action);
-        if (newExpression.valid === 'valid') {
-          updateExpression?.(newExpression);
-        }
+        updateExpression?.(newExpression);
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
           setFocusOverride(action.focusOverride);
