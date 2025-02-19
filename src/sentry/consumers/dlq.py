@@ -111,7 +111,7 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
 
             if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
-                metrics.incr(key="stale-messages.routed", sample_rate=1.0)
+                metrics.incr(key="consumer.stale-messages.routed", sample_rate=1.0)
                 raise InvalidMessage(
                     message.value.partition,
                     message.value.offset,
