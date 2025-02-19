@@ -102,7 +102,7 @@ const format = (v: number, abbrev: string, precision: number) => {
 
 export function makeFormatter(
   from: ProfilingFormatterUnit | string,
-  precision: number = 2
+  precision = 2
 ): (value: number) => string {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const multiplier = durationMappings[from];

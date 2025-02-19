@@ -204,10 +204,10 @@ export class NewTraceDetailsSpanBar extends Component<
 
   spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
-  zoomLevel: number = 1; // assume initial zoomLevel is 100%
-  _mounted: boolean = false;
+  zoomLevel = 1; // assume initial zoomLevel is 100%
+  _mounted = false;
   hashSpanId: string | undefined = undefined;
-  isHighlighted: boolean = false;
+  isHighlighted = false;
 
   updateHighlightedState = () => {
     const hashValues = parseTraceDetailsURLHash(this.props.location.hash);

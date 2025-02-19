@@ -271,7 +271,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
-  hasEditAccess: boolean = true,
+  hasEditAccess = true,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void

@@ -10,12 +10,12 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import {Alert} from 'sentry/components/alert';
 import Avatar from 'sentry/components/avatar';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
@@ -38,7 +38,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
-import type {SentryApp} from 'sentry/types/integrations';
+import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
@@ -355,7 +355,8 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
     if (app && avatar) {
       const avatars =
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
-      avatars.push(avatar);
+
+      avatars.push(avatar as SentryAppAvatar);
       this.setState({app: {...app, avatars}});
     }
   };
