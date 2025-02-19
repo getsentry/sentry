@@ -4,11 +4,14 @@ import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout, type PrimaryNavGroup} from 'sentry/components/nav/types';
 import {isLinkActive} from 'sentry/components/nav/utils';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -52,13 +55,26 @@ export function SecondaryNav({children, group}: SecondaryNavProps) {
 }
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
-  const {layout} = useNavContext();
+  const {isCollapsed, setIsCollapsed, layout} = useNavContext();
 
   if (layout === NavLayout.MOBILE) {
     return null;
   }
 
-  return <Header>{children}</Header>;
+  return (
+    <Header>
+      <div>{children}</div>
+      <div>
+        <Button
+          borderless
+          size="xs"
+          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+          aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        />
+      </div>
+    </Header>
+  );
 };
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
@@ -121,10 +137,19 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 };
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
-  padding: ${space(2)} ${space(3)} ${space(1)} ${space(3)};
+  padding: 0 ${space(1)} 0 ${space(3)};
+  height: 44px;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  button {
+    color: inherit;
+  }
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
