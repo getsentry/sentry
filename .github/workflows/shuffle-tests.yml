@@ -52,7 +52,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
