@@ -11,7 +11,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import UptimeRegionScheduleMode, UptimeSubscription
-from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -39,10 +38,6 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         return
 
     region_slugs = [s.region_slug for s in subscription.regions.all()]
-    if not region_slugs:
-        # XXX: Hack to make sure that region configs are sent even if we don't have region rows present.
-        # Remove once everything is in place
-        region_slugs = [get_active_region_configs()[0].slug]
 
     for region_slug in region_slugs:
         send_uptime_subscription_config(region_slug, subscription)
@@ -72,10 +67,6 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         return
 
     region_slugs = [s.region_slug for s in subscription.regions.all()]
-    if not region_slugs:
-        # XXX: Hack to make sure that region configs are sent even if we don't have region rows present.
-        # Remove once everything is in place
-        region_slugs = [get_active_region_configs()[0].slug]
 
     for region_slug in region_slugs:
         send_uptime_subscription_config(region_slug, subscription)
@@ -106,10 +97,6 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         return
 
     region_slugs = [s.region_slug for s in subscription.regions.all()]
-    if not region_slugs:
-        # XXX: Hack to make sure that region configs are sent even if we don't have regions present.
-        # Remove once everything is in place
-        region_slugs = [get_active_region_configs()[0].slug]
 
     subscription_id = subscription.subscription_id
     if subscription.status == QuerySubscription.Status.DELETING.value:
