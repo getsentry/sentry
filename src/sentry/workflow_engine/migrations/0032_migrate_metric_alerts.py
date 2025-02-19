@@ -55,6 +55,7 @@ class Condition(StrEnum):
     GREATER = "gt"
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
 
 
 class AlertRuleActivityType(Enum):
@@ -174,7 +175,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     ):
         if alert_rule.status in [AlertRuleStatus.DISABLED, AlertRuleStatus.SNAPSHOT]:
             continue
-        if alert_rule.detection_type == "static":
+        if alert_rule.detection_type == "dynamic":
             logger.info(
                 "anomaly detection alert rule, skipping", extra={"alert_rule_id": alert_rule.id}
             )
@@ -343,12 +344,12 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     )
 
                     if not trigger_action.sentry_app_config:
-                        return {"priority": default_priority}
+                        data = {"priority": default_priority}
 
                     # Ensure sentry_app_config is a dict before accessing
                     config = trigger_action.sentry_app_config
                     if not isinstance(config, dict):
-                        return {"priority": default_priority}
+                        data = {"priority": default_priority}
 
                     priority = config.get("priority", default_priority)
                     data = dataclasses.asdict(OnCallDataBlob(priority=priority))
