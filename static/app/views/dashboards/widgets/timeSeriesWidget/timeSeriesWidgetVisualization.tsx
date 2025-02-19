@@ -16,7 +16,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -54,6 +54,7 @@ export interface TimeSeriesWidgetVisualizationProps {
   aliases?: Aliases;
   dataCompletenessDelay?: number;
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  onZoom?: EChartDataZoomHandler;
   releases?: Release[];
   stacked?: boolean;
   timeseriesSelection?: TimeseriesSelection;
@@ -344,6 +345,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         },
       }}
       {...chartZoomProps}
+      {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
