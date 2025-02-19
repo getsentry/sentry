@@ -1,84 +1,51 @@
-import {Fragment, useMemo} from 'react';
-import moment from 'moment-timezone';
-
 import {LinkButton} from 'sentry/components/button';
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import RelatedIssues from 'sentry/views/alerts/rules/metric/details/relatedIssues';
 import RelatedTransactions from 'sentry/views/alerts/rules/metric/details/relatedTransactions';
-import {
-  Dataset,
-  type MetricRule,
-  TimePeriod,
-} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
+import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
+import {
+  useMetricIssueAlertId,
+  useMetricTimePeriod,
+} from 'sentry/views/issueDetails/metricIssues/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface MetricIssuesSectionProps {
-  event: Event;
   group: Group;
   organization: Organization;
   project: Project;
 }
 
-export default function MetricIssuesSection({
+export function MetricIssuesSection({
   organization,
-  event,
   group,
   project,
 }: MetricIssuesSectionProps) {
   const location = useLocation();
-  const ruleId = event.contexts?.metric_alert?.alert_rule_id;
-  const {data: rule} = useApiQuery<MetricRule>(
-    [
-      `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
-      {
-        query: {
-          expand: 'latestIncident',
-        },
+
+  const ruleId = useMetricIssueAlertId({groupId: group.id});
+  const {data: rule} = useMetricRule(
+    {
+      orgSlug: organization.slug,
+      ruleId: ruleId ?? '',
+      query: {
+        expand: 'latestIncident',
       },
-    ],
+    },
     {
       staleTime: Infinity,
       retry: false,
+      enabled: !!ruleId,
     }
   );
-
-  const openPeriod = group.openPeriods?.[0];
-  const timePeriod = useMemo((): TimePeriodType | null => {
-    if (!openPeriod) {
-      return null;
-    }
-    const start = openPeriod.start;
-    let end = openPeriod.end;
-    if (!end) {
-      end = new Date().toISOString();
-    }
-    return {
-      start,
-      end,
-      period: TimePeriod.SEVEN_DAYS,
-      usingPeriod: false,
-      label: t('Custom time'),
-      display: (
-        <Fragment>
-          <DateTime date={moment.utc(start)} />
-          {' — '}
-          <DateTime date={moment.utc(end)} />
-        </Fragment>
-      ),
-      custom: true,
-    };
-  }, [openPeriod]);
+  const timePeriod = useMetricTimePeriod({openPeriod: group.openPeriods?.[0]});
 
   if (!rule || !timePeriod) {
     return null;
