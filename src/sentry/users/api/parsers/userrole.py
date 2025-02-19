@@ -6,7 +6,7 @@ class UserRoleValidator(serializers.Serializer):
     name = serializers.CharField()
     permissions = serializers.ListField(child=serializers.CharField(), required=False)
 
-    def validate_permissions(self, value):
+    def validate_permissions(self, value: str) -> str:
         if not value:
             return value
 
