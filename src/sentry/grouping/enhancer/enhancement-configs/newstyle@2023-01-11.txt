@@ -437,16 +437,16 @@ path:**/*LogRocket*/** -app -group
 ## Unreal Engine
 
 ### Unreal Engine internal assertion handling
-family:native stack.function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app
+family:native stack.function:FDebug::CheckVerifyFailedImpl* v+app
 
 ### Unreal Engine internal ensure handling
-family:native stack.function:UE::Assert::Private::ExecCheckImplInternal* ^-app -app v+app
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal* v+app
 
 ### UE SDK USentrySubsystem event capturing
-family:native stack.function:USentrySubsystem::CaptureMessage* ^-app -app v+app
-family:native stack.function:USentrySubsystem::CaptureMessageWithScope* ^-app -app v+app
-family:native stack.function:USentrySubsystem::CaptureEvent* ^-app -app v+app
-family:native stack.function:USentrySubsystem::CaptureEventWithScope* ^-app -app v+app
-family:native stack.function:USentrySubsystem::*execCapture* ^-app -app v+app
+family:native stack.function:USentrySubsystem::CaptureMessage* v+app
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope* v+app
+family:native stack.function:USentrySubsystem::CaptureEvent* v+app
+family:native stack.function:USentrySubsystem::CaptureEventWithScope* v+app
+family:native stack.function:USentrySubsystem::*execCapture* v+app
 family:native function:__start_thread -app
 family:native function:__pthread_start -app

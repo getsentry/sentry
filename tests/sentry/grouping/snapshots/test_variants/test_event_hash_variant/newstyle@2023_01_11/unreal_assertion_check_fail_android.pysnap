@@ -1,5 +1,5 @@
 ---
-created: '2025-02-19T18:20:18.082127+00:00'
+created: '2025-02-19T20:50:34.307802+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -16,66 +16,66 @@ app:
           frame (marked out of app by stack trace rule (family:native function:__pthread_start -app))
             function*
               "__pthread_start"
-          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "android_main"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "AndroidMain"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "FEngineLoop::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UGameEngine::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UWorld::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "FLatentActionManager::ProcessLatentActions"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "FLatentActionManager::TickLatentActionForObject"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "AActor::ProcessEvent"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UObject::ProcessEvent"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UFunction::Invoke"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UObject::ProcessInternal"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "ProcessLocalScriptFunction"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UObject::execCallMathFunction"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "USentryPlaygroundUtils::execTerminate"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "USentryPlaygroundUtils::Terminate"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (non app frame)
             function*
               "FDebug::CheckVerifyFailedImpl2"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (non app frame)
             function*
               "FOutputDevice::LogfImpl"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (non app frame)
             function*
               "FSentryOutputDeviceError::Serialize"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (non app frame)
             function*
               "TMulticastDelegateBase<T>::Broadcast<T>"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (non app frame)
+          frame (non app frame)
             function*
               "tgkill"
         type (ignored because exception is synthetic)
@@ -96,66 +96,66 @@ system:
           frame (marked out of app by stack trace rule (family:native function:__pthread_start -app))
             function*
               "__pthread_start"
-          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "android_main"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "AndroidMain"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "FEngineLoop::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UGameEngine::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UWorld::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "FLatentActionManager::ProcessLatentActions"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "FLatentActionManager::TickLatentActionForObject"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "AActor::ProcessEvent"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UObject::ProcessEvent"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UFunction::Invoke"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UObject::ProcessInternal"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "ProcessLocalScriptFunction"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "UObject::execCallMathFunction"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "USentryPlaygroundUtils::execTerminate"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
             function*
               "USentryPlaygroundUtils::Terminate"
-          frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame*
             function*
               "FDebug::CheckVerifyFailedImpl2"
-          frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame*
             function*
               "FOutputDevice::LogfImpl"
-          frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame*
             function*
               "FSentryOutputDeviceError::Serialize"
-          frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame*
             function*
               "TMulticastDelegateBase<T>::Broadcast<T>"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
-          frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app))
+          frame
+          frame*
             function*
               "tgkill"
         type (ignored because exception is synthetic)
