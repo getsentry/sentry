@@ -45,7 +45,8 @@ type EventNavigationProps = {
 };
 
 /**
- * Ordered array of sections that matches the order in EventDetailsContent
+ * Ordered array of sections that matches the order in EventDetailsContent.
+ * See: static/app/views/issueDetails/groupEventDetails/groupEventDetailsContent.tsx
  */
 export const ORDERED_SECTIONS: SectionKey[] = [
   SectionKey.HIGHLIGHTS,
@@ -105,15 +106,27 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 export const MIN_NAV_HEIGHT = 44;
 
 /**
- * Hook that updates the active section based on a fixed activation offset from the viewport top.
- * This provides more stable navigation highlighting compared to pure intersection ratios.
- * When near the bottom of the page, it will force the last section to be active.
+ * A hook that manages which section is currently "active" in the navigation based on scroll position.
+ *
+ * The hook works by:
+ * 1. Comparing each section's distance from a fixed activation offset (default 100px from viewport top)
+ * 2. Setting the section closest to this offset as active
+ * 3. Special handling for when user scrolls near bottom of page to force last section active
+ *
+ * This provides more stable navigation highlighting compared to intersection observers since it:
+ * - Uses a single point of comparison (distance from activation offset) rather than complex intersection ratios
+ * - Prevents rapid section changes when scrolling quickly
+ * - Ensures the last section becomes active when reaching bottom of page
+ *
+ * @param sectionKeys - Array of section identifiers that can be activated
+ * @param activationOffset - Distance from top of viewport to check section positions against (default 100px)
  */
 function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 100) {
   const {dispatch} = useIssueDetails();
 
   const handleScroll = useCallback(() => {
-    // If we are near (or past) the bottom of the page, force the last section active
+    // Special case: When near bottom of page, force the last section to be active
+    // This ensures users can see they've reached the end of content
     const bottomThreshold = 50;
     const isNearBottom =
       window.innerHeight + window.scrollY >=
@@ -122,23 +135,28 @@ function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 1
     if (isNearBottom && sectionKeys.length > 0) {
       const lastSectionKey = sectionKeys[sectionKeys.length - 1];
       if (lastSectionKey) {
-        return dispatch({
+        dispatch({
           type: 'UPDATE_SECTION_VISIBILITY',
           sectionId: lastSectionKey,
           ratio: 1,
         });
+        return;
       }
     }
 
-    // Otherwise, use the normal comparison with the activationOffset
+    // Normal case: Find section closest to activation offset
+    // Track minimum distance found so far and corresponding section
     let activeKey = null;
     let minDiff = Infinity;
 
+    // Compare each section's distance from activation offset
     sectionKeys.forEach(key => {
       const element = document.getElementById(key);
       if (element) {
         const {top} = element.getBoundingClientRect();
+        // Calculate absolute distance from activation offset
         const diff = Math.abs(top - activationOffset);
+        // Update active section if this one is closer
         if (diff < minDiff) {
           minDiff = diff;
           activeKey = key;
@@ -146,6 +164,7 @@ function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 1
       }
     });
 
+    // If we found a closest section, dispatch update to mark it active
     if (activeKey) {
       dispatch({
         type: 'UPDATE_SECTION_VISIBILITY',
@@ -156,10 +175,10 @@ function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 1
   }, [sectionKeys, activationOffset, dispatch]);
 
   useEffect(() => {
-    // Initial check on mount
+    // Check initial section on mount
     handleScroll();
 
-    // Add passive scroll listener
+    // Add passive scroll listener for performance
     window.addEventListener('scroll', handleScroll, {passive: true});
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
