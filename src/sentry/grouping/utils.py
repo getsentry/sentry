@@ -144,11 +144,11 @@ def get_fingerprint_value(
 
     elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
-        tag = variable_key[5:]
+        requested_tag = variable_key[5:]
         for tag_name, value in event_data.get("tags") or ():
-            if tag_name == tag and value is not None:
+            if tag_name == requested_tag and value is not None:
                 return value
-        return "<no-value-for-tag-%s>" % tag
+        return "<no-value-for-tag-%s>" % requested_tag
     else:
         return None
 
