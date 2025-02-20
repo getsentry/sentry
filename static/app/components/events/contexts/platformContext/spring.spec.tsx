@@ -6,7 +6,7 @@ import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
   getSpringContextData,
   type SpringContext,
-} from 'sentry/components/events/contexts/knownContext/spring';
+} from 'sentry/components/events/contexts/platformContext/spring';
 
 const MOCK_SPRING_CONTEXT: SpringContext = {
   active_profiles: ['some', 'profiles'],
@@ -16,7 +16,7 @@ const MOCK_SPRING_CONTEXT: SpringContext = {
 };
 
 describe('SpringContext', function () {
-  it('returns values and according to the parameters', function () {
+  it('returns values according to the parameters', function () {
     expect(getSpringContextData({data: MOCK_SPRING_CONTEXT})).toEqual([
       {key: 'active_profiles', subject: 'Active Profiles', value: ['some', 'profiles']},
       {
@@ -44,7 +44,12 @@ describe('SpringContext', function () {
       />
     );
 
-    expect(screen.getByText('Spring Context')).toBeInTheDocument();
+    expect(screen.getByText('Spring')).toBeInTheDocument();
     expect(screen.getByText('Active Profiles')).toBeInTheDocument();
+    expect(screen.getByText('extra_data')).toBeInTheDocument();
+    expect(screen.getByText('something')).toBeInTheDocument();
+    expect(screen.getByText('unknown_key')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(screen.getByTestId('spring-context-icon')).toBeInTheDocument();
   });
 });

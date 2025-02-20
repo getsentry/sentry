@@ -2,7 +2,6 @@ import type {CloudResourceContext} from '@sentry/core';
 
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
-import type {SpringContext} from 'sentry/components/events/contexts/knownContext/spring';
 import type {
   AggregateSpanType,
   RawSpanType,
@@ -673,7 +672,6 @@ export type EventContexts = {
   replay?: ReplayContext;
   response?: ResponseContext;
   runtime?: RuntimeContext;
-  spring?: SpringContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
