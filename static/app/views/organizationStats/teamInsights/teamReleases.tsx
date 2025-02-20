@@ -21,6 +21,7 @@ import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
@@ -261,7 +262,10 @@ function TeamReleases({
                 avatarSize={18}
                 project={project}
                 to={{
-                  pathname: `/organizations/${organization.slug}/releases/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: '/',
+                  }),
                   query: {project: project.id},
                 }}
               />
@@ -271,7 +275,10 @@ function TeamReleases({
             <ScoreWrapper>
               <Link
                 to={{
-                  pathname: `/organizations/${organization.slug}/releases/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: '/',
+                  }),
                   query: {project: project.id, statsPeriod: '7d'},
                 }}
               >

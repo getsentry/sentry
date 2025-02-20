@@ -24,6 +24,7 @@ import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
@@ -133,7 +134,10 @@ export function getOnboardingTasks({
         ),
         skippable: false,
         actionType: 'app',
-        location: `/organizations/${organization.slug}/releases/`,
+        location: makeReleasesPathname({
+          organization,
+          path: '/',
+        }),
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -327,7 +331,10 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: `/organizations/${organization.slug}/releases/`,
+      location: makeReleasesPathname({
+        organization,
+        path: '/',
+      }),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },

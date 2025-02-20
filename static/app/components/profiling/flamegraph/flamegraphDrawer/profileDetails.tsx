@@ -28,6 +28,7 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
@@ -456,9 +457,10 @@ function ProfileEventDetails({
               <strong>{label}:</strong>
               <Link
                 to={{
-                  pathname: `/organizations/${
-                    organization.slug
-                  }/releases/${encodeURIComponent(release.version)}/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: `/${encodeURIComponent(release.version)}/`,
+                  }),
                   query: {
                     project: profileGroup.metadata.projectID,
                   },

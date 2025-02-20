@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from '../releasesRequest';
@@ -111,9 +112,10 @@ function ReleaseCard({
         <ReleaseInfoHeader>
           <GlobalSelectionLink
             to={{
-              pathname: `/organizations/${
-                organization.slug
-              }/releases/${encodeURIComponent(version)}/`,
+              pathname: makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(version)}/`,
+              }),
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
