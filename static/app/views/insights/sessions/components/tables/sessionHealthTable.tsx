@@ -20,6 +20,18 @@ export default function SessionHealthTable() {
         isError={isError}
         isLoading={isLoading}
         location={location}
+        meta={{
+          fields: {
+            release: 'string',
+            date: 'date',
+            stage: 'string',
+            crash_free_sessions: 'percentage',
+            sessions: 'integer',
+          },
+          units: {
+            crash_free_sessions: '%',
+          },
+        }}
       />
       <PaginationNoMargin
         pageLinks={pageLinks}

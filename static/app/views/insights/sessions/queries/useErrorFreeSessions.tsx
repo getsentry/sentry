@@ -24,18 +24,10 @@ export default function useErrorFreeSessions() {
     {staleTime: 0}
   );
 
-  if (isPending) {
+  if (isPending || !sessionData) {
     return {
       series: [],
-      isPending: true,
-      error,
-    };
-  }
-
-  if (!sessionData && !isPending) {
-    return {
-      series: [],
-      isPending: false,
+      isPending,
       error,
     };
   }

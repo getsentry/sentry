@@ -1,25 +1,24 @@
-import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
-import TextOverflow from 'sentry/components/textOverflow';
-import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type SessionHealthItem = {
   crash_free_sessions: number;
   date: string;
+  release: string;
   sessions: number;
   stage: string;
-  version: string;
 };
 
 interface Props {
@@ -27,18 +26,18 @@ interface Props {
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
-  title?: ReactNode;
+  meta: EventsMetaType;
 }
 
 const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
-  {key: 'version', name: 'version'},
+  {key: 'release', name: 'version'},
   {key: 'date', name: 'date created'},
   {key: 'stage', name: 'stage'},
   {key: 'crash_free_sessions', name: 'crash free rate'},
   {key: 'sessions', name: 'total sessions'},
 ];
 
-export default function ReleaseTable({data, isError, isLoading, location, title}: Props) {
+export default function ReleaseTable({data, isError, isLoading, location, meta}: Props) {
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},
     location,
@@ -48,6 +47,8 @@ export default function ReleaseTable({data, isError, isLoading, location, title}
     columns: BASE_COLUMNS,
     location,
   });
+
+  const organization = useOrganization();
 
   const renderHeadCell = useMemo(
     () =>
@@ -61,25 +62,32 @@ export default function ReleaseTable({data, isError, isLoading, location, title}
     [currentSort, makeSortLinkGenerator]
   );
 
-  const renderBodyCell = useCallback((column: any, dataRow: any) => {
-    const value = dataRow[column.key];
-    switch (column.key) {
-      case 'date':
-        return <DateTime date={value} />;
-      case 'version':
-        return (
-          <VersionWrapper>
-            <StyledVersion version={value} tooltipRawVersion anchor={false} />
-          </VersionWrapper>
-        );
-      case 'crash_free_sessions':
+  const renderBodyCell = useCallback(
+    (column: any, dataRow: any) => {
+      const value = dataRow[column.key];
+
+      if (column.key === 'crash_free_sessions') {
         return `${value.toFixed(2)}%`;
-      case 'stage':
-      case 'sessions':
-      default:
-        return <TextOverflow>{value}</TextOverflow>;
-    }
-  }, []);
+      }
+
+      if (!meta?.fields) {
+        return value;
+      }
+
+      const renderer = getFieldRenderer(column.key, meta.fields, false);
+
+      return (
+        <CellWrapper>
+          {renderer(dataRow, {
+            location,
+            organization,
+            unit: meta.units?.[column.key],
+          })}
+        </CellWrapper>
+      );
+    },
+    [organization, location, meta]
+  );
 
   const tableEmptyMessage = (
     <MessageContainer>
@@ -104,9 +112,8 @@ export default function ReleaseTable({data, isError, isLoading, location, title}
       grid={{
         onResizeColumn: handleResizeColumn,
         renderHeadCell,
-        renderBodyCell,
+        renderBodyCell: (column, row) => renderBodyCell(column, row),
       }}
-      title={title}
     />
   );
 }
@@ -128,11 +135,8 @@ const MessageContainer = styled('div')`
   padding: ${space(4)};
 `;
 
-export const VersionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledVersion = styled(Version)`
-  ${p => p.theme.overflowEllipsis};
+const CellWrapper = styled('div')`
+  & div {
+    text-align: left;
+  }
 `;

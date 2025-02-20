@@ -28,18 +28,10 @@ export default function useCrashFreeSessions() {
 
   const projectTotal = useSessionAdoptionRate();
 
-  if (isPending) {
+  if (isPending || !sessionData) {
     return {
       series: [],
-      isPending: true,
-      error,
-    };
-  }
-
-  if (!sessionData && !isPending) {
-    return {
-      series: [],
-      isPending: false,
+      isPending,
       error,
     };
   }
