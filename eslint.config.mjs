@@ -30,7 +30,6 @@ import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
-// biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
 import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
