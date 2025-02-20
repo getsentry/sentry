@@ -392,6 +392,28 @@ describe('token', function () {
         })
       ).toBeInTheDocument();
     });
+
+    it('can delete function tokens with the delete button', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: 'Remove function avg(span.duration)',
+        })
+      );
+
+      expect(
+        screen.queryByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('ArithmeticTokenOperator', function () {
