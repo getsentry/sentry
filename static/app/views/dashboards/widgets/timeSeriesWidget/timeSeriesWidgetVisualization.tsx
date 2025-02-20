@@ -42,6 +42,7 @@ import {formatSeriesName} from './formatSeriesName';
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
+import {isTimeSeriesOther} from './isTimeSeriesOther';
 import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
@@ -54,7 +55,7 @@ export interface TimeSeriesWidgetVisualizationProps {
   /**
    * An array of time series, each one representing a changing value over time. This is the chart's data. See documentation for examples
    */
-  timeSeries: TimeSeries[];
+  timeSeries: Array<Readonly<TimeSeries>>;
   /**
    * Chart type
    */
@@ -174,8 +175,42 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return scaleTimeSeriesData(timeserie, yAxisUnit);
   });
 
+  // If the provided timeseries have a `color` property, preserve that color.
+  // For any timeseries in need of a color, pull from the chart palette. It's
+  // important to do this before splitting into complete and incomplete, since
+  // automatic color assignment in `BaseChart` relies on the count of series.
+  // This code can be safely removed once we can render dotted incomplete lines
+  // using a single series
+  const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
+
+  const palette =
+    numberOfSeriesNeedingColor > 1
+      ? theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      : [];
+
+  let seriesColorIndex = -1;
+  const colorizedSeries = scaledSeries.map(timeSeries => {
+    if (isTimeSeriesOther(timeSeries)) {
+      return {
+        ...timeSeries,
+        color: theme.chartOther,
+      };
+    }
+
+    if (needsColor(timeSeries)) {
+      seriesColorIndex += 1;
+
+      return {
+        ...timeSeries,
+        color: palette[seriesColorIndex % palette.length], // Mod the index in case the number of series exceeds the number of colors in the palette
+      };
+    }
+
+    return timeSeries;
+  });
+
   // Mark which points in the series are incomplete according to delay
-  const markedSeries = scaledSeries.map(timeSeries =>
+  const markedSeries = colorizedSeries.map(timeSeries =>
     markDelayedData(timeSeries, dataCompletenessDelay)
   );
 
@@ -415,5 +450,19 @@ const LoadingMask = styled(TransparentLoadingMask)`
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
+
+const needsColor = (timeSeries: TimeSeries) => {
+  // Any series that provides its own color doesn't need to be in the palette.
+  if (timeSeries.color) {
+    return false;
+  }
+
+  // "Other" series have a hard-coded color, they also don't need palette
+  if (isTimeSeriesOther(timeSeries)) {
+    return false;
+  }
+
+  return true;
+};
 
 const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';
