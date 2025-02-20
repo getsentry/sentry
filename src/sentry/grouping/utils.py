@@ -143,15 +143,15 @@ def get_fingerprint_value(
 
 
 def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
-    def _resolve_single_entry(value: str) -> str:
-        variable_key = parse_fingerprint_entry_as_variable(value)
+    def _resolve_single_entry(entry: str) -> str:
+        variable_key = parse_fingerprint_entry_as_variable(entry)
         if variable_key == "default":
             return DEFAULT_FINGERPRINT_VARIABLE
         if variable_key is None:
-            return value
+            return entry
         rv = get_fingerprint_value(variable_key, event_data)
         if rv is None:
-            return value
+            return entry
         return rv
 
     return [_resolve_single_entry(x) for x in fingerprint]
