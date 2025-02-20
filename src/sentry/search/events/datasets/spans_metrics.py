@@ -1250,6 +1250,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
 
     def _is_messaging_op(self, op: str, operation_name: str, operation_type: str) -> Function:
+        hasOperationNameColumn = self.builder.resolve_tag_key("messaging.operation.name")
+        hasOperationTypeColumn = self.builder.resolve_tag_key("messaging.operation.type")
         return Function(
             "or",
             [
@@ -1260,23 +1262,20 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         self.builder.resolve_tag_value(op),
                     ],
                 ),
-                Function(
-                    "or",
+                hasOperationTypeColumn
+                and Function(
+                    "equals",
                     [
-                        Function(
-                            "equals",
-                            [
-                                self.builder.column("messaging.operation.type"),
-                                self.builder.resolve_tag_value(operation_type),
-                            ],
-                        ),
-                        Function(
-                            "equals",
-                            [
-                                self.builder.column("messaging.operation.name"),
-                                self.builder.resolve_tag_value(operation_name),
-                            ],
-                        ),
+                        self.builder.column("messaging.operation.type"),
+                        self.builder.resolve_tag_value(operation_type),
+                    ],
+                ),
+                hasOperationNameColumn
+                and Function(
+                    "equals",
+                    [
+                        self.builder.column("messaging.operation.name"),
+                        self.builder.resolve_tag_value(operation_name),
                     ],
                 ),
             ],
