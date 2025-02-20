@@ -21,6 +21,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0001_create_tempest_credentials_model
 
-uptime: 0025_uptime_migrate_constraint
+uptime: 0026_region_mode_col
 
 workflow_engine: 0031_make_detector_project_non_nullable
