@@ -9,7 +9,7 @@ from sentry.uptime.models import UptimeSubscriptionRegion
 
 def get_active_region_configs() -> list[UptimeRegionConfig]:
     configured_regions: Sequence[UptimeRegionConfig] = settings.UPTIME_REGIONS
-    region_mode_override: Mapping[str] = options.get("uptime.checker-regions-mode-override")
+    region_mode_override: Mapping[str, str] = options.get("uptime.checker-regions-mode-override")
 
     return [
         c
