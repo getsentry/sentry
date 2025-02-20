@@ -27,6 +27,7 @@ export default function SessionHealthTable() {
             stage: 'string',
             crash_free_sessions: 'percentage',
             sessions: 'integer',
+            error_count: 'integer',
           },
           units: {
             crash_free_sessions: '%',

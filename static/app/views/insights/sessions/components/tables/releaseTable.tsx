@@ -16,6 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 export type SessionHealthItem = {
   crash_free_sessions: number;
   date: string;
+  error_count: number;
   release: string;
   sessions: number;
   stage: string;
@@ -35,6 +36,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
   {key: 'stage', name: 'stage'},
   {key: 'crash_free_sessions', name: 'crash free rate'},
   {key: 'sessions', name: 'total sessions'},
+  {key: 'error_count', name: 'new issues'},
 ];
 
 export default function ReleaseTable({data, isError, isLoading, location, meta}: Props) {

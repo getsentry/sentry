@@ -37,8 +37,10 @@ export default function useOrganizationReleases() {
             stage: projSlug ? release.adoptionStages?.[projSlug]?.stage ?? '' : '',
             crash_free_sessions: release.projects[0]?.healthData?.crashFreeSessions ?? 0,
             sessions: release.projects[0]?.healthData?.totalSessions ?? 0,
+            error_count: release.projects[0]?.newGroups ?? 0,
           };
         });
+
   return {
     releaseData,
     isLoading: isPending,
