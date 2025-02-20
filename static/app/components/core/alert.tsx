@@ -234,6 +234,7 @@ const AlertContainer = withChonk(
 const IconWrapper = styled('div')`
   display: flex;
   align-items: center;
+  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
 `;
 
 const Message = styled('span')`
