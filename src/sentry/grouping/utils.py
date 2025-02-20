@@ -127,8 +127,8 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
     elif var.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
         tag = var[5:]
-        for t, value in data.get("tags") or ():
-            if t == tag and value is not None:
+        for tag_name, value in data.get("tags") or ():
+            if tag_name == tag and value is not None:
                 return value
         return "<no-value-for-tag-%s>" % tag
     else:
