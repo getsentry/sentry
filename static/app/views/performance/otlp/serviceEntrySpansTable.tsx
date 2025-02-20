@@ -20,6 +20,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,11 +31,10 @@ import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
-  SpanOperationBreakdownFilter,
   filterToField,
+  SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -111,8 +111,8 @@ const CURSOR_NAME = 'serviceEntrySpansCursor';
 type Props = {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
-  totalValues: Record<string, number> | null;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  totalValues: Record<string, number> | null;
   transactionName: string;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
