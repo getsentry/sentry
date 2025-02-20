@@ -856,7 +856,8 @@ function KeyValueAction({
           organization,
           rowKey,
           rowValue.toString(),
-          key as TraceDrawerActionKind
+          key as TraceDrawerActionKind,
+          'drawer'
         );
       }}
       items={dropdownOptions}
