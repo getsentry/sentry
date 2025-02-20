@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import type {DraggableProps} from 'framer-motion';
+import {Reorder} from 'framer-motion';
 
+import {useNavContext} from 'sentry/components/nav/context';
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
 import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
@@ -19,20 +20,16 @@ export interface IssueViewNavItemContentProps {
    */
   view: IssueViewPF;
   /**
-   * Ref that constrains where each nav item can be dragged.
-   */
-  dragConstraints?: DraggableProps['dragConstraints'];
-  /**
    * Ref to the body of the section that contains the reorderable items.
-   * This is used as the portal container for the ellipsis menu.
+   * This is used as the portal container for the ellipsis menu, and as
+   * the dragging constraint for each nav item.
    */
-  sectionBodyRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function IssueViewNavItemContent({
   view,
-  dragConstraints,
-  sectionBodyRef,
+  sectionRef,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
@@ -45,30 +42,55 @@ export function IssueViewNavItemContent({
     .map(p => p.platform)
     .filter(defined);
 
+  const {isInteracting, setisInteracting} = useNavContext();
+
   return (
-    <StyledSecondaryNavReordableItem
-      to={`${baseUrl}/?viewId=${view.id}`}
+    <Reorder.Item
+      as="div"
+      dragConstraints={sectionRef}
+      dragElastic={0.03}
+      dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
       value={view}
-      leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
-      trailingItems={
-        <TrailingItemsWrapper>
-          <IssueViewNavQueryCount view={view} />
-          <IssueViewNavEllipsisMenu
-            sectionBodyRef={sectionBodyRef}
-            setIsEditing={setIsEditing}
-          />
-        </TrailingItemsWrapper>
-      }
-      dragConstraints={dragConstraints}
+      whileDrag={{
+        cursor: 'grabbing',
+      }}
+      onDragStart={() => {
+        setisInteracting(true);
+      }}
+      onDragEnd={() => {
+        setisInteracting(false);
+      }}
     >
-      <EditableTabTitle
-        label={view.label}
-        isEditing={isEditing}
-        isSelected={false}
-        onChange={() => {}}
-        setIsEditing={setIsEditing}
-      />
-    </StyledSecondaryNavReordableItem>
+      <StyledSecondaryNavItem
+        to={`${baseUrl}/?viewId=${view.id}`}
+        leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
+        trailingItems={
+          <TrailingItemsWrapper>
+            <IssueViewNavQueryCount view={view} />
+            <IssueViewNavEllipsisMenu
+              sectionRef={sectionRef}
+              setIsEditing={setIsEditing}
+            />
+          </TrailingItemsWrapper>
+        }
+        onPointerDown={e => {
+          e.preventDefault();
+        }}
+        onPointerUp={e => {
+          if (isInteracting) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <EditableTabTitle
+          label={view.label}
+          isEditing={isEditing}
+          isSelected={false}
+          onChange={() => {}}
+          setIsEditing={setIsEditing}
+        />
+      </StyledSecondaryNavItem>
+    </Reorder.Item>
   );
 }
 
@@ -78,7 +100,7 @@ const TrailingItemsWrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const StyledSecondaryNavReordableItem = styled(SecondaryNav.ReordableItem)`
+const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
 
