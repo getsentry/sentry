@@ -137,11 +137,12 @@ const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
 `;
 
 const ToggleButton = styled(Button)<{enabled: boolean}>`
-  color: ${p =>
-    p.enabled ? p.theme.button.primary.background : p.theme.badge.new.color};
-  background: ${p => (p.enabled ? 'inherit' : p.theme.badge.new.background)};
+  color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
+  background: ${p =>
+    p.enabled
+      ? 'inherit'
+      : `linear-gradient(90deg, ${p.theme.blue400}, ${p.theme.green400})`};
   :hover {
-    color: ${p =>
-      p.enabled ? p.theme.button.primary.background : p.theme.badge.new.color};
+    color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
   }
 `;
