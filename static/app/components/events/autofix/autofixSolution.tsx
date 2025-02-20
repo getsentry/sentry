@@ -157,12 +157,6 @@ function SolutionDescription({
   const containerRef = useRef<HTMLDivElement>(null);
   const selection = useTextSelection(containerRef);
 
-  const events = solution.map((event, index) => ({
-    ...event,
-    is_most_important_event: event.is_new_event,
-    originalIndex: index,
-  }));
-
   return (
     <SolutionDescriptionWrapper>
       <AnimatePresence>
@@ -182,7 +176,7 @@ function SolutionDescription({
         )}
       </AnimatePresence>
       <div ref={containerRef}>
-        <AutofixTimeline events={events} activeColor="green400" />
+        <AutofixTimeline events={solution} activeColor="green400" />
       </div>
     </SolutionDescriptionWrapper>
   );
