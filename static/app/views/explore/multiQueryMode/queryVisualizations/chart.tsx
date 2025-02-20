@@ -2,6 +2,7 @@ import {Fragment, useCallback} from 'react';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconClock} from 'sentry/icons/iconClock';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
@@ -10,6 +11,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
   type ReadableExploreQueryParts,
@@ -33,6 +35,8 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
     enabled: true,
   });
   const yAxes = queryParts.yAxes;
+
+  const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const formattedYAxes = yAxes.map(yaxis => {
     const func = parseFunction(yaxis);
@@ -160,6 +164,23 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
             onChange={option => {
               updateChartType({chartType: option.value});
             }}
+          />
+        </Tooltip>,
+        <Tooltip
+          key="interval"
+          title={t('Time interval displayed in this visualization (ex. 5m)')}
+        >
+          <CompactSelect
+            value={interval}
+            onChange={({value}) => setInterval(value)}
+            triggerProps={{
+              icon: <IconClock />,
+              borderless: true,
+              showChevron: false,
+              size: 'xs',
+            }}
+            menuTitle="Interval"
+            options={intervalOptions}
           />
         </Tooltip>,
       ]}
