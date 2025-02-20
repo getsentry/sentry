@@ -73,15 +73,13 @@ export function useMetricEventStats(
     timePeriod,
   });
 
-  const queryExtras: Record<string, string> = {
-    ...getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery: false,
-      useOnDemandMetrics: isOnDemandAlert,
-    }),
-  };
+  const queryExtras: Record<string, string> = getMetricDatasetQueryExtras({
+    organization,
+    location,
+    dataset,
+    newAlertOrQuery: false,
+    useOnDemandMetrics: isOnDemandAlert,
+  });
 
   const queryObject: EventRequestQueryParams = Object.fromEntries(
     Object.entries({
