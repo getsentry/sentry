@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
+from psycopg2.errors import UniqueViolation
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
@@ -69,12 +70,15 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user(
-            "admin@localhost",
-            is_superuser=True,
-            is_staff=True,
-            is_sentry_app=False,
-        )
+        try:
+            return self.create_user(
+                "admin@localhost",
+                is_superuser=True,
+                is_staff=True,
+                is_sentry_app=False,
+            )
+        except UniqueViolation:
+            return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
