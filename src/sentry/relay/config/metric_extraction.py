@@ -199,7 +199,7 @@ def get_all_alert_metric_specs(
     return specs
 
 
-def get_all_alert_metric_default_version(
+def get_default_version_alert_metric_specs(
     project: Project, enabled_features: set[str], prefilling: bool
 ) -> list[HashedMetricSpec]:
     specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
