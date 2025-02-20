@@ -113,7 +113,7 @@ class FlagAuditLogModel(Model):
     created_by_type = models.PositiveSmallIntegerField(choices=CREATED_BY_TYPE_TYPES, null=True)
     flag = models.CharField(max_length=100)
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
-    provider = models.PositiveSmallIntegerField(choices=PROVIDER_TYPES, null=True, db_default=None)
+    provider = models.PositiveSmallIntegerField(choices=PROVIDER_TYPES, null=True)
     tags = models.JSONField()
 
     class Meta:
