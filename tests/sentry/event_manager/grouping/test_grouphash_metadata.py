@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
+from sentry.models.grouphashmetadata import HashBasis
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
@@ -53,18 +53,41 @@ class GroupHashMetadataTest(TestCase):
             grouphash = GroupHash.objects.filter(
                 project=self.project, hash=event3.get_primary_hash()
             ).first()
-            assert grouphash and isinstance(grouphash.metadata, GroupHashMetadata)
+            assert grouphash and grouphash.metadata
             mock_metrics_incr.assert_any_call(
                 "grouping.grouphash_metadata.db_hit", tags={"reason": "new_grouphash"}
             )
 
-            # For now, existing hashes aren't backfiled when new events are assigned to them
-            event4 = save_new_event({"message": "Dogs are great!"}, self.project)
-            assert event4.get_primary_hash() == event1.get_primary_hash()
-            grouphash = GroupHash.objects.filter(
-                project=self.project, hash=event4.get_primary_hash()
-            ).first()
-            assert grouphash and grouphash.metadata is None
+            # Existing hashes are backfiled when new events are assigned to them, according to the
+            # sample rate
+            with override_options({"grouping.grouphash_metadata.backfill_sample_rate": 0.415}):
+                # Over the sample rate cutoff, so no record created
+                with patch(
+                    "sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.908
+                ):
+                    event4 = save_new_event({"message": "Dogs are great!"}, self.project)
+                    assert event4.get_primary_hash() == event1.get_primary_hash()
+                    grouphash = GroupHash.objects.filter(
+                        project=self.project, hash=event4.get_primary_hash()
+                    ).first()
+                    assert grouphash and grouphash.metadata is None
+
+                # Under the sample rate cutoff, so record will be created
+                with patch(
+                    "sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.1231
+                ):
+                    event5 = save_new_event({"message": "Dogs are great!"}, self.project)
+                    assert event5.get_primary_hash() == event1.get_primary_hash()
+                    grouphash = GroupHash.objects.filter(
+                        project=self.project, hash=event5.get_primary_hash()
+                    ).first()
+                    assert grouphash and grouphash.metadata
+                    mock_metrics_incr.assert_any_call(
+                        "grouping.grouphash_metadata.db_hit", tags={"reason": "missing_metadata"}
+                    )
+                    # For grouphashes created before we started collecting metadata, we don't know
+                    # creation date
+                    assert grouphash.metadata.date_added is None
 
     @with_feature("organizations:grouphash-metadata-creation")
     def test_stores_expected_properties(self):
