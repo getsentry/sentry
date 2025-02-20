@@ -10,7 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -57,6 +57,10 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
+)
+from sentry.relay.config.metric_extraction import (
+    get_default_version_alert_metric_specs,
+    on_demand_metrics_feature_flags,
 )
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
@@ -149,6 +153,40 @@ class AlertRuleIndexMixin(Endpoint):
             return SnubaQuery.Type(value).name
         except ValueError:
             return "Unknown"
+
+
+@region_silo_endpoint
+class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Returns the total number of on-demand alert rules for a project, along with
+        the maximum allowed limit of on-demand alert rules that can be created.
+        """
+        project_id = request.GET.get("project_id")
+
+        if project_id is None:
+            return Response(
+                {"detail": "Missing required parameter 'project_id'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        project = Project.objects.get(id=int(project_id))
+        enabled_features = on_demand_metrics_feature_flags(organization)
+        prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+        alert_specs = get_default_version_alert_metric_specs(project, enabled_features, prefilling)
+
+        return Response(
+            {
+                "totalOnDemandAlertSpecs": len(alert_specs),
+                "maxAllowed": options.get("on_demand.max_alert_specs"),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @region_silo_endpoint
