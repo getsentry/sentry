@@ -458,7 +458,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
                 <Arcade
-                  src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
+                  src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed"
                   loading="lazy"
                   allowFullScreen
                 />
