@@ -419,6 +419,11 @@ class DualWriteAlertRuleTest(APITestCase):
         metric_detector.refresh_from_db()
         assert metric_detector.enabled is True
 
+        # per-user snooze doesn't disable detector
+        RuleSnooze.objects.create(alert_rule=self.metric_alert, user_id=self.user.id)
+        metric_detector.refresh_from_db()
+        assert metric_detector.enabled is True
+
 
 class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
     def setUp(self):

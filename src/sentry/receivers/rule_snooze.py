@@ -5,6 +5,9 @@ from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
 
 def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> None:
+    if instance.user_id is not None:
+        return
+
     if instance.rule:
         alert_rule_workflow = AlertRuleWorkflow.objects.filter(rule=instance.rule).first()
         if alert_rule_workflow and alert_rule_workflow.workflow:

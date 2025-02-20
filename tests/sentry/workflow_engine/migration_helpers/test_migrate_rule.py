@@ -129,6 +129,11 @@ class RuleMigrationHelpersTest(TestCase):
         workflow.refresh_from_db()
         assert workflow.enabled is True
 
+        # per-user snooze doesn't disable detector
+        RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
+        workflow.refresh_from_db()
+        assert workflow.enabled is True
+
     def test_update_issue_alert(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         conditions_payload = [
@@ -459,6 +464,16 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         self.assert_issue_alert_migrated(self.issue_alert, is_enabled=False)
+
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        action = dcg_actions.action
+        assert action.type == Action.Type.SLACK
+
+    def test_run__snoozed_rule_for_user(self):
+        RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        self.assert_issue_alert_migrated(self.issue_alert, is_enabled=True)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action

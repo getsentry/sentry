@@ -159,7 +159,7 @@ class IssueAlertMigrator:
         self._bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=when_dcg)
 
         enabled = True
-        rule_snooze = RuleSnooze.objects.filter(rule=self.rule).first()
+        rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
         if rule_snooze and rule_snooze.until is None:
             enabled = False
 
