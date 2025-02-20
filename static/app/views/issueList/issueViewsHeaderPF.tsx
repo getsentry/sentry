@@ -493,7 +493,7 @@ export default IssueViewsPFIssueListHeader;
  * If project/environemnts is undefined, it equates to an empty array. If it is a single value,
  * it is converted to single element array.
  */
-const normalizeProjectsEnvironments = (
+export const normalizeProjectsEnvironments = (
   project: string[] | string | undefined,
   env: string[] | string | undefined
 ): {queryEnvs: string[]; queryProjects: number[]} => {

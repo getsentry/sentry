@@ -45,7 +45,7 @@ const IconWrap = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.5)};
+  margin-right: ${space(1)};
 `;
 
 const IconContainer = styled('div')`
