@@ -468,12 +468,9 @@ class TestDeleteWorkflow:
         cls = instance.__class__
 
         delete_workflow(self.workflow)
-
-        # Checks that all the models are deleted in individual test cases
         assert not cls.objects.filter(id=instance_id).exists()
 
     def test_delete_workflow__no_actions(self):
-        # Remove the assiaction action and reference to the action to the action conditions
         Action.objects.get(id=self.action.id).delete()
         assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter.id).exists()
 
