@@ -17,21 +17,22 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class DataConditionType(TypedDict):
-    id: int
+    id: int | None
     comparison: int
     type: Condition
-    conditionResult: DetectorPriorityLevel
-    conditionGroupId: int
+    condition_result: DetectorPriorityLevel
+    condition_group_id: int
 
 
 class DataSourceType(TypedDict):
-    queryType: int
+    query_type: int
     dataset: str
     query: str
     aggregate: str
-    timeWindow: int
+    time_window: float
+    resolution: float
     environment: str
-    eventTypes: list[SnubaQueryEventType]
+    event_types: list[SnubaQueryEventType]
 
 
 class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidator):
@@ -77,24 +78,24 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         # TODO make one if it doesn't exist and data is passed?
 
         for data_condition in data_conditions:
-            data_condition_id = data_condition.get("id")
-            if not data_condition_id:
-                raise serializers.ValidationError("Data condition missing ID")
-            try:
-                current_data_condition = DataCondition.objects.get(
-                    id=data_condition_id, condition_group=data_condition_group
-                )
-            except DataCondition.DoesNotExist:
+            if not data_condition.get("id"):
                 current_data_condition = None
+            else:
+                try:
+                    current_data_condition = DataCondition.objects.get(
+                        id=str(data_condition.get("id")), condition_group=data_condition_group
+                    )
+                except DataCondition.DoesNotExist:
+                    continue
 
             if current_data_condition:
                 current_data_condition.update(**data_condition)
                 current_data_condition.save()
             else:
                 DataCondition.objects.create(
-                    type=data_condition.get("type"),
-                    comparison=data_condition.get("comparison"),
-                    condition_result=data_condition.get("condition_result"),
+                    type=data_condition["type"],
+                    comparison=data_condition["comparison"],
+                    condition_result=data_condition["condition_result"],
                     condition_group=data_condition_group,
                 )
         return data_condition_group
@@ -120,7 +121,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             time_window=timedelta(minutes=data_source.get("time_window", snuba_query.time_window)),
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
-            event_types=data_source.get("event_types", [event_types]),
+            event_types=data_source.get("event_types", [event_type for event_type in event_types]),
         )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
