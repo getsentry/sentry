@@ -195,7 +195,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     snoozed = RuleSnooze.objects.get(alert_rule_id=alert_rule.id, user_id=None)
                 except RuleSnooze.DoesNotExist:
                     pass
-                enabled = True if snoozed is not None else False
+                enabled = True if snoozed is None else False
 
                 create_activity = AlertRuleActivity.objects.get(
                     alert_rule_id=alert_rule.id, type=AlertRuleActivityType.CREATED.value
