@@ -8,6 +8,8 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
+import sentry_sdk
+
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
@@ -77,11 +79,13 @@ def parse_and_emit_replay_actions(
             emit_replay_actions(message)
 
 
+@sentry_sdk.trace
 def emit_replay_actions(action: ReplayActionsEvent) -> None:
     publisher = _initialize_publisher()
     publisher.publish("ingest-replay-events", json.dumps(action))
 
 
+@sentry_sdk.trace
 def parse_replay_actions(
     project: Project,
     replay_id: str,
@@ -233,13 +237,14 @@ def _get_testid(container: dict[str, str]) -> str:
     )
 
 
-def _initialize_publisher() -> KafkaPublisher:
+def _initialize_publisher(asynchronous: bool = True) -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
         config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"])
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
+            asynchronous=asynchronous,
         )
 
     return replay_publisher

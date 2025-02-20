@@ -46,3 +46,18 @@ class ReplayRecordingSegment(Model):
 
         rv = super().delete(*args, **kwargs)
         return rv
+
+
+@region_silo_model
+class FilePart(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    date_added = models.DateTimeField(default=timezone.now, null=False)
+    filename = models.CharField(null=False)
+    key = models.CharField(db_index=True, null=False)
+    range_start = models.IntegerField(null=False)
+    range_stop = models.IntegerField(null=False)
+
+    class Meta:
+        app_label = "replays"
+        db_table = "replays_filepart"
