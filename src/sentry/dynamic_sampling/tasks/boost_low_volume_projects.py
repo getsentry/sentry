@@ -20,6 +20,7 @@ from snuba_sdk import (
 )
 
 from sentry import features, options, quotas
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -278,9 +279,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 
 def query_project_counts_by_org(
-    org_ids: list[int],
-    measure: SamplingMeasure,
-    query_interval: timedelta | None = None,
+    org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
@@ -296,6 +295,11 @@ def query_project_counts_by_org(
         granularity = Granularity(3600)
 
     org_ids = list(org_ids)
+    project_ids = list(
+        Project.objects.filter(organization_id__in=org_ids, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
+    )
     transaction_string_id = indexer.resolve_shared_org("decision")
     transaction_tag = f"tags_raw[{transaction_string_id}]"
     if measure == SamplingMeasure.SPANS:
@@ -334,6 +338,7 @@ def query_project_counts_by_org(
             Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
             Condition(Column("metric_id"), Op.EQ, metric_id),
             Condition(Column("org_id"), Op.IN, org_ids),
+            Condition(Column("project_id"), Op.IN, project_ids),
         ],
         granularity=granularity,
         orderby=[
