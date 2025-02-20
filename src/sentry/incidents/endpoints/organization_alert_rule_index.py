@@ -59,7 +59,7 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.relay.config.metric_extraction import (
-    get_all_alert_metric_specs,
+    get_all_alert_metric_default_version,
     on_demand_metrics_feature_flags,
 )
 from sentry.sentry_apps.services.app import app_service
@@ -178,7 +178,7 @@ class OrganizationOnDemandRuleTotalsEndpoint(OrganizationEndpoint):
         project = Project.objects.filter(id=int(project_id)).first()
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-        alert_specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+        alert_specs = get_all_alert_metric_default_version(project, enabled_features, prefilling)
 
         return Response(
             {

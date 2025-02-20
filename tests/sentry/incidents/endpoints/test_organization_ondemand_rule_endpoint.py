@@ -14,24 +14,24 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
         self.features = {"organizations:on-demand-metrics-extraction": True}
 
         # no metric alert
-        self.create_alert_rule()
+        self.alert1 = self.create_alert_rule()
 
         # metric alert due to query but using transactions dataset
-        self.create_alert_rule(
+        self.alert2 = self.create_alert_rule(
             aggregate="count()",
             query="transaction.duration:>=10",
             dataset=Dataset.Transactions,
         )
 
         # metric alert due to query but using generic_metrics dataset
-        self.create_alert_rule(
+        self.alert3 = self.create_alert_rule(
             aggregate="count()",
             query="transaction.duration:>=1000",
             dataset=Dataset.PerformanceMetrics,
         )
 
         # metric alert due to the apdex aggregation - it's the only metric which is on demand also without a query.
-        self.create_alert_rule(
+        self.alert4 = self.create_alert_rule(
             aggregate="apdex(300)",
             query="",
             dataset=Dataset.PerformanceMetrics,
@@ -56,22 +56,19 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
     def test_endpoint_return_correct_counts(self):
         response_data = self.do_success_request()
         assert response_data == {
-            # Basically each rule generates two spec versions:
-            # 1. The original spec version.
-            # 2. A second version that includes the 'include_environment_tag' field.
-            "total_on_demand_alert_specs": 4,
+            "total_on_demand_alert_specs": 2,  # alert3 and alert4
             "max_allowed": 50,
         }
 
         # When the prefill feature is enabled, the logic includes metrics from the transactions dataset
         response_data = self.do_success_request({"organizations:on-demand-metrics-prefill": True})
         assert response_data == {
-            "total_on_demand_alert_specs": 6,
+            "total_on_demand_alert_specs": 3,  # alert2, alert3 and alert4
             "max_allowed": 50,
         }
 
     def test_on_demand_alerts_exceeding_limit(self):
-        for _ in range(25):  # 25 * 2 = 50
+        for _ in range(50):
             self.create_alert_rule(
                 aggregate="count()",
                 query="transaction.duration:>=1400",
@@ -80,14 +77,14 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
 
         response_data = self.do_success_request()
         assert response_data == {
-            # 4 from the set_up + 50 from the loop = 54
-            "total_on_demand_alert_specs": 54,
+            # 2 from the set_up + 50 from the loop = 52
+            "total_on_demand_alert_specs": 52,
             "max_allowed": 50,
         }
 
         response_data = self.do_success_request({"organizations:on-demand-metrics-prefill": True})
         assert response_data == {
-            # 6 from the set_up + 50 from the loop = 56
-            "total_on_demand_alert_specs": 56,
+            # 3 from the set_up + 50 from the loop = 53
+            "total_on_demand_alert_specs": 53,
             "max_allowed": 50,
         }

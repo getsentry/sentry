@@ -199,6 +199,15 @@ def get_all_alert_metric_specs(
     return specs
 
 
+def get_all_alert_metric_default_version(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs_per_version = get_specs_per_version(specs)
+    default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    return specs_per_version.get(default_extraction_version, [])
+
+
 @metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
     project: Project, enabled_features: set[str], prefilling: bool
