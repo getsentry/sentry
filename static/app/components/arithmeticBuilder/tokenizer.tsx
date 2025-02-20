@@ -1,12 +1,12 @@
 import type {ListState} from '@react-stately/list';
 import type {LocationRange} from 'peggy';
 
-import type {
+import {
   isTokenFreeText,
   isTokenFunction,
   Operator,
   Parenthesis,
-  Token,
+  type Token,
   TokenAttribute,
   TokenCloseParenthesis,
   TokenFreeText,
