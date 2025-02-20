@@ -160,7 +160,6 @@ const StyledGrowingInput = styled(GrowingInput)<{
   border-radius: 0px;
   text-overflow: ellipsis;
   cursor: text;
-  max-width: 325px;
   line-height: 1.45;
 
   &,
