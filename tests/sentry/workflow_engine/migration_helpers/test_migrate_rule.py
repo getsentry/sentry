@@ -129,8 +129,13 @@ class RuleMigrationHelpersTest(TestCase):
         workflow.refresh_from_db()
         assert workflow.enabled is True
 
-        # per-user snooze doesn't disable detector
+    def test_ignores_per_user_rule_snooze(self):
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
         RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         workflow.refresh_from_db()
         assert workflow.enabled is True
 
