@@ -82,7 +82,7 @@ export function NewIssueExperienceButton() {
         aria-label={label}
         onClick={handleToggle}
       >
-        {text ?? null}
+        {text}
       </ToggleButton>
     );
   }
