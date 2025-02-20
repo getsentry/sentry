@@ -62,7 +62,7 @@ INSTALL_NOTICE_TEXT = _(
 external_install = {
     "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
     "buttonText": _("Vercel Marketplace"),
-    "noticeText": _(INSTALL_NOTICE_TEXT),
+    "noticeText": INSTALL_NOTICE_TEXT,
 }
 
 
