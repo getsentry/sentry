@@ -77,6 +77,7 @@ export function PrimaryNavigationItems() {
         >
           <SidebarLink
             to={`/${prefix}/dashboards/`}
+            activeTo={`/${prefix}/dashboard`}
             analyticsKey="customizable-dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
           >
