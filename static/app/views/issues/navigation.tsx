@@ -103,8 +103,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
                     <IssueViewNavItemContent
                       key={view.id}
                       view={view}
-                      dragConstraints={sectionRef}
-                      sectionBodyRef={bodyRef}
+                      sectionRef={sectionRef}
                     />
                   ))}
               </Reorder.Group>

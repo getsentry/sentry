@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import type {DraggableProps} from 'framer-motion';
 
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
@@ -19,20 +18,16 @@ export interface IssueViewNavItemContentProps {
    */
   view: IssueViewPF;
   /**
-   * Ref that constrains where each nav item can be dragged.
-   */
-  dragConstraints?: DraggableProps['dragConstraints'];
-  /**
    * Ref to the body of the section that contains the reorderable items.
-   * This is used as the portal container for the ellipsis menu.
+   * This is used as the portal container for the ellipsis menu, and as
+   * the dragging constraint for each nav item.
    */
-  sectionBodyRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function IssueViewNavItemContent({
   view,
-  dragConstraints,
-  sectionBodyRef,
+  sectionRef,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
@@ -53,13 +48,10 @@ export function IssueViewNavItemContent({
       trailingItems={
         <TrailingItemsWrapper>
           <IssueViewNavQueryCount view={view} />
-          <IssueViewNavEllipsisMenu
-            sectionBodyRef={sectionBodyRef}
-            setIsEditing={setIsEditing}
-          />
+          <IssueViewNavEllipsisMenu sectionRef={sectionRef} setIsEditing={setIsEditing} />
         </TrailingItemsWrapper>
       }
-      dragConstraints={dragConstraints}
+      dragConstraints={sectionRef}
     >
       <EditableTabTitle
         label={view.label}
@@ -96,6 +88,9 @@ const StyledSecondaryNavReordableItem = styled(SecondaryNav.ReordableItem)`
   }
   &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
     [data-issue-view-query-count] {
+    display: none;
+  }
+  [data-visible='false'] & ~ div [data-ellipsis-menu] {
     display: none;
   }
 `;
