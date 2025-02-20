@@ -30,7 +30,7 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
             dataset=Dataset.PerformanceMetrics,
         )
 
-        # metric alert due to the apdex aggregation - it's the only metric which is on demand also without a query.
+        # on-demand metric alert due to the apdex aggregation - it's the only metric which is on demand also without a query.
         self.alert4 = self.create_alert_rule(
             aggregate="apdex(300)",
             query="",
