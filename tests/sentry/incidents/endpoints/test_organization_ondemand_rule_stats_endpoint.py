@@ -43,7 +43,6 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
         _features = {**self.features, **(extra_features or {})}
         with self.feature(_features):
             response = self.get_success_response(self.organization.slug, project_id=self.project.id)
-            assert response.status_code == status.HTTP_200_OK
             return response.data
 
     def test_missing_project_id(self):
