@@ -43,7 +43,7 @@ from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.frontend.base import BaseView, control_silo_view, determine_active_organization
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -368,7 +368,9 @@ class AuthLoginView(BaseView):
         """
         invite_helper.accept_invite()
         org_slug = invite_helper.invite_context.organization.slug
-        self.determine_active_organization(request=request, organization_slug=org_slug)
+        self.active_organization = determine_active_organization(
+            request=request, organization_slug=org_slug
+        )
         response = self.redirect_to_org(request=request)
         remove_invite_details_from_session(request=request)
         return response
@@ -471,7 +473,7 @@ class AuthLoginView(BaseView):
         Logs a user in and determines their active org.
         """
         login(request=request, user=user, organization_id=coerce_id_from(m=organization))
-        self.determine_active_organization(request=request)
+        self.active_organization = determine_active_organization(request=request)
 
     def refresh_organization_status(
         self, request: Request, user: User, organization: RpcOrganization
@@ -631,7 +633,7 @@ class AuthLoginView(BaseView):
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
                 organization_slug = invite_helper.invite_context.organization.slug
-                self.determine_active_organization(request, organization_slug)
+                self.active_organization = determine_active_organization(request, organization_slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 
