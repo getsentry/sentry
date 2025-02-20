@@ -45,6 +45,7 @@ const Labels = styled('div')<{compact: boolean}>`
 const IntegrationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  line-height: ${p => p.theme.text.lineHeightHeading};
 `;
 
 // Not using the overflowEllipsis style import here
@@ -57,4 +58,5 @@ const DomainName = styled('div')<{compact: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;
