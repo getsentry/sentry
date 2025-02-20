@@ -82,7 +82,7 @@ def check_minimum_version(minimum_version: str) -> bool:
 
 
 def main(context: dict[str, str]) -> int:
-    minimum_version = "1.13.0"
+    minimum_version = "1.14.2"
     if not check_minimum_version(minimum_version):
         raise SystemExit(
             f"""
@@ -111,13 +111,10 @@ Then, use it to run sync this one time.
 
     USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
-    if constants.DARWIN and check_minimum_version("1.14.2"):
-        # `devenv update`ing to >=1.14.0 will install global colima
-        # so if it's there, uninstall the repo local stuff
-        if os.path.exists(f"{constants.root}/bin/colima"):
-            binroot = f"{reporoot}/.devenv/bin"
-            colima.uninstall(binroot)
-            limactl.uninstall(binroot)
+    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
+        binroot = f"{reporoot}/.devenv/bin"
+        colima.uninstall(binroot)
+        limactl.uninstall(binroot)
 
     from devenv.lib import node
 
@@ -138,20 +135,6 @@ Then, use it to run sync this one time.
     url, sha256 = config.get_python(reporoot, python_version)
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
-
-    if constants.DARWIN:
-        colima.install(
-            repo_config["colima"]["version"],
-            repo_config["colima"][constants.SYSTEM_MACHINE],
-            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        limactl.install(
-            repo_config["lima"]["version"],
-            repo_config["lima"][constants.SYSTEM_MACHINE],
-            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
 
     if not run_procs(
         repo,
