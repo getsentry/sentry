@@ -48,6 +48,8 @@ export function ArithmeticTokenFunction({
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
+  const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
+
   return (
     <FunctionWrapper
       {...rowProps}
@@ -67,7 +69,7 @@ export function ArithmeticTokenFunction({
           token={attribute}
           rowRef={ref}
         />
-        {!isFocused && (
+        {showUnfocusedState && (
           // Inject a floating span with the attribute name so when it's
           // not focused, it doesn't look like the placeholder text
           <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
