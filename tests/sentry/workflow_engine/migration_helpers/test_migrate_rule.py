@@ -406,7 +406,9 @@ class IssueAlertMigratorTest(TestCase):
         assert DataCondition.objects.all().count() == 0
         assert Action.objects.all().count() == 0
 
-    def assert_issue_alert_migrated(self, issue_alert, is_enabled=True):
+    def assert_issue_alert_migrated(
+        self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+    ):
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=issue_alert)
         issue_alert_detector = AlertRuleDetector.objects.get(rule=issue_alert)
 
@@ -431,7 +433,7 @@ class IssueAlertMigratorTest(TestCase):
         assert detector_workflow.workflow == workflow
 
         assert workflow.when_condition_group
-        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert workflow.when_condition_group.logic_type == logic_type
         conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
         assert conditions.count() == 2
         assert conditions.filter(
@@ -442,7 +444,7 @@ class IssueAlertMigratorTest(TestCase):
         ).exists()
 
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        assert if_dcg.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert if_dcg.logic_type == logic_type
         filters = DataCondition.objects.filter(condition_group=if_dcg)
         assert filters.count() == 1
         assert filters.filter(
@@ -459,6 +461,18 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         self.assert_issue_alert_migrated(self.issue_alert)
+
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        action = dcg_actions.action
+        assert action.type == Action.Type.SLACK
+
+    def test_run__missing_matches(self):
+        data = self.issue_alert.data
+        del data["action_match"]
+        del data["filter_match"]
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        self.assert_issue_alert_migrated(self.issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
