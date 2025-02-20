@@ -43,9 +43,10 @@ function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
-  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = makeReleasesPathname({
+    organization,
+    path: `/${encodeURIComponent(version)}/`,
+  });
 
   const tabs = [
     {title: t('Overview'), to: ''},
