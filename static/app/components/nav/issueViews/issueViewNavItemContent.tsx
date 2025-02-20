@@ -90,7 +90,4 @@ const StyledSecondaryNavReordableItem = styled(SecondaryNav.ReordableItem)`
     [data-issue-view-query-count] {
     display: none;
   }
-  [data-visible='false'] & ~ div [data-ellipsis-menu] {
-    display: none;
-  }
 `;
