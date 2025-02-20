@@ -31,6 +31,8 @@ import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhanc
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
@@ -387,12 +389,27 @@ function usePageFilterChartParams() {
   };
 }
 
+function getRequestErrorMessage(error: RequestError | null): string | undefined {
+  if (typeof error?.responseJSON?.detail === 'string') {
+    return error.responseJSON.detail;
+  }
+  if (error?.responseJSON?.detail?.message) {
+    return error.responseJSON.detail.message;
+  }
+
+  if (error?.name === ERROR_MAP[500]) {
+    return t('There was an internal systems error.');
+  }
+
+  return error?.name;
+}
+
 function RequestsWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -426,6 +443,8 @@ function RequestsWidget({query}: {query?: string}) {
         return undefined;
       }
 
+      const field = `${codePrefix}xx`;
+
       return {
         data: firstSeries.data.map(([time], index) => ({
           value: filteredSeries.reduce(
@@ -434,22 +453,33 @@ function RequestsWidget({query}: {query?: string}) {
           ),
           timestamp: new Date(time).toISOString(),
         })),
-        field: `${codePrefix}xx`,
-        meta: firstSeries.meta!,
+        field,
+        meta: {
+          fields: {
+            [field]: 'integer',
+          },
+          units: {
+            [field]: null,
+          },
+        },
         color,
       } satisfies TimeSeries;
     },
     [data]
   );
 
+  const timeSeries = useMemo(() => {
+    return [getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
+      series => !!series
+    );
+  }, [getTimeSeries, theme.error, theme.gray200]);
+
   return (
     <BarChartWidget
       title="Requests"
       isLoading={isLoading}
-      timeSeries={[
-        getTimeSeries('2', theme.gray200),
-        getTimeSeries('5', theme.error),
-      ].filter(series => !!series)}
+      error={getRequestErrorMessage(error)}
+      timeSeries={timeSeries.length > 0 ? timeSeries : undefined}
       stacked
     />
   );
@@ -459,7 +489,7 @@ function DurationWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -497,14 +527,19 @@ function DurationWidget({query}: {query?: string}) {
     [data]
   );
 
+  const timeSeries = useMemo(() => {
+    return [
+      getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
+      getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
+    ].filter(series => !!series);
+  }, [getTimeSeries]);
+
   return (
     <LineChartWidget
       title="Duration"
       isLoading={isLoading}
-      timeSeries={[
-        getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
-        getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
-      ].filter(series => !!series)}
+      error={getRequestErrorMessage(error)}
+      timeSeries={timeSeries.length > 0 ? timeSeries : undefined}
     />
   );
 }
@@ -514,7 +549,7 @@ function JobsWidget({query}: {query?: string}) {
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -575,13 +610,27 @@ function JobsWidget({query}: {query?: string}) {
           data: [],
           color: theme.gray200,
           field: 'Processed',
-          meta: okJobsRate.meta!,
+          meta: {
+            fields: {
+              Processed: 'integer',
+            },
+            units: {
+              Processed: null,
+            },
+          },
         },
         {
           data: [],
           color: theme.error,
           field: 'Failed',
-          meta: okJobsRate.meta!,
+          meta: {
+            fields: {
+              Failed: 'integer',
+            },
+            units: {
+              Failed: null,
+            },
+          },
         },
       ]
     );
@@ -590,6 +639,12 @@ function JobsWidget({query}: {query?: string}) {
   }, [data, intervalInMinutes, theme.error, theme.gray200]);
 
   return (
-    <BarChartWidget title="Jobs" stacked isLoading={isLoading} timeSeries={timeSeries} />
+    <BarChartWidget
+      title="Jobs"
+      stacked
+      isLoading={isLoading}
+      error={getRequestErrorMessage(error)}
+      timeSeries={timeSeries.length > 0 ? timeSeries : undefined}
+    />
   );
 }
