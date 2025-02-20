@@ -1,19 +1,21 @@
 from datetime import timedelta
 from unittest import mock
 
+import pytest
+
 from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
-    DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
@@ -410,73 +412,84 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         )
 
 
-class TestDeleteWorkflow(BaseWorkflowTest):
+@django_db_all
+class TestDeleteWorkflow:
+    @pytest.fixture(autouse=True)
     def setUp(self):
-        self.workflow = self.create_workflow()
-        workflow_trigger = self.create_data_condition_group()
-        self.workflow.when_condition_group = workflow_trigger
+        self.organization = Factories.create_organization()
+        self.project = Factories.create_project(organization=self.organization)
+
+        self.workflow = Factories.create_workflow()
+        self.workflow_trigger = Factories.create_data_condition_group(
+            organization=self.organization
+        )
+        self.workflow.when_condition_group = self.workflow_trigger
         self.workflow.save()
 
-        action_filter = self.create_data_condition_group()
-        action = self.create_action()
-        action_and_filter = self.create_data_condition_group_action(
-            condition_group=action_filter,
-            action=action,
+        self.action_filter = Factories.create_data_condition_group(organization=self.organization)
+        self.action = Factories.create_action()
+        self.action_and_filter = Factories.create_data_condition_group_action(
+            condition_group=self.action_filter,
+            action=self.action,
         )
 
-        workflow_actions = self.create_workflow_data_condition_group(
-            workflow=self.workflow, condition_group=action_filter
+        self.workflow_actions = Factories.create_workflow_data_condition_group(
+            workflow=self.workflow,
+            condition_group=self.action_filter,
         )
 
-        trigger_condition = self.create_data_condition(condition_group=workflow_trigger)
-        action_condition = self.create_data_condition(condition_group=action_filter)
+        self.trigger_condition = Factories.create_data_condition(
+            condition_group=self.workflow_trigger,
+            comparison=1,
+            condition_result=True,
+        )
 
-        self.workflow_id = self.workflow.id
-        self.workflow_trigger_id = workflow_trigger.id
-        self.action_filter_id = action_filter.id
-        self.action_id = action.id
-        self.action_and_filter_id = action_and_filter.id
-        self.workflow_actions_id = workflow_actions.id
-        self.trigger_condition_id = trigger_condition.id
-        self.action_condition_id = action_condition.id
+        self.action_condition = Factories.create_data_condition(
+            condition_group=self.action_filter,
+            comparison=1,
+            condition_result=True,
+        )
 
-    # TODO - Figure out why parametrize isn't working for `test_delete_workflow`
-    def assert_clean_workflow_models(self):
-        assert not Workflow.objects.filter(id=self.workflow_id).exists()
-        assert not DataConditionGroup.objects.filter(id=self.workflow_trigger_id).exists()
-        assert not DataCondition.objects.filter(id=self.trigger_condition_id).exists()
+    @pytest.mark.parametrize(
+        "instance_attr",
+        [
+            "workflow",
+            "workflow_trigger",
+            "action_filter",
+            "action_and_filter",
+            "workflow_actions",
+            "trigger_condition",
+            "action_condition",
+        ],
+    )
+    def test_delete_workflow(self, instance_attr):
+        instance = getattr(self, instance_attr)
+        instance_id = instance.id
+        cls = instance.__class__
 
-    def assert_clean_action_models(self):
-        assert not DataConditionGroup.objects.filter(id=self.action_filter_id).exists()
-        assert not Action.objects.filter(id=self.action_id).exists()
-        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
-        assert not WorkflowDataConditionGroup.objects.filter(id=self.workflow_actions_id).exists()
-        assert not DataCondition.objects.filter(id=self.action_condition_id).exists()
-
-    def test_delete_workflow__deletes_workflow(self):
         delete_workflow(self.workflow)
-        self.assert_clean_workflow_models()
 
-    def test_delete_workflow__deletes_action_tables(self):
-        delete_workflow(self.workflow)
-        self.assert_clean_action_models()
+        # Checks that all the models are deleted in individual test cases
+        assert not cls.objects.filter(id=instance_id).exists()
 
     def test_delete_workflow__no_actions(self):
         # Remove the assiaction action and reference to the action to the action conditions
-        Action.objects.get(id=self.action_id).delete()
-        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
+        Action.objects.get(id=self.action.id).delete()
+        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter.id).exists()
 
+        workflow_id = self.workflow.id
         delete_workflow(self.workflow)
-        self.assert_clean_action_models()
+
+        assert not Workflow.objects.filter(id=workflow_id).exists()
 
     def test_delete_workflow__no_workflow_triggers(self):
         # TODO - when this condition group is deleted, it's removing the workflow
         # it's basically inverted from what's expected on the cascade delete
         self.workflow.when_condition_group = None
         self.workflow.save()
-        DataConditionGroup.objects.get(id=self.workflow_trigger_id).delete()
 
-        self.workflow.refresh_from_db()
+        DataConditionGroup.objects.get(id=self.workflow_trigger.id).delete()
 
+        workflow_id = self.workflow.id
         delete_workflow(self.workflow)
-        self.assert_clean_workflow_models()
+        assert not Workflow.objects.filter(id=workflow_id).exists()
