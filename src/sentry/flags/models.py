@@ -55,6 +55,37 @@ CREATED_BY_TYPE_MAP = {
 }
 
 
+class ProviderEnum(Enum):
+    GENERIC = 0
+    FLAGPOLE = 1
+    LAUNCHDARKLY = 2
+    UNLEASH = 3
+    STATSIG = 4
+
+    @classmethod
+    def to_string(cls, integer):
+        if integer == 0:
+            return "generic"
+        if integer == 1:
+            return "flagpole"
+        if integer == 2:
+            return "launchdarkly"
+        if integer == 3:
+            return "unleash"
+        if integer == 4:
+            return "statsig"
+        raise ValueError
+
+
+PROVIDER_MAP = {
+    "generic": ProviderEnum.GENERIC.value,
+    "flagpole": ProviderEnum.FLAGPOLE.value,
+    "launchdarkly": ProviderEnum.LAUNCHDARKLY.value,
+    "unleash": ProviderEnum.UNLEASH.value,
+    "statsig": ProviderEnum.STATSIG.value,
+}
+
+
 @region_silo_model
 class FlagAuditLogModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
@@ -69,13 +100,20 @@ class FlagAuditLogModel(Model):
         (CreatedByTypeEnum.NAME, "name"),
         (CreatedByTypeEnum.ID, "id"),
     )
-
+    PROVIDER_TYPES = (
+        (ProviderEnum.GENERIC, "generic"),
+        (ProviderEnum.FLAGPOLE, "flagpole"),
+        (ProviderEnum.LAUNCHDARKLY, "launchdarkly"),
+        (ProviderEnum.UNLEASH, "unleash"),
+        (ProviderEnum.STATSIG, "statsig"),
+    )
     action = models.PositiveSmallIntegerField(choices=ACTION_TYPES)
     created_at = models.DateTimeField(default=timezone.now)
     created_by = models.CharField(max_length=100, null=True)
     created_by_type = models.PositiveSmallIntegerField(choices=CREATED_BY_TYPE_TYPES, null=True)
     flag = models.CharField(max_length=100)
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
+    provider = models.PositiveSmallIntegerField(choices=PROVIDER_TYPES, null=True, db_default=None)
     tags = models.JSONField()
 
     class Meta:
