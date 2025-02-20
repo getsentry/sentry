@@ -2,10 +2,24 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 
+const aggregateFunctions = [{name: 'avg'}, {name: 'sum'}, {name: 'count'}];
+
+const functionArguments = [{name: 'span.duration'}, {name: 'span.self_time'}];
+
+function ArithmeticBuilderWrapper({expression}: {expression: string}) {
+  return (
+    <ArithmeticBuilder
+      aggregateFunctions={aggregateFunctions}
+      functionArguments={functionArguments}
+      expression={expression}
+    />
+  );
+}
+
 describe('ArithmeticBuilder', function () {
   it('navigates between tokens with arrow keys', async function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';
-    render(<ArithmeticBuilder expression={expression} />);
+    render(<ArithmeticBuilderWrapper expression={expression} />);
 
     expect(screen.queryAllByRole('row')).toHaveLength(11);
 
@@ -63,7 +77,7 @@ describe('ArithmeticBuilder', function () {
 
   it('can delete tokens with backspace', async function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';
-    render(<ArithmeticBuilder expression={expression} />);
+    render(<ArithmeticBuilderWrapper expression={expression} />);
 
     expect(screen.queryAllByRole('row')).toHaveLength(11);
 
@@ -121,7 +135,7 @@ describe('ArithmeticBuilder', function () {
 
   it('can delete tokens with delete', async function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';
-    render(<ArithmeticBuilder expression={expression} />);
+    render(<ArithmeticBuilderWrapper expression={expression} />);
 
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(11);

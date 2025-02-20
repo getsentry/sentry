@@ -36,6 +36,8 @@ function Tokens(props: TokensProp) {
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
+        aggregateFunctions: [{name: 'avg'}, {name: 'sum'}, {name: 'count'}],
+        functionArguments: [{name: 'span.duration'}, {name: 'span.self_time'}],
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -78,11 +80,11 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
-      await userEvent.click(screen.getByRole('option', {name: 'avg(\u2026)'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       expect(
         await screen.findByRole('row', {
@@ -101,7 +103,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
