@@ -116,16 +116,13 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
 def incident_attachment_info(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value=None,
+    metric_value: float,
     notification_uuid=None,
     referrer="metric_alert",
 ) -> AttachmentInfo:
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
-
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
 
     text = get_incident_status_text(alert_rule, metric_value)
     if features.has(
@@ -164,7 +161,7 @@ def incident_attachment_info(
     )
 
 
-def metric_alert_attachment_info(
+def metric_alert_unfurl_attachment_info(
     alert_rule: AlertRule,
     selected_incident: Incident | None = None,
     new_status: IncidentStatus | None = None,
