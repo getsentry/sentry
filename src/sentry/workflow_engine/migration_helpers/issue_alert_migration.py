@@ -54,28 +54,14 @@ class IssueAlertMigrator:
     def run(self) -> None:
         error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
-
-        # handle action_match being None but existing as a key
-        action_match = (
-            str(self.data["action_match"]).lower()
-            if "action_match" in self.data
-            else Rule.DEFAULT_CONDITION_MATCH
-        )
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
-            action_match=action_match,
+            action_match=self.data.get("action_match", Rule.DEFAULT_CONDITION_MATCH),
             detector=error_detector,
         )
-
-        # handle filter_match being None but existing as a key
-        filter_match = (
-            str(self.data["filter_match"]).lower()
-            if "filter_match" in self.data
-            else Rule.DEFAULT_FILTER_MATCH
-        )
         if_dcg = self._create_if_dcg(
-            filter_match=filter_match,
+            filter_match=self.data.get("filter_match", Rule.DEFAULT_FILTER_MATCH),
             workflow=workflow,
             conditions=conditions,
             filters=filters,
@@ -151,7 +137,7 @@ class IssueAlertMigrator:
         if action_match == "any":
             logic_type = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
         else:
-            logic_type = DataConditionGroup.Type(action_match or "none")
+            logic_type = DataConditionGroup.Type(action_match)
 
         kwargs = {"organization": self.organization, "logic_type": logic_type}
 
@@ -217,7 +203,7 @@ class IssueAlertMigrator:
         ):  # must create IF DCG even if it's empty, to attach actions
             logic_type = DataConditionGroup.Type.ANY_SHORT_CIRCUIT
         else:
-            logic_type = DataConditionGroup.Type(filter_match or "none")
+            logic_type = DataConditionGroup.Type(filter_match)
 
         kwargs = {
             "organization": self.organization,
