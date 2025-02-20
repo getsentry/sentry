@@ -23,9 +23,6 @@ family:native stack.function:USentrySubsystem::CaptureEvent*               v+app
 family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app
 family:native stack.function:USentrySubsystem::*execCapture*               v+app
 
-## rules that undo some of the wide-spread v+app
-family:native function:__pthread_start                                     v-app -app
-
 # known well locations for unix paths
 family:native package:/lib/**                                        -app
 family:native package:/usr/lib/**                                    -app

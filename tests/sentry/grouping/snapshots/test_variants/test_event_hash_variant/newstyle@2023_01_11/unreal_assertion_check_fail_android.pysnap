@@ -1,5 +1,5 @@
 ---
-created: '2025-02-20T15:18:55.542955+00:00'
+created: '2025-02-20T15:26:41.187921+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,10 +10,10 @@ app:
     app*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native function:__pthread_start v-app -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__start_thread"
-          frame (marked out of app by stack trace rule (family:native function:__pthread_start v-app -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
