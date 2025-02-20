@@ -116,7 +116,7 @@ export function traceSearchReducer(
     }
     case 'go to previous match': {
       if (state.resultIteratorIndex === null) {
-        if (!state.results || !state.results.length) {
+        if (!state.results?.length) {
           return state;
         }
         return {

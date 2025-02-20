@@ -48,7 +48,7 @@ export function actionableItemsEnabled({
   organization?: Organization | SharedViewOrganization | null;
   projectSlug?: string;
 }) {
-  if (!organization || !organization.features || !projectSlug || !eventId) {
+  if (!organization?.features || !projectSlug || !eventId) {
     return false;
   }
   return true;

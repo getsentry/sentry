@@ -1505,7 +1505,7 @@ export function joinQuery(
   leadingSpace?: boolean,
   additionalSpaceBetween?: boolean
 ): string {
-  if (!parsedTerms || !parsedTerms.length) {
+  if (!parsedTerms?.length) {
     return '';
   }
 

@@ -57,7 +57,7 @@ export function getMetricRuleDiscoverQuery({
   query,
   extraQueryParams,
 }: Omit<MetricRuleDiscoverUrlOptions, 'organization' | 'openInDiscoverDataset'>) {
-  if (!projects || !projects.length || !rule) {
+  if (!projects?.length || !rule) {
     return null;
   }
 

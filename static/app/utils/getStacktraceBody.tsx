@@ -5,7 +5,7 @@ export default function getStacktraceBody(
   event: Event,
   hasSimilarityEmbeddingsFeature = false
 ) {
-  if (!event || !event.entries) {
+  if (!event?.entries) {
     return [];
   }
 

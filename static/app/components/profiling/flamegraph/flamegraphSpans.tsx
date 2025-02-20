@@ -191,7 +191,7 @@ export function FlamegraphSpans({
   // us to link to specific spans via id without knowing their exact
   // without knowing their exact position in the view.
   useEffect(() => {
-    if (!spansView || !spanChart || !spanChart.spans.length) {
+    if (!spansView || !spanChart?.spans.length) {
       return;
     }
 

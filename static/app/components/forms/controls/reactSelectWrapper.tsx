@@ -24,7 +24,6 @@ const ReactSelectWrapper = forwardRef(function ReactSelectWrapper(props: any, re
 }) as any as typeof ReactSelect;
 
 export {ReactSelectWrapper as ReactSelect, ReactSelectWrapper as default, components};
-// biome-ignore lint/performance/noBarrelFile: not really a barrel file per say
 export {createFilter, mergeStyles} from 'react-select';
 export type {
   Props,

@@ -22,7 +22,6 @@
     "editor.tabSize": 2,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
       "source.fixAll.eslint": "explicit"
     }
   },
@@ -59,10 +58,7 @@
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "biomejs.biome",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit"
-    }
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
 
   "[yaml]": {
@@ -70,10 +66,7 @@
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit"
-    }
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
 
   "[markdown]": {
@@ -104,5 +97,6 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
-  "prettier.configPath": "package.json"
+  "prettier.configPath": "package.json",
+  "biome.enabled": false
 }

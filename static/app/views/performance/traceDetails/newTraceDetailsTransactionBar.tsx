@@ -391,8 +391,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     );
 
     const embeddedChildrenLength =
-      (embeddedChildren && waterfallModel && waterfallModel.rootSpan.children.length) ??
-      0;
+      (embeddedChildren && waterfallModel?.rootSpan.children.length) ?? 0;
     if (
       hasToggle &&
       (isExpanded || (showEmbeddedChildren && embeddedChildrenLength > 0))

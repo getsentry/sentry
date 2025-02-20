@@ -62,7 +62,7 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
     render() {
       const {children} = props;
 
-      if (!this.state.hooks || !this.state.hooks.length) {
+      if (!this.state.hooks?.length) {
         return null;
       }
 

@@ -119,7 +119,6 @@ pyproject.toml                                           @getsentry/owners-pytho
 /.githib/worksflows/frontend.yml                         @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
-biome.json                                               @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 eslint.config.mjs                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build

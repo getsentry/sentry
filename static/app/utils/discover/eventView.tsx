@@ -145,7 +145,7 @@ export function isFieldSortable(
 
 const decodeFields = (location: Location): Field[] => {
   const {query} = location;
-  if (!query || !query.field) {
+  if (!query?.field) {
     return [];
   }
 
@@ -219,7 +219,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
 };
 
 export const decodeQuery = (location: Location): string => {
-  if (!location.query || !location.query.query) {
+  if (!location.query?.query) {
     return '';
   }
 
@@ -236,7 +236,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
 };
 
 const decodeTeams = (location: Location): Array<'myteams' | number> => {
-  if (!location.query || !location.query.team) {
+  if (!location.query?.team) {
     return [];
   }
   const value = location.query.team;
@@ -246,7 +246,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
 };
 
 export const decodeProjects = (location: Location): number[] => {
-  if (!location.query || !location.query.project) {
+  if (!location.query?.project) {
     return [];
   }
 

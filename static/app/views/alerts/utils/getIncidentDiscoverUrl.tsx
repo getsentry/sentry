@@ -25,7 +25,7 @@ export function getIncidentDiscoverUrl(opts: {
 }) {
   const {organization, projects, incident, stats, extraQueryParams} = opts;
 
-  if (!projects || !projects.length || !incident || !stats) {
+  if (!projects?.length || !incident || !stats) {
     return '';
   }
 

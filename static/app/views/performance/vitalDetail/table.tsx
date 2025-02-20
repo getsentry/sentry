@@ -114,7 +114,7 @@ class Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
-    if (!tableData || !tableData.meta?.fields) {
+    if (!tableData?.meta?.fields) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta?.fields;

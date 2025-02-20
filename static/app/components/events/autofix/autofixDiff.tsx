@@ -574,7 +574,7 @@ export function AutofixDiff({
   previousDefaultStepIndex,
   previousInsightCount,
 }: AutofixDiffProps) {
-  if (!diff || !diff.length) {
+  if (!diff?.length) {
     return null;
   }
 

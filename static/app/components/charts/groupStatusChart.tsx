@@ -47,14 +47,14 @@ function GroupStatusChart({
     emphasisColors: [string] | undefined;
     series: Series[];
   }>(() => {
-    if (!stats || !stats.length) {
+    if (!stats?.length) {
       return {colors: undefined, emphasisColors: undefined, series: []};
     }
     const max = Math.max(...stats.map(p => p[1]));
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
+    if (showSecondaryPoints && secondaryStats?.length) {
       const series: Series[] = [
         {
           seriesName: t('Total Events'),

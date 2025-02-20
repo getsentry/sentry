@@ -154,7 +154,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
    */
   updateDimensions = () => {
     const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef || !chartRef.getWidth?.()) {
+    if (!chartRef?.getWidth?.()) {
       return;
     }
 
@@ -292,11 +292,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
   getChartPixelForThreshold = (threshold: number | '' | null) => {
     const chartRef = this.ref?.getEchartsInstance?.();
-    return (
-      threshold !== '' &&
-      chartRef &&
-      chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`)
-    );
+    return threshold !== '' && chartRef?.convertToPixel({yAxisIndex: 0}, `${threshold}`);
   };
 
   clampMaxValue(value: number) {

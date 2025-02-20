@@ -208,7 +208,7 @@ function TransactionsTable(props: Props) {
     if (isLoading) {
       return cells;
     }
-    if (!tableData || !tableData.meta || !tableData.data) {
+    if (!tableData?.meta || !tableData.data) {
       return cells;
     }
 

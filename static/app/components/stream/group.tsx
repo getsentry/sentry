@@ -401,7 +401,7 @@ function BaseGroupRow({
   const lastTriggeredDate = group.lastTriggered;
 
   const showSecondaryPoints = Boolean(
-    withChart && group && group.filtered && statsPeriod && useFilteredStats
+    withChart && group?.filtered && statsPeriod && useFilteredStats
   );
 
   const groupCategoryCountTitles: Record<IssueCategory, string> = {

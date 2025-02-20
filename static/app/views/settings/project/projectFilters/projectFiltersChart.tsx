@@ -39,7 +39,7 @@ function makeStatOPColors(theme: Theme): Record<string, string> {
 }
 
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
-  if (!rawData || !rawData.groups?.length) {
+  if (!rawData?.groups?.length) {
     return [];
   }
 

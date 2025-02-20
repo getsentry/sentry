@@ -23,11 +23,9 @@ export async function getPreloadedDataPromise(
   try {
     if (
       !usePreload ||
-      !data ||
-      !data.orgSlug ||
+      !data?.orgSlug ||
       data.orgSlug.toLowerCase() !== slug.toLowerCase() ||
-      !data[name] ||
-      !data[name].then
+      !data[name]?.then
     ) {
       return await wrappedFallback();
     }

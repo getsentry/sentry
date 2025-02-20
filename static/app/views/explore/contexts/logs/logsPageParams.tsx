@@ -34,7 +34,7 @@ export function LogsPageParamsProvider({children}: {children: React.ReactNode}) 
 }
 
 const decodeLogsQuery = (location: Location): string => {
-  if (!location.query || !location.query[LOGS_QUERY_KEY]) {
+  if (!location.query?.[LOGS_QUERY_KEY]) {
     return '';
   }
 

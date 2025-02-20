@@ -174,10 +174,9 @@ class JsonForm extends Component<JsonFormProps, State> {
 
     return (
       <div {...otherProps}>
-        {typeof forms !== 'undefined' &&
-          forms.map((formGroup, i) => (
-            <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
-          ))}
+        {forms?.map((formGroup, i) => (
+          <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
+        ))}
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
           this.renderForm({fields, formPanelProps, title})}

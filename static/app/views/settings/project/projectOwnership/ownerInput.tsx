@@ -111,8 +111,7 @@ class OwnerInput extends Component<Props, State> {
           );
         } else if (
           error.status === 400 &&
-          error.responseJSON.raw &&
-          error.responseJSON.raw[0].startsWith('Invalid rule owners:')
+          error.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
             t(
