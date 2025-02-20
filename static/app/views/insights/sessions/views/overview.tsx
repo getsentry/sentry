@@ -15,7 +15,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import SessionHealthTable from 'sentry/views/insights/sessions/components/tables/sessionHealthTable';
+import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
@@ -51,7 +51,7 @@ export function SessionsOverview() {
                   <ErrorFreeSessionsChart />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  <SessionHealthTable />
+                  <ReleaseHealth />
                 </ModuleLayout.Full>
               </Fragment>
             )}

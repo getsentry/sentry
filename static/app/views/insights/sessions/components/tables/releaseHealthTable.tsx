@@ -17,7 +17,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
-export type SessionHealthItem = {
+type ReleaseHealthItem = {
   crash_free_sessions: number;
   date: string;
   error_count: number;
@@ -28,7 +28,7 @@ export type SessionHealthItem = {
 };
 
 interface Props {
-  data: SessionHealthItem[];
+  data: ReleaseHealthItem[];
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
@@ -44,7 +44,13 @@ const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
   {key: 'error_count', name: 'new issues'},
 ];
 
-export default function ReleaseTable({data, isError, isLoading, location, meta}: Props) {
+export default function ReleaseHealthTable({
+  data,
+  isError,
+  isLoading,
+  location,
+  meta,
+}: Props) {
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},
     location,
@@ -136,6 +142,7 @@ export default function ReleaseTable({data, isError, isLoading, location, meta}:
         renderHeadCell,
         renderBodyCell: (column, row) => renderBodyCell(column, row),
       }}
+      title={t('Release Health')}
     />
   );
 }

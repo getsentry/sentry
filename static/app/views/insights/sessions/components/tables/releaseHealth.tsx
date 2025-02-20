@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import ReleaseTable from 'sentry/views/insights/sessions/components/tables/releaseTable';
+import ReleaseHealthTable from 'sentry/views/insights/sessions/components/tables/releaseHealthTable';
 import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useOrganizationReleases';
 
-export default function SessionHealthTable() {
+export default function ReleaseHealth() {
   const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases();
 
   const location = useLocation();
@@ -15,7 +15,7 @@ export default function SessionHealthTable() {
 
   return (
     <Fragment>
-      <ReleaseTable
+      <ReleaseHealthTable
         data={releaseData}
         isError={isError}
         isLoading={isLoading}
