@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -33,7 +33,7 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
     location.query.filter === 'comments'
   );
 
-  useEffect(() => {
+  if (location.query.filter) {
     navigate(
       {
         ...location,
@@ -44,7 +44,7 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
       },
       {replace: true}
     );
-  }, [location, navigate]);
+  }
 
   return (
     <EventDrawerContainer>
