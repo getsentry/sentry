@@ -26,7 +26,9 @@ import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
@@ -77,6 +79,36 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+  const location = useLocation();
+
+  // issue list params we want to preserve in the search
+  const queryParams = useMemo(
+    () => ({
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      project: eventView.project,
+      environment: eventView.environment,
+      sort: location.query.sort,
+    }),
+    [location.query, eventView]
+  );
+
+  const generateAction = useCallback(
+    ({key, value}: {key: string; value: string}) => {
+      const search = new MutableSearch('');
+      const modifiedQuery = search.setFilterValues(key, [value]);
+
+      return {
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {
+          ...queryParams,
+          query: modifiedQuery.formatString(),
+        },
+      };
+    },
+    [organization, queryParams]
+  );
 
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
@@ -136,11 +168,14 @@ export function EventFeatureFlagList({
           ) : (
             f.result.toString()
           ),
+          action: {
+            link: generateAction({key: `flags["${f.flag}"]`, value: f.result.toString()}),
+          },
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [suspectFlagNames, eventFlags]);
+  }, [suspectFlagNames, eventFlags, generateAction]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
