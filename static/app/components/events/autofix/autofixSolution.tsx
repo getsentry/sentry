@@ -1,10 +1,12 @@
 import {useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -19,7 +21,7 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconChevron, IconClose, IconEdit, IconFix} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconEdit, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -253,6 +255,7 @@ function AutofixSolutionDisplay({
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
   const [userCustomSolution, setUserCustomSolution] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   if (!solution || solution.length === 0) {
     return (
@@ -282,7 +285,7 @@ function AutofixSolutionDisplay({
   }
 
   return (
-    <SolutionContainer>
+    <SolutionContainer ref={containerRef}>
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
@@ -311,7 +314,7 @@ function AutofixSolutionDisplay({
               </EditButton>
             </ButtonBar>
             <ButtonBar merged>
-              <Button
+              <CodeButton
                 size="sm"
                 priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
@@ -331,8 +334,9 @@ function AutofixSolutionDisplay({
                 }}
               >
                 {t('Code It Up')}
-              </Button>
+              </CodeButton>
               <DropdownMenu
+                offset={[-12, 8]}
                 items={[
                   {
                     key: 'fix',
@@ -359,14 +363,21 @@ function AutofixSolutionDisplay({
                   },
                 ]}
                 position="bottom-end"
-                trigger={triggerProps => (
+                trigger={(triggerProps, isOpen) => (
                   <DropdownButton
                     size="sm"
                     priority={solutionSelected ? 'default' : 'primary'}
+                    aria-label={t('More coding options')}
+                    icon={
+                      <Chevron
+                        light
+                        color="subText"
+                        weight="medium"
+                        direction={isOpen ? 'up' : 'down'}
+                      />
+                    }
                     {...triggerProps}
-                  >
-                    <IconChevron direction="down" size="xs" />
-                  </DropdownButton>
+                  />
                 )}
               />
             </ButtonBar>
@@ -489,12 +500,23 @@ const CustomSolutionPadding = styled('div')`
 `;
 
 const DropdownButton = styled(Button)`
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  margin-left: -1px;
-  position: relative;
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
+`;
 
-  &:hover {
-    z-index: 1;
-  }
+const CodeButton = styled(Button)`
+  ${p =>
+    p.priority === 'primary' &&
+    css`
+      &::after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        right: -1px;
+        border-right: solid 1px currentColor;
+        opacity: 0.25;
+      }
+    `}
 `;
