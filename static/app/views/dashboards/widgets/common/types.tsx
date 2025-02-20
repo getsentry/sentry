@@ -5,6 +5,7 @@ import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsSt
 export type Meta = {
   fields: Record<string, string | null>;
   units: Record<string, string | null>;
+  isOther?: boolean;
 };
 
 type TableRow = Record<string, number | string | undefined>;
