@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -30,7 +32,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
   const organization = useOrganization();
   const ruleId = useMetricIssueAlertId({groupId: group.id});
   const timePeriod = useMetricTimePeriod();
-  const {data: rule} = useMetricRule(
+  const {data: rule, isLoading: isRuleLoading} = useMetricRule(
     {
       orgSlug: organization.slug,
       ruleId: ruleId ?? '',
@@ -44,7 +46,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
       enabled: !!ruleId,
     }
   );
-  const {data: anomalies = []} = useMetricAnomalies(
+  const {data: anomalies = [], isLoading: isAnomaliesLoading} = useMetricAnomalies(
     {
       orgSlug: organization.slug,
       ruleId: ruleId ?? '',
@@ -58,7 +60,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
         !!ruleId && organization.features.includes('anomaly-detection-alerts-charts'),
     }
   );
-  const {data: rawIncidents = []} = useMetricIncidents(
+  const {data: rawIncidents = [], isLoading: isIncidentsLoading} = useMetricIncidents(
     {
       orgSlug: organization.slug,
       query: {
@@ -79,6 +81,14 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
     }));
   }, [rawIncidents]);
 
+  if (isRuleLoading || isAnomaliesLoading || isIncidentsLoading) {
+    return (
+      <MetricChartSection>
+        <MetricIssuePlaceholder />
+      </MetricChartSection>
+    );
+  }
+
   if (!rule) {
     return null;
   }
@@ -93,6 +103,14 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
         incidents={incidents}
       />
     </MetricChartSection>
+  );
+}
+
+function MetricIssuePlaceholder() {
+  return (
+    <PlaceholderContainer>
+      <Placeholder height="96px" testId="metric-issue-chart-loading" />
+    </PlaceholderContainer>
   );
 }
 
@@ -113,7 +131,7 @@ function MetricIssueChartContent({
   incidents?: Incident[];
 }) {
   const chartZoomProps = useChartZoom({saveOnZoom: true});
-  const {chartProps} = useMetricStatsChart({
+  const {chartProps, queryResult} = useMetricStatsChart({
     project,
     rule,
     timePeriod,
@@ -122,12 +140,26 @@ function MetricIssueChartContent({
     referrer: 'metric-issue-chart',
   });
 
+  if (queryResult?.isLoading) {
+    return <MetricIssuePlaceholder />;
+  }
+
+  if (queryResult?.isError) {
+    return <div>ERROR</div>;
+  }
+
   return (
     <ChartContainer role="figure">
       <AreaChart
         series={[]}
         {...chartProps}
         height={100}
+        grid={{
+          top: 20,
+          right: 0,
+          left: 0,
+          bottom: 0,
+        }}
         tooltip={{
           formatAxisLabel: (
             value,
@@ -170,7 +202,11 @@ const MetricChartSection = styled('div')`
   width: 100%;
 `;
 
+const PlaceholderContainer = styled(LoadingContainer)`
+  padding: ${space(1)} 0;
+`;
+
 const ChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  padding: ${space(0.75)} 0;
 `;
