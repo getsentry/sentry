@@ -164,7 +164,7 @@ import { UnleashClient } from "unleash-proxy-client";
 Sentry.init({
   dsn: "${dsn}",
   integrations: [
-    Sentry.unleashIntegration({ unleashClientClass: UnleashClient }),
+    Sentry.unleashIntegration({ featureFlagClientClass: UnleashClient }),
   ],
 });
 
