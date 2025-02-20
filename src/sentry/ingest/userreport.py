@@ -54,7 +54,7 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
-            return
+            return None
 
         report["comments"] = report["comments"].strip()
 
@@ -73,7 +73,7 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
-            return
+            return None
 
         if start_time is None:
             start_time = timezone.now()
