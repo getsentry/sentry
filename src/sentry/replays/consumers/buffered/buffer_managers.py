@@ -1,18 +1,18 @@
 import dataclasses
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 
 import sentry_sdk
 
 from sentry.replays.lib.storage import storage_kv
+from sentry.replays.models import FilePart
 from sentry.replays.usecases.ingest import (
     ProcessedRecordingMessage,
     commit_recording_message,
-    emit_replay_actions,
     track_initial_segment_event,
     track_recording_metadata,
 )
-from sentry.replays.usecases.ingest.dom_index import _initialize_publisher
+from sentry.replays.usecases.ingest.dom_index import _initialize_publisher, emit_replay_actions
 
 
 @dataclasses.dataclass(frozen=True)
@@ -26,7 +26,7 @@ class FilePartRow:
 class MergedBuffer:
     buffer: bytes
     buffer_rows: list[FilePartRow]
-    remote_key: str
+    filename: str
 
 
 class BatchedBufferManager:
@@ -37,6 +37,7 @@ class BatchedBufferManager:
     table.
     """
 
+    @sentry_sdk.trace
     def commit(self, messages: list[ProcessedRecordingMessage]) -> None:
         merged_buffer = self.merge_buffer(messages)
         self.commit_merged_buffer(merged_buffer)
@@ -53,7 +54,6 @@ class BatchedBufferManager:
 
         parts = b""
         parts_rows = []
-        remote_key = uuid.uuid4().hex
 
         for item in buffer:
             # The recording data is appended to the buffer and a row for tracking is
@@ -64,14 +64,28 @@ class BatchedBufferManager:
         return MergedBuffer(
             buffer=parts,
             buffer_rows=parts_rows,
-            remote_key=remote_key,
+            filename=f"90/{uuid.uuid4().hex}",
         )
 
     @sentry_sdk.trace
     def commit_merged_buffer(self, buffer: MergedBuffer) -> None:
-        if buffer.buffer != b"":
-            storage_kv.set(buffer.remote_key, buffer.buffer)
-            # TODO: bulk insert rows
+        if buffer.buffer == b"":
+            return None
+
+        # Storage goes first. Headers go second. If we were to store the headers first we could
+        # expose a record that does not exist to the user which would ultimately 404.
+        storage_kv.set(buffer.filename, buffer.buffer)
+
+        # Bulk insert the filepart.
+        FilePart.objects.bulk_create(
+            FilePart(
+                filename=buffer.filename,
+                key=row.key,
+                range_start=row.range_start,
+                range_stop=row.range_stop,
+            )
+            for row in buffer.buffer_rows
+        )
 
     @sentry_sdk.trace
     def bulk_track_initial_segment_events(self, items: list[ProcessedRecordingMessage]) -> None:
@@ -102,7 +116,7 @@ class BatchedBufferManager:
         publisher.flush()
 
     @sentry_sdk.trace
-    def bulk_track_recording_metadata(items: list[ProcessedRecordingMessage]) -> None:
+    def bulk_track_recording_metadata(self, items: list[ProcessedRecordingMessage]) -> None:
         # Each item in the buffer needs to record metrics about itself.
         for item in items:
             track_recording_metadata(item)
@@ -122,18 +136,29 @@ class ThreadedBufferManager:
     ourselves that there are no defects in the `BatchedBufferManager`.
     """
 
-    fn = commit_recording_message
-    max_workers = 100
+    def __init__(self) -> None:
+        self.fn = commit_recording_message
+        self.max_workers = 100
 
+    @sentry_sdk.trace
     def commit(self, messages: list[ProcessedRecordingMessage]) -> None:
         # Use as many workers as necessary up to a limit. We don't want to start thousands of
         # worker threads.
         max_workers = min(len(messages), self.max_workers)
 
-        # We apply whatever function is defined on the class to each message in the list. This is
-        # useful for testing reasons (dependency injection).
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            pool.map(self.fn, messages)
+            # We apply whatever function is defined on the class to each message in the list. This
+            # is useful for testing reasons (dependency injection).
+            futures = [pool.submit(self.fn, message) for message in messages]
+
+            # Tasks can fail. We check the done set for any failures. We will wait for all the
+            # futures to complete before running this step or eagerly run this step if any task
+            # errors.
+            done, _ = wait(futures, return_when=FIRST_EXCEPTION)
+            for future in done:
+                exc = future.exception()
+                if exc is not None:
+                    raise exc
 
         # Recording metadata is not tracked in the threadpool. This is because this function will
         # log. Logging will acquire a lock and make our threading less useful due to the speed of

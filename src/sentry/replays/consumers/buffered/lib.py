@@ -7,7 +7,16 @@ from typing import Generic, TypeVar
 
 from arroyo.types import Partition
 
-from sentry.replays.consumers.buffered.platform import Cmd, Commit, Nothing, RunTime, Task
+from sentry.replays.consumers.buffered.platform import (
+    Cmd,
+    Commit,
+    Join,
+    Nothing,
+    Poll,
+    RunTime,
+    Sub,
+    Task,
+)
 
 Item = TypeVar("Item")
 T = TypeVar("T")
@@ -21,22 +30,34 @@ class Model(Generic[Item]):
     offsets: MutableMapping[Partition, int]
 
 
-class Msg(Generic[Item]):
-    pass
-
-
 @dataclass(frozen=True)
-class Append(Msg[Item]):
+class Append(Generic[Item]):
+    """Append the item to the buffer and update the offsets."""
+
     item: Item
     offset: MutableMapping[Partition, int]
 
 
-class Committed(Msg[Item]):
+class Committed:
+    """The platform committed offsets. Our buffer is now completely done."""
+
     pass
 
 
-class Flush(Msg[Item]):
+class Flush:
+    """Our application hit the flush threshold and has been instructed to flush."""
+
     pass
+
+
+class Polled:
+    """Our application was polled by the platform."""
+
+    pass
+
+
+# A "Msg" is the union of all application messages our RunTime will accept.
+Msg = Append[Item] | Committed | Flush | Polled
 
 
 def process(
@@ -48,6 +69,8 @@ def process(
     item = process_fn(message)
     if item:
         return Append(item=item, offset=offset)
+    else:
+        return None
 
 
 def init(
@@ -62,7 +85,7 @@ def update(model: Model[Item], msg: Msg[Item]) -> tuple[Model[Item], Cmd[Msg[Ite
         case Append(item=item, offset=offset):
             model.buffer.append(item)
             model.offsets.update(offset)
-            if model.can_flush():
+            if model.can_flush(model):
                 return (model, Task(msg=Flush()))
             else:
                 return (model, None)
@@ -72,21 +95,23 @@ def update(model: Model[Item], msg: Msg[Item]) -> tuple[Model[Item], Cmd[Msg[Ite
             # and provide error handling facilities or we could accept that this problem gets too
             # complicated to reasonably abstract and have developers implement their own buffering
             # consumer.
-            model.do_flush()
+            model.do_flush(model)
             model.buffer = []
             return (model, Commit(msg=Committed(), offsets=model.offsets))
         case Committed():
             return (model, None)
+        case Polled():
+            if model.can_flush(model):
+                return (model, Task(msg=Flush()))
+            else:
+                return (model, None)
 
-    # Satisfy mypy. Apparently we don't do exhaustiveness checks in our configuration.
-    return (model, None)
 
-
-def subscription(model: Model[Item]) -> Msg[Item] | None:
-    if model.can_flush():
-        return Flush()
-    else:
-        return None
+def subscription(model: Model[Item]) -> list[Sub[Msg[Item]]]:
+    return [
+        Join(msg=Flush()),
+        Poll(msg=Polled()),
+    ]
 
 
 def buffering_runtime(

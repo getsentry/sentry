@@ -3,6 +3,7 @@ import time
 import sentry_sdk
 from django.conf import settings
 
+from sentry import options
 from sentry.replays.consumers.buffered.buffer_managers import (
     BatchedBufferManager,
     ThreadedBufferManager,
@@ -43,16 +44,21 @@ class BufferManager:
             or (time.time() - self.__max_buffer_wait) >= self.__last_flushed_at
         )
 
+    @sentry_sdk.trace
     def do_flush(self, model: Model[ProcessedRecordingMessage]) -> None:
         # During the transitionary period most organizations will commit following a traditional
         # commit pattern...
-        threaded = list(filter(lambda i: i.org_id != 1, model.buffer))
+        #
+        # TODO: Would be nice to cache this value.
+        org_ids = set(options.get("replay.consumer.use-file-batching"))
+
+        threaded = list(filter(lambda i: i.org_id not in org_ids, model.buffer))
         threaded_buffer = ThreadedBufferManager()
         threaded_buffer.commit(threaded)
 
         # ...But others will be opted in to the batched version of uploading. This will give us a
         # chance to test the feature with as minimal risk as possible.
-        batched = list(filter(lambda i: i.org_id == 1, model.buffer))
+        batched = list(filter(lambda i: i.org_id in org_ids, model.buffer))
         batched_buffer = BatchedBufferManager()
         batched_buffer.commit(batched)
 
@@ -60,12 +66,12 @@ class BufferManager:
         self.__last_flushed_at = time.time()
 
 
-def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
-    buffer = BufferManager(flags)
-    return Model(buffer=[], can_flush=buffer.can_flush, do_flush=buffer.do_flush, offsets={})
-
-
 def process_message(message: bytes) -> ProcessedRecordingMessage | None:
+    """Message processing function.
+
+    Accepts an unstructured type and returns a structured one. Other than tracing the goal is to
+    have no I/O here. We'll commit the I/O on flush.
+    """
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
@@ -85,6 +91,12 @@ def process_message(message: bytes) -> ProcessedRecordingMessage | None:
             return None
         finally:
             transaction.finish()
+
+
+def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
+    """Return the initial state of the application."""
+    buffer = BufferManager(flags)
+    return Model(buffer=[], can_flush=buffer.can_flush, do_flush=buffer.do_flush, offsets={})
 
 
 recording_consumer = buffering_runtime(
