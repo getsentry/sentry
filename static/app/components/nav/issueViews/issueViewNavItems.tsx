@@ -12,7 +12,6 @@ import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF
 
 interface IssueViewNavItemsProps {
   baseUrl: string;
-  bodyRef: React.RefObject<HTMLDivElement>;
   sectionRef: React.RefObject<HTMLDivElement>;
   setViews: (views: IssueViewPF[]) => void;
   views: IssueViewPF[];
@@ -22,7 +21,6 @@ export function IssueViewNavItems({
   views,
   setViews,
   sectionRef,
-  bodyRef,
   baseUrl,
 }: IssueViewNavItemsProps) {
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
@@ -57,8 +55,7 @@ export function IssueViewNavItems({
         <AnimatePresence key={view.id}>
           <IssueViewNavItemContent
             view={view}
-            dragConstraints={sectionRef}
-            sectionBodyRef={bodyRef}
+            sectionRef={sectionRef}
             isActive={view.id === viewId}
             updateView={updatedView => {
               const newViews = views.map(v => {
@@ -72,10 +69,11 @@ export function IssueViewNavItems({
             deleteView={() => {
               const newViews = views.filter(v => v.id !== view.id);
               setViews(newViews);
+              // Only redirect if the deleted view is the active view
               if (view.id === viewId) {
                 const newUrl =
                   newViews.length > 0
-                    ? `${baseUrl}/views/${newViews[0]!.id}/`
+                    ? constructViewLink(baseUrl, newViews[0]!)
                     : `${baseUrl}/`;
                 navigate(newUrl);
               }

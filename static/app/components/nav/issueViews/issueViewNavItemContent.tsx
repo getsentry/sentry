@@ -122,12 +122,12 @@ export function IssueViewNavItemContent({
       }}
     >
       <StyledSecondaryNavItem
-        to={`${baseUrl}/?viewId=${view.id}`}
+        to={constructViewLink(baseUrl, view)}
         leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
         trailingItems={
           <TrailingItemsWrapper
-            onPointerUp={e => {
-              e.stopPropagation();
+            onClickCapture={e => {
+              e.preventDefault();
             }}
           >
             <IssueViewNavQueryCount view={view} />
