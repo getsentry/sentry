@@ -3,8 +3,6 @@ import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {DraggableProps} from 'framer-motion';
-import {Reorder} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -135,59 +133,6 @@ SecondaryNav.Item = function SecondaryNavItem({
   );
 };
 
-interface SecondaryNavReordableItemProps<T> extends SecondaryNavItemProps {
-  value: T;
-  dragConstraints?: DraggableProps['dragConstraints'];
-}
-
-// TODO(msun): Try to remove this and just make <Item/> more generalizable in the future.
-SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
-  children,
-  to,
-  activeTo = to,
-  isActive: incomingIsActive,
-  end = false,
-  trailingItems,
-  dragConstraints,
-  value,
-  leadingItems,
-  className,
-}: SecondaryNavReordableItemProps<T>) {
-  const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
-
-  const {layout: navLayout, setisInteracting} = useNavContext();
-
-  return (
-    <ReorderableItem
-      as="div"
-      tabIndex={0}
-      dragConstraints={dragConstraints}
-      dragElastic={0.03}
-      dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
-      value={value}
-      whileDrag={{
-        cursor: 'grabbing',
-      }}
-      navLayout={navLayout}
-      aria-current={isActive ? 'page' : undefined}
-      aria-selected={isActive}
-      className={className}
-      onDragStart={() => {
-        setisInteracting(true);
-      }}
-      onDragEnd={() => {
-        setisInteracting(false);
-      }}
-    >
-      <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
-      {leadingItems}
-      <ItemText>{children}</ItemText>
-      {trailingItems}
-    </ReorderableItem>
-  );
-};
-
 SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
 
@@ -288,47 +233,6 @@ const Item = styled(Link)<{layout: NavLayout}>`
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-      border-radius: 0;
-    `}
-`;
-
-// TODO(msun): These styles are duplicated from <Item/>. Remove these once we figure out a better abstraction for <Item/>
-const ReorderableItem = styled(Reorder.Item)<{navLayout: NavLayout}>`
-  position: relative;
-  display: flex;
-  padding: 4px ${space(1.5)};
-  height: 34px;
-  align-items: center;
-  color: inherit;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  line-height: 177.75%;
-  border-radius: ${p => p.theme.borderRadius};
-  cursor: pointer;
-
-  &[aria-selected='true'] {
-    color: ${p => p.theme.gray500};
-    font-weight: ${p => p.theme.fontWeightBold};
-  }
-
-  &:hover {
-    color: inherit;
-  }
-
-  [data-isl] {
-    transform: translate(0, 0);
-    top: 1px;
-    bottom: 1px;
-    right: 0;
-    left: 0;
-    width: initial;
-    height: initial;
-  }
-
-  ${p =>
-    p.navLayout === NavLayout.MOBILE &&
     css`
       padding: 0 ${space(1.5)} 0 48px;
       border-radius: 0;
