@@ -287,7 +287,7 @@ class DemoUserPermission(SentryPermission):
         organization: RpcUserOrganizationContext | Organization | RpcOrganization,
     ) -> None:
 
-        org_context: RpcUserOrganizationContext | None
+        org_context: RpcUserOrganizationContext | None = None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
         else:
