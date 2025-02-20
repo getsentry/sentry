@@ -38,9 +38,17 @@ describe('Onboarding Status', function () {
         options: {...userMock.options, quickStartDisplay: {[organizationId]: 2}},
       })
     );
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/onboarding-tasks/',
+      method: 'GET',
+      body: {
+        onboardingTasks: [],
+      },
+    });
   });
 
-  it('panel is collapsed and has pending tasks to be seen', async function () {
+  it('displays pending tasks', async function () {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],
@@ -70,12 +78,12 @@ describe('Onboarding Status', function () {
     await userEvent.hover(screen.getByRole('button', {name: 'Onboarding'}));
     await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
 
-    // Open the panel
+    // Open the overlay
     await userEvent.click(screen.getByRole('button', {name: 'Onboarding'}));
     await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
   });
 
-  it("panel is not automatically expanded because the user option 'quickStartDisplay' is not set", async function () {
+  it("overlay is not automatically opened because the user option 'quickStartDisplay' is not set", async function () {
     ConfigStore.set(
       'user',
       UserFixture({
@@ -114,7 +122,7 @@ describe('Onboarding Status', function () {
     expect(mockActivateSidebar).not.toHaveBeenCalled();
   });
 
-  it("panel is automatically expanded because the user option 'quickStartDisplay' is set to 1", async function () {
+  it("overlay is automatically opened because the user option 'quickStartDisplay' is set to 1", async function () {
     ConfigStore.set(
       'user',
       UserFixture({
