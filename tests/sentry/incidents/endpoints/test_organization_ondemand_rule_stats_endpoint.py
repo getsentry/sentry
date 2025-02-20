@@ -5,8 +5,8 @@ from sentry.testutils.cases import APITestCase
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
-    endpoint = "sentry-api-0-organization-ondemand-rules"
+class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
+    endpoint = "sentry-api-0-organization-ondemand-rules-stats"
 
     def setUp(self) -> None:
         super().setUp()
@@ -56,15 +56,15 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
     def test_endpoint_return_correct_counts(self):
         response_data = self.do_success_request()
         assert response_data == {
-            "total_on_demand_alert_specs": 2,  # alert3 and alert4
-            "max_allowed": 50,
+            "totalOnDemandAlertSpecs": 2,  # alert3 and alert4
+            "maxAllowed": 50,
         }
 
         # When the prefill feature is enabled, the logic includes metrics from the transactions dataset
         response_data = self.do_success_request({"organizations:on-demand-metrics-prefill": True})
         assert response_data == {
-            "total_on_demand_alert_specs": 3,  # alert2, alert3 and alert4
-            "max_allowed": 50,
+            "totalOnDemandAlertSpecs": 3,  # alert2, alert3 and alert4
+            "maxAllowed": 50,
         }
 
     def test_on_demand_alerts_exceeding_limit(self):
@@ -78,13 +78,13 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
         response_data = self.do_success_request()
         assert response_data == {
             # 2 from the set_up + 50 from the loop = 52
-            "total_on_demand_alert_specs": 52,
-            "max_allowed": 50,
+            "totalOnDemandAlertSpecs": 52,
+            "maxAllowed": 50,
         }
 
         response_data = self.do_success_request({"organizations:on-demand-metrics-prefill": True})
         assert response_data == {
             # 3 from the set_up + 50 from the loop = 53
-            "total_on_demand_alert_specs": 53,
-            "max_allowed": 50,
+            "totalOnDemandAlertSpecs": 53,
+            "maxAllowed": 50,
         }

@@ -182,8 +182,8 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
 
         return Response(
             {
-                "total_on_demand_alert_specs": len(alert_specs),
-                "max_allowed": options.get("on_demand.max_alert_specs"),
+                "totalOnDemandAlertSpecs": len(alert_specs),
+                "maxAllowed": options.get("on_demand.max_alert_specs"),
             },
             status=status.HTTP_200_OK,
         )
