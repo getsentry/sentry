@@ -71,7 +71,7 @@ export function useMetricStatsChart(
   if (shouldUseSessionsStats && sessionStats) {
     stats = transformSessionResponseToSeries(sessionStats, rule);
   } else if (eventStats) {
-    stats = transformTimeseriesData(eventStats.data, eventStats?.meta);
+    stats = transformTimeseriesData(eventStats.data, eventStats?.meta, rule.aggregate);
   }
 
   let chartProps: Partial<AreaChartProps> = {};

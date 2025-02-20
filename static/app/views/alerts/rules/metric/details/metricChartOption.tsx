@@ -44,7 +44,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): AreaChartSeries {
   return {
-    seriesName: '',
+    seriesName: 'Status Area',
     type: 'line',
     markLine: MarkLine({
       silent: true,
