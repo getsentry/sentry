@@ -413,44 +413,58 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 class TestDeleteWorkflow(BaseWorkflowTest):
     def setUp(self):
         self.workflow = self.create_workflow()
-        self.workflow_trigger = self.create_data_condition_group()
-        self.workflow.when_condition_group = self.workflow_trigger
+        workflow_trigger = self.create_data_condition_group()
+        self.workflow.when_condition_group = workflow_trigger
         self.workflow.save()
 
-        self.action_filter = self.create_data_condition_group()
-        self.action = self.create_action()
-        self.action_and_filter = self.create_data_condition_group_action(
-            condition_group=self.action_filter,
-            action=self.action,
+        action_filter = self.create_data_condition_group()
+        action = self.create_action()
+        action_and_filter = self.create_data_condition_group_action(
+            condition_group=action_filter,
+            action=action,
         )
 
-        self.workflow_actions = self.create_workflow_data_condition_group(
-            workflow=self.workflow, condition_group=self.action_filter
+        workflow_actions = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=action_filter
         )
 
-        self.trigger_condition = self.create_data_condition(condition_group=self.workflow_trigger)
-        self.action_condition = self.create_data_condition(condition_group=self.action_filter)
+        trigger_condition = self.create_data_condition(condition_group=workflow_trigger)
+        action_condition = self.create_data_condition(condition_group=action_filter)
+
+        self.workflow_id = self.workflow.id
+        self.workflow_trigger_id = workflow_trigger.id
+        self.action_filter_id = action_filter.id
+        self.action_id = action.id
+        self.action_and_filter_id = action_and_filter.id
+        self.workflow_actions_id = workflow_actions.id
+        self.trigger_condition_id = trigger_condition.id
+        self.action_condition_id = action_condition.id
 
     def test_delete_workflow__deletes_workflow(self):
-        workflow_id = self.workflow.id
-        trigger_id = self.workflow_trigger.id
-        trigger_condition_id = self.trigger_condition.id
         delete_workflow(self.workflow)
 
-        assert not Workflow.objects.filter(id=workflow_id).exists()
-        assert not DataConditionGroup.objects.filter(id=trigger_id).exists()
-        assert not DataCondition.objects.filter(id=trigger_condition_id).exists()
+        assert not Workflow.objects.filter(id=self.workflow_id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.workflow_trigger_id).exists()
+        assert not DataCondition.objects.filter(id=self.trigger_condition_id).exists()
 
     def test_delete_workflow__deletes_action_tables(self):
-        action_filter_id = self.action_filter.id
-        action_id = self.action.id
-        action_and_filter_id = self.action_and_filter.id
-        workflow_actions_id = self.workflow_actions.id
-        action_condition_id = self.action_condition.id
         delete_workflow(self.workflow)
 
-        assert not DataConditionGroup.objects.filter(id=action_filter_id).exists()
-        assert not Action.objects.filter(id=action_id).exists()
-        assert not DataConditionGroupAction.objects.filter(id=action_and_filter_id).exists()
-        assert not WorkflowDataConditionGroup.objects.filter(id=workflow_actions_id).exists()
-        assert not DataCondition.objects.filter(id=action_condition_id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.action_filter_id).exists()
+        assert not Action.objects.filter(id=self.action_id).exists()
+        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
+        assert not WorkflowDataConditionGroup.objects.filter(id=self.workflow_actions_id).exists()
+        assert not DataCondition.objects.filter(id=self.action_condition_id).exists()
+
+    def test_delete_workflow__no_actions(self):
+        # Remove the assiaction action
+        Action.objects.get(id=self.action_id).delete()
+        # Ensure references are removed via cascade
+        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
+
+        delete_workflow(self.workflow)
+
+        assert not DataConditionGroup.objects.filter(id=self.action_filter_id).exists()
+        assert not Action.objects.filter(id=self.action_id).exists()
+        assert not WorkflowDataConditionGroup.objects.filter(id=self.workflow_actions_id).exists()
+        assert not DataCondition.objects.filter(id=self.action_condition_id).exists()
