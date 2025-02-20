@@ -1,4 +1,4 @@
-import {forwardRef, type ReactNode, useLayoutEffect} from 'react';
+import {type ReactNode, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
@@ -80,17 +80,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNo
   );
 };
 
-SecondaryNav.Body = forwardRef<HTMLDivElement, {children: ReactNode}>(
-  ({children}, ref) => {
-    const {layout} = useNavContext();
+SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
+  const {layout} = useNavContext();
 
-    return (
-      <Body layout={layout} ref={ref}>
-        {children}
-      </Body>
-    );
-  }
-);
+  return <Body layout={layout}>{children}</Body>;
+};
 
 SecondaryNav.Section = function SecondaryNavSection({
   title,

@@ -59,7 +59,6 @@ export function IssueViewNavEllipsisMenu({
       ]}
       onInteractOutside={() => true}
       menuFooter={<FeedbackFooter />}
-      data-ellipsis-menu
       usePortal
       portalContainerRef={sectionRef}
     />
