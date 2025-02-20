@@ -15,12 +15,19 @@ export function useOnboardingWizardDrawer() {
 
   useEffect(() => {
     if (isActive) {
-      openDrawer(({closeDrawer}) => <OnboardingSidebarContent onClose={closeDrawer} />, {
+      openDrawer(({closeDrawer}) => <DrawerContent closeDrawer={closeDrawer} />, {
         ariaLabel: t('Onboarding'),
       });
-
-      // Reset store state
-      SidebarPanelStore.hidePanel();
     }
   }, [isActive, openDrawer]);
+}
+
+function DrawerContent({closeDrawer}: {closeDrawer: () => void}) {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <OnboardingSidebarContent onClose={closeDrawer} />;
 }
