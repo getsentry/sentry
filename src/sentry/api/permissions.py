@@ -274,7 +274,7 @@ class SentryPermission(ScopedPermission):
                 raise MemberDisabledOverLimit(organization)
 
 
-class DemoUserPermission(SentryPermission):
+class DemoSafePermission(SentryPermission):
     """
     A permission class that extends `SentryPermission` to provide read-only access for users
     in a demo mode. This class modifies the access control logic to ensure that users identified

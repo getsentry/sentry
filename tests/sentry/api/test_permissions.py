@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.api.permissions import (
-    DemoUserPermission,
+    DemoSafePermission,
     SentryIsAuthenticated,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
@@ -64,8 +64,8 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
         )
 
 
-class DemoUserPermissionsTest(DRFPermissionTestCase):
-    user_permission = DemoUserPermission()
+class DemoSafePermissionsTest(DRFPermissionTestCase):
+    user_permission = DemoSafePermission()
 
     def setUp(self):
         super().setUp()

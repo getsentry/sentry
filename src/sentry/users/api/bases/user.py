@@ -8,7 +8,7 @@ from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import DemoUserPermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -21,7 +21,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class UserPermission(DemoUserPermission):
+class UserPermission(DemoSafePermission):
 
     def has_object_permission(
         self, request: Request, view: object | None, user: User | RpcUser | None = None
