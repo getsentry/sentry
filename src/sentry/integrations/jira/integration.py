@@ -29,6 +29,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -1018,7 +1019,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return []
 
     def build_integration(self, state):

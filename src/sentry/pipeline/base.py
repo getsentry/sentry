@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Mapping, Sequence
-from types import LambdaType
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from django.http.request import HttpRequest
@@ -15,6 +14,7 @@ from sentry import analytics
 from sentry.db.models import Model
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.pipeline.views.base import PipelineView
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
@@ -132,7 +132,7 @@ class Pipeline(abc.ABC):
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self) -> Sequence[View]:
+    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -140,8 +140,7 @@ class Pipeline(abc.ABC):
         providers should inherit, or customize the provider method called to
         retrieve the views.
         """
-        views: Sequence[View] = self.provider.get_pipeline_views()
-        return views
+        return self.provider.get_pipeline_views()
 
     def is_valid(self) -> bool:
         _is_valid: bool = (
@@ -182,7 +181,7 @@ class Pipeline(abc.ABC):
         step = self.pipeline_views[step_index]
 
         # support late binding steps
-        if isinstance(step, LambdaType):
+        if callable(step):
             step = step()
 
         return self.dispatch_to(step)

@@ -172,7 +172,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [PagerDutyInstallationRedirect()]
 
     def post_install(

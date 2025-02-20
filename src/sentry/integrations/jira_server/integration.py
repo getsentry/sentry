@@ -1230,7 +1230,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def build_integration(self, state):

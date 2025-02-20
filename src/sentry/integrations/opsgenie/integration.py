@@ -237,7 +237,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
