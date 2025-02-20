@@ -23,6 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -123,7 +124,10 @@ function ReleaseCardProjectRow({
               <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
                 <Link
                   to={{
-                    pathname: `/organizations/${organization.slug}/releases/`,
+                    pathname: makeReleasesPathname({
+                      organization,
+                      path: '/',
+                    }),
                     query: {
                       ...location.query,
                       query: `release.stage:${adoptionStage}`,
@@ -215,9 +219,10 @@ function ReleaseCardProjectRow({
             <LinkButton
               size="xs"
               to={{
-                pathname: `/organizations/${
-                  organization.slug
-                }/releases/${encodeURIComponent(releaseVersion)}/`,
+                pathname: makeReleasesPathname({
+                  organization,
+                  path: `/${encodeURIComponent(releaseVersion)}/`,
+                }),
                 query: {
                   ...extractSelectionParameters(location.query),
                   project: project.id,

@@ -19,6 +19,7 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -143,9 +144,10 @@ function SuggestedOwnerHovercard(props: Props) {
                           // Link to release commits
                           <Link
                             to={{
-                              pathname: `/organizations/${
-                                organization?.slug
-                              }/releases/${encodeURIComponent(release.version)}/commits/`,
+                              pathname: makeReleasesPathname({
+                                organization,
+                                path: `/${encodeURIComponent(release.version)}/commits/`,
+                              }),
                               query: {project: projectId},
                             }}
                           >

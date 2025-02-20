@@ -10,6 +10,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject} from 'sentry/types/release';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   location: Location;
@@ -46,9 +47,10 @@ function OtherProjects({projects, location, version, organization}: Props) {
               <LinkButton
                 size="xs"
                 to={{
-                  pathname: `/organizations/${
-                    organization.slug
-                  }/releases/${encodeURIComponent(version)}/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: `/${encodeURIComponent(version)}/`,
+                  }),
                   query: {
                     ...extractSelectionParameters(location.query),
                     project: project.id,

@@ -10,6 +10,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 interface ReleaseStat {
   date: string;
@@ -66,11 +67,12 @@ export function useReleaseMarkLineSeries({group}: {group: Group}) {
       name: formatVersion(release.version, true),
       value: formatVersion(release.version, true),
       onClick: () => {
-        navigate({
-          pathname: `/organizations/${
-            organization.slug
-          }/releases/${encodeURIComponent(release.version)}/`,
-        });
+        navigate(
+          makeReleasesPathname({
+            organization,
+            path: `/${encodeURIComponent(release.version)}/`,
+          })
+        );
       },
       label: {
         formatter: () => formatVersion(release.version, true),
