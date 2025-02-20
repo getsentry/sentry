@@ -174,29 +174,29 @@ def get_grouphash_metadata_data(
     variants: dict[str, BaseVariant],
     grouping_config: str,
 ) -> dict[str, Any]:
-    base_data = {
-        "latest_grouping_config": grouping_config,
-        "platform": event.platform or "unknown",
-    }
-    hashing_metadata: HashingMetadata = {}
-    # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
-    # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
-    # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
-    # there's a better way?
-    contributors = get_contributing_variant_and_component(variants)
-    contributing_variant: Any = contributors[0]
-    contributing_component: Any = contributors[1]
-
-    # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever method
-    # was used before the extra fingerprint was added. We classify events with hybrid fingerprints
-    # by the `{{ default }}` portion of their grouping, so strip the prefix before doing the
-    # look-up.
-    is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
-    method_description = contributing_variant.description.replace("modified ", "")
-
     with metrics.timer(
         "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
+        base_data = {
+            "latest_grouping_config": grouping_config,
+            "platform": event.platform or "unknown",
+        }
+        hashing_metadata: HashingMetadata = {}
+        # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
+        # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
+        # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
+        # there's a better way?
+        contributors = get_contributing_variant_and_component(variants)
+        contributing_variant: Any = contributors[0]
+        contributing_component: Any = contributors[1]
+
+        # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever
+        # method was used before the extra fingerprint was added. We classify events with hybrid
+        # fingerprints by the `{{ default }}` portion of their grouping, so strip the prefix before
+        # doing the look-up.
+        is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
+        method_description = contributing_variant.description.replace("modified ", "")
+
         try:
             hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
         except KeyError:
