@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {Reorder} from 'framer-motion';
 
-import {IssueViewNavItemContent} from 'sentry/components/nav/issueViews/issueViewNavItemContent';
+import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -20,7 +19,6 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
   const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
   const sectionRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
   const [views, setViews] = useState<IssueViewPF[] | null>(null);
 
   const {data: groupSearchViews} = useFetchGroupSearchViews(
@@ -78,7 +76,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.ISSUES}>
         <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
-        <SecondaryNav.Body ref={bodyRef}>
+        <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
               {t('All')}
@@ -87,27 +85,14 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          {hasIssueViewsInLeftNav && (
+          {hasIssueViewsInLeftNav && views && (
             <SecondaryNav.Section title={t('Views')}>
-              <Reorder.Group
-                as="div"
-                axis="y"
-                values={views ?? []}
-                onReorder={setViews}
-                initial={false}
-                ref={sectionRef}
-              >
-                {views &&
-                  views.length > 0 &&
-                  views.map(view => (
-                    <IssueViewNavItemContent
-                      key={view.id}
-                      view={view}
-                      dragConstraints={sectionRef}
-                      sectionBodyRef={bodyRef}
-                    />
-                  ))}
-              </Reorder.Group>
+              <IssueViewNavItems
+                views={views}
+                setViews={setViews}
+                sectionRef={sectionRef}
+                baseUrl={baseUrl}
+              />
             </SecondaryNav.Section>
           )}
         </SecondaryNav.Body>

@@ -53,7 +53,6 @@ export function BroadcastPanelItem({
 
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
-  background: ${p => p.theme.background};
   margin: 0 ${space(3)};
   padding: ${space(2)} 0;
 
