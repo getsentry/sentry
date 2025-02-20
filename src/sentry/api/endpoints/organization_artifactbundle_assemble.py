@@ -93,7 +93,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
 
             # We check if all requested chunks have been uploaded.
             with sentry_sdk.start_span(op="artifact_bundle.assemble.find_missing_chunks"):
-                missing_chunks = find_missing_chunks(organization.id, chunks)
+                missing_chunks = find_missing_chunks(organization, chunks)
             # In case there are some missing chunks, we will tell the client which chunks we require.
             if missing_chunks:
                 return Response(
