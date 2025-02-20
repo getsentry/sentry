@@ -87,52 +87,54 @@ def bool_from_string(value: str) -> bool | None:
     return None
 
 
-def get_fingerprint_value(variable_key: str, data: NodeData | Mapping[str, Any]) -> str | None:
+def get_fingerprint_value(
+    variable_key: str, event_data: NodeData | Mapping[str, Any]
+) -> str | None:
     if variable_key == "transaction":
-        return data.get("transaction") or "<no-transaction>"
+        return event_data.get("transaction") or "<no-transaction>"
     elif variable_key == "message":
         message = (
-            get_path(data, "logentry", "formatted")
-            or get_path(data, "logentry", "message")
-            or get_path(data, "exception", "values", -1, "value")
+            get_path(event_data, "logentry", "formatted")
+            or get_path(event_data, "logentry", "message")
+            or get_path(event_data, "exception", "values", -1, "value")
         )
         return message or "<no-message>"
     elif variable_key in ("type", "error.type"):
-        ty = get_path(data, "exception", "values", -1, "type")
+        ty = get_path(event_data, "exception", "values", -1, "type")
         return ty or "<no-type>"
     elif variable_key in ("value", "error.value"):
-        value = get_path(data, "exception", "values", -1, "value")
+        value = get_path(event_data, "exception", "values", -1, "value")
         return value or "<no-value>"
     elif variable_key in ("function", "stack.function"):
-        frame = get_crash_frame_from_event_data(data)
+        frame = get_crash_frame_from_event_data(event_data)
         func = frame.get("function") if frame else None
         return func or "<no-function>"
     elif variable_key in ("path", "stack.abs_path"):
-        frame = get_crash_frame_from_event_data(data)
+        frame = get_crash_frame_from_event_data(event_data)
         abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
         return abs_path or "<no-abs-path>"
     elif variable_key == "stack.filename":
-        frame = get_crash_frame_from_event_data(data)
+        frame = get_crash_frame_from_event_data(event_data)
         filename = frame.get("filename") or frame.get("abs_path") if frame else None
         return filename or "<no-filename>"
     elif variable_key in ("module", "stack.module"):
-        frame = get_crash_frame_from_event_data(data)
+        frame = get_crash_frame_from_event_data(event_data)
         mod = frame.get("module") if frame else None
         return mod or "<no-module>"
     elif variable_key in ("package", "stack.package"):
-        frame = get_crash_frame_from_event_data(data)
+        frame = get_crash_frame_from_event_data(event_data)
         pkg = frame.get("package") if frame else None
         if pkg:
             pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
         return pkg or "<no-package>"
     elif variable_key == "level":
-        return data.get("level") or "<no-level>"
+        return event_data.get("level") or "<no-level>"
     elif variable_key == "logger":
-        return data.get("logger") or "<no-logger>"
+        return event_data.get("logger") or "<no-logger>"
     elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
         tag = variable_key[5:]
-        for tag_name, value in data.get("tags") or ():
+        for tag_name, value in event_data.get("tags") or ():
             if tag_name == tag and value is not None:
                 return value
         return "<no-value-for-tag-%s>" % tag
