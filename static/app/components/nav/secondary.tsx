@@ -162,7 +162,7 @@ SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
   const location = useLocation();
   const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
 
-  const {layout: navLayout, setIsDragging} = useNavContext();
+  const {layout: navLayout, setisInteracting} = useNavContext();
 
   return (
     <ReorderableItem
@@ -180,10 +180,10 @@ SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
       aria-selected={isActive}
       className={className}
       onDragStart={() => {
-        setIsDragging(true);
+        setisInteracting(true);
       }}
       onDragEnd={() => {
-        setIsDragging(false);
+        setisInteracting(false);
       }}
     >
       <InteractionStateLayer data-isl hasSelectedBackground={isActive} />

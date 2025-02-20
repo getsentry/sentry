@@ -9,13 +9,13 @@ import useMedia from 'sentry/utils/useMedia';
 export interface NavContext {
   activeGroup: PrimaryNavGroup | null;
   isCollapsed: boolean;
-  isDragging: boolean;
+  isInteracting: boolean;
   layout: NavLayout;
   secondaryNavEl: HTMLElement | null;
   setActiveGroup: (group: PrimaryNavGroup | null) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
-  setIsDragging: (isDragging: boolean) => void;
   setSecondaryNavEl: (el: HTMLElement | null) => void;
+  setisInteracting: (isInteracting: boolean) => void;
 }
 
 const NavContext = createContext<NavContext>({
@@ -26,8 +26,8 @@ const NavContext = createContext<NavContext>({
   setIsCollapsed: () => {},
   activeGroup: null,
   setActiveGroup: () => {},
-  isDragging: false,
-  setIsDragging: () => {},
+  isInteracting: false,
+  setisInteracting: () => {},
 });
 
 export function useNavContext(): NavContext {
@@ -41,7 +41,7 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
   );
   const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
   const [activeGroup, setActiveGroup] = useState<PrimaryNavGroup | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isInteracting, setisInteracting] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -55,8 +55,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setIsCollapsed,
       activeGroup,
       setActiveGroup,
-      isDragging,
-      setIsDragging,
+      isInteracting,
+      setisInteracting,
     }),
     [
       secondaryNavEl,
@@ -64,8 +64,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       isCollapsed,
       setIsCollapsed,
       activeGroup,
-      isDragging,
-      setIsDragging,
+      isInteracting,
+      setisInteracting,
     ]
   );
 
