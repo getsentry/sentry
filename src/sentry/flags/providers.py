@@ -11,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 from sentry.flags.models import (
     ACTION_MAP,
     CREATED_BY_TYPE_MAP,
+    PROVIDER_MAP,
     FlagAuditLogModel,
     FlagWebHookSigningSecretModel,
 )
@@ -39,7 +40,7 @@ T = TypeVar("T", contravariant=True)
 
 
 class FlagAuditLogRow(TypedDict):
-    """A complete flag audit log row instance."""
+    """A complete flag audit log row instance. Corresponds to the FlagAuditLogModel."""
 
     action: int
     created_at: datetime.datetime
@@ -47,6 +48,7 @@ class FlagAuditLogRow(TypedDict):
     created_by_type: int | None
     flag: str
     organization_id: int
+    provider: int  # This is only nullable in the model for backwards compatibility.
     tags: dict[str, Any]
 
 
@@ -162,6 +164,7 @@ class LaunchDarklyProvider:
                 "created_by_type": CREATED_BY_TYPE_MAP["email"] if created_by else None,
                 "flag": result["name"],
                 "organization_id": self.organization_id,
+                "provider": PROVIDER_MAP["launchdarkly"],
                 "tags": {"description": result["description"]},
             }
         ]
@@ -243,6 +246,7 @@ class GenericProvider:
                         "created_by_type": CREATED_BY_TYPE_MAP[item["created_by"]["type"]],
                         "flag": item["flag"],
                         "organization_id": self.organization_id,
+                        "provider": PROVIDER_MAP["generic"],
                         "tags": {},
                     }
                 )
@@ -348,6 +352,7 @@ class UnleashProvider:
                 "created_by_type": created_by_type,
                 "flag": result["featureName"],
                 "organization_id": self.organization_id,
+                "provider": PROVIDER_MAP["unleash"],
                 "tags": tags,
             }
         ]
@@ -476,6 +481,7 @@ class StatsigProvider:
                     created_by_type=created_by_type,
                     flag=flag,
                     organization_id=self.organization_id,
+                    provider=PROVIDER_MAP["statsig"],
                     tags=tags,
                 )
             )
@@ -517,6 +523,7 @@ def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_
                 "created_by_type": CREATED_BY_TYPE_MAP["name"],
                 "flag": item["flag"],
                 "organization_id": organization_id,
+                "provider": PROVIDER_MAP["flagpole"],
                 "tags": item["tags"],
             }
             for item in items

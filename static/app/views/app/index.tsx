@@ -24,6 +24,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
+import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -56,6 +57,7 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
+  const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
   const commandPaletteHotkeys = useMemo(() => {
@@ -126,7 +128,7 @@ function App({children, params}: Props) {
   useEffect(() => {
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
-    if (!config.shouldPreloadData) {
+    if (!preloadData) {
       return undefined;
     }
 
@@ -158,13 +160,7 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [
-    loadOrganizations,
-    checkInternalHealth,
-    config.messages,
-    user,
-    config.shouldPreloadData,
-  ]);
+  }, [loadOrganizations, checkInternalHealth, config.messages, user, preloadData]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -236,12 +232,12 @@ function App({children, params}: Props) {
     (content: React.ReactNode) => {
       // Skip loading organization-related data before the user is logged in,
       // because it triggers a 401 error in the UI.
-      if (!config.shouldPreloadData) {
+      if (!preloadData) {
         return content;
       }
       return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
     },
-    [config.shouldPreloadData]
+    [preloadData]
   );
 
   // Used to restore focus to the container after closing the modal
