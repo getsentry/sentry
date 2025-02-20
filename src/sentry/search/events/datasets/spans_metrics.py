@@ -655,6 +655,36 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "avg_if_publish",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.SPAN_METRIC_COUNT_COLUMNS,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_gauge=self._resolve_avg_if_publish,
+                    snql_distribution=self._resolve_avg_if_publish,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "avg_if_process",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.SPAN_METRIC_COUNT_COLUMNS,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_gauge=self._resolve_avg_if_process,
+                    snql_distribution=self._resolve_avg_if_process,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "trace_status_rate",
                     required_args=[
                         SnQLStringArg("status"),
@@ -1285,7 +1315,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         op = "queue.publish"
         operation_name = "publish"
         operation_type = "create"
-        assert isinstance(op, str), f"op: {op}"
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1302,7 +1331,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         op = "queue.process"
         operation_name = "process"
         operation_type = "process"
-        assert isinstance(op, str), f"op: {op}"
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1312,6 +1340,56 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             self._is_messaging_op(op, operation_name, operation_type),
+            alias,
+        )
+
+    def _resolve_avg_if_publish(self, args, alias):
+        op = "queue.publish"
+        operation_name = "publish"
+        operation_type = "create"
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                args["metric_id"],
+                            ],
+                        ),
+                        self._is_messaging_op(op, operation_name, operation_type),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg_if_process(self, args, alias):
+        op = "queue.process"
+        operation_name = "process"
+        operation_type = "process"
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                args["metric_id"],
+                            ],
+                        ),
+                        self._is_messaging_op(op, operation_name, operation_type),
+                    ],
+                ),
+            ],
             alias,
         )
 
