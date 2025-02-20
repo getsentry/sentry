@@ -417,8 +417,8 @@ class FingerprintMatcher:
         return "frames"
 
     def matches(self, values: dict[str, Any]) -> bool:
-        rv = self._positive_match(values)
-        return not rv if self.negated else rv
+        match_found = self._positive_match(values)
+        return not match_found if self.negated else match_found
 
     def _positive_path_match(self, value: str | None) -> bool:
         if value is None:
