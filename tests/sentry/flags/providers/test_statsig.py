@@ -1,5 +1,6 @@
 import datetime
 
+from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import StatsigProvider
 
 
@@ -69,6 +70,7 @@ def test_handle_batched_all_actions():
     assert logs[0]["created_by_type"] == 0
     assert logs[0]["flag"] == "gate1"
     assert logs[0]["organization_id"] == org_id
+    assert logs[0]["provider"] == PROVIDER_MAP["statsig"]
     assert logs[0]["tags"] == {
         "projectName": "sentry",
         "projectID": "1",
@@ -83,6 +85,7 @@ def test_handle_batched_all_actions():
     assert logs[1]["created_by_type"] == 0
     assert logs[1]["flag"] == "life"
     assert logs[1]["organization_id"] == org_id
+    assert logs[1]["provider"] == PROVIDER_MAP["statsig"]
     assert logs[1]["tags"] == {
         "projectName": "frankenstein",
         "projectID": "1700",
@@ -97,6 +100,7 @@ def test_handle_batched_all_actions():
     assert logs[2]["created_by_type"] == 0
     assert logs[2]["flag"] == "gate1"
     assert logs[2]["organization_id"] == org_id
+    assert logs[2]["provider"] == PROVIDER_MAP["statsig"]
     assert logs[2]["tags"] == {
         "projectName": "sentry",
         "projectID": "1",
