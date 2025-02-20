@@ -3,6 +3,7 @@ from django.test import TestCase, override_settings
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.testutils.helpers import override_options
+from sentry.uptime.models import UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.regions import get_active_region_configs, get_region_config
 
 
@@ -34,7 +35,28 @@ class GetActiveRegionConfigsTest(TestBase):
     def test_returns_only_enabled_regions(self):
         with (
             override_settings(UPTIME_REGIONS=self.test_regions),
-            override_options({"uptime.disabled-checker-regions": ["eu"]}),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE
+                    }
+                }
+            ),
+        ):
+            active_regions = get_active_region_configs()
+            assert len(active_regions) == 2
+            assert {region.slug for region in active_regions} == {"us", "ap"}
+
+        with (
+            override_settings(UPTIME_REGIONS=self.test_regions),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE,
+                        "us": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                    }
+                }
+            ),
         ):
             active_regions = get_active_region_configs()
             assert len(active_regions) == 2
