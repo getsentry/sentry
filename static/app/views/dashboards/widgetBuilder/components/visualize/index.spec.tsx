@@ -1150,7 +1150,9 @@ describe('Visualize', () => {
 
       const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
-      expect(within(listbox).queryByText('span.description')).not.toBeInTheDocument();
+      expect(
+        within(listbox).getByRole('option', {name: 'span.description'})
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('shows the correct aggregate options', async () => {
