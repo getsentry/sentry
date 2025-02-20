@@ -55,6 +55,7 @@ import {getViableDateRange} from 'sentry/views/alerts/rules/metric/details/utils
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -139,10 +140,6 @@ function getRuleChangeSeries(
   ];
 }
 
-function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
-  return dataset === Dataset.ERRORS && /\bis:unresolved\b/.test(query);
-}
-
 export default function MetricChart({
   rule,
   project,
@@ -212,7 +209,7 @@ export default function MetricChart({
       waitingForDataDuration: number
     ) => {
       let dataset: DiscoverDatasets | undefined = undefined;
-      if (shouldUseErrorsDataset(rule.dataset, query)) {
+      if (shouldUseErrorsDiscoverDataset(query, rule.dataset, organization)) {
         dataset = DiscoverDatasets.ERRORS;
       }
 
@@ -549,14 +546,11 @@ export default function MetricChart({
       organization,
       location,
       dataset,
+      query,
       newAlertOrQuery: false,
       useOnDemandMetrics: isOnDemandAlert,
     }),
   };
-
-  if (shouldUseErrorsDataset(dataset, query)) {
-    queryExtras.dataset = 'errors';
-  }
 
   return isCrashFreeAlert(dataset) ? (
     <SessionsRequest
