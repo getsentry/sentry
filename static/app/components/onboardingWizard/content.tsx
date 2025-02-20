@@ -360,34 +360,32 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          task.status === 'complete' || task.status === 'skipped'
-            ? undefined
-            : task.requisiteTasks.length === 0 && (
-                <TaskActions>
-                  {task.skippable && (
-                    <Button
-                      borderless
-                      size="zero"
-                      aria-label={t('Skip Task')}
-                      title={t('Skip Task')}
-                      icon={<IconClose color="gray300" isCircled />}
-                      onClick={event => {
-                        event.stopPropagation();
-                        setShowSkipConfirmation(!showSkipConfirmation);
-                      }}
-                      css={css`
-                        /* If the pulsing indicator is active, the close button
+          task.status === 'complete' || task.status === 'skipped' ? undefined : (
+            <TaskActions>
+              {task.skippable && (
+                <Button
+                  borderless
+                  size="zero"
+                  aria-label={t('Skip Task')}
+                  title={t('Skip Task')}
+                  icon={<IconClose color="gray300" isCircled />}
+                  onClick={event => {
+                    event.stopPropagation();
+                    setShowSkipConfirmation(!showSkipConfirmation);
+                  }}
+                  css={css`
+                    /* If the pulsing indicator is active, the close button
                         * should be above it so it's clickable.
                         */
-                        z-index: 1;
-                      `}
-                    />
-                  )}
-                  {task.SupplementComponent && showWaitingIndicator && (
-                    <task.SupplementComponent task={task} />
-                  )}
-                </TaskActions>
-              )
+                    z-index: 1;
+                  `}
+                />
+              )}
+              {task.SupplementComponent && showWaitingIndicator && (
+                <task.SupplementComponent task={task} />
+              )}
+            </TaskActions>
+          )
         }
       />
       {showSkipConfirmation && (
