@@ -160,6 +160,12 @@ class EventDatastore:
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
 
+    def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
+        return getattr(self, "_get_" + match_type)()
+
     def _get_messages(self) -> list[_MessageInfo]:
         if self._messages is None:
             self._messages = []
@@ -242,12 +248,6 @@ class EventDatastore:
     def _get_release(self) -> list[_ReleaseInfo]:
         self._release = self._release or [{"release": self.event.get("release")}]
         return self._release
-
-    def get_values(self, match_type: str) -> list[dict[str, Any]]:
-        """
-        Pull values from all the spots in the event appropriate to the given match type.
-        """
-        return getattr(self, "_get_" + match_type)()
 
 
 class FingerprintingRules:
