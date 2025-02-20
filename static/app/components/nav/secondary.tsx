@@ -175,6 +175,10 @@ SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
         cursor: 'grabbing',
       }}
       navLayout={navLayout}
+      onMouseDown={e => {
+        // Prevents text highlighting on drag
+        e.preventDefault();
+      }}
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       className={className}
