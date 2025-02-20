@@ -16,7 +16,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -184,8 +183,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // This code can be safely removed once we can render dotted incomplete lines
   // using a single series
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
-  const palette = CHART_PALETTE[numberOfSeriesNeedingColor - 1]!;
-  let paletteIndex = -1;
+  const palette = [...theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)!]; // -2 because getColorPalette artificially adds 1, I'm not sure why
+  let seriesColorIndex = -1;
 
   const colorizedSeries = scaledSeries.map(timeSeries => {
     if (isTimeSeriesOther(timeSeries)) {
@@ -196,11 +195,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
 
     if (needsColor(timeSeries)) {
-      paletteIndex += 1;
+      seriesColorIndex += 1;
 
       return {
         ...timeSeries,
-        color: palette[paletteIndex],
+        color: palette[seriesColorIndex % palette.length], // Mod the index in case the number of series exceeds the number of colors in the palette
       };
     }
 
