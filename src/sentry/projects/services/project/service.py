@@ -109,5 +109,27 @@ class ProjectService(RpcService):
     ) -> RpcProject:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_name(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        name: str,
+    ) -> RpcProject | None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_external_id(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        external_id: str | None,
+    ) -> RpcProject | None:
+        pass
+
 
 project_service = ProjectService.create_delegation()

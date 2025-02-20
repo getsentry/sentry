@@ -178,3 +178,47 @@ class DatabaseBackedProjectService(ProjectService):
             add_org_default_team=add_org_default_team,
             external_id=external_id,
         )
+
+    def update_name(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        name: str,
+    ) -> RpcProject | None:
+        try:
+            project: Project | None = Project.objects.get_from_cache(
+                id=id, organization=organization_id
+            )
+        except ValueError:
+            project = Project.objects.filter(id=id, organization=organization_id).first()
+        except Project.DoesNotExist:
+            return None
+
+        if project:
+            project.name = name
+            project.save()
+            return serialize_project(project)
+        return None
+
+    def update_external_id(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        external_id: str | None,
+    ) -> RpcProject | None:
+        try:
+            project: Project | None = Project.objects.get_from_cache(
+                id=id, organization=organization_id
+            )
+        except ValueError:
+            project = Project.objects.filter(id=id, organization=organization_id).first()
+        except Project.DoesNotExist:
+            return None
+
+        if project:
+            project.external_id = external_id
+            project.save()
+            return serialize_project(project)
+        return None
