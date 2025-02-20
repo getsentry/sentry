@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.processing.processor import split_conditions_and_filters
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
@@ -157,6 +158,11 @@ class IssueAlertMigrator:
         when_dcg = self._create_when_dcg(action_match=action_match)
         self._bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=when_dcg)
 
+        enabled = True
+        rule_snooze = RuleSnooze.objects.filter(rule=self.rule).first()
+        if rule_snooze and rule_snooze.until is None:
+            enabled = False
+
         config = {"frequency": self.rule.data.get("frequency") or Workflow.DEFAULT_FREQUENCY}
         kwargs = {
             "organization": self.organization,
@@ -167,6 +173,7 @@ class IssueAlertMigrator:
             "owner_user_id": self.rule.owner_user_id,
             "owner_team": self.rule.owner_team,
             "config": config,
+            "enabled": enabled,
         }
 
         if self.is_dry_run:
@@ -175,6 +182,7 @@ class IssueAlertMigrator:
             workflow.validate_config(workflow.config_schema)
         else:
             workflow = Workflow.objects.create(**kwargs)
+            workflow.update(date_added=self.rule.date_added)
             DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
             AlertRuleWorkflow.objects.create(rule=self.rule, workflow=workflow)
 

@@ -4,6 +4,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
     ComparisonType,
@@ -113,6 +114,20 @@ class RuleMigrationHelpersTest(TestCase):
                 "value": self.filters[2]["value"],
             },
         ]
+
+    def test_rule_snooze_updates_workflow(self):
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        rule_snooze = RuleSnooze.objects.create(rule=self.issue_alert)
+
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+
+        assert workflow.enabled is False
+
+        rule_snooze.delete()
+
+        workflow.refresh_from_db()
+        assert workflow.enabled is True
 
     def test_update_issue_alert(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
@@ -381,7 +396,7 @@ class IssueAlertMigratorTest(TestCase):
         assert DataCondition.objects.all().count() == 0
         assert Action.objects.all().count() == 0
 
-    def assert_issue_alert_migrated(self, issue_alert):
+    def assert_issue_alert_migrated(self, issue_alert, is_enabled=True):
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=issue_alert)
         issue_alert_detector = AlertRuleDetector.objects.get(rule=issue_alert)
 
@@ -390,6 +405,8 @@ class IssueAlertMigratorTest(TestCase):
         assert issue_alert.project
         assert workflow.organization_id == issue_alert.project.organization.id
         assert workflow.config == {"frequency": 5}
+        assert workflow.date_added == issue_alert.date_added
+        assert workflow.enabled == is_enabled
 
         detector = Detector.objects.get(id=issue_alert_detector.detector.id)
         assert detector.name == "Error Detector"
@@ -429,8 +446,7 @@ class IssueAlertMigratorTest(TestCase):
         ).exists()
 
     def test_run(self):
-        migrator = IssueAlertMigrator(self.issue_alert, self.user.id)
-        migrator.run()
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         self.assert_issue_alert_migrated(self.issue_alert)
 
@@ -438,9 +454,18 @@ class IssueAlertMigratorTest(TestCase):
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
+    def test_run__snoozed_rule(self):
+        RuleSnooze.objects.create(rule=self.issue_alert)
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        self.assert_issue_alert_migrated(self.issue_alert, is_enabled=False)
+
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        action = dcg_actions.action
+        assert action.type == Action.Type.SLACK
+
     def test_run__skip_actions(self):
-        migrator = IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False)
-        migrator.run()
+        IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
 
         self.assert_issue_alert_migrated(self.issue_alert)
 
