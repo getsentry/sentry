@@ -1,4 +1,4 @@
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -19,7 +19,7 @@ export type TracingEventParameters = {
     title: string;
     user_queries: string;
     user_queries_count: number;
-    visualizes: Visualize[];
+    visualizes: BaseVisualize[];
     visualizes_count: number;
   };
   'trace.load.empty_state': {
