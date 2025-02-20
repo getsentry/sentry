@@ -340,8 +340,8 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  const usingOTel = organization.features.includes('performance-core-otel-support');
-  if (usingOTel) {
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  if (isEAP) {
     conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues(
       'transaction.method',
@@ -359,7 +359,7 @@ function generateEventView({
     }
   });
 
-  const fields = usingOTel
+  const fields = isEAP
     ? [
         'id',
         'user.email',
@@ -380,7 +380,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: usingOTel ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: isEAP ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );
