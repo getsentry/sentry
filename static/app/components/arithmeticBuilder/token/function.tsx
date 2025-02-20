@@ -14,6 +14,7 @@ import type {
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
@@ -47,6 +48,8 @@ export function ArithmeticTokenFunction({
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
+  const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
+
   return (
     <FunctionWrapper
       {...rowProps}
@@ -66,10 +69,10 @@ export function ArithmeticTokenFunction({
           token={attribute}
           rowRef={ref}
         />
-        {!isFocused && (
+        {showUnfocusedState && (
           // Inject a floating span with the attribute name so when it's
           // not focused, it doesn't look like the placeholder text
-          <FunctionArgument>{attribute.attribute}</FunctionArgument>
+          <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
         )}
       </BaseGridCell>
       {')'}
@@ -102,14 +105,10 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch} = useArithmeticBuilder();
-
-  const allowedAttributes: string[] = useMemo(() => {
-    return ['span.duration', 'span.self_time'];
-  }, []);
+  const {dispatch, functionArguments} = useArithmeticBuilder();
 
   const items = useAttributeItems({
-    allowedAttributes,
+    allowedAttributes: functionArguments,
     filterValue,
   });
 
@@ -289,24 +288,25 @@ function useAttributeItems({
   allowedAttributes,
   filterValue,
 }: {
-  allowedAttributes: string[];
+  allowedAttributes: FunctionArgument[];
   filterValue: string;
 }): Array<SelectOptionWithKey<string>> {
   // TODO: use a config
-  const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
+  const attributes: Array<SelectOptionWithKey<string>> = useMemo(() => {
     const items = filterValue
-      ? allowedAttributes.filter(agg => agg.includes(filterValue))
+      ? allowedAttributes.filter(attr => attr.name.includes(filterValue))
       : allowedAttributes;
 
     return items.map(item => ({
-      key: item,
-      label: item,
-      value: item,
+      key: item.name,
+      label: item.label ?? item.name,
+      value: item.name,
+      textValue: item.name,
       hideCheck: true,
     }));
   }, [allowedAttributes, filterValue]);
 
-  return functions;
+  return attributes;
 }
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
@@ -352,7 +352,7 @@ const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
 `;
 
-const FunctionArgument = styled('div')`
+const FunctionArgumentOverlay = styled('div')`
   position: absolute;
   pointer-events: none;
 `;
