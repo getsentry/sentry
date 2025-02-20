@@ -79,7 +79,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             cache.set(cache_key, 1, 3600)
         if task == OnboardingTask.FIRST_PROJECT:
             sentry_sdk.capture_message(
-                f"First project onboarding task not created for org {organization_id}, cache key {cache_key} set",
+                f"First project task not created for org {organization_id}, cache key {cache_key} set",
                 level="warning",
             )
         return False
