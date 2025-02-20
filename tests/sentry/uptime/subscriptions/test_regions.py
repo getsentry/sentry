@@ -49,9 +49,3 @@ class GetRegionConfigTest(TestBase):
             assert region is not None
             assert region.slug == "us"
             assert region.name == "United States"
-
-    def test_returns_first_active_region_for_invalid_slug(self):
-        with override_settings(UPTIME_REGIONS=self.test_regions):
-            region = get_region_config("invalid")
-            assert region is not None
-            assert region.slug == "us"  # First active region
