@@ -17,8 +17,10 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+from sentry.workflow_engine.models.data_condition import Condition
 
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
@@ -35,6 +37,11 @@ TEXT_COMPARISON_DELTA = {
     1440: ("same time one day ago"),  # one day
     10080: ("same time one week ago"),  # one week
     43200: ("same time one month ago"),  # 30 days
+}
+
+ALERT_RULE_THRESHOLD_TYPE_TO_CONDITION_TYPE = {
+    AlertRuleThresholdType.ABOVE.value: Condition.GREATER,
+    AlertRuleThresholdType.BELOW.value: Condition.LESS,
 }
 
 
@@ -92,6 +99,44 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
             "higher" if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else "lower"
         )
         comparison_delta_minutes = alert_rule.comparison_delta // 60
+        comparison_string = TEXT_COMPARISON_DELTA.get(
+            comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
+        )
+        return _(
+            f"{metric_and_agg_text} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
+            f"compared to the {comparison_string}"
+        )
+
+    return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
+
+
+def get_incident_status_text_notification_action(
+    snuba_query: SnubaQuery, metric_value: str, threshold_type: Condition
+) -> str:
+    """Returns a human readable current status of an incident"""
+    agg_display_key = snuba_query.aggregate
+
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in snuba_query.aggregate:
+        agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+
+    if is_mri_field(agg_display_key):
+        metric_value = format_mri_field_value(agg_display_key, metric_value)
+        agg_text = format_mri_field(agg_display_key)
+    else:
+        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
+
+    if agg_text.startswith("%"):
+        if metric_value is not None:
+            metric_and_agg_text = f"{metric_value}{agg_text}"
+    else:
+        metric_and_agg_text = f"{metric_value} {agg_text}"
+
+    time_window = snuba_query.time_window // 60
+    # % change alerts have a comparison delta
+    if snuba_query.comparison_delta:
+        metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
+        higher_or_lower = "higher" if threshold_type == Condition.GREATER else "lower"
+        comparison_delta_minutes = snuba_query.comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
