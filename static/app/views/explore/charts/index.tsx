@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -15,6 +15,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -26,6 +27,7 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -38,12 +40,11 @@ import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
-  isAllowedSelection: boolean;
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-const exploreChartTypeOptions = [
+export const EXPLORE_CHART_TYPE_OPTIONS = [
   {
     value: ChartType.LINE,
     label: t('Line'),
@@ -63,7 +64,6 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
-  isAllowedSelection,
   query,
   timeseriesResult,
 }: ExploreChartsProps) {
@@ -71,12 +71,8 @@ export function ExploreCharts({
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-
-  const extrapolationMetaResults = useExtrapolationMeta({
-    dataset,
-    isAllowedSelection,
-    query,
-  });
+  const topEvents = useTopEvents();
+  const isTopN = defined(topEvents) && topEvents > 0;
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
@@ -139,6 +135,8 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
+      const sampleCount = determineSeriesSampleCount(data, isTopN);
+
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
@@ -149,9 +147,10 @@ export function ExploreCharts({
         error,
         loading,
         confidence: confidences[index],
+        sampleCount,
       };
     });
-  }, [confidences, getSeries, visualizes]);
+  }, [confidences, getSeries, visualizes, isTopN]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
@@ -175,12 +174,12 @@ export function ExploreCharts({
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
           const Title = (
-            <Fragment>
+            <ChartTitle>
               {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
               <Widget.WidgetTitle
                 title={chartInfo.formattedYAxes.filter(Boolean).join(', ')}
               />
-            </Fragment>
+            </ChartTitle>
           );
 
           if (chartInfo.loading) {
@@ -207,6 +206,21 @@ export function ExploreCharts({
             );
           }
 
+          if (chartInfo.data.length === 0) {
+            // This happens when the `/events-stats/` endpoint returns a blank
+            // response. This is a rare error condition that happens when
+            // proxying to RPC. Adding explicit handling with a "better" message
+            return (
+              <Widget
+                key={index}
+                height={CHART_HEIGHT}
+                Title={Title}
+                Visualization={<Widget.WidgetError error={t('No data')} />}
+                revealActions="always"
+              />
+            );
+          }
+
           return (
             <Widget
               key={index}
@@ -226,7 +240,7 @@ export function ExploreCharts({
                     }}
                     value={chartInfo.chartType}
                     menuTitle="Type"
-                    options={exploreChartTypeOptions}
+                    options={EXPLORE_CHART_TYPE_OPTIONS}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
                 </Tooltip>,
@@ -272,8 +286,9 @@ export function ExploreCharts({
               Footer={
                 dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
-                    sampleCount={extrapolationMetaResults.data?.[0]?.['count_sample()']}
+                    sampleCount={chartInfo.sampleCount}
                     confidence={chartInfo.confidence}
+                    topEvents={topEvents}
                   />
                 )
               }
@@ -343,4 +358,9 @@ const ChartLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
   margin-right: ${space(1)};
+`;
+
+const ChartTitle = styled('div')`
+  display: flex;
+  margin-left: ${space(2)};
 `;

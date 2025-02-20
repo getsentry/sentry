@@ -135,7 +135,7 @@ const TitleText = styled('div')`
   font-weight: bold;
 `;
 
-function TitleWithTestId(props: PropsWithChildren<{}>) {
+function TitleWithTestId(props: PropsWithChildren) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
@@ -856,7 +856,8 @@ function KeyValueAction({
           organization,
           rowKey,
           rowValue.toString(),
-          key as TraceDrawerActionKind
+          key as TraceDrawerActionKind,
+          'drawer'
         );
       }}
       items={dropdownOptions}

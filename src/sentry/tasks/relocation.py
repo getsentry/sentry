@@ -233,7 +233,7 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
         request RPC call is received, and is immediately packaged into a `ControlOutbox`, so that we
         may robustly forward it back to the requesting region. To ensure robustness, the export data
         is saved to a local file, so that outbox drain attempts can read it locally without needing
-        to make their own nested RPB calls.
+        to make their own nested RPC calls.
     11. (CS) .../receiver/outbox/control.py::process_relocation_reply_with_export: Whenever an
         outbox draining attempt occurs, this code will be called to read the export data from the
         local relocation-specific GCS bucket, then forward it into the requesting region.

@@ -60,12 +60,13 @@ function transformData(data: Record<string, any>, model: FormModel) {
 
 type Props = ModalRenderProps & {
   app: SentryApp;
+  onPublishSubmission: () => void;
   organization: Organization;
 };
 
 export function SentryAppPublishRequestModal(props: Props) {
   const [form] = useState<FormModel>(() => new FormModel({transformData}));
-  const {app, closeModal, Header, Body, organization} = props;
+  const {app, closeModal, Header, Body, organization, onPublishSubmission} = props;
   const isNewModalVisible = organization.features.includes(`streamlined-publishing-flow`);
 
   const formFields = () => {
@@ -228,6 +229,9 @@ export function SentryAppPublishRequestModal(props: Props) {
   const handleSubmitSuccess = () => {
     addSuccessMessage(t('Request to publish %s successful.', app.slug));
     closeModal();
+    if (isNewModalVisible) {
+      onPublishSubmission();
+    }
   };
 
   const handleSubmitError = (err: any) => {

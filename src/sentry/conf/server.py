@@ -108,10 +108,10 @@ ENFORCE_PAGINATION = True if DEBUG else False
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-INTERNAL_IPS = ()
+INTERNAL_IPS: tuple[str, ...] = ()
 
 # List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS = ()
+SENTRY_DISALLOWED_IPS: tuple[str, ...] = ()
 
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
@@ -527,7 +527,7 @@ STATIC_URL = "/_static/{version}/"
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # URL origin from where the static files are served.
-STATIC_ORIGIN = None
+STATIC_ORIGIN: str | None = None
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -803,7 +803,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -2540,7 +2539,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.1.0"
+SELF_HOSTED_STABLE_VERSION = "25.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

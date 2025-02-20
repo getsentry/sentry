@@ -137,6 +137,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
+from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -1010,7 +1011,7 @@ class CliTestCase(TestCase):
     def command(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    default_args = []
+    default_args: list[str] = []
 
     def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
@@ -1941,7 +1942,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "d": EntityKey.MetricsDistributions.value,
         "s": EntityKey.MetricsSets.value,
     }
-    METRIC_STRINGS = []
+    METRIC_STRINGS: list[str] = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
@@ -2367,10 +2368,13 @@ class UptimeCheckSnubaTestCase(TestCase):
         self,
         subscription_id: str | None,
         check_status: str,
+        incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
+        if incident_status is None:
+            incident_status = IncidentStatus.NO_INCIDENT
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
@@ -2391,6 +2395,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "status": check_status,
                 "status_reason": None,
                 "trace_id": str(uuid.uuid4()),
+                "incident_status": incident_status.value,
                 "request_info": {
                     "http_status_code": http_status,
                 },
