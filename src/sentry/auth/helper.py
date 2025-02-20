@@ -754,9 +754,6 @@ class AuthHelper(Pipeline):
         state.update({"flow": self.flow, "referrer": self.referrer})
         return state
 
-    def get_redirect_url(self) -> str:
-        return absolute_uri(reverse("sentry-auth-sso"))
-
     def dispatch_to(self, step: View) -> HttpResponseBase:
         return step.dispatch(request=self.request, helper=self)
 
