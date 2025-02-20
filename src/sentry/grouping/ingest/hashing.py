@@ -236,7 +236,13 @@ def get_or_create_grouphashes(
                     event, project, grouphash, created, grouping_config, variants
                 )
             except Exception as exc:
-                sentry_sdk.capture_exception(exc)
+                event_id = sentry_sdk.capture_exception(exc)
+                # Temporary log to try to debug why two metrics which should be equivalent are
+                # consistently unequal - maybe the code is erroring out between incrementing the
+                # first one and the second one?
+                logger.warning(
+                    "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
+                )
 
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
