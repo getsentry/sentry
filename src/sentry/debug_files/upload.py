@@ -22,22 +22,25 @@ def _find_missing_chunks_new(organization_id: int, chunks: Sequence[str]):
     with sentry_sdk.start_span(op="find_missing_chunks_new") as span:
         span.set_tag("organization_id", organization_id)
         span.set_data("chunks_size", len(chunks))
-        # We get all the file blobs given the chunks. If a file blob is already tied to an organization, the organization id
-        # will be returned.
-        file_blobs = (
-            FileBlob.objects.filter(checksum__in=chunks)
-            .select_related("fileblobowner")  # Optimize the join with the related model
-            .filter(
-                Q(fileblobowner__organization_id=organization_id) | Q(fileblobowner__isnull=True)
+
+        with sentry_sdk.start_span(op="find_missing_chunks_new.fetch_file_blobs"):
+            # We get all the file blobs given the chunks. If a file blob is already tied to an organization, the organization id
+            # will be returned.
+            file_blobs = (
+                FileBlob.objects.filter(checksum__in=chunks)
+                .select_related("fileblobowner")  # Optimize the join with the related model
+                .filter(
+                    Q(fileblobowner__organization_id=organization_id)
+                    | Q(fileblobowner__isnull=True)
+                )
+                .values_list(
+                    "id",
+                    "checksum",
+                    "timestamp",
+                    "fileblobowner__organization_id",
+                    flat=False,  # Set to True if you want a flat list instead of tuples
+                )
             )
-            .values_list(
-                "id",
-                "checksum",
-                "timestamp",
-                "fileblobowner__organization_id",
-                flat=False,  # Set to True if you want a flat list instead of tuples
-            )
-        )
 
         now = timezone.now()
         oldest_timestamp = now - timedelta(hours=12)
@@ -53,8 +56,9 @@ def _find_missing_chunks_new(organization_id: int, chunks: Sequence[str]):
                 chunks_with_organization_id.add(checksum)
 
         if file_blobs_to_renew:
-            # We update the timestamp of the file blobs that need renewal.
-            FileBlob.objects.filter(id__in=file_blobs_to_renew).update(timestamp=now)
+            with sentry_sdk.start_span(op="find_missing_chunks_new.update_timestamp"):
+                # We update the timestamp of the file blobs that need renewal.
+                FileBlob.objects.filter(id__in=file_blobs_to_renew).update(timestamp=now)
 
         return list(set(chunks) - chunks_with_organization_id)
 
@@ -67,13 +71,13 @@ def _find_missing_chunks_old(organization_id: int, chunks: Sequence[str]):
         now = timezone.now()
         threshold = now - timedelta(hours=12)
 
-        with sentry_sdk.start_span(op="find_missing_chunks.update_timestamp"):
+        with sentry_sdk.start_span(op="find_missing_chunks_old.update_timestamp"):
             FileBlob.objects.filter(checksum__in=chunks, timestamp__lte=threshold).update(
                 timestamp=now
             )
 
         # Compute the set of all existing chunks.
-        with sentry_sdk.start_span(op="find_missing_chunks.get_owned_chunks"):
+        with sentry_sdk.start_span(op="find_missing_chunks_old.get_owned_chunks"):
             owned = set(
                 FileBlobOwner.objects.filter(
                     blob__checksum__in=chunks, organization_id=organization_id
