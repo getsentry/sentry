@@ -6,6 +6,7 @@ from sentry.testutils.cases import TestMigrations
 class AddFlagAuditLogProviderColumnTest(TestMigrations):
     migrate_from = "0003_allow_null_created_by"
     migrate_to = "0004_add_flag_audit_log_provider_column"
+    app = "flags"
 
     def setup_before_migration(self, apps):
         FlagAuditLogModel = apps.get_model("sentry", "FlagAuditLogModel")
