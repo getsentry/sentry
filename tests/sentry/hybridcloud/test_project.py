@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH
 from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
@@ -44,7 +45,7 @@ def test_update_project() -> None:
     project_service.update_project(
         organization_id=org.id,
         project_id=project.id,
-        updates={"platform": "java"},
+        attrs={"platform": "java"},
     )
     project = Project.objects.get(id=project.id)
     assert project.platform == "java"
@@ -52,30 +53,67 @@ def test_update_project() -> None:
     project_service.update_project(
         organization_id=org.id,
         project_id=project.id,
-        updates={"slug": "test-project-slug"},
+        attrs={"platform": None},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.platform is None
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        attrs={"slug": "test-project-slug"},
     )
     project = Project.objects.get(id=project.id)
     assert project.slug == "test-project-slug"
-
-    project_service.update_project(
-        organization_id=org.id,
-        project_id=project.id,
-        updates={"name": "New Name"},
-    )
-    project = Project.objects.get(id=project.id)
-    assert project.name == "New Name"
-
-    project_service.update_project(
-        organization_id=org.id,
-        project_id=project.id,
-        updates={"external_id": "abcde"},
-    )
-    project = Project.objects.get(id=project.id)
-    assert project.external_id == "abcde"
 
     with pytest.raises(Exception):
         project_service.update_project(
             organization_id=org.id,
             project_id=project.id,
-            updates={"does_not_exist": "test"},
+            attrs={"slug": "Invalid Slug Here"},
         )
+
+    with pytest.raises(Exception):
+        project_service.update_project(
+            organization_id=org.id,
+            project_id=project.id,
+            attrs={"slug": "x" * (PROJECT_SLUG_MAX_LENGTH + 1)},
+        )
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        attrs={"name": "New Name"},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.name == "New Name"
+
+    with pytest.raises(Exception):
+        project_service.update_project(
+            organization_id=org.id,
+            project_id=project.id,
+            attrs={"name": "X" * 201},
+        )
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        attrs={"external_id": "abcde"},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.external_id == "abcde"
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        attrs={"external_id": None},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.external_id is None
+
+    # assert that we don't fail on non-existent fields
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        attrs={"does_not_exist": "test"},
+    )
