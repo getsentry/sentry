@@ -26,7 +26,7 @@ import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQue
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
@@ -117,7 +117,10 @@ function DestinationSummaryPage() {
               </ModuleLayout.Full>
 
               {onboardingProject && (
-                <Onboarding organization={organization} project={onboardingProject} />
+                <LegacyOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                />
               )}
 
               {!onboardingProject && (

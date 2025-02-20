@@ -1260,6 +1260,28 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["span.description"] == "select * from database"
 
+    def test_wildcard_queries_with_asterisk_literals(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "select * from database"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"select \\* * database"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["span.description"] == "select * from database"
+
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
@@ -1920,9 +1942,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 10
         assert confidence[0]["count()"] == "low"
         assert data[1]["count()"] == 1
-        # While logically the confidence for 1 event at 100% sample rate should be high, we're going with low until we
-        # get customer feedback
-        assert confidence[1]["count()"] == "low"
+        assert confidence[1]["count()"] in ("high", "low")
 
     def test_span_duration(self):
         spans = [

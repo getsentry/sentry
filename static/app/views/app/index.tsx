@@ -23,7 +23,6 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
@@ -39,8 +38,6 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-
-import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
 
 type Props = {
   children: React.ReactNode;
@@ -297,5 +294,4 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
 `;

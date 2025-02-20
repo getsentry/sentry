@@ -19,7 +19,7 @@ export type Result = {
 export interface SelectAsyncControlProps {
   forwardedRef: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
   // TODO(ts): Improve data type
-  onQuery: (query: string | undefined) => {};
+  onQuery: (query: string | undefined) => Record<string, unknown>;
   onResults: (data: any) => Result[];
   url: string;
   value: ControlProps['value'];

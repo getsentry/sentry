@@ -76,11 +76,37 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
 };
 
 /** Will not poll when the autofix is in an error state or has completed */
-const isPolling = (autofixData?: AutofixData | null) =>
-  !autofixData ||
-  ![AutofixStatus.ERROR, AutofixStatus.COMPLETED, AutofixStatus.CANCELLED].includes(
-    autofixData.status
+const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
+  if (!autofixData && !runStarted) {
+    return false;
+  }
+
+  if (!autofixData?.steps) {
+    return true;
+  }
+
+  const hasSolutionStep = autofixData.steps.some(
+    step => step.type === AutofixStepType.SOLUTION
   );
+
+  if (
+    !hasSolutionStep &&
+    ![AutofixStatus.ERROR, AutofixStatus.CANCELLED].includes(autofixData.status)
+  ) {
+    // we want to keep polling until we have a solution step because that's a stopping point
+    // we need this explicit check in case we get a state for a fraction of a second where the root cause is complete and there is no step after it started
+    return true;
+  }
+  return (
+    !autofixData ||
+    ![
+      AutofixStatus.ERROR,
+      AutofixStatus.COMPLETED,
+      AutofixStatus.CANCELLED,
+      AutofixStatus.NEED_MORE_INFORMATION,
+    ].includes(autofixData.status)
+  );
+};
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
@@ -104,7 +130,12 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
     staleTime: 0,
     retry: false,
     refetchInterval: query => {
-      if (isPolling(query.state.data?.[0]?.autofix)) {
+      if (
+        isPolling(
+          query.state.data?.[0]?.autofix || null,
+          !!currentRunId || waitingForNextRun
+        )
+      ) {
         return POLL_INTERVAL;
       }
       return false;
@@ -131,6 +162,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
           },
         });
         setCurrentRunId(response.run_id ?? null);
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(group.id)});
       } catch (e) {
         setApiQueryData<AutofixResponse>(
           queryClient,
@@ -167,7 +199,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   return {
     autofixData,
-    isPolling: isPolling(autofixData),
+    isPolling: isPolling(autofixData, !!currentRunId || waitingForNextRun),
     triggerAutofix,
     reset,
   };

@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
