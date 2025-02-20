@@ -64,7 +64,7 @@ describe('WhatsNew', function () {
 
     render(<WhatsNew />);
 
-    expect(await screen.findByTestId('whats-new-badge')).toBeInTheDocument();
+    expect(await screen.findByTestId('whats-new-unread-indicator')).toBeInTheDocument();
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
