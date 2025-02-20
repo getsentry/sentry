@@ -5,11 +5,11 @@ import {validateTokens} from 'sentry/components/arithmeticBuilder/validator';
 export class Expression {
   readonly text: string;
   readonly tokens: Token[];
-  readonly valid: 'valid' | 'invalid';
+  readonly isValid: boolean;
 
   constructor(text: string) {
     this.text = text;
     this.tokens = tokenizeExpression(this.text);
-    this.valid = validateTokens(this.tokens) ? 'valid' : 'invalid';
+    this.isValid = validateTokens(this.tokens);
   }
 }

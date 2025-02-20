@@ -52,8 +52,6 @@ function isArithmeticBuilderReplaceAction(
 export interface ArithmeticBuilderState {
   expression: string;
   focusOverride: FocusOverride | null;
-  tokens: Token[];
-  validated: 'valid' | 'invalid';
 }
 
 interface UseArithmeticBuilderActionOptions {

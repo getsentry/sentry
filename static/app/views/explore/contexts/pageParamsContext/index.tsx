@@ -101,6 +101,7 @@ interface PageParamsProviderProps {
 
 export function PageParamsProvider({children}: PageParamsProviderProps) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const pageParams: ReadablePageParams = useMemo(() => {
     const dataset = getDatasetFromLocation(location);
@@ -108,7 +109,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     const groupBys = getGroupBysFromLocation(location);
     const mode = getModeFromLocation(location);
     const query = getQueryFromLocation(location);
-    const visualizes = getVisualizesFromLocation(location);
+    const visualizes = getVisualizesFromLocation(location, organization);
     const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
     const title = getTitleFromLocation(location);
 
@@ -122,7 +123,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
       title,
       visualizes,
     };
-  }, [location]);
+  }, [location, organization]);
 
   return (
     <PageParamsContext.Provider value={pageParams}>{children}</PageParamsContext.Provider>

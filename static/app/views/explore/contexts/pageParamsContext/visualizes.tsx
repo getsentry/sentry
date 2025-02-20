@@ -1,5 +1,7 @@
 import type {Location} from 'history';
 
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -34,11 +36,14 @@ export interface Visualize extends BaseVisualize {
   label: string;
 }
 
-export function getVisualizesFromLocation(location: Location): Visualize[] {
+export function getVisualizesFromLocation(
+  location: Location,
+  organization: Organization
+): Visualize[] {
   const rawVisualizes = decodeList(location.query.visualize);
 
   const result: Visualize[] = rawVisualizes
-    .map(parseVisualizes)
+    .map(raw => parseVisualizes(raw, organization))
     .filter(defined)
     .filter(parsed => parsed.yAxes.length > 0)
     .map((parsed, i) => {
@@ -52,14 +57,19 @@ export function getVisualizesFromLocation(location: Location): Visualize[] {
   return result.length ? result : defaultVisualizes();
 }
 
-function parseVisualizes(raw: string): Omit<Visualize, 'label'> | null {
+function parseVisualizes(raw: string, organization: Organization): BaseVisualize | null {
   try {
     const parsed = JSON.parse(raw);
     if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
       return null;
     }
 
-    const yAxes = parsed.yAxes.filter(parseFunction);
+    const yAxes = organization.features.includes('visibility-explore-equations')
+      ? parsed.yAxes.filter((yAxis: string) => {
+          const expression = new Expression(yAxis);
+          return expression.isValid;
+        })
+      : parsed.yAxes.filter(parseFunction);
     if (yAxes.length <= 0) {
       return null;
     }
