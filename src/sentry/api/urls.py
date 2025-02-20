@@ -88,6 +88,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
+    OrganizationOnDemandRuleStatsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
@@ -508,13 +509,11 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
     OrganizationOnDemandMetricsEstimationStatsEndpoint,
 )
@@ -1168,6 +1167,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/ondemand-rules-stats/$",
+        OrganizationOnDemandRuleStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-ondemand-rules-stats",
     ),
     # Data Export
     re_path(
@@ -2073,11 +2077,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ),
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/meta/$",
-        OrganizationMetricsDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/data/$",
         OrganizationReleaseHealthDataEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-data",
@@ -2086,11 +2085,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/query/$",
         OrganizationMetricsQueryEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-query",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
-        OrganizationMetricsTagsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-tags",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",

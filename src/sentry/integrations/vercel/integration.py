@@ -62,7 +62,7 @@ INSTALL_NOTICE_TEXT = _(
 external_install = {
     "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
     "buttonText": _("Vercel Marketplace"),
-    "noticeText": _(INSTALL_NOTICE_TEXT),
+    "noticeText": INSTALL_NOTICE_TEXT,
 }
 
 
@@ -346,6 +346,8 @@ class VercelIntegrationProvider(IntegrationProvider):
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
     oauth_redirect_url = "/extensions/vercel/configure/"
+    # feature flag handler is in getsentry
+    requires_feature_flag = True
 
     def get_pipeline_views(self):
         identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}

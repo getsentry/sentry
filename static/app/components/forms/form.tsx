@@ -237,9 +237,7 @@ function Form({
         className={className ?? 'form-stacked'}
         data-test-id={dataTestId}
       >
-        <div>
-          {isRenderFunc<RenderFunc>(children) ? children({model: formModel}) : children}
-        </div>
+        <div>{isRenderFunc(children) ? children({model: formModel}) : children}</div>
 
         {shouldShowFooter && (
           <StyledFooter

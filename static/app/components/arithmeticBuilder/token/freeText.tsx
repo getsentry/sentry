@@ -19,6 +19,7 @@ import {
   nextTokenKeyOfKind,
   tokenizeExpression,
 } from 'sentry/components/arithmeticBuilder/tokenizer';
+import type {AggregateFunction} from 'sentry/components/arithmeticBuilder/types';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
@@ -26,7 +27,6 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -104,14 +104,10 @@ function InternalInput({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {dispatch} = useArithmeticBuilder();
-
-  const allowedFunctions: string[] = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES;
-  }, []);
+  const {dispatch, aggregateFunctions} = useArithmeticBuilder();
 
   const items = useFunctionItems({
-    allowedFunctions,
+    allowedFunctions: aggregateFunctions,
     filterValue,
   });
 
@@ -156,7 +152,7 @@ function InternalInput({
           if (input.endsWith('(')) {
             const pos = input.lastIndexOf(' ');
             const maybeFunc = input.substring(pos + 1, input.length - 1);
-            if (allowedFunctions.includes(maybeFunc)) {
+            if (aggregateFunctions.find(func => func.name === maybeFunc)) {
               dispatch({
                 type: 'REPLACE_TOKEN',
                 token,
@@ -175,7 +171,7 @@ function InternalInput({
       setInputValue(evt.target.value);
       setSelectionIndex(evt.target.selectionStart ?? 0);
     },
-    [allowedFunctions, dispatch, resetInputValue, setInputValue, state, token]
+    [aggregateFunctions, dispatch, resetInputValue, setInputValue, state, token]
   );
 
   const onInputCommit = useCallback(() => {
@@ -324,19 +320,20 @@ function useFunctionItems({
   allowedFunctions,
   filterValue,
 }: {
-  allowedFunctions: string[];
+  allowedFunctions: AggregateFunction[];
   filterValue: string;
 }): Array<SelectOptionWithKey<string>> {
   // TODO: use a config and maybe we want operators and parenthesis too
   const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
     const items = filterValue
-      ? allowedFunctions.filter(agg => agg.includes(filterValue))
+      ? allowedFunctions.filter(agg => agg.name.includes(filterValue))
       : allowedFunctions;
 
     return items.map(item => ({
-      key: item,
-      label: `${item}(\u2026)`,
-      value: item,
+      key: item.name,
+      label: item.label ?? item.name,
+      value: item.name,
+      textValue: item.name,
       hideCheck: true,
     }));
   }, [allowedFunctions, filterValue]);

@@ -8,7 +8,9 @@ from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.rule import update_migrated_issue_alert
+from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
+    update_migrated_issue_alert,
+)
 
 
 @dataclass
