@@ -9,7 +9,7 @@ class AddFlagAuditLogProviderColumnTest(TestMigrations):
     app = "flags"
 
     def setup_before_migration(self, apps):
-        FlagAuditLogModel = apps.get_model("sentry", "FlagAuditLogModel")
+        FlagAuditLogModel = apps.get_model("flags", "FlagAuditLogModel")
         self.created_at = datetime.now(timezone.utc)
         self.audit_log = FlagAuditLogModel.objects.create(
             action=0,
