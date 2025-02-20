@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {DraggableProps} from 'framer-motion';
 import {Reorder} from 'framer-motion';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {useNavContext} from 'sentry/components/nav/context';
+import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
@@ -21,7 +21,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
 import {normalizeProjectsEnvironments} from 'sentry/views/issueList/issueViewsHeaderPF';
 import type {
   IssueViewPF,
@@ -152,11 +151,13 @@ export function IssueViewNavItemContent({
           }
         }}
       >
-        <EditableTabTitle
+        <IssueViewNavEditableTitle
           label={view.label}
           isEditing={isEditing}
-          isSelected={false}
-          onChange={() => {}}
+          isSelected={isActive}
+          onChange={value => {
+            updateView({...view, label: value});
+          }}
           setIsEditing={setIsEditing}
         />
         {view.unsavedChanges && (
@@ -315,7 +316,7 @@ const BoldTooltipText = styled('span')`
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   opacity: ${p => (p.isActive ? 1 : 0)};
 
-  ${StyledSecondaryNavReordableItem}:hover & {
+  ${StyledSecondaryNavItem}:hover & {
     opacity: ${p => (p.isActive ? 1 : 0.75)};
   }
 
