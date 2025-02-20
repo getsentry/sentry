@@ -84,7 +84,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [MsTeamsPipelineView()]
 
     def build_integration(self, state):

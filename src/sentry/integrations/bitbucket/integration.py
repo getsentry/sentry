@@ -186,7 +186,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
         identity_pipeline_view = NestedPipelineView(
             bind_key="identity",

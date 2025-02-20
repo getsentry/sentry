@@ -9,7 +9,7 @@ class BitbucketIdentityProvider(Provider):
     key = "bitbucket"
     name = "Bitbucket"
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [BitbucketLoginView()]
 
 

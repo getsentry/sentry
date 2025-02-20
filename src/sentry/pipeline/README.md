@@ -102,7 +102,7 @@ The pipeline views are declared within the executing pipeline provider's
 `get_pipeline_views` method, for example it could look like:
 
 ```python
-def get_pipeline_views(self):
+def get_pipeline_views(self) -> list[PipelineView]:
     return [GetUserInput(), RequestApiTokenStep()]
 ```
 

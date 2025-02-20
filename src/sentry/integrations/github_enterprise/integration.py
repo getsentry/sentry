@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -369,7 +370,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             config=identity_pipeline_config,
         )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [
             InstallationConfigView(),
             GitHubEnterpriseInstallationRedirect(),
