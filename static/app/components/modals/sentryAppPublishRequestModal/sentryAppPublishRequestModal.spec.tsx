@@ -126,14 +126,14 @@ describe('SentryAppDetailsModal', function () {
       screen.getByRole('textbox', {
         name: 'Link to your documentation page.',
       }),
-      'example.com'
+      'http://example.com'
     );
 
     await userEvent.type(
       screen.getByRole('textbox', {
         name: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
       }),
-      'example.com'
+      'https://example.com'
     );
 
     const submitButton = screen.getByRole('button', {name: 'Request Publication'});
@@ -166,12 +166,12 @@ describe('SentryAppDetailsModal', function () {
         },
         {
           question: 'Link to your documentation page.',
-          answer: 'example.com',
+          answer: 'http://example.com',
         },
         {
           question:
             'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
-          answer: 'example.com',
+          answer: 'https://example.com',
         },
       ]),
     });
@@ -351,5 +351,67 @@ describe('SentryAppDetailsModal', function () {
     expect(mockRequest).toHaveBeenCalledTimes(1);
     // Verify modal stays open
     expect(closeModal).not.toHaveBeenCalled();
+  });
+  it('button is disabled if invalid urls are used', async () => {
+    const organization = OrganizationFixture({
+      features: [`streamlined-publishing-flow`],
+    });
+
+    render(
+      <SentryAppPublishRequestModal
+        closeModal={jest.fn()}
+        Header={p => <span>{p.children}</span>}
+        Footer={styledWrapper()}
+        Body={styledWrapper()}
+        CloseButton={makeCloseButton(() => {})}
+        organization={organization}
+        app={sentryApp}
+        onPublishSubmission={onPublishSubmission}
+      />
+    );
+
+    // Fill out the form fields
+    await userEvent.type(
+      screen.getByRole('textbox', {
+        name: 'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+      }),
+      'ok'
+    );
+
+    await userEvent.type(
+      screen.getByRole('textbox', {
+        name: 'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations .',
+      }),
+      'the coolest integration ever'
+    );
+
+    await userEvent.click(
+      screen.getByRole('textbox', {
+        name: 'Select what category best describes your integration. Documentation for reference.',
+      })
+    );
+
+    expect(screen.getByText('Deployment')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Deployment'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {
+        name: 'Link to your documentation page.',
+      }),
+      'omo'
+    );
+
+    await userEvent.type(
+      screen.getByRole('textbox', {
+        name: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+      }),
+      'https://example.com'
+    );
+
+    const submitButton = screen.getByRole('button', {name: 'Request Publication'});
+    expect(submitButton).toBeDisabled();
+    expect(
+      screen.getByText('Invalid link: URL must start with https://')
+    ).toBeInTheDocument();
   });
 });

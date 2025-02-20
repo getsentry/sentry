@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option
@@ -65,7 +66,7 @@ type Props = ModalRenderProps & {
 };
 
 export function SentryAppPublishRequestModal(props: Props) {
-  const [form] = useState<FormModel>(() => new FormModel({transformData}));
+  const [formModel] = useState<FormModel>(() => new FormModel({transformData}));
   const {app, closeModal, Header, Body, organization, onPublishSubmission} = props;
   const isNewModalVisible = organization.features.includes(`streamlined-publishing-flow`);
 
@@ -147,7 +148,7 @@ export function SentryAppPublishRequestModal(props: Props) {
         name: 'question2',
       },
       {
-        type: 'string',
+        type: 'url',
         required: true,
         label: t('Link to your documentation page.'),
         meta: 'Link to your documentation page.',
@@ -155,9 +156,13 @@ export function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question3',
+        validate: ({id, form}) =>
+          !safeURL(form[id])
+            ? [[id, t('Invalid link: URL must start with https://')]]
+            : [],
       },
       {
-        type: 'string',
+        type: 'url',
         required: true,
         label: t(
           'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube'
@@ -167,6 +172,10 @@ export function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question4',
+        validate: ({id, form}) =>
+          !safeURL(form[id])
+            ? [[id, t('Invalid link: URL must start with https://')]]
+            : [],
       },
     ];
 
@@ -276,7 +285,7 @@ export function SentryAppPublishRequestModal(props: Props) {
           apiEndpoint={endpoint}
           onSubmitSuccess={handleSubmitSuccess}
           onSubmitError={handleSubmitError}
-          model={form}
+          model={formModel}
           submitLabel={t('Request Publication')}
           onCancel={closeModal}
         >
