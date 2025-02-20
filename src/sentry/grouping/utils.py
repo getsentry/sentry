@@ -145,9 +145,9 @@ def resolve_fingerprint_variable(
     elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
         requested_tag = variable_key[5:]
-        for tag_name, value in event_data.get("tags") or ():
-            if tag_name == requested_tag and value is not None:
-                return value
+        for tag_name, tag_value in event_data.get("tags") or ():
+            if tag_name == requested_tag and tag_value is not None:
+                return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
     else:
         return None
