@@ -20,6 +20,13 @@ class ProjectFilterArgs(TypedDict, total=False):
     project_ids: list[int]
 
 
+class ProjectUpdateArgs(TypedDict, total=False):
+    name: str
+    slug: str
+    platform: str | None
+    external_id: str | None
+
+
 class RpcProjectFlags(RpcModel):
     has_releases: bool
     has_issue_alerts_targeting: bool

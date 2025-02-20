@@ -17,7 +17,8 @@ from sentry.projects.services.project import (
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.projects.services.project.serial import serialize_project
+from sentry.projects.services.project.model import ProjectUpdateArgs
+from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
 
@@ -178,3 +179,26 @@ class DatabaseBackedProjectService(ProjectService):
             add_org_default_team=add_org_default_team,
             external_id=external_id,
         )
+
+    def update_project(
+        self,
+        *,
+        organization_id: int,
+        project_id: int,
+        attrs: ProjectUpdateArgs,
+    ) -> RpcProject:
+        project: Project = Project.objects.get(
+            id=project_id,
+            organization_id=organization_id,
+        )
+
+        serializer = ProjectUpdateArgsSerializer(data=attrs)
+        serializer.is_valid(raise_exception=True)
+        serializer.validated_data
+
+        if serializer.validated_data:
+            for key, value in serializer.validated_data.items():
+                setattr(project, key, value)
+            project.save()
+
+        return serialize_project(project)
