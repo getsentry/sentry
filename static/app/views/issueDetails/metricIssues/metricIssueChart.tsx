@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -84,13 +85,13 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
   if (isRuleLoading || isAnomaliesLoading || isIncidentsLoading) {
     return (
       <MetricChartSection>
-        <MetricIssuePlaceholder />
+        <MetricIssuePlaceholder type="loading" />
       </MetricChartSection>
     );
   }
 
   if (!rule) {
-    return null;
+    return <MetricIssuePlaceholder type="error" />;
   }
 
   return (
@@ -103,14 +104,6 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
         incidents={incidents}
       />
     </MetricChartSection>
-  );
-}
-
-function MetricIssuePlaceholder() {
-  return (
-    <PlaceholderContainer>
-      <Placeholder height="96px" testId="metric-issue-chart-loading" />
-    </PlaceholderContainer>
   );
 }
 
@@ -141,11 +134,11 @@ function MetricIssueChartContent({
   });
 
   if (queryResult?.isLoading) {
-    return <MetricIssuePlaceholder />;
+    return <MetricIssuePlaceholder type="loading" />;
   }
 
   if (queryResult?.isError) {
-    return <div>ERROR</div>;
+    return <MetricIssuePlaceholder type="error" />;
   }
 
   return (
@@ -196,17 +189,35 @@ function MetricIssueChartContent({
   );
 }
 
+function MetricIssuePlaceholder({type}: {type: 'loading' | 'error'}) {
+  return type === 'loading' ? (
+    <PlaceholderContainer>
+      <Placeholder height="96px" testId="metric-issue-chart-loading" />
+    </PlaceholderContainer>
+  ) : (
+    <MetricChartAlert type="error" showIcon>
+      {t('Unable to load the metric history')}
+    </MetricChartAlert>
+  );
+}
+
 const MetricChartSection = styled('div')`
   display: block;
   padding-right: ${space(1.5)};
   width: 100%;
 `;
 
-const PlaceholderContainer = styled(LoadingContainer)`
+const PlaceholderContainer = styled('div')`
   padding: ${space(1)} 0;
 `;
 
 const ChartContainer = styled('div')`
   position: relative;
   padding: ${space(0.75)} 0;
+`;
+
+const MetricChartAlert = styled(Alert)`
+  width: 100%;
+  border: 0;
+  border-radius: 0;
 `;
