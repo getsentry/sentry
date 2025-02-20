@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any, TypedDict
 
 from rest_framework import serializers
 
@@ -10,9 +11,27 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
     NumericComparisonConditionValidator,
 )
-from sentry.workflow_engine.models import DataConditionGroup, DataSource
+from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+
+class DataConditionType(TypedDict):
+    id: int
+    comparison: int
+    type: Condition
+    conditionResult: DetectorPriorityLevel
+    conditionGroupId: int
+
+
+class DataSourceType(TypedDict):
+    queryType: int
+    dataset: str
+    query: str
+    aggregate: str
+    timeWindow: int
+    environment: str
+    eventTypes: list[SnubaQueryEventType]
 
 
 class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidator):
@@ -44,7 +63,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError("Too many conditions")
         return attrs
 
-    def update_data_conditions(self, instance, data_conditions):
+    def update_data_conditions(self, instance: Detector, data_conditions: list[DataConditionType]):
         """
         Update the data condition if it already exists, create one if it does not
         """
@@ -58,9 +77,12 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         # TODO make one if it doesn't exist and data is passed?
 
         for data_condition in data_conditions:
+            data_condition_id = data_condition.get("id")
+            if not data_condition_id:
+                raise serializers.ValidationError("Data condition missing ID")
             try:
                 current_data_condition = DataCondition.objects.get(
-                    id=data_condition.get("id"), condition_group=data_condition_group
+                    id=data_condition_id, condition_group=data_condition_group
                 )
             except DataCondition.DoesNotExist:
                 current_data_condition = None
@@ -77,7 +99,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
                 )
         return data_condition_group
 
-    def update_data_source(self, instance, data_source):
+    def update_data_source(self, instance: Detector, data_source: DataSourceType):
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -101,16 +123,16 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             event_types=data_source.get("event_types", [event_types]),
         )
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Detector, validated_data: dict[str, Any]):
         instance.name = validated_data.get("name", instance.name)
         instance.type = validated_data.get("detector_type", instance.group_type).slug
         condition_group = validated_data.pop("condition_group")
-        data_conditions = condition_group.get("conditions")
+        data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
         if data_conditions:
             self.update_data_conditions(instance, data_conditions)
 
-        data_source = validated_data.pop("data_source")
+        data_source: DataSourceType = validated_data.pop("data_source")
         if data_source:
             self.update_data_source(instance, data_source)
 
