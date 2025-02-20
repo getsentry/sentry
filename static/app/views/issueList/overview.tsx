@@ -815,7 +815,11 @@ function IssueListOverview({router}: Props) {
         queryData.sort = newSavedSearch.sort;
       }
     } else {
-      path = `/organizations/${organization.slug}/issues/`;
+      if (organization.features.includes('navigation-sidebar-v2')) {
+        path = location.pathname;
+      } else {
+        path = `/organizations/${organization.slug}/issues/`;
+      }
     }
 
     if (
