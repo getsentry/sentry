@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.api.permissions import (
     DemoUserPermission,
     SentryIsAuthenticated,
@@ -5,6 +7,7 @@ from sentry.api.permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -72,6 +75,10 @@ class DemoUserPermissionsTest(DRFPermissionTestCase):
         self.readonly_user = self.create_user(id=2)
         self.organization = self.create_organization(owner=self.normal_user)
 
+    def _get_rpc_context(self, user):
+        rpc_org = RpcOrganization(id=self.organization.id)
+        return RpcUserOrganizationContext(user_id=user.id, organization=rpc_org, member=user)
+
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_readonly_user_has_permission(self):
         assert self.user_permission.has_permission(self.make_request(self.readonly_user), None)
@@ -120,3 +127,54 @@ class DemoUserPermissionsTest(DRFPermissionTestCase):
         assert self.user_permission.has_permission(
             self.make_request(self.normal_user, method=method), None
         )
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    @patch("sentry.api.permissions.demo_mode.get_readonly_scopes")
+    def test_determine_access(self, mock_get_readonly_scopes):
+        self.user_permission.determine_access(
+            request=self.make_request(self.normal_user),
+            organization=self._get_rpc_context(self.normal_user),
+        )
+
+        assert mock_get_readonly_scopes.call_count == 0
+
+        self.user_permission.determine_access(
+            request=self.make_request(self.readonly_user),
+            organization=self._get_rpc_context(self.readonly_user),
+        )
+
+        assert mock_get_readonly_scopes.call_count == 1
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    @patch("sentry.api.permissions.demo_mode.get_readonly_scopes")
+    def test_determine_access_disabled(self, mock_get_readonly_scopes):
+        self.user_permission.determine_access(
+            request=self.make_request(self.normal_user),
+            organization=self._get_rpc_context(self.normal_user),
+        )
+
+        assert mock_get_readonly_scopes.call_count == 0
+
+        self.user_permission.determine_access(
+            request=self.make_request(self.readonly_user),
+            organization=self._get_rpc_context(self.readonly_user),
+        )
+
+        assert mock_get_readonly_scopes.call_count == 0
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": []})
+    @patch("sentry.api.permissions.demo_mode.get_readonly_scopes")
+    def test_determine_access_no_demo_users(self, mock_get_readonly_scopes):
+        self.user_permission.determine_access(
+            request=self.make_request(self.normal_user),
+            organization=self._get_rpc_context(self.normal_user),
+        )
+
+        assert mock_get_readonly_scopes.call_count == 0
+
+        self.user_permission.determine_access(
+            request=self.make_request(self.readonly_user),
+            organization=self._get_rpc_context(self.readonly_user),
+        )
+
+        assert mock_get_readonly_scopes.call_count == 0
