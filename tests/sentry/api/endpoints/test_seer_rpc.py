@@ -8,15 +8,16 @@ from django.urls import reverse
 from sentry import eventstore
 from sentry.api.endpoints.seer_rpc import (
     NUM_DAYS_AGO,
+    STACKFRAME_COUNT,
     PrFile,
     _add_event_details,
+    _left_truncated_paths,
     generate_request_signature,
     get_issues_related_to_file_patches,
     get_issues_with_event_details_for_file,
     safe_for_fetching_issues,
 )
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.integrations.github.constants import STACKFRAME_COUNT
 from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -55,6 +56,7 @@ class TestSeerRpc(APITestCase):
 
 
 class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
+    # Mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     def setUp(self):
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
 
@@ -175,7 +177,23 @@ def test_safe_for_fetching_issues():
     assert safe_for_fetching_issues(pr_files_with_unsupported_language) == pr_files_safe
 
 
+def test__left_truncated_paths():
+    assert _left_truncated_paths("foo.py") == []
+    assert _left_truncated_paths("path/foo.py") == ["foo.py"]
+    assert _left_truncated_paths("path/to/foo.py") == ["to/foo.py", "foo.py"]
+    assert _left_truncated_paths("path/to/foo/bar.py", max_num_paths=2) == [
+        "to/foo/bar.py",
+        "foo/bar.py",
+    ]
+    assert _left_truncated_paths("path/to/foo/bar.py", max_num_paths=3) == [
+        "to/foo/bar.py",
+        "foo/bar.py",
+        "bar.py",
+    ]
+
+
 class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase):
+    # Mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     base_url = "https://api.github.com"
 
     def setUp(self):
@@ -224,7 +242,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         )
 
     @patch("sentry.api.endpoints.seer_rpc.safe_for_fetching_issues")
-    @patch("sentry.api.endpoints.seer_rpc.get_projects_and_filenames_from_source_file")
+    @patch("sentry.api.endpoints.seer_rpc._get_projects_and_filenames_from_source_file")
     @patch(
         "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
     )

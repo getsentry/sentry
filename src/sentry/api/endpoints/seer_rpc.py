@@ -3,12 +3,15 @@ import hmac
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any, Literal, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Value
+from django.db.models.functions import StrIndex
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotFound,
@@ -31,7 +34,6 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github.constants import STACKFRAME_COUNT
 from sentry.integrations.github.tasks.language_parsers import (
     PATCH_PARSERS,
     LanguageParser,
@@ -41,9 +43,9 @@ from sentry.integrations.github.tasks.open_pr_comment import (
     MAX_RECENT_ISSUES,
     OPEN_PR_MAX_FILES_CHANGED,
     OPEN_PR_MAX_LINES_CHANGED,
-    get_projects_and_filenames_from_source_file,
 )
 from sentry.integrations.github.tasks.utils import PullRequestFile
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -66,6 +68,11 @@ NUM_DAYS_AGO = 14
 """
 The number of previous days from now to find issues and events.
 This number is global so that fetching issues and events is consistent.
+"""
+
+STACKFRAME_COUNT = 10
+"""
+The number of stack frames to check for function name and file name matches.
 """
 
 
@@ -329,7 +336,6 @@ def _get_issues_for_file(
                 # Then, for precision, add the granular timestamp filters:
                 Condition(Column("timestamp"), Op.GTE, event_timestamp_start),
                 Condition(Column("timestamp"), Op.LT, event_timestamp_end),
-                Condition(Function("notHandled", []), Op.EQ, 1),
             ]
         )
     )
@@ -442,6 +448,65 @@ def get_issues_with_event_details_for_file(
     )
 
 
+def _left_truncated_paths(filename: str, max_num_paths: int = 2) -> list[str]:
+    """
+    Example::
+
+        paths = _left_truncated_paths("src/seer/automation/agent/client.py", 2)
+        assert paths == [
+            "seer/automation/agent/client.py",
+            "automation/agent/client.py",
+        ]
+    """
+    try:
+        path = Path(filename)
+    except Exception:
+        return []
+
+    parts = list(path.parts)
+    num_dirs = len(parts) - 1  # -1 for the filename
+    num_paths = min(max_num_paths, num_dirs)
+
+    result = []
+    for _ in range(num_paths):
+        parts.pop(0)
+        result.append(str(Path(*parts)))
+    return result
+
+
+def _get_projects_and_filenames_from_source_file(
+    org_id: int, repo_id: int, pr_filename: str, max_num_left_truncated_paths: int = 2
+) -> tuple[set[Project], set[str]]:
+    # fetch the code mappings in which the source_root is a substring at the start of pr_filename
+    code_mappings = (
+        RepositoryProjectPathConfig.objects.filter(
+            organization_id=org_id,
+            repository_id=repo_id,
+        )
+        .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
+        .filter(substring_match=1)
+    )
+    # TODO: is this substring_match might too strict?
+
+    project_list: set[Project] = set()
+    sentry_filenames = set()
+
+    if len(code_mappings):
+        for code_mapping in code_mappings:
+            project_list.add(code_mapping.project)
+            sentry_filenames.add(
+                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
+            )
+            # This filename alone isn't enough. It doesn't work for the seer app, for example.
+            # We can tolerate potential false positives if downstream uses of this data filters
+            # out irrelevant issues.
+            sentry_filenames.add(pr_filename)
+            sentry_filenames.update(
+                _left_truncated_paths(pr_filename, max_num_left_truncated_paths)
+            )
+    return project_list, sentry_filenames
+
+
 def get_issues_related_to_file_patches(
     *,
     organization_id: int,
@@ -472,6 +537,8 @@ def get_issues_related_to_file_patches(
         )
         return {}
 
+    repo_id = repo.id
+
     pr_files = safe_for_fetching_issues(pr_files)
     pullrequest_files = [
         PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
@@ -481,8 +548,8 @@ def get_issues_related_to_file_patches(
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
 
     for file in pullrequest_files:
-        projects, sentry_filenames = get_projects_and_filenames_from_source_file(
-            organization_id, repo.id, file.filename
+        projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
+            organization_id, repo_id, file.filename
         )
         if not len(projects) or not len(sentry_filenames):
             logger.error("No projects or filenames", extra={"file": file.filename})
