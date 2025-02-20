@@ -17,9 +17,9 @@ export function OnDemandThresholdChecker({
 }: OnDemandThresholdCheckerProps) {
   const organization = useOrganization();
 
-  const {data} = useApiQuery<{max_allowed: number; total_on_demand_alert_specs: number}>(
+  const {data} = useApiQuery<{maxAllowed: number; totalOnDemandAlertSpecs: number}>(
     [
-      `/organizations/${organization.slug}/ondemand-rules/`,
+      `/organizations/${organization.slug}/ondemand-rules-stats/`,
       {
         query: {
           project: projectId,
@@ -33,7 +33,7 @@ export function OnDemandThresholdChecker({
   );
 
   const isOnDemandLimitReached =
-    data === undefined ? undefined : data.total_on_demand_alert_specs >= data.max_allowed;
+    data === undefined ? undefined : data.totalOnDemandAlertSpecs >= data.maxAllowed;
 
   return <Fragment>{children({isOnDemandLimitReached})}</Fragment>;
 }
