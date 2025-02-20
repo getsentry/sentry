@@ -38,7 +38,7 @@ class GetActiveRegionConfigsTest(TestBase):
             override_options(
                 {
                     "uptime.checker-regions-mode-override": {
-                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE
+                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE.value
                     }
                 }
             ),
@@ -52,8 +52,8 @@ class GetActiveRegionConfigsTest(TestBase):
             override_options(
                 {
                     "uptime.checker-regions-mode-override": {
-                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE,
-                        "us": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE.value,
+                        "us": UptimeSubscriptionRegion.RegionMode.ACTIVE.value,
                     }
                 }
             ),
