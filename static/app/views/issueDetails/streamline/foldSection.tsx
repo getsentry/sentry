@@ -23,7 +23,7 @@ import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
-  return `'issue-details-fold-section-collapse:${key}`;
+  return `issue-details-fold-section-collapse:${key}`;
 }
 
 export interface FoldSectionProps {
