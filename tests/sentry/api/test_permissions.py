@@ -95,10 +95,9 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             assert not self.user_permission.has_permission(
                 self.make_request(self.readonly_user, method=method), None
             )
-
-        assert self.user_permission.has_permission(
-            self.make_request(self.normal_user, method=method), None
-        )
+            assert self.user_permission.has_permission(
+                self.make_request(self.normal_user, method=method), None
+            )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
     def test_safe_method_demo_mode_disabled(self):
@@ -116,10 +115,9 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             assert not self.user_permission.has_permission(
                 self.make_request(self.readonly_user, method=method), None
             )
-
-        assert self.user_permission.has_permission(
-            self.make_request(self.normal_user, method=method), None
-        )
+            assert self.user_permission.has_permission(
+                self.make_request(self.normal_user, method=method), None
+            )
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     @patch("sentry.api.permissions.demo_mode.get_readonly_scopes")
