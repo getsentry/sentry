@@ -153,15 +153,15 @@ const lightColors = {
     black: '#181225',
     white: '#FFFFFF',
 
-    blurple100: '#463299',
-    blurple200: '#5E42CC',
-    blurple300: '#694BE5',
     blurple400: '#7553FF',
+    blurple300: '#694BE5',
+    blurple200: '#5E42CC',
+    blurple100: '#463299',
 
     green400: '#00F261',
     green300: '#00E55C',
-    green200: '#7553FF',
-    green100: '#00D957',
+    green200: '#00D957',
+    green100: '#00A341',
 
     gold400: '#FFD00E',
     gold300: '#FDB81B',
@@ -169,15 +169,14 @@ const lightColors = {
     gold100: '#E07518',
 
     red400: '#E50045',
-    red300: '#E565A9',
-    red200: '#CC5A97',
-    red100: '#B24E84',
+    red300: '#CC003D',
+    red200: '#B20036',
+    red100: '#99002E',
 
     pink400: '#FF70BC',
-    // @TODO(jonasbadalic): duplicates?
-    pink300: '#7553FF',
-    pink200: '#7553FF',
-    pink100: '#7553FF',
+    pink300: '#E565A9',
+    pink200: '#CC5A97',
+    pink100: '#B24E84',
   },
 
   dynamic: {
@@ -217,7 +216,7 @@ const lightColors = {
 
     // @TODO(jonasbadalic): duplicates?
     red400: '#CC003D',
-    red300: '#CC003D',
+    red300: '#B20036',
     red200: '#99002E',
     red100: '#800026',
 
@@ -241,8 +240,8 @@ const darkColors: typeof lightColors = {
 
     green400: '#00F261',
     green300: '#00E55C',
-    green200: '#7553FF',
-    green100: '#00D957',
+    green200: '#00D957',
+    green100: '#00A341',
 
     gold400: '#FFD00E',
     gold300: '#FDB81B',
@@ -250,15 +249,14 @@ const darkColors: typeof lightColors = {
     gold100: '#E07518',
 
     red400: '#E50045',
-    red300: '#E565A9',
-    red200: '#CC5A97',
-    red100: '#B24E84',
+    red300: '#CC003D',
+    red200: '#B20036',
+    red100: '#99002E',
 
     pink400: '#FF70BC',
-    // @TODO(jonasbadalic): duplicates?
-    pink300: '#7553FF',
-    pink200: '#7553FF',
-    pink100: '#7553FF',
+    pink300: '#E565A9',
+    pink200: '#CC5A97',
+    pink100: '#B24E84',
   },
 
   dynamic: {
@@ -719,7 +717,7 @@ const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColo
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
 interface ChonkTheme extends Omit<Theme, 'isChonk'> {
-  colors: {dark: typeof lightColors; light: typeof lightColors};
+  colors: typeof lightColors;
   isChonk: true;
   space: typeof space;
 }
@@ -760,10 +758,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
   stacktraceActiveText: lightTheme.stacktraceActiveText,
 
-  colors: {
-    light: lightColors,
-    dark: darkColors,
-  },
+  colors: lightColors,
 
   sidebar: {
     // @TODO: these colors need to be ported
@@ -802,10 +797,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
   stacktraceActiveText: darkTheme.stacktraceActiveText,
 
-  colors: {
-    light: lightColors,
-    dark: darkColors,
-  },
+  colors: darkColors,
 
   space,
 

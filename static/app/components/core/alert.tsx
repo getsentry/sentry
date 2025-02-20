@@ -9,6 +9,9 @@ import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkAlert from './alert.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
@@ -157,77 +160,80 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   }
 }
 
-const AlertContainer = styled('div')<
-  AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
->`
-  display: grid;
-  grid-template-columns:
-    ${p => p.showIcon && `minmax(0, max-content)`}
-    minmax(0, 1fr)
-    ${p => defined(p.trailingItems) && 'max-content'}
-    ${p => defined(p.expand) && 'max-content'};
-  gap: ${space(1)};
-  color: ${p => p.alertColors.color};
-  font-size: ${p => p.theme.fontSizeMedium};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.alertColors.border};
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p =>
-    p.opaque
-      ? `linear-gradient(
+const AlertContainer = withChonk(
+  styled('div')<
+    AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
+  >`
+    display: grid;
+    grid-template-columns:
+      ${p => p.showIcon && `minmax(0, max-content)`}
+      minmax(0, 1fr)
+      ${p => defined(p.trailingItems) && 'max-content'}
+      ${p => defined(p.expand) && 'max-content'};
+    gap: ${space(1)};
+    color: ${p => p.alertColors.color};
+    font-size: ${p => p.theme.fontSizeMedium};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.alertColors.border};
+    padding: ${space(1.5)} ${space(2)};
+    background: ${p =>
+      p.opaque
+        ? `linear-gradient(
           ${p.alertColors.backgroundLight},
           ${p.alertColors.backgroundLight}),
           linear-gradient(${p.theme.background}, ${p.theme.background}
         )`
-      : `
+        : `
           ${p.alertColors.backgroundLight}
         `};
 
-  a:not([role='button']) {
-    color: ${p => p.alertColors.color};
-    text-decoration-color: ${p => p.alertColors.border};
-    text-decoration-style: solid;
-    text-decoration-line: underline;
-    text-decoration-thickness: 0.08em;
-    text-underline-offset: 0.06em;
-  }
-  a:not([role='button']):hover {
-    text-decoration-color: ${p => p.alertColors.color};
-    text-decoration-style: solid;
-  }
+    a:not([role='button']) {
+      color: ${p => p.alertColors.color};
+      text-decoration-color: ${p => p.alertColors.border};
+      text-decoration-style: solid;
+      text-decoration-line: underline;
+      text-decoration-thickness: 0.08em;
+      text-underline-offset: 0.06em;
+    }
+    a:not([role='button']):hover {
+      text-decoration-color: ${p => p.alertColors.color};
+      text-decoration-style: solid;
+    }
 
-  pre {
-    background: ${p => p.alertColors.backgroundLight};
-    margin: ${space(0.5)} 0 0;
-  }
+    pre {
+      background: ${p => p.alertColors.backgroundLight};
+      margin: ${space(0.5)} 0 0;
+    }
+
+    ${p =>
+      p.hovered &&
+      css`
+        border-color: ${p.alertColors.borderHover};
+      `}
+
+    ${p =>
+      p.expand &&
+      css`
+        cursor: pointer;
+        ${TrailingItems} {
+          cursor: auto;
+        }
+      `}
 
   ${p =>
-    p.hovered &&
-    css`
-      border-color: ${p.alertColors.borderHover};
-    `}
-
-  ${p =>
-    p.expand &&
-    css`
-      cursor: pointer;
-      ${TrailingItems} {
-        cursor: auto;
-      }
-    `}
-
-  ${p =>
-    p.system &&
-    css`
-      border-width: 0 0 1px 0;
-      border-radius: 0;
-    `}
-`;
+      p.system &&
+      css`
+        border-width: 0 0 1px 0;
+        border-radius: 0;
+      `}
+  `,
+  ChonkAlert.Container,
+  ChonkAlert.chonkAlertPropMapping
+);
 
 const IconWrapper = styled('div')`
   display: flex;
   align-items: center;
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
 `;
 
 const Message = styled('span')`
