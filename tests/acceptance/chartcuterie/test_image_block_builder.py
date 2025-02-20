@@ -32,11 +32,6 @@ class TestSlackImageBlockBuilder(
 ):
     def setUp(self):
         super().setUp()
-        self.features = {
-            "organizations:performance-use-metrics": True,
-            "organizations:slack-endpoint-regression-image": True,
-            "organizations:slack-function-regression-image": True,
-        }
         cache.clear()
 
     def _create_endpoint_regression_issue(self):
@@ -66,24 +61,22 @@ class TestSlackImageBlockBuilder(
         group.update(type=PerformanceP95EndpointRegressionGroupType.type_id)
         return group
 
-    @with_feature("organizations:slack-endpoint-regression-image")
+    @with_feature("organizations:performance-use-metrics")
     def test_image_block_for_endpoint_regression(self):
         group = self._create_endpoint_regression_issue()
-        with self.feature(self.features):
-            image_block = ImageBlockBuilder(group=group).build_image_block()
+        image_block = ImageBlockBuilder(group=group).build_image_block()
 
         assert image_block and "type" in image_block and image_block["type"] == "image"
         assert "_media/" in image_block["image_url"]
 
+    @with_feature("organizations:performance-use-metrics")
     @patch("sentry.utils.performance_issues.detectors.utils.escape_transaction")
-    @with_feature("organizations:slack-endpoint-regression-image")
     def test_caching(self, mock_escape_transaction):
         mock_escape_transaction.return_value = "Test Transaction"
         group = self._create_endpoint_regression_issue()
         image_blocks = []
         for _ in range(5):
-            with self.feature(self.features):
-                image_blocks.append(ImageBlockBuilder(group=group).build_image_block())
+            image_blocks.append(ImageBlockBuilder(group=group).build_image_block())
 
         assert mock_escape_transaction.call_count == 1
         assert len(image_blocks) == 5
@@ -94,7 +87,7 @@ class TestSlackImageBlockBuilder(
             assert image_block is not None
             assert image_block["image_url"] == image_url
 
-    @with_feature("organizations:slack-function-regression-image")
+    @with_feature("organizations:performance-use-metrics")
     def test_image_block_for_function_regression(self):
         hour_ago = (before_now(minutes=10) - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0
@@ -136,14 +129,12 @@ class TestSlackImageBlockBuilder(
 
         group = Group.objects.get()
 
-        with self.feature(self.features):
-            image_block = ImageBlockBuilder(group=group).build_image_block()
+        image_block = ImageBlockBuilder(group=group).build_image_block()
 
         assert image_block and "type" in image_block and image_block["type"] == "image"
         assert "_media/" in image_block["image_url"]
 
     @patch("sentry_sdk.capture_exception")
-    @with_feature("organizations:slack-function-regression-image")
     def test_image_not_generated_for_unsupported_issues(self, mock_capture_exception):
         group = self.create_group()
         group.update(type=PerformanceHTTPOverheadGroupType.type_id)
