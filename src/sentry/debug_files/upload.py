@@ -46,7 +46,7 @@ def _find_missing_chunks_new(organization_id: int, chunks: Sequence[str]):
             file_blobs_to_renew.add(id)
 
         if organization_id is not None:
-            chunks_with_organization_id.add(organization_id)
+            chunks_with_organization_id.add(checksum)
 
     if file_blobs_to_renew:
         # We update the timestamp of the file blobs that need renewal.
