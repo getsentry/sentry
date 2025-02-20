@@ -2,6 +2,7 @@ import logging
 from enum import StrEnum
 
 import sentry_sdk
+from django.db import router, transaction
 
 from sentry import buffer
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -166,3 +167,21 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
             action.trigger(job, detector)
 
     return triggered_workflows
+
+
+def delete_workflow(workflow: Workflow) -> bool:
+    # TODO - saponifi3d - add a sentry span here to measure the time it takes to delete a workflow
+    with transaction.atomic(router.db_for_write(Workflow)):
+        action_filters = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+
+        actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=action_filters
+        )
+
+        actions.delete()
+        action_filters.delete()
+        workflow.when_condition_group.delete()
+        workflow.delete()
+    return True

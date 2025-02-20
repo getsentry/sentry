@@ -7,11 +7,19 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-from sentry.workflow_engine.models import DataConditionGroup, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
+    delete_workflow,
     enqueue_workflow,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
@@ -400,3 +408,49 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
             ),
         )
+
+
+class TestDeleteWorkflow(BaseWorkflowTest):
+    def setUp(self):
+        self.workflow = self.create_workflow()
+        self.workflow_trigger = self.create_data_condition_group()
+        self.workflow.when_condition_group = self.workflow_trigger
+        self.workflow.save()
+
+        self.action_filter = self.create_data_condition_group()
+        self.action = self.create_action()
+        self.action_and_filter = self.create_data_condition_group_action(
+            condition_group=self.action_filter,
+            action=self.action,
+        )
+
+        self.workflow_actions = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.action_filter
+        )
+
+        self.trigger_condition = self.create_data_condition(condition_group=self.workflow_trigger)
+        self.action_condition = self.create_data_condition(condition_group=self.action_filter)
+
+    def test_delete_workflow__deletes_workflow(self):
+        workflow_id = self.workflow.id
+        trigger_id = self.workflow_trigger.id
+        trigger_condition_id = self.trigger_condition.id
+        delete_workflow(self.workflow)
+
+        assert not Workflow.objects.filter(id=workflow_id).exists()
+        assert not DataConditionGroup.objects.filter(id=trigger_id).exists()
+        assert not DataCondition.objects.filter(id=trigger_condition_id).exists()
+
+    def test_delete_workflow__deletes_action_tables(self):
+        action_filter_id = self.action_filter.id
+        action_id = self.action.id
+        action_and_filter_id = self.action_and_filter.id
+        workflow_actions_id = self.workflow_actions.id
+        action_condition_id = self.action_condition.id
+        delete_workflow(self.workflow)
+
+        assert not DataConditionGroup.objects.filter(id=action_filter_id).exists()
+        assert not Action.objects.filter(id=action_id).exists()
+        assert not DataConditionGroupAction.objects.filter(id=action_and_filter_id).exists()
+        assert not WorkflowDataConditionGroup.objects.filter(id=workflow_actions_id).exists()
+        assert not DataCondition.objects.filter(id=action_condition_id).exists()
