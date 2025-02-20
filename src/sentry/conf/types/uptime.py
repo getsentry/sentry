@@ -9,8 +9,6 @@ class UptimeRegionConfig:
 
     slug: str
     name: str
-    # TODO: Remove once no region configurations are setting this
-    enabled: bool = True
     # Temporarily defaulted for backwards compat
     config_redis_cluster: str = "default"
     # Prefix we'll add to keys in the redis config. Currently just used in tests

@@ -25,9 +25,9 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
@@ -38,6 +38,7 @@ import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaCh
 import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
 import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
 import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
+import {formatSeriesName} from './formatSeriesName';
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
@@ -117,20 +118,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   if (props.releases) {
     const onClick = (release: Release) => {
       navigate(
-        normalizeUrl({
-          pathname: `/organizations/${
-            organization.slug
-          }/releases/${encodeURIComponent(release.version)}/`,
+        makeReleasesPathname({
+          organization,
+          path: `/${encodeURIComponent(release.version)}/`,
         })
       );
     };
 
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
-
-  const formatSeriesName: (string: string) => string = name => {
-    return props.aliases?.[name] ?? name;
-  };
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -274,7 +270,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           timeserie?.meta?.units?.[field] ?? undefined
         );
       },
-      nameFormatter: formatSeriesName,
+      nameFormatter: seriesName => {
+        return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
+      },
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -321,9 +319,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           ? {
               top: 0,
               left: 0,
-              formatter(name: string) {
+              formatter(seriesName: string) {
                 return truncationFormatter(
-                  props.aliases?.[name] ?? formatSeriesName(name),
+                  props.aliases?.[seriesName] ?? formatSeriesName(seriesName),
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.

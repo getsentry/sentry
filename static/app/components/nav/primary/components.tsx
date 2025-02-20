@@ -1,5 +1,5 @@
 import {type MouseEventHandler, useCallback} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -9,6 +9,7 @@ import {linkStyles} from 'sentry/components/links/styles';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -39,9 +40,9 @@ export function SidebarItem({
 }: {children: React.ReactNode} & React.HTMLAttributes<HTMLElement>) {
   const {layout} = useNavContext();
   return (
-    <SidebarItemWrapper isMobile={layout === NavLayout.MOBILE} {...props}>
-      {children}
-    </SidebarItemWrapper>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '16px'}>
+      <li {...props}>{children}</li>
+    </IconDefaultsProvider>
   );
 }
 
@@ -74,6 +75,7 @@ export function SidebarMenu({
                 recordAnalytics();
                 props.onClick?.(event);
               }}
+              isMobile={layout === NavLayout.MOBILE}
             >
               <InteractionStateLayer hasSelectedBackground={isOpen} />
               {children}
@@ -116,6 +118,7 @@ export function SidebarLink({
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
         aria-label={!showLabel ? label : undefined}
+        isMobile={layout === NavLayout.MOBILE}
       >
         <InteractionStateLayer hasSelectedBackground={isActive} />
         {children}
@@ -133,84 +136,78 @@ export function SeparatorItem() {
   );
 }
 
-const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
-  color: ${p => p.theme.gray400};
+const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1.5)};
+  align-items: center;
+  padding: ${space(1.5)} ${space(3)};
+  color: var(--color, currentColor);
+  font-size: ${p.theme.fontSizeMedium};
+  font-weight: ${p.theme.fontWeightNormal};
+  line-height: 1;
+  width: 100%;
 
-  svg {
-    --size: 14px;
-    width: var(--size);
-    height: var(--size);
-
-    ${p =>
-      !p.isMobile &&
-      css`
-        --size: 18px;
-      `}
-  }
-  > a,
-  button {
-    display: flex;
-    flex-direction: row;
-    gap: ${space(1.5)};
-    align-items: center;
-    padding: ${space(1.5)} ${space(3)};
+  &:hover {
     color: var(--color, currentColor);
-    font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: ${p => p.theme.fontWeightNormal};
-    line-height: 1;
-    width: 100%;
-
-    & > * {
-      pointer-events: none;
-    }
-
-    &[aria-selected='true'] {
-      color: ${p => p.theme.purple400};
-      box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
-    }
-
-    ${p =>
-      !p.isMobile &&
-      css`
-        flex-direction: column;
-        justify-content: center;
-        border-radius: ${p.theme.borderRadius};
-        margin-inline: 0 auto;
-        gap: ${space(0.75)};
-        padding: ${space(1.5)} 0;
-        min-height: 40px;
-        width: 44px;
-        letter-spacing: -0.02em;
-        font-size: 10px;
-      `}
   }
+
+  & > * {
+    pointer-events: none;
+  }
+
+  &[aria-selected='true'] {
+    color: ${p.theme.purple400};
+    box-shadow: inset 0 0 0 1px ${p.theme.purple100};
+  }
+
+  ${!p.isMobile &&
+  css`
+    flex-direction: column;
+    justify-content: center;
+    border-radius: ${p.theme.borderRadius};
+    margin-inline: 0 auto;
+    gap: ${space(0.75)};
+    padding: ${space(1.5)} 0;
+    min-height: 40px;
+    width: 44px;
+    letter-spacing: -0.02em;
+    font-size: 10px;
+  `}
 `;
 
-export const NavLink = styled(Link)`
+export const NavLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
   position: relative;
+
+  ${baseNavItemStyles}
 `;
 
-export const NavButton = styled('button')`
+export const NavButton = styled('button', {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
   border: none;
   position: relative;
   background: transparent;
 
   ${linkStyles}
+  ${baseNavItemStyles}
 `;
 
-export const SidebarItemBadge = styled('span')`
+export const SidebarItemUnreadIndicator = styled('span')`
   position: absolute;
-  top: ${space(0.5)};
-  right: ${space(1)};
+  top: calc(50% - 16px);
+  left: calc(50% + 16px);
+  transform: translate(-50%, -50%);
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  background: ${p => p.theme.red300};
-  width: 16px;
-  height: 16px;
-  border-radius: 16px;
-  line-height: 16px;
+  background: ${p => p.theme.purple400};
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
 `;
 
 const SeparatorListItem = styled('li')`

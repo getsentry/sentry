@@ -125,19 +125,16 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
   };
 }
 
-// @TODO(jonasbadalic): keep these for future reference - they are not being used rn
-// const _chonkShared = {
-//   space: {
-//     // @TODO(jonasbadalic): none doesn't need to exist
-//     // none: 0,
-//     nano: 1,
-//     micro: 2,
-//     mini: 4,
-//     small: 6,
-//     medium: 8,
-//     large: 12,
-//     huge: 16,
-//   },
+const space = {
+  nano: '1px',
+  micro: '2px',
+  mini: '4px',
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+} as const;
+
 //   borderRadius: {
 //     // @TODO(jonasbadalic): none doesn't need to exist
 //     // none: 0,
@@ -721,7 +718,13 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-export const DO_NOT_USE_lightChonkTheme: Theme = {
+interface ChonkTheme extends Omit<Theme, 'isChonk'> {
+  colors: {dark: typeof lightColors; light: typeof lightColors};
+  isChonk: true;
+  space: typeof space;
+}
+
+export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -734,6 +737,8 @@ export const DO_NOT_USE_lightChonkTheme: Theme = {
     ...chonkDarkColorMapping,
     ...darkAliases,
   },
+
+  space,
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
@@ -755,13 +760,18 @@ export const DO_NOT_USE_lightChonkTheme: Theme = {
   stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
   stacktraceActiveText: lightTheme.stacktraceActiveText,
 
+  colors: {
+    light: lightColors,
+    dark: darkColors,
+  },
+
   sidebar: {
     // @TODO: these colors need to be ported
     ...lightTheme.sidebar,
   },
 };
 
-export const DO_NOT_USE_darkChonkTheme: Theme = {
+export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -792,8 +802,31 @@ export const DO_NOT_USE_darkChonkTheme: Theme = {
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
   stacktraceActiveText: darkTheme.stacktraceActiveText,
 
+  colors: {
+    light: lightColors,
+    dark: darkColors,
+  },
+
+  space,
+
   sidebar: {
     // @TODO: these colors need to be ported
     ...darkTheme.sidebar,
   },
 };
+
+declare module '@emotion/react' {
+  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  export interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
+    isChonk: true;
+  }
+
+  /**
+   * Configure Emotion to use our theme
+   */
+  type SentryTheme = typeof lightTheme;
+  export interface Theme extends SentryTheme {
+    isChonk: boolean;
+  }
+}

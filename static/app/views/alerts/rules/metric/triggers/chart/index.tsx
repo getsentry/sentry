@@ -557,17 +557,13 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
-    const queryExtras = {
-      ...getMetricDatasetQueryExtras({
-        organization,
-        location,
-        dataset,
-        newAlertOrQuery,
-      }),
-      ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
-        ? {dataset: DiscoverDatasets.ERRORS}
-        : {}),
-    };
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      query,
+      newAlertOrQuery,
+    });
 
     if (isOnDemandMetricAlert) {
       const {sampleRate} = this.state;
