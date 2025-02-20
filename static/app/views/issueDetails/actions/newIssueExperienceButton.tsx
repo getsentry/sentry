@@ -80,10 +80,9 @@ export function NewIssueExperienceButton() {
         }
         title={label}
         aria-label={label}
-        borderless={!hasStreamlinedUI}
         onClick={handleToggle}
       >
-        {text ? <span>{text}</span> : null}
+        {text ?? null}
       </ToggleButton>
     );
   }
@@ -139,9 +138,7 @@ const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
 const ToggleButton = styled(Button)<{enabled: boolean}>`
   color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
   background: ${p =>
-    p.enabled
-      ? 'inherit'
-      : `linear-gradient(90deg, ${p.theme.blue400}, ${p.theme.green400})`};
+    p.enabled ? 'inherit' : `linear-gradient(90deg, #3468D8, #248574)`};
   :hover {
     color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
   }
