@@ -17,8 +17,8 @@ from sentry.projects.services.project import (
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.projects.services.project.model import ProjectUpdates
-from sentry.projects.services.project.serial import serialize_project
+from sentry.projects.services.project.model import ProjectUpdateArgs
+from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
 
@@ -185,19 +185,19 @@ class DatabaseBackedProjectService(ProjectService):
         *,
         organization_id: int,
         project_id: int,
-        updates: ProjectUpdates,
+        attrs: ProjectUpdateArgs,
     ) -> RpcProject:
         project: Project = Project.objects.get(
             id=project_id,
             organization_id=organization_id,
         )
-        allowed_fields = set(ProjectUpdates.__annotations__.keys())
-        invalid_fields = [field for field in updates if field not in allowed_fields]
-        if invalid_fields:
-            raise ValueError(f"Invalid fields: {', '.join(invalid_fields)}")
 
-        for key, value in updates.items():
-            setattr(project, key, value)
-        project.save()
+        serializer = ProjectUpdateArgsSerializer(data=attrs)
+        serializer.is_valid(raise_exception=True)
+
+        if attrs:
+            for key, value in attrs.items():
+                setattr(project, key, value)
+            project.save()
 
         return serialize_project(project)

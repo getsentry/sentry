@@ -15,7 +15,7 @@ from sentry.hybridcloud.rpc.resolvers import (
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue
-from sentry.projects.services.project.model import ProjectUpdates
+from sentry.projects.services.project.model import ProjectUpdateArgs
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -117,7 +117,7 @@ class ProjectService(RpcService):
         *,
         organization_id: int,
         project_id: int,
-        updates: ProjectUpdates,
+        attrs: ProjectUpdateArgs,
     ) -> RpcProject:
         pass
 
