@@ -160,10 +160,10 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
             return DEFAULT_FINGERPRINT_VARIABLE
         if variable_key is None:
             return entry
-        rv = get_fingerprint_value(variable_key, event_data)
-        if rv is None:
+        resolved_value = get_fingerprint_value(variable_key, event_data)
+        if resolved_value is None:
             return entry
-        return rv
+        return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
 
@@ -171,9 +171,9 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
     def _handle_match(match: Match[str]) -> str:
         variable_key = match.group(1)
-        rv = get_fingerprint_value(variable_key, event_data)
-        if rv is not None:
-            return rv
+        resolved_value = get_fingerprint_value(variable_key, event_data)
+        if resolved_value is not None:
+            return resolved_value
         return match.group(0)
 
     return _fingerprint_var_re.sub(_handle_match, template)
