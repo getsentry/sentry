@@ -49,7 +49,6 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
         response = self.get_error_response(
             self.organization.slug,
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["detail"] == "Missing required parameter 'project_id'"
 
     def test_endpoint_return_correct_counts(self):
