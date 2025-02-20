@@ -163,16 +163,16 @@ def fast_function():
     time.sleep(0.05)
     return "done"
 
-# Manually call start_profiler and stop_profiler
+# Manually call start_profile_session and stop_profile_session
 # to profile the code in between
-sentry_sdk.profiler.start_profiler()
+sentry_sdk.profiler.start_profile_session()
 for i in range(0, 10):
     slow_function()
     fast_function()
 #
-# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
-# your application until the process exits or stop_profiler is called.
-sentry_sdk.profiler.stop_profiler()`
+# Calls to stop_profile_session are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profile_session is called.
+sentry_sdk.profiler.stop_profile_session()`
     : ''
 }`;
 
