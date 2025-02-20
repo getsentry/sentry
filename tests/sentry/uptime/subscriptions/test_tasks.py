@@ -19,7 +19,7 @@ from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import UptimeSubscription
-from sentry.uptime.subscriptions.regions import get_active_region_configs, get_region_config
+from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     create_remote_uptime_subscription,
@@ -96,13 +96,14 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
     def create_subscription(
         self, status: UptimeSubscription.Status, subscription_id: str | None = None
     ):
-        return UptimeSubscription.objects.create(
-            status=status.value,
+        return self.create_uptime_subscription(
+            status=status,
             type="something",
             subscription_id=subscription_id,
             url="http://sentry.io",
             interval_seconds=300,
             timeout_ms=500,
+            region_slugs=["default"],
         )
 
     def test_no_subscription(self):
@@ -144,14 +145,6 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         sub = self.create_uptime_subscription(
             status=UptimeSubscription.Status.CREATING, region_slugs=["default"]
         )
-        create_remote_uptime_subscription(sub.id)
-        sub.refresh_from_db()
-        assert sub.status == UptimeSubscription.Status.ACTIVE.value
-        assert sub.subscription_id is not None
-        self.assert_redis_config("default", sub, "upsert")
-
-    def test_without_regions_uses_default(self):
-        sub = self.create_uptime_subscription(status=UptimeSubscription.Status.CREATING)
         create_remote_uptime_subscription(sub.id)
         sub.refresh_from_db()
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
@@ -223,16 +216,6 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             status=UptimeSubscription.Status.DELETING,
             subscription_id=uuid4().hex,
             region_slugs=["default"],
-        )
-        delete_remote_uptime_subscription(sub.id)
-        assert sub.subscription_id is not None
-        self.assert_redis_config("default", sub, "delete")
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            sub.refresh_from_db()
-
-    def test_delete_without_regions_uses_default(self):
-        sub = self.create_uptime_subscription(
-            status=UptimeSubscription.Status.DELETING, subscription_id=uuid4().hex
         )
         delete_remote_uptime_subscription(sub.id)
         assert sub.subscription_id is not None
@@ -340,6 +323,7 @@ class SubscriptionCheckerTest(UptimeTestCase):
                 status=status,
                 date_updated=timezone.now() - (SUBSCRIPTION_STATUS_MAX_AGE * 2),
                 url=f"http://sentry{status}.io",
+                region_slugs=["default"],
             )
             sub_new = self.create_uptime_subscription(
                 status=status, date_updated=timezone.now(), url=f"http://santry{status}.io"
@@ -375,18 +359,4 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
         # Verify config was sent to the region
-        self.assert_redis_config("default", sub, "upsert")
-
-    def test_without_regions_uses_default(self):
-        sub = self.create_uptime_subscription(
-            status=UptimeSubscription.Status.UPDATING,
-        )
-        get_active_region_configs()[0].slug
-
-        update_remote_uptime_subscription(sub.id)
-
-        sub.refresh_from_db()
-        assert sub.status == UptimeSubscription.Status.ACTIVE.value
-
-        # Verify config was sent to default region
         self.assert_redis_config("default", sub, "upsert")
