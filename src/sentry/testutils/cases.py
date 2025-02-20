@@ -3403,7 +3403,7 @@ class TraceTestCase(SpanTestCase):
                 spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"segment_id": event.event_id[:16]})
+                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
                         spans_to_store.append(
                             self.create_span(
                                 span,
