@@ -1,7 +1,9 @@
 import datetime
 
+import pytest
+
 from sentry.flags.models import PROVIDER_MAP
-from sentry.flags.providers import StatsigProvider
+from sentry.flags.providers import DeserializationError, StatsigProvider
 
 
 def test_handle_batched_all_actions():
@@ -340,6 +342,26 @@ def test_handle_unsupported_action():
     assert len(logs) == 0
 
 
-def test_handle_empty_data():
+def test_handle_empty_batch():
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({"data": []})
     assert len(logs) == 0
+
+
+def test_handle_empty_message():
+    with pytest.raises(DeserializationError) as exc_info:
+        StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({})
+
+    errors = exc_info.value.errors
+    assert len(errors) == 1
+    assert errors["data"][0].code == "required"
+
+
+def test_handle_empty_event():
+    with pytest.raises(DeserializationError) as exc_info:
+        StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({"data": [{}]})
+
+    errors = exc_info.value.errors
+    assert len(errors["data"]) == 3
+    assert errors["data"]["eventName"][0].code == "required"
+    assert errors["data"]["timestamp"][0].code == "required"
+    assert errors["data"]["metadata"][0].code == "required"
