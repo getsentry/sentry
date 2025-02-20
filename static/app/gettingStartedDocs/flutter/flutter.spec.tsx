@@ -67,6 +67,9 @@ describe('flutter onboarding docs', function () {
         },
       },
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
     });
 
     expect(
@@ -92,6 +95,9 @@ describe('flutter onboarding docs', function () {
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.PROFILING,
       ],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
     });
 
     expect(
