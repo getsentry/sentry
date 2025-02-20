@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
+import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import Placeholder from 'sentry/components/placeholder';
@@ -123,6 +125,7 @@ function MetricIssueChartContent({
   anomalies?: Anomaly[];
   incidents?: Incident[];
 }) {
+  const theme = useTheme();
   const chartZoomProps = useChartZoom({saveOnZoom: true});
   const {chartProps, queryResult} = useMetricStatsChart({
     project,
@@ -132,6 +135,16 @@ function MetricIssueChartContent({
     incidents,
     referrer: 'metric-issue-chart',
   });
+  const {series = [], ...otherChartProps} = chartProps;
+
+  // We don't want to show the aggregate in the legend, since it can't be toggled off.
+  const legendItems = useMemo(() => {
+    const legendSet = new Set(series.map(s => s.seriesName));
+    if (legendSet.has(rule.aggregate)) {
+      legendSet.delete(rule.aggregate);
+    }
+    return Array.from(legendSet);
+  }, [series, rule.aggregate]);
 
   if (queryResult?.isLoading) {
     return <MetricIssuePlaceholder type="loading" />;
@@ -141,11 +154,23 @@ function MetricIssueChartContent({
     return <MetricIssuePlaceholder type="error" />;
   }
 
+  const legend = Legend({
+    theme,
+    orient: 'horizontal',
+    align: 'left',
+    show: true,
+    top: 4,
+    right: 8,
+    data: legendItems,
+    inactiveColor: theme.gray200,
+  });
+
   return (
     <ChartContainer role="figure">
       <AreaChart
-        series={[]}
-        {...chartProps}
+        {...otherChartProps}
+        series={series}
+        legend={legend}
         height={100}
         grid={{
           top: 20,
