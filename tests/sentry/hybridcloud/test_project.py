@@ -117,3 +117,12 @@ def test_update_project() -> None:
         project_id=project.id,
         attrs={"does_not_exist": "test"},
     )
+
+    # assert that we cannot change any fields not in the serializer
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        attrs={"status": 99},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.external_id != 99

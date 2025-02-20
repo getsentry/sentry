@@ -194,9 +194,10 @@ class DatabaseBackedProjectService(ProjectService):
 
         serializer = ProjectUpdateArgsSerializer(data=attrs)
         serializer.is_valid(raise_exception=True)
+        serializer.validated_data
 
-        if attrs:
-            for key, value in attrs.items():
+        if serializer.validated_data:
+            for key, value in serializer.validated_data.items():
                 setattr(project, key, value)
             project.save()
 
