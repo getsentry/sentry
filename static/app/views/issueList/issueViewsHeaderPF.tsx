@@ -82,7 +82,7 @@ function IssueViewsPFIssueListHeader({
       noActionWrap
       // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
-        hasLeftNavIssueViews && groupSearchViews && !router?.location.query.viewId
+        !hasLeftNavIssueViews && groupSearchViews && !router?.location.query.viewId
           ? 'dashed'
           : 'solid'
       }
@@ -133,7 +133,7 @@ function IssueViewsPFIssueListHeader({
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      {organization.features.includes('left-nav-issue-views') &&
+      {!organization.features.includes('left-nav-issue-views') &&
         (groupSearchViews ? (
           <StyledIssueViews
             router={router}
@@ -497,7 +497,7 @@ export default IssueViewsPFIssueListHeader;
  * If project/environemnts is undefined, it equates to an empty array. If it is a single value,
  * it is converted to single element array.
  */
-const normalizeProjectsEnvironments = (
+export const normalizeProjectsEnvironments = (
   project: string[] | string | undefined,
   env: string[] | string | undefined
 ): {queryEnvs: string[]; queryProjects: number[]} => {

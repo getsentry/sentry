@@ -1,14 +1,10 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
-import {Reorder} from 'framer-motion';
 
-import {IssueViewNavItemContent} from 'sentry/components/nav/issueViews/issueViewNavItemContent';
+import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
@@ -19,10 +15,6 @@ interface IssuesWrapperProps extends RouteComponentProps {
 
 export function IssueNavigation({children}: IssuesWrapperProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const {viewId} = useParams();
-  const queryParams = location.query;
   const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
   const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
@@ -74,18 +66,6 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
     }
   }, [groupSearchViews]);
 
-  useEffect(() => {
-    if (viewId && !views?.find(v => v.id === viewId)) {
-      navigate(
-        normalizeUrl({
-          pathname: `${baseUrl}/`,
-          query: queryParams,
-        })
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewId]);
-
   if (!hasNavigationV2) {
     return children;
   }
@@ -105,26 +85,16 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          {
+          {hasIssueViewsInLeftNav && views && (
             <SecondaryNav.Section title={t('Views')}>
-              <Reorder.Group
-                as="div"
-                axis="y"
-                values={views ?? []}
-                onReorder={setViews}
-                initial={false}
-                ref={sectionRef}
-              >
-                {views?.map(view => (
-                  <IssueViewNavItemContent
-                    key={view.id}
-                    view={view}
-                    sectionRef={sectionRef}
-                  />
-                ))}
-              </Reorder.Group>
+              <IssueViewNavItems
+                views={views}
+                setViews={setViews}
+                sectionRef={sectionRef}
+                baseUrl={baseUrl}
+              />
             </SecondaryNav.Section>
-          }
+          )}
         </SecondaryNav.Body>
         <SecondaryNav.Footer>
           <SecondaryNav.Item
