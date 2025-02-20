@@ -192,14 +192,15 @@ const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewPFParams>
 
   return (
     <Fragment>
-      {t(`This view's `)}
-      <b>{oxfordizeArray(changedParams)}</b>
-      {t(` filters are not saved.`)}
+      {t(
+        "This view's %s filters are not saved.",
+        <BoldTooltipText>{oxfordizeArray(changedParams)}</BoldTooltipText>
+      )}
     </Fragment>
   );
 };
 
-// TODO(msun): Once nuqs supports native array query params, we can replace this absurd function
+// TODO(msun): Once nuqs supports native array query params, we can use that here and replace this absurd function
 const hasUnsavedChanges = (
   view: IssueViewPF,
   queryParams: Location['query']
@@ -305,6 +306,10 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
     [data-issue-view-query-count] {
     display: none;
   }
+`;
+
+const BoldTooltipText = styled('span')`
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
