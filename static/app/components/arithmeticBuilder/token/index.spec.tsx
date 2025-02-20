@@ -506,7 +506,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.OPEN_PARENTHESIS,
           parenthesis: Parenthesis.OPEN,
         }),
         focusOverride: {
@@ -531,7 +531,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.CLOSE_PARENTHESIS,
           parenthesis: Parenthesis.CLOSE,
         }),
         focusOverride: {
