@@ -16,21 +16,21 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
         # no metric alert
         self.alert1 = self.create_alert_rule()
 
-        # metric alert due to query but using transactions dataset
+        # on-demand metric alert due to query but using transactions dataset
         self.alert2 = self.create_alert_rule(
             aggregate="count()",
             query="transaction.duration:>=10",
             dataset=Dataset.Transactions,
         )
 
-        # metric alert due to query but using generic_metrics dataset
+        # on-demand metric alert due to query
         self.alert3 = self.create_alert_rule(
             aggregate="count()",
             query="transaction.duration:>=1000",
             dataset=Dataset.PerformanceMetrics,
         )
 
-        # metric alert due to the apdex aggregation - it's the only metric which is on demand also without a query.
+        # on-demand metric alert due to the apdex aggregation - it's the only metric which is on demand also without a query.
         self.alert4 = self.create_alert_rule(
             aggregate="apdex(300)",
             query="",

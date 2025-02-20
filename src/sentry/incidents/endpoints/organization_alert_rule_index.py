@@ -175,7 +175,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project = Project.objects.filter(id=int(project_id)).first()
+        project = Project.objects.get(id=int(project_id))
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
         alert_specs = get_default_version_alert_metric_specs(project, enabled_features, prefilling)
