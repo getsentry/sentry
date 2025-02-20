@@ -87,51 +87,51 @@ def bool_from_string(value: str) -> bool | None:
     return None
 
 
-def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str | None:
-    if var == "transaction":
+def get_fingerprint_value(variable_key: str, data: NodeData | Mapping[str, Any]) -> str | None:
+    if variable_key == "transaction":
         return data.get("transaction") or "<no-transaction>"
-    elif var == "message":
+    elif variable_key == "message":
         message = (
             get_path(data, "logentry", "formatted")
             or get_path(data, "logentry", "message")
             or get_path(data, "exception", "values", -1, "value")
         )
         return message or "<no-message>"
-    elif var in ("type", "error.type"):
+    elif variable_key in ("type", "error.type"):
         ty = get_path(data, "exception", "values", -1, "type")
         return ty or "<no-type>"
-    elif var in ("value", "error.value"):
+    elif variable_key in ("value", "error.value"):
         value = get_path(data, "exception", "values", -1, "value")
         return value or "<no-value>"
-    elif var in ("function", "stack.function"):
+    elif variable_key in ("function", "stack.function"):
         frame = get_crash_frame_from_event_data(data)
         func = frame.get("function") if frame else None
         return func or "<no-function>"
-    elif var in ("path", "stack.abs_path"):
+    elif variable_key in ("path", "stack.abs_path"):
         frame = get_crash_frame_from_event_data(data)
         abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
         return abs_path or "<no-abs-path>"
-    elif var == "stack.filename":
+    elif variable_key == "stack.filename":
         frame = get_crash_frame_from_event_data(data)
         filename = frame.get("filename") or frame.get("abs_path") if frame else None
         return filename or "<no-filename>"
-    elif var in ("module", "stack.module"):
+    elif variable_key in ("module", "stack.module"):
         frame = get_crash_frame_from_event_data(data)
         mod = frame.get("module") if frame else None
         return mod or "<no-module>"
-    elif var in ("package", "stack.package"):
+    elif variable_key in ("package", "stack.package"):
         frame = get_crash_frame_from_event_data(data)
         pkg = frame.get("package") if frame else None
         if pkg:
             pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
         return pkg or "<no-package>"
-    elif var == "level":
+    elif variable_key == "level":
         return data.get("level") or "<no-level>"
-    elif var == "logger":
+    elif variable_key == "logger":
         return data.get("logger") or "<no-logger>"
-    elif var.startswith("tags."):
+    elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
-        tag = var[5:]
+        tag = variable_key[5:]
         for tag_name, value in data.get("tags") or ():
             if tag_name == tag and value is not None:
                 return value
@@ -142,12 +142,12 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
 
 def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
     def _get_fingerprint_value(value: str) -> str:
-        var = parse_fingerprint_entry_as_variable(value)
-        if var == "default":
+        variable_key = parse_fingerprint_entry_as_variable(value)
+        if variable_key == "default":
             return DEFAULT_FINGERPRINT_VARIABLE
-        if var is None:
+        if variable_key is None:
             return value
-        rv = get_fingerprint_value(var, event_data)
+        rv = get_fingerprint_value(variable_key, event_data)
         if rv is None:
             return value
         return rv
@@ -157,8 +157,8 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
     def _handle_match(match: Match[str]) -> str:
-        var = match.group(1)
-        rv = get_fingerprint_value(var, event_data)
+        variable_key = match.group(1)
+        rv = get_fingerprint_value(variable_key, event_data)
         if rv is not None:
             return rv
         return match.group(0)
