@@ -74,7 +74,6 @@ class Migration(CheckedMigration):
                     "scheduled_for",
                     models.DateTimeField(default=django.utils.timezone.now, null=True),
                 ),
-                ("public_key", models.BinaryField(null=True)),
             ],
             options={
                 "db_table": "sentry_regionrelocationtransfer",

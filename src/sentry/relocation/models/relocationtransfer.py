@@ -33,7 +33,6 @@ class BaseRelocationTransfer(DefaultFieldsModel):
         choices=RelocationTransferState, default=RelocationTransferState.Request
     )
     scheduled_for = models.DateTimeField(null=True, default=timezone.now)
-    public_key = models.BinaryField(null=True)
 
     class Meta:
         abstract = True
@@ -42,6 +41,10 @@ class BaseRelocationTransfer(DefaultFieldsModel):
 @control_silo_model
 class ControlRelocationTransfer(BaseRelocationTransfer):
     __relocation_scope__ = RelocationScope.Excluded
+
+    # The public key of the region that is requesting
+    # the relocation.
+    public_key = models.BinaryField(null=True)
 
     class Meta:
         app_label = "sentry"
