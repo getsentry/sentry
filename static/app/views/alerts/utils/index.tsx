@@ -126,7 +126,7 @@ export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
 
-export const SESSION_AGGREGATE_TO_FIELD = {
+export const SESSION_AGGREGATE_TO_FIELD: Record<string, SessionFieldWithOperation> = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionFieldWithOperation.SESSIONS,
   [SessionsAggregate.CRASH_FREE_USERS]: SessionFieldWithOperation.USERS,
 };
