@@ -19,6 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseActions from './releaseActions';
 
@@ -91,7 +92,10 @@ function ReleaseHeader({
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${organization.slug}/releases/`,
+              to: makeReleasesPathname({
+                organization,
+                path: '/',
+              }),
               label: t('Releases'),
               preservePageFilters: true,
             },

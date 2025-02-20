@@ -25,9 +25,9 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
@@ -117,10 +117,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   if (props.releases) {
     const onClick = (release: Release) => {
       navigate(
-        normalizeUrl({
-          pathname: `/organizations/${
-            organization.slug
-          }/releases/${encodeURIComponent(release.version)}/`,
+        makeReleasesPathname({
+          organization,
+          path: `/${encodeURIComponent(release.version)}/`,
         })
       );
     };
