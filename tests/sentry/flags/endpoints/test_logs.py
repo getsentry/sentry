@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from django.urls import reverse
 
-from sentry.flags.models import FlagAuditLogModel
+from sentry.flags.models import PROVIDER_MAP, FlagAuditLogModel
 from sentry.testutils.cases import APITestCase
 
 
@@ -26,6 +26,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             created_by_type=0,
             flag="hello",
             organization_id=self.organization.id,
+            provider=PROVIDER_MAP["generic"],
             tags={"commit_sha": "123"},
         )
         model.save()
@@ -41,6 +42,33 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert result["data"][0]["createdBy"] == "a@b.com"
             assert result["data"][0]["createdByType"] == "email"
             assert result["data"][0]["flag"] == "hello"
+            assert result["data"][0]["provider"] == "generic"
+            assert result["data"][0]["tags"] == {"commit_sha": "123"}
+
+    def test_get_no_provider(self):
+        model = FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        )
+        model.save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            result = response.json()
+            assert len(result["data"]) == 1
+            assert result["data"][0]["action"] == "created"
+            assert "createdAt" in result["data"][0]
+            assert result["data"][0]["createdBy"] == "a@b.com"
+            assert result["data"][0]["createdByType"] == "email"
+            assert result["data"][0]["flag"] == "hello"
+            assert result["data"][0]["provider"] is None
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
     def test_get_no_created_by(self):

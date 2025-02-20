@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.flags.models import (
     ACTION_MAP,
     CREATED_BY_TYPE_MAP,
+    PROVIDER_MAP,
     FlagAuditLogModel,
     FlagWebHookSigningSecretModel,
 )
@@ -165,6 +166,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.created_by == "michelle@example.com"
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
+        assert flag.provider == PROVIDER_MAP["launchdarkly"]
         assert flag.tags is not None
         assert flag.tags["description"] == "flag was created"
 
