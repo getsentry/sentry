@@ -182,7 +182,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
                   {
                     manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/manual-setup/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/" />
                     ),
                   }
                 ),
