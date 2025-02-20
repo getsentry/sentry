@@ -4,15 +4,18 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './flutter';
+import docs, {InstallationMode} from './flutter';
 
 describe('flutter onboarding docs', function () {
-  it('renders errors onboarding docs correctly', async function () {
+  it('renders manual installation docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
           version: '1.99.9',
         },
+      },
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
       },
     });
 
@@ -27,6 +30,35 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
+  it('renders wizard docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dart.flutter': {
+          version: '1.99.9',
+        },
+      },
+      selectedOptions: {
+        installationMode: InstallationMode.AUTO,
+      },
+    });
+
+    // Renders install heading only
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: 'Configure SDK'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Verify'})).not.toBeInTheDocument();
+
+    // Renders wizard text
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Add Sentry automatically to your app with the Sentry wizard/
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
   it('renders performance onboarding docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
@@ -35,6 +67,9 @@ describe('flutter onboarding docs', function () {
         },
       },
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
     });
 
     expect(
@@ -60,6 +95,9 @@ describe('flutter onboarding docs', function () {
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.PROFILING,
       ],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
     });
 
     expect(
