@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import type {Shortcut} from './types';
@@ -9,17 +11,17 @@ function SearchHotkeysListener({
   runShortcut: (shortcut: Shortcut) => void;
   visibleShortcuts: Shortcut[];
 }) {
-  useHotkeys(
-    visibleShortcuts
+  const hotkeys = useMemo(() => {
+    return visibleShortcuts
       .filter(shortcut => typeof shortcut.hotkeys !== 'undefined')
       .map(shortcut => ({
         match: shortcut.hotkeys?.actual ?? [],
         includeInputs: true,
         callback: () => runShortcut(shortcut),
-      })),
-    [visibleShortcuts]
-  );
+      }));
+  }, [visibleShortcuts, runShortcut]);
 
+  useHotkeys(hotkeys);
   return null;
 }
 

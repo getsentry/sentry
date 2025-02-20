@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -192,21 +192,23 @@ export function TransactionNodeDetails({
       />
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
         {!node.canFetch ? (
-          <StyledAlert type="info" showIcon>
-            {tct(
-              'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
-              {
-                customInstrumentationLink: (
-                  <ExternalLink
-                    onClick={() => {
-                      traceAnalytics.trackMissingSpansDocLinkClicked(organization);
-                    }}
-                    href={getCustomInstrumentationLink(project)}
-                  />
-                ),
-              }
-            )}
-          </StyledAlert>
+          <Alert.Container>
+            <StyledAlert type="info" showIcon>
+              {tct(
+                'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
+                {
+                  customInstrumentationLink: (
+                    <ExternalLink
+                      onClick={() => {
+                        traceAnalytics.trackMissingSpansDocLinkClicked(organization);
+                      }}
+                      href={getCustomInstrumentationLink(project)}
+                    />
+                  ),
+                }
+              )}
+            </StyledAlert>
+          </Alert.Container>
         ) : null}
 
         <IssueList node={node} organization={organization} issues={issues} />

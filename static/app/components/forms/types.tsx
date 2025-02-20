@@ -1,4 +1,4 @@
-import type {AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/core/alert';
 import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
@@ -54,8 +54,8 @@ interface BaseField {
    * Function to format the value displayed in the undo toast. May also be
    * specified as false to disable showing the changed fields in the toast.
    */
-  formatMessageValue?: Function | false;
-  getData?: (data: object) => object;
+  formatMessageValue?: boolean | ((props: any) => React.ReactNode);
+  getData?: (data: Record<PropertyKey, unknown>) => Record<PropertyKey, unknown>;
   getValue?: (value: FieldValue) => any;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   hideLabel?: boolean;
@@ -153,7 +153,7 @@ export interface TableType {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels: object;
+  columnLabels: Record<PropertyKey, React.ReactNode>;
   type: 'table';
   /**
    * The confirmation message before a a row is deleted
@@ -217,7 +217,7 @@ export type Field = (
 ) &
   BaseField;
 
-export type FieldObject = Field | Function;
+export type FieldObject = Field | (() => React.ReactNode);
 
 export type JsonFormObject = {
   fields: FieldObject[];

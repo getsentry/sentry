@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -34,6 +32,11 @@ const ALL_AVAILABLE_FEATURES = [
 describe('Nav', function () {
   beforeEach(() => {
     localStorage.clear();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/broadcasts/`,
+      body: [],
+    });
   });
 
   function renderNav({
@@ -45,6 +48,7 @@ describe('Nav', function () {
       <NavContextProvider>
         <Nav />
         <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+          <SecondaryNav.Header>Issues</SecondaryNav.Header>
           <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
             Foo
           </SecondaryNav.Item>
@@ -114,7 +118,7 @@ describe('Nav', function () {
     });
 
     describe('collapse behavior', function () {
-      it('can collpase and expand secondary sidebar', async function () {
+      it('can collapse and expand secondary sidebar', async function () {
         renderNav();
 
         expect(
@@ -178,6 +182,20 @@ describe('Nav', function () {
     });
   });
 
+  describe('analytics', function () {
+    it('tracks primary sidebar item', async function () {
+      renderNav();
+      const issues = screen.getByRole('link', {name: 'Issues'});
+      await userEvent.click(issues);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'growth.clicked_sidebar',
+        expect.objectContaining({
+          item: 'issues',
+        })
+      );
+    });
+  });
+
   describe('mobile navigation', function () {
     beforeEach(() => {
       // Need useMedia() to return true for isMobile query
@@ -225,28 +243,5 @@ describe('Nav', function () {
       await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
       expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     });
-  });
-});
-
-describe('analytics', function () {
-  function renderNav() {
-    render(<Nav />, {
-      router: RouterFixture({
-        location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-      }),
-      organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-    });
-  }
-
-  it('tracks primary sidebar item', async function () {
-    renderNav();
-    const issues = screen.getByRole('link', {name: 'Issues'});
-    await userEvent.click(issues);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'growth.clicked_sidebar',
-      expect.objectContaining({
-        item: 'issues',
-      })
-    );
   });
 });

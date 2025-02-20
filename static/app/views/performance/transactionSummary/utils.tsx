@@ -191,7 +191,7 @@ export function generateProfileLink() {
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
       return generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(tableRow['project.name']),
         profileId: String(profileId),
       });
@@ -215,7 +215,7 @@ export function generateProfileLink() {
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(projectSlug),
         profilerId: String(profilerId),
         start: start.toISOString(),
@@ -274,7 +274,7 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 export function getTransactionSummaryBaseUrl(
   organization: Organization,
   view?: DomainView,
-  bare: boolean = false
+  bare = false
 ) {
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'

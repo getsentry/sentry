@@ -126,6 +126,10 @@ export function AutofixOutputStream({
 
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (activeLog === 'Ingesting Sentry data...') {
+      // don't send message during loading state
+      return;
+    }
     if (message.trim() !== '') {
       send({message});
       setMessage('');
@@ -168,7 +172,7 @@ export function AutofixOutputStream({
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
-                {isProcessing && <StyledLoadingIndicator mini size={14} />}
+                <StyledLoadingIndicator mini size={14} isProcessing={isProcessing} />
               </ActiveLogWrapper>
             )}
             {!responseRequired && stream && (
@@ -308,7 +312,8 @@ const StyledButton = styled(Button)`
   z-index: 2;
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const StyledLoadingIndicator = styled(LoadingIndicator)<{isProcessing?: boolean}>`
   position: relative;
   top: ${space(0.5)};
+  opacity: ${p => (p.isProcessing ? 1 : 0)};
 `;

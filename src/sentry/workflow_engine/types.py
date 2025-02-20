@@ -47,7 +47,6 @@ class WorkflowJob(EventJob, total=False):
     has_alert: bool
     has_escalated: bool
     workflow: Workflow
-    snuba_results: list[int]  # TODO - @saponifi3 / TODO(cathy): audit this
 
 
 class ActionHandler:

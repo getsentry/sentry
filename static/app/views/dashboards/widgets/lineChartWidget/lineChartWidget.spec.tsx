@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {TimeSeriesItem} from '../common/types';
+
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
 
@@ -18,9 +20,60 @@ describe('LineChartWidget', () => {
 
   describe('Visualization', () => {
     it('Explains missing data', () => {
+      jest.spyOn(console, 'error').mockImplementation();
       render(<LineChartWidget />);
 
       expect(screen.getByText('No Data')).toBeInTheDocument();
+      jest.resetAllMocks();
+    });
+
+    const UNPLOTTABLE_CASES = [
+      [[]],
+      [
+        [
+          {
+            timestamp: '2025-01-01T00:00:00',
+            value: null,
+          },
+        ],
+      ],
+      [
+        [
+          {
+            timestamp: '2025-01-01T00:00:00',
+            value: null,
+          },
+          {
+            timestamp: '2025-01-01T00:01:00',
+            value: null,
+          },
+        ],
+      ],
+    ] satisfies Array<[TimeSeriesItem[]]>;
+
+    it.each(UNPLOTTABLE_CASES)('Explains no plottable values for %s', data => {
+      jest.spyOn(console, 'error').mockImplementation();
+      render(
+        <LineChartWidget
+          timeSeries={[
+            {
+              field: 'count()',
+              data,
+              meta: {
+                fields: {
+                  'count()': 'number',
+                },
+                units: {},
+              },
+            },
+          ]}
+        />
+      );
+
+      expect(
+        screen.getByText(/does not contain any plottable values/)
+      ).toBeInTheDocument();
+      jest.resetAllMocks();
     });
   });
 

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -160,7 +160,7 @@ function StacktraceLinkModal({
       <Body>
         <ModalContainer>
           {error && (
-            <StyledAlert type="error" showIcon>
+            <Alert type="error" showIcon>
               {error === 'Could not find repo'
                 ? tct(
                     'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
@@ -181,7 +181,7 @@ function StacktraceLinkModal({
                 : error.includes('blank')
                   ? t('URL is required.')
                   : error}
-            </StyledAlert>
+            </Alert>
           )}
           <div>
             {tct(
@@ -306,10 +306,6 @@ const ModalContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledCode = styled('code')`

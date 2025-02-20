@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0829_add_additional_timestamps_to_checkins
+sentry: 0833_add_relocationtransfer_models
 
 social_auth: 0002_default_auto_field
 
@@ -23,4 +23,4 @@ tempest: 0001_create_tempest_credentials_model
 
 uptime: 0025_uptime_migrate_constraint
 
-workflow_engine: 0029_ds_query_id_to_pending
+workflow_engine: 0031_make_detector_project_non_nullable

@@ -7,7 +7,6 @@ import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {
   RouteComponentProps,
   RouteContextInterface,
@@ -15,7 +14,7 @@ import type {
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
-export interface AsyncComponentProps extends Partial<RouteComponentProps<{}, {}>> {}
+export interface AsyncComponentProps extends Partial<RouteComponentProps> {}
 
 export interface AsyncComponentState {
   [key: string]: any;
@@ -60,12 +59,8 @@ class DeprecatedAsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState,
 > extends Component<P, S> {
-  static contextTypes = {
-    router: SentryPropTypeValidators.isObject,
-  };
-
-  constructor(props: P, context: any) {
-    super(props, context);
+  constructor(props: P) {
+    super(props);
 
     this.api = new Client();
     this.fetchData = wrapErrorHandling(this, this.fetchData.bind(this));
@@ -82,20 +77,11 @@ class DeprecatedAsyncComponent<
     }
   }
 
-  componentDidUpdate(prevProps: P, prevContext: any) {
-    const isRouterInContext = !!prevContext.router;
+  componentDidUpdate(prevProps: P, _prevState: S) {
     const isLocationInProps = prevProps.location !== undefined;
 
-    const currentLocation = isLocationInProps
-      ? this.props.location
-      : isRouterInContext
-        ? this.context.router.location
-        : null;
-    const prevLocation = isLocationInProps
-      ? prevProps.location
-      : isRouterInContext
-        ? prevContext.router.location
-        : null;
+    const currentLocation = isLocationInProps ? this.props.location : null;
+    const prevLocation = isLocationInProps ? prevProps.location : null;
 
     if (!(currentLocation && prevLocation)) {
       return;
@@ -205,7 +191,7 @@ class DeprecatedAsyncComponent<
     this.fetchData({reloading: true});
   }
 
-  fetchData = (extraState?: object) => {
+  fetchData = (extraState?: Record<PropertyKey, unknown>) => {
     const endpoints = this.getEndpoints();
 
     if (!endpoints.length) {

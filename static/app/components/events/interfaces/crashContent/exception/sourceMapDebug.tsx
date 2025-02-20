@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
@@ -285,43 +285,45 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   }
 
   return (
-    <Alert
-      defaultExpanded
-      showIcon
-      type="error"
-      icon={<IconWarning />}
-      expand={
-        <Fragment>
-          {errorMessages.map((message, idx) => {
-            return (
-              <ExpandableErrorList
-                key={idx}
-                title={message.title}
-                docsLink={
-                  message.docsLink ? (
-                    <DocsExternalLink
-                      href={message.docsLink}
-                      onClick={() => handleDocsClick(message.type)}
-                    >
-                      {t('Read Guide')}
-                    </DocsExternalLink>
-                  ) : null
-                }
-                onExpandClick={() => handleExpandClick(message.type)}
-              >
-                {message.desc}
-              </ExpandableErrorList>
-            );
-          })}
-        </Fragment>
-      }
-    >
-      {tn(
-        "We've encountered %s problem un-minifying your applications source code!",
-        "We've encountered %s problems un-minifying your applications source code!",
-        errorMessages.length
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert
+        defaultExpanded
+        showIcon
+        type="error"
+        icon={<IconWarning />}
+        expand={
+          <Fragment>
+            {errorMessages.map((message, idx) => {
+              return (
+                <ExpandableErrorList
+                  key={idx}
+                  title={message.title}
+                  docsLink={
+                    message.docsLink ? (
+                      <DocsExternalLink
+                        href={message.docsLink}
+                        onClick={() => handleDocsClick(message.type)}
+                      >
+                        {t('Read Guide')}
+                      </DocsExternalLink>
+                    ) : null
+                  }
+                  onExpandClick={() => handleExpandClick(message.type)}
+                >
+                  {message.desc}
+                </ExpandableErrorList>
+              );
+            })}
+          </Fragment>
+        }
+      >
+        {tn(
+          "We've encountered %s problem un-minifying your applications source code!",
+          "We've encountered %s problems un-minifying your applications source code!",
+          errorMessages.length
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

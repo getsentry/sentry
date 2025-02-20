@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
@@ -286,11 +286,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     return (
-      <Alert type="info" showIcon system>
-        {t(
-          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon system>
+          {t(
+            'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

@@ -15,6 +15,8 @@ import {
   isTokenOperator,
   isTokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
+import {ArithmeticTokenFreeText} from 'sentry/components/arithmeticBuilder/token/freeText';
+import {ArithmeticTokenFunction} from 'sentry/components/arithmeticBuilder/token/function';
 import {ArithmeticTokenOperator} from 'sentry/components/arithmeticBuilder/token/operator';
 import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/token/parenthesis';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
@@ -31,8 +33,15 @@ export function TokenGrid({tokens}: TokenGridProps) {
     throw new Error('No tokens found. Cannot render grid.');
   }
 
+  const isEmptyGrid = tokens.length === 1 && isTokenFreeText(tokens[0]);
+
   return (
-    <GridList aria-label={t('Enter an equation')} items={tokens} selectionMode="multiple">
+    <GridList
+      showPlaceholder={isEmptyGrid}
+      aria-label={t('Enter an equation')}
+      items={tokens}
+      selectionMode="multiple"
+    >
       {item => <Item key={item.key}>{item.key}</Item>}
     </GridList>
   );
@@ -65,9 +74,10 @@ function useApplyFocusOverride(state: ListState<Token>) {
 
 interface GridListProps extends AriaGridListOptions<Token> {
   children: CollectionChildren<Token>;
+  showPlaceholder: boolean;
 }
 
-function GridList(props: GridListProps) {
+function GridList({showPlaceholder, ...props}: GridListProps) {
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null); // TODO: implement
 
@@ -125,11 +135,26 @@ function GridList(props: GridListProps) {
         }
 
         if (isTokenFreeText(token)) {
-          return null;
+          return (
+            <ArithmeticTokenFreeText
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+              showPlaceholder={showPlaceholder}
+            />
+          );
         }
 
         if (isTokenFunction(token)) {
-          return null;
+          return (
+            <ArithmeticTokenFunction
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
         }
 
         Sentry.captureMessage(`Unknown token: ${token.kind}`);

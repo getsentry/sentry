@@ -17,8 +17,6 @@ import {
  * @param initializer An optional function that can be used to initialize the state.
  */
 
-type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
-
 export interface DispatchingReducerMiddleware<R extends React.Reducer<any, any>> {
   ['before action']: (S: Readonly<ReducerState<R>>, A: React.ReducerAction<R>) => void;
   ['before next state']: (
@@ -66,7 +64,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
 
   emit(
     key: keyof DispatchingReducerMiddleware<R>,
-    ...args: ArgumentTypes<DispatchingReducerMiddleware<R>[typeof key]>
+    ...args: Parameters<DispatchingReducerMiddleware<R>[typeof key]>
   ) {
     const store = this.listeners[key];
     if (!store) {

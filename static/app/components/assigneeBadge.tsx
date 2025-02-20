@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -12,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
-import {lightTheme as theme} from 'sentry/utils/theme';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -33,6 +33,7 @@ export function AssigneeBadge({
   loading = false,
   isTooltipDisabled,
 }: AssigneeBadgeProps) {
+  const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (

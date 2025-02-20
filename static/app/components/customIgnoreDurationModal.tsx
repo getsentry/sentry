@@ -4,9 +4,9 @@ import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
 
@@ -96,9 +96,11 @@ export default function CustomIgnoreDurationModal(props: Props) {
         </form>
       </Body>
       {dateWarning && (
-        <Alert type="error" showIcon>
-          {t('Please enter a valid date in the future')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('Please enter a valid date in the future')}
+          </Alert>
+        </Alert.Container>
       )}
       <Footer>
         <ButtonBar gap={1}>

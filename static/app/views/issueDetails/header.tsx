@@ -175,7 +175,7 @@ export function GroupHeaderTabs({
       <TabList.Item
         key={Tab.UPTIME_CHECKS}
         textValue={t('Uptime Checks')}
-        hidden={!issueTypeConfig.pages.checkIns.enabled}
+        hidden={!issueTypeConfig.pages.uptimeChecks.enabled}
         to={{pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`, query: queryParams}}
       >
         {t('Uptime Checks')}

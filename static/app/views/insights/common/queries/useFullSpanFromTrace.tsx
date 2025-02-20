@@ -14,7 +14,7 @@ const DEFAULT_SORT: Sort[] = [{field: 'timestamp', kind: 'desc'}];
 export function useFullSpanFromTrace(
   group?: string,
   sorts?: Sort[],
-  enabled: boolean = true,
+  enabled = true,
   extraFilters: Record<string, string> = {}
 ) {
   const filters = {...extraFilters};
@@ -33,7 +33,7 @@ export function useFullSpanFromTrace(
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.PROJECT,
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         ...(sorts?.map(sort => sort.field as SpanIndexedProperty) || []),
       ],
     },
@@ -54,7 +54,7 @@ export function useFullSpanFromTrace(
   );
 
   const fullSpan = spanEntry?.data?.find(
-    span => span.span_id === firstIndexedSpan?.[SpanIndexedField.ID]
+    span => span.span_id === firstIndexedSpan?.[SpanIndexedField.SPAN_ID]
   );
 
   // N.B. There isn't a great pattern for us to merge the responses together,

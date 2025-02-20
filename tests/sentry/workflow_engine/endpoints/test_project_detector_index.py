@@ -27,6 +27,10 @@ class ProjectDetectorIndexBaseTest(APITestCase):
         self.environment = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
+        self.data_condition_group = self.create_data_condition_group(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
 
 
 @region_silo_test
@@ -54,7 +58,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "groupType": MetricAlertFire.slug,
+            "detectorType": MetricAlertFire.slug,
             "dataSource": {
                 "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
@@ -64,47 +68,55 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
                 "environment": self.environment.name,
                 "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
-            "dataConditions": [
-                {
-                    "type": Condition.GREATER,
-                    "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
-                }
-            ],
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    }
+                ],
+            },
         }
 
     def test_missing_group_type(self):
         data = {**self.valid_data}
-        del data["groupType"]
+        del data["detectorType"]
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
             **data,
             status_code=400,
         )
-        assert response.data == {"groupType": ["This field is required."]}
+        assert response.data == {"detectorType": ["This field is required."]}
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "groupType": "invalid_type"}
+        data = {**self.valid_data, "detectorType": "invalid_type"}
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
             **data,
             status_code=400,
         )
-        assert response.data == {"groupType": ["Unknown group type"]}
+        assert response.data == {"detectorType": ["Unknown detector type"]}
 
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
-            data = {**self.valid_data, "groupType": "incompatible_type"}
+            data = {**self.valid_data, "detectorType": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 **data,
                 status_code=400,
             )
-            assert response.data == {"groupType": ["Group type not compatible with detectors"]}
+            assert response.data == {
+                "detectorType": ["Detector type not compatible with detectors"]
+            }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):
@@ -168,7 +180,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             self.project.slug,
             status_code=400,
         )
-        assert response.data == {"groupType": ["This field is required."]}
+        assert response.data == {"detectorType": ["This field is required."]}
 
     def test_missing_name(self):
         data = {**self.valid_data}

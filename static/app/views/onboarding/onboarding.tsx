@@ -42,7 +42,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getOrganizationOnboardingSteps(): StepDescriptor[] {
   return [

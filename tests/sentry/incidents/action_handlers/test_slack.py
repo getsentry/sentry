@@ -95,7 +95,7 @@ class SlackActionHandlerTest(FireTest):
 
     def _assert_blocks(self, mock_post, incident, metric_value, chart_url):
         slack_body = SlackIncidentsMessageBuilder(
-            self.action, incident, IncidentStatus(incident.status), metric_value, chart_url
+            incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
         assert isinstance(slack_body, dict)
         attachments = orjson.loads(mock_post.call_args.kwargs["attachments"])

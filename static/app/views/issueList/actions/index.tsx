@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -8,8 +9,8 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
+import {Alert} from 'sentry/components/core/alert';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -24,7 +25,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import useMedia from 'sentry/utils/useMedia';
@@ -207,6 +207,7 @@ function IssueListActions({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const theme = useTheme();
 
   const disableActions = useMedia(
     `(max-width: ${
@@ -596,7 +597,6 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
   border-bottom: none;
 `;
 

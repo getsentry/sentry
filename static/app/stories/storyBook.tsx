@@ -64,7 +64,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   );
 }
 
-const StorySection = styled('section')`
+export const StorySection = styled('section')`
   margin-top: ${space(4)};
 
   & > p {

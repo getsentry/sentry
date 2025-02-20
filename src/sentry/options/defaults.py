@@ -2497,6 +2497,13 @@ register(
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relocation.outbox-orgslug.killswitch",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
@@ -2844,6 +2851,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_workflow.rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2853,6 +2866,12 @@ register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "grouping.grouphash_metadata.backfill_sample_rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2873,6 +2892,48 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Disables specific uptime checker regions. This is a list of region slugs
+# which must match regions available in the settings.UPTIME_REGIONS list.
+#
+# Useful to remove a region from check rotation if there is some kind of
+# problem with the region.
+register(
+    "uptime.disabled-checker-regions",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
+register(
+    "uptime.active-failure-threshold",
+    type=Int,
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When in active monitoring mode, how many successes in a row do we need to mark it as up
+register(
+    "uptime.active-recovery-threshold",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.date_cutoff_epoch_seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "releases.no_snuba_for_release_creation",
@@ -2965,14 +3026,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# migrating send_alert_event task to not pass Event
-register(
-    "sentryapps.send_alert_event.use-eventid",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # allows us to disable indexing during maintenance events
 register(
     "sentry.similarity.indexing.enabled",
@@ -2990,23 +3043,9 @@ register(
 )
 
 register(
-    "uptime.snuba_uptime_results.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "taskworker.grpc_service_config",
     type=String,
     default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "uptime.date_cutoff_epoch_seconds",
-    type=Int,
-    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

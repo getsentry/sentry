@@ -24,7 +24,9 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
       performance_issues: 1,
       projects: 1,
       transactions: 1,
-      transactiontoSpanChildrenCount: {span1: 1},
+      transaction_child_count_map: {span1: 1},
+      span_count: 0,
+      span_count_map: {},
     },
     errors: [],
     status: 'success',
@@ -73,6 +75,71 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsLinks).toHaveLength(2);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Backend');
       expect(breadcrumbsLinks[1]).toHaveTextContent('Domain Summary');
+      expect(breadcrumbsItems).toHaveLength(1);
+      expect(breadcrumbsItems[0]).toHaveTextContent('Trace View');
+    });
+
+    it('should show insights from transaction summary with perf removal feature', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/123',
+          query: {
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            transaction: 'transaction-name',
+          },
+        })
+      );
+      const props = {...baseProps} as TraceMetadataHeaderProps;
+      organization.features.push('insights-performance-landing-removal');
+      render(<TraceMetaDataHeader {...props} organization={organization} />);
+
+      const breadcrumbs = screen.getByTestId('breadcrumb-list');
+      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
+      const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
+
+      expect(breadcrumbs.childElementCount).toBe(5);
+
+      expect(breadcrumbsLinks).toHaveLength(1);
+      expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
+      expect(breadcrumbsLinks[0]).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
+      );
+      expect(breadcrumbsItems).toHaveLength(2);
+      expect(breadcrumbsItems[0]).toHaveTextContent('Insights');
+      expect(breadcrumbsItems[1]).toHaveTextContent('Trace View');
+    });
+
+    it('should show performance from transaction summary', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/123',
+          query: {
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            transaction: 'transaction-name',
+          },
+        })
+      );
+      const props = {...baseProps} as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />);
+
+      const breadcrumbs = screen.getByTestId('breadcrumb-list');
+      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
+      const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
+
+      expect(breadcrumbs.childElementCount).toBe(5);
+
+      expect(breadcrumbsLinks).toHaveLength(2);
+      expect(breadcrumbsLinks[0]).toHaveTextContent('Performance');
+      expect(breadcrumbsLinks[0]).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance?source=performance_transaction_summary&transaction=transaction-name'
+      );
+      expect(breadcrumbsLinks[1]).toHaveTextContent('Transaction Summary');
+      expect(breadcrumbsLinks[1]).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/summary?source=performance_transaction_summary&transaction=transaction-name'
+      );
       expect(breadcrumbsItems).toHaveLength(1);
       expect(breadcrumbsItems[0]).toHaveTextContent('Trace View');
     });

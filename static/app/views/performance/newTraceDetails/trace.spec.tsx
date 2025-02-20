@@ -50,8 +50,7 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
 function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
@@ -111,6 +110,8 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
       },
     }),
   });
@@ -206,17 +207,6 @@ const {router} = initializeOrg({
   },
 });
 
-function mockMetricsResponse() {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/metrics/query/',
-    method: 'POST',
-    body: {
-      data: [],
-      queries: [],
-    },
-  });
-}
-
 function mockEventsResponse() {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
@@ -282,12 +272,13 @@ async function keyboardNavigationTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -340,12 +331,13 @@ async function pageloadTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -404,7 +396,6 @@ async function nestedTransactionsTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -455,13 +446,14 @@ async function searchTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
 
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -517,12 +509,13 @@ async function simpleTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -621,12 +614,13 @@ async function completeTestSetup() {
           count: 2,
         },
       ],
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   MockApiClient.addMockResponse({
@@ -1628,7 +1622,7 @@ describe('trace view', () => {
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
-      mockMetricsResponse();
+
       mockEventsResponse();
 
       mockTraceResponse({
@@ -1691,6 +1685,8 @@ describe('trace view', () => {
               count: 5,
             },
           ],
+          span_count: 0,
+          span_count_map: {},
         },
       });
 

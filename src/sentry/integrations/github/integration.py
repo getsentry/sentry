@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -45,6 +45,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
@@ -404,7 +405,7 @@ def record_event(event: IntegrationPipelineViewType):
 class OAuthLoginView(PipelineView):
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -424,7 +425,7 @@ class OAuthLoginView(PipelineView):
                 redirect_uri = absolute_uri(
                     reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
                 )
-                return self.redirect(
+                return HttpResponseRedirect(
                     f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
                 )
 
@@ -485,10 +486,10 @@ class GitHubInstallation(PipelineView):
                 "installation_id", pipeline.fetch_state("installation_id")
             )
             if installation_id is None:
-                return self.redirect(self.get_app_url())
+                return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
