@@ -1,7 +1,11 @@
 from arroyo.types import Partition, Topic
 
 from sentry.replays.consumers.buffered.lib import Model, buffering_runtime
-from tests.sentry.replays.unit.consumers.helpers import MockCommit, MockSink, make_kafka_message
+from tests.sentry.replays.unit.consumers.test_helpers import (
+    MockCommit,
+    MockSink,
+    make_kafka_message,
+)
 
 
 def buffer_runtime(sink):

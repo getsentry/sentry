@@ -47,6 +47,18 @@ class DropSilently(Exception):
     pass
 
 
+class CouldNotDecode(DropSilently):
+    pass
+
+
+class CouldNotParseHeaders(DropSilently):
+    pass
+
+
+class CouldNotDecompress(DropSilently):
+    pass
+
+
 class ReplayRecordingSegment(TypedDict):
     id: str  # a uuid that individualy identifies a recording segment
     chunks: int  # the number of chunks for this segment
@@ -336,7 +348,7 @@ def parse_recording_message(message: bytes) -> RecordingIngestMessage:
         message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message)
     except ValidationError:
         logger.exception("Could not decode recording message.")
-        raise DropSilently()
+        raise CouldNotDecode()
 
     return RecordingIngestMessage(
         replay_id=message_dict["replay_id"],
@@ -360,7 +372,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[RecordingSegmentHea
         return recording_headers, recording_segment
     except Exception:
         logger.exception("Recording headers could not be extracted %s", replay_id)
-        raise DropSilently()
+        raise CouldNotParseHeaders()
 
 
 @sentry_sdk.trace
@@ -374,7 +386,7 @@ def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
             return compressed_segment, segment
         else:
             logger.exception("Invalid recording body.")
-            raise DropSilently()
+            raise CouldNotDecompress()
 
 
 @sentry_sdk.trace

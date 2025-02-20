@@ -99,7 +99,7 @@ def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
     return Model(buffer=[], can_flush=buffer.can_flush, do_flush=buffer.do_flush, offsets={})
 
 
-recording_consumer = buffering_runtime(
+recording_runtime = buffering_runtime(
     init_fn=init,
     process_fn=process_message,
 )

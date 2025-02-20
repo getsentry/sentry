@@ -1,5 +1,5 @@
 from sentry.replays.consumers.buffered.platform import Join, Poll, RunTime
-from tests.sentry.replays.unit.consumers.helpers import MockCommit, make_kafka_message
+from tests.sentry.replays.unit.consumers.test_helpers import MockCommit, make_kafka_message
 
 
 def counter_runtime() -> RunTime[int, str]:
