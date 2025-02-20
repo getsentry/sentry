@@ -90,7 +90,9 @@ export default function ShareIssueModal({
                 checked={includeEventId}
                 onChange={() => setIncludeEventId(!includeEventId)}
               />
-              {t('Include Event ID in link')}
+              <span onClick={() => setIncludeEventId(!includeEventId)}>
+                {t('Include Event ID in link')}
+              </span>
             </CheckboxContainer>
           )}
           <StyledButtonBar gap={0.5}>
