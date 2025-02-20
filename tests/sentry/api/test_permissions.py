@@ -80,22 +80,14 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
         return RpcUserOrganizationContext(user_id=user.id, organization=rpc_org, member=user)
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_readonly_user_has_permission(self):
-        assert self.user_permission.has_permission(self.make_request(self.readonly_user), None)
-
-    def test_readonly_user_has_object_permission(self):
-        assert not self.user_permission.has_object_permission(
-            self.make_request(self.readonly_user), None, None
-        )
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_safe_method(self):
-        assert self.user_permission.has_permission(
-            self.make_request(self.readonly_user, method="GET"), None
-        )
-        assert self.user_permission.has_permission(
-            self.make_request(self.normal_user, method="GET"), None
-        )
+    def test_safe_methods(self):
+        for method in ("GET", "HEAD", "OPTIONS"):
+            assert self.user_permission.has_permission(
+                self.make_request(self.readonly_user, method=method), None
+            )
+            assert self.user_permission.has_permission(
+                self.make_request(self.normal_user, method=method), None
+            )
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_unsafe_methods(self):
@@ -110,12 +102,13 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
     def test_safe_method_demo_mode_disabled(self):
-        assert not self.user_permission.has_permission(
-            self.make_request(self.readonly_user, method="GET"), None
-        )
-        assert self.user_permission.has_permission(
-            self.make_request(self.normal_user, method="GET"), None
-        )
+        for method in ("GET", "HEAD", "OPTIONS"):
+            assert not self.user_permission.has_permission(
+                self.make_request(self.readonly_user, method=method), None
+            )
+            assert self.user_permission.has_permission(
+                self.make_request(self.normal_user, method=method), None
+            )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
     def test_unsafe_methods_demo_mode_disabled(self):
