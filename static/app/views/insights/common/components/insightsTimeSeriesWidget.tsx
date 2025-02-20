@@ -33,6 +33,7 @@ export interface InsightsTimeSeriesWidgetProps {
   title: string;
   visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
   aliases?: Aliases;
+  stacked?: boolean;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
@@ -51,6 +52,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       };
     }),
     aliases: props.aliases,
+    stacked: props.stacked,
   };
 
   const Title = <Widget.WidgetTitle title={props.title} />;
