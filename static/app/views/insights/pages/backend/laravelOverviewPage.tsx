@@ -508,8 +508,6 @@ function DurationWidget({query}: {query?: string}) {
           value: value?.count!,
           timestamp: new Date(time).toISOString(),
         })),
-        // Inside the returned response the field name changes
-        // therefore we need to map it here
         field,
         meta: series.meta!,
         color,
