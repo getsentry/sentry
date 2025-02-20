@@ -1,5 +1,5 @@
 ---
-created: '2025-02-19T20:50:34.914976+00:00'
+created: '2025-02-20T15:17:59.479604+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,18 +10,18 @@ app:
     app*
       exception*
         stacktrace*
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
@@ -47,7 +47,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "DispatchMessageWorker"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "UserCallWinProcCheckWow"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
@@ -74,7 +74,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "SharedPointerInternals::NewIntrusiveReferenceController<T>"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "`TArray<T>::Remove'::`2'::<T>::operator()"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
@@ -107,7 +107,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "ProcessLocalFunction"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
@@ -190,18 +190,18 @@ system:
     system*
       exception*
         stacktrace*
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
@@ -227,7 +227,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "DispatchMessageWorker"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "UserCallWinProcCheckWow"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
@@ -254,7 +254,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "SharedPointerInternals::NewIntrusiveReferenceController<T>"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "`TArray<T>::Remove'::`2'::<T>::operator()"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
@@ -287,7 +287,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "ProcessLocalFunction"
-          frame (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
