@@ -154,7 +154,7 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
             return entry
         return rv
 
-    return [_resolve_single_entry(x) for x in fingerprint]
+    return [_resolve_single_entry(entry) for entry in fingerprint]
 
 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
