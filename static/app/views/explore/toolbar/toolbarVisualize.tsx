@@ -64,22 +64,6 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
     );
   }, [visualizes]);
 
-  const yAxes: string[] = useMemo(() => {
-    return visualizes.flatMap(visualize => visualize.yAxes);
-  }, [visualizes]);
-
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
-
-  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-      return {
-        label: aggregate,
-        value: aggregate,
-        textValue: aggregate,
-      };
-    });
-  }, []);
-
   const addChart = useCallback(() => {
     setVisualizes(
       [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
@@ -179,18 +163,6 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
             <Fragment key={group}>
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <Fragment key={index}>
-                  <VisualizeDropdown
-                    aggregateOptions={aggregateOptions}
-                    fieldOptions={fieldOptions}
-                    deleteOverlay={deleteOverlay}
-                    group={group}
-                    index={index}
-                    canDelete={canDelete}
-                    shouldRenderLabel={shouldRenderLabel}
-                    parsedVisualize={parsedVisualize}
-                    setChartAggregate={setChartAggregate}
-                    setChartField={setChartField}
-                  />
                   {equationSupport ? (
                     <VisualizeEquation
                       canDelete={canDelete}
@@ -200,8 +172,21 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
                       label={shouldRenderLabel ? parsedVisualize.label : undefined}
                       setChartYAxis={setChartYAxis}
                       yAxis={visualizes[group]?.yAxes?.[index]}
+                      visualizes={visualizes}
                     />
-                  ) : null}
+                  ) : (
+                    <VisualizeDropdown
+                      deleteOverlay={deleteOverlay}
+                      group={group}
+                      index={index}
+                      canDelete={canDelete}
+                      shouldRenderLabel={shouldRenderLabel}
+                      parsedVisualize={parsedVisualize}
+                      setChartAggregate={setChartAggregate}
+                      setChartField={setChartField}
+                      visualizes={visualizes}
+                    />
+                  )}
                 </Fragment>
               ))}
               <ToolbarFooter>
@@ -225,10 +210,8 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
 }
 
 interface VisualizeDropdownProps {
-  aggregateOptions: Array<SelectOption<string>>;
   canDelete: boolean;
   deleteOverlay: (group: number, index: number) => void;
-  fieldOptions: Array<SelectOption<string>>;
   group: number;
   index: number;
   parsedVisualize: ParsedVisualize;
@@ -239,20 +222,36 @@ interface VisualizeDropdownProps {
   ) => void;
   setChartField: (group: number, index: number, {value}: SelectOption<SelectKey>) => void;
   shouldRenderLabel: boolean;
+  visualizes: Visualize[];
 }
 
 function VisualizeDropdown({
-  aggregateOptions,
   canDelete,
   deleteOverlay,
-  fieldOptions,
   group,
   index,
   parsedVisualize,
   setChartAggregate,
   setChartField,
   shouldRenderLabel,
+  visualizes,
 }: VisualizeDropdownProps) {
+  const yAxes: string[] = useMemo(() => {
+    return visualizes.flatMap(visualize => visualize.yAxes);
+  }, [visualizes]);
+
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
+
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
+    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
+      return {
+        label: aggregate,
+        value: aggregate,
+        textValue: aggregate,
+      };
+    });
+  }, []);
+
   return (
     <ToolbarRow>
       {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
@@ -285,6 +284,7 @@ interface VisualizeEquationProps {
   group: number;
   index: number;
   setChartYAxis: (group: number, index: number, yAxis: string) => void;
+  visualizes: Visualize[];
   label?: string;
   yAxis?: string;
 }
@@ -297,6 +297,7 @@ function VisualizeEquation({
   setChartYAxis,
   label,
   yAxis,
+  visualizes,
 }: VisualizeEquationProps) {
   const setExpression = useCallback(
     (expression: Expression) => {
@@ -308,10 +309,39 @@ function VisualizeEquation({
     [group, index, setChartYAxis]
   );
 
+  const aggregateFunctions = useMemo(() => {
+    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
+      return {
+        name: aggregate,
+        label: `${aggregate}(\u2026)`,
+      };
+    });
+  }, []);
+
+  const yAxes: string[] = useMemo(() => {
+    return visualizes.flatMap(visualize => visualize.yAxes);
+  }, [visualizes]);
+
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
+
+  const functionArguments = useMemo(() => {
+    return fieldOptions.map(o => {
+      return {
+        name: o.value,
+        label: o.label,
+      };
+    });
+  }, [fieldOptions]);
+
   return (
     <ToolbarRow>
       {label && <ChartLabel>{label}</ChartLabel>}
-      <ArithmeticBuilder expression={yAxis || ''} setExpression={setExpression} />
+      <ArithmeticBuilder
+        expression={yAxis || ''}
+        setExpression={setExpression}
+        aggregateFunctions={aggregateFunctions}
+        functionArguments={functionArguments}
+      />
       <Button
         borderless
         icon={<IconDelete />}

@@ -45,6 +45,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
@@ -404,7 +405,7 @@ def record_event(event: IntegrationPipelineViewType):
 class OAuthLoginView(PipelineView):
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -488,7 +489,7 @@ class GitHubInstallation(PipelineView):
                 return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
