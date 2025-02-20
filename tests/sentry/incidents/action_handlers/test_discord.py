@@ -102,7 +102,7 @@ class DiscordActionHandlerTest(FireTest):
         handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            handler.fire(metric_value, IncidentStatus.WARNING)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
@@ -117,7 +117,7 @@ class DiscordActionHandlerTest(FireTest):
         handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            handler.fire(metric_value, IncidentStatus.WARNING)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
@@ -135,7 +135,7 @@ class DiscordActionHandlerTest(FireTest):
         handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            handler.fire(metric_value, IncidentStatus.WARNING)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
@@ -150,6 +150,6 @@ class DiscordActionHandlerTest(FireTest):
         handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            handler.fire(metric_value, IncidentStatus.WARNING)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
