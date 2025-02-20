@@ -2,16 +2,21 @@ import {
   SessionEmptyGroupedResponseFixture,
   SessionUserCountByStatusByReleaseFixture,
 } from 'sentry-fixture/sessions';
+import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/transformSessionsResponseToSeries';
 
 describe('transformSessionsResponseToSeries', function () {
   it('transforms sessions into series', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: [],
+      orderby: '',
+    });
+
     expect(
       transformSessionsResponseToSeries(
         SessionUserCountByStatusByReleaseFixture(),
-        [],
-        []
+        widgetQuery
       )
     ).toEqual([
       {
@@ -322,11 +327,14 @@ describe('transformSessionsResponseToSeries', function () {
   });
 
   it('adds derived status series', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: ['count_crashed(session)'],
+      orderby: '',
+    });
     expect(
       transformSessionsResponseToSeries(
         SessionUserCountByStatusByReleaseFixture(),
-        ['count_crashed(session)'],
-        []
+        widgetQuery
       )
     ).toEqual([
       {
@@ -788,11 +796,14 @@ describe('transformSessionsResponseToSeries', function () {
     ]);
   });
   it('omits injected fields', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: ['count_crashed(session)'],
+      orderby: 'sum(session)',
+    });
     expect(
       transformSessionsResponseToSeries(
         SessionUserCountByStatusByReleaseFixture(),
-        ['count_crashed(session)'],
-        ['sum(session)']
+        widgetQuery
       )
     ).toEqual([
       {
@@ -1103,8 +1114,12 @@ describe('transformSessionsResponseToSeries', function () {
   });
 
   it('returns a single series with 0 as values when there are no groups returned', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: [],
+      orderby: '',
+    });
     expect(
-      transformSessionsResponseToSeries(SessionEmptyGroupedResponseFixture(), [], [])
+      transformSessionsResponseToSeries(SessionEmptyGroupedResponseFixture(), widgetQuery)
     ).toEqual([
       {
         seriesName: '(no results)',
@@ -1129,12 +1144,16 @@ describe('transformSessionsResponseToSeries', function () {
   });
 
   it('supports legend aliases', () => {
+    const widgetQuery = WidgetQueryFixture({
+      name: 'Lorem',
+      aggregates: [],
+      orderby: '',
+    });
+
     expect(
       transformSessionsResponseToSeries(
         SessionUserCountByStatusByReleaseFixture(),
-        [],
-        [],
-        'Lorem'
+        widgetQuery
       )[0]
     ).toEqual(
       expect.objectContaining({
