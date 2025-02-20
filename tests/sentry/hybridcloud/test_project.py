@@ -30,3 +30,42 @@ def test_get_or_create_project() -> None:
         add_org_default_team=True,
     )
     assert Project.objects.all().count() == 1
+
+
+@django_db_all(transaction=True)
+def test_update_name() -> None:
+    org = Factories.create_organization()
+    project = Factories.create_project(organization=org)
+
+    project_service.update_external_id(
+        organization_id=org.id,
+        id=project.id,
+        name="new-name",
+    )
+
+    project_model = Project.objects.get(id=project.id)
+    assert project_model.external_id == "new-name"
+
+
+@django_db_all(transaction=True)
+def test_update_external_id() -> None:
+    org = Factories.create_organization()
+    project = Factories.create_project(organization=org)
+
+    project_service.update_external_id(
+        organization_id=org.id,
+        id=project.id,
+        external_id="test-external-id",
+    )
+
+    project_model = Project.objects.get(id=project.id)
+    assert project_model.external_id == "test-external-id"
+
+    project_service.update_external_id(
+        organization_id=org.id,
+        id=project.id,
+        external_id=None,
+    )
+
+    project_model = Project.objects.get(id=project.id)
+    assert project_model.external_id is None
