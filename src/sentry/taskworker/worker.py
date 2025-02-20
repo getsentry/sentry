@@ -107,7 +107,7 @@ def child_worker(
                 "taskworker.worker.max_task_count_reached",
                 tags={"count": processed_task_count},
             )
-            logger.info("taskworker.max_task_count_reached")
+            logger.info("taskworker.max_task_count_reached", extra={"count": processed_task_count})
             break
 
         if shutdown_event.is_set():
@@ -173,7 +173,7 @@ def child_worker(
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = execution_complete_time - execution_start_time
         execution_latency = execution_complete_time - task_added_time
-        logger.info(
+        logger.debug(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
