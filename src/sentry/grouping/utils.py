@@ -87,7 +87,7 @@ def bool_from_string(value: str) -> bool | None:
     return None
 
 
-def get_fingerprint_value(
+def resolve_fingerprint_variable(
     variable_key: str, event_data: NodeData | Mapping[str, Any]
 ) -> str | None:
     if variable_key == "transaction":
@@ -160,7 +160,7 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
             return DEFAULT_FINGERPRINT_VARIABLE
         if variable_key is None:
             return entry
-        resolved_value = get_fingerprint_value(variable_key, event_data)
+        resolved_value = resolve_fingerprint_variable(variable_key, event_data)
         if resolved_value is None:
             return entry
         return resolved_value
@@ -171,7 +171,7 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
     def _handle_match(match: Match[str]) -> str:
         variable_key = match.group(1)
-        resolved_value = get_fingerprint_value(variable_key, event_data)
+        resolved_value = resolve_fingerprint_variable(variable_key, event_data)
         if resolved_value is not None:
             return resolved_value
         return match.group(0)
