@@ -5,7 +5,6 @@ import commonTheme, {
   type ColorMapping,
   darkTheme,
   generateAlertTheme,
-  generateBadgeTheme,
   generateButtonTheme,
   generateLevelTheme,
   generateTagTheme,
@@ -738,7 +737,6 @@ export const DO_NOT_USE_lightChonkTheme: Theme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
   alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
-  badge: generateBadgeTheme(chonkLightColorMapping),
   button: generateButtonTheme(chonkLightColorMapping, lightAliases),
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
@@ -778,7 +776,6 @@ export const DO_NOT_USE_darkChonkTheme: Theme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
   alert: generateAlertTheme(chonkDarkColorMapping, darkAliases),
-  badge: generateBadgeTheme(chonkDarkColorMapping),
   button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),

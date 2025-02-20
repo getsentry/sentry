@@ -178,6 +178,6 @@ const ToggleBorder = styled('div')`
   width: 125px;
   height: 125px;
   border-radius: 7px;
-  background: ${p => p.theme.badge.beta.background};
+  background: ${p => `linear-gradient(90deg, ${p.theme.purple300}, ${p.theme.pink300})`};
   animation: rotating 10s linear infinite;
 `;
