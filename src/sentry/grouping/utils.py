@@ -126,8 +126,8 @@ def get_fingerprint_value(
 
     elif variable_key in ("module", "stack.module"):
         frame = get_crash_frame_from_event_data(event_data)
-        mod = frame.get("module") if frame else None
-        return mod or "<no-module>"
+        module = frame.get("module") if frame else None
+        return module or "<no-module>"
 
     elif variable_key in ("package", "stack.package"):
         frame = get_crash_frame_from_event_data(event_data)
