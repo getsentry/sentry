@@ -15,7 +15,6 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
-  opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
@@ -24,7 +23,6 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Alert({
   showIcon,
   icon,
-  opaque,
   system,
   expand,
   defaultExpanded,
@@ -65,7 +63,6 @@ export function Alert({
   return (
     <AlertContainer
       system={system}
-      opaque={opaque}
       expand={expand}
       trailingItems={trailingItems}
       showIcon={showIcon}
@@ -172,16 +169,7 @@ const AlertContainer = styled('div')<
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.alertColors.border};
   padding: ${space(1.5)} ${space(2)};
-  background: ${p =>
-    p.opaque
-      ? `linear-gradient(
-          ${p.alertColors.backgroundLight},
-          ${p.alertColors.backgroundLight}),
-          linear-gradient(${p.theme.background}, ${p.theme.background}
-        )`
-      : `
-          ${p.alertColors.backgroundLight}
-        `};
+  background: ${p => p.alertColors.backgroundLight};
 
   a:not([role='button']) {
     color: ${p => p.alertColors.color};
