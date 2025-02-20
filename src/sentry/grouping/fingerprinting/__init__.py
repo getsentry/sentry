@@ -416,8 +416,8 @@ class FingerprintMatcher:
             return "release"
         return "frames"
 
-    def matches(self, values: dict[str, Any]) -> bool:
-        match_found = self._positive_match(values)
+    def matches(self, event_values: dict[str, Any]) -> bool:
+        match_found = self._positive_match(event_values)
         return not match_found if self.negated else match_found
 
     def _positive_path_match(self, value: str | None) -> bool:
@@ -431,24 +431,24 @@ class FingerprintMatcher:
             return True
         return False
 
-    def _positive_match(self, values: dict[str, Any]) -> bool:
-        # Handle cases where `self.key` isn't 1-to-1 with the corresponding key in `values`
+    def _positive_match(self, event_values: dict[str, Any]) -> bool:
+        # Handle cases where `self.key` isn't 1-to-1 with the corresponding key in `event_values`
         if self.key == "path":
             return any(
                 self._positive_path_match(value)
                 # Use a set so that if the values match, we don't needlessly check both
-                for value in {values.get("abs_path"), values.get("filename")}
+                for value in {event_values.get("abs_path"), event_values.get("filename")}
             )
 
         if self.key == "message":
             return any(
                 value is not None and glob_match(value, self.pattern, ignorecase=True)
                 # message tests against exception value also, as this is what users expect
-                for value in [values.get("message"), values.get("value")]
+                for value in [event_values.get("message"), event_values.get("value")]
             )
 
-        # For the rest, `self.key` matches the key in `values`
-        value = values.get(self.key)
+        # For the rest, `self.key` matches the key in `event_values`
+        value = event_values.get(self.key)
 
         if value is None:
             return False
@@ -513,8 +513,8 @@ class FingerprintRule:
             matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
         for match_type, matchers in matchers_by_match_type.items():
-            for values in event_datastore.get_values(match_type):
-                if all(matcher.matches(values) for matcher in matchers):
+            for event_values in event_datastore.get_values(match_type):
+                if all(matcher.matches(event_values) for matcher in matchers):
                     break
             else:
                 return None
