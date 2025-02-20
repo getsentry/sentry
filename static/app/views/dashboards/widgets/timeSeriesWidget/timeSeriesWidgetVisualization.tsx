@@ -183,9 +183,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // This code can be safely removed once we can render dotted incomplete lines
   // using a single series
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
-  const palette = [...theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)!]; // -2 because getColorPalette artificially adds 1, I'm not sure why
-  let seriesColorIndex = -1;
 
+  const palette =
+    numberOfSeriesNeedingColor > 1
+      ? theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      : [];
+
+  let seriesColorIndex = -1;
   const colorizedSeries = scaledSeries.map(timeSeries => {
     if (isTimeSeriesOther(timeSeries)) {
       return {
