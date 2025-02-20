@@ -104,9 +104,11 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             )
 
         subject = "Sentry Integration Publication Request from %s" % org_mapping.slug
+
+        assert organization is not None, "RpcOrganizationContext must exist to get the organization"
         if features.has(
             "organizations:streamlined-publishing-flow",
-            organization,
+            organization.organization,
             actor=request.user,
         ):
             new_subject = f"We've received your integration submission for {sentry_app.slug}"
