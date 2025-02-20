@@ -96,13 +96,14 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
     def create_subscription(
         self, status: UptimeSubscription.Status, subscription_id: str | None = None
     ):
-        return UptimeSubscription.objects.create(
-            status=status.value,
+        return self.create_uptime_subscription(
+            status=status,
             type="something",
             subscription_id=subscription_id,
             url="http://sentry.io",
             interval_seconds=300,
             timeout_ms=500,
+            region_slugs=["default"],
         )
 
     def test_no_subscription(self):
@@ -322,6 +323,7 @@ class SubscriptionCheckerTest(UptimeTestCase):
                 status=status,
                 date_updated=timezone.now() - (SUBSCRIPTION_STATUS_MAX_AGE * 2),
                 url=f"http://sentry{status}.io",
+                region_slugs=["default"],
             )
             sub_new = self.create_uptime_subscription(
                 status=status, date_updated=timezone.now(), url=f"http://santry{status}.io"
