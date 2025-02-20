@@ -22,6 +22,7 @@ from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -497,6 +498,65 @@ class FinishPipelineTestCase(IntegrationTestCase):
             "provider_key": "example",
         }
         mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
+
+    def test_allow_with_superuser(self, *args):
+        member_user = self.create_user(is_superuser=True)
+        self.create_member(user=member_user, organization=self.organization, role="member")
+        self.login_as(member_user, superuser=True)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            rpc_organization = serialize_rpc_organization(self.organization)
+
+        self.request = self.make_request(member_user, is_superuser=True)
+
+        self.pipeline = IntegrationPipeline(
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
+        )
+        self.pipeline.initialize()
+        self.save_session()
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+
+        # should be allowed to install integration because of superuser
+        resp = self.pipeline.finish_pipeline()
+        self.assertDialogSuccess(resp)
+
+    @override_options({"superuser.read-write.ga-rollout": True})
+    def test_allow_with_superuser_su_split(self, *args):
+        member_user = self.create_user(is_superuser=True)
+        self.create_member(user=member_user, organization=self.organization, role="member")
+        self.login_as(member_user, superuser=True)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            rpc_organization = serialize_rpc_organization(self.organization)
+
+        self.request = self.make_request(member_user, is_superuser=True)
+
+        self.pipeline = IntegrationPipeline(
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
+        )
+        self.pipeline.initialize()
+        self.save_session()
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+
+        # should be allowed to install integration because of superuser
+        resp = self.pipeline.finish_pipeline()
+        self.assertDialogSuccess(resp)
 
     @patch("sentry.integrations.pipeline.logger")
     def test_disallow_with_removed_membership(self, mock_logger, *args):
