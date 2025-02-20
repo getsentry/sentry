@@ -418,9 +418,7 @@ class FingerprintMatcher:
 
     def matches(self, values: dict[str, Any]) -> bool:
         rv = self._positive_match(values)
-        if self.negated:
-            rv = not rv
-        return rv
+        return not rv if self.negated else rv
 
     def _positive_path_match(self, value: str | None) -> bool:
         if value is None:
