@@ -29,6 +29,12 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {
+  SpanOperationBreakdownFilter,
+  filterToField,
+} from 'sentry/views/performance/transactionSummary/filter';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -105,8 +111,8 @@ const CURSOR_NAME = 'serviceEntrySpansCursor';
 type Props = {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
-  options: DropdownOption[];
-  selected: DropdownOption;
+  totalValues: Record<string, number> | null;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   transactionName: string;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
@@ -114,9 +120,9 @@ type Props = {
 
 export function ServiceEntrySpansTable({
   eventView,
-  options,
-  selected,
   handleDropdownChange,
+  totalValues,
+  spanOperationBreakdownFilter,
   transactionName,
   supportsInvestigationRule,
   showViewSampledEventsButton,
@@ -125,9 +131,23 @@ export function ServiceEntrySpansTable({
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
+  console.dir(totalValues);
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
+  const {selected, options} = getOTelTransactionsListSort(location, {
+    spanOperationBreakdownFilter,
+    p95: totalValues?.['p95()'] ?? 0,
+  });
+
+  console.dir(selected);
+  if (selected.query?.[0]) {
+    // const [key, value] = selected.query[0];
+    // const newQuery = new MutableSearch(eventView.query);
+    // newQuery.addFilterValue(key, value);
+    // eventView.query = newQuery.formatString();
+    // console.dir(eventView.query);
+  }
 
   const {
     data: tableData,
@@ -355,6 +375,80 @@ function CustomPagination({
       size={PAGINATION_CURSOR_SIZE}
     />
   );
+}
+
+function getOTelFilterOptions({
+  p95,
+  spanOperationBreakdownFilter,
+}: {
+  p95: number;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+}): DropdownOption[] {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
+    return [
+      {
+        sort: {kind: 'asc', field: 'span.duration'},
+        value: TransactionFilterOptions.FASTEST,
+        label: t('Fastest Transactions'),
+      },
+      {
+        query: p95 > 0 ? [['span.duration', `<=${p95.toFixed(0)}`]] : undefined,
+        sort: {kind: 'desc', field: 'span.duration'},
+        value: TransactionFilterOptions.SLOW,
+        label: t('Slow Transactions (p95)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'span.duration'},
+        value: TransactionFilterOptions.OUTLIER,
+        label: t('Outlier Transactions (p100)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'timestamp'},
+        value: TransactionFilterOptions.RECENT,
+        label: t('Recent Transactions'),
+      },
+    ];
+  }
+
+  const field = filterToField(spanOperationBreakdownFilter)!;
+  const operationName = spanOperationBreakdownFilter;
+
+  return [
+    {
+      sort: {kind: 'asc', field},
+      value: TransactionFilterOptions.FASTEST,
+      label: t('Fastest %s Operations', operationName),
+    },
+    {
+      query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
+      sort: {kind: 'desc', field},
+      value: TransactionFilterOptions.SLOW,
+      label: t('Slow %s Operations (p95)', operationName),
+    },
+    {
+      sort: {kind: 'desc', field},
+      value: TransactionFilterOptions.OUTLIER,
+      label: t('Outlier %s Operations (p100)', operationName),
+    },
+    {
+      sort: {kind: 'desc', field: 'timestamp'},
+      value: TransactionFilterOptions.RECENT,
+      label: t('Recent Transactions'),
+    },
+  ];
+}
+
+function getOTelTransactionsListSort(
+  location: Location,
+  options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
+): {options: DropdownOption[]; selected: DropdownOption} {
+  const sortOptions = getOTelFilterOptions(options);
+  const urlParam = decodeScalar(
+    location.query.showTransactions,
+    TransactionFilterOptions.SLOW
+  );
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
+  return {selected: selectedSort, options: sortOptions};
 }
 
 const Header = styled('div')`

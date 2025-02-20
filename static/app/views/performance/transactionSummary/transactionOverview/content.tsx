@@ -278,11 +278,9 @@ function OTelSummaryContentInner({
           />
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
+            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
             handleDropdownChange={handleTransactionsListSortChange}
-            {...getOTelTransactionsListSort(location, {
-              p95: totalValues?.['p95()'] ?? 0,
-              spanOperationBreakdownFilter,
-            })}
+            totalValues={totalValues}
             transactionName={transactionName}
             supportsInvestigationRule
             showViewSampledEventsButton
@@ -761,67 +759,6 @@ function SummaryContent({
   );
 }
 
-function getOTelFilterOptions({
-  p95,
-  spanOperationBreakdownFilter,
-}: {
-  p95: number;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-}): DropdownOption[] {
-  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
-    return [
-      {
-        sort: {kind: 'asc', field: 'span.duration'},
-        value: TransactionFilterOptions.FASTEST,
-        label: t('Fastest Transactions'),
-      },
-      {
-        query: p95 > 0 ? [['span.duration', `<=${p95.toFixed(0)}`]] : undefined,
-        sort: {kind: 'desc', field: 'span.duration'},
-        value: TransactionFilterOptions.SLOW,
-        label: t('Slow Transactions (p95)'),
-      },
-      {
-        sort: {kind: 'desc', field: 'span.duration'},
-        value: TransactionFilterOptions.OUTLIER,
-        label: t('Outlier Transactions (p100)'),
-      },
-      {
-        sort: {kind: 'desc', field: 'timestamp'},
-        value: TransactionFilterOptions.RECENT,
-        label: t('Recent Transactions'),
-      },
-    ];
-  }
-
-  const field = filterToField(spanOperationBreakdownFilter)!;
-  const operationName = spanOperationBreakdownFilter;
-
-  return [
-    {
-      sort: {kind: 'asc', field},
-      value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest %s Operations', operationName),
-    },
-    {
-      query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
-      sort: {kind: 'desc', field},
-      value: TransactionFilterOptions.SLOW,
-      label: t('Slow %s Operations (p95)', operationName),
-    },
-    {
-      sort: {kind: 'desc', field},
-      value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier %s Operations (p100)', operationName),
-    },
-    {
-      sort: {kind: 'desc', field: 'timestamp'},
-      value: TransactionFilterOptions.RECENT,
-      label: t('Recent Transactions'),
-    },
-  ];
-}
-
 function getFilterOptions({
   p95,
   spanOperationBreakdownFilter,
@@ -888,19 +825,6 @@ function getTransactionsListSort(
   options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
 ): {options: DropdownOption[]; selected: DropdownOption} {
   const sortOptions = getFilterOptions(options);
-  const urlParam = decodeScalar(
-    location.query.showTransactions,
-    TransactionFilterOptions.SLOW
-  );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
-  return {selected: selectedSort, options: sortOptions};
-}
-
-export function getOTelTransactionsListSort(
-  location: Location,
-  options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
-): {options: DropdownOption[]; selected: DropdownOption} {
-  const sortOptions = getOTelFilterOptions(options);
   const urlParam = decodeScalar(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
