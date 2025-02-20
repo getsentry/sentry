@@ -1,5 +1,5 @@
 import {useCallback, useLayoutEffect, useMemo} from 'react';
-import type {Theme} from '@emotion/react';
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -14,7 +14,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 export function useChonkTheme(): [
-  Theme | null,
+  DO_NOT_USE_ChonkTheme | null,
   (value: 'light' | 'dark' | null) => void,
 ] {
   const config = useLegacyStore(ConfigStore);
