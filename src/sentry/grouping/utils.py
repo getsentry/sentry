@@ -143,7 +143,7 @@ def get_fingerprint_value(
 
 
 def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
-    def _get_fingerprint_value(value: str) -> str:
+    def _resolve_single_entry(value: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(value)
         if variable_key == "default":
             return DEFAULT_FINGERPRINT_VARIABLE
@@ -154,7 +154,7 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
             return value
         return rv
 
-    return [_get_fingerprint_value(x) for x in fingerprint]
+    return [_resolve_single_entry(x) for x in fingerprint]
 
 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
