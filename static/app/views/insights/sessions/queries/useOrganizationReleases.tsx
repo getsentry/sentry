@@ -6,12 +6,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function useOrganizationReleases() {
   const location = useLocation();
   const organization = useOrganization();
+
+  const locationWithoutWidth = {
+    ...location,
+    query: {...location.query, width: undefined},
+  };
+
   const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          ...location.query,
+          ...locationWithoutWidth.query,
           adoptionStages: 1,
           health: 1,
         },

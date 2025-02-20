@@ -8,6 +8,12 @@ import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSe
 export default function useCrashFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
+
+  const locationWithoutWidth = {
+    ...location,
+    query: {...location.query, width: undefined},
+  };
+
   const {
     data: sessionData,
     isPending,
@@ -17,7 +23,7 @@ export default function useCrashFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...location.query,
+          ...locationWithoutWidth.query,
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },
