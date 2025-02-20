@@ -477,13 +477,13 @@ class FingerprintMatcher:
 
     @classmethod
     def _from_config_structure(cls, matcher: list[str]) -> Self:
-        key = matcher[0]
+        key, pattern = matcher
         if key.startswith("!"):
             key = key[1:]
             negated = True
         else:
             negated = False
-        return cls(key, matcher[1], negated)
+        return cls(key, pattern, negated)
 
     @property
     def text(self) -> str:
