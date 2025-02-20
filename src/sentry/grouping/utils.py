@@ -135,7 +135,7 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
         return None
 
 
-def resolve_fingerprint_values(values: list[str], event_data: NodeData) -> list[str]:
+def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
     def _get_fingerprint_value(value: str) -> str:
         var = parse_fingerprint_var(value)
         if var == "default":
@@ -147,7 +147,7 @@ def resolve_fingerprint_values(values: list[str], event_data: NodeData) -> list[
             return value
         return rv
 
-    return [_get_fingerprint_value(x) for x in values]
+    return [_get_fingerprint_value(x) for x in fingerprint]
 
 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
