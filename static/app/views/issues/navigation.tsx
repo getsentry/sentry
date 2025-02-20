@@ -20,7 +20,6 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
   const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
   const sectionRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
   const [views, setViews] = useState<IssueViewPF[] | null>(null);
 
   const {data: groupSearchViews} = useFetchGroupSearchViews(
@@ -78,7 +77,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.ISSUES}>
         <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
-        <SecondaryNav.Body ref={bodyRef}>
+        <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
               {t('All')}
@@ -103,8 +102,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
                     <IssueViewNavItemContent
                       key={view.id}
                       view={view}
-                      dragConstraints={sectionRef}
-                      sectionBodyRef={bodyRef}
+                      sectionRef={sectionRef}
                     />
                   ))}
               </Reorder.Group>

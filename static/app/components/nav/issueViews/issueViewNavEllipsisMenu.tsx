@@ -9,11 +9,11 @@ import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 export function IssueViewNavEllipsisMenu({
-  sectionBodyRef,
+  sectionRef,
   setIsEditing,
 }: {
   setIsEditing: (isEditing: boolean) => void;
-  sectionBodyRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement>;
 }) {
   return (
     <DropdownMenu
@@ -60,7 +60,7 @@ export function IssueViewNavEllipsisMenu({
       onInteractOutside={() => true}
       menuFooter={<FeedbackFooter />}
       usePortal
-      portalContainerRef={sectionBodyRef}
+      portalContainerRef={sectionRef}
     />
   );
 }
