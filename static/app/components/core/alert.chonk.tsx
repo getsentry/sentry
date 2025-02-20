@@ -1,4 +1,5 @@
 import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/alert';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
@@ -17,12 +18,12 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   size?: 'sm';
 }
 
-function Container({type, theme, size, ...props}: ChonkAlertProps) {
-  const colors = makeChonkAlertTheme(type, theme);
-  const padding = makeChonkAlertPadding(size, theme);
+function AlertPanel({type, theme, size, ...props}: ChonkAlertProps) {
+  const colors = useChonkAlertTheme(type, theme);
+  const padding = useChonkAlertPadding(size, theme);
 
   return (
-    <div
+    <AlertPanelDiv
       {...props}
       css={css`
         background-color: ${colors.background};
@@ -59,11 +60,13 @@ function Container({type, theme, size, ...props}: ChonkAlertProps) {
       `}
     >
       {props.children}
-    </div>
+    </AlertPanelDiv>
   );
 }
 
-function makeChonkAlertPadding(
+const AlertPanelDiv = styled('div')<Omit<ChonkAlertProps, 'type' | 'theme'>>``;
+
+function useChonkAlertPadding(
   size: ChonkAlertProps['size'],
   theme: DO_NOT_USE_ChonkTheme
 ) {
@@ -75,11 +78,7 @@ function makeChonkAlertPadding(
   }
 }
 
-function makeChonkAlertTheme(
-  type: ChonkAlertProps['type'],
-  theme: DO_NOT_USE_ChonkTheme
-) {
-  // @TODO(jonasbadalic): implement opaque variants? We dont seem to use them anywhere
+function useChonkAlertTheme(type: ChonkAlertProps['type'], theme: DO_NOT_USE_ChonkTheme) {
   switch (type) {
     case 'info':
       return {
@@ -123,4 +122,4 @@ function unreachable(x: never) {
   return x;
 }
 
-export {Container, chonkAlertPropMapping};
+export {AlertPanel, chonkAlertPropMapping};
