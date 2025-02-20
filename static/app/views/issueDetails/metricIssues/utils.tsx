@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import moment from 'moment-timezone';
 
+import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -44,17 +45,17 @@ export function useMetricIssueAlertId({groupId}: {groupId: string}): string | un
   return hasMetricDetector ? detectorId : event?.contexts?.metric_alert?.alert_rule_id;
 }
 
+interface UseMetricTimePeriodParams {
+  openPeriod?: GroupOpenPeriod;
+}
+
 export function useMetricTimePeriod({
   openPeriod,
-}: {
-  openPeriod?: GroupOpenPeriod;
-}): TimePeriodType | null {
-  return useMemo((): TimePeriodType | null => {
-    if (!openPeriod) {
-      return null;
-    }
-    const start = openPeriod.start;
-    let end = openPeriod.end;
+}: UseMetricTimePeriodParams = {}): TimePeriodType {
+  const {since, until} = usePageFilterDates();
+  return useMemo(() => {
+    const start = openPeriod?.start ?? since.toISOString();
+    let end = openPeriod?.end ?? until.toISOString();
     if (!end) {
       end = new Date().toISOString();
     }
@@ -73,5 +74,5 @@ export function useMetricTimePeriod({
       ),
       custom: true,
     };
-  }, [openPeriod]);
+  }, [openPeriod, since, until]);
 }
