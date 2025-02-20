@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -161,6 +162,8 @@ class IssueAlertMigrator:
         enabled = True
         rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
         if rule_snooze and rule_snooze.until is None:
+            enabled = False
+        if self.rule.status == ObjectStatus.DISABLED:
             enabled = False
 
         config = {"frequency": self.rule.data.get("frequency") or Workflow.DEFAULT_FREQUENCY}

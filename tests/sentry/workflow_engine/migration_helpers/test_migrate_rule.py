@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from jsonschema.exceptions import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
@@ -473,6 +474,16 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         self.assert_issue_alert_migrated(self.issue_alert, logic_type=DataConditionGroup.Type.ALL)
+
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        action = dcg_actions.action
+        assert action.type == Action.Type.SLACK
+
+    def test_run__disabled_rule(self):
+        self.issue_alert.update(status=ObjectStatus.DISABLED)
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        self.assert_issue_alert_migrated(self.issue_alert, is_enabled=False)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
