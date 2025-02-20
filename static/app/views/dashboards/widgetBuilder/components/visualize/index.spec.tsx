@@ -274,7 +274,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'field (no aggregate)'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    // The column selection is automatically opened for aggregates
     await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
@@ -283,6 +283,35 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'field (no aggregate)'
     );
+  });
+
+  it('automatically opens the column selection for aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p50'}));
+
+    // Indicate that the column selection is open, and multiple options are available
+    expect(
+      screen.getByRole('option', {name: 'transaction.duration'})
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
 
   it('allows setting an equation in tables', async () => {

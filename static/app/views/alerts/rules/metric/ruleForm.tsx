@@ -157,8 +157,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
   uuid: string | null = null;
 
-  constructor(props: any, context: any) {
-    super(props, context);
+  constructor(props: any) {
+    super(props);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
     this.handleConfidenceTimeSeriesDataFetched =

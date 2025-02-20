@@ -8,7 +8,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
@@ -2751,10 +2751,10 @@ class SCIMTestCase(APITestCase):
 class SCIMAzureTestCase(SCIMTestCase):
     provider = ACTIVE_DIRECTORY_PROVIDER_NAME
 
-    def setUp(self):
-        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp()
-        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+    @pytest.fixture(autouse=True)
+    def _use_dummy_provider_for_ad_provider(self) -> Generator[None]:
+        with mock.patch.object(auth.manager, "get", return_value=DummyProvider("dummy")):
+            yield
 
 
 class ActivityTestCase(TestCase):

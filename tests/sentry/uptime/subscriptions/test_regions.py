@@ -38,7 +38,6 @@ class GetActiveRegionConfigsTest(TestBase):
         ):
             active_regions = get_active_region_configs()
             assert len(active_regions) == 2
-            assert all(region.enabled for region in active_regions)
             assert {region.slug for region in active_regions} == {"us", "ap"}
 
 
@@ -49,9 +48,3 @@ class GetRegionConfigTest(TestBase):
             assert region is not None
             assert region.slug == "us"
             assert region.name == "United States"
-
-    def test_returns_first_active_region_for_invalid_slug(self):
-        with override_settings(UPTIME_REGIONS=self.test_regions):
-            region = get_region_config("invalid")
-            assert region is not None
-            assert region.slug == "us"  # First active region

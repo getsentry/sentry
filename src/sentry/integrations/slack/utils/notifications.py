@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 import orjson
 import sentry_sdk
@@ -26,6 +25,7 @@ from sentry.integrations.repository.metric_alert import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import (
     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
     SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
@@ -70,8 +70,8 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    attachment: Any = SlackIncidentsMessageBuilder(
-        action, incident, new_status, metric_value, chart_url, notification_uuid
+    attachment: SlackBlock = SlackIncidentsMessageBuilder(
+        incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
