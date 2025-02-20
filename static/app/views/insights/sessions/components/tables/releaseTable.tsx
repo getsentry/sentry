@@ -2,21 +2,26 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Count from 'sentry/components/count';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 export type SessionHealthItem = {
   crash_free_sessions: number;
   date: string;
   error_count: number;
+  project_id: number;
   release: string;
   sessions: number;
   stage: string;
@@ -72,6 +77,21 @@ export default function ReleaseTable({data, isError, isLoading, location, meta}:
         return `${value.toFixed(2)}%`;
       }
 
+      if (column.key === 'error_count') {
+        return (
+          <Tooltip title={t('Open in Issues')}>
+            <GlobalSelectionLink
+              to={getReleaseNewIssuesUrl(
+                organization.slug,
+                dataRow.project_id,
+                dataRow.release
+              )}
+            >
+              <Count value={value} />
+            </GlobalSelectionLink>
+          </Tooltip>
+        );
+      }
       if (!meta?.fields) {
         return value;
       }

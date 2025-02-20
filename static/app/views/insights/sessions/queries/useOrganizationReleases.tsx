@@ -38,6 +38,7 @@ export default function useOrganizationReleases() {
             crash_free_sessions: release.projects[0]?.healthData?.crashFreeSessions ?? 0,
             sessions: release.projects[0]?.healthData?.totalSessions ?? 0,
             error_count: release.projects[0]?.newGroups ?? 0,
+            project_id: release.projects[0]?.id ?? 0,
           };
         });
 
