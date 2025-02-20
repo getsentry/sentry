@@ -120,20 +120,22 @@ def create_or_update_grouphash_metadata_if_needed(
     grouping_config: str,
     variants: dict[str, BaseVariant],
 ) -> None:
-    # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
-    # we'll have to override the metadata creation date for them.
-
     db_hit_metadata: dict[str, Any] = {}
 
-    if grouphash_is_new:
+    if not grouphash.metadata:
         new_data: dict[str, Any] = {"grouphash": grouphash}
         new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
 
-        db_hit_metadata = {"reason": "new_grouphash"}
+        db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
+
+        if not grouphash_is_new:
+            # If we're adding metadata to an existing grouphash, override the creation date so it
+            # doesn't default to now
+            new_data["date_added"] = None
 
         GroupHashMetadata.objects.create(**new_data)
 
-    elif grouphash.metadata:
+    else:
         updated_data: dict[str, Any] = {}
 
         # Keep track of the most recent config which computed this hash, so that once a config is
