@@ -45,7 +45,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def get(self, request: Request, organization: Organization) -> Response:
         timerange_args = self._parse_args(request, restrict_rollups=False)
-        projects = self.get_projects(request, organization)
+        projects = self.get_projects(request, organization, include_all_accessible=True)
 
         project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
 
