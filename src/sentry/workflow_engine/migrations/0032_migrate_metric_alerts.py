@@ -36,6 +36,11 @@ class IncidentStatus(Enum):
     CRITICAL = 20
 
 
+class IncidentType(Enum):
+    DETECTED = 0
+    ALERT_TRIGGERED = 2
+
+
 class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
@@ -250,7 +255,17 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     config={},
                 )
 
-                open_incident = Incident.objects.get_active_incident(alert_rule, project)
+                try:
+                    incident_query = Incident.objects.filter(
+                        type=IncidentType.ALERT_TRIGGERED.value,
+                        alert_rule=alert_rule,
+                        projects=project,
+                    )
+                    open_incident = incident_query.exclude(
+                        status=IncidentStatus.CLOSED.value
+                    ).order_by("-date_added")[0]
+                except IndexError:
+                    open_incident = None
                 if open_incident:
                     state = (
                         DetectorPriorityLevel.MEDIUM
