@@ -514,7 +514,7 @@ class FingerprintRule:
 
         for match_type, matchers in matchers_by_match_type.items():
             for values in event_datastore.get_values(match_type):
-                if all(x.matches(values) for x in matchers):
+                if all(matcher.matches(values) for matcher in matchers):
                     break
             else:
                 return None
