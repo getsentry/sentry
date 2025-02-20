@@ -170,9 +170,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             assert not getattr(member.flags, "sso:invalid")
 
     def create_org_and_auth_provider(self, provider_name="dummy"):
-        if provider_name == "Fly.io":
-            auth.register("Fly.io", FlyOAuth2Provider)
-            self.addCleanup(auth.unregister, "Fly.io", FlyOAuth2Provider)
+        if provider_name == "fly":
+            auth.register("fly", FlyOAuth2Provider)
+            self.addCleanup(auth.unregister, "fly", FlyOAuth2Provider)
 
         self.user.update(is_managed=True)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -328,7 +328,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     @with_feature("organizations:sso-basic")
     def test_disable_partner_provider(self):
-        organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
+        organization, auth_provider = self.create_org_and_auth_provider("fly")
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
         assert AuthProvider.objects.filter(organization_id=organization.id).exists()
