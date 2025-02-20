@@ -322,18 +322,6 @@ def _get_issues_for_file(
             [
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("group_id"), Op.IN, group_ids),
-                Condition(
-                    Function("toStartOfDay", [Column("timestamp")]),
-                    Op.GTE,
-                    event_timestamp_start.date(),
-                ),
-                Condition(
-                    Function("toStartOfDay", [Column("timestamp")]),
-                    Op.LT,
-                    event_timestamp_end.date() + timedelta(days=1),
-                ),
-                # Apply toStartOfDay b/c it's part of the sorting key. TODO: measure.
-                # Then, for precision, add the granular timestamp filters:
                 Condition(Column("timestamp"), Op.GTE, event_timestamp_start),
                 Condition(Column("timestamp"), Op.LT, event_timestamp_end),
             ]
@@ -486,7 +474,7 @@ def _get_projects_and_filenames_from_source_file(
         .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
         .filter(substring_match=1)
     )
-    # TODO: is this substring_match might too strict?
+    # TODO(kddubey): is this substring_match too strict?
 
     project_list: set[Project] = set()
     sentry_filenames = set()
