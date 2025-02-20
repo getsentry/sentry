@@ -6,6 +6,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase
 
@@ -16,10 +17,17 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
     def setUp(self):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+
+        self.user = self.create_user()
+        self.member = self.create_member(user=self.user, organization=self.organization)
+        self.team = self.create_team(organization=self.organization, members=[self.user])
+        self.actor = Actor.from_identifier(self.user.id)
+
         self.alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[self.project],
             name="My Alert Rule",
+            owner=self.actor,
         )
 
         self.incident = self.create_incident(
@@ -56,6 +64,8 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.HIGH
+        assignee = group.get_assignee()
+        assert Actor.from_identifier(assignee.id) == self.alert_rule.owner
 
     @django_db_all
     def test_resolved_incident(self):
