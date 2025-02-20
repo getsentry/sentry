@@ -37,6 +37,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
 from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
@@ -497,8 +498,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 user=user_service.get_user(user_id=identity.user_id),
                 auth=event_write_key,
             )
-            if response.status_code >= 400:
-                lifecycle.record_failure()
+            record_lifecycle_termination_level(lifecycle, response)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
