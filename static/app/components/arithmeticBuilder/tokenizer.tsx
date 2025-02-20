@@ -1,12 +1,12 @@
 import type {ListState} from '@react-stately/list';
 import type {LocationRange} from 'peggy';
 
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {
   isTokenFreeText,
   isTokenFunction,
   Operator,
   Parenthesis,
+  type Token,
   TokenAttribute,
   TokenCloseParenthesis,
   TokenFreeText,
