@@ -13,9 +13,5 @@ class AuthView(BaseView):
     auth_required = False
     sudo_required = False
 
-    def get_ident(self) -> str:
-        cls = type(self)
-        return f"{cls.__module__}.{cls.__name__}"
-
 
 __all__ = ("AuthView",)
