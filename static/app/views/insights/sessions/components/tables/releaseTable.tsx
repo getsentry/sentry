@@ -79,7 +79,7 @@ export default function ReleaseTable({data, isError, isLoading, location, meta}:
 
       if (column.key === 'error_count') {
         return (
-          <Tooltip title={t('Open in Issues')}>
+          <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
                 organization.slug,
