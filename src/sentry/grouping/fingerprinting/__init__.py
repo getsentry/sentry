@@ -432,42 +432,41 @@ class FingerprintMatcher:
         return False
 
     def _positive_match(self, values: dict[str, Any]) -> bool:
-        # `path` is special in that it tests against two values (`abs_path` and `filename`)
+        # Handle cases where `self.key` isn't 1-to-1 with the corresponding key in `values`
         if self.key == "path":
-            value = values.get("abs_path")
-            if self._positive_path_match(value):
-                return True
-            alt_value = values.get("filename")
-            if alt_value != value:
-                if self._positive_path_match(alt_value):
-                    return True
-            return False
+            return any(
+                self._positive_path_match(value)
+                # Use a set so that if the values match, we don't needlessly check both
+                for value in {values.get("abs_path"), values.get("filename")}
+            )
 
-        # message tests against exception value also, as this is what users expect
         if self.key == "message":
-            for key in ("message", "value"):
-                value = values.get(key)
-                if value is not None and glob_match(value, self.pattern, ignorecase=True):
-                    return True
-            return False
+            return any(
+                value is not None and glob_match(value, self.pattern, ignorecase=True)
+                # message tests against exception value also, as this is what users expect
+                for value in [values.get("message"), values.get("value")]
+            )
 
+        # For the rest, `self.key` matches the key in `values`
         value = values.get(self.key)
+
         if value is None:
             return False
-        elif self.key in ["package", "release"]:
-            if self._positive_path_match(value):
-                return True
-        elif self.key in ["family", "sdk"]:
+
+        if self.key in ["package", "release"]:
+            return self._positive_path_match(value)
+
+        if self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "app":
-            ref_val = bool_from_string(self.pattern)
-            if ref_val is not None and ref_val == value:
-                return True
-        elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
-            return True
-        return False
+            return "all" in flags or value in flags
+
+        if self.key == "app":
+            return value == bool_from_string(self.pattern)
+
+        if self.key in ["level", "value"]:
+            return glob_match(value, self.pattern, ignorecase=True)
+
+        return glob_match(value, self.pattern, ignorecase=False)
 
     def _to_config_structure(self) -> list[str]:
         key = self.key
