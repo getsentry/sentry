@@ -3,11 +3,13 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
-from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH
+from sentry.models.project import Project
 from sentry.projects.services.project import RpcProject
+from sentry.projects.services.project.model import ProjectUpdateArgs
 
 
-class ProjectUpdateArgsSerializer(serializers.Serializer):
+class ProjectUpdateArgsSerializer(serializers.Serializer[ProjectUpdateArgs]):
     name = serializers.CharField(
         help_text="The name for the project",
         max_length=200,
