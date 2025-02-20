@@ -1,7 +1,5 @@
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-
 import type {AlertProps} from 'sentry/components/alert';
+import {chonkStyled, useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 
 const chonkAlertPropMapping: ChonkPropMapping<AlertProps, ChonkAlertProps> = props => {
@@ -13,62 +11,66 @@ const chonkAlertPropMapping: ChonkPropMapping<AlertProps, ChonkAlertProps> = pro
 };
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
-  theme: DO_NOT_USE_ChonkTheme;
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
   size?: 'sm';
 }
 
-function AlertPanel({type, theme, size, ...props}: ChonkAlertProps) {
-  const colors = useChonkAlertTheme(type, theme);
-  const padding = useChonkAlertPadding(size, theme);
+function AlertPanel({type, size, ...props}: ChonkAlertProps) {
+  const theme = useChonkTheme();
 
   return (
     <AlertPanelDiv
       {...props}
-      css={css`
-        background-color: ${colors.background};
-        color: ${colors.color};
-        border: ${colors.border};
-        border-width: ${props.system ? '0px 0px 2px 0px' : '2px'};
-        border-radius: ${props.system ? '0px' : theme.borderRadius};
-        padding: ${padding};
-
-        cursor: ${props.expand ? 'pointer' : 'default'};
-
-        display: grid;
-        grid-template-columns:
-          ${!!props.showIcon && `minmax(0, max-content)`}
-          minmax(0, 1fr)
-          ${!!props.trailingItems && `max-content`}
-          ${!!props.expand && `max-content`};
-
-        gap: ${theme.space.md};
-
-        a,
-        button {
-          color: inherit;
-        }
-
-        a:hover,
-        button:hover {
-          color: inherit;
-        }
-
-        a {
-          text-decoration: underline;
-        }
-      `}
+      colors={chonkAlertTheme(type, theme)}
+      padding={chonkAlertPadding(size, theme)}
     >
       {props.children}
     </AlertPanelDiv>
   );
 }
 
-const AlertPanelDiv = styled('div')<Omit<ChonkAlertProps, 'type' | 'theme'>>``;
+const AlertPanelDiv = chonkStyled('div')<
+  Omit<ChonkAlertProps, 'type'> & {
+    colors: ReturnType<typeof chonkAlertTheme>;
+    padding: ReturnType<typeof chonkAlertPadding>;
+  }
+>`
+  background-color: ${p => p.colors.background};
+  color: ${p => p.colors.color};
+  border: ${p => p.colors.border};
+  border-width: ${p => (p.system ? '0px 0px 2px 0px' : '2px')};
+  border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
+  padding: ${p => p.padding};
 
-function useChonkAlertPadding(
+  cursor: ${p => (p.expand ? 'pointer' : 'default')};
+
+  display: grid;
+  grid-template-columns:
+    ${p => (p.showIcon ? `minmax(0, max-content)` : '0fr')}
+    minmax(0, 1fr)
+    ${p => (p.trailingItems ? `max-content` : '0fr')}
+    ${p => (p.expand ? `max-content` : '0fr')};
+
+  gap: ${p => p.theme.space.md};
+
+  a,
+  button {
+    color: inherit;
+  }
+
+  a:hover,
+  button:hover {
+    color: inherit;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+`;
+
+function chonkAlertPadding(
   size: ChonkAlertProps['size'],
-  theme: DO_NOT_USE_ChonkTheme
+  theme: ReturnType<typeof useChonkTheme>
 ) {
   switch (size) {
     case 'sm':
@@ -78,7 +80,10 @@ function useChonkAlertPadding(
   }
 }
 
-function useChonkAlertTheme(type: ChonkAlertProps['type'], theme: DO_NOT_USE_ChonkTheme) {
+function chonkAlertTheme(
+  type: ChonkAlertProps['type'],
+  theme: ReturnType<typeof useChonkTheme>
+) {
   switch (type) {
     case 'info':
       return {
