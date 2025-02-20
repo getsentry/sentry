@@ -47,7 +47,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
   const addChart = useCallback(() => {
     setVisualizes(
       [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
-      DEFAULT_VISUALIZATION_FIELD
+      [DEFAULT_VISUALIZATION_FIELD]
     );
   }, [setVisualizes, visualizes]);
 
@@ -55,7 +55,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
     (group: number) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
-      setVisualizes(newVisualizes, DEFAULT_VISUALIZATION_FIELD);
+      setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
     },
     [setVisualizes, visualizes]
   );
@@ -129,10 +129,10 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
                       deleteOverlay={deleteOverlay}
                       group={group}
                       index={index}
-                      setVisualizes={setVisualizes}
                       label={shouldRenderLabel ? visualize.label : undefined}
-                      visualizes={visualizes}
                       yAxis={yAxis}
+                      visualizes={visualizes}
+                      setVisualizes={setVisualizes}
                     />
                   )}
                 </Fragment>
@@ -162,7 +162,7 @@ interface VisualizeDropdownProps {
   deleteOverlay: (group: number, index: number) => void;
   group: number;
   index: number;
-  setVisualizes: (visualizes: Visualize[], field?: string) => void;
+  setVisualizes: (visualizes: Visualize[], fields?: string[]) => void;
   visualizes: Visualize[];
   yAxis: string;
   label?: string;
@@ -200,7 +200,7 @@ function VisualizeDropdown({
     ({value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group]!.yAxes[index] = `${parsedVisualize.name}(${value})`;
-      setVisualizes(newVisualizes, String(value));
+      setVisualizes(newVisualizes, [String(value)]);
     },
     [group, index, parsedVisualize, setVisualizes, visualizes]
   );
@@ -245,7 +245,7 @@ interface VisualizeEquationProps {
   deleteOverlay: (group: number, index: number) => void;
   group: number;
   index: number;
-  setVisualizes: (visualizes: Visualize[], field?: string) => void;
+  setVisualizes: (visualizes: Visualize[], fields?: string[]) => void;
   visualizes: Visualize[];
   label?: string;
   yAxis?: string;
@@ -267,8 +267,10 @@ function VisualizeEquation({
         const functions = expression.tokens.filter(isTokenFunction);
         const newVisualizes = visualizes.slice();
         newVisualizes[group]!.yAxes[index] = expression.text;
-        // TODO: add all the attributes, not just the first
-        setVisualizes(newVisualizes, functions[0]?.attributes?.[0]?.format());
+        setVisualizes(
+          newVisualizes,
+          functions.flatMap(func => func.attributes.map(attr => attr.format()))
+        );
       }
     },
     [group, index, setVisualizes, visualizes]

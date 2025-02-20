@@ -294,10 +294,11 @@ export function useSetExploreVisualizes() {
   const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (visualizes: BaseVisualize[], field?: string) => {
+    (visualizes: BaseVisualize[], fields?: string[]) => {
       const writablePageParams: WritablePageParams = {visualizes};
-      if (defined(field) && !pageParams.fields.includes(field)) {
-        writablePageParams.fields = [...pageParams.fields, field];
+      const newFields = fields?.filter(field => !pageParams.fields.includes(field)) || [];
+      if (newFields.length > 0) {
+        writablePageParams.fields = [...pageParams.fields, ...newFields];
       }
       setPageParams(writablePageParams);
     },

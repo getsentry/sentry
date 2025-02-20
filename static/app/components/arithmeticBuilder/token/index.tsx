@@ -87,11 +87,6 @@ export class TokenFunction extends Token {
     this.function = func;
     this.attributes = attributes;
   }
-
-  format(): string {
-    const args = this.attributes.map(attr => attr.format());
-    return `${this.function}(${args.join(',')})`;
-  }
 }
 
 export class TokenFreeText extends Token {
