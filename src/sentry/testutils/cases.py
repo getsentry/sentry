@@ -163,7 +163,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options
+from .helpers import Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -239,13 +239,6 @@ class BaseTestCase(Fixtures):
         >>>     # ...
         """
         return Feature(names)
-
-    def auth_provider(self, name, cls):
-        """
-        >>> with self.auth_provider('name', Provider)
-        >>>     # ...
-        """
-        return AuthProvider(name, cls)
 
     def save_session(self):
         self.session.save()
