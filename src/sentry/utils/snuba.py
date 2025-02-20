@@ -170,6 +170,8 @@ SPAN_COLUMN_MAP = {
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
     "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "messaging.operation.name": "sentry_tags[messaging.operation.name]",
+    "messaging.operation.type": "sentry_tags[messaging.operation.type]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
     "user.geo.subregion": "sentry_tags[user.geo.subregion]",
