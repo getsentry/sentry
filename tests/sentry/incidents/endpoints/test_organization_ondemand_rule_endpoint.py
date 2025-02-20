@@ -16,7 +16,7 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
         # no metric alert
         self.alert1 = self.create_alert_rule()
 
-        # metric alert due to query but using transactions dataset
+        # on-demand metric alert due to query but using transactions dataset
         self.alert2 = self.create_alert_rule(
             aggregate="count()",
             query="transaction.duration:>=10",
