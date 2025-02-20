@@ -90,9 +90,7 @@ export default function ShareIssueModal({
                 checked={includeEventId}
                 onChange={() => setIncludeEventId(!includeEventId)}
               />
-              <span onClick={() => setIncludeEventId(!includeEventId)}>
-                {t('Include Event ID in link')}
-              </span>
+              {t('Include Event ID in link')}
             </CheckboxContainer>
           )}
           <StyledButtonBar gap={0.5}>
@@ -173,10 +171,11 @@ const TextContainer = styled('div')`
   min-width: 0;
 `;
 
-const CheckboxContainer = styled('div')`
+const CheckboxContainer = styled('label')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
