@@ -158,7 +158,7 @@ class DiscordClientTest(TestCase):
         message = DiscordMessageBuilder(
             content="test",
             flags=DiscordMessageFlags().set_ephemeral(),
-        )
+        ).build(notification_uuid=None)
 
         self.discord_client.send_message(
             channel_id=channel_id,
