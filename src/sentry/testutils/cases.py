@@ -3284,11 +3284,13 @@ class SpanTestCase(BaseTestCase):
         # Load some defaults
         span.update(
             {
+                "event_id": uuid4().hex,
                 "organization_id": organization.id,
                 "project_id": project.id,
                 "trace_id": uuid4().hex,
                 "span_id": uuid4().hex[:16],
                 "parent_span_id": uuid4().hex[:16],
+                "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
