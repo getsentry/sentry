@@ -195,27 +195,19 @@ export const NavButton = styled('button', {
   ${baseNavItemStyles}
 `;
 
-export const SidebarItemBadge = styled('span')`
+export const SidebarItemUnreadIndicator = styled('span')`
   position: absolute;
-  top: ${space(0.5)};
-  right: ${space(0.5)};
+  top: calc(50% - 16px);
+  left: calc(50% + 16px);
+  transform: translate(-50%, -50%);
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  background: ${p => p.theme.red300};
-  width: 16px;
-  height: 16px;
-  border-radius: 16px;
-  line-height: 16px;
-
-  &:empty {
-    width: 8px;
-    height: 8px;
-    border-radius: 4px;
-    top: ${space(1)};
-    right: ${space(1)};
-  }
+  background: ${p => p.theme.purple400};
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
 `;
 
 const SeparatorListItem = styled('li')`

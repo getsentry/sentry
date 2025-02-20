@@ -7,7 +7,7 @@ import {useNavContext} from 'sentry/components/nav/context';
 import {
   NavButton,
   SidebarItem,
-  SidebarItemBadge,
+  SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
 import {NavLayout} from 'sentry/components/nav/types';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
@@ -147,7 +147,7 @@ export function PrimaryNavigationOnboarding() {
           />
           {showLabel ? label : null}
           {pendingCompletionSeen && (
-            <SidebarItemBadge data-test-id="pending-seen-indicator" />
+            <SidebarItemUnreadIndicator data-test-id="pending-seen-indicator" />
           )}
         </NavButton>
       </SidebarItem>
