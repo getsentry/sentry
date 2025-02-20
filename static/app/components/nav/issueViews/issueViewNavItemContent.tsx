@@ -245,7 +245,9 @@ const hasUnsavedChanges = (
 
   const newUnsavedChanges: Partial<IssueViewPFParams> = {
     query:
-      queryQuery && queryQuery.toString() !== originalQuery
+      queryQuery !== null &&
+      queryQuery !== undefined &&
+      queryQuery.toString() !== originalQuery
         ? queryQuery.toString()
         : undefined,
     querySort:
