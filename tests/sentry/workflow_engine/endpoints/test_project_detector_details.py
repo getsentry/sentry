@@ -160,6 +160,25 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
             "config": self.detector.config,
         }
 
+    def assert_detector_updated(self, detector):
+        assert detector.name == "Updated Detector"
+        assert detector.type == MetricAlertFire.slug
+        assert detector.project_id == self.project.id
+
+    def assert_condition_group_updated(self, condition_group):
+        assert condition_group
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.organization.id
+
+    def assert_data_condition_updated(self, condition):
+        assert condition.type == Condition.GREATER.value
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+    def assert_snuba_query_updated(self, snuba_query):
+        assert snuba_query.query == "updated query"
+        assert snuba_query.time_window == 300  # seconds = 5 minutes
+
     def test_update(self):
         with self.tasks():
             response = self.get_success_response(
@@ -172,27 +191,20 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
 
         detector = Detector.objects.get(id=response.data["id"])
         assert response.data == serialize([detector])[0]
-        assert detector.name == "Updated Detector"
-        assert detector.type == MetricAlertFire.slug
-        assert detector.project_id == self.project.id
+        self.assert_detector_updated(detector)
 
         condition_group = detector.workflow_condition_group
-        assert condition_group
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.organization.id
+        self.assert_condition_group_updated(condition_group)
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 1
         condition = conditions[0]
-        assert condition.type == Condition.GREATER.value
-        assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        self.assert_data_condition_updated(condition)
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
         data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
         snuba_query = SnubaQuery.objects.get(id=data_source.source_id)
-        assert snuba_query.query == "updated query"
-        assert snuba_query.time_window == 300  # seconds = 5 minutes
+        self.assert_snuba_query_updated(snuba_query)
 
     def test_update_add_data_condition(self):
         """
