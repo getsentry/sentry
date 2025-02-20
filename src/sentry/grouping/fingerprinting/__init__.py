@@ -487,7 +487,7 @@ class FingerprintMatcher:
     @property
     def text(self) -> str:
         return '{}{}:"{}"'.format(
-            self.negated and "!" or "",
+            "!" if self.negated else "",
             self.key,
             self.pattern,
         )
