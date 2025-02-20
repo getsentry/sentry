@@ -133,6 +133,7 @@ def resolve_fingerprint_variable(
         frame = get_crash_frame_from_event_data(event_data)
         pkg = frame.get("package") if frame else None
         if pkg:
+            # If the package is formatted as either a POSIX or Windows path, grab the last segment
             pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
         return pkg or "<no-package>"
 
@@ -156,12 +157,12 @@ def resolve_fingerprint_variable(
 def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)
-        if variable_key == "default":
+        if variable_key == "default":  # entry is some variation of `{{ default }}`
             return DEFAULT_FINGERPRINT_VARIABLE
-        if variable_key is None:
+        if variable_key is None:  # entry isn't a variable
             return entry
         resolved_value = resolve_fingerprint_variable(variable_key, event_data)
-        if resolved_value is None:
+        if resolved_value is None:  # variable wasn't recognized
             return entry
         return resolved_value
 
@@ -174,6 +175,7 @@ def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
         resolved_value = resolve_fingerprint_variable(variable_key, event_data)
         if resolved_value is not None:
             return resolved_value
+        # If the variable can't be resolved, return it as is
         return match.group(0)
 
     return _fingerprint_var_re.sub(_handle_match, template)
