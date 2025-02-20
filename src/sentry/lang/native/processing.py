@@ -134,6 +134,8 @@ def _handle_image_status(status, image, os, data):
         error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
     elif status == "fetching_failed":
         error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
+    elif status == "timeout":
+        error = SymbolicationFailed(type=EventError.FETCH_TIMEOUT)
     elif status == "other":
         error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
     else:
