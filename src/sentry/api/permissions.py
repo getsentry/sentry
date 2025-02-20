@@ -300,7 +300,15 @@ class DemoSafePermission(SentryPermission):
 
         if demo_mode.is_demo_user(request.user):
             if org_context.member and demo_mode.is_demo_mode_enabled():
-                org_context.member.scopes = demo_mode.get_readonly_scopes()
+                readonly_scopes = demo_mode.get_readonly_scopes()
+                org_context.member.scopes = readonly_scopes
+                request.access = access.from_request_org_and_scopes(
+                    request=request,
+                    rpc_user_org_context=org_context,
+                    scopes=readonly_scopes,
+                )
+
+            return
 
         return super().determine_access(request, org_context)
 
