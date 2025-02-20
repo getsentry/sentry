@@ -16,6 +16,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -185,21 +186,14 @@ const READABLE_PARAM_MAPPING = {
 };
 
 const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewPFParams>) => {
+  const changedParams = Object.keys(unsavedChanges)
+    .filter(k => unsavedChanges[k as keyof IssueViewPFParams] !== undefined)
+    .map(k => READABLE_PARAM_MAPPING[k as keyof IssueViewPFParams]);
+
   return (
     <Fragment>
       {t(`This view's `)}
-      {Object.keys(unsavedChanges).map((key, idx) => {
-        const validKeys = Object.keys(unsavedChanges).filter(
-          k => unsavedChanges[k as keyof IssueViewPFParams] !== undefined
-        );
-        return unsavedChanges[key as keyof IssueViewPFParams] ? (
-          <b key={key}>
-            {idx === validKeys.length - 1 ? 'and ' : ''}
-            {READABLE_PARAM_MAPPING[key as keyof IssueViewPFParams]}
-            {idx < validKeys.length - 1 && validKeys.length !== 1 ? ', ' : ''}
-          </b>
-        ) : null;
-      })}
+      <b>{oxfordizeArray(changedParams)}</b>
       {t(` filters are not saved.`)}
     </Fragment>
   );
