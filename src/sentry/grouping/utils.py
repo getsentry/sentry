@@ -102,8 +102,8 @@ def get_fingerprint_value(
         return message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
-        ty = get_path(event_data, "exception", "values", -1, "type")
-        return ty or "<no-type>"
+        exception_type = get_path(event_data, "exception", "values", -1, "type")
+        return exception_type or "<no-type>"
 
     elif variable_key in ("value", "error.value"):
         value = get_path(event_data, "exception", "values", -1, "value")
