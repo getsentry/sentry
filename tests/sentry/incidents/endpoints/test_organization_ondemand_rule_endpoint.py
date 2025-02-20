@@ -23,7 +23,7 @@ class OrganizationOnDemandRuleTotalsEndpointTest(BaseAlertRuleSerializerTest, AP
             dataset=Dataset.Transactions,
         )
 
-        # metric alert due to query but using generic_metrics dataset
+        # on-demand metric alert due to query
         self.alert3 = self.create_alert_rule(
             aggregate="count()",
             query="transaction.duration:>=1000",
