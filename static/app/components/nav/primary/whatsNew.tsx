@@ -7,7 +7,7 @@ import {useNavContext} from 'sentry/components/nav/context';
 import {
   NavButton,
   SidebarItem,
-  SidebarItemBadge,
+  SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
 import {NavLayout} from 'sentry/components/nav/types';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
@@ -140,14 +140,13 @@ export function WhatsNew() {
           }
         }}
         aria-label={showLabel ? undefined : t("What's New")}
+        isMobile={layout === NavLayout.MOBILE}
       >
         <InteractionStateLayer />
         <IconBroadcast />
         {showLabel && <span>{t("What's New")}</span>}
         {unseenPostIds.length > 0 && (
-          <SidebarItemBadge data-test-id="whats-new-badge">
-            {unseenPostIds.length}
-          </SidebarItemBadge>
+          <SidebarItemUnreadIndicator data-test-id="whats-new-badge" />
         )}
       </NavButton>
     </SidebarItem>
