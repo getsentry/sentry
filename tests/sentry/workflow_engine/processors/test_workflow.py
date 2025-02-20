@@ -440,31 +440,43 @@ class TestDeleteWorkflow(BaseWorkflowTest):
         self.trigger_condition_id = trigger_condition.id
         self.action_condition_id = action_condition.id
 
-    def test_delete_workflow__deletes_workflow(self):
-        delete_workflow(self.workflow)
-
+    # TODO - Figure out why parametrize isn't working for `test_delete_workflow`
+    def assert_clean_workflow_models(self):
         assert not Workflow.objects.filter(id=self.workflow_id).exists()
         assert not DataConditionGroup.objects.filter(id=self.workflow_trigger_id).exists()
         assert not DataCondition.objects.filter(id=self.trigger_condition_id).exists()
 
+    def assert_clean_action_models(self):
+        assert not DataConditionGroup.objects.filter(id=self.action_filter_id).exists()
+        assert not Action.objects.filter(id=self.action_id).exists()
+        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
+        assert not WorkflowDataConditionGroup.objects.filter(id=self.workflow_actions_id).exists()
+        assert not DataCondition.objects.filter(id=self.action_condition_id).exists()
+
+    def test_delete_workflow__deletes_workflow(self):
+        delete_workflow(self.workflow)
+        self.assert_clean_workflow_models()
+
     def test_delete_workflow__deletes_action_tables(self):
         delete_workflow(self.workflow)
-
-        assert not DataConditionGroup.objects.filter(id=self.action_filter_id).exists()
-        assert not Action.objects.filter(id=self.action_id).exists()
-        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
-        assert not WorkflowDataConditionGroup.objects.filter(id=self.workflow_actions_id).exists()
-        assert not DataCondition.objects.filter(id=self.action_condition_id).exists()
+        self.assert_clean_action_models()
 
     def test_delete_workflow__no_actions(self):
-        # Remove the assiaction action
+        # Remove the assiaction action and reference to the action to the action conditions
         Action.objects.get(id=self.action_id).delete()
-        # Ensure references are removed via cascade
         assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter_id).exists()
 
         delete_workflow(self.workflow)
+        self.assert_clean_action_models()
 
-        assert not DataConditionGroup.objects.filter(id=self.action_filter_id).exists()
-        assert not Action.objects.filter(id=self.action_id).exists()
-        assert not WorkflowDataConditionGroup.objects.filter(id=self.workflow_actions_id).exists()
-        assert not DataCondition.objects.filter(id=self.action_condition_id).exists()
+    def test_delete_workflow__no_workflow_triggers(self):
+        # TODO - when this condition group is deleted, it's removing the workflow
+        # it's basically inverted from what's expected on the cascade delete
+        self.workflow.when_condition_group = None
+        self.workflow.save()
+        DataConditionGroup.objects.get(id=self.workflow_trigger_id).delete()
+
+        self.workflow.refresh_from_db()
+
+        delete_workflow(self.workflow)
+        self.assert_clean_workflow_models()

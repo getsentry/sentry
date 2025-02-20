@@ -179,13 +179,17 @@ def delete_workflow(workflow: Workflow) -> bool:
             dataconditiongroupaction__condition_group__in=action_filters
         )
 
+        # Delete the actions associated with a workflow, this is not a cascade delete
+        # because we want to create a UI to maintain notification actions separately
         if actions:
             actions.delete()
 
         if action_filters:
             action_filters.delete()
 
-        workflow.when_condition_group.delete()
+        if workflow.when_condition_group:
+            workflow.when_condition_group.delete()
+
         workflow.delete()
 
     return True
