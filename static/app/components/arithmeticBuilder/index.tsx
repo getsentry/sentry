@@ -51,7 +51,7 @@ export function ArithmeticBuilder({
           className={className}
           aria-disabled={disabled}
           data-test-id="arithmetic-builder"
-          state={state.expression.valid}
+          state={state.expression.isValid ? 'valid' : 'invalid'}
         >
           <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>

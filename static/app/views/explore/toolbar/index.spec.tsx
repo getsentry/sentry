@@ -196,12 +196,13 @@ describe('ExploreToolbar', function () {
       'transaction',
       'timestamp',
       'release',
-    ]); // default
+    ]);
   });
 
   it('allows changing visualizes', async function () {
-    let visualizes: any;
+    let fields, visualizes: any;
     function Component() {
+      fields = useExploreFields();
       visualizes = useExploreVisualizes();
       return <ExploreToolbar />;
     }
@@ -226,6 +227,15 @@ describe('ExploreToolbar', function () {
       },
     ]);
 
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+    ]); // default
+
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
@@ -235,6 +245,16 @@ describe('ExploreToolbar', function () {
         label: 'A',
         yAxes: ['avg(span.self_time)'],
       },
+    ]);
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+      'span.self_time',
     ]);
 
     // try changing the aggregate
@@ -259,6 +279,141 @@ describe('ExploreToolbar', function () {
         yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
     ]);
+
+    // try adding a new chart
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
+    // delete first overlay
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
+    // delete second chart
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+    ]);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
+  });
+
+  it('allows changing visualizes equations', async function () {
+    let fields, visualizes: any;
+    function Component() {
+      fields = useExploreFields();
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar extras={['equations']} />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+    ]); // default
+
+    let input;
+
+    // try changing the field
+    input = within(section).getByRole('combobox', {
+      name: 'Select an attribute',
+    });
+    await userEvent.click(input);
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+      'span.self_time',
+    ]);
+
+    await userEvent.click(input);
+    await userEvent.keyboard('{Backspace}');
+
+    await userEvent.click(within(section).getByRole('option', {name: 'count(\u2026)'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)'],
+      },
+    ]);
+
+    await userEvent.keyboard('{Escape}');
+
+    // try adding an overlay
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
+    input = within(section)
+      .getAllByRole('combobox', {
+        name: 'Select an attribute',
+      })
+      .at(-1)!;
+    await userEvent.click(input);
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+      },
+    ]);
+
+    await userEvent.keyboard('{Escape}');
 
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
