@@ -37,7 +37,7 @@ function ErrorFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Errors')}
         query={searchTerm}
-        disabled={!errorFrames || !errorFrames.length}
+        disabled={!errorFrames?.length}
       />
     </FiltersGrid>
   );

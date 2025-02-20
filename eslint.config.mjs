@@ -507,6 +507,9 @@ export default typescript.config([
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
+      // migrated from biome
+      '@typescript-eslint/prefer-optional-chain': 'error',
+
       // Customization
       '@typescript-eslint/no-unused-vars': [
         'error',
