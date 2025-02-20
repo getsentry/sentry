@@ -162,11 +162,12 @@ SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
   const location = useLocation();
   const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
 
-  const {layout: navLayout} = useNavContext();
+  const {layout: navLayout, setIsDragging} = useNavContext();
 
   return (
     <ReorderableItem
       as="div"
+      tabIndex={0}
       dragConstraints={dragConstraints}
       dragElastic={0.03}
       dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
@@ -178,6 +179,12 @@ SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       className={className}
+      onDragStart={() => {
+        setIsDragging(true);
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+      }}
     >
       <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
       {leadingItems}

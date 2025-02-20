@@ -17,7 +17,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({isHovered}: SidebarProps) {
-  const {isCollapsed} = useNavContext();
+  const {isCollapsed, isDragging} = useNavContext();
 
   return (
     <Fragment>
@@ -29,17 +29,17 @@ export function Sidebar({isHovered}: SidebarProps) {
       </SidebarWrapper>
       {isCollapsed ? null : <SecondarySidebar />}
 
-      {isCollapsed ? (
+      {isCollapsed || isDragging ? (
         <CollapsedSecondaryWrapper
           initial="hidden"
-          animate={isHovered ? 'visible' : 'hidden'}
+          animate={isHovered || isDragging ? 'visible' : 'hidden'}
           variants={{
             visible: {x: 0},
             hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
           }}
           transition={{duration: 0.3}}
           data-test-id="collapsed-secondary-sidebar"
-          data-visible={isHovered}
+          data-visible={isHovered || isDragging}
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
