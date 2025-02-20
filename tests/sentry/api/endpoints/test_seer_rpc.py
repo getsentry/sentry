@@ -11,6 +11,7 @@ from sentry.api.endpoints.seer_rpc import (
     STACKFRAME_COUNT,
     PrFile,
     _add_event_details,
+    _get_projects_and_filenames_from_source_file,
     _left_truncated_paths,
     generate_request_signature,
     get_issues_related_to_file_patches,
@@ -56,7 +57,6 @@ class TestSeerRpc(APITestCase):
 
 
 class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
-    # Mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     def setUp(self):
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
 
@@ -91,6 +91,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
             serialized_event = serialize(event, serializer=EventSerializer())
             assert event_dict == serialized_event
 
+    # The rest are mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     def test_filename_mismatch(self):
         group_id = self._create_event(
             filenames=["foo.py", "bar.py"],
@@ -143,6 +144,24 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert group_id != self.group_id
         assert issue_ids == [self.group_id]
 
+    def test_empty(self):
+        assert (
+            get_issues_with_event_details_for_file(
+                projects=[],
+                sentry_filenames=["baz.py"],
+                function_names=["world"],
+            )
+            == []
+        )
+        assert (
+            get_issues_with_event_details_for_file(
+                projects=[self.project],
+                sentry_filenames=["baz.notsupported"],
+                function_names=["world"],
+            )
+            == []
+        )
+
 
 def test_safe_for_fetching_issues():
     pr_files: list[PrFile] = [
@@ -163,7 +182,10 @@ def test_safe_for_fetching_issues():
 
     assert safe_for_fetching_issues(pr_files) == pr_files_safe
 
-    pr_files_too_many_files = pr_files + pr_files
+    pr_files_too_many_files = pr_files_safe + [
+        {"filename": pr_file["filename"], "patch": "a", "changes": 1, "status": "modified"}
+        for pr_file in pr_files_safe
+    ]
     assert safe_for_fetching_issues(pr_files_too_many_files) == []
 
     pr_files_too_many_changes: list[PrFile] = [
@@ -220,6 +242,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             project=self.project,
             url="https://github.com/getsentry/sentry",
         )
+        self.code_mapping = self.create_code_mapping(project=self.project, repo=self.gh_repo)
 
         groups: list[Group] = list(Group.objects.all())
         issues_result_set = []
@@ -240,6 +263,24 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             event_timestamp_start=None,
             event_timestamp_end=None,
         )
+
+    def test_missing_repo(self):
+        assert (
+            get_issues_related_to_file_patches(
+                organization_id=1,
+                provider="integrations:github",
+                external_id="does-not-exist",
+                pr_files=[],
+            )
+            == {}
+        )
+
+    def test__get_projects_and_filenames_from_source_file(self):
+        projects, filenames = _get_projects_and_filenames_from_source_file(
+            self.organization.id, self.gh_repo.id, "some/path/foo.py"
+        )
+        assert projects == {self.project}
+        assert filenames == {"foo.py", "some/path/foo.py", "path/foo.py"}
 
     @patch("sentry.api.endpoints.seer_rpc.safe_for_fetching_issues")
     @patch("sentry.api.endpoints.seer_rpc._get_projects_and_filenames_from_source_file")

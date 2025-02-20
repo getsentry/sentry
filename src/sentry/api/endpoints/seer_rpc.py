@@ -257,7 +257,7 @@ def _get_issues_for_file(
     Fetch issues with their latest event if its stacktrace frames match the function names
     and file names.
     """
-    if not len(projects):
+    if not projects:
         return []
 
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
@@ -265,10 +265,9 @@ def _get_issues_for_file(
     # Gets the appropriate parser for formatting the snuba query given the file extension.
     # The extension is never replaced in reverse codemapping.
     file_extension = sentry_filenames[0].split(".")[-1]
-    language_parser = patch_parsers.get(file_extension, None)
-
-    if not language_parser:
+    if file_extension not in patch_parsers:
         return []
+    language_parser = patch_parsers[file_extension]
 
     # Fetch an initial, candidate set of groups.
     group_ids: list[int] = list(
@@ -431,6 +430,8 @@ def get_issues_with_event_details_for_file(
         event_timestamp_end,
         max_num_issues_per_file=max_num_issues_per_file,
     )
+    if not issues_result_set:
+        return []
     return _add_event_details(
         projects, issues_result_set, event_timestamp_start, event_timestamp_end
     )
@@ -462,11 +463,10 @@ def _left_truncated_paths(filename: str, max_num_paths: int = 2) -> list[str]:
     return result
 
 
-def _get_projects_and_filenames_from_source_file(
-    org_id: int, repo_id: int, pr_filename: str, max_num_left_truncated_paths: int = 2
-) -> tuple[set[Project], set[str]]:
+def _get_code_mappings(org_id: int, repo_id: int, pr_filename: str):
     # fetch the code mappings in which the source_root is a substring at the start of pr_filename
-    code_mappings = (
+    # TODO(kddubey): need to check if this is overly restrictive. May change this in the future.
+    return (
         RepositoryProjectPathConfig.objects.filter(
             organization_id=org_id,
             repository_id=repo_id,
@@ -474,25 +474,23 @@ def _get_projects_and_filenames_from_source_file(
         .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
         .filter(substring_match=1)
     )
-    # TODO(kddubey): is this substring_match too strict?
 
-    project_list: set[Project] = set()
-    sentry_filenames = set()
 
-    if len(code_mappings):
-        for code_mapping in code_mappings:
-            project_list.add(code_mapping.project)
-            sentry_filenames.add(
-                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
-            )
-            # This filename alone isn't enough. It doesn't work for the seer app, for example.
-            # We can tolerate potential false positives if downstream uses of this data filters
-            # out irrelevant issues.
-            sentry_filenames.add(pr_filename)
-            sentry_filenames.update(
-                _left_truncated_paths(pr_filename, max_num_left_truncated_paths)
-            )
-    return project_list, sentry_filenames
+def _get_projects_and_filenames_from_source_file(
+    org_id: int, repo_id: int, pr_filename: str, max_num_left_truncated_paths: int = 2
+) -> tuple[set[Project], set[str]]:
+    code_mappings = _get_code_mappings(org_id, repo_id, pr_filename)
+    project_set = {code_mapping.project for code_mapping in code_mappings}
+    sentry_filenames = {
+        pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
+        for code_mapping in code_mappings
+    }
+    # The code-mapped filenames alone aren't enough. They don't work for the seer app, for example.
+    # We can tolerate potential false positives if downstream uses of this data filter
+    # out irrelevant issues.
+    sentry_filenames.add(pr_filename)
+    sentry_filenames.update(_left_truncated_paths(pr_filename, max_num_left_truncated_paths))
+    return project_set, sentry_filenames
 
 
 def get_issues_related_to_file_patches(
@@ -539,18 +537,18 @@ def get_issues_related_to_file_patches(
         projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
             organization_id, repo_id, file.filename
         )
-        if not len(projects) or not len(sentry_filenames):
-            logger.error("No projects or filenames", extra={"file": file.filename})
+        if not projects:
+            logger.error("No projects", extra={"file": file.filename})
             continue
 
         file_extension = file.filename.split(".")[-1]
-        language_parser = patch_parsers.get(file_extension, None)
-        if not language_parser:
+        if file_extension not in patch_parsers:
             logger.error("No language parser", extra={"file": file.filename})
             continue
+        language_parser = patch_parsers[file_extension]
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
-        if not len(function_names):
+        if not function_names:
             logger.error("No function names", extra={"file": file.filename})
             continue
 
