@@ -98,7 +98,7 @@ struct SwiftUIApp: App {
           params.profilingOptions?.defaultProfilingMode === 'continuous'
             ? `
 
-        // Manually call start_profiler and stop_profiler
+        // Manually call startProfiler and stopProfiler
         // to profile the code in between
         SentrySDK.startProfiler()
         // do some work here
