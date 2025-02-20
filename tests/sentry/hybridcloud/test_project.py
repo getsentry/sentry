@@ -37,7 +37,7 @@ def test_update_name() -> None:
     org = Factories.create_organization()
     project = Factories.create_project(organization=org)
 
-    project_service.update_external_id(
+    project_service.update_name(
         organization_id=org.id,
         id=project.id,
         name="new-name",
