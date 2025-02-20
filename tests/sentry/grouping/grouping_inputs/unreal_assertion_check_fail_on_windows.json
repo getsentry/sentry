@@ -11,14 +11,22 @@
               "function": "RtlUserThreadStart",
               "symbol": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {
+                "orig_in_app": -1,
+                "category": "threadbase",
+                "symbolicator_status": "symbolicated"
+              },
               "trust": "cfi"
             },
             {
               "function": "BaseThreadInitThunk",
               "symbol": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {
+                "orig_in_app": -1,
+                "category": "threadbase",
+                "symbolicator_status": "symbolicated"
+              },
               "trust": "cfi"
             },
             {
@@ -40,7 +48,11 @@
               "filename": "exe_common.inl",
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 102,
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {
+                "orig_in_app": -1,
+                "category": "threadbase",
+                "symbolicator_status": "symbolicated"
+              },
               "trust": "cfi"
             },
             {
@@ -313,21 +325,7 @@
               "filename": "SentryPlaygroundUtils.gen.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Intermediate\\Build\\Win64\\UnrealGame\\Inc\\SentryPlayground\\UHT\\SentryPlaygroundUtils.gen.cpp",
               "lineno": 127,
-              "pre_context": [
-                "DEFINE_FUNCTION(USentryPlaygroundUtils::execTerminate)",
-                "{",
-                "\tP_GET_ENUM(ESentryAppTerminationType,Z_Param_Type);",
-                "\tP_FINISH;",
-                "\tP_NATIVE_BEGIN;"
-              ],
               "context_line": "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));",
-              "post_context": [
-                "\tP_NATIVE_END;",
-                "}",
-                "// End Class USentryPlaygroundUtils Function Terminate",
-                "",
-                "// Begin Class USentryPlaygroundUtils"
-              ],
               "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
@@ -339,21 +337,7 @@
               "filename": "SentryPlaygroundUtils.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp",
               "lineno": 34,
-              "pre_context": [
-                "\t\t\t}",
-                "\t\t\tbreak;",
-                "\t\tcase ESentryAppTerminationType::Assert:",
-                "\t\t\t{",
-                "\t\t\t\tchar *assertPtr = nullptr;"
-              ],
               "context_line": "\t\t\t\tcheck(assertPtr != nullptr);",
-              "post_context": [
-                "\t\t\t}",
-                "\t\t\tbreak;",
-                "\t\tcase ESentryAppTerminationType::Ensure:",
-                "\t\t\t{",
-                "\t\t\t\tchar *ensurePtr = nullptr;"
-              ],
               "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
@@ -389,15 +373,7 @@
               "filename": "SentryOutputDeviceError.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Plugins\\sentry\\Source\\Sentry\\Private\\SentryOutputDeviceError.cpp",
               "lineno": 22,
-              "pre_context": ["\t}", "", "\tif (!ParentDevice)", "\t\treturn;", ""],
               "context_line": "\tParentDevice->Serialize(V, Verbosity, Category);",
-              "post_context": [
-                "}",
-                "",
-                "void FSentryOutputDeviceError::HandleError()",
-                "{",
-                "\tif (!ParentDevice)"
-              ],
               "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
