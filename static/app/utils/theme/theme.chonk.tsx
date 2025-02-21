@@ -257,50 +257,49 @@ const darkColors: typeof lightColors = {
   },
 
   dynamic: {
-    surface400: '#2F2847',
-    surface300: '#29233D',
-    surface200: '#221E33',
-    surface100: '#0A0910',
+    surface400: '#292536',
+    surface300: '#252130',
+    surface200: '#191721',
+    surface100: '#0B0A0F',
 
     // @TODO(jonasbadalic): why 500 range?
-    grayOpaque500: '#FFFFFF',
-    grayOpaque400: '#9D9AA7',
-    grayOpaque300: '#787283',
-    grayOpaque200: '#453F59',
-    grayOpaque100: '#3C3552',
+    grayOpaque500: '#F6F5FA',
+    grayOpaque400: '#A09DA8',
+    grayOpaque300: '#767380',
+    grayOpaque200: '#4D4A59',
+    grayOpaque100: '#3D394A',
 
     // @TODO(jonasbadalic): why 500 range?
-    grayTransparent500: 'rgba(255, 255, 255, 1.0)',
-    grayTransparent400: 'rgba(255, 255, 255, 0.56)',
-    grayTransparent300: 'rgba(255, 255, 255, 0.36)',
-    grayTransparent200: 'rgba(255, 255, 255, 0.13)',
-    grayTransparent100: 'rgba(255, 255, 255, 0.09)',
+    grayTransparent500: 'rgba(246, 245, 250, 1.0)',
+    grayTransparent400: 'rgba(246, 245, 250, 0.58)',
+    grayTransparent300: 'rgba(246, 245, 250, 0.37)',
+    grayTransparent200: 'rgba(246, 245, 250, 0.18)',
+    grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
     blurple400: '#A791FF',
     blurple300: '#B7A6FF',
     blurple200: '#C6B8FF',
-    blurple100: '#0A0910',
+    blurple100: '#07050F',
 
-    green400: '#55F294',
-    green300: '#6DF2A2',
-    green200: '#85F2B1',
-    green100: '#17753D',
-
-    gold400: '#FFE166',
-    gold300: '#FFE680',
-    gold200: '#FFEB99',
-    gold100: '#0C0909',
+    pink400: '#FF70BC',
+    pink300: '#FF82C4',
+    pink200: '#FF9CD0',
+    pink100: '#0D0609',
 
     red400: '#FF759F',
     red300: '#FF8FB0',
     red200: '#FFA8C2',
-    red100: '#150A0D',
+    red100: '#1A0007',
 
-    // @TODO(jonasbadalic): TBD
-    pink400: '#FFF',
-    pink300: '#FFF',
-    pink200: '#FFF',
-    pink100: '#FFF',
+    gold400: '#FFE166',
+    gold300: '#FFE680',
+    gold200: '#FFEB99',
+    gold100: '#0A0800',
+
+    green400: '#55F294',
+    green300: '#6DF2A2',
+    green200: '#85F2B1',
+    green100: '#000A04',
   },
 };
 
