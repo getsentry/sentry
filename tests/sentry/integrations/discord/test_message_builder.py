@@ -57,6 +57,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule=self.alert_rule,
             incident=incident,
             new_status=IncidentStatus.CLOSED,
+            metric_value=0,
         ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
@@ -94,6 +95,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule=self.alert_rule,
             incident=incident,
             new_status=IncidentStatus.CRITICAL,
+            metric_value=0,
         ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
@@ -171,6 +173,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule=self.alert_rule,
             incident=incident,
             new_status=new_status,
+            metric_value=0,
             chart_url="chart_url",
         ).build(notification_uuid=uuid) == {
             "content": "",
@@ -210,6 +213,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule=self.alert_rule,
             incident=incident,
             new_status=IncidentStatus.CRITICAL,
+            metric_value=0,
         ).build() == {
             "content": "",
             "embeds": [
@@ -259,6 +263,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule=alert_rule,
             incident=incident,
             new_status=IncidentStatus.CRITICAL,
+            metric_value=0,
         ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [

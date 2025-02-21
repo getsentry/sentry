@@ -15,7 +15,7 @@ from sentry.integrations.msteams.card_builder.block import (
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
+    metric_value: float,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
     data = incident_attachment_info(
