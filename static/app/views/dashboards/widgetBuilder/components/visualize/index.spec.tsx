@@ -1097,6 +1097,38 @@ describe('Visualize', () => {
     ).toHaveTextContent('crash_free_rate');
   });
 
+  it('shows all of the fields as columns but disables the ones that are not valid for the aggregate', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['p50(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
+    // Assert options that are strings, not typically valid for p50, are rendered but disabled
+    expect(screen.getByRole('option', {name: 'message'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'message'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    const options = screen.getAllByText('string');
+    expect(options.length).toBeGreaterThan(1);
+    expect(
+      new Set(options.map(option => option.closest('li')?.getAttribute('aria-disabled')))
+    ).toEqual(new Set(['true']));
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
@@ -1150,7 +1182,9 @@ describe('Visualize', () => {
 
       const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
-      expect(within(listbox).queryByText('span.description')).not.toBeInTheDocument();
+      expect(
+        within(listbox).getByRole('option', {name: 'span.description'})
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('shows the correct aggregate options', async () => {
