@@ -1,5 +1,7 @@
+import {css, type SerializedStyles} from '@emotion/react';
+
 import type {AlertProps} from 'sentry/components/alert';
-import {chonkStyled, useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 
 const chonkAlertPropMapping: ChonkPropMapping<AlertProps, ChonkAlertProps> = props => {
@@ -12,35 +14,13 @@ const chonkAlertPropMapping: ChonkPropMapping<AlertProps, ChonkAlertProps> = pro
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-  size?: 'sm';
 }
 
-function AlertPanel({type, size, children, ...props}: ChonkAlertProps) {
-  const theme = useChonkTheme();
+const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
+  ${p => makeChonkAlertTheme(p.type, p.theme)}
 
-  return (
-    <AlertPanelDiv
-      {...props}
-      colors={chonkAlertTheme(type, theme)}
-      padding={chonkAlertPadding(size, theme)}
-    >
-      {children}
-    </AlertPanelDiv>
-  );
-}
-
-const AlertPanelDiv = chonkStyled('div')<
-  Omit<ChonkAlertProps, 'type'> & {
-    colors: ReturnType<typeof chonkAlertTheme>;
-    padding: ReturnType<typeof chonkAlertPadding>;
-  }
->`
-  background-color: ${p => p.colors.background};
-  color: ${p => p.colors.color};
-  border: ${p => p.colors.border};
   border-width: ${p => (p.system ? '0px 0px 2px 0px' : '2px')};
   border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
-  padding: ${p => p.padding};
 
   cursor: ${p => (p.expand ? 'pointer' : 'default')};
 
@@ -68,53 +48,46 @@ const AlertPanelDiv = chonkStyled('div')<
   }
 `;
 
-function chonkAlertPadding(
-  size: ChonkAlertProps['size'],
-  theme: ReturnType<typeof useChonkTheme>
-) {
-  switch (size) {
-    case 'sm':
-      return `${theme.space.mini} ${theme.space.md}`;
-    default:
-      return `${theme.space.md} ${theme.space.lg}`;
-  }
-}
-
-function chonkAlertTheme(
+function makeChonkAlertTheme(
   type: ChonkAlertProps['type'],
   theme: ReturnType<typeof useChonkTheme>
-) {
+): SerializedStyles {
   switch (type) {
     case 'info':
-      return {
-        color: theme.colors.static.white,
-        background: theme.colors.static.blurple400,
-        border: `2px solid ${theme.colors.static.blurple400}`,
-      };
+      return css`
+        color: ${theme.colors.static.white};
+        background: ${theme.colors.static.blurple400};
+        border: 2px solid ${theme.colors.static.blurple400};
+        padding: ${theme.space.md} ${theme.space.lg};
+      `;
     case 'success':
-      return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.green400,
-        border: `2px solid ${theme.colors.dynamic.green100}`,
-      };
+      return css`
+        color: ${theme.colors.static.black};
+        background: ${theme.colors.static.green400};
+        border: 2px solid ${theme.colors.dynamic.green100};
+        padding: ${theme.space.md} ${theme.space.lg};
+      `;
     case 'warning':
-      return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.gold400,
-        border: `2px solid ${theme.colors.dynamic.gold100}`,
-      };
+      return css`
+        color: ${theme.colors.static.black};
+        background: ${theme.colors.static.gold400};
+        border: 2px solid ${theme.colors.dynamic.gold100};
+        padding: ${theme.space.md} ${theme.space.lg};
+      `;
     case 'danger':
-      return {
-        color: theme.colors.static.white,
-        background: theme.colors.static.red400,
-        border: `2px solid ${theme.colors.dynamic.red100}`,
-      };
+      return css`
+        color: ${theme.colors.static.white};
+        background: ${theme.colors.static.red400};
+        border: 2px solid ${theme.colors.dynamic.red100};
+        padding: ${theme.space.md} ${theme.space.lg};
+      `;
     case 'subtle':
-      return {
-        color: theme.textColor,
-        background: theme.colors.dynamic.surface400,
-        border: `2px solid ${theme.colors.dynamic.surface100}`,
-      };
+      return css`
+        color: ${theme.textColor};
+        background: ${theme.colors.dynamic.surface400};
+        border: 2px solid ${theme.colors.dynamic.surface100};
+        padding: ${theme.space.md} ${theme.space.lg};
+      `;
 
     default:
       unreachable(type);
