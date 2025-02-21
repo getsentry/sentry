@@ -9,8 +9,7 @@ from sentry.utils.samples import load_data
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition as dual_write_condition,
 )
-from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -18,15 +17,6 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 class ConditionTestCase(BaseWorkflowTest):
     def setUp(self):
         self.group, self.event, self.group_event = self.create_group_event()
-
-    @property
-    def condition(self) -> Condition:
-        raise NotImplementedError
-
-    @property
-    def payload(self) -> dict[str, Any]:
-        # for dual write, can delete later
-        raise NotImplementedError
 
     def translate_to_data_condition(
         self, data: dict[str, Any], dcg: DataConditionGroup
