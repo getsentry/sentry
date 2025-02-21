@@ -11,7 +11,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
     condition = Condition.ISSUE_OCCURRENCES
     payload = {
         "id": IssueOccurrencesFilter.id,
-        "value": 10,
+        "value": "10",
     }
 
     def setUp(self):
