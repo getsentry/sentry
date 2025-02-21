@@ -241,7 +241,6 @@ class MessageBuilder:
         from sentry.tasks.email import send_email, send_email_control
 
         fmt = options.get("system.logging-format")
-
         messages = self.get_built_messages(to, reply_to, cc=cc, bcc=bcc)
         extra: MutableMapping[str, str | tuple[str]] = {"message_type": self.type}
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
@@ -249,18 +248,13 @@ class MessageBuilder:
             extra[f"{type(context).__name__.lower()}_id"] = context.id
 
         log_mail_queued = partial(logger.info, "mail.queued", extra=extra)
-
         for message in messages:
             send_email_task = send_email.delay
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 send_email_task = send_email_control.delay
-
             safe_execute(send_email_task, message=message)
-
             extra["message_id"] = message.extra_headers["Message-Id"]
-
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
-
             if fmt == LoggingFormat.HUMAN:
                 extra["message_to"] = (self.format_to(message.to),)
                 log_mail_queued()
