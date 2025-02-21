@@ -42,9 +42,7 @@ describe('gcpfunctions onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle: "trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -73,7 +71,7 @@ describe('gcpfunctions onboarding docs', function () {
 
     // Does render continuous profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/))
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle: "trace",/))
     ).toBeInTheDocument();
   });
 });
