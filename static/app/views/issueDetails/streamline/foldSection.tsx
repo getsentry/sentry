@@ -23,8 +23,12 @@ import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
-  if (localStorage.getItem(`'issue-details-fold-section-collapse:${key}`)) {
-    return `'issue-details-fold-section-collapse:${key}`;
+  const localStorageValue = localStorage.getItem(
+    `'issue-details-fold-section-collapse:${key}`
+  );
+  if (localStorageValue) {
+    localStorage.removeItem(`'issue-details-fold-section-collapse:${key}`);
+    localStorage.setItem(`issue-details-fold-section-collapse:${key}`, localStorageValue);
   }
   return `issue-details-fold-section-collapse:${key}`;
 }
