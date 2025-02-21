@@ -4,8 +4,6 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-
-# from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -33,6 +31,12 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
             action=self.action,
         )
 
+        self.second_action = Factories.create_action()
+        self.second_action_and_filter = Factories.create_data_condition_group_action(
+            condition_group=self.action_filter,
+            action=self.second_action,
+        )
+
         self.workflow_actions = Factories.create_workflow_data_condition_group(
             workflow=self.workflow,
             condition_group=self.action_filter,
@@ -54,9 +58,12 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
         "instance_attr",
         [
             "workflow",
+            "action",
+            "second_action",
             "workflow_trigger",
             "action_filter",
             "action_and_filter",
+            "second_action_and_filter",
             "workflow_actions",
             "trigger_condition",
             "action_condition",

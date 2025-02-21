@@ -10,16 +10,15 @@ class WorkflowDeletionTask(ModelDeletionTask[Workflow]):
             workflowdataconditiongroup__workflow_id=instance.id
         ).values_list("id", flat=True)
 
-        if action_filter_ids:
-            # Action Filters
-            model_relations.append(ModelRelation(DataConditionGroup, {"id__in": action_filter_ids}))
+        action_ids = Action.objects.filter(
+            dataconditiongroupaction__condition_group_id__in=action_filter_ids
+        ).values_list("id", flat=True)
 
-            # Actions - This is required until the notification center maintains these actions
-            model_relations.append(
-                ModelRelation(
-                    Action, {"dataconditiongroupaction__condition_group__in": action_filter_ids}
-                )
-            )
+        if action_ids:
+            model_relations.append(ModelRelation(Action, {"id__in": action_ids}))
+
+        if action_filter_ids:
+            model_relations.append(ModelRelation(DataConditionGroup, {"id__in": action_filter_ids}))
 
         if instance.when_condition_group:
             model_relations.append(
