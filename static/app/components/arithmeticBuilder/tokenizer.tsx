@@ -142,7 +142,10 @@ export function nextTokenKeyOfKind(
     }
   }
 
-  return defined(key) ? nextSimilarTokenKey(key) : makeTokenKey(kind);
+  return defined(key)
+    ? nextSimilarTokenKey(key)
+    : // unable to find any tokens of the given kind, so assume this will be the first one
+      makeTokenKey(kind);
 }
 
 class ArithmeticError extends Error {}
