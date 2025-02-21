@@ -9,15 +9,13 @@ import {
 import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
+import {useCollapsedNav} from 'sentry/components/nav/useCollapsedNav';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 
-type SidebarProps = {
-  isHovered: boolean;
-};
-
-export function Sidebar({isHovered}: SidebarProps) {
-  const {isCollapsed, isInteracting} = useNavContext();
+export function Sidebar() {
+  const {isCollapsed} = useNavContext();
+  const {isOpen} = useCollapsedNav();
 
   return (
     <Fragment>
@@ -32,14 +30,14 @@ export function Sidebar({isHovered}: SidebarProps) {
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
           initial="hidden"
-          animate={isHovered || isInteracting ? 'visible' : 'hidden'}
+          animate={isOpen ? 'visible' : 'hidden'}
           variants={{
             visible: {x: 0},
             hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
           }}
-          transition={{duration: 0.3}}
+          transition={{duration: 0.15, ease: 'easeOut'}}
           data-test-id="collapsed-secondary-sidebar"
-          data-visible={isHovered || isInteracting}
+          data-visible={isOpen}
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
@@ -63,6 +61,7 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
   top: 0;
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
   height: 100%;
+  box-shadow: ${p => p.theme.dropShadowHeavy};
 `;
 
 const SidebarHeader = styled('header')`

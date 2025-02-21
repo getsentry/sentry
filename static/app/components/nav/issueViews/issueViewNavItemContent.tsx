@@ -102,7 +102,7 @@ export function IssueViewNavItemContent({
     .map(p => p.platform)
     .filter(defined);
 
-  const {isInteracting, setisInteracting} = useNavContext();
+  const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
   return (
     <Reorder.Item
@@ -115,10 +115,10 @@ export function IssueViewNavItemContent({
         cursor: 'grabbing',
       }}
       onDragStart={() => {
-        setisInteracting(true);
+        startInteraction();
       }}
       onDragEnd={() => {
-        setisInteracting(false);
+        endInteraction();
       }}
     >
       <StyledSecondaryNavItem
@@ -147,7 +147,7 @@ export function IssueViewNavItemContent({
           e.preventDefault();
         }}
         onPointerUp={e => {
-          if (isInteracting) {
+          if (isInteractingRef.current) {
             e.preventDefault();
           }
         }}
