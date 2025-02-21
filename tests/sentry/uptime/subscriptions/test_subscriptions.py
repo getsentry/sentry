@@ -16,6 +16,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.uptime.subscriptions.subscriptions import (
     UPTIME_SUBSCRIPTION_TYPE,
@@ -292,7 +293,13 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         ]
         with (
             override_settings(UPTIME_REGIONS=regions),
-            override_options({"uptime.disabled-checker-regions": ["region3"]}),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "region3": UptimeSubscriptionRegion.RegionMode.INACTIVE.value
+                    }
+                }
+            ),
         ):
             subscription = get_or_create_uptime_subscription(
                 url="https://example.com",
