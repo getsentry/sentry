@@ -13,9 +13,10 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import RPCSpan, run_trace_query
+from sentry.snuba.spans_rpc import run_trace_query
 
 
 class SerializedEvent(TypedDict):
@@ -38,7 +39,7 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def serialize_rpc_span(self, span: RPCSpan) -> SerializedEvent:
+    def serialize_rpc_span(self, span: dict[str, Any]) -> SerializedEvent:
         return SerializedEvent(
             children=[self.serialize_rpc_span(child) for child in span["children"]],
             event_id=span["id"],
@@ -54,15 +55,15 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         )
 
     @sentry_sdk.tracing.trace
-    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[RPCSpan]:
+    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
         trace_data = run_trace_query(
-            trace_id, snuba_params, Referrer.API_TRACE_VIEW_GET_EVENTS.value, {}
+            trace_id, snuba_params, Referrer.API_TRACE_VIEW_GET_EVENTS.value, SearchResolverConfig()
         )
         result = []
         id_to_event = {event["id"]: event for event in trace_data}
         for span in trace_data:
             if span["parent_span"] in id_to_event:
-                parent = id_to_event.get(span["parent_span"])
+                parent = id_to_event[span["parent_span"]]
                 parent["children"].append(span)
             else:
                 result.append(span)
@@ -85,7 +86,7 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
-        def data_fn(offset: int, limit: int) -> list[dict[Any, Any]]:
+        def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
                 spans = self.query_trace_data(snuba_params, trace_id)

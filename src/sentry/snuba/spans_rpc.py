@@ -400,28 +400,12 @@ def _process_all_timeseries(
     return result
 
 
-@dataclass
-class RPCSpan:
-    id: str
-    parent_span: None | str = None
-    description: None | str = None
-    duration: None | float = None
-    op: None | str = None
-    is_transaction: bool = False
-    transaction_id: None | str = None
-    timestamp: None | str = None
-    end_timestamp: None | str = None
-    project_slug: None | str = None
-    project_id: None | int = None
-    children: list[type["RPCSpan"]] = field(default_factory=list)
-
-
 def run_trace_query(
     trace: str,
     params: SnubaParams,
     referrer: str,
     config: SearchResolverConfig,
-):
+) -> list[dict[str, Any]]:
     trace_attributes = [
         "parent_span",
         "description",
@@ -442,10 +426,10 @@ def run_trace_query(
         meta=meta,
         trace_id=trace,
         items=[
-            {
-                "item_type": TraceItemType.TRACE_ITEM_TYPE_SPAN,
-                "attributes": [col.proto_definition for col in columns],
-            }
+            GetTraceRequest.TraceItem(
+                item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                attributes=[col.proto_definition for col in columns],
+            )
         ],
     )
     response = snuba_rpc.get_trace_rpc(request)
@@ -453,7 +437,7 @@ def run_trace_query(
     columns_by_name = {col.proto_definition.name: col for col in columns}
     for item_group in response.item_groups:
         for span_item in item_group.items:
-            span = {"id": span_item.id, "children": []}
+            span: dict[str, Any] = {"id": span_item.id, "children": []}
             for attribute in span_item.attributes:
                 resolved_column = columns_by_name[attribute.key.name]
                 if resolved_column.proto_definition.type == STRING:
