@@ -48,9 +48,10 @@ describe('Onboarding Status', function () {
         onboardingTasks: [],
       },
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
-      method: 'PUT',
+      method: 'POST',
     });
   });
 
@@ -69,8 +70,7 @@ describe('Onboarding Status', function () {
       ],
     });
 
-    const {mutateUserOptionsMock, getOnboardingTasksMock} =
-      renderMockRequests(organization);
+    const {mutateUserOptionsMock} = renderMockRequests(organization);
 
     render(<PrimaryNavigationOnboarding />, {
       organization,
@@ -80,13 +80,30 @@ describe('Onboarding Status', function () {
     expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
     expect(mutateUserOptionsMock).not.toHaveBeenCalled();
 
-    // By hovering over the button, we should refetch the data
-    await userEvent.hover(screen.getByRole('button', {name: 'Onboarding'}));
-    await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
+    // Next fetch should return the task as seen
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'GET',
+      body: {
+        onboardingTasks: [
+          {
+            task: OnboardingTaskKey.FIRST_PROJECT,
+            status: 'complete',
+            user: UserFixture(),
+            completionSeen: '2025-01-01T00:00:00Z',
+            dateCompleted: undefined,
+          },
+        ],
+      },
+    });
 
     // Open the overlay
     await userEvent.click(screen.getByRole('button', {name: 'Onboarding'}));
-    await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
+
+    // Pending indicator should go away
+    await waitFor(() =>
+      expect(screen.queryByTestId('pending-seen-indicator')).not.toBeInTheDocument()
+    );
   });
 
   it("overlay is not automatically opened because the user option 'quickStartDisplay' is not set", async function () {
