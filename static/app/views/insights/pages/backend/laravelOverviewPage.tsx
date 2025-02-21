@@ -26,6 +26,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -38,9 +39,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {BarChartWidget} from 'sentry/views/dashboards/widgets/barChartWidget/barChartWidget';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {LineChartWidget} from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -56,6 +54,10 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {InsightsBarChartWidget} from '../../common/components/insightsBarChartWidget';
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import type {DiscoverSeries} from '../../common/queries/useDiscoverSeries';
 
 function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
@@ -392,7 +394,7 @@ function RequestsWidget({query}: {query?: string}) {
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -413,10 +415,11 @@ function RequestsWidget({query}: {query?: string}) {
   );
 
   const getTimeSeries = useCallback(
-    (codePrefix: string, color?: string): TimeSeries | undefined => {
+    (codePrefix: string, color?: string): DiscoverSeries | undefined => {
       if (!data) {
         return undefined;
       }
+
       const filteredSeries = Object.keys(data)
         .filter(key => key.startsWith(codePrefix))
         .map(key => data[key]!);
@@ -428,28 +431,28 @@ function RequestsWidget({query}: {query?: string}) {
 
       return {
         data: firstSeries.data.map(([time], index) => ({
+          name: new Date(time).toISOString(),
           value: filteredSeries.reduce(
             (acc, series) => acc + series.data[index]?.[1][0]?.count!,
             0
           ),
-          timestamp: new Date(time).toISOString(),
         })),
-        field: `${codePrefix}xx`,
-        meta: firstSeries.meta!,
+        seriesName: `${codePrefix}xx`,
+        meta: firstSeries.meta as EventsMetaType,
         color,
-      } satisfies TimeSeries;
+      } satisfies DiscoverSeries;
     },
     [data]
   );
 
   return (
-    <BarChartWidget
+    <InsightsBarChartWidget
       title="Requests"
       isLoading={isLoading}
-      timeSeries={[
-        getTimeSeries('2', theme.gray200),
-        getTimeSeries('5', theme.error),
-      ].filter(series => !!series)}
+      error={error}
+      series={[getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
+        series => !!series
+      )}
       stacked
     />
   );
@@ -459,7 +462,7 @@ function DurationWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -478,7 +481,7 @@ function DurationWidget({query}: {query?: string}) {
   );
 
   const getTimeSeries = useCallback(
-    (field: string, color?: string): TimeSeries | undefined => {
+    (field: string, color?: string): DiscoverSeries | undefined => {
       const series = data?.[field];
       if (!series) {
         return undefined;
@@ -487,21 +490,22 @@ function DurationWidget({query}: {query?: string}) {
       return {
         data: series.data.map(([time, [value]]) => ({
           value: value?.count!,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         })),
-        field,
-        meta: series.meta!,
+        seriesName: field,
+        meta: series.meta as EventsMetaType,
         color,
-      } satisfies TimeSeries;
+      } satisfies DiscoverSeries;
     },
     [data]
   );
 
   return (
-    <LineChartWidget
+    <InsightsLineChartWidget
       title="Duration"
       isLoading={isLoading}
-      timeSeries={[
+      error={error}
+      series={[
         getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
         getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
       ].filter(series => !!series)}
@@ -514,7 +518,7 @@ function JobsWidget({query}: {query?: string}) {
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -535,7 +539,7 @@ function JobsWidget({query}: {query?: string}) {
 
   const intervalInMinutes = parsePeriodToHours(pageFilterChartParams.interval) * 60;
 
-  const timeSeries = useMemo<TimeSeries[]>(() => {
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
     if (!data) {
       return [];
     }
@@ -552,7 +556,7 @@ function JobsWidget({query}: {query?: string}) {
       return spansPerMinuteValue * intervalInMinutes;
     };
 
-    const [okJobs, failedJobs] = okJobsRate.data.reduce<[TimeSeries, TimeSeries]>(
+    const [okJobs, failedJobs] = okJobsRate.data.reduce<[DiscoverSeries, DiscoverSeries]>(
       (acc, [time, [value]], index) => {
         const spansInTimeBucket = getSpansInTimeBucket(index);
         const okJobsRateValue = value?.count! || 0;
@@ -560,12 +564,12 @@ function JobsWidget({query}: {query?: string}) {
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         });
 
         acc[1].data.push({
           value: failedJobsRateValue * spansInTimeBucket,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         });
 
         return acc;
@@ -574,14 +578,14 @@ function JobsWidget({query}: {query?: string}) {
         {
           data: [],
           color: theme.gray200,
-          field: 'Processed',
-          meta: okJobsRate.meta!,
+          seriesName: 'Processed',
+          meta: okJobsRate.meta as EventsMetaType,
         },
         {
           data: [],
           color: theme.error,
-          field: 'Failed',
-          meta: okJobsRate.meta!,
+          seriesName: 'Failed',
+          meta: okJobsRate.meta as EventsMetaType,
         },
       ]
     );
@@ -590,6 +594,12 @@ function JobsWidget({query}: {query?: string}) {
   }, [data, intervalInMinutes, theme.error, theme.gray200]);
 
   return (
-    <BarChartWidget title="Jobs" stacked isLoading={isLoading} timeSeries={timeSeries} />
+    <InsightsBarChartWidget
+      title="Jobs"
+      stacked
+      isLoading={isLoading}
+      error={error}
+      series={timeSeries}
+    />
   );
 }
