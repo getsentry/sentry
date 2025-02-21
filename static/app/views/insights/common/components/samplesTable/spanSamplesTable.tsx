@@ -117,59 +117,63 @@ export function SpanSamplesTable({
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
-        <Link
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={generateLinkToEventInTraceView({
+              eventId: row['transaction.id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
+              organization,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row['transaction.id'].slice(0, 8)}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row['transaction.id'].slice(0, 8)}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
     if (column.key === 'span_id') {
       return (
-        <Link
-          onClick={() =>
-            trackAnalytics('performance_views.sample_spans.span_clicked', {
+        <OverflowEllipsisTextContainer>
+          <Link
+            onClick={() =>
+              trackAnalytics('performance_views.sample_spans.span_clicked', {
+                organization,
+                source: moduleName,
+              })
+            }
+            to={generateLinkToEventInTraceView({
+              eventId: row['transaction.id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
               organization,
-              source: moduleName,
-            })
-          }
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row.span_id}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row.span_id}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
