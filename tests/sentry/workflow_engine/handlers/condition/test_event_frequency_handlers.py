@@ -24,7 +24,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 50,
+        "value": "50",
         "comparisonType": ComparisonType.COUNT,
     }
 
@@ -126,7 +126,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 50,
+        "value": "50",
         "comparisonType": ComparisonType.PERCENT,
         "comparisonInterval": "1d",
     }
@@ -234,7 +234,7 @@ class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountConditio
     payload = {
         "interval": "1h",
         "id": EventUniqueUserFrequencyCondition.id,
-        "value": 50,
+        "value": "50",
         "comparisonType": ComparisonType.COUNT,
     }
 
@@ -244,7 +244,7 @@ class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCond
     payload = {
         "interval": "1h",
         "id": EventUniqueUserFrequencyCondition.id,
-        "value": 50,
+        "value": "50",
         "comparisonType": ComparisonType.PERCENT,
         "comparisonInterval": "1d",
     }
@@ -255,7 +255,7 @@ class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
     payload = {
         "interval": "1h",
         "id": EventFrequencyPercentCondition.id,
-        "value": 17.2,
+        "value": "17",
         "comparisonType": ComparisonType.COUNT,
     }
 
@@ -265,7 +265,7 @@ class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
     payload = {
         "interval": "1h",
         "id": EventFrequencyPercentCondition.id,
-        "value": 17.2,
+        "value": "17",
         "comparisonType": ComparisonType.PERCENT,
         "comparisonInterval": "1d",
     }
@@ -276,7 +276,7 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventUniqueUserFrequencyConditionWithConditions.id,
-        "value": 50,
+        "value": "50",
         "comparisonType": ComparisonType.COUNT,
     }
 
