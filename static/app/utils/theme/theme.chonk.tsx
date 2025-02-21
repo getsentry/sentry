@@ -180,51 +180,48 @@ const lightColors = {
   },
 
   dynamic: {
-    // @TODO(jonasbadalic): duplicates?
-    surface400: '#FAFAFC',
-    surface300: '#FAFAFC',
-    surface200: '#F6F5FA',
-    surface100: '#DEDCE5',
+    surface400: '#FFFFFF',
+    surface300: '#FDFCFF',
+    surface200: '#ECEBF0',
+    surface100: '#E2E1E5',
 
     // @TODO(jonasbadalic): Why does gray opaque have 500?
-    grayOpaque500: '#181225',
-    grayOpaque400: '#6D6A76',
-    grayOpaque300: '#919098',
-    grayOpaque200: '#EAEAEB',
+    grayOpaque500: '#181423',
+    grayOpaque400: '#6D6B74',
+    grayOpaque300: '#939198',
+    grayOpaque200: '#E0DFE2',
     grayOpaque100: '#F3F3F4',
 
-    grayTransparent500: 'rgba(24, 18, 37, 1.0)',
-    grayTransparent400: 'rgba(24, 18, 37, 0.63)',
-    grayTransparent300: 'rgba(24, 18, 37, 0.47)',
-    grayTransparent200: 'rgba(24, 18, 37, 0.09)',
-    grayTransparent100: 'rgba(24, 18, 37, 0.05)',
+    grayTransparent500: 'rgba(24, 20, 35, 1.0)',
+    grayTransparent400: 'rgba(24, 20, 35, 0.63)',
+    grayTransparent300: 'rgba(24, 20, 35, 0.47)',
+    grayTransparent200: 'rgba(24, 20, 35, 0.14)',
+    grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
-    blurple400: '#694BE5',
+    blurple400: '#6C4DEB',
     blurple300: '#5E42CC',
     blurple200: '#523AB2',
-    blurple100: '#463299',
+    blurple100: '#553DB8',
 
-    green400: '#17753D',
-    green300: '#146635',
-    green200: '#115A2E',
-    green100: '#00A341',
+    pink400: '#BD337C',
+    pink300: '#A32C6C',
+    pink200: '#8F275E',
+    pink100: '#962963',
+
+    red400: '#CC003D',
+    red300: '#B20036',
+    red200: '#99002E',
+    red100: '#A80033',
 
     gold400: '#9D5710',
     gold300: '#8A4D0F',
     gold200: '#7B450F',
-    gold100: '#E07518',
+    gold100: '#C9A30A',
 
-    // @TODO(jonasbadalic): duplicates?
-    red400: '#CC003D',
-    red300: '#CC003D',
-    red200: '#99002E',
-    red100: '#800026',
-
-    // @TODO(jonasbadalic): TBD
-    pink400: '#FFF',
-    pink300: '#FFF',
-    pink200: '#FFF',
-    pink100: '#FFF',
+    green400: '#17753D',
+    green300: '#146635',
+    green200: '#115A2E',
+    green100: '#00BF4D',
   },
 };
 
