@@ -26,6 +26,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
@@ -116,6 +117,7 @@ type Props = {
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isLowConfidenceChartData?: boolean;
+  isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
 };
@@ -537,6 +539,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       project,
       comparisonType,
       isLowConfidenceChartData,
+      isOnDemandLimitReached,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -680,24 +683,46 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               : dataset === Dataset.GENERIC_METRICS
                           }
                         />
-                        {isExtrapolatedChartData && isOnDemandQueryString(value) && (
-                          <OnDemandWarningIcon
-                            color="gray500"
-                            msg={tct(
-                              `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
-                              {
-                                fields: (
-                                  <strong>
-                                    {getOnDemandKeys(value)
-                                      .map(key => `"${key}"`)
-                                      .join(', ')}
-                                  </strong>
-                                ),
-                                strong: <strong />,
-                              }
-                            )}
-                          />
-                        )}
+                        {isExtrapolatedChartData &&
+                          isOnDemandQueryString(value) &&
+                          (isOnDemandLimitReached ? (
+                            <OnDemandWarningIcon
+                              color="red400"
+                              msg={tct(
+                                'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
+                                {
+                                  fields: (
+                                    <strong>
+                                      {getOnDemandKeys(value)
+                                        .map(key => `"${key}"`)
+                                        .join(', ')}
+                                    </strong>
+                                  ),
+                                  docLink: (
+                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
+                                  ),
+                                }
+                              )}
+                              isHoverable
+                            />
+                          ) : (
+                            <OnDemandWarningIcon
+                              color="gray500"
+                              msg={tct(
+                                'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
+                                {
+                                  fields: (
+                                    <strong>
+                                      {getOnDemandKeys(value)
+                                        .map(key => `"${key}"`)
+                                        .join(', ')}
+                                    </strong>
+                                  ),
+                                  strong: <strong />,
+                                }
+                              )}
+                            />
+                          ))}
                       </SearchContainer>
                     );
                   }}
