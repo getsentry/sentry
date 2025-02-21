@@ -1,5 +1,5 @@
 import type {Dispatch} from 'react';
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,6 @@ import {
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 interface TokensProp {
   expression: string;
@@ -21,12 +20,8 @@ interface TokensProp {
 
 function Tokens(props: TokensProp) {
   const {state, dispatch} = useArithmeticBuilderAction({
-    initialQuery: props.expression,
+    initialExpression: props.expression,
   });
-
-  const tokens = useMemo(() => {
-    return tokenizeExpression(state.query);
-  }, [state.query]);
 
   const wrappedDispatch = useCallback(
     (action: ArithmeticBuilderAction) => {
@@ -41,9 +36,11 @@ function Tokens(props: TokensProp) {
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
+        aggregateFunctions: [{name: 'avg'}, {name: 'sum'}, {name: 'count'}],
+        functionArguments: [{name: 'span.duration'}, {name: 'span.self_time'}],
       }}
     >
-      <TokenGrid tokens={tokens} />
+      <TokenGrid tokens={state.expression.tokens} />
     </ArithmeticBuilderContext.Provider>
   );
 }
@@ -83,11 +80,11 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
-      await userEvent.click(screen.getByRole('option', {name: 'avg(\u2026)'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       expect(
         await screen.findByRole('row', {
@@ -106,7 +103,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -394,6 +391,28 @@ describe('token', function () {
           name: 'avg(span.duration)',
         })
       ).toBeInTheDocument();
+    });
+
+    it('can delete function tokens with the delete button', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: 'Remove function avg(span.duration)',
+        })
+      );
+
+      expect(
+        screen.queryByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).not.toBeInTheDocument();
     });
   });
 

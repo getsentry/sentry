@@ -8,7 +8,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
@@ -163,7 +163,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options
+from .helpers import Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -239,13 +239,6 @@ class BaseTestCase(Fixtures):
         >>>     # ...
         """
         return Feature(names)
-
-    def auth_provider(self, name, cls):
-        """
-        >>> with self.auth_provider('name', Provider)
-        >>>     # ...
-        """
-        return AuthProvider(name, cls)
 
     def save_session(self):
         self.session.save()
@@ -2751,10 +2744,10 @@ class SCIMTestCase(APITestCase):
 class SCIMAzureTestCase(SCIMTestCase):
     provider = ACTIVE_DIRECTORY_PROVIDER_NAME
 
-    def setUp(self):
-        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp()
-        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+    @pytest.fixture(autouse=True)
+    def _use_dummy_provider_for_ad_provider(self) -> Generator[None]:
+        with mock.patch.object(auth.manager, "get", return_value=DummyProvider("dummy")):
+            yield
 
 
 class ActivityTestCase(TestCase):

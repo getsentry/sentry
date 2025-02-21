@@ -68,7 +68,10 @@ export function useAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes,
+      visualizes: visualizes.map(visualize => ({
+        chartType: visualize.chartType,
+        yAxes: visualize.yAxes,
+      })),
       visualizes_count: visualizes.length,
       title: title || '',
       confidences: computeConfidence(visualizes, timeseriesResult.data),
@@ -202,6 +205,6 @@ function computeConfidence(
   return visualizes.map(visualize => {
     const dedupedYAxes = dedupeArray(visualize.yAxes);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-    return combineConfidenceForSeries(series);
+    return String(combineConfidenceForSeries(series));
   });
 }

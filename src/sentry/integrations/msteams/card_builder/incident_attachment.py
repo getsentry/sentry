@@ -29,7 +29,11 @@ def build_incident_attachment(
     colors: dict[str, Literal["good", "warning", "attention"]]
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
+    footer_text = (
+        "Sentry Incident | {}".format(data["date_started"].strftime("%b %d"))
+        if data["date_started"] is not None
+        else "Sentry Incident"
+    )
 
     return {
         "type": "AdaptiveCard",

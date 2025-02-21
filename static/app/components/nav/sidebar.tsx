@@ -17,7 +17,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({isHovered}: SidebarProps) {
-  const {isCollapsed} = useNavContext();
+  const {isCollapsed, isInteracting} = useNavContext();
 
   return (
     <Fragment>
@@ -32,14 +32,14 @@ export function Sidebar({isHovered}: SidebarProps) {
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
           initial="hidden"
-          animate={isHovered ? 'visible' : 'hidden'}
+          animate={isHovered || isInteracting ? 'visible' : 'hidden'}
           variants={{
             visible: {x: 0},
             hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
           }}
           transition={{duration: 0.3}}
           data-test-id="collapsed-secondary-sidebar"
-          data-visible={isHovered}
+          data-visible={isHovered || isInteracting}
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
@@ -51,9 +51,8 @@ export function Sidebar({isHovered}: SidebarProps) {
 const SidebarWrapper = styled('div')`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(2)} 0 ${space(1)} 0;
-  border-right: 1px solid ${p => p.theme.translucentGray100};
-  background: #3e2648;
-  background: linear-gradient(180deg, #3e2648 0%, #442c4e 100%);
+  border-right: 1px solid ${p => p.theme.translucentGray200};
+  background: ${p => p.theme.surface300};
   display: flex;
   flex-direction: column;
   z-index: ${p => p.theme.zIndex.sidebar};

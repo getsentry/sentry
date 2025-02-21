@@ -7,7 +7,7 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ModalStore from 'sentry/stores/modalStore';
-import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
+import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
 
 describe('shareModal', () => {
   const project = ProjectFixture();
@@ -37,7 +37,7 @@ describe('shareModal', () => {
 
     act(() =>
       openModal(modalProps => (
-        <ShareIssueModal
+        <PublishIssueModal
           {...modalProps}
           groupId={group.id}
           organization={organization}
@@ -47,8 +47,8 @@ describe('shareModal', () => {
       ))
     );
 
-    expect(screen.getByText('Share Issue')).toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('Share'));
+    expect(screen.getByText('Publish Issue')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Publish'));
     expect(await screen.findByRole('button', {name: 'Copy Link'})).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);
     expect(onToggle).toHaveBeenCalledTimes(1);
@@ -67,7 +67,7 @@ describe('shareModal', () => {
 
     act(() =>
       openModal(modalProps => (
-        <ShareIssueModal
+        <PublishIssueModal
           {...modalProps}
           groupId={group.id}
           organization={organization}
@@ -77,9 +77,8 @@ describe('shareModal', () => {
       ))
     );
 
-    await userEvent.click(screen.getByLabelText('Unshare'));
+    await userEvent.click(screen.getByLabelText('Unpublish'));
 
-    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);
     expect(onToggle).toHaveBeenCalledTimes(1);
   });

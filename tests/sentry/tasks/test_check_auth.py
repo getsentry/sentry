@@ -98,8 +98,7 @@ class CheckAuthIdentityTest(TestCase):
 
         with patch.object(DummyProvider, "refresh_identity") as mock_refresh_identity:
             mock_refresh_identity.side_effect = IdentityNotValid()
-            with self.auth_provider("dummy", DummyProvider):
-                check_auth_identity(auth_identity_id=ai.id)
+            check_auth_identity(auth_identity_id=ai.id)
             mock_refresh_identity.assert_called_once_with(ai)
 
         # because of an error, it should become inactive
@@ -126,8 +125,7 @@ class CheckAuthIdentityTest(TestCase):
         )
 
         with patch.object(DummyProvider, "requires_refresh", False):
-            with self.auth_provider("dummy", DummyProvider):
-                check_auth_identity(auth_identity_id=ai.id)
+            check_auth_identity(auth_identity_id=ai.id)
 
         updated_ai = AuthIdentity.objects.get(id=ai.id)
         assert updated_ai.last_synced == ai.last_synced
