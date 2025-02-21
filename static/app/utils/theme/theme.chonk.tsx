@@ -26,7 +26,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       text: {
         primary: colorScheme.dynamic.grayTransparent500,
         secondary: colorScheme.dynamic.grayTransparent400,
-        accent: colorScheme.dynamic.blurple400,
+        accent: colorScheme.dynamic.blue400,
         success: colorScheme.dynamic.green400,
         warning: colorScheme.dynamic.yellow400,
         danger: colorScheme.dynamic.red400,
@@ -37,7 +37,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           secondary: colorScheme.dynamic.grayTransparent400,
           tertiary: colorScheme.dynamic.grayTransparent300,
           quaternary: colorScheme.dynamic.grayTransparent200,
-          accent: colorScheme.static.blurple400,
+          accent: colorScheme.static.blue400,
           success: colorScheme.static.green100,
           warning: colorScheme.static.yellow100,
           danger: colorScheme.static.red400,
@@ -64,7 +64,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
     interactive: {
       outline: {
         default: {
-          color: colorScheme.static.blurple400,
+          color: colorScheme.static.blue400,
         },
         danger: {
           color: colorScheme.static.red400,
@@ -73,9 +73,9 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       link: {
         accent: {
           color: {
-            default: colorScheme.dynamic.blurple400,
-            hover: colorScheme.dynamic.blurple400,
-            active: colorScheme.dynamic.blurple400,
+            default: colorScheme.dynamic.blue400,
+            hover: colorScheme.dynamic.blue400,
+            active: colorScheme.dynamic.blue400,
           },
         },
       },
@@ -99,12 +99,12 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           },
         },
         accent: {
-          chonk: colorScheme.dynamic.blurple100,
+          chonk: colorScheme.dynamic.blue100,
           children: colorScheme.static.white,
           background: {
-            default: colorScheme.static.blurple400,
-            hover: colorScheme.static.blurple300,
-            active: colorScheme.static.blurple200,
+            default: colorScheme.static.blue400,
+            hover: colorScheme.static.blue300,
+            active: colorScheme.static.blue200,
           },
         },
         warning: {
@@ -158,10 +158,10 @@ const lightColors = {
     black: '#181423',
     white: '#F6F5FA',
 
-    blurple400: '#7553FF',
-    blurple300: '#6C4DEB',
-    blurple200: '#6246D4',
-    blurple100: '#553DB8',
+    blue400: '#7553FF',
+    blue300: '#6C4DEB',
+    blue200: '#6246D4',
+    blue100: '#553DB8',
 
     pink400: '#FF70BC',
     pink300: '#ED69AF',
@@ -203,10 +203,10 @@ const lightColors = {
     grayTransparent200: 'rgba(24, 20, 35, 0.14)',
     grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
-    blurple400: '#6C4DEB',
-    blurple300: '#5E42CC',
-    blurple200: '#523AB2',
-    blurple100: '#553DB8',
+    blue400: '#6C4DEB',
+    blue300: '#5E42CC',
+    blue200: '#523AB2',
+    blue100: '#553DB8',
 
     pink400: '#BD337C',
     pink300: '#A32C6C',
@@ -235,10 +235,10 @@ const darkColors: typeof lightColors = {
     black: '#181423',
     white: '#F6F5FA',
 
-    blurple400: '#7553FF',
-    blurple300: '#6C4DEB',
-    blurple200: '#6246D4',
-    blurple100: '#553DB8',
+    blue400: '#7553FF',
+    blue300: '#6C4DEB',
+    blue200: '#6246D4',
+    blue100: '#553DB8',
 
     pink400: '#FF70BC',
     pink300: '#ED69AF',
@@ -281,10 +281,10 @@ const darkColors: typeof lightColors = {
     grayTransparent200: 'rgba(246, 245, 250, 0.18)',
     grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
-    blurple400: '#A791FF',
-    blurple300: '#B7A6FF',
-    blurple200: '#C6B8FF',
-    blurple100: '#07050F',
+    blue400: '#A791FF',
+    blue300: '#B7A6FF',
+    blue200: '#C6B8FF',
+    blue100: '#07050F',
 
     pink400: '#FF70BC',
     pink300: '#FF82C4',
@@ -480,9 +480,9 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: colors.static.blurple200,
-  activeHover: colors.static.blurple300,
-  activeText: colors.static.blurple400,
+  active: colors.static.blue200,
+  activeHover: colors.static.blue300,
+  activeText: colors.static.blue400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -539,7 +539,7 @@ const generateAliases = (
   /**
    * Default Progressbar color
    */
-  progressBar: colors.static.blurple400,
+  progressBar: colors.static.blue400,
 
   /**
    * Default Progressbar color
@@ -554,13 +554,13 @@ const generateAliases = (
   /**
    * Tag progress bars
    */
-  tagBarHover: colors.static.blurple300,
+  tagBarHover: colors.static.blue300,
   tagBar: colors.dynamic.grayTransparent200,
 
   // @todo(jonasbadalic) should these reference static colors?
   searchTokenBackground: {
-    valid: colors.static.blurple100,
-    validActive: color(colors.static.blurple100).opaquer(1.0).string(),
+    valid: colors.static.blue100,
+    validActive: color(colors.static.blue100).opaquer(1.0).string(),
     invalid: colors.static.red100,
     invalidActive: color(colors.static.red100).opaquer(0.8).string(),
     warning: colors.static.yellow100,
@@ -572,8 +572,8 @@ const generateAliases = (
    * NOTE: Not being used anymore in the new Search UI
    */
   searchTokenBorder: {
-    valid: colors.static.blurple200,
-    validActive: color(colors.static.blurple200).opaquer(1).string(),
+    valid: colors.static.blue200,
+    validActive: color(colors.static.blue200).opaquer(1).string(),
     invalid: colors.static.red200,
     invalidActive: color(colors.static.red200).opaquer(1).string(),
     warning: colors.static.yellow200,
@@ -624,15 +624,15 @@ const chonkLightColorMapping: ColorMapping = {
   translucentGray200: lightColors.dynamic.grayTransparent200,
   translucentGray100: lightColors.dynamic.grayTransparent100,
 
-  purple400: lightColors.dynamic.blurple400,
-  purple300: lightColors.dynamic.blurple300,
-  purple200: lightColors.dynamic.blurple200,
-  purple100: lightColors.dynamic.blurple100,
+  purple400: lightColors.dynamic.blue400,
+  purple300: lightColors.dynamic.blue300,
+  purple200: lightColors.dynamic.blue200,
+  purple100: lightColors.dynamic.blue100,
 
-  blue400: lightColors.dynamic.blurple400,
-  blue300: lightColors.dynamic.blurple300,
-  blue200: lightColors.dynamic.blurple200,
-  blue100: lightColors.dynamic.blurple100,
+  blue400: lightColors.dynamic.blue400,
+  blue300: lightColors.dynamic.blue300,
+  blue200: lightColors.dynamic.blue200,
+  blue100: lightColors.dynamic.blue100,
 
   green400: lightColors.dynamic.green400,
   green300: lightColors.dynamic.green300,
@@ -682,15 +682,15 @@ const chonkDarkColorMapping: ColorMapping = {
   translucentGray200: darkColors.dynamic.grayTransparent200,
   translucentGray100: darkColors.dynamic.grayTransparent100,
 
-  purple400: darkColors.dynamic.blurple400,
-  purple300: darkColors.dynamic.blurple300,
-  purple200: darkColors.dynamic.blurple200,
-  purple100: darkColors.dynamic.blurple100,
+  purple400: darkColors.dynamic.blue400,
+  purple300: darkColors.dynamic.blue300,
+  purple200: darkColors.dynamic.blue200,
+  purple100: darkColors.dynamic.blue100,
 
-  blue400: darkColors.dynamic.blurple400,
-  blue300: darkColors.dynamic.blurple300,
-  blue200: darkColors.dynamic.blurple200,
-  blue100: darkColors.dynamic.blurple100,
+  blue400: darkColors.dynamic.blue400,
+  blue300: darkColors.dynamic.blue300,
+  blue200: darkColors.dynamic.blue200,
+  blue100: darkColors.dynamic.blue100,
 
   green400: darkColors.dynamic.green400,
   green300: darkColors.dynamic.green300,
