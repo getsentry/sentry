@@ -37,7 +37,7 @@ from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
-logger = logging.getLogger("sentry.relocation.tasks.process")
+logger = logging.getLogger("sentry.relocation.tasks")
 
 
 # Relocation tasks are always performed in sequential order. We can leverage this to check for any
