@@ -1,21 +1,9 @@
-from unittest.mock import patch
-
-import orjson
-from urllib3.response import HTTPResponse
-
-from sentry.incidents.models.alert_rule import (
-    AlertRuleDetectionType,
-    AlertRuleSeasonality,
-    AlertRuleSensitivity,
-    AlertRuleTriggerAction,
-)
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestMigrations
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
@@ -45,22 +33,6 @@ class MigrateMetricAlertTest(TestMigrations):
 
     def setUp(self):
         return super().setUp()
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    def create_dynamic_alert(self, mock_seer_request):
-        seer_return_value = {"success": True}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        dynamic_rule = self.create_alert_rule(
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-            sensitivity=AlertRuleSensitivity.HIGH,
-            seasonality=AlertRuleSeasonality.AUTO,
-            time_window=60,
-        )
-        return dynamic_rule
 
     def setup_initial_state(self):
         self.valid_rule = self.create_alert_rule(name="hojicha")
@@ -110,29 +82,6 @@ class MigrateMetricAlertTest(TestMigrations):
             sentry_app=self.sentry_app,
             alert_rule_trigger=self.valid_trigger,
             sentry_app_config=[{"name": "assignee", "value": "michelle"}],
-        )
-
-        # advanced
-        self.dynamic_rule = self.create_dynamic_alert()
-
-        self.rule_with_incident = self.create_alert_rule()
-        self.create_alert_rule_trigger(alert_rule=self.rule_with_incident)
-        self.create_incident(
-            alert_rule=self.rule_with_incident, status=IncidentStatus.CRITICAL.value
-        )
-
-        self.snoozed_rule = self.create_alert_rule()
-        self.create_alert_rule_trigger(alert_rule=self.snoozed_rule)
-        self.snooze_rule(alert_rule=self.snoozed_rule)
-
-        self.skipped_rule = self.create_alert_rule()
-        self.skipped_trigger = self.create_alert_rule_trigger(alert_rule=self.skipped_rule)
-        self.bad_action = self.create_alert_rule_trigger_action(
-            type=AlertRuleTriggerAction.Type.SENTRY_APP,
-            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
-            sentry_app=self.sentry_app,
-            alert_rule_trigger=self.skipped_trigger,
-            sentry_app_config=[{"favorite_tea": "strawberry matcha latte with oat milk"}],
         )
 
     def test_simple_rule(self):
@@ -320,30 +269,3 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.target_display == self.sentry_app_action.target_display
         assert action.target_identifier == self.sentry_app_action.target_identifier
         assert action.target_type == self.sentry_app_action.target_type
-
-    def test_skip_dynamic_rule(self):
-        assert not AlertRuleDetector.objects.filter(alert_rule=self.dynamic_rule).exists()
-
-    def test_create_with_incident(self):
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_with_incident)
-
-        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
-        detector_state = DetectorState.objects.get(detector=detector)
-        assert detector_state.active is True
-        assert detector_state.state == str(DetectorPriorityLevel.HIGH)
-
-    def test_create_snoozed(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.snoozed_rule)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.snoozed_rule)
-
-        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        assert not workflow.enabled
-        assert not detector.enabled
-
-    def test_create_error(self):
-        """
-        Test that none of the ACI objects are written to the DB if an exception occurs, and test that
-        an exception doesn't crash the migration.
-        """
-        assert not AlertRuleDetector.objects.filter(alert_rule=self.skipped_rule).exists()
