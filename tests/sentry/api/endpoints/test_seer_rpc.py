@@ -6,21 +6,21 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import eventstore
-from sentry.api.endpoints.seer_rpc import (
+from sentry.api.endpoints.seer_rpc import generate_request_signature
+from sentry.api.serializers import EventSerializer, serialize
+from sentry.models.group import Group
+from sentry.models.repository import Repository
+from sentry.seer.fetch_issues_given_patches import (
     NUM_DAYS_AGO,
     STACKFRAME_COUNT,
     PrFile,
     _add_event_details,
     _get_projects_and_filenames_from_source_file,
     _left_truncated_paths,
-    generate_request_signature,
     get_issues_related_to_file_patches,
     get_issues_with_event_details_for_file,
     safe_for_fetching_issues,
 )
-from sentry.api.serializers import EventSerializer, serialize
-from sentry.models.group import Group
-from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
@@ -282,12 +282,12 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         assert projects == {self.project}
         assert filenames == {"foo.py", "some/path/foo.py", "path/foo.py"}
 
-    @patch("sentry.api.endpoints.seer_rpc.safe_for_fetching_issues")
-    @patch("sentry.api.endpoints.seer_rpc._get_projects_and_filenames_from_source_file")
+    @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
+    @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
     @patch(
         "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
     )
-    @patch("sentry.api.endpoints.seer_rpc.get_issues_with_event_details_for_file")
+    @patch("sentry.seer.fetch_issues_given_patches.get_issues_with_event_details_for_file")
     def test_get_issues_related_to_file_patches(
         self,
         mock_get_issues_with_event_details_for_file: Mock,
