@@ -197,17 +197,18 @@ export const NavButton = styled('button', {
 
 export const SidebarItemUnreadIndicator = styled('span')`
   position: absolute;
-  top: calc(50% - 16px);
-  left: calc(50% + 16px);
+  top: calc(50% - 12px);
+  left: calc(50% + 12px);
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   background: ${p => p.theme.purple400};
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid ${p => p.theme.background};
 `;
 
 const SeparatorListItem = styled('li')`
