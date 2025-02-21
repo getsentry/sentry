@@ -105,7 +105,7 @@ export function IssueViewNavItemContent({
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
   return (
-    <Reorder.Item
+    <StyledReorderItem
       as="div"
       dragConstraints={sectionRef}
       dragElastic={0.03}
@@ -175,7 +175,7 @@ export function IssueViewNavItemContent({
           </Tooltip>
         )}
       </StyledSecondaryNavItem>
-    </Reorder.Item>
+    </StyledReorderItem>
   );
 }
 
@@ -280,6 +280,13 @@ const hasUnsavedChanges = (
 
   return newUnsavedChanges;
 };
+
+// framer-motion's reorder item handles putting the dragging item in front of other items out of the box
+// but we need to make sure the item is relatively positioned and has a background color for it to work
+const StyledReorderItem = styled(Reorder.Item)`
+  position: relative;
+  background-color: ${p => p.theme.surface200};
+`;
 
 const TrailingItemsWrapper = styled('div')`
   display: flex;
