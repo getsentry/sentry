@@ -34,7 +34,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
     get_top_hosting_provider_names,
 )
-from sentry.uptime.subscriptions.regions import get_active_region_configs
+from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
     get_or_create_uptime_subscription,
@@ -145,26 +145,24 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             return
 
         subscription_region_modes = {
-            r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
+            UptimeRegionWithMode(r.region_slug, UptimeSubscriptionRegion.RegionMode(r.mode))
             for r in subscription.regions.all()
         }
-        active_regions = {c.slug: mode for c, mode in get_active_region_configs()}
+        active_regions = set(get_active_regions())
         if subscription_region_modes == active_regions:
             # Regions haven't changed, exit early.
             return
 
-        new_or_updated_regions = {
-            slug: mode
-            for slug, mode in active_regions.items()
-            if slug not in subscription_region_modes or subscription_region_modes[slug] != mode
+        new_or_updated_regions = active_regions - subscription_region_modes
+        removed_regions = {srm.slug for srm in subscription_region_modes} - {
+            ar.slug for ar in active_regions
         }
-        removed_regions = subscription_region_modes.keys() - active_regions.keys()
         if new_or_updated_regions:
             new_or_updated_region_objs = [
                 UptimeSubscriptionRegion(
-                    uptime_subscription=subscription, region_slug=slug, mode=mode
+                    uptime_subscription=subscription, region_slug=r.slug, mode=r.mode
                 )
-                for slug, mode in new_or_updated_regions.items()
+                for r in new_or_updated_regions
             ]
             UptimeSubscriptionRegion.objects.bulk_create(
                 new_or_updated_region_objs,

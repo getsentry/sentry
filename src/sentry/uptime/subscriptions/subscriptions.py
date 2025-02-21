@@ -22,7 +22,7 @@ from sentry.uptime.models import (
     headers_json_encoder,
 )
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
-from sentry.uptime.subscriptions.regions import get_active_region_configs
+from sentry.uptime.subscriptions.regions import get_active_regions
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
@@ -158,12 +158,12 @@ def get_or_create_uptime_subscription(
         created = True
 
     # Associate active regions with this subscription
-    for region_config, region_mode in get_active_region_configs():
+    for region in get_active_regions():
         # If we add a region here we need to resend the subscriptions
         created |= UptimeSubscriptionRegion.objects.update_or_create(
             uptime_subscription=subscription,
-            region_slug=region_config.slug,
-            defaults={"mode": region_mode},
+            region_slug=region.slug,
+            defaults={"mode": region.mode},
         )[1]
 
     if created:
