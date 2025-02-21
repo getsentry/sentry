@@ -42,7 +42,7 @@ export default function Stories() {
   const story = useStoriesLoader({files: storyFiles});
   const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
     'category' | 'filesystem'
-  >('story-representation', 'filesystem');
+  >('story-representation', 'category');
 
   const nodes = useStoryTree(files, {
     query: location.query.query ?? '',
@@ -178,6 +178,7 @@ const SidebarContainer = styled('div')`
   gap: ${space(2)};
   min-height: 0;
   position: relative;
+  z-index: 10;
 `;
 
 const StoryTreeContainer = styled('div')`

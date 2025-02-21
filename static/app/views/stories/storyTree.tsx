@@ -33,11 +33,19 @@ class StoryTreeNode {
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
     for (const {node} of this) {
-      if (node && predicate(node)) {
+      if (predicate(node)) {
         return node;
       }
     }
     return undefined;
+  }
+
+  sort(predicate: (a: [string, StoryTreeNode], b: [string, StoryTreeNode]) => number) {
+    this.children = Object.fromEntries(Object.entries(this.children).sort(predicate));
+
+    for (const {node} of this) {
+      node.children = Object.fromEntries(Object.entries(node.children).sort(predicate));
+    }
   }
 
   // Iterator that yields all files in the tree, excluding folders
@@ -57,24 +65,27 @@ class StoryTreeNode {
   }
 }
 
-function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
-  if (a.visible && !b.visible) {
+function folderOrSearchScoreFirst(
+  a: [string, StoryTreeNode],
+  b: [string, StoryTreeNode]
+) {
+  if (a[1].visible && !b[1].visible) {
     return -1;
   }
 
-  if (!a.visible && b.visible) {
+  if (!a[1].visible && b[1].visible) {
     return 1;
   }
 
-  if (a.result && b.result) {
-    if (a.result.score === b.result.score) {
-      return a.name.localeCompare(b.name);
+  if (a[1].result && b[1].result) {
+    if (a[1].result.score === b[1].result.score) {
+      return a[0].localeCompare(b[0]);
     }
-    return b.result.score - a.result.score;
+    return b[1].result.score - a[1].result.score;
   }
 
-  const aIsFolder = Object.keys(a.children).length > 0;
-  const bIsFolder = Object.keys(b.children).length > 0;
+  const aIsFolder = Object.keys(a[1].children).length > 0;
+  const bIsFolder = Object.keys(b[1].children).length > 0;
 
   if (aIsFolder && !bIsFolder) {
     return -1;
@@ -84,7 +95,15 @@ function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
     return 1;
   }
 
-  return a.name.localeCompare(b.name);
+  return a[0].localeCompare(b[0]);
+}
+
+const order: FileCategory[] = ['components', 'hooks', 'views', 'assets', 'styles'];
+function rootCategorySort(
+  a: [FileCategory | string, StoryTreeNode],
+  b: [FileCategory | string, StoryTreeNode]
+) {
+  return order.indexOf(a[0] as FileCategory) - order.indexOf(b[0] as FileCategory);
 }
 
 function normalizeFilename(filename: string) {
@@ -97,14 +116,17 @@ function normalizeFilename(filename: string) {
   return filename.charAt(0).toUpperCase() + filename.slice(1).replace('.stories.tsx', '');
 }
 
-function inferFileCategory(
-  path: string
-): 'hooks' | 'components' | 'views' | 'styles' | 'icons' {
-  const parts = path.split('/');
+type FileCategory = 'hooks' | 'components' | 'views' | 'styles' | 'assets';
 
+function inferFileCategory(path: string): FileCategory {
+  const parts = path.split('/');
   const filename = parts.at(-1);
   if (filename?.startsWith('use')) {
     return 'hooks';
+  }
+
+  if (parts[1]?.startsWith('icons') || path.endsWith('images.stories.tsx')) {
+    return 'assets';
   }
 
   if (parts[1]?.startsWith('views')) {
@@ -113,10 +135,6 @@ function inferFileCategory(
 
   if (parts[1]?.startsWith('styles')) {
     return 'styles';
-  }
-
-  if (parts[1]?.startsWith('icons')) {
-    return 'icons';
   }
 
   return 'components';
@@ -163,6 +181,9 @@ export function useStoryTree(
           parent = parent.children[part]!;
         }
       }
+
+      // Sort the root by file/folder name when using the filesystem representation
+      root.sort(folderOrSearchScoreFirst);
     } else if (options.representation === 'category') {
       for (const file of files) {
         const type = inferFileCategory(file);
@@ -180,6 +201,11 @@ export function useStoryTree(
           );
         }
       }
+
+      // Sort the root by category order when using the category representation
+      root.children = Object.fromEntries(
+        Object.entries(root.children).sort(rootCategorySort)
+      );
     }
 
     // If the user navigates to a story, expand to its location in the tree
@@ -204,7 +230,6 @@ export function useStoryTree(
     if (!options.query) {
       if (initialName.current) {
         initialName.current = null;
-        return Object.values(root.children);
       }
 
       // If there is no initial query and no story is selected, the sidebar
@@ -213,6 +238,15 @@ export function useStoryTree(
         node.visible = true;
         node.expanded = false;
         node.result = null;
+      }
+
+      // sort alphabetically or by category
+      if (options.representation === 'filesystem') {
+        root.sort(folderOrSearchScoreFirst);
+      } else {
+        root.children = Object.fromEntries(
+          Object.entries(root.children).sort(rootCategorySort)
+        );
       }
       return Object.values(root.children);
     }
@@ -260,8 +294,10 @@ export function useStoryTree(
       }
     }
 
+    root.sort(folderOrSearchScoreFirst);
+
     return Object.values(root.children);
-  }, [tree, options.query]);
+  }, [tree, options.query, options.representation]);
 
   return nodes;
 }
@@ -276,7 +312,7 @@ export function StoryTree({nodes, ...htmlProps}: Props) {
   return (
     <nav {...htmlProps}>
       <StoryList>
-        {nodes.sort(folderOrSearchScoreFirst).map(node => {
+        {nodes.map(node => {
           if (!node.visible) {
             return null;
           }
@@ -321,18 +357,16 @@ function Folder(props: {node: StoryTreeNode}) {
       </FolderName>
       {expanded && Object.keys(props.node.children).length > 0 && (
         <StoryList>
-          {Object.values(props.node.children)
-            .sort(folderOrSearchScoreFirst)
-            .map(child => {
-              if (!child.visible) {
-                return null;
-              }
-              return Object.keys(child.children).length === 0 ? (
-                <File key={child.path} node={child} />
-              ) : (
-                <Folder key={child.path} node={child} />
-              );
-            })}
+          {Object.values(props.node.children).map(child => {
+            if (!child.visible) {
+              return null;
+            }
+            return Object.keys(child.children).length === 0 ? (
+              <File key={child.path} node={child} />
+            ) : (
+              <Folder key={child.path} node={child} />
+            );
+          })}
         </StoryList>
       )}
     </li>
