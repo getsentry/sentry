@@ -131,7 +131,7 @@
     "lodash": "^4.17.19",
     "marked": "6.0.0",
     "mini-css-extract-plugin": "^2.8.0",
-    "mobx": "^6.8.0",
+    "mobx": "^6.13.5",
     "mobx-react": "~7.6.0",
     "mockdate": "3.0.5",
     "moment-timezone": "0.5.44",
