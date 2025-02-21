@@ -99,13 +99,12 @@ function formatColumnOptions(
             : undefined
         ),
         disabled: !supported,
-        tooltip: !supported
-          ? tct('This field is not available for the [aggregate] function', {
-              aggregate: (
-                <strong>{'function' in field ? field.function[0] : 'blank'}</strong>
-              ),
-            })
-          : undefined,
+        tooltip:
+          !supported && field.kind === FieldValueKind.FUNCTION
+            ? tct('This field is not available for the [aggregate] function', {
+                aggregate: <strong>{field.function[0]}</strong>,
+              })
+            : undefined,
       };
     });
 }
