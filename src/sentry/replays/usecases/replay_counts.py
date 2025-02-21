@@ -98,7 +98,7 @@ def _get_replay_id_mappings(
     # provide every project_id manually.
     if select_column == "issue.id":
         groups = Group.objects.select_related("project").filter(
-            project__organization_id=snuba_params.organization.id,  # type: ignore[attr-defined]
+            project__organization_id=snuba_params.organization.id,  # type: ignore[union-attr]
             id__in=column_value,
         )
         snuba_params = dataclasses.replace(
