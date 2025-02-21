@@ -1,29 +1,18 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {SectionHeading} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
-import Count from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {AggregateFlamegraphSampleTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSampleTable';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconProfiling, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {getShortEventId} from 'sentry/utils/events';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
@@ -35,21 +24,12 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
-import type {ProfilingFieldType} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-
-import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
-import {generateProfileLink} from '../utils';
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
@@ -68,10 +48,6 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
   return (
     <TransactionProfilesContentContainer>
       <ProfileVisualization {...props} />
-      <ProfileSidebarContainer>
-        <ProfileDigest {...props} />
-        <ProfileList {...props} />
-      </ProfileSidebarContainer>
     </TransactionProfilesContentContainer>
   );
 }
@@ -167,13 +143,16 @@ function ProfileVisualization(props: TransactionProfilesContentProps) {
               />
               <FlamegraphContainer>
                 {visualization === 'flamegraph' ? (
-                  <AggregateFlamegraph
-                    status={status}
-                    filter={frameFilter}
-                    onResetFilter={onResetFrameFilter}
-                    canvasPoolManager={canvasPoolManager}
-                    scheduler={scheduler}
-                  />
+                  <AggregateFlamegraphCanvasContainer>
+                    <AggregateFlamegraph
+                      status={status}
+                      filter={frameFilter}
+                      onResetFilter={onResetFrameFilter}
+                      canvasPoolManager={canvasPoolManager}
+                      scheduler={scheduler}
+                    />
+                    <AggregateFlamegraphSampleTable scheduler={scheduler} />
+                  </AggregateFlamegraphCanvasContainer>
                 ) : (
                   <AggregateFlamegraphTreeTable
                     recursion={null}
@@ -274,262 +253,6 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   );
 }
 
-const PERCENTILE_DIGESTS = [
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-] satisfies ProfilingFieldType[];
-const ALL_DIGESTS = [
-  ...PERCENTILE_DIGESTS,
-  'last_seen()',
-  'count()',
-] satisfies ProfilingFieldType[];
-
-function ProfileDigest({query}: TransactionProfilesContentProps) {
-  const profilesSummary = useProfileEvents<ProfilingFieldType>({
-    fields: ALL_DIGESTS,
-    query,
-    sort: {key: 'last_seen()', order: 'desc'},
-    referrer: 'api.profiling.profile-summary-table',
-  });
-
-  const digestData = profilesSummary.data?.data?.[0];
-
-  return (
-    <ProfileDigestContainer>
-      <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
-      <ProfileDigestValue align="right">
-        {profilesSummary.isPending ? (
-          ''
-        ) : profilesSummary.isError ? (
-          ''
-        ) : (
-          <DateTime date={new Date(digestData?.['last_seen()'] as string)} />
-        )}
-      </ProfileDigestValue>
-      <ProfileDigestLabel>{t('Count')}</ProfileDigestLabel>
-      <ProfileDigestValue align="right">
-        {profilesSummary.isPending ? (
-          ''
-        ) : profilesSummary.isError ? (
-          ''
-        ) : (
-          <Count value={digestData?.['count()'] as number} />
-        )}
-      </ProfileDigestValue>
-      {PERCENTILE_DIGESTS.map(percentile => (
-        <Fragment key={percentile}>
-          <ProfileDigestLabel>
-            {percentile.substring(0, percentile.length - 2)}
-          </ProfileDigestLabel>
-          <ProfileDigestValue align="right">
-            {profilesSummary.isPending ? (
-              ''
-            ) : profilesSummary.isError ? (
-              ''
-            ) : (
-              <PerformanceDuration
-                milliseconds={digestData?.[percentile] as number}
-                abbreviation
-              />
-            )}
-          </ProfileDigestValue>
-        </Fragment>
-      ))}
-    </ProfileDigestContainer>
-  );
-}
-
-const ALLOWED_SORTS = [
-  '-timestamp',
-  'timestamp',
-  '-transaction.duration',
-  'transaction.duration',
-] as const;
-type SortOption = (typeof ALLOWED_SORTS)[number];
-
-const sortOptions: Array<SelectOption<SortOption>> = [
-  {value: '-timestamp', label: t('Newest Events')},
-  {value: 'timestamp', label: t('Oldest Events')},
-  {value: '-transaction.duration', label: t('Slowest Events')},
-  {value: 'transaction.duration', label: t('Fastest Events')},
-];
-
-const PROFILES_SORT = 'profilesSort';
-const PROFILES_CURSOR = 'profilesCursor';
-
-function ProfileList({query: userQuery, transaction}: TransactionProfilesContentProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const sortValue = useMemo(() => {
-    const rawSort = decodeScalar(location.query[PROFILES_SORT]);
-    if (ALLOWED_SORTS.includes(rawSort as any)) {
-      return rawSort as SortOption;
-    }
-    return '-timestamp' as const;
-  }, [location.query]);
-
-  const sort = useMemo(() => {
-    if (sortValue === '-timestamp') {
-      return {key: 'timestamp', order: 'desc'} as const;
-    }
-
-    if (sortValue === 'timestamp') {
-      return {key: 'timestamp', order: 'asc'} as const;
-    }
-
-    if (sortValue === '-transaction.duration') {
-      return {key: 'transaction.duration', order: 'desc'} as const;
-    }
-
-    if (sortValue === 'transaction.duration') {
-      return {key: 'transaction.duration', order: 'asc'} as const;
-    }
-
-    throw new Error(`Unsupport sort: ${sortValue}`);
-  }, [sortValue]);
-
-  const cursor = useMemo(
-    () => decodeScalar(location.query[PROFILES_CURSOR]),
-    [location.query]
-  );
-
-  const profilesList = useProfileEvents<ProfilingFieldType>({
-    fields: [
-      'id',
-      'project.name',
-      'trace',
-      'transaction.duration',
-      'profile.id',
-      'profiler.id',
-      'thread.id',
-      'precise.start_ts',
-      'precise.finish_ts',
-      'timestamp',
-    ],
-    query: userQuery,
-    sort,
-    referrer: 'api.profiling.profile-summary-table',
-    cursor,
-    limit: 10,
-  });
-
-  const handleSort = useCallback(
-    (value: {value: SortOption}) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          [PROFILES_SORT]: value.value,
-          [PROFILES_CURSOR]: undefined,
-        },
-      });
-    },
-    [location, navigate]
-  );
-
-  const handleCursor = useCallback(
-    // @ts-expect-error TS(7006): Parameter 'newCursor' implicitly has an 'any' type... Remove this comment to see the full error message
-    (newCursor, pathname, query) => {
-      navigate({
-        pathname,
-        query: {...query, [PROFILES_CURSOR]: newCursor},
-      });
-    },
-    [navigate]
-  );
-
-  return (
-    <ProfileListContainer>
-      <ProfileListControls>
-        <CompactSelect
-          onChange={handleSort}
-          value={sortValue}
-          size="xs"
-          options={sortOptions}
-        />
-        <StyledPagination
-          pageLinks={profilesList.getResponseHeader?.('Link')}
-          onCursor={handleCursor}
-          size="xs"
-        />
-      </ProfileListControls>
-      {profilesList.isPending ? (
-        <LoadingIndicator />
-      ) : profilesList.isError ? (
-        <ErrorPanel>
-          <IconWarning color="gray300" size="lg" />
-        </ErrorPanel>
-      ) : (
-        <ProfileListResultsContainer>
-          <ProfileDigestLabel>{t('Event ID')}</ProfileDigestLabel>
-          <ProfileDigestLabel align="right">{t('Duration')}</ProfileDigestLabel>
-          <ProfileDigestLabel align="right">{t('Profile')}</ProfileDigestLabel>
-          {profilesList.data?.data?.map(row => {
-            const traceTarget = generateLinkToEventInTraceView({
-              eventId: row.id as string,
-              timestamp: row.timestamp as string,
-              traceSlug: row.trace as string,
-              projectSlug: row['project.name'] as string,
-              location,
-              organization,
-              transactionName: transaction,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            });
-
-            const profileTarget = generateProfileLink()(
-              organization,
-              {
-                id: row.id as string,
-                'project.name': row['project.name'] as string,
-                'profile.id': (row['profile.id'] as string) || '',
-                'profiler.id': (row['profiler.id'] as string) || '',
-                'thread.id': (row['thread.id'] as string) || '',
-                'precise.start_ts': row['precise.start_ts'] as number,
-                'precise.finish_ts': row['precise.finish_ts'] as number,
-                trace: row.trace as string,
-              },
-              location
-            );
-
-            return (
-              <Fragment key={row.id as string}>
-                <ProfileDigestValue align="left">
-                  <Link to={traceTarget}>{getShortEventId(row.id as string)}</Link>
-                </ProfileDigestValue>
-                <ProfileDigestValue align="right">
-                  <PerformanceDuration
-                    milliseconds={(row?.['transaction.duration'] as number) ?? 0}
-                    abbreviation
-                  />
-                </ProfileDigestValue>
-                <ProfileDigestValue align="right">
-                  <LinkButton
-                    disabled={!profileTarget || isEmptyObject(profileTarget)}
-                    to={profileTarget || {}}
-                    onClick={() => {
-                      trackAnalytics('profiling_views.go_to_flamegraph', {
-                        organization,
-                        source: 'profiling_transaction.profiles_table',
-                      });
-                    }}
-                    size="xs"
-                  >
-                    <IconProfiling size="xs" />
-                  </LinkButton>
-                </ProfileDigestValue>
-              </Fragment>
-            );
-          })}
-        </ProfileListResultsContainer>
-      )}
-    </ProfileListContainer>
-  );
-}
-
 const TransactionProfilesContentContainer = styled('div')`
   display: grid;
   /* false positive for grid layout */
@@ -578,6 +301,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
    */
   height: 41px;
   border-bottom: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0px 0px;
 `;
 
 const ViewSelectContainer = styled('div')`
@@ -588,51 +312,9 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
 `;
 
-const ProfileSidebarContainer = styled('div')`
-  grid-area: digest;
-  border-left: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
-  position: relative;
-  overflow: hidden;
+const AggregateFlamegraphCanvasContainer = styled('div')`
   display: grid;
-  grid-template-rows: min-content 1fr;
-`;
-
-const ProfileDigestContainer = styled('div')`
-  display: grid;
-  grid-template-columns: min-content 1fr;
-  padding: ${space(2)};
-  gap: ${space(1)};
-`;
-
-const ProfileListContainer = styled('div')`
-  padding: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
-`;
-
-const ProfileListControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
-`;
-
-const ProfileListResultsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: min-content 1fr min-content;
-  gap: ${space(1)};
-`;
-
-const ProfileDigestLabel = styled(SectionHeading)<{align?: 'left' | 'right'}>`
-  margin: 0;
-  text-transform: uppercase;
-  text-wrap: nowrap;
-  text-align: ${p => p.align ?? 'left'};
-`;
-
-const ProfileDigestValue = styled('div')<{align: 'left' | 'right'}>`
-  text-align: ${p => p.align};
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 1fr min-content;
 `;

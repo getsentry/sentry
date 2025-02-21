@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -24,10 +23,10 @@ export const PROFILING_SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {
 });
 
 export function formatWeightToProfileDuration(
-  frame: CallTreeNode,
+  totalWeight: number,
   flamegraph: Flamegraph
 ) {
-  const weight = (frame.totalWeight / flamegraph.profile.duration) * 100;
+  const weight = (totalWeight / flamegraph.profile.duration) * 100;
 
   return `${Math.round(weight * 100) / 100}%`;
 }
@@ -117,7 +116,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
         />
         {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples, ') + formattedChange}{' '}
-        {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
+        {`(${formatWeightToProfileDuration(props.frame.node.totalWeight, flamegraph)})`}{' '}
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
@@ -152,7 +151,7 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
         {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples') + ' '}
         {`(${formatWeightToProfileDuration(
-          props.frame.node,
+          props.frame.node.totalWeight,
           props.flamegraphRenderer.flamegraph
         )})`}{' '}
         {props.frame.frame.name}
@@ -184,7 +183,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
         {`(${formatWeightToProfileDuration(
-          props.frame.node,
+          props.frame.node.totalWeight,
           props.flamegraphRenderer.flamegraph
         )})`}{' '}
         {props.frame.frame.name}
