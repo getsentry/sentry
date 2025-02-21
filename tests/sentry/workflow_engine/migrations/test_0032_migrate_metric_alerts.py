@@ -1,6 +1,12 @@
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestMigrations
-from sentry.workflow_engine.models import (  # WorkflowDataConditionGroup,
+from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
     AlertRuleDetector,
@@ -14,6 +20,7 @@ from sentry.workflow_engine.models import (  # WorkflowDataConditionGroup,
     DetectorState,
     DetectorWorkflow,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -32,6 +39,49 @@ class MigrateMetricAlertTest(TestMigrations):
         self.valid_trigger = self.create_alert_rule_trigger(alert_rule=self.valid_rule)
         self.email_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.valid_trigger
+        )
+
+        METADATA = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
+        self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        self.integration = self.create_provider_integration(
+            provider="opsgenie", name="matcha", external_id="matcha", metadata=METADATA
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="oolong",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
+        )
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.rpc_user
+        )
+        with assume_test_silo_mode_of(Integration, OrganizationIntegration):
+            self.integration.add_organization(self.organization, self.user)
+            self.org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            self.org_integration.config = {"team_table": [self.og_team]}
+            self.org_integration.save()
+
+        self.integration_action = self.create_alert_rule_trigger_action(
+            target_identifier=self.og_team["id"],
+            type=AlertRuleTriggerAction.Type.OPSGENIE,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
+            alert_rule_trigger=self.valid_trigger,
+        )
+
+        self.sentry_app_action = self.create_alert_rule_trigger_action(
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=self.sentry_app,
+            alert_rule_trigger=self.valid_trigger,
+            sentry_app_config=[{"name": "assignee", "value": "michelle"}],
         )
 
     def test_simple_rule(self):
@@ -101,6 +151,10 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action_filter.condition_result is True
         assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
 
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=action_filter.condition_group
+        ).exists()
+
     def test_simple_resolve(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
@@ -126,6 +180,10 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action_filter.condition_result is True
         assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
 
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=action_filter.condition_group
+        ).exists()
+
     def test_simple_trigger_action(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
@@ -138,11 +196,12 @@ class MigrateMetricAlertTest(TestMigrations):
         )
 
         aarta = ActionAlertRuleTriggerAction.objects.get(
-            alert_rule_trigger_action_id=self.valid_trigger.id
+            alert_rule_trigger_action_id=self.email_action.id
         )
         action = aarta.action
         DataConditionGroupAction.objects.get(
             condition_group_id=action_filter.condition_group.id,
+            action=action.id,
         )
         assert action.type == Action.Type.EMAIL
         assert action.data == {
@@ -154,3 +213,59 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.target_display is None
         assert action.target_identifier == self.email_action.target_identifier
         assert action.target_type == self.email_action.target_type
+
+    def test_on_call_trigger_action(self):
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.HIGH,
+        )
+
+        aarta = ActionAlertRuleTriggerAction.objects.get(
+            alert_rule_trigger_action_id=self.integration_action.id
+        )
+        action = aarta.action
+        DataConditionGroupAction.objects.get(
+            condition_group_id=action_filter.condition_group.id,
+            action=action.id,
+        )
+
+        assert action.type == Action.Type.OPSGENIE
+        assert action.data == {"priority": OPSGENIE_DEFAULT_PRIORITY}
+        assert action.integration_id == self.integration_action.integration_id
+        assert action.target_display == self.integration_action.target_display
+        assert action.target_identifier == self.integration_action.target_identifier
+        assert action.target_type == self.integration_action.target_type
+
+    def test_sentry_app_trigger_action(self):
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.HIGH,
+        )
+
+        aarta = ActionAlertRuleTriggerAction.objects.get(
+            alert_rule_trigger_action_id=self.sentry_app_action.id
+        )
+        action = aarta.action
+        DataConditionGroupAction.objects.get(
+            condition_group_id=action_filter.condition_group.id,
+            action=action.id,
+        )
+
+        assert action.type == Action.Type.SENTRY_APP
+        assert action.data == {
+            "settings": self.sentry_app_action.sentry_app_config,
+        }
+        assert action.integration_id is None
+        assert action.target_display == self.sentry_app_action.target_display
+        assert action.target_identifier == self.sentry_app_action.target_identifier
+        assert action.target_type == self.sentry_app_action.target_type
