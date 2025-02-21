@@ -77,6 +77,7 @@ describe('IssueUptimeCheckTimeline', () => {
               [CheckStatus.SUCCESS]: 1,
               [CheckStatus.MISSED_WINDOW]: 1,
               [CheckStatus.FAILURE]: 1,
+              [CheckStatus.FAILURE_INCIDENT]: 1,
             },
           ],
         ],
@@ -95,6 +96,9 @@ describe('IssueUptimeCheckTimeline', () => {
     ).toBeInTheDocument();
     expect(
       within(legend).getByText(statusToText[CheckStatus.FAILURE])
+    ).toBeInTheDocument();
+    expect(
+      within(legend).getByText(statusToText[CheckStatus.FAILURE_INCIDENT])
     ).toBeInTheDocument();
 
     expect(screen.getByRole('figure')).toBeInTheDocument();
@@ -143,6 +147,9 @@ describe('IssueUptimeCheckTimeline', () => {
     ).not.toBeInTheDocument();
     expect(
       within(legend).getByText(statusToText[CheckStatus.FAILURE])
+    ).toBeInTheDocument();
+    expect(
+      within(legend).getByText(statusToText[CheckStatus.FAILURE_INCIDENT])
     ).toBeInTheDocument();
   });
 });
