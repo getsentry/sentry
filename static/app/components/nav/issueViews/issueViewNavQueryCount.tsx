@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 
 const TAB_MAX_COUNT = 99;
@@ -29,7 +29,7 @@ const constructCountTimeFrame = (
 };
 
 interface IssueViewNavQueryCountProps {
-  view: IssueViewPF;
+  view: IssueView;
 }
 
 export function IssueViewNavQueryCount({view}: IssueViewNavQueryCountProps) {
