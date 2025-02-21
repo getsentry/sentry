@@ -1,10 +1,13 @@
-__all__ = ["DummyProvider"]
+from typing import Any
 
 from django.http import HttpResponse
 from rest_framework.request import Request
 
 from sentry.identity.base import Provider
 from sentry.pipeline import PipelineView
+from sentry.users.models.identity import Identity
+
+__all__ = ("DummyProvider",)
 
 
 class AskEmail(PipelineView):
@@ -28,5 +31,5 @@ class DummyProvider(Provider):
     def build_identity(self, state):
         return {"id": state["email"], "email": state["email"], "name": "Dummy"}
 
-    def refresh_identity(self, auth_identity, *args, **kwargs):
+    def refresh_identity(self, identity: Identity, **kwargs: Any) -> None:
         pass
