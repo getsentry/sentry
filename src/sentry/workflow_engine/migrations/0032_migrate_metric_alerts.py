@@ -9,7 +9,6 @@ from django.apps.registry import Apps
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
-from sentry.integrations.services.integration import integration_service
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
@@ -100,6 +99,16 @@ FIELDS_TO_DETECTOR_FIELDS = {
     "description": "description",
     "user_id": "owner_user_id",
     "team_id": "owner_team_id",
+}
+
+TYPE_TO_PROVIDER = {
+    0: "email",
+    1: "pagerduty",
+    2: "slack",
+    3: "msteams",
+    4: "sentry_app",
+    6: "opsgenie",
+    7: "discord",
 }
 
 PRIORITY_MAP = {
@@ -328,19 +337,9 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             action_type = ActionType.SENTRY_APP
 
                         elif trigger_action.integration_id:
-                            integration = integration_service.get_integration(
-                                integration_id=trigger_action.integration_id
-                            )
-                            if not integration:
-                                logger.info(
-                                    "could not find a matching action type for the trigger action",
-                                    extra={"trigger_action_id": trigger_action.id},
-                                )
-                                raise Exception(
-                                    "Could not find a matching action type for the trigger action"
-                                )
+                            # breakpoint()
                             try:
-                                action_type = ActionType(integration.provider)
+                                action_type = ActionType(TYPE_TO_PROVIDER[trigger_action.type])
                             except Exception:
                                 logger.info(
                                     "could not find a matching action type for the trigger action",
@@ -374,9 +373,9 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             config = trigger_action.sentry_app_config
                             if not isinstance(config, dict):
                                 data = {"priority": default_priority}
-
-                            priority = config.get("priority", default_priority)
-                            data = dataclasses.asdict(OnCallDataBlob(priority=priority))
+                            else:
+                                priority = config.get("priority", default_priority)
+                                data = dataclasses.asdict(OnCallDataBlob(priority=priority))
                         else:
                             data = {
                                 "type": trigger_action.type,
