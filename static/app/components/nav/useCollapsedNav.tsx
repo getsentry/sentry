@@ -87,8 +87,11 @@ export function useCollapsedNav() {
     element.addEventListener('mouseenter', handleMouseEnter);
     element.addEventListener('mouseleave', handleMouseLeave);
 
-    const handleFocusIn = () => {
-      hoverIn();
+    const handleFocusIn = (e: FocusEvent) => {
+      if (e.target instanceof HTMLElement && e.target.matches(':focus-visible')) {
+        clearTimeout(closeTimer);
+        setIsOpen(true);
+      }
     };
 
     const handleFocusOut = () => {
