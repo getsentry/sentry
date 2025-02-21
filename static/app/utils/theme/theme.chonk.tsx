@@ -932,7 +932,7 @@ export function useChonkTheme(): ChonkTheme {
   const theme = useTheme() as Theme | ChonkTheme;
 
   assertChonkTheme(theme);
-  return theme as ChonkTheme;
+  return theme;
 }
 
 function assertChonkTheme(theme: Theme): asserts theme is ChonkTheme {
