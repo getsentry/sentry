@@ -39,12 +39,18 @@ describe('Onboarding Status', function () {
       })
     );
 
+    MockApiClient.clearMockResponses();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
       method: 'GET',
       body: {
         onboardingTasks: [],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/onboarding-tasks/',
+      method: 'PUT',
     });
   });
 
