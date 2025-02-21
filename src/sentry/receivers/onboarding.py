@@ -97,25 +97,11 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         ),
     )
 
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.FIRST_PROJECT,
-        user_id=user_id,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
-    )
-    if not success:
-        # Check if the "first project" task already exists and log an error if needed
-        first_project_task_exists = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
-        ).exists()
+    first_project_task_exists = OrganizationOnboardingTask.objects.filter(
+        organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
+    ).exists()
 
-        if not first_project_task_exists:
-            sentry_sdk.capture_message(
-                f"An error occurred while trying to record the first project for organization ({project.organization_id})",
-                level="warning",
-            )
-
+    if first_project_task_exists:
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -130,6 +116,14 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             project_id=project.id,
         )
         try_mark_onboarding_complete(project.organization_id)
+    else:
+        OrganizationOnboardingTask.objects.record(
+            organization_id=project.organization_id,
+            task=OnboardingTask.FIRST_PROJECT,
+            user_id=user_id,
+            status=OnboardingTaskStatus.COMPLETE,
+            project_id=project.id,
+        )
 
 
 @first_event_received.connect(weak=False)
