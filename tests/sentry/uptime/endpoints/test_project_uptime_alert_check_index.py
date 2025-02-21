@@ -5,6 +5,7 @@ from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
+from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
@@ -36,7 +37,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
+        self.store_snuba_uptime_check(
+            subscription_id=self.subscription_id,
+            check_status="failure",
+            incident_status=IncidentStatus.IN_INCIDENT,
+        )
 
     def test_get(self):
         response = self.get_success_response(
@@ -58,9 +63,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             "checkStatusReason",
             "traceId",
             "httpStatusCode",
+            "incidentStatus",
         ]:
             assert key in first, f"{key} not in {first}"
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
+        assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
 
     def test_datetime_range(self):
         # all of our checks are stored in the last 5 minutes, so query for 10 days ago and expect 0 results
