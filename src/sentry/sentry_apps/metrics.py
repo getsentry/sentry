@@ -1,25 +1,32 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
-from sentry.models.organization import Organization
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
-class SentryAppOperationType(StrEnum):
+class SentryAppInteractionType(StrEnum):
     """Actions that Sentry Apps can do"""
 
-    PUBLISH_EMAIL_SENT = "publish_email_sent"
+    # Webhook actions
+    PREPARE_EVENT_WEBHOOK = "prepare_event_webhook"
+    SEND_EVENT_WEBHOOK = "send_event_webhook"
+
+    # External Requests actions
+    SELECT_REQUESTER = "select_requester"
 
 
 @dataclass
-class SentryAppOperationEvent(EventLifecycleMetric):
+class SentryAppInteractionEvent(EventLifecycleMetric):
     """An event under the Sentry App umbrella"""
 
-    operation_type: SentryAppOperationType
-    sentry_app_name: str | None = None
-    organization: Organization | None = None
+    operation_type: SentryAppInteractionType
+    sentry_app: SentryApp | None = None
+    sentry_app_installation: SentryAppInstallation | None = None
     region: str | None = None
 
     def get_sentry_app_name(self) -> str:
@@ -35,6 +42,11 @@ class SentryAppOperationEvent(EventLifecycleMetric):
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
             "operation_type": self.operation_type,
-            "sentry_app_name": self.get_sentry_app_name(),
             "region": self.get_region(),
+        }
+
+    def get_extras(self) -> Mapping[str, Any]:
+        return {
+            "sentry_app": self.sentry_app_name,
+            "installation_uuid": (self.org_integration.id if self.org_integration else None),
         }
