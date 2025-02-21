@@ -152,7 +152,6 @@ export function SpansTabContentImpl({
     spansTableResult,
     tracesTableResult,
     timeseriesResult,
-    error: tableError || chartError,
   });
 
   return (

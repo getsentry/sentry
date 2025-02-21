@@ -21,7 +21,6 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
 export function useAnalytics({
-  error,
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -29,7 +28,6 @@ export function useAnalytics({
   timeseriesResult,
 }: {
   aggregatesTableResult: AggregatesTableResult;
-  error: string | undefined;
   queryType: 'aggregate' | 'samples' | 'traces';
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -46,6 +44,15 @@ export function useAnalytics({
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
+
+  const tableError =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.error?.message ?? ''
+      : queryType === 'traces'
+        ? tracesTableResult.result.error?.message ?? ''
+        : spansTableResult.result.error?.message ?? '';
+  const chartError = timeseriesResult.error?.message ?? '';
+  const query_status = tableError || chartError ? 'error' : 'success';
 
   useEffect(() => {
     if (
@@ -65,7 +72,7 @@ export function useAnalytics({
       result_mode: 'aggregates',
       columns,
       columns_count: columns.length,
-      query_status: error ? 'error' : 'success',
+      query_status,
       result_length: aggregatesTableResult.result.data?.length || 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
@@ -95,7 +102,7 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
-    error,
+    query_status,
   ]);
 
   useEffect(() => {
@@ -115,7 +122,7 @@ export function useAnalytics({
       result_mode: 'span samples',
       columns: fields,
       columns_count: fields.length,
-      query_status: error ? 'error' : 'success',
+      query_status,
       result_length: spansTableResult.result.data?.length || 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
@@ -141,7 +148,7 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
-    error,
+    query_status,
   ]);
 
   useEffect(() => {
@@ -173,7 +180,7 @@ export function useAnalytics({
       result_mode: 'trace samples',
       columns,
       columns_count: columns.length,
-      query_status: error ? 'error' : 'success',
+      query_status,
       result_length: tracesTableResult.result.data?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
@@ -199,7 +206,7 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
-    error,
+    query_status,
   ]);
 }
 
