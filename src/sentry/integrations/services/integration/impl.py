@@ -364,7 +364,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         new_status: int,
         incident_attachment_json: str,
         organization_id: int,
-        metric_value: float,
+        metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
         try:

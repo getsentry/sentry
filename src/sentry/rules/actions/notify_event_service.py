@@ -31,7 +31,7 @@ PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
@@ -54,7 +54,7 @@ def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     """
@@ -62,7 +62,7 @@ def send_incident_alert_notification(
     :param action: The triggered `AlertRuleTriggerAction`.
     :param incident: The `Incident` for which to build a payload.
     :param metric_value: The value of the metric that triggered this alert to
-    fire.
+    fire. If not provided we'll attempt to calculate this ourselves.
     :return:
     """
     organization = serialize_rpc_organization(incident.organization)
