@@ -1,10 +1,10 @@
 import {Fragment, type ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {SeverityLevel} from '@sentry/core';
 import {captureException, withScope} from '@sentry/react';
 
-import Badge from 'sentry/components/badge/badge';
-import {useBadgeColors} from 'sentry/components/badge/badgeColors';
+import Badge, {type BadgeType} from 'sentry/components/badge/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -12,10 +12,13 @@ import {t} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
-export type BadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
+export type FeatureBadgeType = Extract<
+  BadgeType,
+  'alpha' | 'beta' | 'new' | 'experimental' | 'internal'
+>;
 
 type BadgeProps = {
-  type: BadgeType;
+  type: FeatureBadgeType;
   condensed?: boolean;
   expiresAt?: Date;
   title?: ReactNode;
@@ -25,7 +28,7 @@ type BadgeProps = {
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 
-const defaultTitles: Record<BadgeType, string> = {
+const defaultTitles: Record<FeatureBadgeType, string> = {
   alpha: t('This feature is internal and available for QA purposes'),
   beta: t('This feature is available for early adopters and may change'),
   new: t('This feature is new! Try it out and let us know what you think'),
@@ -35,7 +38,7 @@ const defaultTitles: Record<BadgeType, string> = {
   internal: t('This feature is for internal use only'),
 };
 
-const labels: Record<BadgeType, string> = {
+const labels: Record<FeatureBadgeType, string> = {
   alpha: t('alpha'),
   beta: t('beta'),
   new: t('new'),
@@ -43,12 +46,24 @@ const labels: Record<BadgeType, string> = {
   internal: t('internal'),
 };
 
-const shortLabels: Record<BadgeType, string> = {
+const shortLabels: Record<FeatureBadgeType, string> = {
   alpha: 'A',
   beta: 'B',
   new: 'N',
   experimental: 'E',
   internal: 'I',
+};
+
+const useIndicatorColor = () => {
+  const theme = useTheme();
+
+  return {
+    alpha: theme.pink300,
+    beta: theme.purple300,
+    new: theme.green300,
+    experimental: theme.gray100,
+    internal: theme.gray100,
+  } satisfies Record<FeatureBadgeType, string>;
 };
 
 function BaseFeatureBadge({
@@ -59,7 +74,7 @@ function BaseFeatureBadge({
   expiresAt,
   ...props
 }: Props) {
-  const badgeColors = useBadgeColors();
+  const indicatorColors = useIndicatorColor();
   if (expiresAt && expiresAt.valueOf() < Date.now()) {
     // Only get 1% of events as we don't need many to know that a badge needs to be cleaned up.
     if (Math.random() < 0.01) {
@@ -80,7 +95,7 @@ function BaseFeatureBadge({
           {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'short' && <StyledBadge type={type} text={shortLabels[type]} />}
           {variant === 'indicator' && (
-            <CircleIndicator color={badgeColors[type].indicatorColor} size={8} />
+            <CircleIndicator color={indicatorColors[type]} size={8} />
           )}
         </Fragment>
       </Tooltip>
