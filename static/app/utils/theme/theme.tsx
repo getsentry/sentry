@@ -583,7 +583,7 @@ const lightColors: Colors = {
 
   gray500: '#2B2233',
   gray400: '#3E3446',
-  gray300: '#80708F',
+  gray300: '#71637E',
   gray200: '#E0DCE5',
   gray100: '#F0ECF3',
 
