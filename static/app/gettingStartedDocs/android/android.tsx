@@ -59,6 +59,11 @@ plugins {
   )}"
 }`;
 
+const getAutoInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i android ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+};
+
 const getConfigurationSnippet = (params: Params) => `
 <application>
   <!-- Required: set your sentry.io project identifier (DSN) -->
@@ -133,7 +138,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'bash',
-                code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i android`,
+                code: getAutoInstallSnippet(params),
               },
               {
                 description: (
