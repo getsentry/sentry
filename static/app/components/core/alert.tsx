@@ -33,7 +33,7 @@ export function Alert({
 }: AlertProps) {
   const theme = useTheme();
   const showExpand = defined(expand);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 
   // Show the hover state (with darker borders) only when hovering over the
   // IconWrapper or MessageContainer.
