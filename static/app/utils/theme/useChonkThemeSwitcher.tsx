@@ -13,7 +13,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-export function useChonkTheme(): [
+export function useChonkThemeSwitcher(): [
   DO_NOT_USE_ChonkTheme | null,
   (value: 'light' | 'dark' | null) => void,
 ] {
