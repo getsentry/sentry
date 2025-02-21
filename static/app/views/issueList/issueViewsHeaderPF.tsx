@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 import isEqual from 'lodash/isEqual';
@@ -198,35 +198,6 @@ function IssueViewsIssueListHeaderTabsContent({
       statsPeriod,
       utc,
     } = router.location.query;
-    // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
-    if (!query && !sort && !viewId) {
-      const {
-        id,
-        query: viewQuery,
-        querySort,
-        projects,
-        environments,
-        timeFilters,
-      } = views[0]!;
-
-      navigate(
-        normalizeUrl({
-          ...location,
-          query: {
-            ...router.location.query,
-            query: viewQuery,
-            sort: querySort,
-            viewId: id,
-            project: projects,
-            environment: environments,
-            ...normalizeDateTimeParams(timeFilters),
-          },
-        }),
-        {replace: true}
-      );
-      tabListState?.setSelectedKey(views[0]!.key);
-      return;
-    }
     const {queryEnvs, queryProjects} = normalizeProjectsEnvironments(project, env);
     const queryTimeFilters =
       start || end || statsPeriod || utc
@@ -237,6 +208,54 @@ function IssueViewsIssueListHeaderTabsContent({
             utc: statsPeriod ? null : utc,
           }
         : undefined;
+    if (!viewId) {
+      const {
+        id,
+        query: viewQuery,
+        querySort,
+        projects,
+        environments,
+        timeFilters,
+      } = views[0]!;
+      if (queryProjects || queryTimeFilters) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...router.location.query,
+              viewId: id,
+              query: query ?? viewQuery,
+              sort: sort ?? querySort,
+              project: queryProjects ?? projects,
+              environment: queryEnvs ?? environments,
+              ...normalizeDateTimeParams(queryTimeFilters ?? timeFilters),
+            },
+          }),
+          {replace: true}
+        );
+        tabListState?.setSelectedKey(views[0]!.key);
+        return;
+      }
+      if (!query && !sort) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...router.location.query,
+              viewId: id,
+              query: viewQuery,
+              sort: querySort,
+              project: projects,
+              environment: environments,
+              ...normalizeDateTimeParams(timeFilters),
+            },
+          }),
+          {replace: true}
+        );
+        tabListState?.setSelectedKey(views[0]!.key);
+        return;
+      }
+    }
     // if a viewId is present, check the frontend is aware of a view with that id.
     if (viewId) {
       const selectedView = views.find(tab => tab.id === viewId);
@@ -258,10 +277,10 @@ function IssueViewsIssueListHeaderTabsContent({
         const newUnsavedChanges: Partial<IssueViewPFParams> = {
           query: query === originalQuery ? undefined : query,
           querySort: sort === originalSort ? undefined : issueSortOption,
-          projects: isEqual(queryProjects.sort(), originalProjects.sort())
+          projects: isEqual(queryProjects?.sort(), originalProjects.sort())
             ? undefined
             : queryProjects,
-          environments: isEqual(queryEnvs.sort(), originalEnvironments.sort())
+          environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
             ? undefined
             : queryEnvs,
           timeFilters:
@@ -392,8 +411,8 @@ function IssueViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewId, query]);
 
-  useHotkeys(
-    [
+  const issuesViewSaveHotkeys = useMemo(() => {
+    return [
       {
         match: ['command+s', 'ctrl+s'],
         includeInputs: true,
@@ -404,9 +423,10 @@ function IssueViewsIssueListHeaderTabsContent({
           }
         },
       },
-    ],
-    [dispatch, tabListState?.selectedKey, views]
-  );
+    ];
+  }, [dispatch, tabListState?.selectedKey, views]);
+
+  useHotkeys(issuesViewSaveHotkeys);
 
   const handleCreateNewView = () => {
     const tempId = generateTempViewId();
@@ -492,11 +512,11 @@ export default IssueViewsPFIssueListHeader;
  * If project/environemnts is undefined, it equates to an empty array. If it is a single value,
  * it is converted to single element array.
  */
-const normalizeProjectsEnvironments = (
+export const normalizeProjectsEnvironments = (
   project: string[] | string | undefined,
   env: string[] | string | undefined
-): {queryEnvs: string[]; queryProjects: number[]} => {
-  let queryProjects: number[] = [];
+): {queryEnvs: string[] | undefined; queryProjects: number[] | undefined} => {
+  let queryProjects: number[] | undefined = undefined;
   if (Array.isArray(project)) {
     queryProjects = project.map(p => parseInt(p, 10)).filter(p => !isNaN(p));
   } else if (project) {
@@ -506,7 +526,7 @@ const normalizeProjectsEnvironments = (
     }
   }
 
-  let queryEnvs: string[] = [];
+  let queryEnvs: string[] | undefined = undefined;
   if (Array.isArray(env)) {
     queryEnvs = env;
   } else if (env) {

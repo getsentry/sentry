@@ -7,11 +7,12 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import {
-  PROVIDER_OPTION_TO_URLS,
-  ProviderOptions,
+  PROVIDER_TO_SETUP_WEBHOOK_URL,
+  WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -98,15 +99,36 @@ export default function OnboardingIntegrationSection({
       <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
       <IntegrationSection>
         <SubSection>
-          <div>
-            {tct(
-              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-              {
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />,
-              }
-            )}
-          </div>
+          <Flex gap={space(2)} column>
+            <div>
+              {tct(
+                'Change tracking enables Sentry to listen for your feature flag updates. The change log appears in the event volume chart on Issue Details and presents itself as a vertical line, similar to a release line. Setting up change tracking also allows us to notify you of potential suspect flags. Learn more by [link:reading the docs].',
+                {
+                  link: (
+                    <ExternalLink
+                      href={
+                        'https://docs.sentry.io/product/issues/issue-details/feature-flags/#change-tracking'
+                      }
+                    />
+                  ),
+                }
+              )}
+            </div>
+            <div>
+              {tct(
+                "To set up change tracking, create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
+                {
+                  link: (
+                    <ExternalLink
+                      href={
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
+                      }
+                    />
+                  ),
+                }
+              )}
+            </div>
+          </Flex>
           <InputTitle>{t('Webhook URL')}</InputTitle>
           <TextCopyInput
             style={{padding: '20px'}}
@@ -118,7 +140,7 @@ export default function OnboardingIntegrationSection({
         </SubSection>
         <SubSection>
           <div>
-            {provider === ProviderOptions.UNLEASH
+            {provider === WebhookProviderEnum.UNLEASH
               ? t(
                   `During the process of creating a webhook integration, you'll be given the option to add an authorization header. This is a string (or "secret") that you choose so that Sentry can verify requests from your feature flag service. Paste your authorization string below.`
                 )
@@ -166,6 +188,7 @@ export default function OnboardingIntegrationSection({
 }
 
 const InputTitle = styled('div')`
+  margin-top: ${space(1)};
   font-weight: bold;
 `;
 

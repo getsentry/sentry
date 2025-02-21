@@ -437,7 +437,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 function getVitalDataForListItem(
   listItem: TableDataRow,
   vital: WebVital,
-  useAggregateAlias: boolean = true
+  useAggregateAlias = true
 ) {
   const vitalFields = getVitalFields(vital);
   const transformFieldName = (fieldName: string) =>

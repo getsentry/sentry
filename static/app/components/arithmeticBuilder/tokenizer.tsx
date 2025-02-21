@@ -1,18 +1,20 @@
 import type {ListState} from '@react-stately/list';
 import type {LocationRange} from 'peggy';
 
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {
   isTokenFreeText,
   isTokenFunction,
   Operator,
   Parenthesis,
+  type Token,
   TokenAttribute,
+  TokenCloseParenthesis,
   TokenFreeText,
   TokenFunction,
   TokenKind,
+  TokenOpenParenthesis,
   TokenOperator,
-  TokenParenthesis,
+  type TokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils';
 
@@ -50,16 +52,7 @@ function tryTokenizeExpression(expression: string): Token[] {
   return grammar.parse(expression, {tc});
 }
 
-export function tokenizeExpression(
-  expression: string,
-  options?: {intersperseSpace: boolean}
-): Token[] {
-  const {intersperseSpace = true} = options || {};
-
-  if (!intersperseSpace) {
-    return tryTokenizeExpression(expression);
-  }
-
+export function tokenizeExpression(expression: string): Token[] {
   let loc: LocationRange | null = null;
 
   const tokens: Token[] = [];
@@ -87,7 +80,8 @@ export function tokenizeExpression(
 
   const counters: Record<TokenKind, number> = {
     [TokenKind.UNKNOWN]: 0,
-    [TokenKind.PARENTHESIS]: 0,
+    [TokenKind.OPEN_PARENTHESIS]: 0,
+    [TokenKind.CLOSE_PARENTHESIS]: 0,
     [TokenKind.OPERATOR]: 0,
     [TokenKind.FREE_TEXT]: 0,
     [TokenKind.ATTRIBUTE]: 0,
@@ -111,7 +105,7 @@ export function tokenizeExpression(
   return tokens;
 }
 
-export function makeTokenKey(kind: TokenKind, i: number = 0): string {
+export function makeTokenKey(kind: TokenKind, i = 0): string {
   return `${kind}:${i}`;
 }
 
@@ -148,14 +142,25 @@ export function nextTokenKeyOfKind(
     }
   }
 
-  return defined(key) ? nextSimilarTokenKey(key) : makeTokenKey(kind);
+  return defined(key)
+    ? nextSimilarTokenKey(key)
+    : // unable to find any tokens of the given kind, so assume this will be the first one
+      makeTokenKey(kind);
 }
 
 class ArithmeticError extends Error {}
 
 class TokenConverter {
   tokenParenthesis(parenthesis: string, location: LocationRange): TokenParenthesis {
-    return new TokenParenthesis(location, toParenthesis(parenthesis));
+    if (parenthesis === '(') {
+      return new TokenOpenParenthesis(location);
+    }
+
+    if (parenthesis === ')') {
+      return new TokenCloseParenthesis(location);
+    }
+
+    throw new ArithmeticError(`Unknown parenthesis: ${parenthesis}`);
   }
 
   tokenOperator(operator: string, location: LocationRange): TokenOperator {
@@ -211,8 +216,10 @@ export function toOperator(operator: string): Operator {
 
 export function toTokenKind(kind: string): TokenKind {
   switch (kind) {
-    case TokenKind.PARENTHESIS:
-      return TokenKind.PARENTHESIS;
+    case TokenKind.OPEN_PARENTHESIS:
+      return TokenKind.OPEN_PARENTHESIS;
+    case TokenKind.CLOSE_PARENTHESIS:
+      return TokenKind.CLOSE_PARENTHESIS;
     case TokenKind.OPERATOR:
       return TokenKind.OPERATOR;
     case TokenKind.FREE_TEXT:

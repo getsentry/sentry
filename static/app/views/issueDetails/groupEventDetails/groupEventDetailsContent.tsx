@@ -71,13 +71,12 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import MetricIssuesSection from '../metricIssuesSection';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -219,7 +218,7 @@ export function EventDetailsContent({
       {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
-      {group.issueCategory === IssueCategory.CRON && (
+      {!hasStreamlinedUI && group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
           organization={organization}
@@ -230,7 +229,6 @@ export function EventDetailsContent({
         <MetricIssuesSection
           organization={organization}
           group={group}
-          event={event}
           project={project}
         />
       )}
@@ -516,11 +514,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>

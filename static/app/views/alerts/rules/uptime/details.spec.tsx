@@ -21,6 +21,10 @@ describe('UptimeAlertDetails', function () {
       url: `/organizations/${organization.slug}/issues/?limit=20&project=${project.id}&query=issue.category%3Auptime%20tags%5Buptime_rule%5D%3A1&statsPeriod=14d`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/1/checks/`,
+      body: [],
+    });
   });
 
   it('renders', async function () {
@@ -82,11 +86,10 @@ describe('UptimeAlertDetails', function () {
       body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'disabled'}),
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Disable this uptime rule and stop performing checks',
-      })
-    );
+    const disableButtons = await screen.findAllByRole('button', {
+      name: 'Disable this uptime rule and stop performing checks',
+    });
+    await userEvent.click(disableButtons[0]!);
 
     expect(disableMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -100,9 +103,10 @@ describe('UptimeAlertDetails', function () {
     });
 
     // Button now re-enables the monitor
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Enable this uptime rule'})
-    );
+    const enabledButtons = await screen.findAllByRole('button', {
+      name: 'Enable this uptime rule',
+    });
+    await userEvent.click(enabledButtons[0]!);
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),

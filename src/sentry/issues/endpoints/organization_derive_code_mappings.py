@@ -47,6 +47,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string stacktraceFilename:
         :auth: required
         """
+        # XXX: Evaluate what else does the UI send us
         stacktrace_filename = request.GET.get("stacktraceFilename")
 
         try:
@@ -54,7 +55,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             resp_status: Literal[200, 204, 400] = status.HTTP_400_BAD_REQUEST
 
             if stacktrace_filename:
-                possible_code_mappings = derive_code_mappings(organization, stacktrace_filename)
+                possible_code_mappings = derive_code_mappings(
+                    organization, {"filename": stacktrace_filename}
+                )
                 if possible_code_mappings:
                     resp_status = status.HTTP_200_OK
                 else:

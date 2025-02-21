@@ -2,7 +2,8 @@ import dataclasses
 import logging
 from typing import Any
 
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from django.forms import ValidationError
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -59,10 +60,6 @@ class MissingDataConditionGroup(Exception):
 
 
 class UnresolvableResolveThreshold(Exception):
-    pass
-
-
-class InvalidActionType(Exception):
     pass
 
 
@@ -145,7 +142,7 @@ def get_target_identifier(
     if action_type == Action.Type.SENTRY_APP:
         # Ensure we have a valid sentry_app_id
         if not alert_rule_trigger_action.sentry_app_id:
-            raise InvalidActionType(
+            raise ValidationError(
                 f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
             )
         return str(alert_rule_trigger_action.sentry_app_id)
@@ -219,7 +216,9 @@ def migrate_metric_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {alert_rule_trigger_action.id}"
+        )
 
     # Ensure action_type is Action.Type before passing to functions
     action_type_enum = Action.Type(action_type)
@@ -697,7 +696,9 @@ def dual_update_migrated_alert_rule_trigger_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {trigger_action.id}"
+        )
     updated_action_fields["type"] = action_type
     data = action.data.copy()
     for field in LEGACY_ACTION_FIELDS:
@@ -742,7 +743,7 @@ def dual_delete_migrated_alert_rule(
     except AlertRuleDetector.DoesNotExist:
         # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
-            "alert rule was not dual written, returning early",
+            "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": alert_rule.id},
         )
         return
@@ -758,17 +759,39 @@ def dual_delete_migrated_alert_rule(
             "DataSource does not exist",
             extra={"alert_rule_id": alert_rule.id},
         )
+
+    triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+    for trigger in triggers_to_dual_delete:
+        dual_delete_migrated_alert_rule_trigger(trigger)
+
+    if data_condition_group:
+        # we need to delete the "resolve" dataconditions here as well
+        data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
+        resolve_detector_trigger = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        resolve_action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.OK,
+        )
+        resolve_action_filter_dcg = resolve_action_filter.condition_group
+
+        resolve_detector_trigger.delete()
+        resolve_action_filter.delete()
+        resolve_action_filter_dcg.delete()
+
     # NOTE: for migrated alert rules, each workflow is associated with a single detector
     # make sure there are no other detectors associated with the workflow, then delete it if so
     if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
         # also deletes alert_rule_workflow
-        RegionScheduledDeletion.schedule(instance=workflow, days=0, actor=user)
+        workflow.delete()
     # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
-    RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
+    detector.delete()
     if data_condition_group:
-        RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
+        data_condition_group.delete()
     if data_source:
-        RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+        data_source.delete()
 
     return
 
@@ -782,9 +805,19 @@ def dual_delete_migrated_alert_rule_trigger(
     if detector_trigger is None:
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
+    action_filter_dcg = action_filter.condition_group
+    # also dual delete the ACI objects for the trigger's associated trigger actions
+    actions_to_dual_delete = AlertRuleTriggerAction.objects.filter(
+        alert_rule_trigger=alert_rule_trigger
+    )
+    for trigger_action in actions_to_dual_delete:
+        aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+        action = aarta.action
+        action.delete()
 
     detector_trigger.delete()
     action_filter.delete()
+    action_filter_dcg.delete()
 
     return None
 

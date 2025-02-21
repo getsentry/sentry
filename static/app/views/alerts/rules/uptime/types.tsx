@@ -48,12 +48,14 @@ export interface UptimeCheck {
 export enum CheckStatus {
   SUCCESS = 'success',
   FAILURE = 'failure',
+  FAILURE_INCIDENT = 'failure_incident',
   MISSED_WINDOW = 'missed_window',
 }
 
 type StatsBucket = {
   [CheckStatus.SUCCESS]: number;
   [CheckStatus.FAILURE]: number;
+  [CheckStatus.FAILURE_INCIDENT]: number;
   [CheckStatus.MISSED_WINDOW]: number;
 };
 

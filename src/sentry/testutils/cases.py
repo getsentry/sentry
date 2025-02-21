@@ -8,7 +8,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
@@ -137,6 +137,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
+from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -162,7 +163,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options
+from .helpers import Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -211,9 +212,9 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
-        auth.register("dummy", DummyProvider)
+        auth.register(DummyProvider)
         yield
-        auth.unregister("dummy", DummyProvider)
+        auth.unregister(DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -238,13 +239,6 @@ class BaseTestCase(Fixtures):
         >>>     # ...
         """
         return Feature(names)
-
-    def auth_provider(self, name, cls):
-        """
-        >>> with self.auth_provider('name', Provider)
-        >>>     # ...
-        """
-        return AuthProvider(name, cls)
 
     def save_session(self):
         self.session.save()
@@ -851,14 +845,13 @@ class TwoFactorAPITestCase(APITestCase):
 
 class AuthProviderTestCase(TestCase):
     provider: type[Provider] = DummyProvider
-    provider_name = "dummy"
 
     def setUp(self):
         super().setUp()
         # TestCase automatically sets up dummy provider
-        if self.provider_name != "dummy" or self.provider != DummyProvider:
-            auth.register(self.provider_name, self.provider)
-            self.addCleanup(auth.unregister, self.provider_name, self.provider)
+        if self.provider != DummyProvider:
+            auth.register(self.provider)
+            self.addCleanup(auth.unregister, self.provider)
 
 
 class RuleTestCase(TestCase):
@@ -1010,7 +1003,7 @@ class CliTestCase(TestCase):
     def command(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    default_args = []
+    default_args: list[str] = []
 
     def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
@@ -1251,6 +1244,15 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
                 data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+
+    def store_ourlogs(self, ourlogs):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                data=json.dumps(ourlogs),
             ).status_code
             == 200
         )
@@ -1941,7 +1943,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "d": EntityKey.MetricsDistributions.value,
         "s": EntityKey.MetricsSets.value,
     }
-    METRIC_STRINGS = []
+    METRIC_STRINGS: list[str] = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
@@ -2367,10 +2369,13 @@ class UptimeCheckSnubaTestCase(TestCase):
         self,
         subscription_id: str | None,
         check_status: str,
+        incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
+        if incident_status is None:
+            incident_status = IncidentStatus.NO_INCIDENT
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
@@ -2391,6 +2396,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "status": check_status,
                 "status_reason": None,
                 "trace_id": str(uuid.uuid4()),
+                "incident_status": incident_status.value,
                 "request_info": {
                     "http_status_code": http_status,
                 },
@@ -2746,10 +2752,10 @@ class SCIMTestCase(APITestCase):
 class SCIMAzureTestCase(SCIMTestCase):
     provider = ACTIVE_DIRECTORY_PROVIDER_NAME
 
-    def setUp(self):
-        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp()
-        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+    @pytest.fixture(autouse=True)
+    def _use_dummy_provider_for_ad_provider(self) -> Generator[None]:
+        with mock.patch.object(auth.manager, "get", return_value=DummyProvider()):
+            yield
 
 
 class ActivityTestCase(TestCase):
@@ -3177,6 +3183,10 @@ class UptimeTestCaseMixin:
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
 
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
@@ -3189,7 +3199,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             subscription_id = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
-        optional_fields = {}
+        optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
@@ -3302,6 +3312,66 @@ class SpanTestCase(BaseTestCase):
         if measurements:
             span["measurements"] = measurements
         return span
+
+
+class _OptionalOurLogData(TypedDict, total=False):
+    body: str
+    trace_id: str
+    span_id: str
+    severity_text: str
+    severity_number: int
+    trace_flags: int
+
+
+class OurLogTestCase(BaseTestCase):
+    base_log: dict[str, Any] = {
+        "retention_days": 90,
+        "attributes": {},
+    }
+
+    def create_ourlog(
+        self,
+        extra_data: _OptionalOurLogData | None = None,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+        if attributes is None:
+            attributes = {}
+        if extra_data is None:
+            extra_data = {}
+
+        # Set defaults for required fields if not in extra_data
+        if "body" not in extra_data:
+            extra_data["body"] = "hello world!"
+        if "trace_id" not in extra_data:
+            extra_data["trace_id"] = uuid4().hex
+
+        log = self.base_log.copy()
+        # Required fields
+        log.update(
+            {
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "observed_timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "received": int(timestamp.timestamp()),
+                "attributes": attributes,
+            }
+        )
+
+        # Add all extra data fields
+        log.update(extra_data)
+
+        return log
 
 
 class TraceTestCase(SpanTestCase):

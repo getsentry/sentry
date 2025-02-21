@@ -83,14 +83,6 @@ def cache_func_for_models(
         cache_ttl = timedelta(days=7)
 
     def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
-        def inner(*args: *Ts) -> R:
-            cache_key = cache_key_for_cached_func(func_to_cache, *args)
-            cached_val = cache.get(cache_key, None)
-            if cached_val is None:
-                cached_val = func_to_cache(*args)
-                cache.set(cache_key, cached_val, timeout=cache_ttl.total_seconds())
-            return cached_val
-
         for model, arg_getter in cache_invalidators:
             clear_cache_callable = partial(
                 clear_cache_for_cached_func, func_to_cache, arg_getter, recalculate
@@ -98,6 +90,32 @@ def cache_func_for_models(
             post_save.connect(clear_cache_callable, sender=model, weak=False)
             post_delete.connect(clear_cache_callable, sender=model, weak=False)
 
-        return inner
+        return build_inner_cache_func(func_to_cache, cache_ttl)
 
     return cached_query_func
+
+
+def cache_func(
+    cache_ttl: None | timedelta = None,
+) -> Callable[[Callable[[*Ts], R]], Callable[[*Ts], R]]:
+    if cache_ttl is None:
+        cache_ttl = timedelta(days=7)
+
+    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
+        return build_inner_cache_func(func_to_cache, cache_ttl)
+
+    return cached_query_func
+
+
+def build_inner_cache_func(
+    func_to_cache: Callable[[*Ts], R], cache_ttl: timedelta
+) -> Callable[[*Ts], R]:
+    def inner(*args: *Ts) -> R:
+        cache_key = cache_key_for_cached_func(func_to_cache, *args)
+        cached_val = cache.get(cache_key, None)
+        if cached_val is None:
+            cached_val = func_to_cache(*args)
+            cache.set(cache_key, cached_val, timeout=cache_ttl.total_seconds())
+        return cached_val
+
+    return inner

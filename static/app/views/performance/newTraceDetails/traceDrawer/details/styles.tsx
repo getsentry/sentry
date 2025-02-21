@@ -135,7 +135,7 @@ const TitleText = styled('div')`
   font-weight: bold;
 `;
 
-function TitleWithTestId(props: PropsWithChildren<{}>) {
+function TitleWithTestId(props: PropsWithChildren) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
@@ -856,7 +856,8 @@ function KeyValueAction({
           organization,
           rowKey,
           rowValue.toString(),
-          key as TraceDrawerActionKind
+          key as TraceDrawerActionKind,
+          'drawer'
         );
       }}
       items={dropdownOptions}
@@ -977,10 +978,10 @@ function NodeActions(props: {
       return null;
     }
     return makeTransactionProfilingLink(profileId, {
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.node.metadata.project_slug ?? '',
     });
-  }, [props.node, props.organization]);
+  }, [organization, props.node]);
 
   const continuousProfileTarget = useMemo(() => {
     const profilerId = isTransactionNode(props.node)
@@ -992,12 +993,12 @@ function NodeActions(props: {
       return null;
     }
     return makeTraceContinuousProfilingLink(props.node, profilerId, {
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.node.metadata.project_slug ?? '',
       traceId: params.traceSlug ?? '',
       threadId: getThreadIdFromNode(props.node, transaction),
     });
-  }, [params.traceSlug, props.node, props.organization, transaction]);
+  }, [organization, params.traceSlug, props.node, transaction]);
 
   if (!hasNewTraceUi) {
     return (

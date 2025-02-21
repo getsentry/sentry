@@ -69,7 +69,7 @@ export type IssueTypeConfig = {
       fixedEnvironment?: boolean;
     };
     graph: DisabledWithReasonConfig & {
-      type?: 'discover-events' | 'uptime-checks' | 'detector-history';
+      type?: 'detector-history' | 'discover-events' | 'cron-checks' | 'uptime-checks';
     };
     occurrenceSummary: DisabledWithReasonConfig & {
       downtime?: boolean;
@@ -97,7 +97,7 @@ export type IssueTypeConfig = {
      */
     attachments: DisabledWithReasonConfig;
     /**
-     * Is the Check-Ins page shown for this issue
+     * Is the Cron Checks page shown for this issue
      */
     checkIns: DisabledWithReasonConfig;
     /**
@@ -120,6 +120,10 @@ export type IssueTypeConfig = {
      * Is the Tags tab shown for this issue (legacy)
      */
     tagsTab: DisabledWithReasonConfig;
+    /**
+     * Is the Uptime Checks page shown for this issue
+     */
+    uptimeChecks: DisabledWithReasonConfig;
     /**
      * Is the User Feedback page shown for this issue
      */

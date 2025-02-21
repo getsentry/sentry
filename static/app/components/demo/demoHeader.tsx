@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import LogoSentry from 'sentry/components/logoSentry';
+import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -91,29 +92,25 @@ export default function DemoHeader() {
 
 // Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')<{collapsed: boolean}>`
-  padding-right: ${space(3)};
-  background-color: ${p => p.theme.white};
-  height: ${DEMO_HEADER_HEIGHT_PX}px;
   display: flex;
+  height: ${DEMO_HEADER_HEIGHT_PX}px;
   justify-content: space-between;
   text-transform: uppercase;
   align-items: center;
-  white-space: nowrap;
+  padding-right: ${space(3)};
   gap: ${space(4)};
+  background-color: ${p => p.theme.white};
+  white-space: nowrap;
 
-  margin-left: calc(
-    -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}
-  );
-
-  position: fixed;
-  width: 100%;
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    height: ${p => p.theme.sidebar.mobileHeight};
+    height: ${SIDEBAR_MOBILE_HEIGHT};
     margin-left: 0;
   }
+
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
 `;
 
 const StyledLogoSentry = styled(LogoSentry)`

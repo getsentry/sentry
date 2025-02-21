@@ -61,7 +61,7 @@ function generateDiscoverEventTarget(
     },
   };
   return eventDetailsRouteWithEventView({
-    orgSlug: organization.slug,
+    organization,
     eventSlug,
     eventView: EventView.fromLocation(newLocation),
     isHomepage: location.query.homepage === 'true' || undefined,
@@ -113,7 +113,7 @@ export function generateMultiTransactionsTarget(
     end,
   });
   return traceEventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );
@@ -177,7 +177,7 @@ export function generateTraceTarget(
     ...dateSelection,
   });
   return eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

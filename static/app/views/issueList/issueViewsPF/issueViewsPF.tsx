@@ -21,6 +21,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -120,6 +121,7 @@ type DiscardTempViewAction = {
 } & BaseIssueViewsAction;
 
 type SaveTempViewAction = {
+  newViewId: string;
   type: 'SAVE_TEMP_VIEW';
 } & BaseIssueViewsAction;
 
@@ -329,12 +331,15 @@ function discardTempView(state: IssueViewsPFState, tabListState: TabListState<an
   return {...state, tempView: undefined};
 }
 
-function saveTempView(state: IssueViewsPFState, tabListState: TabListState<any>) {
+function saveTempView(
+  state: IssueViewsPFState,
+  action: SaveTempViewAction,
+  tabListState: TabListState<any>
+) {
   if (state.tempView) {
-    const tempId = generateTempViewId();
     const newTab: IssueViewPF = {
-      id: tempId,
-      key: tempId,
+      id: action.newViewId,
+      key: action.newViewId,
       label: 'New View',
       query: state.tempView?.query,
       querySort: state.tempView?.querySort,
@@ -343,7 +348,7 @@ function saveTempView(state: IssueViewsPFState, tabListState: TabListState<any>)
       projects: state.tempView?.projects,
       timeFilters: state.tempView?.timeFilters,
     };
-    tabListState?.setSelectedKey(tempId);
+    tabListState?.setSelectedKey(action.newViewId);
     return {...state, views: [...state.views, newTab], tempView: undefined};
   }
   return state;
@@ -414,6 +419,8 @@ export function IssueViewsPFStateProvider({
   const {className: _className, ...restProps} = props;
 
   const allowMultipleProjects = organization.features.includes('global-views');
+  const isSuperUser = isActiveSuperuser();
+
   const {projects: allProjects} = useProjects();
   const memberProjects = useMemo(
     () => allProjects.filter(project => project.isMember),
@@ -424,14 +431,19 @@ export function IssueViewsPFStateProvider({
     if (allowMultipleProjects) {
       return [];
     }
+
+    if (isSuperUser) {
+      return allowMultipleProjects ? [] : [parseInt(allProjects[0]!.id, 10)];
+    }
+
     return [parseInt(memberProjects[0]!.id, 10)];
-  }, [memberProjects, allowMultipleProjects]);
+  }, [memberProjects, allowMultipleProjects, isSuperUser, allProjects]);
 
   const {query, sort, viewId} = router.location.query;
 
   // This function is fired upon receiving new views from the backend - it replaces any previously
   // generated temporary view ids with the permanent view ids from the backend
-  const replaceWithPersistantViewIds = (views: GroupSearchView[]) => {
+  const replaceWithPersistentViewIds = (views: GroupSearchView[]) => {
     const newlyCreatedViews = views.filter(
       view => !state.views.find(tab => tab.id === view.id)
     );
@@ -464,7 +476,7 @@ export function IssueViewsPFStateProvider({
   };
 
   const {mutate: updateViews} = useUpdateGroupSearchViews({
-    onSuccess: replaceWithPersistantViewIds,
+    onSuccess: replaceWithPersistentViewIds,
   });
 
   const debounceUpdateViews = useMemo(
@@ -520,7 +532,7 @@ export function IssueViewsPFStateProvider({
         case 'DISCARD_TEMP_VIEW':
           return discardTempView(state, tabListState);
         case 'SAVE_TEMP_VIEW':
-          return saveTempView(state, tabListState);
+          return saveTempView(state, action, tabListState);
         case 'UPDATE_UNSAVED_CHANGES':
           return updateUnsavedChanges(state, action, tabListState);
         case 'UPDATE_VIEW_IDS':

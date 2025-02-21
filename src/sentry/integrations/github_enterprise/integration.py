@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
@@ -369,7 +370,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             config=identity_pipeline_config,
         )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [
             InstallationConfigView(),
             GitHubEnterpriseInstallationRedirect(),
@@ -488,4 +489,4 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
             pipeline.bind_state("installation_id", request.GET["installation_id"])
             return pipeline.next_step()
 
-        return self.redirect(self.get_app_url(installation_data))
+        return HttpResponseRedirect(self.get_app_url(installation_data))

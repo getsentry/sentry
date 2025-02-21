@@ -113,10 +113,6 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/metrics/meta/',
-        body: [],
-      });
     });
 
     afterEach(function () {
@@ -852,7 +848,7 @@ describe('Dashboards > Detail', function () {
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: 1}}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/123/'}}
         >
@@ -878,7 +874,7 @@ describe('Dashboards > Detail', function () {
           ...initialData.router.location,
           pathname: '/widget/123/',
         },
-        params: {orgId: 'org-slug', dashboardId: '1', widgetId: 123},
+        params: {orgId: 'org-slug', dashboardId: '1', widgetId: '123'},
       });
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
@@ -889,7 +885,7 @@ describe('Dashboards > Detail', function () {
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: 123}}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '123'}}
           router={router}
           location={{...initialData.router.location, pathname: '/widget/123/'}}
         >
@@ -1047,7 +1043,7 @@ describe('Dashboards > Detail', function () {
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: 1}}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/1/'}}
         >
@@ -1087,7 +1083,7 @@ describe('Dashboards > Detail', function () {
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: 1}}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
           router={initialData.router}
           location={{
             ...initialData.router.location,

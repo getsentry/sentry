@@ -1,33 +1,27 @@
 import {useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
-  type AutofixTimelineEvent,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconEdit,
-  IconEllipsis,
-  IconFix,
-} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconEdit, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -147,19 +141,6 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-const VerticalEllipsis = styled(IconEllipsis)`
-  height: 16px;
-  color: ${p => p.theme.subText};
-  transform: rotate(90deg);
-  position: relative;
-  left: -1px;
-`;
-
-type ExtendedTimelineEvent = AutofixTimelineEvent & {
-  isTruncated?: boolean;
-  originalIndex?: number;
-};
-
 function SolutionDescription({
   solution,
   groupId,
@@ -176,69 +157,6 @@ function SolutionDescription({
   const containerRef = useRef<HTMLDivElement>(null);
   const selection = useTextSelection(containerRef);
 
-  // Filter events to keep only 1 event before and after modified events
-  const filteredEvents = (() => {
-    const events = solution.map((event, index) => ({
-      ...event,
-      is_most_important_event: event.is_new_event,
-      originalIndex: index,
-    }));
-
-    const firstModifiedIndex = events.findIndex(e => e.is_new_event);
-    const lastModifiedIndex = events.findLastIndex(e => e.is_new_event);
-
-    if (firstModifiedIndex === -1) {
-      return events;
-    }
-
-    const startIndex = Math.max(0, firstModifiedIndex - 1);
-    const endIndex = Math.min(events.length - 1, lastModifiedIndex + 1);
-
-    const truncatedEvents = events.slice(startIndex, endIndex + 1);
-
-    if (truncatedEvents.length === 0) {
-      return events;
-    }
-
-    // Add truncation indicators if needed
-    const finalEvents: ExtendedTimelineEvent[] = [];
-
-    // Add truncation at start if we removed events
-    if (startIndex > 0) {
-      const firstEvent = truncatedEvents[0];
-      if (firstEvent) {
-        finalEvents.push({
-          title: '',
-          timeline_item_type: 'internal_code' as const,
-          code_snippet_and_analysis: '',
-          relevant_code_file: firstEvent.relevant_code_file,
-          is_most_important_event: false,
-          isTruncated: true,
-        });
-      }
-    }
-
-    // Add all filtered events
-    finalEvents.push(...truncatedEvents);
-
-    // Add truncation at end if we removed events
-    if (endIndex < events.length - 1) {
-      const lastEvent = truncatedEvents[truncatedEvents.length - 1];
-      if (lastEvent) {
-        finalEvents.push({
-          title: '',
-          timeline_item_type: 'internal_code' as const,
-          code_snippet_and_analysis: '',
-          relevant_code_file: lastEvent.relevant_code_file,
-          is_most_important_event: false,
-          isTruncated: true,
-        });
-      }
-    }
-
-    return finalEvents;
-  })();
-
   return (
     <SolutionDescriptionWrapper>
       <AnimatePresence>
@@ -251,20 +169,14 @@ function SolutionDescription({
             stepIndex={previousDefaultStepIndex ?? 0}
             retainInsightCardIndex={
               previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount - 1
-                : -1
+                ? previousInsightCount
+                : null
             }
           />
         )}
       </AnimatePresence>
       <div ref={containerRef}>
-        <AutofixTimeline
-          events={filteredEvents}
-          activeColor="green400"
-          getCustomIcon={(event: AutofixTimelineEvent & {isTruncated?: boolean}) =>
-            event.isTruncated ? <VerticalEllipsis /> : undefined
-          }
-        />
+        <AutofixTimeline events={solution} activeColor="green400" />
       </div>
     </SolutionDescriptionWrapper>
   );
@@ -337,9 +249,14 @@ function AutofixSolutionDisplay({
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
   const [userCustomSolution, setUserCustomSolution] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   if (!solution || solution.length === 0) {
-    return <Alert type="error">{t('No solution available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="error">{t('No solution available.')}</Alert>
+      </Alert.Container>
+    );
   }
 
   if (customSolution) {
@@ -362,7 +279,7 @@ function AutofixSolutionDisplay({
   }
 
   return (
-    <SolutionContainer>
+    <SolutionContainer ref={containerRef}>
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
@@ -391,7 +308,7 @@ function AutofixSolutionDisplay({
               </EditButton>
             </ButtonBar>
             <ButtonBar merged>
-              <Button
+              <CodeButton
                 size="sm"
                 priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
@@ -411,8 +328,9 @@ function AutofixSolutionDisplay({
                 }}
               >
                 {t('Code It Up')}
-              </Button>
+              </CodeButton>
               <DropdownMenu
+                offset={[-12, 8]}
                 items={[
                   {
                     key: 'fix',
@@ -439,14 +357,21 @@ function AutofixSolutionDisplay({
                   },
                 ]}
                 position="bottom-end"
-                trigger={triggerProps => (
+                trigger={(triggerProps, isOpen) => (
                   <DropdownButton
                     size="sm"
                     priority={solutionSelected ? 'default' : 'primary'}
+                    aria-label={t('More coding options')}
+                    icon={
+                      <Chevron
+                        light
+                        color="subText"
+                        weight="medium"
+                        direction={isOpen ? 'up' : 'down'}
+                      />
+                    }
                     {...triggerProps}
-                  >
-                    <IconChevron direction="down" size="xs" />
-                  </DropdownButton>
+                  />
                 )}
               />
             </ButtonBar>
@@ -569,12 +494,23 @@ const CustomSolutionPadding = styled('div')`
 `;
 
 const DropdownButton = styled(Button)`
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  margin-left: -1px;
-  position: relative;
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
+`;
 
-  &:hover {
-    z-index: 1;
-  }
+const CodeButton = styled(Button)`
+  ${p =>
+    p.priority === 'primary' &&
+    css`
+      &::after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        right: -1px;
+        border-right: solid 1px currentColor;
+        opacity: 0.25;
+      }
+    `}
 `;

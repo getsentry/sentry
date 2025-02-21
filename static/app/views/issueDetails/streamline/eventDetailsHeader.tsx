@@ -16,15 +16,16 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {MetricIssuesChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
-import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
@@ -65,6 +66,15 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     'Filter %s\u2026',
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
+
+  const hasHeader =
+    issueTypeConfig.header.filterBar.enabled ||
+    issueTypeConfig.header.graph.enabled ||
+    issueTypeConfig.header.occurrenceSummary.enabled;
+
+  if (!hasHeader) {
+    return null;
+  }
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -111,10 +121,13 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               <EventGraph event={event} group={group} style={{flex: 1}} />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssueChart group={group} project={project} event={event} />
+              <MetricIssuesChart group={group} project={project} />
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />
+            )}
+            {issueTypeConfig.header.graph.type === 'cron-checks' && (
+              <IssueCronCheckTimeline group={group} />
             )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview
@@ -218,8 +231,8 @@ const GraphSection = styled('div')`
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   grid-area: timeline;
-  padding: ${space(2)};
-  padding-right: 0;
+  padding: ${space(1)};
+  padding-left: 0;
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }

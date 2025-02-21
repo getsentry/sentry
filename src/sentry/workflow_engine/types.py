@@ -21,12 +21,6 @@ class DetectorPriorityLevel(IntEnum):
     HIGH = PriorityLevel.HIGH
 
 
-class DataConditionHandlerType(StrEnum):
-    DETECTOR_TRIGGER = "detector_trigger"
-    WORKFLOW_TRIGGER = "workflow_trigger"
-    ACTION_FILTER = "action_filter"
-
-
 # The unique key used to identify a group within a DataPacket result.
 # For DataPackets that don't contain multiple values the key is just None.
 # This is stored in 'DetectorState.detector_group_key'
@@ -47,7 +41,6 @@ class WorkflowJob(EventJob, total=False):
     has_alert: bool
     has_escalated: bool
     workflow: Workflow
-    snuba_results: list[int]  # TODO - @saponifi3 / TODO(cathy): audit this
 
 
 class ActionHandler:
@@ -67,7 +60,12 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
-    type: ClassVar[DataConditionHandlerType] = DataConditionHandlerType.ACTION_FILTER
+    class Type(StrEnum):
+        DETECTOR_TRIGGER = "detector_trigger"
+        WORKFLOW_TRIGGER = "workflow_trigger"
+        ACTION_FILTER = "action_filter"
+
+    type: ClassVar[list[Type]]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod

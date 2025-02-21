@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
@@ -8,37 +8,39 @@ import {space} from 'sentry/styles/space';
 
 function NotFound() {
   return (
-    <Alert type="error" showIcon>
-      <Heading>{t('Page Not Found')}</Heading>
-      <p>{t('The page you are looking for was not found.')}</p>
-      <p>{t('You may wish to try the following:')}</p>
-      <ul>
-        <li>
-          {t(
-            `If you entered the address manually, double check the path. Did you
+    <Alert.Container>
+      <Alert type="error" showIcon>
+        <Heading>{t('Page Not Found')}</Heading>
+        <p>{t('The page you are looking for was not found.')}</p>
+        <p>{t('You may wish to try the following:')}</p>
+        <ul>
+          <li>
+            {t(
+              `If you entered the address manually, double check the path. Did you
            forget a trailing slash?`
-          )}
-        </li>
-        <li>
-          {t(
-            `If you followed a link here, try hitting back and reloading the
+            )}
+          </li>
+          <li>
+            {t(
+              `If you followed a link here, try hitting back and reloading the
            page. It's possible the resource was moved out from under you.`
-          )}
-        </li>
-        <li>
-          {tct('If all else fails, [link:contact us] with more details', {
-            link: (
-              <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
-            ),
+            )}
+          </li>
+          <li>
+            {tct('If all else fails, [link:contact us] with more details', {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
+              ),
+            })}
+          </li>
+        </ul>
+        <p>
+          {tct('Not sure what to do? [link:Return to the dashboard]', {
+            link: <Link to="/" />,
           })}
-        </li>
-      </ul>
-      <p>
-        {tct('Not sure what to do? [link:Return to the dashboard]', {
-          link: <Link to="/" />,
-        })}
-      </p>
-    </Alert>
+        </p>
+      </Alert>
+    </Alert.Container>
   );
 }
 

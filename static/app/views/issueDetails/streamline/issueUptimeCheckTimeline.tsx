@@ -79,14 +79,23 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
       uptimeStats?.[uptimeAlertId]?.some(
         ([_, stats]) => stats[CheckStatus.MISSED_WINDOW] > 0
       );
-    return [CheckStatus.SUCCESS, CheckStatus.MISSED_WINDOW, CheckStatus.FAILURE].filter(
-      status => (hasUnknownStatus ? true : status !== CheckStatus.MISSED_WINDOW)
-    );
+
+    const statuses = [
+      CheckStatus.SUCCESS,
+      CheckStatus.FAILURE,
+      CheckStatus.FAILURE_INCIDENT,
+    ];
+
+    if (hasUnknownStatus) {
+      statuses.push(CheckStatus.MISSED_WINDOW);
+    }
+
+    return statuses;
   }, [uptimeAlertId, uptimeStats]);
 
   return (
     <ChartContainer>
-      <TimelineLegend ref={elementRef}>
+      <TimelineLegend ref={elementRef} role="caption">
         {legendStatuses.map(status => (
           <Flex align="center" gap={space(0.5)} key={status}>
             <CheckIndicator status={status} width={8} />

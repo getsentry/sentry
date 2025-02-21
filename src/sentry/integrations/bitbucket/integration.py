@@ -27,6 +27,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -119,7 +120,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 
-        result = OrderedSet()
+        result: OrderedSet[str] = OrderedSet()
 
         for j in exact_search_resp.get("values", []):
             result.add(j["full_name"])
@@ -185,7 +186,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
         identity_pipeline_view = NestedPipelineView(
             bind_key="identity",
@@ -224,6 +225,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             username = principal_data.get("username", principal_data["display_name"])
             account_type = principal_data["type"]
             domain = f"{base_url}/{username}" if account_type == "team" else username
+            secret = generate_token()
 
             return {
                 "provider": self.key,
@@ -232,6 +234,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                 "metadata": {
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
+                    "webhook_secret": secret,
                     "base_url": state["baseApiUrl"],
                     "domain_name": domain,
                     "icon": principal_data["links"]["avatar"]["href"],

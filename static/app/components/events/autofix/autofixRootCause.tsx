@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {
   type AutofixRepository,
   type AutofixRootCauseData,
@@ -179,8 +179,8 @@ function RootCauseDescription({
             stepIndex={previousDefaultStepIndex ?? 0}
             retainInsightCardIndex={
               previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount - 1
-                : -1
+                ? previousInsightCount
+                : null
             }
           />
         )}
@@ -272,7 +272,11 @@ function AutofixRootCauseDisplay({
   const cause = causes[0];
 
   if (!cause) {
-    return <Alert type="error">{t('No root cause available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="error">{t('No root cause available.')}</Alert>
+      </Alert.Container>
+    );
   }
 
   if (rootCauseSelection && 'custom_root_cause' in rootCauseSelection) {
@@ -375,9 +379,11 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
       <AnimatePresence initial>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
-            <Alert type="warning">
-              {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
+              </Alert>
+            </Alert.Container>
           </NoCausesPadding>
         </AnimationWrapper>
       </AnimatePresence>

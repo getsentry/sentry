@@ -18,7 +18,7 @@ export default function MultiQueryMode() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <SentryDocumentTitle title={t('Multi Query Mode')} orgSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -28,11 +28,11 @@ export default function MultiQueryMode() {
                   to: generateTracesRoute({orgSlug: organization.slug}),
                 },
                 {
-                  label: t('Multi Query Mode'),
+                  label: t('Compare Queries'),
                 },
               ]}
             />
-            <Layout.Title>{t('Multi Query Mode')}</Layout.Title>
+            <Layout.Title>{t('Compare Queries')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Page>

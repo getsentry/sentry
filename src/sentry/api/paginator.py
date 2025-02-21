@@ -743,7 +743,7 @@ class ChainPaginator:
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
-        results = []
+        results: list[object] = []
         # note: we shouldn't use itertools.islice(itertools.chain.from_iterable(self.sources))
         # because source may be a QuerySet which is much more efficient to slice directly
         for source in self.sources:

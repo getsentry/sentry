@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,7 +58,6 @@ export default function ReplayProcessingError({className}: Props) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
   height: 100%;
 `;
 

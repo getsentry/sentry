@@ -4,6 +4,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
@@ -24,11 +25,13 @@ export default function LogsPage() {
               </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
-          <LogsTabContent
-            defaultPeriod={defaultPeriod}
-            maxPickableDays={maxPickableDays}
-            relativeOptions={relativeOptions}
-          />
+          <LogsPageParamsProvider>
+            <LogsTabContent
+              defaultPeriod={defaultPeriod}
+              maxPickableDays={maxPickableDays}
+              relativeOptions={relativeOptions}
+            />
+          </LogsPageParamsProvider>
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>

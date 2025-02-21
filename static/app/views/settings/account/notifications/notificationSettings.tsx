@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
+import AlertLink from 'sentry/components/core/alertLink';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -144,7 +144,7 @@ const FieldHelp = styled('div')`
 const FieldWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-  padding: ${space(2)}px;
+  padding: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

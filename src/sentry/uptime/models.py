@@ -1,10 +1,10 @@
 import enum
 from datetime import timedelta
-from typing import ClassVar, Literal, Self
+from typing import ClassVar, Literal, Self, cast
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
@@ -24,7 +24,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
-from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
 
 headers_json_encoder = JSONEncoder(
@@ -121,8 +121,13 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
+    class RegionMode(enum.StrEnum):
+        ACTIVE = "active"
+        INACTIVE = "inactive"
+
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     region_slug = models.CharField(max_length=255, db_index=True, db_default="")
+    mode = models.CharField(max_length=32, db_default=RegionMode.ACTIVE)
 
     class Meta:
         app_label = "uptime"
@@ -238,6 +243,20 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+@cache_func(cache_ttl=timedelta(hours=1))
+def get_top_hosting_provider_names(limit: int) -> set[str]:
+    return set(
+        cast(
+            list[str],
+            UptimeSubscription.objects.filter(status=UptimeSubscription.Status.ACTIVE.value)
+            .values("host_provider_name")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .values_list("host_provider_name", flat=True)[:limit],
+        )
+    )
 
 
 class UptimeRegionScheduleMode(enum.StrEnum):

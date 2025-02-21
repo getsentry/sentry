@@ -25,6 +25,10 @@ import {
   useExploreQuery,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  useReadQueriesFromLocation,
+  useUpdateQueryAtIndex,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -38,10 +42,63 @@ interface FieldProps {
 }
 
 export function FieldRenderer({data, meta, unit, column}: FieldProps) {
-  const location = useLocation();
-  const organization = useOrganization();
   const userQuery = useExploreQuery();
   const setUserQuery = useSetExploreQuery();
+
+  return (
+    <BaseExploreFieldRenderer
+      data={data}
+      meta={meta}
+      unit={unit}
+      column={column}
+      userQuery={userQuery}
+      setUserQuery={setUserQuery}
+    />
+  );
+}
+
+export interface MultiQueryFieldProps extends FieldProps {
+  index: number;
+}
+
+export function MultiQueryFieldRenderer({
+  data,
+  meta,
+  unit,
+  column,
+  index,
+}: MultiQueryFieldProps) {
+  const queries = useReadQueriesFromLocation();
+  const userQuery = queries[index]?.query ?? '';
+  const updateQuerySearch = useUpdateQueryAtIndex(index);
+
+  return (
+    <BaseExploreFieldRenderer
+      data={data}
+      meta={meta}
+      unit={unit}
+      column={column}
+      userQuery={userQuery}
+      setUserQuery={(query: string) => updateQuerySearch({query})}
+    />
+  );
+}
+
+interface BaseFieldProps extends FieldProps {
+  setUserQuery: (query: string) => void;
+  userQuery: string;
+}
+
+function BaseExploreFieldRenderer({
+  data,
+  meta,
+  unit,
+  column,
+  userQuery,
+  setUserQuery,
+}: BaseFieldProps) {
+  const location = useLocation();
+  const organization = useOrganization();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const field = column.name;
@@ -91,7 +148,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
 
   if (field === 'profile.id') {
     const target = generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: data.project,
       profileId: data['profile.id'],
     });
