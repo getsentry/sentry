@@ -1035,7 +1035,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ),
             self.tasks(),
             freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
-            mock.patch("random.random", return_value=0),
+            mock.patch("random.random", return_value=1),
         ):
             result = self.create_uptime_result(
                 sub.subscription_id,
