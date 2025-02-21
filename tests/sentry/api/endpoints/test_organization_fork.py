@@ -10,7 +10,7 @@ from sentry.api.endpoints.organization_fork import (
 )
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -22,7 +22,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 
 @patch("sentry.analytics.record")
-@patch("sentry.tasks.relocation.uploading_start.apply_async")
+@patch("sentry.relocation.tasks.uploading_start.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
