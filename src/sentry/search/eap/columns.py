@@ -17,6 +17,8 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
 
+# from sentry.snuba.rpc_dataset_common import Column
+
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedAttribute:
@@ -115,6 +117,24 @@ class VirtualColumnDefinition:
     ) = None
     filter_column: str | None = None
     default_value: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CustomFunction(ResolvedAttribute):
+    formula: Any
+
+    @property
+    def proto_definition(self) -> Any:
+        """The definition of this function as needed by the RPC"""
+        return self.formula
+
+    @property
+    def proto_type(self) -> AttributeKey.Type.ValueType:
+        """The rpc always returns functions as floats, especially count() even though it should be an integer
+
+        see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
+        """
+        return constants.DOUBLE
 
 
 @dataclass(frozen=True, kw_only=True)
