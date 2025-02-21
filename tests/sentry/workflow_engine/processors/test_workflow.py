@@ -60,6 +60,25 @@ class TestProcessWorkflows(BaseWorkflowTest):
             }
         )
 
+    def test_skips_disabled_workflows(self):
+        workflow_triggers = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=workflow_triggers,
+            type=Condition.EVENT_SEEN_COUNT,
+            comparison=1,
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            name="disabled_workflow", when_condition_group=workflow_triggers, enabled=False
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=workflow,
+        )
+
+        triggered_workflows = process_workflows(self.job)
+        assert triggered_workflows == {self.error_workflow}
+
     def test_error_event(self):
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow}

@@ -125,19 +125,26 @@ function CheckInBodyCell({
   column,
   userOptions,
 }: {
-  column: GridColumnOrder<string>;
+  column: GridColumnOrder<keyof UptimeCheck>;
   dataRow: UptimeCheck;
   userOptions: User['options'];
 }) {
   const theme = useTheme();
-  const columnKey = column.key as keyof UptimeCheck;
-  const cellData = dataRow[columnKey];
 
-  if (!cellData) {
+  const {
+    scheduledCheckTime,
+    durationMs,
+    statusCode,
+    checkStatus,
+    checkStatusReason,
+    traceId,
+  } = dataRow;
+
+  if (dataRow[column.key] === undefined) {
     return <Cell />;
   }
 
-  switch (columnKey) {
+  switch (column.key) {
     case 'timestamp': {
       const format = userOptions.clock24Hours
         ? 'MMM D, YYYY HH:mm:ss z'
@@ -149,18 +156,22 @@ function CheckInBodyCell({
             isHoverable
             title={
               <LabelledTooltip>
-                {dataRow.scheduledCheckTime && (
+                {scheduledCheckTime && (
                   <Fragment>
                     <dt>{t('Scheduled for')}</dt>
                     <dd>
                       {moment
-                        .tz(dataRow.scheduledCheckTime, userOptions?.timezone ?? '')
+                        .tz(scheduledCheckTime, userOptions?.timezone ?? '')
                         .format(format)}
                     </dd>
                   </Fragment>
                 )}
                 <dt>{t('Checked at')}</dt>
-                <dd>{moment.tz(cellData, userOptions?.timezone ?? '').format(format)}</dd>
+                <dd>
+                  {moment
+                    .tz(scheduledCheckTime, userOptions?.timezone ?? '')
+                    .format(format)}
+                </dd>
               </LabelledTooltip>
             }
           >
@@ -170,43 +181,41 @@ function CheckInBodyCell({
       );
     }
     case 'durationMs':
-      if (typeof cellData === 'number') {
-        return (
-          <Cell>
-            <Duration seconds={cellData / 1000} abbreviation exact />
-          </Cell>
-        );
-      }
-      return <Cell>{cellData}</Cell>;
+      return (
+        <Cell>
+          <Duration seconds={durationMs / 1000} abbreviation exact />
+        </Cell>
+      );
     case 'statusCode': {
-      const statusCodeFirstDigit = String(cellData)?.[0];
+      const statusCodeFirstDigit = String(statusCode)?.[0];
       switch (statusCodeFirstDigit) {
         case '2':
-          return <Cell style={{color: theme.successText}}>{cellData}</Cell>;
+          return <Cell style={{color: theme.successText}}>{statusCode}</Cell>;
         case '3':
-          return <Cell style={{color: theme.warningText}}>{cellData}</Cell>;
+          return <Cell style={{color: theme.warningText}}>{statusCode}</Cell>;
         case '4':
         case '5':
-          return <Cell style={{color: theme.errorText}}>{cellData}</Cell>;
+          return <Cell style={{color: theme.errorText}}>{statusCode}</Cell>;
         default:
-          return <Cell>{cellData}</Cell>;
+          return <Cell>{statusCode}</Cell>;
       }
     }
     case 'checkStatus': {
-      let checkResult = <Cell>{cellData}</Cell>;
-      const status = cellData as CheckStatus;
-      if (Object.values(CheckStatus).includes(status)) {
-        const colorKey = tickStyle[status].labelColor ?? 'textColor';
+      let checkResult = <Cell>{checkStatus}</Cell>;
+      if (Object.values(CheckStatus).includes(checkStatus)) {
+        const colorKey = tickStyle[checkStatus].labelColor ?? 'textColor';
         checkResult = (
-          <Cell style={{color: theme[colorKey] as string}}>{statusToText[status]}</Cell>
+          <Cell style={{color: theme[colorKey] as string}}>
+            {statusToText[checkStatus]}
+          </Cell>
         );
       }
-      return dataRow.checkStatusReason ? (
+      return checkStatusReason ? (
         <Tooltip
           title={
             <LabelledTooltip>
               <dt>{t('Reason')}</dt>
-              <dd>{dataRow.checkStatusReason}</dd>
+              <dd>{checkStatusReason}</dd>
             </LabelledTooltip>
           }
         >
@@ -217,16 +226,16 @@ function CheckInBodyCell({
       );
     }
     case 'traceId':
-      if (cellData === EMPTY_TRACE) {
+      if (traceId === EMPTY_TRACE) {
         return <Cell />;
       }
       return (
-        <LinkCell to={`/performance/trace/${cellData}/`}>
-          {getShortEventId(String(cellData))}
+        <LinkCell to={`/performance/trace/${traceId}/`}>
+          {getShortEventId(String(traceId))}
         </LinkCell>
       );
     default:
-      return <Cell>{dataRow[columnKey]}</Cell>;
+      return <Cell>{dataRow[column.key]}</Cell>;
   }
 }
 

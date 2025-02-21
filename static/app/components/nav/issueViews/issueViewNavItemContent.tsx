@@ -21,11 +21,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeProjectsEnvironments} from 'sentry/views/issueList/issueViewsHeaderPF';
 import type {
-  IssueViewPF,
-  IssueViewPFParams,
-} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+  IssueView,
+  IssueViewParams,
+} from 'sentry/views/issueList/issueViews/issueViews';
+import {normalizeProjectsEnvironments} from 'sentry/views/issueList/issueViewsHeader';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export interface IssueViewNavItemContentProps {
@@ -44,11 +44,11 @@ export interface IssueViewNavItemContentProps {
   /**
    * A callback function that updates the view with new params.
    */
-  updateView: (updatedView: IssueViewPF) => void;
+  updateView: (updatedView: IssueView) => void;
   /**
    * The issue view to display
    */
-  view: IssueViewPF;
+  view: IssueView;
   /**
    * Ref to the body of the section that contains the reorderable items.
    * This is used as the portal container for the ellipsis menu, and as
@@ -102,7 +102,7 @@ export function IssueViewNavItemContent({
     .map(p => p.platform)
     .filter(defined);
 
-  const {isInteracting, setisInteracting} = useNavContext();
+  const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
   return (
     <Reorder.Item
@@ -115,10 +115,10 @@ export function IssueViewNavItemContent({
         cursor: 'grabbing',
       }}
       onDragStart={() => {
-        setisInteracting(true);
+        startInteraction();
       }}
       onDragEnd={() => {
-        setisInteracting(false);
+        endInteraction();
       }}
     >
       <StyledSecondaryNavItem
@@ -147,7 +147,7 @@ export function IssueViewNavItemContent({
           e.preventDefault();
         }}
         onPointerUp={e => {
-          if (isInteracting) {
+          if (isInteractingRef.current) {
             e.preventDefault();
           }
         }}
@@ -187,10 +187,10 @@ const READABLE_PARAM_MAPPING = {
   timeFilters: t('time range'),
 };
 
-const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewPFParams>) => {
+const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewParams>) => {
   const changedParams = Object.keys(unsavedChanges)
-    .filter(k => unsavedChanges[k as keyof IssueViewPFParams] !== undefined)
-    .map(k => READABLE_PARAM_MAPPING[k as keyof IssueViewPFParams]);
+    .filter(k => unsavedChanges[k as keyof IssueViewParams] !== undefined)
+    .map(k => READABLE_PARAM_MAPPING[k as keyof IssueViewParams]);
 
   return (
     <Fragment>
@@ -204,9 +204,9 @@ const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewPFParams>
 
 // TODO(msun): Once nuqs supports native array query params, we can use that here and replace this absurd function
 const hasUnsavedChanges = (
-  view: IssueViewPF,
+  view: IssueView,
   queryParams: Location['query']
-): false | Partial<IssueViewPFParams> => {
+): false | Partial<IssueViewParams> => {
   const {
     query: originalQuery,
     querySort: originalSort,
@@ -246,7 +246,7 @@ const hasUnsavedChanges = (
     ? (querySort as IssueSortOptions)
     : undefined;
 
-  const newUnsavedChanges: Partial<IssueViewPFParams> = {
+  const newUnsavedChanges: Partial<IssueViewParams> = {
     query:
       queryQuery !== null &&
       queryQuery !== undefined &&
@@ -284,8 +284,7 @@ const hasUnsavedChanges = (
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  margin-right: ${space(0.25)};
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
@@ -323,7 +322,7 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
 
   border-radius: 50%;
   background: ${p => p.theme.purple400};
-  border: solid 2px ${p => p.theme.background};
+  border: solid 2px ${p => p.theme.surface200};
   position: absolute;
   width: 12px;
   height: 12px;

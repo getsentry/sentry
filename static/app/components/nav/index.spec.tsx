@@ -6,7 +6,13 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
@@ -174,10 +180,12 @@ describe('Nav', function () {
         await userEvent.unhover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'false'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'false'
+          );
+        });
       });
     });
   });
