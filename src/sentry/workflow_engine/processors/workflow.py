@@ -127,7 +127,9 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         return set()
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
-    workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
+    workflows = set(
+        Workflow.objects.filter(detectorworkflow__detector_id=detector.id, enabled=True).distinct()
+    )
 
     if workflows:
         metrics.incr(
