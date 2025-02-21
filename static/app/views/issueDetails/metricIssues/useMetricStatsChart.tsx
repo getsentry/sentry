@@ -8,8 +8,7 @@ import {
 } from 'sentry/components/charts/eventsRequest';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import type {EventsStats} from 'sentry/types/organization';
+import type {EventsStats, SessionApiResponse} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {UseApiQueryOptions, UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
