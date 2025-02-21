@@ -50,9 +50,15 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
-const getInstallSnippet = (params: Params) => `
-dependencies:
-  sentry_flutter: ^${getPackageVersion(params, 'sentry.dart.flutter', '7.8.0')}`;
+const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i flutter ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+};
+
+const getManualInstallSnippet = (params: Params) => {
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  return `sentry_flutter: ^${version}`;
+};
 
 const getConfigureSnippet = (params: Params) => `
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -168,7 +174,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'bash',
-                code: 'brew install getsentry/tools/sentry-wizard && sentry-wizard -i flutter',
+                code: getInstallSnippet(params),
               },
               {
                 description: (
@@ -231,7 +237,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     language: 'yaml',
                     filename: 'pubspec.yaml',
                     partialLoading: params.sourcePackageRegistries?.isLoading,
-                    code: getInstallSnippet(params),
+                    code: getManualInstallSnippet(params),
                   },
                 ],
               },
