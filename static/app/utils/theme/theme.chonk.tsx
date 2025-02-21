@@ -1,4 +1,9 @@
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
+import styled, {
+  type CreateStyledComponent,
+  type FilteringStyledOptions,
+} from '@emotion/styled';
+import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
 import commonTheme, {
@@ -712,8 +717,8 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-interface ChonkTheme extends Omit<Theme, 'isChonk'> {
-  colors: {dark: typeof lightColors; light: typeof lightColors};
+interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
+  colors: typeof lightColors;
   isChonk: true;
   space: typeof space;
 }
@@ -754,10 +759,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
   stacktraceActiveText: lightTheme.stacktraceActiveText,
 
-  colors: {
-    light: lightColors,
-    dark: darkColors,
-  },
+  colors: lightColors,
 
   sidebar: {
     // @TODO: these colors need to be ported
@@ -796,10 +798,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
   stacktraceActiveText: darkTheme.stacktraceActiveText,
 
-  colors: {
-    light: lightColors,
-    dark: darkColors,
-  },
+  colors: darkColors,
 
   space,
 
@@ -822,5 +821,121 @@ declare module '@emotion/react' {
   type SentryTheme = typeof lightTheme;
   export interface Theme extends SentryTheme {
     isChonk: boolean;
+  }
+}
+
+/**
+ * Chonk utilities and overrrides to assert correct theme type
+ * inside chonk components without having to check for theme.isChonk everywhere
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention
+interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
+  isChonk: true;
+}
+
+// Emotion has no override available for styled, so we create our own,
+// which allows us to use chonkStyled and access the chonk theme and write
+// our components with a future type API.
+interface ChonkCreateStyled {
+  <
+    C extends React.ComponentClass<React.ComponentProps<C>>,
+    ForwardedProps extends keyof React.ComponentProps<C> &
+      string = keyof React.ComponentProps<C> & string,
+  >(
+    component: C,
+    options: FilteringStyledOptions<React.ComponentProps<C>, ForwardedProps>
+  ): CreateStyledComponent<
+    Pick<React.ComponentProps<C>, ForwardedProps> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    Record<string, unknown>,
+    {
+      ref?: React.Ref<InstanceType<C>>;
+    }
+  >;
+  <C extends React.ComponentClass<React.ComponentProps<C>>>(
+    component: C,
+    options?: StyledOptions<React.ComponentProps<C>>
+  ): CreateStyledComponent<
+    React.ComponentProps<C> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    Record<string, unknown>,
+    {
+      ref?: React.Ref<InstanceType<C>>;
+    }
+  >;
+  <
+    C extends React.ComponentType<React.ComponentProps<C>>,
+    ForwardedProps extends keyof React.ComponentProps<C> &
+      string = keyof React.ComponentProps<C> & string,
+  >(
+    component: C,
+    options: FilteringStyledOptions<React.ComponentProps<C>, ForwardedProps>
+  ): CreateStyledComponent<
+    Pick<React.ComponentProps<C>, ForwardedProps> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    }
+  >;
+  <C extends React.ComponentType<React.ComponentProps<C>>>(
+    component: C,
+    options?: StyledOptions<React.ComponentProps<C>>
+  ): CreateStyledComponent<
+    React.ComponentProps<C> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    }
+  >;
+  <
+    Tag extends keyof React.JSX.IntrinsicElements,
+    ForwardedProps extends keyof React.JSX.IntrinsicElements[Tag] &
+      string = keyof React.JSX.IntrinsicElements[Tag] & string,
+  >(
+    tag: Tag,
+    options: FilteringStyledOptions<React.JSX.IntrinsicElements[Tag], ForwardedProps>
+  ): CreateStyledComponent<
+    {
+      as?: React.ElementType;
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    Pick<React.JSX.IntrinsicElements[Tag], ForwardedProps>
+  >;
+  <Tag extends keyof React.JSX.IntrinsicElements>(
+    tag: Tag,
+    options?: StyledOptions<React.JSX.IntrinsicElements[Tag]>
+  ): CreateStyledComponent<
+    {
+      as?: React.ElementType;
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    React.JSX.IntrinsicElements[Tag]
+  >;
+}
+
+type ChonkStyled = {
+  [Tag in keyof React.JSX.IntrinsicElements]: CreateStyledComponent<
+    {
+      as?: React.ElementType;
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    React.JSX.IntrinsicElements[Tag]
+  >;
+};
+
+// Emotion has no override available for styled, so we create our own,
+// which allows us to use chonkStyled and access the chonk theme and write
+// our components with a future type API.
+interface ChonkStyle extends ChonkCreateStyled, ChonkStyled {}
+export const chonkStyled = styled as ChonkStyle;
+
+export function useChonkTheme(): ChonkTheme {
+  const theme = useTheme() as Theme | ChonkTheme;
+
+  assertChonkTheme(theme);
+  return theme;
+}
+
+function assertChonkTheme(theme: Theme): asserts theme is ChonkTheme {
+  if (!theme.isChonk) {
+    throw new Error('A chonk component may only be called inside a chonk theme context');
   }
 }

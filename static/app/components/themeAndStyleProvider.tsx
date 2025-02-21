@@ -8,7 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
-import {useChonkTheme} from 'sentry/utils/theme/useChonkTheme';
+import {useChonkThemeSwitcher} from 'sentry/utils/theme/useChonkThemeSwitcher';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 type Props = {
@@ -34,7 +34,7 @@ export function ThemeAndStyleProvider({children}: Props) {
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const [chonkTheme] = useChonkTheme();
+  const [chonkTheme] = useChonkThemeSwitcher();
 
   // Theme toggle global shortcut
   const themeToggleHotkeys = useMemo(() => {

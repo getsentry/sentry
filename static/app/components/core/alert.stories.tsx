@@ -1,16 +1,27 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import {IconClose, IconDelete, IconSad, IconSentry, IconStar} from 'sentry/icons';
+import {IconClose, IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/alert';
+
+const ALERT_VARIANTS: Array<AlertProps['type']> = [
+  'info',
+  'warning',
+  'success',
+  'error',
+  'muted',
+];
+
+const RECOMMENDED_USAGE: Partial<AlertProps> = {
+  showIcon: true,
+};
 
 export default storyBook('Alert', (story, APIReference) => {
   APIReference(types.Alert);
@@ -26,68 +37,33 @@ export default storyBook('Alert', (story, APIReference) => {
         <p>
           The default <JSXNode name="Alert" /> looks like this:
         </p>
-        <Alert type="info">Sentry is cool!!</Alert>
-        <p>
-          You can even add in links, which will be nicely formatted for you inside the
-          alert:
-        </p>
-        <Alert type="info">
-          Sentry is cool!{' '}
-          <ExternalLink href="https://sentry.io/welcome/">Learn more here.</ExternalLink>
-        </Alert>
-      </Fragment>
-    );
-  });
-
-  story('type', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="type" value /> prop specifies the alert category, and
-          changes the color and default icon of the alert.
-        </p>
         <Alert.Container>
-          <Alert type="error" showIcon>
-            This is an error alert. Something went wrong.
-          </Alert>
-          <Alert type="info" showIcon>
-            Info alert. Put some exciting info here.
-          </Alert>
-          <Alert type="muted" showIcon>
-            Muted alerts look like this.
-          </Alert>
-          <Alert type="success" showIcon>
-            Success alert. Yay!
-          </Alert>
-          <Alert type="warning" showIcon>
-            Warning alert. Something is about to go wrong, probably.
-          </Alert>
+          {ALERT_VARIANTS.map(variant => (
+            <Alert key={variant} type={variant} {...RECOMMENDED_USAGE}>
+              Sentry {variant} alert...
+            </Alert>
+          ))}
         </Alert.Container>
       </Fragment>
     );
   });
 
-  story('icon', () => {
+  story('System', () => {
     return (
       <Fragment>
-        <p>
-          The <JSXProperty name="icon" value /> prop can be changed if you want to
-          customize the default icon. Just directly pass in the icon, like{' '}
-          <JSXNode name="IconDelete" /> for example, to the prop.
-        </p>
+        <p>System alerts are used for important messages that are not dismissible.</p>
         <Alert.Container>
-          <Alert type="warning" showIcon icon={<IconDelete />}>
-            Are you sure you want to delete?
-          </Alert>
-          <Alert type="error" showIcon icon={<IconSad />}>
-            Oh no!
-          </Alert>
+          {ALERT_VARIANTS.map(variant => (
+            <Alert key={variant} type={variant} {...RECOMMENDED_USAGE} system>
+              Sentry Alert...
+            </Alert>
+          ))}
         </Alert.Container>
       </Fragment>
     );
   });
 
-  story('expand', () => {
+  story('Expandable Alerts', () => {
     return (
       <Fragment>
         <p>
@@ -107,7 +83,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('trailingItems', () => {
+  story('Dismissible Alerts', () => {
     const LOCAL_STORAGE_KEY = 'alert-stories-banner-dismissed';
     const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
     const [stateDismissed, setStateDismissed] = useState(false);
