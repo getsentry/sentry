@@ -25,11 +25,13 @@ from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class ReplayDataSourceValidator(serializers.Serializer):
+class ReplayCountQueryParamsValidator(serializers.Serializer):
+    query = serializers.CharField(required=True)
     data_source = serializers.ChoiceField(
         choices=(Dataset.Discover.value, Dataset.IssuePlatform.value),
         default=Dataset.Discover.value,
     )
+    returnIds = serializers.BooleanField(default=False)
 
 
 @region_silo_endpoint
@@ -85,15 +87,17 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         if not project_in_org_has_sent_replay(organization):
             return Response({})
 
-        result = ReplayDataSourceValidator(data=request.GET)
-        if not result.is_valid():
-            raise ParseError(result.errors)
-        data_source = Dataset.Discover
-        if result.validated_data["data_source"] == Dataset.IssuePlatform.value:
-            data_source = Dataset.IssuePlatform
+        validator = ReplayCountQueryParamsValidator(data=request.GET)
+        if not validator.is_valid():
+            raise ParseError(validator.errors)
+        query_params = validator.validated_data
+
         try:
             replay_counts = get_replay_counts(
-                snuba_params, request.GET.get("query"), request.GET.get("returnIds"), data_source
+                snuba_params,
+                query_params["query"],
+                query_params["returnIds"],
+                query_params["data_source"],
             )
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
