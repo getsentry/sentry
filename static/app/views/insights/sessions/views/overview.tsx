@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -46,15 +46,13 @@ export function SessionsOverview() {
                 <CrashFreeSessionChart />
               </ModuleLayout.Half>
             ) : (
-              <Fragment>
-                <ModuleLayout.Third>
-                  <ErrorFreeSessionsChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Full>
-                  <ReleaseHealth />
-                </ModuleLayout.Full>
-              </Fragment>
+              <ModuleLayout.Third>
+                <ErrorFreeSessionsChart />
+              </ModuleLayout.Third>
             )}
+            <ModuleLayout.Full>
+              <ReleaseHealth />
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
