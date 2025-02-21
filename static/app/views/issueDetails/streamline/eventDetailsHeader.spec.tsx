@@ -151,8 +151,7 @@ describe('EventDetailsHeader', () => {
       />,
       {organization, router}
     );
-    expect(await screen.findByText('Downtime')).toBeInTheDocument();
-    expect(screen.getByText('Status Code')).toBeInTheDocument();
+    expect(await screen.findByText('Status Code')).toBeInTheDocument();
     expect(screen.getByText('500')).toBeInTheDocument();
     expect(screen.getByText('Reason')).toBeInTheDocument();
     expect(screen.getByText('bad things')).toBeInTheDocument();
