@@ -1,5 +1,5 @@
 ---
-created: '2025-02-19T15:24:59.510803+00:00'
+created: '2025-02-20T21:04:24.739045+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -19,7 +19,7 @@ app:
             symbol (symbol is not used if module or filename are available)
               "_ZL15__pthread_startPv"
             function (function name is not used if module or filename are available)
-              "__pthread_start(void*)"
+              "__pthread_start"
           frame (frame considered in-app because no frame is in-app)
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
@@ -141,7 +141,7 @@ system:
             symbol (symbol is not used if module or filename are available)
               "_ZL15__pthread_startPv"
             function (function name is not used if module or filename are available)
-              "__pthread_start(void*)"
+              "__pthread_start"
           frame
           frame
             function (function name is not used if module or filename are available)
