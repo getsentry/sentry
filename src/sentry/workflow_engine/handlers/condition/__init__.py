@@ -1,25 +1,26 @@
 __all__ = [
+    "AgeComparisonConditionHandler",
+    "AssignedToConditionHandler",
+    "EventAttributeConditionHandler",
     "EventCreatedByDetectorConditionHandler",
     "EventFrequencyCountHandler",
     "EventFrequencyPercentHandler",
-    "PercentSessionsCountHandler",
-    "PercentSessionsPercentHandler",
     "EventSeenCountConditionHandler",
-    "ReappearedEventConditionHandler",
-    "RegressionEventConditionHandler",
     "ExistingHighPriorityIssueConditionHandler",
-    "EventAttributeConditionHandler",
     "FirstSeenEventConditionHandler",
-    "NewHighPriorityIssueConditionHandler",
-    "LevelConditionHandler",
-    "TaggedEventConditionHandler",
-    "AgeComparisonConditionHandler",
-    "AssignedToConditionHandler",
     "IssueCategoryConditionHandler",
     "IssueOccurrencesConditionHandler",
-    "LatestReleaseConditionHandler",
-    "LatestAdoptedReleaseConditionHandler",
     "IssuePriorityCondition",
+    "IssueResolutionChangeHandler",
+    "LatestAdoptedReleaseConditionHandler",
+    "LatestReleaseConditionHandler",
+    "LevelConditionHandler",
+    "NewHighPriorityIssueConditionHandler",
+    "PercentSessionsCountHandler",
+    "PercentSessionsPercentHandler",
+    "ReappearedEventConditionHandler",
+    "RegressionEventConditionHandler",
+    "TaggedEventConditionHandler",
 ]
 
 from .age_comparison_handler import AgeComparisonConditionHandler
@@ -33,6 +34,7 @@ from .first_seen_event_handler import FirstSeenEventConditionHandler
 from .issue_category_handler import IssueCategoryConditionHandler
 from .issue_occurrences_handler import IssueOccurrencesConditionHandler
 from .issue_priority_equals import IssuePriorityCondition
+from .issue_resolution_change_handler import IssueResolutionChangeHandler
 from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
 from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler
