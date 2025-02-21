@@ -7,7 +7,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 
 import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.chonk';
-import {useChonkTheme} from './useChonkTheme';
+import {useChonkThemeSwitcher} from './useChonkThemeSwitcher';
 
 jest.mock('sentry/utils/removeBodyTheme');
 
@@ -18,7 +18,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns null if no organizationis loaded', () => {
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
     expect(result.current[0]).toBeNull();
   });
 
@@ -29,7 +29,7 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
     expect(result.current[0]).toBeNull();
   });
 
@@ -41,7 +41,7 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
     expect(result.current[0]).toBeNull();
   });
 
@@ -53,7 +53,7 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
     expect(result.current[0]).toBe(DO_NOT_USE_lightChonkTheme);
   });
 
@@ -65,7 +65,7 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
     expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
   });
 
@@ -77,7 +77,7 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
 
     await waitFor(() => {
       expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
@@ -97,7 +97,7 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkTheme());
+    const {result} = renderHook(() => useChonkThemeSwitcher());
 
     await waitFor(() => {
       expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
