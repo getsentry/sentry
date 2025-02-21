@@ -4,7 +4,7 @@ import {useInteractOutside} from '@react-aria/interactions';
 import {useNavContext} from 'sentry/components/nav/context';
 
 // Slightly delay closing the nav to prevent accidental dismissal
-const CLOSE_DELAY = 300;
+const CLOSE_DELAY = 200;
 
 /**
  * Handles logic for deciding when the collpased nav should be visible.
