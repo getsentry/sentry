@@ -67,7 +67,9 @@ type Params = DocsParams<PlatformOptions>;
 
 type FeatureFlagConfiguration = {
   integrationName: string;
-  makeCodeSnippet: (dsn: string) => string;
+  makeConfigureCode: (dsn: string) => string;
+  makeVerifyCode: () => string;
+  packageName: string;
 };
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
@@ -76,14 +78,15 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
     integrationName: `featureFlagsIntegration`,
-    makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
+    packageName: '',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 
 Sentry.init({
   dsn: "${dsn}",
   integrations: [Sentry.featureFlagsIntegration()],
-});
-
-const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
+});`,
+    makeVerifyCode:
+      () => `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
 if (flagsIntegration) {
   flagsIntegration.addFeatureFlag("test-flag", false);
 } else {
@@ -94,7 +97,8 @@ Sentry.captureException(new Error("Something went wrong!"));`,
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
     integrationName: `launchDarklyIntegration`,
-    makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
+    packageName: 'launchdarkly-js-client-sdk',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import * as LaunchDarkly from "launchdarkly-js-client-sdk";
 
 Sentry.init({
@@ -106,17 +110,17 @@ const ldClient = LaunchDarkly.initialize(
   "my-client-ID",
   { kind: "user", key: "my-user-context-key" },
   { inspectors: [Sentry.buildLaunchDarklyFlagUsedHandler()] },
-);
+);`,
 
-// Evaluate a flag with a default value. You may have to wait for your client to initialize first.
+    makeVerifyCode: () => `// You may have to wait for your client to initialize first.
 ldClient?.variation("test-flag", false);
-
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
     integrationName: `openFeatureIntegration`,
-    makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
+    packageName: '@openfeature/web-sdk',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { OpenFeature } from "@openfeature/web-sdk";
 
 Sentry.init({
@@ -125,16 +129,17 @@ Sentry.init({
 });
 
 OpenFeature.setProvider(new MyProviderOfChoice());
-OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());
+OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());`,
 
-const client = OpenFeature.getClient();
-const result = client.getBooleanValue("test-flag", false); // evaluate with a default value
+    makeVerifyCode: () => `const client = OpenFeature.getClient();
+const result = client.getBooleanValue("test-flag", false);
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
   [FeatureFlagProviderEnum.STATSIG]: {
     integrationName: `statsigIntegration`,
-    makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
+    packageName: '@statsig/js-client',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { StatsigClient } from "@statsig/js-client";
 
 const statsigClient = new StatsigClient(
@@ -148,9 +153,10 @@ Sentry.init({
   integrations: [
     Sentry.statsigIntegration({ featureFlagClient: statsigClient }),
   ],
-});
+});`,
 
-await statsigClient.initializeAsync(); // or statsigClient.initializeSync();
+    makeVerifyCode:
+      () => `await statsigClient.initializeAsync(); // or statsigClient.initializeSync();
 
 const result = statsigClient.checkGate("my-feature-gate");
 Sentry.captureException(new Error("something went wrong"));`,
@@ -158,7 +164,8 @@ Sentry.captureException(new Error("something went wrong"));`,
 
   [FeatureFlagProviderEnum.UNLEASH]: {
     integrationName: `unleashIntegration`,
-    makeCodeSnippet: (dsn: string) => `import * as Sentry from "@sentry/browser";
+    packageName: 'unleash-proxy-client',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { UnleashClient } from "unleash-proxy-client";
 
 Sentry.init({
@@ -166,9 +173,9 @@ Sentry.init({
   integrations: [
     Sentry.unleashIntegration({ unleashClientClass: UnleashClient }),
   ],
-});
+});`,
 
-const unleash = new UnleashClient({
+    makeVerifyCode: () => `const unleash = new UnleashClient({
   url: "https://<your-unleash-instance>/api/frontend",
   clientKey: "<your-client-side-token>",
   appName: "my-webapp",
@@ -176,9 +183,8 @@ const unleash = new UnleashClient({
 
 unleash.start();
 
-// Evaluate a flag with a default value. You may have to wait for your client to synchronize first.
+// You may have to wait for your client to synchronize first.
 unleash.isEnabled("test-flag");
-
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
 };
@@ -736,11 +742,37 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
-    const {integrationName, makeCodeSnippet} =
+    const {integrationName, makeConfigureCode, makeVerifyCode, packageName} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
       ]!;
+
+    const installConfig = [
+      {
+        language: 'bash',
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: `npm install --save @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `yarn add @sentry/browser ${packageName}`,
+          },
+        ],
+      },
+    ];
+
     return [
+      {
+        type: StepType.INSTALL,
+        description: t('Install Sentry and the selected feature flag SDK.'),
+        configurations: installConfig,
+      },
       {
         type: StepType.CONFIGURE,
         description: tct(
@@ -752,7 +784,19 @@ export const featureFlagOnboarding: OnboardingConfig = {
         configurations: [
           {
             language: 'JavaScript',
-            code: `${makeCodeSnippet(dsn.public)}`,
+            code: `${makeConfigureCode(dsn.public)}`,
+          },
+        ],
+      },
+      {
+        type: StepType.VERIFY,
+        description: t(
+          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in issue details to confirm that your error event has recorded the flag and its result.'
+        ),
+        configurations: [
+          {
+            language: 'JavaScript',
+            code: `${makeVerifyCode()}`,
           },
         ],
       },
