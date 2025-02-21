@@ -49,7 +49,6 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
 import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -1071,36 +1070,26 @@ function IssueListOverview({router}: Props) {
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
   const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
+  const hasNavigationSidebarV2 = organization.features.includes('navigation-sidebar-v2');
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {hasLeftNavIssueViews && (
+        {hasLeftNavIssueViews && hasNavigationSidebarV2 && (
           <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
         {!hasLeftNavIssueViews &&
           (organization.features.includes('issue-stream-custom-views') ? (
-            organization.features.includes('issue-views-page-filter') ? (
-              <ErrorBoundary message={'Failed to load custom tabs'} mini>
-                <IssueViewsPFIssueListHeader
-                  router={router}
-                  selectedProjectIds={selection.projects}
-                  realtimeActive={realtimeActive}
-                  onRealtimeChange={onRealtimeChange}
-                />
-              </ErrorBoundary>
-            ) : (
-              <ErrorBoundary message={'Failed to load custom tabs'} mini>
-                <IssueViewsIssueListHeader
-                  router={router}
-                  selectedProjectIds={selection.projects}
-                  realtimeActive={realtimeActive}
-                  onRealtimeChange={onRealtimeChange}
-                />
-              </ErrorBoundary>
-            )
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <IssueViewsPFIssueListHeader
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={onRealtimeChange}
+              />
+            </ErrorBoundary>
           ) : (
             <IssueListHeader
               organization={organization}
@@ -1115,7 +1104,6 @@ function IssueListOverview({router}: Props) {
               onRealtimeChange={onRealtimeChange}
             />
           ))}
-
         <StyledBody>
           <StyledMain>
             <IssuesDataConsentBanner source="issues" />
