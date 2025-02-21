@@ -173,17 +173,17 @@ Sentry.init({
   integrations: [
     Sentry.unleashIntegration({ unleashClientClass: UnleashClient }),
   ],
-});`,
+});
 
-    makeVerifyCode: () => `const unleash = new UnleashClient({
+const unleash = new UnleashClient({
   url: "https://<your-unleash-instance>/api/frontend",
   clientKey: "<your-client-side-token>",
   appName: "my-webapp",
 });
 
-unleash.start();
+unleash.start();`,
 
-// You may have to wait for your client to synchronize first.
+    makeVerifyCode: () => `// You may have to wait for your client to synchronize first.
 unleash.isEnabled("test-flag");
 Sentry.captureException(new Error("Something went wrong!"));`,
   },
