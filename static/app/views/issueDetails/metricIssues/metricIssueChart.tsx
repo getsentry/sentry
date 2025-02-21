@@ -154,7 +154,6 @@ function MetricIssueChartContent({
         yAxis={{
           ...yAxis,
           splitNumber: 2,
-          minInterval: 1,
         }}
         {...chartZoomProps}
       />
