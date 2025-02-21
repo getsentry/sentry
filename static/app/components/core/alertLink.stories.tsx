@@ -31,11 +31,13 @@ export default storyBook('AlertLink', (story, APIReference) => {
         <p>
           The default <JSXNode name="AlertLink" /> looks like this:
         </p>
-        {ALERT_LINK_VARIANTS.map(variant => (
-          <AlertLink key={variant} type={variant} to={DUMMY_LINK}>
-            Clicking this link will not open in a new tab!
-          </AlertLink>
-        ))}
+        <AlertLink.Container>
+          {ALERT_LINK_VARIANTS.map(variant => (
+            <AlertLink key={variant} type={variant} to={DUMMY_LINK}>
+              Clicking this link will not open in a new tab!
+            </AlertLink>
+          ))}
+        </AlertLink.Container>
       </Fragment>
     );
   });
