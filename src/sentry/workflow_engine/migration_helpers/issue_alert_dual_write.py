@@ -55,10 +55,10 @@ def create_if_dcg(
     filters: list[dict[str, Any]],
     filter_match: str | None = None,
 ):
-    if (
-        filter_match == "any" or filter_match is None
-    ):  # must create IF DCG even if it's empty, to attach actions
+    if filter_match == "any":  # must create IF DCG even if it's empty, to attach actions
         filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+    elif filter_match is None:
+        filter_match = DataConditionGroup.Type.ALL.value
 
     if_dcg = DataConditionGroup.objects.create(
         logic_type=filter_match, organization=workflow.organization
@@ -157,8 +157,10 @@ def update_dcg(
     DataCondition.objects.filter(condition_group=dcg).delete()
 
     if dcg.logic_type != match:
-        if match == "any" or match is None:
+        if match == "any":
             match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+        elif match is None:
+            match = DataConditionGroup.Type.ALL.value
 
         dcg.update(logic_type=match)
 
