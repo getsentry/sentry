@@ -11,25 +11,21 @@
               "function": "RtlUserThreadStart",
               "symbol": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff8980dfbcb"
+              }
             },
             {
               "function": "BaseThreadInitThunk",
               "symbol": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff896b5e8d6"
+              }
             },
             {
               "function": "__scrt_common_main_seh",
@@ -39,12 +35,10 @@
               "filename": "exe_common.inl",
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 288,
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff739e7b699"
+              }
             },
             {
               "function": "invoke_main",
@@ -54,387 +48,323 @@
               "filename": "exe_common.inl",
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 102,
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff739e7b699"
+              }
             },
             {
               "function": "WinMain",
               "symbol": "WinMain",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354cd7a3"
+              }
             },
             {
               "function": "LaunchWindowsStartup",
               "raw_function": "LaunchWindowsStartup(HINSTANCE__*, HINSTANCE__*, char*, int, wchar_t const*)",
               "symbol": "?LaunchWindowsStartup@@YAHPEAUHINSTANCE__@@0PEADHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354c0891"
+              }
             },
             {
               "function": "GuardedMainWrapper",
               "raw_function": "GuardedMainWrapper(wchar_t const*)",
               "symbol": "?GuardedMainWrapper@@YAHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354bdb99"
+              }
             },
             {
               "function": "GuardedMain",
               "raw_function": "GuardedMain(wchar_t const*)",
               "symbol": "?GuardedMain@@YAHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354bdacb"
+              }
             },
             {
               "function": "FEngineLoop::Tick",
               "raw_function": "FEngineLoop::Tick(void)",
               "symbol": "?Tick@FEngineLoop@@UEAAXXZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354aca50"
+              }
             },
             {
               "function": "FWindowsPlatformApplicationMisc::PumpMessages",
               "raw_function": "FWindowsPlatformApplicationMisc::PumpMessages(bool)",
               "symbol": "?PumpMessages@FWindowsPlatformApplicationMisc@@SAX_N@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e89f44a"
+              }
             },
             {
               "function": "DispatchMessageWorker",
               "symbol": "DispatchMessageWorker",
               "package": "C:\\Windows\\System32\\USER32.dll",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "system",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff897c2334c"
+              }
             },
             {
               "function": "UserCallWinProcCheckWow",
               "raw_function": "UserCallWinProcCheckWow(_ACTIVATION_CONTEXT*, int64_t (*)(tagWND*, unsigned int, uint64_t, int64_t), HWND__*, _WM_VALUE, uint64_t, int64_t, void*, int)",
               "symbol": "?UserCallWinProcCheckWow@@YA_JPEAU_ACTIVATION_CONTEXT@@P6A_JPEAUtagWND@@I_K_J@ZPEAUHWND__@@W4_WM_VALUE@@23PEAXH@Z",
               "package": "C:\\Windows\\System32\\USER32.dll",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "internals",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff897c25800"
+              }
             },
             {
               "function": "FWindowsApplication::AppWndProc",
               "raw_function": "FWindowsApplication::AppWndProc(HWND__*, unsigned int, uint64_t, int64_t)",
               "symbol": "?AppWndProc@FWindowsApplication@@KA_JPEAUHWND__@@I_K_J@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e86a474"
+              }
             },
             {
               "function": "FWindowsApplication::ProcessMessage",
               "raw_function": "FWindowsApplication::ProcessMessage(HWND__*, unsigned int, uint64_t, int64_t)",
               "symbol": "?ProcessMessage@FWindowsApplication@@IEAAHPEAUHWND__@@I_K_J@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e8857a1"
+              }
             },
             {
               "function": "FWindowsApplication::DeferMessage",
               "raw_function": "FWindowsApplication::DeferMessage(TSharedPtr<FWindowsWindow, 1>&, HWND__*, unsigned int, uint64_t, int64_t, int, int, unsigned int)",
               "symbol": "?DeferMessage@FWindowsApplication@@AEAAXAEAV?$TSharedPtr@VFWindowsWindow@@$00@@PEAUHWND__@@I_K_JHHI@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e86e9e1"
+              }
             },
             {
               "function": "FWindowsApplication::ProcessDeferredMessage",
               "raw_function": "FWindowsApplication::ProcessDeferredMessage(FDeferredWindowsMessage const&)",
               "symbol": "?ProcessDeferredMessage@FWindowsApplication@@IEAAHAEBUFDeferredWindowsMessage@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e882a88"
+              }
             },
             {
               "function": "FSlateApplication::OnMouseUp",
               "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
               "symbol": "?OnMouseUp@FSlateApplication@@UEAA_NW4Type@EMouseButtons@@U?$TVector2@N@Math@UE@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72ebfbadc"
+              }
             },
             {
               "function": "FSlateApplication::ProcessMouseButtonUpEvent",
               "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
               "symbol": "?ProcessMouseButtonUpEvent@FSlateApplication@@QEAA_NAEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72ec05a75"
+              }
             },
             {
               "function": "FSlateApplication::RoutePointerUpEvent",
               "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
               "symbol": "?RoutePointerUpEvent@FSlateApplication@@QEAA?AVFReply@@AEBVFWidgetPath@@AEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72ec14a22"
+              }
             },
             {
               "function": "SharedPointerInternals::NewIntrusiveReferenceController<T>",
               "raw_function": "SharedPointerInternals::NewIntrusiveReferenceController<1, SWindowTitleBar>(void)",
               "symbol": "??$NewIntrusiveReferenceController@$00VSWindowTitleBar@@$$V@SharedPointerInternals@@YAPEAV?$TIntrusiveReferenceController@VSWindowTitleBar@@$00@0@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72ebcf9c7"
+              }
             },
             {
               "function": "`TArray<T>::Remove'::`2'::<T>::operator()",
               "raw_function": "`TArray<TWeakPtr<TAnimatedAttributeBase, 1>, TSizedDefaultAllocator<32> >::Remove(TWeakPtr<TAnimatedAttributeBase, 1> const&)'::`2'::<lambda_1>::operator()(TWeakPtr<TAnimatedAttributeBase, 1>&) const",
               "symbol": "??R<lambda_1>@?1??Remove@?$TArray@V?$TWeakPtr@VTAnimatedAttributeBase@@$00@@V?$TSizedDefaultAllocator@$0CA@@@@@QEAAHAEBV?$TWeakPtr@VTAnimatedAttributeBase@@$00@@@Z@QEBA@AEAV3@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "indirection",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72ebdb08a"
+              }
             },
             {
               "function": "SButton::OnMouseButtonUp",
               "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
               "symbol": "?OnMouseButtonUp@SButton@@UEAA?AVFReply@@AEBUFGeometry@@AEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72edfa4df"
+              }
             },
             {
               "function": "SButton::ExecuteOnClick",
               "raw_function": "SButton::ExecuteOnClick(void)",
               "symbol": "?ExecuteOnClick@SButton@@IEAA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72eddc52e"
+              }
             },
             {
               "function": "TBaseUObjectMethodDelegateInstance<T>::Execute",
               "raw_function": "TBaseUObjectMethodDelegateInstance<0, UButton, FReply (void), FDefaultDelegateUserPolicy>::Execute(void) const",
               "symbol": "?Execute@?$TBaseUObjectMethodDelegateInstance@$0A@VUButton@@$$A6A?AVFReply@@XZUFDefaultDelegateUserPolicy@@$$V@@UEBA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff732de85af"
+              }
             },
             {
               "function": "UButton::SlateHandleClicked",
               "raw_function": "UButton::SlateHandleClicked(void)",
               "symbol": "?SlateHandleClicked@UButton@@IEAA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff732e43646"
+              }
             },
             {
               "function": "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>",
               "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
               "symbol": "??$ProcessMulticastDelegate@VUObject@@@?$TMulticastScriptDelegate@UFNotThreadSafeDelegateMode@@@@QEBAXPEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e74c5ed"
+              }
             },
             {
               "function": "UObject::ProcessEvent",
               "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
               "symbol": "?ProcessEvent@UObject@@UEAAXPEAVUFunction@@PEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e78bb34"
+              }
             },
             {
               "function": "UFunction::Invoke",
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void* const)",
               "symbol": "?Invoke@UFunction@@QEAAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e44b4a8"
+              }
             },
             {
               "function": "UObject::ProcessInternal",
               "raw_function": "UObject::ProcessInternal(UObject*, FFrame&, void* const)",
               "symbol": "?ProcessInternal@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e78c002"
+              }
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)",
               "symbol": "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e78c647"
+              }
             },
             {
               "function": "ProcessLocalFunction",
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void* const)",
               "symbol": "?ProcessLocalFunction@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e78c252"
+              }
             },
             {
               "function": "`TThreadSingleton<T>::Get'::`2'::<T>::operator()",
               "raw_function": "`TThreadSingleton<FDeferredScriptTracker>::Get(void)'::`2'::<lambda_1>::operator()(void) const",
               "symbol": "??R<lambda_1>@?1??Get@?$TThreadSingleton@UFDeferredScriptTracker@@@@SAAEAUFDeferredScriptTracker@@XZ@QEBA@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "indirection",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e7597f0"
+              }
             },
             {
               "function": "ProcessScriptFunction<T>",
               "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void* const, void (*)(UObject*, FFrame&, void*))",
               "symbol": "??$ProcessScriptFunction@P6AXPEAVUObject@@AEAUFFrame@@PEAX@Z@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAXP6AX02PEAX@Z@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e74ccd8"
+              }
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)",
               "symbol": "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e78c647"
+              }
             },
             {
               "function": "UObject::execCallMathFunction",
               "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void* const)",
               "symbol": "?execCallMathFunction@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72e7bc97d"
+              }
             },
             {
               "function": "USentryPlaygroundUtils::execTerminate",
@@ -444,27 +374,11 @@
               "filename": "SentryPlaygroundUtils.gen.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Intermediate\\Build\\Win64\\UnrealGame\\Inc\\SentryPlayground\\UHT\\SentryPlaygroundUtils.gen.cpp",
               "lineno": 127,
-              "pre_context": [
-                "DEFINE_FUNCTION(USentryPlaygroundUtils::execTerminate)",
-                "{",
-                "\tP_GET_ENUM(ESentryAppTerminationType,Z_Param_Type);",
-                "\tP_FINISH;",
-                "\tP_NATIVE_BEGIN;"
-              ],
               "context_line": "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));",
-              "post_context": [
-                "\tP_NATIVE_END;",
-                "}",
-                "// End Class USentryPlaygroundUtils Function Terminate",
-                "",
-                "// Begin Class USentryPlaygroundUtils"
-              ],
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff735506f25"
+              }
             },
             {
               "function": "USentryPlaygroundUtils::Terminate",
@@ -474,87 +388,61 @@
               "filename": "SentryPlaygroundUtils.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp",
               "lineno": 40,
-              "pre_context": [
-                "\t\t\t}",
-                "\t\t\tbreak;",
-                "\t\tcase ESentryAppTerminationType::Ensure:",
-                "\t\t\t{",
-                "\t\t\t\tchar *ensurePtr = nullptr;"
-              ],
               "context_line": "\t\t\t\tensure(ensurePtr != nullptr);",
-              "post_context": [
-                "\t\t\t}",
-                "\t\tbreak;",
-                "\t\tdefault:",
-                "\t\t\t{",
-                "\t\t\t\tUE_LOG(LogTemp, Warning, TEXT(\"Uknown app termination type!\"));"
-              ],
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff735507a08"
+              }
             },
             {
               "function": "UE::Assert::Private::ExecCheckImplInternal",
               "raw_function": "UE::Assert::Private::ExecCheckImplInternal(std::atomic<bool>&, bool, char const*, int, char const*)",
               "symbol": "?ExecCheckImplInternal@Private@Assert@UE@@YA_NAEAU?$atomic@_N@std@@_NPEBDH2@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff73a1130e7"
+              }
             },
             {
               "function": "CheckVerifyImpl",
               "raw_function": "CheckVerifyImpl(std::atomic<bool>&, bool, char const*, int, void*, char const*, wchar_t const*, char*)",
               "symbol": "?CheckVerifyImpl@@YA_NAEAU?$atomic@_N@std@@_NPEBDHPEAX2PEB_WPEAD@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff73a112fb3"
+              }
             },
             {
               "function": "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl",
               "raw_function": "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, wchar_t const*, char*)",
               "symbol": "?OptionallyLogFormattedEnsureMessageReturningFalseImpl@FDebug@@CA_N_NPEBD1HPEAXPEB_WPEAD@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72dd2bea3"
+              }
             },
             {
               "function": "FDebug::EnsureFailed",
               "raw_function": "FDebug::EnsureFailed(char const*, char const*, int, void*, wchar_t const*)",
               "symbol": "?EnsureFailed@FDebug@@SAXPEBD0HPEAXPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72dd1989a"
+              }
             },
             {
               "function": "TMulticastDelegate<T>::Broadcast",
               "raw_function": "TMulticastDelegate<void (void), FDefaultDelegateUserPolicy>::Broadcast(void) const",
               "symbol": "?Broadcast@?$TMulticastDelegate@$$A6AXXZUFDefaultDelegateUserPolicy@@@@QEBAXXZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff72dae4e77"
+              }
             },
             {
               "function": "TBaseFunctorDelegateInstance<T>::ExecuteIfSafe",
@@ -564,21 +452,11 @@
               "filename": "DelegateInstancesImpl.h",
               "abs_path": "D:\\unreal-editors\\UE_5.5\\Engine\\Source\\Runtime\\Core\\Public\\Delegates\\DelegateInstancesImpl.h",
               "lineno": 870,
-              "pre_context": [
-                "\t}",
-                "",
-                "\tbool ExecuteIfSafe(ParamTypes... Params) const final",
-                "\t{",
-                "\t\t// Functors are always considered safe to execute!"
-              ],
               "context_line": "\t\t(void)this->Payload.ApplyAfter(Functor, Forward<ParamTypes>(Params)...);",
-              "post_context": ["", "\t\treturn true;", "\t}", "", "private:"],
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff735500b4c"
+              }
             },
             {
               "function": "UE::Core::Private::Tuple::TTupleBase<T>::ApplyAfter",
@@ -588,27 +466,11 @@
               "filename": "Tuple.h",
               "abs_path": "D:\\unreal-editors\\UE_5.5\\Engine\\Source\\Runtime\\Core\\Public\\Templates\\Tuple.h",
               "lineno": 317,
-              "pre_context": [
-                "\t\ttemplate <typename T> FORCEINLINE decltype(auto) Get() const         && { static_assert(TTypeCountInParameterPack_V<T, Types...> == 1, \"In {snip}",
-                "\t\ttemplate <typename T> FORCEINLINE decltype(auto) Get()       volatile&& { static_assert(TTypeCountInParameterPack_V<T, Types...> == 1, \"In {snip}",
-                "\t\ttemplate <typename T> FORCEINLINE decltype(auto) Get() const volatile&& { static_assert(TTypeCountInParameterPack_V<T, Types...> == 1, \"In {snip}",
-                "",
-                "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args)               &  { retur {snip}"
-              ],
               "context_line": "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const         &  { retur {snip}",
-              "post_context": [
-                "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args)       volatile&  { retur {snip}",
-                "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const volatile&  { retur {snip}",
-                "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args)               && { retur {snip}",
-                "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const         && { retur {snip}",
-                "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args)       volatile&& { retur {snip}"
-              ],
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff735500b4c"
+              }
             },
             {
               "function": "Invoke",
@@ -618,27 +480,11 @@
               "filename": "Invoke.h",
               "abs_path": "D:\\unreal-editors\\UE_5.5\\Engine\\Source\\Runtime\\Core\\Public\\Templates\\Invoke.h",
               "lineno": 47,
-              "pre_context": [
-                " */",
-                "template <typename FuncType, typename... ArgTypes>",
-                "FORCEINLINE auto Invoke(FuncType&& Func, ArgTypes&&... Args)",
-                "\t-> decltype(Forward<FuncType>(Func)(Forward<ArgTypes>(Args)...))",
-                "{"
-              ],
               "context_line": "\treturn Forward<FuncType>(Func)(Forward<ArgTypes>(Args)...);",
-              "post_context": [
-                "}",
-                "",
-                "template <typename ReturnType, typename ObjType, typename TargetType>",
-                "FORCEINLINE auto Invoke(ReturnType ObjType::*pdm, TargetType&& Target)",
-                "\t-> decltype(UE::Core::Private::DereferenceIfNecessary<ObjType>(Forward<TargetType>(Target), &Target).*pdm)"
-              ],
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff735500b4c"
+              }
             },
             {
               "function": "`USentrySubsystem::Initialize'::`2'::<T>::operator()",
@@ -648,28 +494,12 @@
               "filename": "SentrySubsystem.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Plugins\\sentry\\Source\\Sentry\\Private\\SentrySubsystem.cpp",
               "lineno": 151,
-              "pre_context": [
-                "#endif",
-                "",
-                "\tOnEnsureDelegate = FCoreDelegates::OnHandleSystemEnsure.AddLambda([this]()",
-                "\t{",
-                "\t\tFString EnsureMessage = GErrorHist;"
-              ],
               "context_line": "\t\tSubsystemNativeImpl->CaptureEnsure(TEXT(\"Ensure failed\"), EnsureMessage.TrimStartAndEnd());",
-              "post_context": [
-                "\t});",
-                "}",
-                "",
-                "void USentrySubsystem::InitializeWithSettings(const FConfigureSettingsDelegate& OnConfigureSettings)",
-                "{"
-              ],
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "category": "indirection",
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354f6cc2"
+              }
             },
             {
               "function": "SentrySubsystemDesktop::CaptureEnsure",
@@ -679,444 +509,38 @@
               "filename": "SentrySubsystemDesktop.cpp",
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Plugins\\sentry\\Source\\Sentry\\Private\\Desktop\\SentrySubsystemDesktop.cpp",
               "lineno": 439,
-              "pre_context": [
-                "\tsentry_value_t exceptionEvent = sentry_value_new_event();",
-                "",
-                "\tsentry_value_t nativeException = sentry_value_new_exception(TCHAR_TO_ANSI(*type), TCHAR_TO_ANSI(*message));",
-                "\tsentry_event_add_exception(exceptionEvent, nativeException);",
-                ""
-              ],
               "context_line": "\tsentry_value_set_stacktrace(exceptionEvent, nullptr, 0);",
-              "post_context": [
-                "",
-                "\tsentry_uuid_t id = sentry_capture_event(exceptionEvent);",
-                "\treturn MakeShareable(new SentryIdDesktop(id));",
-                "}",
-                ""
-              ],
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff7354df3a6"
+              }
             },
             {
               "function": "sentry_value_set_stacktrace",
               "symbol": "sentry_value_set_stacktrace",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff739bf8566"
+              }
             },
             {
               "function": "sentry_value_new_stacktrace",
               "symbol": "sentry_value_new_stacktrace",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff739bf7d57"
+              }
             },
             {
               "function": "sentry_unwind_stack_from_ucontext",
               "symbol": "sentry_unwind_stack_from_ucontext",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
-              },
-              "instruction_addr": "0x7ff739c00269"
-            }
-          ]
-        },
-        "raw_stacktrace": {
-          "frames": [
-            {
-              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "internals"
-              },
-              "instruction_addr": "0x7ff8980dfbcc"
-            },
-            {
-              "package": "C:\\Windows\\System32\\KERNEL32.DLL",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "internals"
-              },
-              "instruction_addr": "0x7ff896b5e8d7"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff739e7b69a"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354cd7a4"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354c0892"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354bdb9a"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354bdacc"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354aca51"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e89f44b"
-            },
-            {
-              "package": "C:\\Windows\\System32\\USER32.dll",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "internals"
-              },
-              "instruction_addr": "0x7ff897c2334d"
-            },
-            {
-              "package": "C:\\Windows\\System32\\USER32.dll",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "internals"
-              },
-              "instruction_addr": "0x7ff897c25801"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e86a475"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e8857a2"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e86e9e2"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e882a89"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72ebfbadd"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72ec05a76"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72ec14a23"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72ebcf9c8"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72ebdb08b"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72edfa4e0"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72eddc52f"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff732de85b0"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff732e43647"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e74c5ee"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e78bb35"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e44b4a9"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e78c003"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e78c648"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e78c253"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e7597f1"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e74ccd9"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e78c648"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72e7bc97e"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff735506f26"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff735507a09"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff73a1130e8"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff73a112fb4"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72dd2bea4"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72dd1989b"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff72dae4e78"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff735500b4d"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354f6cc3"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff7354df3a7"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff739bf8567"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff739bf7d58"
-            },
-            {
-              "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "instruction_addr": "0x7ff739c00269"
+              }
             }
           ]
         }

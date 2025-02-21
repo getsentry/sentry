@@ -11,870 +11,369 @@
               "function": "thread_start",
               "symbol": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": true,
               "data": {
                 "orig_in_app": 0,
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1a0310000",
-              "instruction_addr": "0x1a03120f8",
-              "symbol_addr": "0x1a03120f4"
+              }
             },
             {
               "function": "_pthread_start",
               "symbol": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": true,
               "data": {
                 "orig_in_app": 0,
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1a0310000",
-              "instruction_addr": "0x1a03172e0",
-              "symbol_addr": "0x1a031725c"
+              }
             },
             {
               "function": "__NSThread__start__",
               "symbol": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": true,
               "data": {
                 "orig_in_app": 0,
                 "category": "internals",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1a1560000",
-              "instruction_addr": "0x1a15b4730",
-              "symbol_addr": "0x1a15b4460"
+              }
             },
             {
               "function": "-[FCocoaGameThread main]",
               "symbol": "-[FCocoaGameThread main]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103263804",
-              "symbol_addr": "0x10326371c"
+              }
             },
             {
               "function": "-[UEAppDelegate runGameThread:]",
               "symbol": "-[UEAppDelegate runGameThread:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097a40a4",
-              "symbol_addr": "0x1097a3fe4"
+              }
             },
             {
               "function": "GuardedMain",
               "raw_function": "GuardedMain(char16_t const*)",
               "symbol": "_Z11GuardedMainPKDs",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x109792d84",
-              "symbol_addr": "0x109792a20"
+              }
             },
             {
               "function": "FEngineLoop::Tick",
               "raw_function": "FEngineLoop::Tick()",
               "symbol": "_ZN11FEngineLoop4TickEv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x10978e594",
-              "symbol_addr": "0x10978afdc"
+              }
             },
             {
               "function": "FSlateApplication::Tick",
               "raw_function": "FSlateApplication::Tick(ESlateTickType)",
               "symbol": "_ZN17FSlateApplication4TickE14ESlateTickType",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040843d0",
-              "symbol_addr": "0x104084124"
+              }
             },
             {
               "function": "FSlateApplication::TickPlatform",
               "raw_function": "FSlateApplication::TickPlatform(float)",
               "symbol": "_ZN17FSlateApplication12TickPlatformEf",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040848a0",
-              "symbol_addr": "0x104084580"
+              }
             },
             {
               "function": "FMacApplication::ProcessDeferredEvents",
               "raw_function": "FMacApplication::ProcessDeferredEvents(float)",
               "symbol": "_ZN15FMacApplication21ProcessDeferredEventsEf",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103d2c97c",
-              "symbol_addr": "0x103d2c85c"
+              }
             },
             {
               "function": "FMacApplication::ProcessEvent",
               "raw_function": "FMacApplication::ProcessEvent(FDeferredMacEvent const&)",
               "symbol": "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103d2cccc",
-              "symbol_addr": "0x103d2ca5c"
+              }
             },
             {
               "function": "FMacApplication::ProcessMouseUpEvent",
               "raw_function": "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)",
               "symbol": "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103d314f0",
-              "symbol_addr": "0x103d31490"
+              }
             },
             {
               "function": "FSlateApplication::OnMouseUp",
               "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
               "symbol": "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040a57c4",
-              "symbol_addr": "0x1040a5520"
+              }
             },
             {
               "function": "FSlateApplication::ProcessMouseButtonUpEvent",
               "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
               "symbol": "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x10406db64",
-              "symbol_addr": "0x10406d7c0"
+              }
             },
             {
               "function": "FSlateApplication::RoutePointerUpEvent",
               "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
               "symbol": "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040a02a4",
-              "symbol_addr": "0x10409f480"
+              }
             },
             {
               "function": "SButton::OnMouseButtonUp",
               "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
               "symbol": "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x104281930",
-              "symbol_addr": "0x10428177c"
+              }
             },
             {
               "function": "SButton::ExecuteOnClick",
               "raw_function": "SButton::ExecuteOnClick()",
               "symbol": "_ZN7SButton14ExecuteOnClickEv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x104269624",
-              "symbol_addr": "0x10426953c"
+              }
             },
             {
               "function": "UButton::SlateHandleClicked",
               "raw_function": "UButton::SlateHandleClicked()",
               "symbol": "_ZN7UButton18SlateHandleClickedEv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x10743d39c",
-              "symbol_addr": "0x10743d384"
+              }
             },
             {
               "function": "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>",
               "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
               "symbol": "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103c18030",
-              "symbol_addr": "0x103c17e38"
+              }
             },
             {
               "function": "UObject::ProcessEvent",
               "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
               "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf7b9c",
-              "symbol_addr": "0x103bf7264"
+              }
             },
             {
               "function": "UFunction::Invoke",
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
               "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1039a5574",
-              "symbol_addr": "0x1039a54f8"
+              }
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf3790",
-              "symbol_addr": "0x103bf33e0"
+              }
             },
             {
               "function": "ProcessLocalFunction",
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)",
               "symbol": "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf4038",
-              "symbol_addr": "0x103bf3f3c"
+              }
             },
             {
               "function": "ProcessLocalFunction::lambda::operator()",
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const",
               "symbol": "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "category": "indirection",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf41b0",
-              "symbol_addr": "0x103bf4138"
+              }
             },
             {
               "function": "ProcessScriptFunction<T>",
               "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))",
               "symbol": "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf2d28",
-              "symbol_addr": "0x103bf2aa0"
+              }
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf3790",
-              "symbol_addr": "0x103bf33e0"
+              }
             },
             {
               "function": "UObject::execLetObj",
               "raw_function": "UObject::execLetObj(UObject*, FFrame&, void*)",
               "symbol": "_ZN7UObject10execLetObjEPS_R6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bfc9e4",
-              "symbol_addr": "0x103bfc878"
+              }
             },
             {
               "function": "UObject::ProcessContextOpcode",
               "raw_function": "UObject::ProcessContextOpcode(FFrame&, void*, bool)",
               "symbol": "_ZN7UObject20ProcessContextOpcodeER6FFramePvb",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bfd5c4",
-              "symbol_addr": "0x103bfd52c"
+              }
             },
             {
               "function": "UObject::CallFunction",
               "raw_function": "UObject::CallFunction(FFrame&, void*, UFunction*)",
               "symbol": "_ZN7UObject12CallFunctionER6FFramePvP9UFunction",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf2918",
-              "symbol_addr": "0x103bf2350"
+              }
             },
             {
               "function": "UFunction::Invoke",
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
               "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1039a5574",
-              "symbol_addr": "0x1039a54f8"
+              }
             },
             {
               "function": "USentrySubsystem::execCaptureEventWithScope",
               "raw_function": "USentrySubsystem::execCaptureEventWithScope(UObject*, FFrame&, void*)",
               "symbol": "_ZN16USentrySubsystem25execCaptureEventWithScopeEP7UObjectR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": false,
               "data": {
                 "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097bcd28",
-              "symbol_addr": "0x1097bcc20"
+              }
             },
             {
               "function": "USentrySubsystem::CaptureEventWithScope",
               "raw_function": "USentrySubsystem::CaptureEventWithScope(USentryEvent*, FConfigureScopeDelegate const&)",
               "symbol": "_ZN16USentrySubsystem21CaptureEventWithScopeEP12USentryEventRK23FConfigureScopeDelegate",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": false,
               "data": {
                 "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097d2af8",
-              "symbol_addr": "0x1097d2a80"
+              }
             },
             {
               "function": "USentrySubsystem::CaptureEventWithScope",
               "raw_function": "USentrySubsystem::CaptureEventWithScope(USentryEvent*, TDelegate<void (USentryScope*), FDefaultDelegateUserPolicy> const&)",
               "symbol": "_ZN16USentrySubsystem21CaptureEventWithScopeEP12USentryEventRK9TDelegateIFvP12USentryScopeE26FDefaultDelegateUserPolicyE",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": false,
               "data": {
                 "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097d2c3c",
-              "symbol_addr": "0x1097d2b48"
+              }
             },
             {
               "function": "SentrySubsystemApple::CaptureEventWithScope",
               "raw_function": "SentrySubsystemApple::CaptureEventWithScope(TSharedPtr<ISentryEvent, (ESPMode)1>, TDelegate<void (TSharedPtr<ISentryScope, (ESPMode)1>), FDefaultDelegateUserPolicy> const&)",
               "symbol": "_ZN20SentrySubsystemApple21CaptureEventWithScopeE10TSharedPtrI12ISentryEventL7ESPMode1EERK9TDelegateIFvS0_I12ISentryScopeLS2_1EEE26FDefaultDelegateUserPolicyE",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": false,
               "data": {
                 "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097c688c",
-              "symbol_addr": "0x1097c67d4"
+              }
             },
             {
               "function": "+[SentrySDK captureEvent:withScopeBlock:]",
               "symbol": "+[SentrySDK captureEvent:withScopeBlock:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ed3124",
-              "symbol_addr": "0x322ed306c"
+              }
             },
             {
               "function": "+[SentrySDK captureEvent:withScope:]",
               "symbol": "+[SentrySDK captureEvent:withScope:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ed31c0",
-              "symbol_addr": "0x322ed316c"
+              }
             },
             {
               "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
               "symbol": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ea7da8",
-              "symbol_addr": "0x322ea7d94"
+              }
             },
             {
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322e7c634",
-              "symbol_addr": "0x322e7c5b4"
+              }
             },
             {
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322e7dc2c",
-              "symbol_addr": "0x322e7d774"
+              }
             },
             {
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "symbol": "-[SentryThreadInspector getCurrentThreads]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322e8a944",
-              "symbol_addr": "0x322e8a710"
+              }
             },
             {
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
               "data": {
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ee8a88",
-              "symbol_addr": "0x322ee8a64"
-            }
-          ]
-        },
-        "raw_stacktrace": {
-          "frames": [
-            {
-              "function": "thread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
-              "data": {
-                "category": "threadbase"
-              },
-              "image_addr": "0x1a0310000",
-              "instruction_addr": "0x1a03120fc",
-              "symbol_addr": "0x1a03120f4"
-            },
-            {
-              "function": "_pthread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
-              "data": {
-                "category": "threadbase"
-              },
-              "image_addr": "0x1a0310000",
-              "instruction_addr": "0x1a03172e4",
-              "symbol_addr": "0x1a031725c"
-            },
-            {
-              "function": "__NSThread__start__",
-              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": false,
-              "data": {
-                "category": "internals"
-              },
-              "image_addr": "0x1a1560000",
-              "instruction_addr": "0x1a15b4734",
-              "symbol_addr": "0x1a15b4460"
-            },
-            {
-              "function": "-[FCocoaGameThread main]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103263808",
-              "symbol_addr": "0x10326371c"
-            },
-            {
-              "function": "-[UEAppDelegate runGameThread:]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097a40a8",
-              "symbol_addr": "0x1097a3fe4"
-            },
-            {
-              "function": "_Z11GuardedMainPKDs",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x109792d88",
-              "symbol_addr": "0x109792a20"
-            },
-            {
-              "function": "_ZN11FEngineLoop4TickEv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x10978e598",
-              "symbol_addr": "0x10978afdc"
-            },
-            {
-              "function": "_ZN17FSlateApplication4TickE14ESlateTickType",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040843d4",
-              "symbol_addr": "0x104084124"
-            },
-            {
-              "function": "_ZN17FSlateApplication12TickPlatformEf",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040848a4",
-              "symbol_addr": "0x104084580"
-            },
-            {
-              "function": "_ZN15FMacApplication21ProcessDeferredEventsEf",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103d2c980",
-              "symbol_addr": "0x103d2c85c"
-            },
-            {
-              "function": "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103d2ccd0",
-              "symbol_addr": "0x103d2ca5c"
-            },
-            {
-              "function": "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103d314f4",
-              "symbol_addr": "0x103d31490"
-            },
-            {
-              "function": "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040a57c8",
-              "symbol_addr": "0x1040a5520"
-            },
-            {
-              "function": "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x10406db68",
-              "symbol_addr": "0x10406d7c0"
-            },
-            {
-              "function": "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1040a02a8",
-              "symbol_addr": "0x10409f480"
-            },
-            {
-              "function": "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x104281934",
-              "symbol_addr": "0x10428177c"
-            },
-            {
-              "function": "_ZN7SButton14ExecuteOnClickEv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x104269628",
-              "symbol_addr": "0x10426953c"
-            },
-            {
-              "function": "_ZN7UButton18SlateHandleClickedEv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x10743d3a0",
-              "symbol_addr": "0x10743d384"
-            },
-            {
-              "function": "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103c18034",
-              "symbol_addr": "0x103c17e38"
-            },
-            {
-              "function": "_ZN7UObject12ProcessEventEP9UFunctionPv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf7ba0",
-              "symbol_addr": "0x103bf7264"
-            },
-            {
-              "function": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1039a5578",
-              "symbol_addr": "0x1039a54f8"
-            },
-            {
-              "function": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf3794",
-              "symbol_addr": "0x103bf33e0"
-            },
-            {
-              "function": "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf403c",
-              "symbol_addr": "0x103bf3f3c"
-            },
-            {
-              "function": "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf41b4",
-              "symbol_addr": "0x103bf4138"
-            },
-            {
-              "function": "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf2d2c",
-              "symbol_addr": "0x103bf2aa0"
-            },
-            {
-              "function": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf3794",
-              "symbol_addr": "0x103bf33e0"
-            },
-            {
-              "function": "_ZN7UObject10execLetObjEPS_R6FFramePv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bfc9e8",
-              "symbol_addr": "0x103bfc878"
-            },
-            {
-              "function": "_ZN7UObject20ProcessContextOpcodeER6FFramePvb",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bfd5c8",
-              "symbol_addr": "0x103bfd52c"
-            },
-            {
-              "function": "_ZN7UObject12CallFunctionER6FFramePvP9UFunction",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x103bf291c",
-              "symbol_addr": "0x103bf2350"
-            },
-            {
-              "function": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1039a5578",
-              "symbol_addr": "0x1039a54f8"
-            },
-            {
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097bcd2c",
-              "symbol_addr": "0x1097bcc20"
-            },
-            {
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097d2afc",
-              "symbol_addr": "0x1097d2a80"
-            },
-            {
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097d2c40",
-              "symbol_addr": "0x1097d2b48"
-            },
-            {
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "in_app": true,
-              "image_addr": "0x1029e4000",
-              "instruction_addr": "0x1097c6890",
-              "symbol_addr": "0x1097c67d4"
-            },
-            {
-              "function": "+[SentrySDK captureEvent:withScopeBlock:]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ed3128",
-              "symbol_addr": "0x322ed306c"
-            },
-            {
-              "function": "+[SentrySDK captureEvent:withScope:]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ed31c4",
-              "symbol_addr": "0x322ed316c"
-            },
-            {
-              "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ea7dac",
-              "symbol_addr": "0x322ea7d94"
-            },
-            {
-              "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322e7c638",
-              "symbol_addr": "0x322e7c5b4"
-            },
-            {
-              "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322e7dc30",
-              "symbol_addr": "0x322e7d774"
-            },
-            {
-              "function": "-[SentryThreadInspector getCurrentThreads]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322e8a948",
-              "symbol_addr": "0x322e8a710"
-            },
-            {
-              "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
-              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
-              "image_addr": "0x322e70000",
-              "instruction_addr": "0x322ee8a88",
-              "symbol_addr": "0x322ee8a64"
+              }
             }
           ]
         },

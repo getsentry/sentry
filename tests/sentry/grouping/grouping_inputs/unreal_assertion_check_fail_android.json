@@ -11,674 +11,237 @@
               "function": "__start_thread",
               "symbol": "__start_thread",
               "package": "/system/lib64/libc.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "internals",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x7c6e6dc000",
-              "instruction_addr": "0x7c6e6ff8f0"
+              }
             },
             {
               "function": "__pthread_start",
-              "raw_function": "__pthread_start(void*)",
               "symbol": "_ZL15__pthread_startPv",
               "package": "/system/lib64/libc.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x7c6e6dc000",
-              "instruction_addr": "0x7c6e76e02c"
+              }
             },
             {
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1e773c"
+              }
             },
             {
               "function": "android_main",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1c6d44",
-              "symbol_addr": "0x7bbf1c6c7c"
+              }
             },
             {
               "function": "AndroidMain",
               "raw_function": "AndroidMain(android_app*)",
               "symbol": "_Z11AndroidMainP11android_app",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1be560",
-              "symbol_addr": "0x7bbf1bd4b0"
+              }
             },
             {
               "function": "FEngineLoop::Tick",
               "raw_function": "FEngineLoop::Tick()",
               "symbol": "_ZN11FEngineLoop4TickEv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1c2cfc",
-              "symbol_addr": "0x7bbf1bfc48"
+              }
             },
             {
               "function": "UGameEngine::Tick",
               "raw_function": "UGameEngine::Tick(float, bool)",
               "symbol": "_ZN11UGameEngine4TickEfb",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdcaddb0",
-              "symbol_addr": "0x7bbdcad714"
+              }
             },
             {
               "function": "UWorld::Tick",
               "raw_function": "UWorld::Tick(ELevelTick, float)",
               "symbol": "_ZN6UWorld4TickE10ELevelTickf",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdfa7d5c",
-              "symbol_addr": "0x7bbdfa5f6c"
+              }
             },
             {
               "function": "FLatentActionManager::ProcessLatentActions",
               "raw_function": "FLatentActionManager::ProcessLatentActions(UObject*, float)",
               "symbol": "_ZN20FLatentActionManager20ProcessLatentActionsEP7UObjectf",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdf507a4",
-              "symbol_addr": "0x7bbdf50010"
+              }
             },
             {
               "function": "FLatentActionManager::TickLatentActionForObject",
               "raw_function": "FLatentActionManager::TickLatentActionForObject(float, TMultiMap<int, FPendingLatentAction*, FDefaultSetAllocator, TDefaultMapHashableKeyFuncs<int, FPendingLatentAction*, true> >&, UObject*)",
               "symbol": "_ZN20FLatentActionManager25TickLatentActionForObjectEfR9TMultiMapIiP20FPendingLatentAction20FDefaultSetAllocator27TDefaultMapHashableKeyFuncsIiS2_Lb1EEEP7UObject",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdf50ea4",
-              "symbol_addr": "0x7bbdf50abc"
+              }
             },
             {
               "function": "AActor::ProcessEvent",
               "raw_function": "AActor::ProcessEvent(UFunction*, void*)",
               "symbol": "_ZN6AActor12ProcessEventEP9UFunctionPv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbd43b5e8",
-              "symbol_addr": "0x7bbd43b440"
+              }
             },
             {
               "function": "UObject::ProcessEvent",
               "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
               "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb8720e30",
-              "symbol_addr": "0x7bb872051c"
+              }
             },
             {
               "function": "UFunction::Invoke",
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
               "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb8414d78",
-              "symbol_addr": "0x7bb8414cfc"
+              }
             },
             {
               "function": "UObject::ProcessInternal",
               "raw_function": "UObject::ProcessInternal(UObject*, FFrame&, void*)",
               "symbol": "_ZN7UObject15ProcessInternalEPS_R6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb871cbd0",
-              "symbol_addr": "0x7bb871ca94"
+              }
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb871d154",
-              "symbol_addr": "0x7bb871cca8"
+              }
             },
             {
               "function": "UObject::execCallMathFunction",
               "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void*)",
               "symbol": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb871bd08",
-              "symbol_addr": "0x7bb871bc88"
+              }
             },
             {
               "function": "USentryPlaygroundUtils::execTerminate",
               "raw_function": "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void*)",
               "symbol": "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf223e80",
-              "symbol_addr": "0x7bbf223e10"
+              }
             },
             {
               "function": "USentryPlaygroundUtils::Terminate",
               "raw_function": "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)",
               "symbol": "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": true,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf225d50",
-              "symbol_addr": "0x7bbf225cd8"
+              }
             },
             {
               "function": "FDebug::CheckVerifyFailedImpl2",
               "raw_function": "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, char16_t const*, ...)",
               "symbol": "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb7cbe9a4",
-              "symbol_addr": "0x7bb7cbe808"
+              }
             },
             {
               "function": "FOutputDevice::LogfImpl",
               "raw_function": "FOutputDevice::LogfImpl(char16_t const*, ...)",
               "symbol": "_ZN13FOutputDevice8LogfImplEPKDsz",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb7d92ec8",
-              "symbol_addr": "0x7bb7d92d60"
+              }
             },
             {
               "function": "FSentryOutputDeviceError::Serialize",
               "raw_function": "FSentryOutputDeviceError::Serialize(char16_t const*, ELogVerbosity::Type, FName const&)",
               "symbol": "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf20f500",
-              "symbol_addr": "0x7bbf20f4b0"
+              }
             },
             {
               "function": "TMulticastDelegateBase<T>::Broadcast<T>",
               "raw_function": "TMulticastDelegateBase<FDefaultTSDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (FString const&), FDefaultTSDelegateUserPolicy>, FString const&>(FString const&) const",
               "symbol": "_ZNK22TMulticastDelegateBaseI28FDefaultTSDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvRK7FStringES0_EJS6_EEEvDpT0_",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb8f968e0",
-              "symbol_addr": "0x7bb8f967fc"
+              }
             },
             {
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "symbolicator_status": "missing"
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf21b19c"
+              }
             },
             {
               "function": "tgkill",
               "symbol": "tgkill",
               "package": "/system/lib64/libc.so",
-              "in_app": false,
               "data": {
                 "orig_in_app": -1,
                 "category": "system",
                 "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x7c6e6dc000",
-              "instruction_addr": "0x7c6e75996c",
-              "symbol_addr": "0x7c6e759964"
+              }
             }
-          ],
-          "registers": {
-            "fp": "0x7bca0f17c0",
-            "lr": "0x7bbf21b1a0",
-            "pc": "0x7c6e75996c",
-            "sp": "0x7bca0f17c0",
-            "x0": "0x0",
-            "x1": "0x43fd",
-            "x10": "0x7be3111f88",
-            "x11": "0x0",
-            "x12": "0x5363697461745320",
-            "x13": "0x416e776f64747568",
-            "x14": "0x72",
-            "x15": "0x0",
-            "x16": "0x7c6e7eb6c8",
-            "x17": "0x7c6e759964",
-            "x18": "0x10",
-            "x19": "0x7b7f9072b8",
-            "x2": "0x5",
-            "x20": "0x7bca0f1838",
-            "x21": "0x1",
-            "x22": "0x7bb56479f2",
-            "x23": "0x7bb534011a",
-            "x24": "0x0",
-            "x25": "0x1",
-            "x26": "0x0",
-            "x27": "0x0",
-            "x28": "0xffffffff",
-            "x3": "0x1",
-            "x4": "0x31302e353230325b",
-            "x5": "0x31302e353230325b",
-            "x6": "0x31302e353230325b",
-            "x7": "0x332e37302d32322e",
-            "x8": "0x83",
-            "x9": "0x20614d01fb3180c4"
-          },
-          "instruction_addr_adjustment": "none"
+          ]
         },
-        "raw_stacktrace": {
-          "frames": [
-            {
-              "package": "/system/lib64/libc.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "internals"
-              },
-              "image_addr": "0x7c6e6dc000",
-              "instruction_addr": "0x7c6e6ff8f0"
-            },
-            {
-              "package": "/system/lib64/libc.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "internals"
-              },
-              "image_addr": "0x7c6e6dc000",
-              "instruction_addr": "0x7c6e76e02c"
-            },
-            {
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1e773c"
-            },
-            {
-              "function": "android_main",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1c6d44",
-              "symbol_addr": "0x7bbf1c6c7c"
-            },
-            {
-              "function": "_Z11AndroidMainP11android_app",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1be560",
-              "symbol_addr": "0x7bbf1bd4b0"
-            },
-            {
-              "function": "_ZN11FEngineLoop4TickEv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf1c2cfc",
-              "symbol_addr": "0x7bbf1bfc48"
-            },
-            {
-              "function": "_ZN11UGameEngine4TickEfb",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdcaddb0",
-              "symbol_addr": "0x7bbdcad714"
-            },
-            {
-              "function": "_ZN6UWorld4TickE10ELevelTickf",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdfa7d5c",
-              "symbol_addr": "0x7bbdfa5f6c"
-            },
-            {
-              "function": "_ZN20FLatentActionManager20ProcessLatentActionsEP7UObjectf",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdf507a4",
-              "symbol_addr": "0x7bbdf50010"
-            },
-            {
-              "function": "_ZN20FLatentActionManager25TickLatentActionForObjectEfR9TMultiMapIiP20FPendingLatentAction20FDefaultSetAllocator27TDefaultMapHashableKeyFuncsIiS2_Lb1EEEP7UObject",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbdf50ea4",
-              "symbol_addr": "0x7bbdf50abc"
-            },
-            {
-              "function": "_ZN6AActor12ProcessEventEP9UFunctionPv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbd43b5e8",
-              "symbol_addr": "0x7bbd43b440"
-            },
-            {
-              "function": "_ZN7UObject12ProcessEventEP9UFunctionPv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb8720e30",
-              "symbol_addr": "0x7bb872051c"
-            },
-            {
-              "function": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb8414d78",
-              "symbol_addr": "0x7bb8414cfc"
-            },
-            {
-              "function": "_ZN7UObject15ProcessInternalEPS_R6FFramePv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb871cbd0",
-              "symbol_addr": "0x7bb871ca94"
-            },
-            {
-              "function": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb871d154",
-              "symbol_addr": "0x7bb871cca8"
-            },
-            {
-              "function": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb871bd08",
-              "symbol_addr": "0x7bb871bc88"
-            },
-            {
-              "function": "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf223e80",
-              "symbol_addr": "0x7bbf223e10"
-            },
-            {
-              "function": "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf225d50",
-              "symbol_addr": "0x7bbf225cd8"
-            },
-            {
-              "function": "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb7cbe9a4",
-              "symbol_addr": "0x7bb7cbe808"
-            },
-            {
-              "function": "_ZN13FOutputDevice8LogfImplEPKDsz",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb7d92ec8",
-              "symbol_addr": "0x7bb7d92d60"
-            },
-            {
-              "function": "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf20f500",
-              "symbol_addr": "0x7bbf20f4b0"
-            },
-            {
-              "function": "_ZNK22TMulticastDelegateBaseI28FDefaultTSDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvRK7FStringES0_EJS6_EEEvDpT0_",
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bb8f968e0",
-              "symbol_addr": "0x7bb8f967fc"
-            },
-            {
-              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1
-              },
-              "image_addr": "0x7bace45000",
-              "instruction_addr": "0x7bbf21b19c"
-            },
-            {
-              "function": "tgkill",
-              "package": "/system/lib64/libc.so",
-              "in_app": false,
-              "data": {
-                "orig_in_app": -1,
-                "category": "system"
-              },
-              "image_addr": "0x7c6e6dc000",
-              "instruction_addr": "0x7c6e75996c",
-              "symbol_addr": "0x7c6e759964"
-            }
-          ],
-          "registers": {
-            "fp": "0x7bca0f17c0",
-            "lr": "0x7bbf21b1a0",
-            "pc": "0x7c6e75996c",
-            "sp": "0x7bca0f17c0",
-            "x0": "0x0",
-            "x1": "0x43fd",
-            "x10": "0x7be3111f88",
-            "x11": "0x0",
-            "x12": "0x5363697461745320",
-            "x13": "0x416e776f64747568",
-            "x14": "0x72",
-            "x15": "0x0",
-            "x16": "0x7c6e7eb6c8",
-            "x17": "0x7c6e759964",
-            "x18": "0x10",
-            "x19": "0x7b7f9072b8",
-            "x2": "0x5",
-            "x20": "0x7bca0f1838",
-            "x21": "0x1",
-            "x22": "0x7bb56479f2",
-            "x23": "0x7bb534011a",
-            "x24": "0x0",
-            "x25": "0x1",
-            "x26": "0x0",
-            "x27": "0x0",
-            "x28": "0xffffffff",
-            "x3": "0x1",
-            "x4": "0x31302e353230325b",
-            "x5": "0x31302e353230325b",
-            "x6": "0x31302e353230325b",
-            "x7": "0x332e37302d32322e",
-            "x8": "0x83",
-            "x9": "0x20614d01fb3180c4"
-          }
-        },
-        "mechanism": {
-          "type": "signalhandler",
-          "synthetic": true,
-          "handled": false,
-          "meta": {
-            "signal": {
-              "number": 5,
-              "name": "SIGTRAP"
-            }
-          }
-        }
+        "mechanism": {"type": "minidump", "synthetic": true, "handled": false}
       }
     ]
   }
