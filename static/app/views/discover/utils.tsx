@@ -613,11 +613,8 @@ export function generateFieldOptions({
   if (tagKeys !== undefined && tagKeys !== null) {
     tagKeys.sort();
     tagKeys.forEach(tag => {
-      const tagValue =
-        fieldKeys.includes(tag) || aggregations.hasOwnProperty(tag)
-          ? `tags[${tag}]`
-          : tag;
-      fieldOptions[`tag:${tag}`] = {
+      const tagValue = `tags[${tag}]`;
+      fieldOptions[tagValue] = {
         label: tag,
         value: {
           kind: FieldValueKind.TAG,
