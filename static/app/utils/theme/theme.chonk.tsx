@@ -150,34 +150,33 @@ const space = {
 const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
   static: {
-    black: '#181225',
-    white: '#FFFFFF',
+    black: '#181423',
+    white: '#F6F5FA',
 
-    blurple100: '#463299',
-    blurple200: '#5E42CC',
-    blurple300: '#694BE5',
     blurple400: '#7553FF',
-
-    green400: '#00F261',
-    green300: '#00E55C',
-    green200: '#7553FF',
-    green100: '#00D957',
-
-    gold400: '#FFD00E',
-    gold300: '#FDB81B',
-    gold200: '#E5BB0D',
-    gold100: '#E07518',
-
-    red400: '#E50045',
-    red300: '#E565A9',
-    red200: '#CC5A97',
-    red100: '#B24E84',
+    blurple300: '#6C4DEB',
+    blurple200: '#6246D4',
+    blurple100: '#553DB8',
 
     pink400: '#FF70BC',
-    // @TODO(jonasbadalic): duplicates?
-    pink300: '#7553FF',
-    pink200: '#7553FF',
-    pink100: '#7553FF',
+    pink300: '#ED69AF',
+    pink200: '#DB61A2',
+    pink100: '#C45691',
+
+    red400: '#E50045',
+    red300: '#D4003F',
+    red200: '#C2003B',
+    red100: '#A80033',
+
+    gold400: '#FFD00E',
+    gold300: '#F0C40D',
+    gold200: '#E0B70C',
+    gold100: '#C9A30A',
+
+    green400: '#00F261',
+    green300: '#00E35B',
+    green200: '#00D455',
+    green100: '#00BF4D',
   },
 
   dynamic: {
