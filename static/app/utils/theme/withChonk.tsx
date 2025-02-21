@@ -17,7 +17,7 @@ export type ChonkPropMapping<LegacyProps, ChonkProps> = (
  */
 export function withChonk<
   LegacyProps extends {children?: React.ReactNode},
-  ChonkProps extends {children?: React.ReactNode},
+  ChonkProps extends {children?: React.ReactNode; theme?: DO_NOT_USE_ChonkTheme},
 >(
   legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
