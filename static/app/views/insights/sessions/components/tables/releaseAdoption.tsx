@@ -30,7 +30,7 @@ export default function ReleaseAdoption() {
           },
           units: {
             adoption: '%',
-            unit: 'millisecond',
+            lifespan: 'millisecond',
           },
         }}
       />

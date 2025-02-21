@@ -41,7 +41,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseAdoptionItem>> = [
   {key: 'stage', name: 'stage'},
 ];
 
-export default function ReleaseHealthTable({
+export default function ReleaseAdoptionTable({
   data,
   isError,
   isLoading,
