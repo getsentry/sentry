@@ -117,7 +117,9 @@ export function OnboardingStatus({
     const newQuickStartDisplay = {...quickStartDisplay};
     newQuickStartDisplay[orgId] = quickStartDisplayStatus + 1;
 
-    mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
+    if (!demoMode) {
+      mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
+    }
 
     if (quickStartDisplayStatus === 1) {
       activateSidebar();
