@@ -35,7 +35,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
+        self.store_snuba_uptime_check(
+            subscription_id=self.subscription_id,
+            check_status="failure",
+            http_status=None,
+        )
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
         self.store_snuba_uptime_check(
             subscription_id=self.subscription_id,
@@ -68,6 +72,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             assert key in first, f"{key} not in {first}"
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
         assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
+        assert any(v for v in response.data if v["httpStatusCode"] is None)
 
     def test_datetime_range(self):
         # all of our checks are stored in the last 5 minutes, so query for 10 days ago and expect 0 results
