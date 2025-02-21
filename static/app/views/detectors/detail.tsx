@@ -17,7 +17,7 @@ export default function DetectorDetail() {
     <SentryDocumentTitle title={t('Monitor')} noSuffix>
       <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
         <ActionsProvider actions={<Actions />}>
-          <DetailLayout>
+          <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>main</DetailLayout.Main>
             <DetailLayout.Sidebar>sidebar</DetailLayout.Sidebar>
           </DetailLayout>
