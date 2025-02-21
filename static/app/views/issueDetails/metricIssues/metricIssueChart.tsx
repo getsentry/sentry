@@ -1,18 +1,13 @@
-import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import Legend from 'sentry/components/charts/components/legend';
-import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -23,6 +18,7 @@ import {useMetricIncidents} from 'sentry/views/issueDetails/metricIssues/useMetr
 import {useMetricStatsChart} from 'sentry/views/issueDetails/metricIssues/useMetricStatsChart';
 import {
   useMetricIssueAlertId,
+  useMetricIssueLegend,
   useMetricTimePeriod,
 } from 'sentry/views/issueDetails/metricIssues/utils';
 
@@ -35,7 +31,11 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
   const organization = useOrganization();
   const ruleId = useMetricIssueAlertId({groupId: group.id});
   const timePeriod = useMetricTimePeriod();
-  const {data: rule, isLoading: isRuleLoading} = useMetricRule(
+  const {
+    data: rule,
+    isLoading: isRuleLoading,
+    isError: isRuleError,
+  } = useMetricRule(
     {
       orgSlug: organization.slug,
       ruleId: ruleId ?? '',
@@ -63,7 +63,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
         !!ruleId && organization.features.includes('anomaly-detection-alerts-charts'),
     }
   );
-  const {data: rawIncidents = [], isLoading: isIncidentsLoading} = useMetricIncidents(
+  const {data: incidents = [], isLoading: isIncidentsLoading} = useMetricIncidents(
     {
       orgSlug: organization.slug,
       query: {
@@ -76,15 +76,8 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
       enabled: !!ruleId,
     }
   );
-  const incidents = useMemo(() => {
-    return rawIncidents.map(incident => ({
-      ...incident,
-      // We do this to omit the label from the graph
-      identifier: '',
-    }));
-  }, [rawIncidents]);
 
-  if (isRuleLoading || isAnomaliesLoading || isIncidentsLoading) {
+  if (isRuleLoading || isAnomaliesLoading || isIncidentsLoading || !rule) {
     return (
       <MetricChartSection>
         <MetricIssuePlaceholder type="loading" />
@@ -92,7 +85,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
     );
   }
 
-  if (!rule) {
+  if (!rule || isRuleError) {
     return <MetricIssuePlaceholder type="error" />;
   }
 
@@ -125,7 +118,6 @@ function MetricIssueChartContent({
   anomalies?: Anomaly[];
   incidents?: Incident[];
 }) {
-  const theme = useTheme();
   const chartZoomProps = useChartZoom({saveOnZoom: true});
   const {chartProps, queryResult} = useMetricStatsChart({
     project,
@@ -135,16 +127,8 @@ function MetricIssueChartContent({
     incidents,
     referrer: 'metric-issue-chart',
   });
-  const {series = [], ...otherChartProps} = chartProps;
-
-  // We don't want to show the aggregate in the legend, since it can't be toggled off.
-  const legendItems = useMemo(() => {
-    const legendSet = new Set(series.map(s => s.seriesName));
-    if (legendSet.has(rule.aggregate)) {
-      legendSet.delete(rule.aggregate);
-    }
-    return Array.from(legendSet);
-  }, [series, rule.aggregate]);
+  const {series = [], yAxis, ...otherChartProps} = chartProps;
+  const legend = useMetricIssueLegend({rule, series});
 
   if (queryResult?.isLoading) {
     return <MetricIssuePlaceholder type="loading" />;
@@ -154,23 +138,12 @@ function MetricIssueChartContent({
     return <MetricIssuePlaceholder type="error" />;
   }
 
-  const legend = Legend({
-    theme,
-    orient: 'horizontal',
-    align: 'left',
-    show: true,
-    top: 4,
-    right: 8,
-    data: legendItems,
-    inactiveColor: theme.gray200,
-  });
-
   return (
     <ChartContainer role="figure">
       <AreaChart
         {...otherChartProps}
         series={series}
-        legend={legend}
+        legend={{...legend, top: 4, right: 4}}
         height={100}
         grid={{
           top: 20,
@@ -178,35 +151,10 @@ function MetricIssueChartContent({
           left: 0,
           bottom: 0,
         }}
-        tooltip={{
-          formatAxisLabel: (
-            value,
-            isTimestamp,
-            utc,
-            showTimeInTooltip,
-            addSecondsToTimeFormat,
-            bucketSize,
-            _seriesParamsOrParam
-          ) =>
-            String(
-              defaultFormatAxisLabel(
-                value,
-                isTimestamp,
-                utc,
-                showTimeInTooltip,
-                addSecondsToTimeFormat,
-                bucketSize
-              )
-            ),
-        }}
         yAxis={{
+          ...yAxis,
           splitNumber: 2,
           minInterval: 1,
-          axisLabel: {
-            formatter: (value: number) => {
-              return formatAbbreviatedNumber(value);
-            },
-          },
         }}
         {...chartZoomProps}
       />
