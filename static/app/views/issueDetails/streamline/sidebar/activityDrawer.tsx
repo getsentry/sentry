@@ -1,8 +1,6 @@
-import {useState} from 'react';
-import styled from '@emotion/styled';
+import {useEffect, useState} from 'react';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button} from 'sentry/components/button';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -13,7 +11,7 @@ import {
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {IconChat} from 'sentry/icons';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -33,18 +31,20 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
     location.query.filter === 'comments'
   );
 
-  if (location.query.filter) {
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          filter: undefined,
+  useEffect(() => {
+    if (location.query.filter) {
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            filter: undefined,
+          },
         },
-      },
-      {replace: true}
-    );
-  }
+        {replace: true}
+      );
+    }
+  }, [location, navigate]);
 
   return (
     <EventDrawerContainer>
@@ -65,15 +65,17 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{t('Activity')}</Header>
-        <FilterButton
+        <SegmentedControl
           size="xs"
-          borderless
-          icon={<IconChat size="sm" />}
-          title={filterComments ? t('Show all activity') : t('Filter for comments')}
-          aria-label={t('Filter activity for comments')}
-          onClick={() => setFilterComments(!filterComments)}
-          filtered={filterComments}
-        />
+          aria-label={t('Filter activity')}
+          value={filterComments ? 'comments' : 'all'}
+          onChange={() => setFilterComments(!filterComments)}
+        >
+          <SegmentedControl.Item key="comments">
+            {t('Comments Only')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All Activity')}</SegmentedControl.Item>
+        </SegmentedControl>
       </EventNavigator>
       <EventDrawerBody>
         <StreamlinedActivitySection
@@ -85,8 +87,3 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
     </EventDrawerContainer>
   );
 }
-
-const FilterButton = styled(Button)<{filtered: boolean}>`
-  color: ${p => (p.filtered ? p.theme.activeText : p.theme.subText)};
-  background: ${p => (p.filtered ? p.theme.surface100 : 'transparent')};
-`;
