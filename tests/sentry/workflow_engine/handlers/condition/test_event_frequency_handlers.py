@@ -64,7 +64,18 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
     def test_dual_write_count(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
-        assert dc
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+        # test without comparisonType
+        del self.payload["comparisonType"]
+        dc = self.translate_to_data_condition(self.payload, dcg)
 
         assert dc.type == self.condition
         assert dc.comparison == {
@@ -161,7 +172,6 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
     def test_dual_write_percent(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
-        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {

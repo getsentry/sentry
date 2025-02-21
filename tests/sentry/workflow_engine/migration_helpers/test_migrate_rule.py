@@ -471,6 +471,20 @@ class IssueAlertMigratorTest(TestCase):
         data = self.issue_alert.data
         del data["action_match"]
         del data["filter_match"]
+        self.issue_alert.update(data=data)
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        self.assert_issue_alert_migrated(self.issue_alert, logic_type=DataConditionGroup.Type.ALL)
+
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        action = dcg_actions.action
+        assert action.type == Action.Type.SLACK
+
+    def test_run__none_matches(self):
+        data = self.issue_alert.data
+        data["action_match"] = None
+        data["filter_match"] = None
+        self.issue_alert.update(data=data)
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         self.assert_issue_alert_migrated(self.issue_alert, logic_type=DataConditionGroup.Type.ALL)
