@@ -75,6 +75,15 @@ describe('IssueViewsHeader', () => {
     }),
   });
 
+  const projectsOnlyRouter = RouterFixture({
+    location: LocationFixture({
+      pathname: `/organizations/${organization.slug}/issues/`,
+      query: {
+        project: '1',
+      },
+    }),
+  });
+
   const unsavedTabRouter = RouterFixture({
     location: LocationFixture({
       pathname: `/organizations/${organization.slug}/issues/`,
@@ -147,6 +156,29 @@ describe('IssueViewsHeader', () => {
             query: getRequestViews[0]!.query,
             viewId: getRequestViews[0]!.id,
             sort: getRequestViews[0]!.querySort,
+          }),
+        })
+      );
+    });
+
+    it('renders the first tab with the projects from the query params if no other query params are present', async () => {
+      render(
+        <IssueViewsPFIssueListHeader {...defaultProps} router={projectsOnlyRouter} />,
+        {
+          organization,
+          router: projectsOnlyRouter,
+        }
+      );
+
+      expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
+
+      expect(projectsOnlyRouter.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: getRequestViews[0]!.query,
+            viewId: getRequestViews[0]!.id,
+            sort: getRequestViews[0]!.querySort,
+            project: [1],
           }),
         })
       );
