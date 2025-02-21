@@ -6,7 +6,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.ISSUE_RESOLUTION_CHANGE)
-class IssueResolutionChangeHandler(DataConditionHandler[WorkflowJob]):
+class IssueResolutionConditionHandler(DataConditionHandler[WorkflowJob]):
     type = [DataConditionHandler.Type.WORKFLOW_TRIGGER]
 
     @staticmethod

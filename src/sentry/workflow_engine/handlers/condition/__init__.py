@@ -11,7 +11,7 @@ __all__ = [
     "IssueCategoryConditionHandler",
     "IssueOccurrencesConditionHandler",
     "IssuePriorityCondition",
-    "IssueResolutionChangeHandler",
+    "IssueResolutionConditionHandler",
     "LatestAdoptedReleaseConditionHandler",
     "LatestReleaseConditionHandler",
     "LevelConditionHandler",
@@ -34,7 +34,7 @@ from .first_seen_event_handler import FirstSeenEventConditionHandler
 from .issue_category_handler import IssueCategoryConditionHandler
 from .issue_occurrences_handler import IssueOccurrencesConditionHandler
 from .issue_priority_equals import IssuePriorityCondition
-from .issue_resolution_change_handler import IssueResolutionChangeHandler
+from .issue_resolution_condition_handler import IssueResolutionConditionHandler
 from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
 from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler
