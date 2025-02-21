@@ -15,7 +15,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.integrations.services.integration import integration_service
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -51,8 +51,18 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
-LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_identifier", "target_type"]
-ACTION_DATA_FIELDS = ["type", "sentry_app_id", "sentry_app_config"]
+TYPE_TO_PROVIDER = {
+    0: "email",
+    1: "pagerduty",
+    2: "slack",
+    3: "msteams",
+    4: "sentry_app",
+    6: "opsgenie",
+    7: "discord",
+}
+
+# XXX: "target_identifier" is not here because there is special logic to handle it
+LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_type"]
 
 
 class MissingDataConditionGroup(Exception):
@@ -68,21 +78,7 @@ class CouldNotCreateDataSource(Exception):
 
 
 def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
-    if alert_rule_trigger_action.sentry_app_id:
-        return Action.Type.SENTRY_APP
-
-    elif alert_rule_trigger_action.integration_id:
-        integration = integration_service.get_integration(
-            integration_id=alert_rule_trigger_action.integration_id
-        )
-        if not integration:
-            return None
-        try:
-            return Action.Type(integration.provider)
-        except Exception:
-            return None
-    else:
-        return Action.Type.EMAIL
+    return TYPE_TO_PROVIDER.get(alert_rule_trigger_action.type, None)
 
 
 def build_sentry_app_data_blob(
@@ -422,13 +418,14 @@ def create_data_condition_group(organization_id: int) -> DataConditionGroup:
 def create_workflow(
     name: str,
     organization_id: int,
+    enabled: bool,
     user: RpcUser | None = None,
 ) -> Workflow:
     return Workflow.objects.create(
         name=name,
         organization_id=organization_id,
         when_condition_group=None,
-        enabled=True,
+        enabled=enabled,
         created_by_id=user.id if user else None,
         config={},
     )
@@ -437,12 +434,13 @@ def create_workflow(
 def create_detector(
     alert_rule: AlertRule,
     project_id: int,
+    enabled: bool,
     data_condition_group: DataConditionGroup,
     user: RpcUser | None = None,
 ) -> Detector:
     return Detector.objects.create(
         project_id=project_id,
-        enabled=True,
+        enabled=enabled,
         created_by_id=user.id if user else None,
         name=alert_rule.name,
         workflow_condition_group=data_condition_group,
@@ -476,14 +474,17 @@ def migrate_alert_rule(
     organization_id = alert_rule.organization_id
     project = alert_rule.projects.get()
 
+    snoozed = RuleSnooze.objects.filter(alert_rule_id=alert_rule.id, user_id=None).exists()
+    enabled = not snoozed
+
     data_source = create_data_source(organization_id, alert_rule.snuba_query)
     if not data_source:
         raise CouldNotCreateDataSource
 
     detector_data_condition_group = create_data_condition_group(organization_id)
-    detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
+    detector = create_detector(alert_rule, project.id, enabled, detector_data_condition_group, user)
 
-    workflow = create_workflow(alert_rule.name, organization_id, user)
+    workflow = create_workflow(alert_rule.name, organization_id, enabled, user)
 
     open_incident = Incident.objects.get_active_incident(alert_rule, project)
     if open_incident:
@@ -699,15 +700,15 @@ def dual_update_migrated_alert_rule_trigger_action(
         raise ValidationError(
             f"Could not find a matching Action.Type for the trigger action {trigger_action.id}"
         )
+    data = build_action_data_blob(trigger_action, action_type)
+    target_identifier = get_target_identifier(trigger_action, action_type)
     updated_action_fields["type"] = action_type
-    data = action.data.copy()
+    updated_action_fields["data"] = data
+    updated_action_fields["target_identifier"] = target_identifier
+
     for field in LEGACY_ACTION_FIELDS:
         if field in updated_fields:
             updated_action_fields[field] = updated_fields[field]
-    for field in ACTION_DATA_FIELDS:
-        if field in updated_fields:
-            data[field] = updated_fields[field]
-    updated_action_fields["data"] = data
 
     action.update(**updated_action_fields)
     return action
