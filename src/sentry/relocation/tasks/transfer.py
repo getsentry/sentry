@@ -49,6 +49,9 @@ def _find_relocation_transfer(
         date_added__gte=now - MAX_AGE,
     ).values("id")
 
+    if not len(scheduled_ids):
+        return
+
     for transfer_id in scheduled_ids:
         process_task.delay(id=transfer_id)
 
