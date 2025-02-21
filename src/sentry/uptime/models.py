@@ -123,6 +123,7 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
 
     class RegionMode(enum.StrEnum):
         ACTIVE = "active"
+        INACTIVE = "inactive"
 
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     region_slug = models.CharField(max_length=255, db_index=True, db_default="")
