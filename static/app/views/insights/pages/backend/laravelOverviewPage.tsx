@@ -246,6 +246,9 @@ const WidgetGrid = styled('div')`
 const RequestsContainer = styled('div')`
   grid-area: requests;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom IssuesWidget
@@ -270,11 +273,17 @@ const IssuesContainer = styled('div')`
 const DurationContainer = styled('div')`
   grid-area: duration;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 const JobsContainer = styled('div')`
   grid-area: jobs;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom QueryWidget
@@ -429,6 +438,8 @@ function RequestsWidget({query}: {query?: string}) {
         return undefined;
       }
 
+      const field = `${codePrefix}xx`;
+
       return {
         data: firstSeries.data.map(([time], index) => ({
           name: new Date(time).toISOString(),
@@ -438,21 +449,30 @@ function RequestsWidget({query}: {query?: string}) {
           ),
         })),
         seriesName: `${codePrefix}xx`,
-        meta: firstSeries.meta as EventsMetaType,
+        meta: {
+          fields: {
+            [field]: 'integer',
+          },
+          units: {},
+        },
         color,
       } satisfies DiscoverSeries;
     },
     [data]
   );
 
+  const timeSeries = useMemo(() => {
+    return [getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
+      series => !!series
+    );
+  }, [getTimeSeries, theme.error, theme.gray200]);
+
   return (
     <InsightsBarChartWidget
       title="Requests"
       isLoading={isLoading}
       error={error}
-      series={[getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
-        series => !!series
-      )}
+      series={timeSeries}
       stacked
     />
   );
@@ -500,15 +520,19 @@ function DurationWidget({query}: {query?: string}) {
     [data]
   );
 
+  const timeSeries = useMemo(() => {
+    return [
+      getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
+      getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
+    ].filter(series => !!series);
+  }, [getTimeSeries]);
+
   return (
     <InsightsLineChartWidget
       title="Duration"
       isLoading={isLoading}
       error={error}
-      series={[
-        getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
-        getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
-      ].filter(series => !!series)}
+      series={timeSeries}
     />
   );
 }
@@ -579,13 +603,23 @@ function JobsWidget({query}: {query?: string}) {
           data: [],
           color: theme.gray200,
           seriesName: 'Processed',
-          meta: okJobsRate.meta as EventsMetaType,
+          meta: {
+            fields: {
+              Processed: 'integer',
+            },
+            units: {},
+          },
         },
         {
           data: [],
           color: theme.error,
           seriesName: 'Failed',
-          meta: okJobsRate.meta as EventsMetaType,
+          meta: {
+            fields: {
+              Failed: 'integer',
+            },
+            units: {},
+          },
         },
       ]
     );
