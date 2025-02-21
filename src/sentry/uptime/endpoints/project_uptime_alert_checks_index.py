@@ -24,6 +24,7 @@ from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.types import IncidentStatus
 from sentry.utils import snuba_rpc
 
 
@@ -149,6 +150,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     label="http_status_code",
                     key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_INT),
                 ),
+                Column(
+                    label="incident_status",
+                    key=AttributeKey(name="incident_status", type=AttributeKey.Type.TYPE_INT),
+                ),
             ],
             order_by=[
                 TraceItemTableRequest.OrderBy(
@@ -193,6 +198,17 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         for col_idx, col_name in enumerate(column_names):
             result = column_values[col_idx].results[row_idx]
             row_dict.update(self._extract_field_value(result, col_name, uptime_subscription))
+
+        # XXX: Translate the status from `failed` to `failed_incident` when the
+        # check is part of an incident.
+        #
+        # TODO(epurkhiseer): In the future this should likely be part of the
+        # serializer that handles translating the snuba data into the expected
+        # data for the frontend.
+        in_incident = row_dict["incident_status"] == IncidentStatus.IN_INCIDENT.value
+        if row_dict["check_status"] == "failure" and in_incident:
+            row_dict["check_status"] = "failure_incident"
+
         return convert_dict_key_case(row_dict, snake_to_camel_case)
 
     def _extract_field_value(
