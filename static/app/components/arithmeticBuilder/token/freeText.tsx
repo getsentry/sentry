@@ -20,16 +20,25 @@ import {
   tokenizeExpression,
 } from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {AggregateFunction} from 'sentry/components/arithmeticBuilder/types';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import type {
+  SelectOptionWithKey,
+  SelectSectionWithKey,
+} from 'sentry/components/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
+import {IconAdd} from 'sentry/icons/iconAdd';
+import {IconClose} from 'sentry/icons/iconClose';
+import {IconDivide} from 'sentry/icons/iconDivide';
+import {IconParenthesis} from 'sentry/icons/iconParenthesis';
+import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
+  nextAllowedTokenKinds: TokenKind[];
   showPlaceholder: boolean;
   state: ListState<Token>;
   token: TokenFreeText;
@@ -40,6 +49,7 @@ export function ArithmeticTokenFreeText({
   item,
   state,
   token,
+  nextAllowedTokenKinds,
 }: ArithmeticTokenFreeTextProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
@@ -59,6 +69,7 @@ export function ArithmeticTokenFreeText({
       <GridCell {...gridCellProps} onClick={stopPropagation}>
         <InternalInput
           showPlaceholder={showPlaceholder}
+          nextAllowedTokenKinds={nextAllowedTokenKinds}
           item={item}
           state={state}
           token={token}
@@ -79,6 +90,7 @@ function InternalInput({
   state,
   token,
   rowRef,
+  nextAllowedTokenKinds,
 }: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
@@ -106,7 +118,8 @@ function InternalInput({
 
   const {dispatch, aggregateFunctions} = useArithmeticBuilder();
 
-  const items = useFunctionItems({
+  const items: Array<SelectSectionWithKey<string>> = useSuggestionItems({
+    nextAllowedTokenKinds,
     allowedFunctions: aggregateFunctions,
     filterValue,
   });
@@ -156,7 +169,7 @@ function InternalInput({
               dispatch({
                 type: 'REPLACE_TOKEN',
                 token,
-                text: `${input.substring(0, pos + 1)}${getInitialText(maybeFunc)}`,
+                text: `${input.substring(0, pos + 1)}${getInitialText(maybeFunc, true)}`,
                 focusOverride: {
                   itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION),
                 },
@@ -250,14 +263,20 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      // TODO: assumes we only autocomplete functions
-      // need to figure out parens and operators
+      const isFunction =
+        typeof option.key === 'string' && option.key.startsWith(`${TokenKind.FUNCTION}:`);
+
+      const itemKey = isFunction
+        ? // if they selected a function, move focus into the function argument
+          nextTokenKeyOfKind(state, token, TokenKind.FUNCTION)
+        : // if they selected a parenthesis/operator, move focus into next free text
+          nextSimilarTokenKey(token.key);
 
       dispatch({
         type: 'REPLACE_TOKEN',
         token,
-        text: getInitialText(option.value),
-        focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION)},
+        text: getInitialText(option.value, isFunction),
+        focusOverride: {itemKey},
       });
       resetInputValue();
     },
@@ -316,36 +335,171 @@ function InternalInput({
   );
 }
 
-function useFunctionItems({
+function useSuggestionItems({
   allowedFunctions,
   filterValue,
+  nextAllowedTokenKinds,
 }: {
   allowedFunctions: AggregateFunction[];
   filterValue: string;
-}): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config and maybe we want operators and parenthesis too
-  const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
+  nextAllowedTokenKinds: TokenKind[];
+}): Array<SelectSectionWithKey<string>> {
+  const parenthesisItems = useParenthesisItems({
+    nextAllowedTokenKinds,
+  });
+  const operatorItems = useOperatorItems({
+    nextAllowedTokenKinds,
+  });
+  const functionItems = useFunctionItems({
+    allowedFunctions,
+    filterValue,
+    nextAllowedTokenKinds,
+  });
+
+  return useMemo(() => {
+    return [...parenthesisItems, ...operatorItems, ...functionItems];
+  }, [parenthesisItems, operatorItems, functionItems]);
+}
+
+function useParenthesisItems({
+  nextAllowedTokenKinds,
+}: {
+  nextAllowedTokenKinds: TokenKind[];
+}): Array<SelectSectionWithKey<string>> {
+  return useMemo(() => {
+    const options = [];
+
+    if (nextAllowedTokenKinds.includes(TokenKind.OPEN_PARENTHESIS)) {
+      options.push({
+        key: `${TokenKind.OPEN_PARENTHESIS}:open`,
+        label: <IconParenthesis side="left" height={26} />,
+        value: '(',
+        textValue: '(',
+        hideCheck: true,
+      });
+    }
+
+    if (nextAllowedTokenKinds.includes(TokenKind.CLOSE_PARENTHESIS)) {
+      options.push({
+        key: `${TokenKind.CLOSE_PARENTHESIS}:close`,
+        label: <IconParenthesis side="right" height={26} />,
+        value: ')',
+        textValue: ')',
+        hideCheck: true,
+      });
+    }
+
+    if (!options.length) {
+      return [];
+    }
+
+    return [
+      {
+        key: 'parenthesis',
+        label: t('parenthesis'),
+        options,
+      },
+    ];
+  }, [nextAllowedTokenKinds]);
+}
+
+function useOperatorItems({
+  nextAllowedTokenKinds,
+}: {
+  nextAllowedTokenKinds: TokenKind[];
+}): Array<SelectSectionWithKey<string>> {
+  return useMemo(() => {
+    if (!nextAllowedTokenKinds.includes(TokenKind.OPERATOR)) {
+      return [];
+    }
+
+    const options = [
+      {
+        key: `${TokenKind.OPERATOR}:plus`,
+        label: <IconAdd height={26} />,
+        value: '+',
+        textValue: '+',
+        hideCheck: true,
+      },
+      {
+        key: `${TokenKind.OPERATOR}:subtract`,
+        label: <IconSubtract height={26} />,
+        value: '-',
+        textValue: '-',
+        hideCheck: true,
+      },
+      {
+        key: `${TokenKind.OPERATOR}:multiply`,
+        label: <IconClose height={26} data-test-id="icon-multiply" />,
+        value: '*',
+        textValue: '*',
+        hideCheck: true,
+      },
+      {
+        key: `${TokenKind.OPERATOR}:divide`,
+        label: <IconDivide height={26} />,
+        value: '/',
+        textValue: '/',
+        hideCheck: true,
+      },
+    ];
+
+    if (!options.length) {
+      return [];
+    }
+
+    return [
+      {
+        key: 'operator',
+        label: t('operator'),
+        options,
+      },
+    ];
+  }, [nextAllowedTokenKinds]);
+}
+
+function useFunctionItems({
+  allowedFunctions,
+  filterValue,
+  nextAllowedTokenKinds,
+}: {
+  allowedFunctions: AggregateFunction[];
+  filterValue: string;
+  nextAllowedTokenKinds: TokenKind[];
+}): Array<SelectSectionWithKey<string>> {
+  return useMemo(() => {
+    if (!nextAllowedTokenKinds.includes(TokenKind.FUNCTION)) {
+      return [];
+    }
+
     const items = filterValue
       ? allowedFunctions.filter(agg => agg.name.includes(filterValue))
       : allowedFunctions;
 
-    return items.map(item => ({
-      key: item.name,
-      label: item.label ?? item.name,
-      value: item.name,
-      textValue: item.name,
-      hideCheck: true,
-    }));
-  }, [allowedFunctions, filterValue]);
-
-  return functions;
+    return [
+      {
+        key: 'functions',
+        label: t('functions'),
+        options: items.map(item => ({
+          key: `${TokenKind.FUNCTION}:${item.name}`,
+          label: item.label ?? item.name,
+          value: item.name,
+          textValue: item.name,
+          hideCheck: true,
+        })),
+      },
+    ];
+  }, [allowedFunctions, filterValue, nextAllowedTokenKinds]);
 }
 
 function stopPropagation(evt: MouseEvent<HTMLElement>) {
   evt.stopPropagation();
 }
 
-function getInitialText(key: string) {
+function getInitialText(key: string, isFunction: boolean) {
+  if (!isFunction) {
+    return key;
+  }
   // TODO: generate this
   return `${key}(span.duration)`;
 }
