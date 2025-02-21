@@ -49,16 +49,14 @@ def _find_relocation_transfer(
         date_added__gte=now - MAX_AGE,
     ).values("id")
 
-    if not len(scheduled_ids):
-        return
-
     for transfer_id in scheduled_ids:
         process_task.delay(id=transfer_id)
 
-    # Advance next retry time in case these deliveries fail.
-    model_cls.objects.filter(id__in=Subquery(scheduled_ids)).update(
-        scheduled_for=timezone.now() + RETRY_BACKOFF
-    )
+    if len(scheduled_ids):
+        # Advance next retry time in case these deliveries fail.
+        model_cls.objects.filter(id__in=Subquery(scheduled_ids)).update(
+            scheduled_for=timezone.now() + RETRY_BACKOFF
+        )
 
     # Garbage collect expired transfers. Because relocations are
     # expected to complete in 1 hour we should purge transfers older than
