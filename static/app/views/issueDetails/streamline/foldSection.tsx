@@ -23,6 +23,7 @@ import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
+  // Original key had a typo, this will migrate existing keys to the correct key
   const localStorageValue = localStorage.getItem(
     `'issue-details-fold-section-collapse:${key}`
   );
