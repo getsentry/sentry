@@ -6,6 +6,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function useErrorFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
+
+  const locationWithoutWidth = {
+    ...location,
+    query: {...location.query, width: undefined},
+  };
+
   const {
     data: sessionData,
     isPending,
@@ -15,7 +21,7 @@ export default function useErrorFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...location.query,
+          ...locationWithoutWidth.query,
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },
@@ -24,18 +30,10 @@ export default function useErrorFreeSessions() {
     {staleTime: 0}
   );
 
-  if (isPending) {
+  if (isPending || !sessionData) {
     return {
       series: [],
-      isPending: true,
-      error,
-    };
-  }
-
-  if (!sessionData && !isPending) {
-    return {
-      series: [],
-      isPending: false,
+      isPending,
       error,
     };
   }
