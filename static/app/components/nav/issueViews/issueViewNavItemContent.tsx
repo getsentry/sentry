@@ -146,7 +146,7 @@ export function IssueViewNavItemContent({
         onPointerDown={e => {
           e.preventDefault();
         }}
-        onPointerUp={e => {
+        onClick={e => {
           if (isInteractingRef.current) {
             e.preventDefault();
           }
