@@ -1,6 +1,6 @@
 import {css, type SerializedStyles} from '@emotion/react';
 
-import type {AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/core/alert';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 
@@ -70,8 +70,8 @@ function makeChonkAlertTheme(
     case 'warning':
       return css`
         color: ${theme.colors.static.black};
-        background: ${theme.colors.static.gold400};
-        border: 2px solid ${theme.colors.dynamic.gold100};
+        background: ${theme.colors.static.yellow400};
+        border: 2px solid ${theme.colors.dynamic.yellow100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'danger':
