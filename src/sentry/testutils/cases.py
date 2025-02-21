@@ -1249,6 +1249,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_ourlogs(self, ourlogs):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                data=json.dumps(ourlogs),
+            ).status_code
+            == 200
+        )
+
     def store_issues(self, issues):
         assert (
             requests.post(
@@ -3304,6 +3313,66 @@ class SpanTestCase(BaseTestCase):
         if measurements:
             span["measurements"] = measurements
         return span
+
+
+class _OptionalOurLogData(TypedDict, total=False):
+    body: str
+    trace_id: str
+    span_id: str
+    severity_text: str
+    severity_number: int
+    trace_flags: int
+
+
+class OurLogTestCase(BaseTestCase):
+    base_log: dict[str, Any] = {
+        "retention_days": 90,
+        "attributes": {},
+    }
+
+    def create_ourlog(
+        self,
+        extra_data: _OptionalOurLogData | None = None,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+        if attributes is None:
+            attributes = {}
+        if extra_data is None:
+            extra_data = {}
+
+        # Set defaults for required fields if not in extra_data
+        if "body" not in extra_data:
+            extra_data["body"] = "hello world!"
+        if "trace_id" not in extra_data:
+            extra_data["trace_id"] = uuid4().hex
+
+        log = self.base_log.copy()
+        # Required fields
+        log.update(
+            {
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "observed_timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "received": int(timestamp.timestamp()),
+                "attributes": attributes,
+            }
+        )
+
+        # Add all extra data fields
+        log.update(extra_data)
+
+        return log
 
 
 class TraceTestCase(SpanTestCase):
