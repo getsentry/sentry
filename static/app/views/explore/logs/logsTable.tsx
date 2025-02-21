@@ -48,7 +48,7 @@ type LogsRowProps = {
   highlightTerms: string[];
 };
 
-export function LogsTable(_props: {}) {
+export function LogsTable() {
   const search = useLogsSearch();
   const {data, isError, isPending} = useExploreLogsTable({
     limit: 100,
