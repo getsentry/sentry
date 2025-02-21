@@ -1078,12 +1078,7 @@ function IssueListOverview({router}: Props) {
     <NewTabContextProvider>
       <Layout.Page>
         {hasLeftNavIssueViews && (
-          <LeftNavViewsHeader
-            organization={organization}
-            realtimeActive={realtimeActive}
-            selectedProjectIds={selection.projects}
-            onRealtimeChange={onRealtimeChange}
-          />
+          <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
         {!hasLeftNavIssueViews &&
           (organization.features.includes('issue-stream-custom-views') ? (
