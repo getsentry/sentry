@@ -46,7 +46,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "123 events in the last 10 minutes"
-        assert data["ts"] == date_started
+        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer={referrer}&detection_type=static&notification_uuid={notification_uuid}"
@@ -91,7 +91,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )  # Pulls from trigger, not incident
         assert data["status"] == "Critical"  # Should pull from the action/trigger.
         assert data["text"] == "4 events in the last 10 minutes"
-        assert data["ts"] == date_started
+        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
@@ -106,7 +106,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
-        assert data["ts"] == date_started
+        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
@@ -121,7 +121,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
-        assert data["ts"] == date_started
+        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
@@ -272,7 +272,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         assert data["title"] == f"Critical: {self.alert_rule.name}"
         assert data["status"] == "Critical"
         assert data["text"] == "92% sessions crash free rate in the last hour"
-        assert data["ts"] == self.date_started
+        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -284,7 +284,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% sessions crash free rate in the last hour"
-        assert data["ts"] == self.date_started
+        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -296,7 +296,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         assert data["title"] == f"Critical: {self.alert_rule.name}"
         assert data["status"] == "Critical"
         assert data["text"] == "92% users crash free rate in the last hour"
-        assert data["ts"] == self.date_started
+        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -308,7 +308,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last hour"
-        assert data["ts"] == self.date_started
+        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -320,7 +320,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         assert data["title"] == f"Resolved: {self.daily_alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last day"
-        assert data["ts"] == self.date_started
+        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
