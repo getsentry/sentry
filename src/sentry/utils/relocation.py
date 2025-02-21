@@ -436,7 +436,7 @@ def send_relocation_update_email(
     name = str(email_kind.name)
     name_lower = name.lower()
     msg = MessageBuilder(
-        subject=f"{options.get('mail.subject-prefix')} Your Relocation has {name.capitalize()}",
+        subject="{}Your Relocation has {}".format(options.get("mail.subject-prefix"), name.capitalize()),
         template=f"sentry/emails/relocation_{name_lower}.txt",
         html_template=f"sentry/emails/relocation_{name_lower}.html",
         type=f"relocation.{name_lower}",
