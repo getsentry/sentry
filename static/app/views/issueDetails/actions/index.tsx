@@ -350,6 +350,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const openPublishModal = () => {
+    trackAnalytics('issue_details.publish_issue_modal_opened', {
+      organization,
+      streamline: hasStreamlinedUI,
+      ...getAnalyticsDataForGroup(group),
+    });
     openModal(modalProps => (
       <PublishIssueModal
         {...modalProps}
