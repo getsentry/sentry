@@ -77,6 +77,14 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             organization_id=self.organization.id, user_id=self.readonly_user.id
         ).get_scopes()
 
+    def _get_rpc_context(self, user):
+        rpc_context = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=user.id
+        )
+
+        assert rpc_context
+        return rpc_context
+
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_safe_methods(self):
         for method in ("GET", "HEAD", "OPTIONS"):
@@ -121,14 +129,10 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
     def test_determine_access_disabled(self):
         self.user_permission.determine_access(
             request=self.make_request(self.normal_user),
-            organization=organization_service.get_organization_by_id(
-                id=self.organization.id, user_id=self.normal_user.id
-            ),
+            organization=self._get_rpc_context(self.normal_user),
         )
 
-        readonly_rpc_context = organization_service.get_organization_by_id(
-            id=self.organization.id, user_id=self.readonly_user.id
-        )
+        readonly_rpc_context = self._get_rpc_context(self.readonly_user)
 
         self.user_permission.determine_access(
             request=self.make_request(self.readonly_user),
@@ -141,14 +145,10 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
     def test_determine_access(self):
         self.user_permission.determine_access(
             request=self.make_request(self.normal_user),
-            organization=organization_service.get_organization_by_id(
-                id=self.organization.id, user_id=self.normal_user.id
-            ),
+            organization=self._get_rpc_context(self.normal_user),
         )
 
-        readonly_rpc_context = organization_service.get_organization_by_id(
-            id=self.organization.id, user_id=self.readonly_user.id
-        )
+        readonly_rpc_context = self._get_rpc_context(self.readonly_user)
 
         self.user_permission.determine_access(
             request=self.make_request(self.readonly_user),
@@ -161,14 +161,10 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
     def test_determine_access_no_demo_users(self):
         self.user_permission.determine_access(
             request=self.make_request(self.normal_user),
-            organization=organization_service.get_organization_by_id(
-                id=self.organization.id, user_id=self.normal_user.id
-            ),
+            organization=self._get_rpc_context(self.normal_user),
         )
 
-        readonly_rpc_context = organization_service.get_organization_by_id(
-            id=self.organization.id, user_id=self.readonly_user.id
-        )
+        readonly_rpc_context = self._get_rpc_context(self.readonly_user)
 
         self.user_permission.determine_access(
             request=self.make_request(self.readonly_user),
