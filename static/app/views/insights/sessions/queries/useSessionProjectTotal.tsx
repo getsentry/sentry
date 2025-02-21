@@ -6,6 +6,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function useSessionProjectTotal() {
   const location = useLocation();
   const organization = useOrganization();
+
+  const locationWithoutWidth = {
+    ...location,
+    query: {...location.query, width: undefined},
+  };
+
   const {
     data: projSessionData,
     isPending,
@@ -15,7 +21,7 @@ export default function useSessionProjectTotal() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...location.query,
+          ...locationWithoutWidth.query,
           field: ['sum(session)'],
           groupBy: ['project'],
         },
