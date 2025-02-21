@@ -70,6 +70,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
         alertRule: ruleId ?? '',
         start: timePeriod.start,
         end: timePeriod.end,
+        project: project.id,
       },
     },
     {
@@ -85,7 +86,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
     );
   }
 
-  if (!rule || isRuleError) {
+  if (isRuleError) {
     return <MetricIssuePlaceholder type="error" />;
   }
 
@@ -167,7 +168,7 @@ function MetricIssuePlaceholder({type}: {type: 'loading' | 'error'}) {
       <Placeholder height="96px" testId="metric-issue-chart-loading" />
     </PlaceholderContainer>
   ) : (
-    <MetricChartAlert type="error" showIcon>
+    <MetricChartAlert type="error" showIcon data-test-id="metric-issue-chart-error">
       {t('Unable to load the metric history')}
     </MetricChartAlert>
   );
