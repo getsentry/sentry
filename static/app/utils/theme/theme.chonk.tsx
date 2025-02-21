@@ -150,162 +150,156 @@ const space = {
 const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
   static: {
-    black: '#181225',
-    white: '#FFFFFF',
+    black: '#181423',
+    white: '#F6F5FA',
 
-    blurple100: '#463299',
-    blurple200: '#5E42CC',
-    blurple300: '#694BE5',
     blurple400: '#7553FF',
+    blurple300: '#6C4DEB',
+    blurple200: '#6246D4',
+    blurple100: '#553DB8',
 
-    green400: '#00F261',
-    green300: '#00E55C',
-    green200: '#7553FF',
-    green100: '#00D957',
+    pink400: '#FF70BC',
+    pink300: '#ED69AF',
+    pink200: '#DB61A2',
+    pink100: '#C45691',
+
+    red400: '#E50045',
+    red300: '#D4003F',
+    red200: '#C2003B',
+    red100: '#A80033',
 
     yellow400: '#FFD00E',
     yellow300: '#FDB81B',
     yellow200: '#E5BB0D',
     yellow100: '#E07518',
 
-    red400: '#E50045',
-    red300: '#E565A9',
-    red200: '#CC5A97',
-    red100: '#B24E84',
-
-    pink400: '#FF70BC',
-    // @TODO(jonasbadalic): duplicates?
-    pink300: '#7553FF',
-    pink200: '#7553FF',
-    pink100: '#7553FF',
+    green400: '#00F261',
+    green300: '#00E35B',
+    green200: '#00D455',
+    green100: '#00BF4D',
   },
 
   dynamic: {
-    // @TODO(jonasbadalic): duplicates?
-    surface400: '#FAFAFC',
-    surface300: '#FAFAFC',
-    surface200: '#F6F5FA',
-    surface100: '#DEDCE5',
+    surface400: '#FFFFFF',
+    surface300: '#FDFCFF',
+    surface200: '#ECEBF0',
+    surface100: '#E2E1E5',
 
     // @TODO(jonasbadalic): Why does gray opaque have 500?
-    grayOpaque500: '#181225',
-    grayOpaque400: '#6D6A76',
-    grayOpaque300: '#919098',
-    grayOpaque200: '#EAEAEB',
+    grayOpaque500: '#181423',
+    grayOpaque400: '#6D6B74',
+    grayOpaque300: '#939198',
+    grayOpaque200: '#E0DFE2',
     grayOpaque100: '#F3F3F4',
 
-    grayTransparent500: 'rgba(24, 18, 37, 1.0)',
-    grayTransparent400: 'rgba(24, 18, 37, 0.63)',
-    grayTransparent300: 'rgba(24, 18, 37, 0.47)',
-    grayTransparent200: 'rgba(24, 18, 37, 0.09)',
-    grayTransparent100: 'rgba(24, 18, 37, 0.05)',
+    grayTransparent500: 'rgba(24, 20, 35, 1.0)',
+    grayTransparent400: 'rgba(24, 20, 35, 0.63)',
+    grayTransparent300: 'rgba(24, 20, 35, 0.47)',
+    grayTransparent200: 'rgba(24, 20, 35, 0.14)',
+    grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
-    blurple400: '#694BE5',
+    blurple400: '#6C4DEB',
     blurple300: '#5E42CC',
     blurple200: '#523AB2',
-    blurple100: '#463299',
+    blurple100: '#553DB8',
 
-    green400: '#17753D',
-    green300: '#146635',
-    green200: '#115A2E',
-    green100: '#00A341',
+    pink400: '#BD337C',
+    pink300: '#A32C6C',
+    pink200: '#8F275E',
+    pink100: '#962963',
+
+    red400: '#CC003D',
+    red300: '#B20036',
+    red200: '#99002E',
+    red100: '#A80033',
 
     yellow400: '#9D5710',
     yellow300: '#8A4D0F',
     yellow200: '#7B450F',
     yellow100: '#E07518',
 
-    // @TODO(jonasbadalic): duplicates?
-    red400: '#CC003D',
-    red300: '#CC003D',
-    red200: '#99002E',
-    red100: '#800026',
-
-    // @TODO(jonasbadalic): TBD
-    pink400: '#FFF',
-    pink300: '#FFF',
-    pink200: '#FFF',
-    pink100: '#FFF',
+    green400: '#17753D',
+    green300: '#146635',
+    green200: '#115A2E',
+    green100: '#00BF4D',
   },
 };
 
 const darkColors: typeof lightColors = {
   static: {
-    black: '#181225',
-    white: '#FFFFFF',
+    black: '#181423',
+    white: '#F6F5FA',
 
     blurple400: '#7553FF',
-    blurple300: '#694BE5',
-    blurple200: '#5E42CC',
-    blurple100: '#463299',
+    blurple300: '#6C4DEB',
+    blurple200: '#6246D4',
+    blurple100: '#553DB8',
 
-    green400: '#00F261',
-    green300: '#00E55C',
-    green200: '#7553FF',
-    green100: '#00D957',
+    pink400: '#FF70BC',
+    pink300: '#ED69AF',
+    pink200: '#DB61A2',
+    pink100: '#C45691',
+
+    red400: '#E50045',
+    red300: '#D4003F',
+    red200: '#C2003B',
+    red100: '#A80033',
 
     yellow400: '#FFD00E',
     yellow300: '#FDB81B',
     yellow200: '#E5BB0D',
     yellow100: '#E07518',
 
-    red400: '#E50045',
-    red300: '#E565A9',
-    red200: '#CC5A97',
-    red100: '#B24E84',
-
-    pink400: '#FF70BC',
-    // @TODO(jonasbadalic): duplicates?
-    pink300: '#7553FF',
-    pink200: '#7553FF',
-    pink100: '#7553FF',
+    green400: '#00F261',
+    green300: '#00E35B',
+    green200: '#00D455',
+    green100: '#00BF4D',
   },
 
   dynamic: {
-    surface400: '#2F2847',
-    surface300: '#29233D',
-    surface200: '#221E33',
-    surface100: '#0A0910',
+    surface400: '#292536',
+    surface300: '#252130',
+    surface200: '#191721',
+    surface100: '#0B0A0F',
 
     // @TODO(jonasbadalic): why 500 range?
-    grayOpaque500: '#FFFFFF',
-    grayOpaque400: '#9D9AA7',
-    grayOpaque300: '#787283',
-    grayOpaque200: '#453F59',
-    grayOpaque100: '#3C3552',
+    grayOpaque500: '#F6F5FA',
+    grayOpaque400: '#A09DA8',
+    grayOpaque300: '#767380',
+    grayOpaque200: '#4D4A59',
+    grayOpaque100: '#3D394A',
 
     // @TODO(jonasbadalic): why 500 range?
-    grayTransparent500: 'rgba(255, 255, 255, 1.0)',
-    grayTransparent400: 'rgba(255, 255, 255, 0.56)',
-    grayTransparent300: 'rgba(255, 255, 255, 0.36)',
-    grayTransparent200: 'rgba(255, 255, 255, 0.13)',
-    grayTransparent100: 'rgba(255, 255, 255, 0.09)',
+    grayTransparent500: 'rgba(246, 245, 250, 1.0)',
+    grayTransparent400: 'rgba(246, 245, 250, 0.58)',
+    grayTransparent300: 'rgba(246, 245, 250, 0.37)',
+    grayTransparent200: 'rgba(246, 245, 250, 0.18)',
+    grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
     blurple400: '#A791FF',
     blurple300: '#B7A6FF',
     blurple200: '#C6B8FF',
-    blurple100: '#0A0910',
+    blurple100: '#07050F',
 
-    green400: '#55F294',
-    green300: '#6DF2A2',
-    green200: '#85F2B1',
-    green100: '#17753D',
+    pink400: '#FF70BC',
+    pink300: '#FF82C4',
+    pink200: '#FF9CD0',
+    pink100: '#0D0609',
+
+    red400: '#FF759F',
+    red300: '#FF8FB0',
+    red200: '#FFA8C2',
+    red100: '#1A0007',
 
     yellow400: '#FFE166',
     yellow300: '#FFE680',
     yellow200: '#FFEB99',
     yellow100: '#0C0909',
 
-    red400: '#FF759F',
-    red300: '#FF8FB0',
-    red200: '#FFA8C2',
-    red100: '#150A0D',
-
-    // @TODO(jonasbadalic): TBD
-    pink400: '#FFF',
-    pink300: '#FFF',
-    pink200: '#FFF',
-    pink100: '#FFF',
+    green400: '#55F294',
+    green300: '#6DF2A2',
+    green200: '#85F2B1',
+    green100: '#000A04',
   },
 };
 
