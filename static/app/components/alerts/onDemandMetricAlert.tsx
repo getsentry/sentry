@@ -24,13 +24,15 @@ export const extrapolatedAreaStyle = {
 
 export function OnDemandWarningIcon({
   msg,
+  isHoverable,
   color = 'gray300',
 }: {
   msg: React.ReactNode;
   color?: Color;
+  isHoverable?: boolean;
 }) {
   return (
-    <Tooltip skipWrapper title={msg}>
+    <Tooltip skipWrapper title={msg} isHoverable={isHoverable}>
       <HoverableIconWarning color={color} />
     </Tooltip>
   );
@@ -91,6 +93,7 @@ const DismissButton = styled(Button)`
 `;
 
 const HoverableIconWarning = styled(IconWarning)`
+  min-width: ${p => p.theme.iconSizes.sm};
   &:hover {
     cursor: pointer;
   }
