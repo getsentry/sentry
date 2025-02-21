@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from django.utils import timezone
 
@@ -7,12 +9,12 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery
-from sentry.snuba.subscriptions import create_snuba_subscription
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -23,7 +25,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
-pytestmark = requires_snuba
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci
@@ -36,16 +38,17 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
-        self.snuba_query = SnubaQuery.objects.create(
-            type=SnubaQuery.Type.ERROR.value,
-            dataset=Dataset.Events.value,
-            query="hello",
-            aggregate="count()",
-            time_window=60,
-            resolution=60,
-            environment=self.environment,
-        )
         with self.tasks():
+            self.snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
             self.query_subscription = create_snuba_subscription(
                 project=self.project,
                 subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
@@ -159,6 +162,7 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
             },
             "config": self.detector.config,
         }
+        assert SnubaQuery.objects.get(id=self.snuba_query.id)
 
     def assert_detector_updated(self, detector):
         assert detector.name == "Updated Detector"
