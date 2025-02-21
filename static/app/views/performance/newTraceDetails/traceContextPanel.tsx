@@ -2,12 +2,16 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {IconGrabbable} from 'sentry/icons';
+import Link from 'sentry/components/links/link';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {IconChevron, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
@@ -17,6 +21,7 @@ import {
   loadTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 150;
@@ -111,6 +116,41 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
     );
   }, [rootEvent.data]);
 
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const renderPreviousTraceLink = useCallback(() => {
+    const eventTraceContext = rootEvent.data?.contexts?.trace;
+    const previousTraceLink = eventTraceContext?.links?.find(
+      l => l.attributes?.['sentry.link.type'] === 'previous_trace'
+    );
+
+    // only show the link if the previous trace was sampled
+    if (!previousTraceLink || !previousTraceLink.sampled) {
+      return null;
+    }
+
+    const dateSelection = normalizeDateTimeParams(location.query);
+
+    return (
+      <PreviousTraceContainer>
+        <TraceLink
+          color="gray500"
+          to={getTraceDetailsUrl({
+            traceSlug: previousTraceLink.trace_id,
+            spanId: previousTraceLink.span_id,
+            dateSelection,
+            location,
+            organization,
+          })}
+        >
+          <IconChevron direction="left" />
+          <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
+        </TraceLink>
+      </PreviousTraceContainer>
+    );
+  }, [rootEvent.data, organization, location]);
+
   return (
     <Container>
       <GrabberContainer onMouseDown={handleMouseDown}>
@@ -118,6 +158,7 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
       </GrabberContainer>
 
       <TraceContextContainer ref={containerRef}>
+        {renderPreviousTraceLink()}
         <VitalMetersContainer>
           <TraceContextVitals tree={tree} />
         </VitalMetersContainer>
@@ -130,6 +171,18 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
     </Container>
   );
 }
+
+const TraceLink = styled(Link)`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
+  padding: ${space(0.25)} ${space(0.5)};
+  display: flex;
+  align-items: center;
+`;
+
+const TraceLinkText = styled('span')`
+  line-height: normal;
+`;
 
 const Container = styled('div')`
   width: 100%;
@@ -183,4 +236,13 @@ const TraceTagsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: 0 ${space(0.5)};
+`;
+
+const PreviousTraceContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  gap: ${space(1)};
+  width: 100%;
+  margin-bottom: ${space(1)};
 `;
