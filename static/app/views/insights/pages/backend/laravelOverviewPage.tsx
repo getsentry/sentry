@@ -246,6 +246,9 @@ const WidgetGrid = styled('div')`
 const RequestsContainer = styled('div')`
   grid-area: requests;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom IssuesWidget
@@ -270,11 +273,17 @@ const IssuesContainer = styled('div')`
 const DurationContainer = styled('div')`
   grid-area: duration;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 const JobsContainer = styled('div')`
   grid-area: jobs;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom QueryWidget
