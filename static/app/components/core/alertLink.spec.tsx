@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import AlertLink from 'sentry/components/alertLink';
+import AlertLink from 'sentry/components/core/alertLink';
 import {IconMail} from 'sentry/icons';
 
 describe('AlertLink', function () {
