@@ -230,7 +230,8 @@ def safe_for_fetching_issues(pr_files: list[PrFile]) -> list[PrFile]:
     changed_lines_count = 0
     filtered_pr_files = []
     for file in pr_files:
-        if file["status"] != "modified" or file["filename"].split(".")[-1] not in PATCH_PARSERS:
+        file_extension = file["filename"].split(".")[-1]
+        if file["status"] != "modified" or file_extension not in PATCH_PARSERS:
             continue
 
         changed_file_count += 1
@@ -447,11 +448,7 @@ def _left_truncated_paths(filename: str, max_num_paths: int = 2) -> list[str]:
             "automation/agent/client.py",
         ]
     """
-    try:
-        path = Path(filename)
-    except Exception:
-        return []
-
+    path = Path(filename)
     parts = list(path.parts)
     num_dirs = len(parts) - 1  # -1 for the filename
     num_paths = min(max_num_paths, num_dirs)
@@ -463,10 +460,11 @@ def _left_truncated_paths(filename: str, max_num_paths: int = 2) -> list[str]:
     return result
 
 
-def _get_code_mappings(org_id: int, repo_id: int, pr_filename: str):
-    # fetch the code mappings in which the source_root is a substring at the start of pr_filename
-    # TODO(kddubey): need to check if this is overly restrictive. May change this in the future.
-    return (
+def _get_projects_and_filenames_from_source_file(
+    org_id: int, repo_id: int, pr_filename: str, max_num_left_truncated_paths: int = 2
+) -> tuple[set[Project], set[str]]:
+    # Fetch the code mappings in which the source_root is a substring at the start of pr_filename
+    code_mappings = (
         RepositoryProjectPathConfig.objects.filter(
             organization_id=org_id,
             repository_id=repo_id,
@@ -474,12 +472,6 @@ def _get_code_mappings(org_id: int, repo_id: int, pr_filename: str):
         .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
         .filter(substring_match=1)
     )
-
-
-def _get_projects_and_filenames_from_source_file(
-    org_id: int, repo_id: int, pr_filename: str, max_num_left_truncated_paths: int = 2
-) -> tuple[set[Project], set[str]]:
-    code_mappings = _get_code_mappings(org_id, repo_id, pr_filename)
     project_set = {code_mapping.project for code_mapping in code_mappings}
     sentry_filenames = {
         pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
