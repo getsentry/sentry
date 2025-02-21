@@ -443,7 +443,7 @@ export function IssueViewsPFStateProvider({
 
   // This function is fired upon receiving new views from the backend - it replaces any previously
   // generated temporary view ids with the permanent view ids from the backend
-  const replaceWithPersistantViewIds = (views: GroupSearchView[]) => {
+  const replaceWithPersistentViewIds = (views: GroupSearchView[]) => {
     const newlyCreatedViews = views.filter(
       view => !state.views.find(tab => tab.id === view.id)
     );
@@ -476,7 +476,7 @@ export function IssueViewsPFStateProvider({
   };
 
   const {mutate: updateViews} = useUpdateGroupSearchViews({
-    onSuccess: replaceWithPersistantViewIds,
+    onSuccess: replaceWithPersistentViewIds,
   });
 
   const debounceUpdateViews = useMemo(
