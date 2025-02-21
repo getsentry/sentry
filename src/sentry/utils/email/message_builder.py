@@ -147,24 +147,15 @@ class MessageBuilder:
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
     ) -> EmailMultiAlternatives:
-        # Create a copy of the existing headers
         headers = {**self.headers}
 
-        # Handle reply-to logic based on mail settings
         if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
-            # If replies are enabled and we have a special Sentry reply-to header,
-            # use that as the reply-to address
             reply_to = headers["X-Sentry-Reply-To"]
         else:
-            # Otherwise, convert reply_to to a set (or empty set if None)
-            # Remove the primary recipient from reply-to addresses to avoid duplicates
-            # Join all remaining reply-to addresses with commas
             reply_to = set(reply_to or ())
             reply_to.discard(to)
             reply_to = ", ".join(reply_to)
 
-        # Add Reply-To header if we have reply-to addresses
-        # setdefault() only sets the header if it doesn't already exist
         if reply_to:
             headers.setdefault("Reply-To", reply_to)
 
@@ -212,18 +203,12 @@ class MessageBuilder:
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
     ) -> Sequence[EmailMultiAlternatives]:
-        # Create a set from the 'to' parameter, defaulting to empty set if None
         send_to = set(to or ())
-        # Add any additional recipients that were previously added via add_users()
         send_to.update(self._send_to)
-        # Add all recipients to the reply-to list
         reply_to = send_to.union(reply_to or ())
-        # Build individual email messages for each recipient
-        # Filters out any empty email addresses and set reply_to
         results = [
             self.build(to=email, reply_to=reply_to, cc=cc, bcc=bcc) for email in send_to if email
         ]
-        # Log if no messages were created due to no valid recipients
         if not results:
             logger.debug("Did not build any messages, no users to send to.")
         return results
@@ -253,62 +238,33 @@ class MessageBuilder:
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
     ) -> None:
-        """Asynchronously send email messages using Celery tasks.
-
-        Args:
-            to: Iterable of recipient email addresses
-            reply_to: Iterable of reply-to email addresses
-            cc: Sequence of carbon copy email addresses
-            bcc: Sequence of blind carbon copy email addresses
-
-        The method:
-        1. Builds email messages for each recipient
-        2. Sends them asynchronously using Celery tasks
-        3. Logs the queued messages and increments metrics
-        """
-        # Import email tasks here to avoid circular imports
         from sentry.tasks.email import send_email, send_email_control
 
-        # Get logging format preference (human vs machine readable)
         fmt = options.get("system.logging-format")
 
-        # Build all email messages
         messages = self.get_built_messages(to, reply_to, cc=cc, bcc=bcc)
-
-        # Prepare extra logging context
         extra: MutableMapping[str, str | tuple[str]] = {"message_type": self.type}
-
-        # Extract IDs from context objects that have them (for logging)
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
             extra[f"{type(context).__name__.lower()}_id"] = context.id
 
-        # Create partial function for logging queued messages
         log_mail_queued = partial(logger.info, "mail.queued", extra=extra)
 
-        # Process each message
         for message in messages:
-            # Select appropriate task based on silo mode
             send_email_task = send_email.delay
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 send_email_task = send_email_control.delay
 
-            # Queue the email task
             safe_execute(send_email_task, message=message)
 
-            # Add message ID to logging context
             extra["message_id"] = message.extra_headers["Message-Id"]
 
-            # Increment email queued metric
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
 
-            # Log based on format preference
             if fmt == LoggingFormat.HUMAN:
-                # For human format, log all recipients in a single entry
                 extra["message_to"] = (self.format_to(message.to),)
                 log_mail_queued()
             elif fmt == LoggingFormat.MACHINE:
-                # For machine format, log each recipient separately
                 for recipient in message.to:
                     extra["message_to"] = recipient
                     log_mail_queued()
