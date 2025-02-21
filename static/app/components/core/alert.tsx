@@ -289,5 +289,3 @@ const Container = styled('div')`
 `;
 
 Alert.Container = Container;
-
-export default Alert;
