@@ -15,7 +15,7 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   size?: 'sm';
 }
 
-function AlertPanel({type, size, ...props}: ChonkAlertProps) {
+function AlertPanel({type, size, children, ...props}: ChonkAlertProps) {
   const theme = useChonkTheme();
 
   return (
@@ -24,7 +24,7 @@ function AlertPanel({type, size, ...props}: ChonkAlertProps) {
       colors={chonkAlertTheme(type, theme)}
       padding={chonkAlertPadding(size, theme)}
     >
-      {props.children}
+      {children}
     </AlertPanelDiv>
   );
 }
