@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import GitHubOAuth2Provider
 
-        register("github", GitHubOAuth2Provider)
+        register(GitHubOAuth2Provider)

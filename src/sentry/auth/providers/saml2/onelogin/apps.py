@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import OneLoginSAML2Provider
 
-        register("onelogin", OneLoginSAML2Provider)
+        register(OneLoginSAML2Provider)

@@ -35,6 +35,7 @@ class GoogleOAuth2Login(OAuth2Login):
 
 class GoogleOAuth2Provider(OAuth2Provider):
     name = "Google"
+    key = "google"
 
     def __init__(self, domain=None, domains=None, version=None, **config):
         if domain:

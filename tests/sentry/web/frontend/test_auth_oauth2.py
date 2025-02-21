@@ -29,6 +29,7 @@ class DummyOAuth2Callback(OAuth2Callback):
 
 class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
+    key = "oauth2_dummy"
 
     def get_client_id(self):
         raise NotImplementedError

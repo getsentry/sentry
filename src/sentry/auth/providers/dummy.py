@@ -22,6 +22,7 @@ class AskEmail(AuthView):
 
 class DummyProvider(Provider):
     name = "Dummy"
+    key = "dummy"
 
     def get_auth_pipeline(self):
         return [AskEmail()]
@@ -61,6 +62,7 @@ dummy_provider_config = {
 
 class DummySAML2Provider(SAML2Provider):
     name = "DummySAML2"
+    key = "saml2_dummy"
 
     def get_saml_setup_pipeline(self):
         return []

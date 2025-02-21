@@ -212,9 +212,9 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
-        auth.register("dummy", DummyProvider)
+        auth.register(DummyProvider)
         yield
-        auth.unregister("dummy", DummyProvider)
+        auth.unregister(DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -845,14 +845,13 @@ class TwoFactorAPITestCase(APITestCase):
 
 class AuthProviderTestCase(TestCase):
     provider: type[Provider] = DummyProvider
-    provider_name = "dummy"
 
     def setUp(self):
         super().setUp()
         # TestCase automatically sets up dummy provider
-        if self.provider_name != "dummy" or self.provider != DummyProvider:
-            auth.register(self.provider_name, self.provider)
-            self.addCleanup(auth.unregister, self.provider_name, self.provider)
+        if self.provider != DummyProvider:
+            auth.register(self.provider)
+            self.addCleanup(auth.unregister, self.provider)
 
 
 class RuleTestCase(TestCase):
@@ -2746,7 +2745,7 @@ class SCIMAzureTestCase(SCIMTestCase):
 
     @pytest.fixture(autouse=True)
     def _use_dummy_provider_for_ad_provider(self) -> Generator[None]:
-        with mock.patch.object(auth.manager, "get", return_value=DummyProvider("dummy")):
+        with mock.patch.object(auth.manager, "get", return_value=DummyProvider()):
             yield
 
 

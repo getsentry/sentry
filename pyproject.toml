@@ -256,6 +256,7 @@ module = [
     "sentry.api.serializers.models.organization_member.*",
     "sentry.api.serializers.rest_framework.group_notes",
     "sentry.audit_log.services.*",
+    "sentry.auth.manager",
     "sentry.auth.services.*",
     "sentry.auth.view",
     "sentry.buffer.*",
