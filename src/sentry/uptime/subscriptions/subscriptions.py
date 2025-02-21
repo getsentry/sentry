@@ -155,17 +155,19 @@ def get_or_create_uptime_subscription(
     if subscription.status == UptimeSubscription.Status.DELETING.value:
         # This is pretty unlikely to happen, but we should avoid deleting the subscription here and just confirm it
         # exists in the checker.
-        subscription.update(status=UptimeSubscription.Status.CREATING.value)
         created = True
 
     # Associate active regions with this subscription
-    for region_config in get_active_region_configs():
+    for region_config, region_mode in get_active_region_configs():
         # If we add a region here we need to resend the subscriptions
-        created |= UptimeSubscriptionRegion.objects.get_or_create(
-            uptime_subscription=subscription, region_slug=region_config.slug
+        created |= UptimeSubscriptionRegion.objects.update_or_create(
+            uptime_subscription=subscription,
+            region_slug=region_config.slug,
+            defaults={"mode": region_mode},
         )[1]
 
     if created:
+        subscription.update(status=UptimeSubscription.Status.CREATING.value)
         create_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
     return subscription

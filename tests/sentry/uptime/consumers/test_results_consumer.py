@@ -477,7 +477,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
             self.assert_redis_config(
-                "default", UptimeSubscription(subscription_id=subscription_id), "delete"
+                "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
 
     def test_multiple_project_subscriptions_with_disabled(self):
@@ -1012,10 +1012,12 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self,
         sub: UptimeSubscription,
         regions: list[str],
-        disabled_regions: list[str],
-        expected_regions_before: set[str],
-        expected_regions_after: set[str],
-        expected_config_updates: list[tuple[str, str | None]],
+        region_overrides: dict[str, UptimeSubscriptionRegion.RegionMode],
+        expected_regions_before: dict[str, UptimeSubscriptionRegion.RegionMode],
+        expected_regions_after: dict[str, UptimeSubscriptionRegion.RegionMode],
+        expected_config_updates: list[
+            tuple[str, str | None, UptimeSubscriptionRegion.RegionMode | None]
+        ],
         current_minute=5,
     ):
         region_configs = [
@@ -1025,14 +1027,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             override_settings(UPTIME_REGIONS=region_configs),
-            override_options(
-                {
-                    "uptime.checker-regions-mode-override": {
-                        region: UptimeSubscriptionRegion.RegionMode.INACTIVE.value
-                        for region in disabled_regions
-                    }
-                }
-            ),
+            override_options({"uptime.checker-regions-mode-override": region_overrides}),
             self.tasks(),
             freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
             mock.patch("random.random", return_value=1),
@@ -1041,12 +1036,18 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 sub.subscription_id,
                 scheduled_check_time=datetime.now(),
             )
-            assert {r.region_slug for r in sub.regions.all()} == expected_regions_before
+            assert {
+                r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
+                for r in sub.regions.all()
+            } == expected_regions_before
             self.send_result(result)
             sub.refresh_from_db()
-            assert {r.region_slug for r in sub.regions.all()} == expected_regions_after
-            for expected_region, expected_action in expected_config_updates:
-                self.assert_redis_config(expected_region, sub, expected_action)
+            assert {
+                r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
+                for r in sub.regions.all()
+            } == expected_regions_after
+            for expected_region, expected_action, expected_mode in expected_config_updates:
+                self.assert_redis_config(expected_region, sub, expected_action, expected_mode)
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
     def test_check_and_update_regions(self):
@@ -1057,19 +1058,49 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1"},
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
             [],
             4,
         )
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            [
+                ("region1", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("region2", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+            ],
+            5,
+        )
+
+    def test_check_and_update_regions_active_shadow(self):
+        sub = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=5).hex,
+            region_slugs=["region1", "region2"],
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            {"region2": UptimeSubscriptionRegion.RegionMode.SHADOW},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.SHADOW,
+            },
+            [
+                ("region1", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("region2", "upsert", UptimeSubscriptionRegion.RegionMode.SHADOW),
+            ],
             5,
         )
 
@@ -1083,10 +1114,16 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.run_check_and_update_region_test(
             hour_sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            [
+                ("region1", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("region2", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+            ],
             37,
         )
 
@@ -1098,37 +1135,43 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1"},
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
             [],
             current_minute=6,
         )
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1"},
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
             [],
             current_minute=35,
         )
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1"},
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
             [],
             current_minute=49,
         )
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            [
+                ("region1", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("region2", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+            ],
             current_minute=30,
         )
         # Make sure it works any time within the valid window
@@ -1140,10 +1183,16 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
-            [],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            [
+                ("region1", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("region2", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+            ],
             current_minute=34,
         )
 
@@ -1154,19 +1203,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
-            ["region2"],
-            {"region1", "region2"},
-            {"region1", "region2"},
+            {"region2": UptimeSubscriptionRegion.RegionMode.INACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
             [],
             current_minute=4,
         )
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
-            ["region2"],
-            {"region1", "region2"},
-            {"region1"},
-            [("region1", "upsert"), ("region2", "delete")],
+            {"region2": UptimeSubscriptionRegion.RegionMode.INACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            [
+                ("region1", "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("region2", "delete", None),
+            ],
             current_minute=5,
         )
 

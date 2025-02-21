@@ -144,24 +144,38 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if not self.should_run_region_checks(subscription, result):
             return
 
-        subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
-        active_region_slugs = {c.slug for c in get_active_region_configs()}
-        if subscription_region_slugs == active_region_slugs:
+        subscription_regions = {
+            r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
+            for r in subscription.regions.all()
+        }
+        active_regions = {c.slug: mode for c, mode in get_active_region_configs()}
+        if subscription_regions == active_regions:
             # Regions haven't changed, exit early.
             return
 
-        new_region_slugs = active_region_slugs - subscription_region_slugs
-        removed_region_slugs = subscription_region_slugs - active_region_slugs
-        if new_region_slugs:
-            new_regions = [
-                UptimeSubscriptionRegion(uptime_subscription=subscription, region_slug=slug)
-                for slug in new_region_slugs
+        new_or_updated_regions = {
+            slug: mode
+            for slug, mode in active_regions.items()
+            if slug not in subscription_regions or subscription_regions[slug] != mode
+        }
+        removed_regions = subscription_regions.keys() - active_regions.keys()
+        if new_or_updated_regions:
+            new_or_updated_region_objs = [
+                UptimeSubscriptionRegion(
+                    uptime_subscription=subscription, region_slug=slug, mode=mode
+                )
+                for slug, mode in new_or_updated_regions.items()
             ]
-            UptimeSubscriptionRegion.objects.bulk_create(new_regions, ignore_conflicts=True)
+            UptimeSubscriptionRegion.objects.bulk_create(
+                new_or_updated_region_objs,
+                update_conflicts=True,
+                update_fields=["mode"],
+                unique_fields=["uptime_subscription", "region_slug"],
+            )
 
-        if removed_region_slugs:
+        if removed_regions:
             for deleted_region in UptimeSubscriptionRegion.objects.filter(
-                uptime_subscription=subscription, region_slug__in=removed_region_slugs
+                uptime_subscription=subscription, region_slug__in=removed_regions
             ):
                 if subscription.subscription_id:
                     # We need to explicitly send deletes here before we remove the region

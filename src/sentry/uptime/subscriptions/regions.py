@@ -7,15 +7,22 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.uptime.models import UptimeSubscriptionRegion
 
 
-def get_active_region_configs() -> list[UptimeRegionConfig]:
+def get_active_region_configs() -> (
+    list[tuple[UptimeRegionConfig, UptimeSubscriptionRegion.RegionMode]]
+):
     configured_regions: Sequence[UptimeRegionConfig] = settings.UPTIME_REGIONS
     region_mode_override: Mapping[str, str] = options.get("uptime.checker-regions-mode-override")
 
     return [
-        c
+        (
+            c,
+            UptimeSubscriptionRegion.RegionMode(
+                region_mode_override.get(c.slug, UptimeSubscriptionRegion.RegionMode.ACTIVE)
+            ),
+        )
         for c in configured_regions
         if region_mode_override.get(c.slug, UptimeSubscriptionRegion.RegionMode.ACTIVE)
-        == UptimeSubscriptionRegion.RegionMode.ACTIVE
+        in [UptimeSubscriptionRegion.RegionMode.ACTIVE, UptimeSubscriptionRegion.RegionMode.SHADOW]
     ]
 
 

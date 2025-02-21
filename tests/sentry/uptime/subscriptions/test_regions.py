@@ -45,7 +45,10 @@ class GetActiveRegionConfigsTest(TestBase):
         ):
             active_regions = get_active_region_configs()
             assert len(active_regions) == 2
-            assert {region.slug for region in active_regions} == {"us", "ap"}
+            assert {region.slug: mode for region, mode in active_regions} == {
+                "us": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "ap": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            }
 
         with (
             override_settings(UPTIME_REGIONS=self.test_regions),
@@ -54,13 +57,17 @@ class GetActiveRegionConfigsTest(TestBase):
                     "uptime.checker-regions-mode-override": {
                         "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE.value,
                         "us": UptimeSubscriptionRegion.RegionMode.ACTIVE.value,
+                        "ap": UptimeSubscriptionRegion.RegionMode.SHADOW.value,
                     }
                 }
             ),
         ):
             active_regions = get_active_region_configs()
             assert len(active_regions) == 2
-            assert {region.slug for region in active_regions} == {"us", "ap"}
+            assert {region.slug: mode for region, mode in active_regions} == {
+                "us": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "ap": UptimeSubscriptionRegion.RegionMode.SHADOW,
+            }
 
 
 class GetRegionConfigTest(TestBase):
