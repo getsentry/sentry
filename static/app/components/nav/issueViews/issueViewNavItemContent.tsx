@@ -123,6 +123,7 @@ export function IssueViewNavItemContent({
     >
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
+        isActive={isActive}
         leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
         trailingItems={
           <TrailingItemsWrapper
