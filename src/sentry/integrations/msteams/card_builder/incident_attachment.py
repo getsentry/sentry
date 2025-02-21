@@ -15,7 +15,7 @@ from sentry.integrations.msteams.card_builder.block import (
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
+    metric_value: float,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
     data = incident_attachment_info(
@@ -29,7 +29,11 @@ def build_incident_attachment(
     colors: dict[str, Literal["good", "warning", "attention"]]
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
+    footer_text = (
+        "Sentry Incident | {}".format(data["date_started"].strftime("%b %d"))
+        if data["date_started"] is not None
+        else "Sentry Incident"
+    )
 
     return {
         "type": "AdaptiveCard",

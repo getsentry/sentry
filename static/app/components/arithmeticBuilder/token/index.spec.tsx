@@ -1,7 +1,13 @@
 import type {Dispatch} from 'react';
 import {useCallback} from 'react';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {ArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
@@ -36,6 +42,8 @@ function Tokens(props: TokensProp) {
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
+        aggregateFunctions: [{name: 'avg'}, {name: 'sum'}, {name: 'count'}],
+        functionArguments: [{name: 'span.duration'}, {name: 'span.self_time'}],
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -67,7 +75,7 @@ describe('token', function () {
       expect(input).toHaveValue('');
     });
 
-    it('allow selecting function on click', async function () {
+    it('allow selecting function on mouse', async function () {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -78,11 +86,11 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
-      await userEvent.click(screen.getByRole('option', {name: 'avg(\u2026)'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       expect(
         await screen.findByRole('row', {
@@ -91,7 +99,7 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
-    it('allow updates free text using combo box', async function () {
+    it('allow selecting function using keyboard', async function () {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -101,16 +109,60 @@ describe('token', function () {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
-      await userEvent.type(input, '{ArrowDown}{Enter}');
+      // need to go down twice because parenthesis is always on top
+      await userEvent.type(input, '{ArrowDown}{ArrowDown}{Enter}');
       expect(
         await screen.findByRole('row', {
           name: 'avg(span.duration)',
         })
       ).toBeInTheDocument();
+    });
+
+    it('allows selection parenthesis using mouse', async function () {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // typing should reduce the options avilable in the autocomplete
+      expect(screen.getAllByRole('option')).toHaveLength(4);
+      await userEvent.type(input, 'avg');
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+
+      const options = within(screen.getByRole('listbox'));
+      await userEvent.click(options.getByTestId('icon-parenthesis'));
+
+      const row = await screen.findByRole('row');
+      expect(within(row).getByTestId('icon-parenthesis')).toBeInTheDocument();
+    });
+
+    it('allows selection parenthesis using keyboard', async function () {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // typing should reduce the options avilable in the autocomplete
+      expect(screen.getAllByRole('option')).toHaveLength(4);
+      await userEvent.type(input, 'avg');
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      const row = await screen.findByRole('row');
+      expect(within(row).getByTestId('icon-parenthesis')).toBeInTheDocument();
     });
 
     it('autocompletes function token when they reach the open parenthesis', async function () {
@@ -161,6 +213,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       await userEvent.type(input, '+');
+      await userEvent.keyboard('{Escape}');
 
       const operator = screen.getByTestId('icon-add');
       expect(operator).toBeInTheDocument();
@@ -176,6 +229,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       await userEvent.type(input, '-');
+      await userEvent.keyboard('{Escape}');
 
       const operator = screen.getByTestId('icon-subtract');
       expect(operator).toBeInTheDocument();
@@ -191,6 +245,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       await userEvent.type(input, '*');
+      await userEvent.keyboard('{Escape}');
 
       const operator = screen.getByTestId('icon-multiply');
       expect(operator).toBeInTheDocument();
@@ -206,6 +261,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       await userEvent.type(input, '/');
+      await userEvent.keyboard('{Escape}');
 
       const operator = screen.getByTestId('icon-divide');
       expect(operator).toBeInTheDocument();
@@ -221,6 +277,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       await userEvent.type(input, '(');
+      await userEvent.keyboard('{Escape}');
 
       const parenthesis = screen.getByTestId('icon-parenthesis');
       expect(parenthesis).toBeInTheDocument();
@@ -237,6 +294,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       await userEvent.type(input, ')');
+      await userEvent.keyboard('{Escape}');
 
       const parenthesis = screen.getByTestId('icon-parenthesis');
       expect(parenthesis).toBeInTheDocument();
@@ -390,6 +448,28 @@ describe('token', function () {
         })
       ).toBeInTheDocument();
     });
+
+    it('can delete function tokens with the delete button', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: 'Remove function avg(span.duration)',
+        })
+      );
+
+      expect(
+        screen.queryByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('ArithmeticTokenOperator', function () {
@@ -504,7 +584,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.OPEN_PARENTHESIS,
           parenthesis: Parenthesis.OPEN,
         }),
         focusOverride: {
@@ -529,7 +609,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.CLOSE_PARENTHESIS,
           parenthesis: Parenthesis.CLOSE,
         }),
         focusOverride: {

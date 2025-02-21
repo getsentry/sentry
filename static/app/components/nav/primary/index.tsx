@@ -6,12 +6,12 @@ import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {CollapseButton} from 'sentry/components/nav/primary/collapse';
 import {
   SeparatorItem,
   SidebarLink,
   SidebarMenu,
 } from 'sentry/components/nav/primary/components';
+import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
 import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
@@ -78,6 +78,7 @@ export function PrimaryNavigationItems() {
         >
           <SidebarLink
             to={`/${prefix}/dashboards/`}
+            activeTo={`/${prefix}/dashboard`}
             analyticsKey="customizable-dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
           >
@@ -164,7 +165,7 @@ export function PrimaryNavigationItems() {
         <SeparatorItem />
 
         <WhatsNew />
-        <CollapseButton />
+        <PrimaryNavigationOnboarding />
       </SidebarFooter>
     </Fragment>
   );

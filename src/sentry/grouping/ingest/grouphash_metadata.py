@@ -120,20 +120,22 @@ def create_or_update_grouphash_metadata_if_needed(
     grouping_config: str,
     variants: dict[str, BaseVariant],
 ) -> None:
-    # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
-    # we'll have to override the metadata creation date for them.
-
     db_hit_metadata: dict[str, Any] = {}
 
-    if grouphash_is_new:
+    if not grouphash.metadata:
         new_data: dict[str, Any] = {"grouphash": grouphash}
         new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
 
-        db_hit_metadata = {"reason": "new_grouphash"}
+        db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
+
+        if not grouphash_is_new:
+            # If we're adding metadata to an existing grouphash, override the creation date so it
+            # doesn't default to now
+            new_data["date_added"] = None
 
         GroupHashMetadata.objects.create(**new_data)
 
-    elif grouphash.metadata:
+    else:
         updated_data: dict[str, Any] = {}
 
         # Keep track of the most recent config which computed this hash, so that once a config is
@@ -174,29 +176,29 @@ def get_grouphash_metadata_data(
     variants: dict[str, BaseVariant],
     grouping_config: str,
 ) -> dict[str, Any]:
-    base_data = {
-        "latest_grouping_config": grouping_config,
-        "platform": event.platform or "unknown",
-    }
-    hashing_metadata: HashingMetadata = {}
-    # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
-    # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
-    # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
-    # there's a better way?
-    contributors = get_contributing_variant_and_component(variants)
-    contributing_variant: Any = contributors[0]
-    contributing_component: Any = contributors[1]
-
-    # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever method
-    # was used before the extra fingerprint was added. We classify events with hybrid fingerprints
-    # by the `{{ default }}` portion of their grouping, so strip the prefix before doing the
-    # look-up.
-    is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
-    method_description = contributing_variant.description.replace("modified ", "")
-
     with metrics.timer(
         "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
+        base_data = {
+            "latest_grouping_config": grouping_config,
+            "platform": event.platform or "unknown",
+        }
+        hashing_metadata: HashingMetadata = {}
+        # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
+        # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
+        # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
+        # there's a better way?
+        contributors = get_contributing_variant_and_component(variants)
+        contributing_variant: Any = contributors[0]
+        contributing_component: Any = contributors[1]
+
+        # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever
+        # method was used before the extra fingerprint was added. We classify events with hybrid
+        # fingerprints by the `{{ default }}` portion of their grouping, so strip the prefix before
+        # doing the look-up.
+        is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
+        method_description = contributing_variant.description.replace("modified ", "")
+
         try:
             hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
         except KeyError:
