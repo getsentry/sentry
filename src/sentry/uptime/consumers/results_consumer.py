@@ -144,21 +144,21 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if not self.should_run_region_checks(subscription, result):
             return
 
-        subscription_regions = {
+        subscription_region_modes = {
             r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
             for r in subscription.regions.all()
         }
         active_regions = {c.slug: mode for c, mode in get_active_region_configs()}
-        if subscription_regions == active_regions:
+        if subscription_region_modes == active_regions:
             # Regions haven't changed, exit early.
             return
 
         new_or_updated_regions = {
             slug: mode
             for slug, mode in active_regions.items()
-            if slug not in subscription_regions or subscription_regions[slug] != mode
+            if slug not in subscription_region_modes or subscription_region_modes[slug] != mode
         }
-        removed_regions = subscription_regions.keys() - active_regions.keys()
+        removed_regions = subscription_region_modes.keys() - active_regions.keys()
         if new_or_updated_regions:
             new_or_updated_region_objs = [
                 UptimeSubscriptionRegion(
