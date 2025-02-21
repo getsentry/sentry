@@ -145,6 +145,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -2371,6 +2372,7 @@ class UptimeCheckSnubaTestCase(TestCase):
         check_status: str,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
+        http_status: int | None | NotSet = NOT_SET,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
@@ -2379,7 +2381,10 @@ class UptimeCheckSnubaTestCase(TestCase):
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
-        http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
+        http_status = default_if_not_set(
+            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            http_status,
+        )
 
         self.store_uptime_check(
             {
