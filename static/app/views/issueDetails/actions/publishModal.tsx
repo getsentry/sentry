@@ -17,6 +17,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface PublishIssueModalProps extends ModalRenderProps {
   groupId: string;
@@ -48,7 +49,7 @@ export default function PublishIssueModal({
   const groups = useLegacyStore(GroupStore);
   const group = (groups as Group[]).find(item => item.id === groupId);
   const isPublished = group?.isPublic;
-
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const handleShare = useCallback(
     (e: React.MouseEvent<HTMLButtonElement> | null, reshare?: boolean) => {
       e?.preventDefault();
@@ -122,10 +123,20 @@ export default function PublishIssueModal({
                   size="sm"
                   icon={<IconRefresh />}
                   onClick={() => handleShare(null, true)}
+                  analyticsEventKey="issue_details.publish_issue_modal.generate_new_url"
+                  analyticsEventName="Issue Details: Publish Issue Modal Generate New URL"
                 />
               </UrlContainer>
               <ButtonContainer>
-                <Button priority="primary" onClick={handleCopy}>
+                <Button
+                  priority="primary"
+                  onClick={handleCopy}
+                  analyticsEventKey="issue_details.publish_issue_modal.copy_link"
+                  analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
+                  analyticsParams={{
+                    streamline: hasStreamlinedUI,
+                  }}
+                >
                   {t('Copy Link')}
                 </Button>
               </ButtonContainer>
