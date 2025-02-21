@@ -5,10 +5,9 @@ from typing import Any
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
-from sentry.sentry_apps.components import RpcSentryAppInstallation
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app.model import RpcSentryApp
+from sentry.sentry_apps.services.app.model import RpcSentryApp, RpcSentryAppInstallation
 
 
 class SentryAppInteractionType(StrEnum):
@@ -35,6 +34,9 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
     def get_sentry_app_name(self) -> str:
         return self.sentry_app.slug if self.sentry_app else ""
 
+    def get_sentry_app_installation(self) -> str:
+        return self.sentry_app_installation.uuid if self.sentry_app_installation else ""
+
     def get_region(self) -> str:
         return self.region or ""
 
@@ -51,5 +53,5 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
     def get_extras(self) -> Mapping[str, Any]:
         return {
             "sentry_app": self.get_sentry_app_name(),
-            "installation_uuid": (self.org_integration.id if self.org_integration else None),
+            "installation_uuid": self.get_sentry_app_installation(),
         }
