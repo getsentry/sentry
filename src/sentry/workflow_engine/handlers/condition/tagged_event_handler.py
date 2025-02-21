@@ -4,12 +4,12 @@ from sentry import tagstore
 from sentry.rules import MatchType, match_values
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.TAGGED_EVENT)
 class TaggedEventConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandlerType.ACTION_FILTER
+    type = [DataConditionHandler.Type.ACTION_FILTER]
 
     comparison_json_schema = {
         "type": "object",
