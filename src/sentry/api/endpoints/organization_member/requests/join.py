@@ -10,7 +10,6 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.validators import AllowedEmailField
 from sentry.auth.services.auth import auth_service
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -18,6 +17,7 @@ from sentry.notifications.notifications.organization_request import JoinRequestN
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.utils.demo_mode import is_demo_user
 
 logger = logging.getLogger(__name__)
