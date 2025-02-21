@@ -8,6 +8,21 @@ family:native package:/private/var/containers/Bundle/Application/**  +app
 family:native package:**/Developer/CoreSimulator/Devices/**          +app
 family:native package:**/Containers/Bundle/Application/**            +app
 
+# Unreal Engine
+
+## UE internal assertion handling
+family:native stack.function:FDebug::CheckVerifyFailedImpl*                v+app
+
+## UE internal ensure handling
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app
+
+## UE SDK USentrySubsystem event capturing
+family:native stack.function:USentrySubsystem::CaptureMessage*             v+app
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app
+family:native stack.function:USentrySubsystem::CaptureEvent*               v+app
+family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app
+family:native stack.function:USentrySubsystem::*execCapture*               v+app
+
 # known well locations for unix paths
 family:native package:/lib/**                                        -app
 family:native package:/usr/lib/**                                    -app
