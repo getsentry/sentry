@@ -494,7 +494,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0031_make_detector_project_non_nullable"),
+        ("workflow_engine", "0032_remove_data_source_query_id"),
     ]
 
     operations = [
