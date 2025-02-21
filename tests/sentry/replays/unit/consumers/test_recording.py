@@ -4,8 +4,7 @@ import uuid
 import msgpack
 
 from sentry.replays.consumers.buffered.consumer import process_message
-
-# from sentry.replays.usecases.ingest import ProcessedRecordingMessage
+from sentry.replays.usecases.ingest import ProcessedRecordingMessage
 
 
 def test_process_message_invalid():
@@ -30,4 +29,19 @@ def test_process_message():
             }
         )
     )
-    assert result is None
+    assert result is not None
+    assert result == ProcessedRecordingMessage(
+        actions_event=[],
+        filedata=b"[]",
+        filename=result.filename,
+        is_replay_video=False,
+        key_id=3,
+        org_id=1,
+        project_id=2,
+        received=result.received,
+        recording_size_uncompressed=2,
+        recording_size=result.recording_size,
+        replay_id=result.replay_id,
+        segment_id=0,
+        video_size=None,
+    )
