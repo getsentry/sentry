@@ -191,6 +191,7 @@ function useWidgetBuilderState(): {
 
   const dispatch = useCallback(
     (action: WidgetAction) => {
+      const currentDatasetConfig = getDatasetConfig(dataset);
       switch (action.type) {
         case BuilderStateAction.SET_TITLE:
           setTitle(action.payload);
@@ -267,10 +268,17 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1));
           } else {
             setFields(columnsWithoutAlias);
-            setYAxis([
+            const nextAggregates = [
               ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
               ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
-            ]);
+            ];
+            if (nextAggregates.length === 0) {
+              nextAggregates.push({
+                ...currentDatasetConfig.defaultField,
+                alias: undefined,
+              });
+            }
+            setYAxis(nextAggregates);
 
             if (dataset === WidgetType.RELEASE && sort?.length === 0) {
               setSort(

@@ -689,6 +689,40 @@ describe('useWidgetBuilderState', () => {
         {field: 'crash_free_rate(session)', kind: 'desc'},
       ]);
     });
+
+    it('adds the default y-axis when switching a table to a chart with no aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRANSACTIONS,
+            displayType: DisplayType.TABLE,
+            field: ['transaction'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.fields).toEqual([
+        {field: 'transaction', alias: undefined, kind: 'field'},
+      ]);
+    });
   });
 
   describe('dataset', () => {
