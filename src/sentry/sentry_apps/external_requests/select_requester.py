@@ -9,7 +9,6 @@ from django.utils.functional import cached_property
 
 from sentry.http import safe_urlread
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
-from sentry.sentry_apps.metrics import SentryAppInteractionEvent, SentryAppInteractionType
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
@@ -42,6 +41,8 @@ class SelectRequester:
     dependent_data: str | None = field(default=None)
 
     def run(self) -> SelectRequesterResult:
+        from sentry.sentry_apps.metrics import SentryAppInteractionEvent, SentryAppInteractionType
+
         response: list[dict[str, str]] = []
         url = None
 
@@ -99,7 +100,7 @@ class SelectRequester:
                     "project_slug": self.project_slug,
                     "url": url,
                 }
-                lifecycle.record_halt({"event": "select-requester.invalid-response", **extras})
+                lifecycle.record_halt(halt_reason="select-requester.invalid-response", extra=extras)
 
                 raise SentryAppIntegratorError(
                     message=f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {self.uri}",

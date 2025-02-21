@@ -17,6 +17,7 @@ class SentryAppInteractionType(StrEnum):
     # Webhook actions
     PREPARE_EVENT_WEBHOOK = "prepare_event_webhook"
     SEND_EVENT_WEBHOOK = "send_event_webhook"
+    SEND_WEBHOOK = "send_webhook"
 
     # External Requests actions
     SELECT_REQUESTER = "select_requester"
@@ -32,7 +33,7 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
     region: str | None = None
 
     def get_sentry_app_name(self) -> str:
-        return self.sentry_app_name or ""
+        return self.sentry_app.slug if self.sentry_app else ""
 
     def get_region(self) -> str:
         return self.region or ""
@@ -49,6 +50,6 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
-            "sentry_app": self.sentry_app_name,
+            "sentry_app": self.get_sentry_app_name(),
             "installation_uuid": (self.org_integration.id if self.org_integration else None),
         }

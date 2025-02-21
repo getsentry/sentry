@@ -232,7 +232,9 @@ def _process_resource_change(
             nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
             if not nodedata:
                 extra = {"sender": sender, "action": action, "event_id": instance_id}
-                lifecycle.add_extra("process_resource_change.event_missing_event", extra=extra)
+                lifecycle.record_failure(
+                    failure_reason="process_resource_change.event_missing_event", extra=extra
+                )
                 return
             instance = Event(
                 project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
@@ -259,10 +261,10 @@ def _process_resource_change(
 
         event = f"{name}.{action}"
         if event not in VALID_EVENTS:
-            lifecycle.record_extra(
-                "invalid_event", {"event_name": event, "instance_id": instance_id}
+            lifecycle.record_failure(
+                failure_reason="invalid_event",
+                extra={"event_name": event, "instance_id": instance_id},
             )
-            lifecycle.record_failure()
             return
 
         if isinstance(instance, (Group, Event, GroupEvent)):
@@ -467,21 +469,12 @@ def send_resource_change_webhook(
         lifecycle.add_extras({"installation_id": installation_id, "event": event})
         installation = app_service.installation_by_id(id=installation_id)
         if not installation:
-            lifecycle.add_extra(
-                "event",
-                "send_resource_change_webhook.missing_installation",
+            lifecycle.record_failure(
+                failure_reason="send_resource_change_webhook.missing_installation"
             )
-            lifecycle.record_failure()
             return
 
-        if send_webhooks(installation, event, data=data) is None:
-            lifecycle.add_extra(
-                "event",
-                "send_resource_change_webhook.invalid-servicehook-or-event",
-            )
-            lifecycle.record_failure()
-            return
-
+        send_webhooks(installation, event, data=data)
         metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
@@ -516,54 +509,61 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
-    servicehook: ServiceHook
-    try:
-        servicehook = ServiceHook.objects.get(
-            organization_id=installation.organization_id, actor_id=installation.id
-        )
-    except ServiceHook.DoesNotExist:
-        logger.info(
-            "send_webhooks.missing_servicehook",
-            extra={"installation_id": installation.id, "event": event},
-        )
-        return None
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK, sentry_app_installation=installation
+    ).capture() as lifecycle:
+        servicehook: ServiceHook
+        try:
+            servicehook = ServiceHook.objects.get(
+                organization_id=installation.organization_id, actor_id=installation.id
+            )
+        except ServiceHook.DoesNotExist:
+            lifecycle.record_failure(
+                failure_reason="send_webhooks.missing_servicehook",
+                extra={"installation_id": installation.id, "event": event},
+            )
+            return None
 
-    if event not in servicehook.events:
-        return None
+        if event not in servicehook.events:
+            lifecycle.record_failure(
+                failure_reason="send_webhooks.event-not-in-servicehook",
+                extra={"installation_id": installation.id, "event": event},
+            )
+            return None
 
-    # The service hook applies to all projects if there are no
-    # ServiceHookProject records. Otherwise we want check if
-    # the event is within the allowed projects.
-    project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
+        # The service hook applies to all projects if there are no
+        # ServiceHookProject records. Otherwise we want check if
+        # the event is within the allowed projects.
+        project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
 
-    # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
-    # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
-    # # Make sure we don't send the request, to prevent potential infinite loops
-    # if (
-    #     event == "error.created"
-    #     and installation.organization_id == installation.sentry_app.owner_id
-    # ):
-    #     # We just want to exclude error.created from the project that the integration lives in
-    #     # Need to first implement project mapping for integration partners
-    #     metrics.incr(
-    #         "webhook_request.dropped",
-    #         tags={"sentry_app": installation.sentry_app.id, "event": event},
-    #     )
-    #     return
+        # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
+        # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
+        # # Make sure we don't send the request, to prevent potential infinite loops
+        # if (
+        #     event == "error.created"
+        #     and installation.organization_id == installation.sentry_app.owner_id
+        # ):
+        #     # We just want to exclude error.created from the project that the integration lives in
+        #     # Need to first implement project mapping for integration partners
+        #     metrics.incr(
+        #         "webhook_request.dropped",
+        #         tags={"sentry_app": installation.sentry_app.id, "event": event},
+        #     )
+        #     return
 
-    if not project_limited:
-        resource, action = event.split(".")
+        if not project_limited:
+            resource, action = event.split(".")
 
-        kwargs["resource"] = resource
-        kwargs["action"] = action
-        kwargs["install"] = installation
+            kwargs["resource"] = resource
+            kwargs["action"] = action
+            kwargs["install"] = installation
 
-        request_data = AppPlatformEvent(**kwargs)
-        send_and_save_webhook_request(
-            installation.sentry_app,
-            request_data,
-            installation.sentry_app.webhook_url,
-        )
+            request_data = AppPlatformEvent(**kwargs)
+            send_and_save_webhook_request(
+                installation.sentry_app,
+                request_data,
+                installation.sentry_app.webhook_url,
+            )
 
 
 @instrumented_task(
