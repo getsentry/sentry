@@ -283,9 +283,9 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             # Nest seat availability errors under status. Since this is the
             # field that will trigger seat availability errors.
             if err.result is None:
-                raise serializers.ValidationError({"status": "Cannot enable uptime monitor"})
+                raise serializers.ValidationError({"status": ["Cannot enable uptime monitor"]})
             else:
-                raise serializers.ValidationError({"status": err.result.reason})
+                raise serializers.ValidationError({"status": [err.result.reason]})
         finally:
             create_audit_entry(
                 request=self.context["request"],
