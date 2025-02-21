@@ -3,12 +3,13 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
+import type {TopLevelFormatterParams} from 'echarts/types/src/component/tooltip/TooltipModel';
 import moment from 'moment-timezone';
 
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
-import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -96,48 +97,6 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
     options: {timezone},
   } = ConfigStore.get('user');
   return moment.tz(date, timezone).format(format);
-}
-
-function getRuleChangeSeries(
-  rule: MetricRule,
-  data: AreaChartSeries[],
-  theme: Theme
-): LineSeriesOption[] {
-  const {dateModified} = rule;
-  if (!data.length || !data[0]!.data.length || !dateModified) {
-    return [];
-  }
-
-  const seriesData = data[0]!.data;
-  const seriesStart = new Date(seriesData[0]!.name).getTime();
-  const ruleChanged = new Date(dateModified).getTime();
-
-  if (ruleChanged < seriesStart) {
-    return [];
-  }
-
-  return [
-    {
-      type: 'line',
-      markLine: MarkLine({
-        silent: true,
-        animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-        data: [{xAxis: ruleChanged}],
-        label: {
-          show: false,
-        },
-      }),
-      markArea: MarkArea({
-        silent: true,
-        itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
-        },
-        data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
-      }),
-      data: [],
-    },
-  ];
 }
 
 export default function MetricChart({
@@ -314,7 +273,6 @@ export default function MetricChart({
       comparisonTimeseriesData?: Series[]
     ) => {
       const {start, end} = timePeriod;
-      const {dateModified, timeWindow} = rule;
 
       if (loading || !timeseriesData) {
         return renderEmpty();
@@ -409,97 +367,13 @@ export default function MetricChart({
                       showTimeInTooltip
                       minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
                       additionalSeries={additionalSeries}
-                      tooltip={{
-                        formatter: seriesParams => {
-                          // seriesParams can be object instead of array
-                          const pointSeries = toArray(seriesParams);
-                          // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
-                          const {marker, data: pointData} = pointSeries[0];
-                          const seriesName =
-                            formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
-                          const [pointX, pointY] = pointData as [number, number];
-                          const pointYFormatted = alertTooltipValueFormatter(
-                            pointY,
-                            seriesName,
-                            rule.aggregate
-                          );
-
-                          const isModified =
-                            dateModified && pointX <= new Date(dateModified).getTime();
-
-                          const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
-                          const {period, periodLength} = parseStatsPeriod(interval) ?? {
-                            periodLength: 'm',
-                            period: `${timeWindow}`,
-                          };
-                          const endTime = formatTooltipDate(
-                            moment(pointX).add(parseInt(period!, 10), periodLength),
-                            'MMM D LT'
-                          );
-
-                          const comparisonSeries =
-                            pointSeries.length > 1
-                              ? pointSeries.find(
-                                  ({seriesName: _sn}) => _sn === comparisonSeriesName
-                                )
-                              : undefined;
-
-                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                          const comparisonPointY = comparisonSeries?.data[1] as
-                            | number
-                            | undefined;
-                          const comparisonPointYFormatted =
-                            comparisonPointY !== undefined
-                              ? alertTooltipValueFormatter(
-                                  comparisonPointY,
-                                  seriesName,
-                                  rule.aggregate
-                                )
-                              : undefined;
-
-                          const changePercentage =
-                            comparisonPointY === undefined
-                              ? NaN
-                              : ((pointY - comparisonPointY) * 100) / comparisonPointY;
-
-                          const changeStatus = getChangeStatus(
-                            changePercentage,
-                            rule.thresholdType,
-                            rule.triggers
-                          );
-
-                          const changeStatusColor =
-                            changeStatus === AlertRuleTriggerType.CRITICAL
-                              ? theme.red300
-                              : changeStatus === AlertRuleTriggerType.WARNING
-                                ? theme.yellow300
-                                : theme.green300;
-
-                          return [
-                            `<div class="tooltip-series">`,
-                            isModified &&
-                              `<div><span class="tooltip-label"><strong>${t(
-                                'Alert Rule Modified'
-                              )}</strong></span></div>`,
-                            `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
-                            comparisonSeries &&
-                              `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
-                            `</div>`,
-                            `<div class="tooltip-footer">`,
-                            `<span>${startTime} &mdash; ${endTime}</span>`,
-                            comparisonPointY !== undefined &&
-                              Math.abs(changePercentage) !== Infinity &&
-                              !isNaN(changePercentage) &&
-                              `<span style="color:${changeStatusColor};margin-left:10px;">${
-                                Math.sign(changePercentage) === 1 ? '+' : '-'
-                              }${Math.abs(changePercentage).toFixed(2)}%</span>`,
-                            `</div>`,
-                            '<div class="tooltip-arrow"></div>',
-                          ]
-                            .filter(e => e)
-                            .join('');
-                        },
-                      }}
+                      tooltip={getMetricChartTooltipFormatter({
+                        formattedAggregate,
+                        rule,
+                        interval,
+                        comparisonSeriesName,
+                        theme,
+                      })}
                     />
                   )}
                 </ChartZoom>
@@ -578,6 +452,146 @@ export default function MetricChart({
       )}
     </Fragment>
   );
+}
+
+export function getRuleChangeSeries(
+  rule: MetricRule,
+  data: AreaChartSeries[],
+  theme: Theme
+): LineSeriesOption[] {
+  const {dateModified} = rule;
+  if (!data.length || !data[0]!.data.length || !dateModified) {
+    return [];
+  }
+
+  const seriesData = data[0]!.data;
+  const seriesStart = new Date(seriesData[0]!.name).getTime();
+  const ruleChanged = new Date(dateModified).getTime();
+
+  if (ruleChanged < seriesStart) {
+    return [];
+  }
+
+  return [
+    {
+      type: 'line',
+      markLine: MarkLine({
+        silent: true,
+        animation: false,
+        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        data: [{xAxis: ruleChanged}],
+        label: {
+          show: false,
+        },
+      }),
+      markArea: MarkArea({
+        silent: true,
+        itemStyle: {
+          color: color(theme.gray100).alpha(0.42).rgb().string(),
+        },
+        data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
+      }),
+      data: [],
+    },
+  ];
+}
+
+export function getMetricChartTooltipFormatter({
+  interval,
+  rule,
+  theme,
+  comparisonSeriesName,
+  formattedAggregate,
+}: {
+  interval: string;
+  rule: MetricRule;
+  theme: Theme;
+  comparisonSeriesName?: string;
+  formattedAggregate?: string;
+}): AreaChartProps['tooltip'] {
+  const {dateModified, timeWindow} = rule;
+
+  function formatter(seriesParams: TopLevelFormatterParams) {
+    // seriesParams can be object instead of array
+    const pointSeries = toArray(seriesParams);
+    // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
+    const {marker, data: pointData} = pointSeries[0];
+    const seriesName = formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
+    const [pointX, pointY] = pointData as [number, number];
+    const pointYFormatted = alertTooltipValueFormatter(
+      pointY,
+      seriesName,
+      rule.aggregate
+    );
+
+    const isModified = dateModified && pointX <= new Date(dateModified).getTime();
+
+    const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+    const {period, periodLength} = parseStatsPeriod(interval) ?? {
+      periodLength: 'm',
+      period: `${timeWindow}`,
+    };
+    const endTime = formatTooltipDate(
+      moment(pointX).add(parseInt(period!, 10), periodLength),
+      'MMM D LT'
+    );
+
+    const comparisonSeries =
+      pointSeries.length > 1
+        ? pointSeries.find(({seriesName: _sn}) => _sn === comparisonSeriesName)
+        : undefined;
+
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
+    const comparisonPointYFormatted =
+      comparisonPointY !== undefined
+        ? alertTooltipValueFormatter(comparisonPointY, seriesName, rule.aggregate)
+        : undefined;
+
+    const changePercentage =
+      comparisonPointY === undefined
+        ? NaN
+        : ((pointY - comparisonPointY) * 100) / comparisonPointY;
+
+    const changeStatus = getChangeStatus(
+      changePercentage,
+      rule.thresholdType,
+      rule.triggers
+    );
+
+    const changeStatusColor =
+      changeStatus === AlertRuleTriggerType.CRITICAL
+        ? theme.red300
+        : changeStatus === AlertRuleTriggerType.WARNING
+          ? theme.yellow300
+          : theme.green300;
+
+    return [
+      `<div class="tooltip-series">`,
+      isModified &&
+        `<div><span class="tooltip-label"><strong>${t(
+          'Alert Rule Modified'
+        )}</strong></span></div>`,
+      `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
+      comparisonSeries &&
+        `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+      `</div>`,
+      `<div class="tooltip-footer">`,
+      `<span>${startTime} &mdash; ${endTime}</span>`,
+      comparisonPointY !== undefined &&
+        Math.abs(changePercentage) !== Infinity &&
+        !isNaN(changePercentage) &&
+        `<span style="color:${changeStatusColor};margin-left:10px;">${
+          Math.sign(changePercentage) === 1 ? '+' : '-'
+        }${Math.abs(changePercentage).toFixed(2)}%</span>`,
+      `</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ]
+      .filter(e => e)
+      .join('');
+  }
+
+  return {formatter};
 }
 
 const ChartPanel = styled(Panel)`
