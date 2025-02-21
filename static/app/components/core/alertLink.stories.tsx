@@ -1,160 +1,118 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 
-import AlertLink from 'sentry/components/core/alertLink';
+import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alertLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import {IconSentry} from 'sentry/icons';
+import {IconMail} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('AlertLink', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/core/alertLink';
+
+const DUMMY_LINK = '/stories';
+
+const ALERT_LINK_VARIANTS: Array<AlertLinkProps['type']> = [
+  'info',
+  'warning',
+  'success',
+  'error',
+  'muted',
+];
+
+export default storyBook('AlertLink', (story, APIReference) => {
+  APIReference(types.AlertLink);
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="AlertLink" /> component is a highlighted banner that links to
-          some other page (or component). Depending on the{' '}
-          <JSXProperty name="priority" value /> prop specified, it can be used as a
-          success alert, an error or warning alert, and for various other use cases.
+          The <JSXNode name="AlertLink" /> component is a type of <JSXNode name="Alert" />
+          . The primary use case is when you want the entire alert to be a link.
         </p>
         <p>
           The default <JSXNode name="AlertLink" /> looks like this:
         </p>
-        <AlertLink href="https://sentry.io/welcome">
+        {ALERT_LINK_VARIANTS.map(variant => (
+          <AlertLink key={variant} type={variant} to={DUMMY_LINK}>
+            Clicking this link will not open in a new tab!
+          </AlertLink>
+        ))}
+      </Fragment>
+    );
+  });
+
+  story('Internal, External, and Manual Links', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXNode name="AlertLink" /> component can be used as an external link, an
+          internal link, or a manual link (by specifying a{' '}
+          <JSXProperty name="onClick" value /> prop). Currently, only the{' '}
+          <JSXNode name="ExternalLink" /> component supports the{' '}
+          <JSXProperty name="openInNewTab" value /> prop - this prop is not supported for
+          internal or manual links.{' '}
+        </p>
+
+        <p>
+          AlertLink as an external link using{' '}
+          <JSXProperty name="href" value={`https://santry.io${DUMMY_LINK}`} />
+          and <JSXProperty name="openInNewTab" value />:
+        </p>
+        <AlertLink type="info" href={`https://santry.io/${DUMMY_LINK}`} openInNewTab>
+          Info Link
+        </AlertLink>
+        <p>
+          AlertLink as an internal link using <JSXProperty name="to" value={DUMMY_LINK} />
+          :
+        </p>
+        <AlertLink type="info" to={DUMMY_LINK}>
+          Info Link
+        </AlertLink>
+        <p>
+          AlertLink as a manual link using{' '}
+          <JSXProperty name="onClick" value={`() => window.alert('Clicked!')`} />:
+        </p>
+        {/* eslint-disable-next-line */}
+        <AlertLink type="info" onClick={() => window.alert('Clicked!')}>
+          Info Link
+        </AlertLink>
+      </Fragment>
+    );
+  });
+  story('With Custom Icon', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXNode name="AlertLink" /> component can also be used with a custom icon.
+          The icon can be overriden by passing a{' '}
+          <JSXProperty name="trailingItems" value={'<IconMail />'} /> prop.
+        </p>
+        <AlertLink type="info" to={DUMMY_LINK} trailingItems={<IconMail />}>
           Clicking this link will not open in a new tab!
         </AlertLink>
-        <p>
-          The default props are <JSXProperty name="size" value="normal" />,{' '}
-          <JSXProperty name="priority" value="warning" />,{' '}
-          <JSXProperty name="withoutMarginBottom" value="false" />, and{' '}
-          <JSXProperty name="openInNewTab" value="false" />.
-        </p>
-        <p>
-          This alert below has <JSXProperty name="openInNewTab" value="true" />:
-        </p>
-        <AlertLink href="https://sentry.io/welcome" openInNewTab>
-          Clicking this link WILL open in a new tab!
-        </AlertLink>
       </Fragment>
     );
   });
 
-  story('priority', () => {
+  story('AlertLink.Container', () => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="priority" value /> prop specifies the alert category, and
-          changes the color of the alert.
+          The <JSXNode name="AlertLink.Container" /> component is a container for one or
+          multiple <JSXNode name="AlertLink" /> components. It manages margins between the
+          links.
         </p>
-        <AlertLink priority="error">
-          This is an error alert. Something went wrong.
-        </AlertLink>
-        <AlertLink priority="info">Info alert. Put some exciting info here.</AlertLink>
-        <AlertLink priority="muted">Muted alerts look like this.</AlertLink>
-        <AlertLink priority="success">Success alert. Yay!</AlertLink>
-        <AlertLink priority="warning">
-          Warning alert. Something is about to go wrong, probably.
-        </AlertLink>
-      </Fragment>
-    );
-  });
-
-  story('icon', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="icon" value /> prop can be specified if you want to add
-          an icon to the alert. Just directly pass in the icon, like{' '}
-          <JSXNode name="IconSentry" /> for example, to the prop.
-        </p>
-        <AlertLink priority="warning" icon={<IconSentry />}>
-          Read the docs.
-        </AlertLink>
-      </Fragment>
-    );
-  });
-
-  story('system', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="system" value /> prop is a boolean that's{' '}
-          <code>false</code> by default.
-        </p>
-        <AlertLink>The default style.</AlertLink>
-        <AlertLink system>This is in the system style.</AlertLink>
-      </Fragment>
-    );
-  });
-
-  story('withoutMarginBottom', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="withoutMarginBottom" value /> prop is a boolean that's{' '}
-          <code>false</code> by default.
-        </p>
-        <AlertLink withoutMarginBottom>This one has no bottom margin.</AlertLink>
-        <AlertLink>This one has bottom margin by default.</AlertLink>
-        <AlertLink withoutMarginBottom>This one has no margin bottom.</AlertLink>
-      </Fragment>
-    );
-  });
-
-  story('size', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="size" value /> prop can be either <code>"small"</code> or{' '}
-          <code>"normal"</code>.{' '}
-        </p>
-        <AlertLink priority="info" size="normal">
-          Normal
-        </AlertLink>
-        <AlertLink priority="info" size="small">
-          Small
-        </AlertLink>
-      </Fragment>
-    );
-  });
-
-  story('to vs href vs onClick', () => {
-    const [count, setCount] = useState(0);
-    return (
-      <Fragment>
-        <p>
-          There are three ways to specify what should happen when the{' '}
-          <JSXNode name="AlertLink" /> is clicked.{' '}
-        </p>
-        <p>
-          The <JSXProperty name="to" value /> prop should be used for internal links.
-          Note: links specified with this prop will never open in a new tab, even if you
-          set
-          <JSXProperty name="openInNewTab" value="true" /> .
-        </p>
-        <AlertLink
-          priority="info"
-          size="normal"
-          to="/stories/?name=app/components/badge.stories.tsx"
-        >
-          View the badge story page
-        </AlertLink>
-        <p>
-          The <JSXProperty name="href" value /> prop should be used for external links.
-        </p>
-        <AlertLink
-          priority="info"
-          size="normal"
-          href="https://sentry.io/for/session-replay/"
-          openInNewTab
-        >
-          Learn more about Session Replay
-        </AlertLink>
-        <p>
-          Lastly, you can get creative with the <JSXProperty name="onClick" value /> prop.
-        </p>
-        <AlertLink priority="info" size="normal" onClick={() => setCount(count + 1)}>
-          You clicked this {count} times.
-        </AlertLink>
+        <AlertLink.Container>
+          <AlertLink type="info" to={DUMMY_LINK}>
+            Multiple AlertLinks
+          </AlertLink>
+          <AlertLink type="info" href={DUMMY_LINK} openInNewTab={false}>
+            Are nicely spaced out
+          </AlertLink>
+          {/* eslint-disable-next-line */}
+          <AlertLink type="info" onClick={() => window.alert('Clicked!')}>
+            ... all of them
+          </AlertLink>
+        </AlertLink.Container>
       </Fragment>
     );
   });
