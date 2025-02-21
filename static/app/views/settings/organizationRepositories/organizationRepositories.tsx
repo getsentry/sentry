@@ -1,5 +1,5 @@
-import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
+import AlertLink from 'sentry/components/core/alertLink';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
