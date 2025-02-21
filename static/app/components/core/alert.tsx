@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+import {unreachable} from 'sentry/utils/unreachable';
 
 import * as ChonkAlert from './alert.chonk';
 
@@ -152,8 +153,9 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     default:
       unreachable(type);
-      throw new Error(`Invalid alert type, got ${type}`);
   }
+
+  throw new Error(`Invalid alert type, got ${type}`);
 }
 
 const AlertPanel = styled('div')<
@@ -265,12 +267,6 @@ const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boo
     grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
   }
 `;
-
-// Dont return never just because we are throwing an error and TS will think the code
-// is unreachable and try suggest us to remove it.
-function unreachable(x: never) {
-  return x;
-}
 
 function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {

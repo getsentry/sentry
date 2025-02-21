@@ -3,6 +3,7 @@ import {css, type SerializedStyles} from '@emotion/react';
 import type {AlertProps} from 'sentry/components/core/alert';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
+import {unreachable} from 'sentry/utils/unreachable';
 
 const chonkAlertPropMapping: ChonkPropMapping<AlertProps, ChonkAlertProps> = props => {
   return {
@@ -94,10 +95,6 @@ function makeChonkAlertTheme(
   }
 
   throw new TypeError(`Invalid alert type, got ${type}`);
-}
-
-function unreachable(x: never) {
-  return x;
 }
 
 export {AlertPanel, chonkAlertPropMapping};
