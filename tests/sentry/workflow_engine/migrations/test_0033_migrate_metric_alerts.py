@@ -27,8 +27,8 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class MigrateMetricAlertTest(TestMigrations):
-    migrate_from = "0031_make_detector_project_non_nullable"
-    migrate_to = "0032_migrate_metric_alerts"
+    migrate_from = "0032_remove_data_source_query_id"
+    migrate_to = "0033_migrate_metric_alerts"
     app = "workflow_engine"
 
     def setUp(self):
