@@ -562,8 +562,11 @@ export default function MetricChart({
       end={viableEndDate}
       query={query}
       interval={interval}
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
+      field={
+        SESSION_AGGREGATE_TO_FIELD[aggregate]
+          ? [SESSION_AGGREGATE_TO_FIELD[aggregate]]
+          : []
+      }
       groupBy={['session.status']}
     >
       {({loading, response}) =>

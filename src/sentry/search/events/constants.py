@@ -376,6 +376,8 @@ DEFAULT_METRIC_TAGS = {
     "span.op",
     "trace.status",
     "messaging.destination.name",
+    "messaging.operation.name",
+    "messaging.operation.type",
 }
 SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
