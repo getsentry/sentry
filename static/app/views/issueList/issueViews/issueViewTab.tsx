@@ -7,35 +7,35 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import EditableTabTitlePF from 'sentry/views/issueList/issueViewsPF/editableTabTitlePF';
-import {IssueViewEllipsisMenuPF} from 'sentry/views/issueList/issueViewsPF/issueViewEllipsisMenuPF';
-import {IssueViewQueryCountPF} from 'sentry/views/issueList/issueViewsPF/issueViewQueryCountPF';
+import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
+import {IssueViewEllipsisMenu} from 'sentry/views/issueList/issueViews/issueViewEllipsisMenu';
+import {IssueViewQueryCount} from 'sentry/views/issueList/issueViews/issueViewQueryCount';
 import {
   generateTempViewId,
-  type IssueViewPF,
-  IssueViewsPFContext,
+  type IssueView,
+  IssueViewsContext,
   TEMPORARY_TAB_KEY,
-} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+} from 'sentry/views/issueList/issueViews/issueViews';
 
-interface IssueViewPFTabProps {
+interface IssueViewTabProps {
   editingTabKey: string | null;
   initialTabKey: string;
   router: InjectedRouter;
   setEditingTabKey: (key: string | null) => void;
-  view: IssueViewPF;
+  view: IssueView;
 }
 
-export function IssueViewPFTab({
+export function IssueViewTab({
   editingTabKey,
   initialTabKey,
   router,
   setEditingTabKey,
   view,
-}: IssueViewPFTabProps) {
+}: IssueViewTabProps) {
   const navigate = useNavigate();
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
-  const {tabListState, state, dispatch} = useContext(IssueViewsPFContext);
+  const {tabListState, state, dispatch} = useContext(IssueViewsContext);
   const {views} = state;
 
   const handleDuplicateView = () => {
@@ -79,7 +79,7 @@ export function IssueViewPFTab({
     }
   };
 
-  const handleDeleteView = (tab: IssueViewPF) => {
+  const handleDeleteView = (tab: IssueView) => {
     dispatch({type: 'DELETE_VIEW', syncViews: true});
     // Including this logic in the dispatch call breaks the tests for some reason
     // so we're doing it here instead
@@ -101,7 +101,7 @@ export function IssueViewPFTab({
     });
   };
 
-  const makeMenuOptions = (tab: IssueViewPF): MenuItemProps[] => {
+  const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
         onSaveTempView: handleSaveTempView,
@@ -126,7 +126,7 @@ export function IssueViewPFTab({
 
   return (
     <TabContentWrap>
-      <EditableTabTitlePF
+      <EditableTabTitle
         label={view.label}
         isEditing={editingTabKey === view.key}
         setIsEditing={isEditing => setEditingTabKey(isEditing ? view.key : null)}
@@ -139,7 +139,7 @@ export function IssueViewPFTab({
         }
         disableEditing={view.key === TEMPORARY_TAB_KEY}
       />
-      <IssueViewQueryCountPF view={view} />
+      <IssueViewQueryCount view={view} />
       {/* If tablistState isn't initialized, we want to load the elipsis menu
           for the initial tab, that way it won't load in a second later
           and cause the tabs to shift and animate on load. */}
@@ -152,7 +152,7 @@ export function IssueViewPFTab({
           animate={{opacity: 1}}
           transition={{delay: 0.1, duration: 0.1}}
         >
-          <IssueViewEllipsisMenuPF
+          <IssueViewEllipsisMenu
             hasUnsavedChanges={!!view.unsavedChanges}
             menuOptions={makeMenuOptions(view)}
             aria-label={t(`%s Ellipsis Menu`, view.label)}

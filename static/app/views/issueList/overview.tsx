@@ -49,7 +49,7 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
@@ -1083,7 +1083,7 @@ function IssueListOverview({router}: Props) {
         {!hasLeftNavIssueViews &&
           (organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <IssueViewsPFIssueListHeader
+              <IssueViewsIssueListHeader
                 router={router}
                 selectedProjectIds={selection.projects}
                 realtimeActive={realtimeActive}

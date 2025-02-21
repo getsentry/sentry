@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
-import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -127,7 +127,7 @@ describe('IssueViewsHeader', () => {
     });
 
     it('renders all tabs, selects the first one by default, and replaces the query params accordingly', async () => {
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });
@@ -163,7 +163,7 @@ describe('IssueViewsHeader', () => {
 
     it('renders the first tab with the projects from the query params if no other query params are present', async () => {
       render(
-        <IssueViewsPFIssueListHeader {...defaultProps} router={projectsOnlyRouter} />,
+        <IssueViewsIssueListHeader {...defaultProps} router={projectsOnlyRouter} />,
         {
           organization,
           router: projectsOnlyRouter,
@@ -206,7 +206,7 @@ describe('IssueViewsHeader', () => {
         ],
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });
@@ -250,7 +250,7 @@ describe('IssueViewsHeader', () => {
         ],
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         organization,
         router: queryOnlyRouter,
       });
@@ -282,13 +282,10 @@ describe('IssueViewsHeader', () => {
         }),
       });
 
-      render(
-        <IssueViewsPFIssueListHeader {...defaultProps} router={specificTabRouter} />,
-        {
-          organization,
-          router: specificTabRouter,
-        }
-      );
+      render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
+        organization,
+        router: specificTabRouter,
+      });
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
         'aria-selected',
@@ -307,7 +304,7 @@ describe('IssueViewsHeader', () => {
     });
 
     it('initially selects a temporary tab when only a query is present in the url', async () => {
-      render(<IssueViewsPFIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         organization,
         router: queryOnlyRouter,
       });
@@ -341,13 +338,10 @@ describe('IssueViewsHeader', () => {
           },
         }),
       });
-      render(
-        <IssueViewsPFIssueListHeader {...defaultProps} router={specificTabRouter} />,
-        {
-          organization,
-          router: specificTabRouter,
-        }
-      );
+      render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
+        organization,
+        router: specificTabRouter,
+      });
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
@@ -403,7 +397,7 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsPFIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={defaultTabDifferentQueryRouter}
         />,
@@ -440,7 +434,7 @@ describe('IssueViewsHeader', () => {
     });
 
     it('switches tabs when clicked, and updates the query params accordingly', async () => {
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });
@@ -483,7 +477,7 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsPFIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedQueryRouter}
         />,
@@ -520,7 +514,7 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsPFIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedSortRouter}
         />,
@@ -557,7 +551,7 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsPFIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedProjectsRouter}
         />,
@@ -579,7 +573,7 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsPFIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedEnvironmentsRouter}
         />,
@@ -601,7 +595,7 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsPFIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedTimeFiltersRouter}
         />,
@@ -634,7 +628,7 @@ describe('IssueViewsHeader', () => {
         body: getRequestViews,
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {organization});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {organization});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -665,12 +659,9 @@ describe('IssueViewsHeader', () => {
         body: getRequestViews,
       });
 
-      render(
-        <IssueViewsPFIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
-        {
-          organization,
-        }
-      );
+      render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
+        organization,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -700,7 +691,7 @@ describe('IssueViewsHeader', () => {
         body: [getRequestViews[0]],
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {organization});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {organization});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -734,7 +725,7 @@ describe('IssueViewsHeader', () => {
           body: getRequestViews,
         });
 
-        render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
           router: defaultRouter,
         });
@@ -781,7 +772,7 @@ describe('IssueViewsHeader', () => {
           body: getRequestViews,
         });
 
-        render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
           router: defaultRouter,
         });
@@ -834,7 +825,7 @@ describe('IssueViewsHeader', () => {
           body: getRequestViews,
         });
 
-        render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
           router: defaultRouter,
         });
@@ -875,7 +866,7 @@ describe('IssueViewsHeader', () => {
         });
 
         render(
-          <IssueViewsPFIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
           {organization, router: unsavedTabRouter}
         );
 
@@ -915,7 +906,7 @@ describe('IssueViewsHeader', () => {
         });
 
         render(
-          <IssueViewsPFIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
           {organization, router: unsavedTabRouter}
         );
 
@@ -965,7 +956,7 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });
@@ -989,7 +980,7 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });
@@ -1016,7 +1007,7 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });
@@ -1041,7 +1032,7 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
       });

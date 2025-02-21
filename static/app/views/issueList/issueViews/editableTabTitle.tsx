@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Tooltip} from 'sentry/components/tooltip';
 
-interface EditableTabTitlePFProps {
+interface EditableTabTitleProps {
   isEditing: boolean;
   isSelected: boolean;
   label: string;
@@ -15,14 +15,14 @@ interface EditableTabTitlePFProps {
   disableEditing?: boolean;
 }
 
-function EditableTabTitlePF({
+function EditableTabTitle({
   label,
   onChange,
   isEditing,
   isSelected,
   setIsEditing,
   disableEditing,
-}: EditableTabTitlePFProps) {
+}: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
 
   useEffect(() => {
@@ -136,7 +136,7 @@ function EditableTabTitlePF({
   );
 }
 
-export default EditableTabTitlePF;
+export default EditableTabTitle;
 
 const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
   height: 20px;

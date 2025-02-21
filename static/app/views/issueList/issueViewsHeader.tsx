@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {DraggableTabListPF} from 'sentry/components/draggableTabs/draggableTabListPF';
+import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,19 +28,19 @@ import {
   DEFAULT_ENVIRONMENTS,
   DEFAULT_TIME_FILTERS,
   generateTempViewId,
-  type IssueViewPF,
-  type IssueViewPFParams,
-  IssueViewsPF,
-  IssueViewsPFContext,
+  type IssueView,
+  type IssueViewParams,
+  IssueViews,
+  IssueViewsContext,
   TEMPORARY_TAB_KEY,
-} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
-import {IssueViewPFTab} from 'sentry/views/issueList/issueViewsPF/issueViewTabPF';
+} from 'sentry/views/issueList/issueViews/issueViews';
+import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
 
-type IssueViewsPFIssueListHeaderProps = {
+type IssueViewsIssueListHeaderProps = {
   onRealtimeChange: (realtime: boolean) => void;
   realtimeActive: boolean;
   router: InjectedRouter;
@@ -51,12 +51,12 @@ type IssueViewsIssueListHeaderTabsContentProps = {
   router: InjectedRouter;
 };
 
-function IssueViewsPFIssueListHeader({
+function IssueViewsIssueListHeader({
   selectedProjectIds,
   realtimeActive,
   onRealtimeChange,
   router,
-}: IssueViewsPFIssueListHeaderProps) {
+}: IssueViewsIssueListHeaderProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const selectedProjects = projects.filter(({id}) =>
@@ -146,7 +146,7 @@ function IssueViewsPFIssueListHeader({
                 isAllProjects,
               },
               index
-            ): IssueViewPF => {
+            ): IssueView => {
               const tabId = id ?? `default${index.toString()}`;
 
               return {
@@ -180,7 +180,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const location = useLocation();
 
   const {newViewActive, setNewViewActive} = useContext(NewTabContext);
-  const {tabListState, state, dispatch, defaultProject} = useContext(IssueViewsPFContext);
+  const {tabListState, state, dispatch, defaultProject} = useContext(IssueViewsContext);
   const {views, tempView} = state;
 
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
@@ -274,7 +274,7 @@ function IssueViewsIssueListHeaderTabsContent({
           ? (sort as IssueSortOptions)
           : undefined;
 
-        const newUnsavedChanges: Partial<IssueViewPFParams> = {
+        const newUnsavedChanges: Partial<IssueViewParams> = {
           query: query === originalQuery ? undefined : query,
           querySort: sort === originalSort ? undefined : issueSortOption,
           projects: isEqual(queryProjects?.sort(), originalProjects.sort())
@@ -455,7 +455,7 @@ function IssueViewsIssueListHeaderTabsContent({
         : views[0]!.key;
 
   return (
-    <DraggableTabListPF
+    <DraggableTabList
       onReorder={(newOrder: Array<Node<DraggableTabListItemProps>>) =>
         dispatch({
           type: 'REORDER_TABS',
@@ -470,7 +470,7 @@ function IssueViewsIssueListHeaderTabsContent({
       hideBorder
     >
       {allTabs.map(view => (
-        <DraggableTabListPF.Item
+        <DraggableTabList.Item
           textValue={view.label}
           key={view.key}
           to={normalizeUrl({
@@ -491,7 +491,7 @@ function IssueViewsIssueListHeaderTabsContent({
           })}
           disabled={view.key === editingTabKey}
         >
-          <IssueViewPFTab
+          <IssueViewTab
             key={view.key}
             view={view}
             initialTabKey={initialTabKey}
@@ -499,13 +499,13 @@ function IssueViewsIssueListHeaderTabsContent({
             editingTabKey={editingTabKey}
             setEditingTabKey={setEditingTabKey}
           />
-        </DraggableTabListPF.Item>
+        </DraggableTabList.Item>
       ))}
-    </DraggableTabListPF>
+    </DraggableTabList>
   );
 }
 
-export default IssueViewsPFIssueListHeader;
+export default IssueViewsIssueListHeader;
 
 /**
  * Normalizes the project and environment query params to arrays of strings and numbers.
@@ -536,7 +536,7 @@ export const normalizeProjectsEnvironments = (
   return {queryEnvs, queryProjects};
 };
 
-const StyledIssueViews = styled(IssueViewsPF)`
+const StyledIssueViews = styled(IssueViews)`
   grid-column: 1 / -1;
 `;
 

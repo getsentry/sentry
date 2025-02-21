@@ -51,7 +51,7 @@ export const generateTempViewId = () => `_${Math.random().toString().substring(2
  * Changes to these properties are not automatically saved and can
  * trigger the unsaved changes indicator.
  */
-export interface IssueViewPFParams {
+export interface IssueViewParams {
   environments: string[];
   projects: number[];
   query: string;
@@ -59,7 +59,7 @@ export interface IssueViewPFParams {
   timeFilters: PageFilters['datetime'];
 }
 
-export interface IssueViewPF extends IssueViewPFParams {
+export interface IssueView extends IssueViewParams {
   id: string;
   /**
    * False for tabs that were added view the "Add View" button, but
@@ -70,7 +70,7 @@ export interface IssueViewPF extends IssueViewPFParams {
   key: string;
   label: string;
   content?: React.ReactNode;
-  unsavedChanges?: Partial<IssueViewPFParams>;
+  unsavedChanges?: Partial<IssueViewParams>;
 }
 
 type BaseIssueViewsAction = {
@@ -128,7 +128,7 @@ type SaveTempViewAction = {
 type UpdateUnsavedChangesAction = {
   type: 'UPDATE_UNSAVED_CHANGES';
   // Explicitly typed as | undefined instead of optional to make it clear that `undefined` = no unsaved changes
-  unsavedChanges: Partial<IssueViewPFParams> | undefined;
+  unsavedChanges: Partial<IssueViewParams> | undefined;
   isCommitted?: boolean;
 } & BaseIssueViewsAction;
 
@@ -139,7 +139,7 @@ type UpdateViewIdsAction = {
 
 type SetViewsAction = {
   type: 'SET_VIEWS';
-  views: IssueViewPF[];
+  views: IssueView[];
 } & BaseIssueViewsAction;
 
 type SyncViewsToBackendAction = {
@@ -175,18 +175,18 @@ const ACTION_ANALYTICS_MAP: Partial<Record<IssueViewsActions['type'], string>> =
   CREATE_NEW_VIEW: 'issue_views.add_view.clicked',
 };
 
-export interface IssueViewsPFState {
-  views: IssueViewPF[];
-  tempView?: IssueViewPF;
+export interface IssueViewsState {
+  views: IssueView[];
+  tempView?: IssueView;
 }
 
-export interface IssueViewsPFContextType extends TabContext {
+export interface IssueViewsContextType extends TabContext {
   defaultProject: number[];
   dispatch: Dispatch<IssueViewsActions>;
-  state: IssueViewsPFState;
+  state: IssueViewsState;
 }
 
-export const IssueViewsPFContext = createContext<IssueViewsPFContextType>({
+export const IssueViewsContext = createContext<IssueViewsContextType>({
   rootProps: {orientation: 'horizontal'},
   setTabListState: () => {},
   // Issue Views specific state
@@ -195,8 +195,8 @@ export const IssueViewsPFContext = createContext<IssueViewsPFContextType>({
   defaultProject: [],
 });
 
-function reorderTabs(state: IssueViewsPFState, action: ReorderTabsAction) {
-  const newTabs: IssueViewPF[] = action.newKeyOrder
+function reorderTabs(state: IssueViewsState, action: ReorderTabsAction) {
+  const newTabs: IssueView[] = action.newKeyOrder
     .map(key => {
       const foundTab = state.views.find(tab => tab.key === key);
       return foundTab?.key === key ? foundTab : null;
@@ -205,7 +205,7 @@ function reorderTabs(state: IssueViewsPFState, action: ReorderTabsAction) {
   return {...state, views: newTabs};
 }
 
-function saveChanges(state: IssueViewsPFState, tabListState: TabListState<any>) {
+function saveChanges(state: IssueViewsState, tabListState: TabListState<any>) {
   const originalTab = state.views.find(tab => tab.key === tabListState?.selectedKey);
   if (originalTab) {
     const newViews = state.views.map(tab => {
@@ -226,7 +226,7 @@ function saveChanges(state: IssueViewsPFState, tabListState: TabListState<any>) 
   return state;
 }
 
-function discardChanges(state: IssueViewsPFState, tabListState: TabListState<any>) {
+function discardChanges(state: IssueViewsState, tabListState: TabListState<any>) {
   const originalTab = state.views.find(tab => tab.key === tabListState?.selectedKey);
   if (originalTab) {
     const newViews = state.views.map(tab => {
@@ -240,7 +240,7 @@ function discardChanges(state: IssueViewsPFState, tabListState: TabListState<any
 }
 
 function renameView(
-  state: IssueViewsPFState,
+  state: IssueViewsState,
   action: RenameTabAction,
   tabListState: TabListState<any>
 ) {
@@ -257,14 +257,14 @@ function renameView(
 }
 
 function duplicateView(
-  state: IssueViewsPFState,
+  state: IssueViewsState,
   action: DuplicateViewAction,
   tabListState: TabListState<any>
 ) {
   const idx = state.views.findIndex(tb => tb.key === tabListState?.selectedKey);
   if (idx !== -1) {
     const duplicatedTab = state.views[idx]!;
-    const newTabs: IssueViewPF[] = [
+    const newTabs: IssueView[] = [
       ...state.views.slice(0, idx + 1),
       {
         ...duplicatedTab,
@@ -280,17 +280,17 @@ function duplicateView(
   return state;
 }
 
-function deleteView(state: IssueViewsPFState, tabListState: TabListState<any>) {
+function deleteView(state: IssueViewsState, tabListState: TabListState<any>) {
   const newViews = state.views.filter(tab => tab.key !== tabListState?.selectedKey);
   return {...state, views: newViews};
 }
 
 function createNewView(
-  state: IssueViewsPFState,
+  state: IssueViewsState,
   action: CreateNewViewAction,
   defaultProject: number[]
 ) {
-  const newTabs: IssueViewPF[] = [
+  const newTabs: IssueView[] = [
     ...state.views,
     {
       id: action.tempId,
@@ -308,11 +308,11 @@ function createNewView(
 }
 
 function setTempView(
-  state: IssueViewsPFState,
+  state: IssueViewsState,
   action: SetTempViewAction,
   defaultProject: number[]
 ) {
-  const tempView: IssueViewPF = {
+  const tempView: IssueView = {
     id: TEMPORARY_TAB_KEY,
     key: TEMPORARY_TAB_KEY,
     label: t('Unsaved'),
@@ -326,18 +326,18 @@ function setTempView(
   return {...state, tempView};
 }
 
-function discardTempView(state: IssueViewsPFState, tabListState: TabListState<any>) {
+function discardTempView(state: IssueViewsState, tabListState: TabListState<any>) {
   tabListState?.setSelectedKey(state.views[0]!.key);
   return {...state, tempView: undefined};
 }
 
 function saveTempView(
-  state: IssueViewsPFState,
+  state: IssueViewsState,
   action: SaveTempViewAction,
   tabListState: TabListState<any>
 ) {
   if (state.tempView) {
-    const newTab: IssueViewPF = {
+    const newTab: IssueView = {
       id: action.newViewId,
       key: action.newViewId,
       label: 'New View',
@@ -355,7 +355,7 @@ function saveTempView(
 }
 
 function updateUnsavedChanges(
-  state: IssueViewsPFState,
+  state: IssueViewsState,
   action: UpdateUnsavedChangesAction,
   tabListState: TabListState<any>
 ) {
@@ -373,7 +373,7 @@ function updateUnsavedChanges(
   };
 }
 
-function updateViewIds(state: IssueViewsPFState, action: UpdateViewIdsAction) {
+function updateViewIds(state: IssueViewsState, action: UpdateViewIdsAction) {
   const assignedIds = new Set();
   const updatedViews = state.views.map(tab => {
     if (tab.id && tab.id[0] === '_') {
@@ -395,23 +395,23 @@ function updateViewIds(state: IssueViewsPFState, action: UpdateViewIdsAction) {
   return {...state, views: updatedViews};
 }
 
-function setViews(state: IssueViewsPFState, action: SetViewsAction) {
+function setViews(state: IssueViewsState, action: SetViewsAction) {
   return {...state, views: action.views};
 }
 
-interface IssueViewsPFStateProviderProps extends Omit<TabsProps<any>, 'children'> {
+interface IssueViewsStateProviderProps extends Omit<TabsProps<any>, 'children'> {
   children: React.ReactNode;
-  initialViews: IssueViewPF[];
+  initialViews: IssueView[];
   // TODO(msun): Replace router with useLocation() / useUrlParams() / useSearchParams() in the future
   router: InjectedRouter;
 }
 
-export function IssueViewsPFStateProvider({
+export function IssueViewsStateProvider({
   children,
   initialViews,
   router,
   ...props
-}: IssueViewsPFStateProviderProps) {
+}: IssueViewsStateProviderProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
@@ -481,7 +481,7 @@ export function IssueViewsPFStateProvider({
 
   const debounceUpdateViews = useMemo(
     () =>
-      debounce((newTabs: IssueViewPF[]) => {
+      debounce((newTabs: IssueView[]) => {
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
@@ -507,8 +507,8 @@ export function IssueViewsPFStateProvider({
     [organization.slug, updateViews]
   );
 
-  const reducer: Reducer<IssueViewsPFState, IssueViewsActions> = useCallback(
-    (state, action): IssueViewsPFState => {
+  const reducer: Reducer<IssueViewsState, IssueViewsActions> = useCallback(
+    (state, action): IssueViewsState => {
       if (!tabListState) {
         return state;
       }
@@ -553,7 +553,7 @@ export function IssueViewsPFStateProvider({
       ? (sort.toString() as IssueSortOptions)
       : IssueSortOptions.DATE;
 
-  const initialTempView: IssueViewPF | undefined =
+  const initialTempView: IssueView | undefined =
     query && (!viewId || !initialViews.find(tab => tab.id === viewId))
       ? {
           id: TEMPORARY_TAB_KEY,
@@ -598,9 +598,9 @@ export function IssueViewsPFStateProvider({
       }
       setNewViewActive(false);
       const {label, query: newQuery, saveQueryToView} = newViews[0]!;
-      const remainingNewViews: IssueViewPF[] = newViews.slice(1)?.map(view => {
+      const remainingNewViews: IssueView[] = newViews.slice(1)?.map(view => {
         const newId = generateTempViewId();
-        const viewToTab: IssueViewPF = {
+        const viewToTab: IssueView = {
           id: newId,
           key: newId,
           label: view.label,
@@ -622,7 +622,7 @@ export function IssueViewsPFStateProvider({
         };
         return viewToTab;
       });
-      let updatedTabs: IssueViewPF[] = state.views.map(tab => {
+      let updatedTabs: IssueView[] = state.views.map(tab => {
         if (tab.key === viewId) {
           return {
             ...tab,
@@ -674,7 +674,7 @@ export function IssueViewsPFStateProvider({
   }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   return (
-    <IssueViewsPFContext.Provider
+    <IssueViewsContext.Provider
       value={{
         rootProps: {...restProps, orientation: 'horizontal'},
         tabListState,
@@ -685,24 +685,24 @@ export function IssueViewsPFStateProvider({
       }}
     >
       {children}
-    </IssueViewsPFContext.Provider>
+    </IssueViewsContext.Provider>
   );
 }
 
-export function IssueViewsPF<T extends string | number>({
+export function IssueViews<T extends string | number>({
   orientation = 'horizontal',
   className,
   children,
   initialViews,
   router,
   ...props
-}: TabsProps<T> & Omit<IssueViewsPFStateProviderProps, 'children'>) {
+}: TabsProps<T> & Omit<IssueViewsStateProviderProps, 'children'>) {
   return (
-    <IssueViewsPFStateProvider initialViews={initialViews} router={router} {...props}>
+    <IssueViewsStateProvider initialViews={initialViews} router={router} {...props}>
       <TabsWrap orientation={orientation} className={className}>
         {children}
       </TabsWrap>
-    </IssueViewsPFStateProvider>
+    </IssueViewsStateProvider>
   );
 }
 

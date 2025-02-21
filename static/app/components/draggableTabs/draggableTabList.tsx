@@ -34,14 +34,14 @@ import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  IssueViewsPFContext,
+  IssueViewsContext,
   TEMPORARY_TAB_KEY,
-} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+} from 'sentry/views/issueList/issueViews/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 
-interface BaseDraggableTabListProps extends DraggableTabListPFProps {
+interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
 }
 
@@ -278,7 +278,7 @@ function BaseDraggableTabList({
 }: BaseDraggableTabListProps) {
   const navigate = useNavigate();
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
-  const {rootProps, setTabListState} = useContext(IssueViewsPFContext);
+  const {rootProps, setTabListState} = useContext(IssueViewsContext);
   const organization = useOrganization();
   const {
     value,
@@ -403,7 +403,7 @@ function BaseDraggableTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export interface DraggableTabListPFProps
+export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Array<Node<DraggableTabListItemProps>>) => void;
@@ -421,11 +421,7 @@ export interface DraggableTabListPFProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DraggableTabListPF({
-  items,
-  onAddView,
-  ...props
-}: DraggableTabListPFProps) {
+export function DraggableTabList({items, onAddView, ...props}: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -454,7 +450,7 @@ export function DraggableTabListPF({
   );
 }
 
-DraggableTabListPF.Item = Item;
+DraggableTabList.Item = Item;
 
 const TabItemWrap = styled(Reorder.Item, {
   shouldForwardProp: prop => prop !== 'isSelected',
