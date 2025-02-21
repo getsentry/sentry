@@ -5,8 +5,10 @@ from typing import Any
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
+from sentry.sentry_apps.components import RpcSentryAppInstallation
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 
 class SentryAppInteractionType(StrEnum):
@@ -25,8 +27,8 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
     """An event under the Sentry App umbrella"""
 
     operation_type: SentryAppInteractionType
-    sentry_app: SentryApp | None = None
-    sentry_app_installation: SentryAppInstallation | None = None
+    sentry_app: SentryApp | RpcSentryApp | None = None
+    sentry_app_installation: SentryAppInstallation | RpcSentryAppInstallation | None = None
     region: str | None = None
 
     def get_sentry_app_name(self) -> str:
