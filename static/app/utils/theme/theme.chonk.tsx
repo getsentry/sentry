@@ -833,6 +833,9 @@ interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
   isChonk: true;
 }
 
+// Emotion has no override available for styled, so we create our own,
+// which allows us to use chonkStyled and access the chonk theme and write
+// our components with a future type API.
 interface ChonkCreateStyled {
   <
     C extends React.ComponentClass<React.ComponentProps<C>>,
