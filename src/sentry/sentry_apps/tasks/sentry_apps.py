@@ -466,11 +466,11 @@ def send_resource_change_webhook(
         operation_type=SentryAppInteractionType.SEND_EVENT_WEBHOOK,
         region="region",
     ).capture() as lifecycle:
-        lifecycle.add_extras({"installation_id": installation_id, "event": event})
         installation = app_service.installation_by_id(id=installation_id)
         if not installation:
             lifecycle.record_failure(
-                failure_reason="send_resource_change_webhook.missing_installation"
+                failure_reason="send_resource_change_webhook.missing_installation",
+                extra={"installation_id": installation_id, "event": event},
             )
             return
 

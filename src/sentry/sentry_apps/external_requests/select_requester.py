@@ -6,6 +6,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from requests import RequestException
 
 from sentry.http import safe_urlread
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
@@ -65,7 +66,7 @@ class SelectRequester:
                 )
 
                 response = json.loads(body)
-            except Exception as e:
+            except RequestException as e:
                 extra = {
                     "sentry_app_slug": self.sentry_app.slug,
                     "install_uuid": self.install.uuid,
@@ -102,14 +103,14 @@ class SelectRequester:
                 }
                 lifecycle.record_halt(halt_reason="select-requester.invalid-response", extra=extras)
 
-                raise SentryAppIntegratorError(
-                    message=f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {self.uri}",
-                    webhook_context={
-                        "error_type": "select-requester.invalid-integrator-response",
-                        **extras,
-                    },
-                )
-            return self._format_response(response)
+            raise SentryAppIntegratorError(
+                message=f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {self.uri}",
+                webhook_context={
+                    "error_type": "select-requester.invalid-integrator-response",
+                    **extras,
+                },
+            )
+        return self._format_response(response)
 
     def _build_url(self) -> str:
         urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
