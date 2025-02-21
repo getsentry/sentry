@@ -417,7 +417,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.data == expected
 
     def test_invalid_params_query_required(self):
-        query = {}
+        query: dict[str, str] = {}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400

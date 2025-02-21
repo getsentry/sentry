@@ -24,7 +24,7 @@ FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
 
 
 def get_replay_counts(
-    snuba_params: SnubaParams, query: str, return_ids: bool, data_source: str
+    snuba_params: SnubaParams, query: str, return_ids: bool, data_source: str | Dataset
 ) -> dict[str, Any]:
     """
     Queries snuba/clickhouse for replay count of each identifier (usually an issue or transaction).
@@ -35,6 +35,9 @@ def get_replay_counts(
 
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
+
+    if isinstance(data_source, Dataset):
+        data_source = data_source.value
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
