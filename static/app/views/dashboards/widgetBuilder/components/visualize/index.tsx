@@ -483,7 +483,8 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.kind,
                             option.value.meta.name
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   } else {
                     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
@@ -506,7 +507,8 @@ function Visualize({error, setError}: VisualizeProps) {
                               ? option.value.meta.dataType!
                               : undefined
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   }
                 }
