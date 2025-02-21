@@ -13,20 +13,23 @@ import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import {ListBox} from 'sentry/components/compactSelect/listBox';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import type {
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+} from 'sentry/components/compactSelect/types';
+import {itemIsSectionWithKey} from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Overlay} from 'sentry/components/overlay';
-import {findItemInSections} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import useOverlay from 'sentry/utils/useOverlay';
 
-interface ComboBoxProps<T extends SelectOptionWithKey<string>> {
-  children: CollectionChildren<T>;
+interface ComboBoxProps {
+  children: CollectionChildren<SelectOptionOrSectionWithKey<string>>;
   filterValue: string;
   inputLabel: string;
   inputValue: string;
-  items: T[];
+  items: Array<SelectOptionOrSectionWithKey<string>>;
   /**
    * Function to determine whether the menu should close when interacting with
    * other elements.
@@ -42,14 +45,14 @@ interface ComboBoxProps<T extends SelectOptionWithKey<string>> {
   onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
-  onOptionSelected?: (option: T) => void;
+  onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   tabIndex?: number;
 }
 
-function ComboBoxInner<T extends SelectOptionWithKey<string>>(
+function ComboBoxInner(
   {
     children,
     inputLabel,
@@ -72,7 +75,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
     onPaste,
     placeholder,
     tabIndex,
-  }: ComboBoxProps<T>,
+  }: ComboBoxProps,
   ref: ForwardedRef<HTMLInputElement>
 ) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,25 +88,36 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
         return;
       }
 
-      const selectedOption = findItemInSections(items, key);
-      if (selectedOption) {
-        onOptionSelected?.(selectedOption);
+      for (const item of items) {
+        if (itemIsSectionWithKey(item)) {
+          const option = item.options.find(child => child.key === key);
+          if (option) {
+            onOptionSelected?.(option);
+            break;
+          }
+        } else {
+          if (item.key === key) {
+            onOptionSelected?.(item);
+            break;
+          }
+        }
       }
     },
     [items, onOptionSelected]
   );
 
-  const comboBoxProps: Partial<AriaComboBoxProps<T>> = {
-    items,
-    autoFocus: false,
-    inputValue: filterValue,
-    onSelectionChange: handleSelectionChange,
-    allowsCustomValue: true,
-    disabledKeys: [],
-    isDisabled: false,
-  };
+  const comboBoxProps: Partial<AriaComboBoxProps<SelectOptionOrSectionWithKey<string>>> =
+    {
+      items,
+      autoFocus: false,
+      inputValue: filterValue,
+      onSelectionChange: handleSelectionChange,
+      allowsCustomValue: true,
+      disabledKeys: [],
+      isDisabled: false,
+    };
 
-  const state = useComboBoxState<T>({
+  const state = useComboBoxState<SelectOptionOrSectionWithKey<string>>({
     children,
     allowsEmptyCollection: true,
     // We handle closing on blur ourselves to prevent the combobox from closing
@@ -164,7 +178,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
     [onKeyUp]
   );
 
-  const {inputProps, listBoxProps} = useComboBox<T>(
+  const {inputProps, listBoxProps} = useComboBox<SelectOptionOrSectionWithKey<string>>(
     {
       ...comboBoxProps,
       'aria-label': inputLabel,
@@ -284,11 +298,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
   );
 }
 
-export const ComboBox = forwardRef(ComboBoxInner) as <
-  T extends SelectOptionWithKey<string>,
->(
-  props: ComboBoxProps<T> & {ref?: ForwardedRef<HTMLInputElement>}
-) => ReturnType<typeof ComboBoxInner>;
+export const ComboBox = forwardRef(ComboBoxInner);
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
