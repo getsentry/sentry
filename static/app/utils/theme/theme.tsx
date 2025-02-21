@@ -567,7 +567,7 @@ const lightColors: Colors = {
   lightModeWhite: '#FFFFFF',
 
   surface100: '#F5F3F7',
-  surface200: '#FAF9FB',
+  surface200: '#F7F6F9',
   surface300: '#FFFFFF',
   surface400: '#FFFFFF',
 
