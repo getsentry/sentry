@@ -10,15 +10,15 @@ import {space} from 'sentry/styles/space';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 
 interface IssueViewNavEllipsisMenuProps {
   baseUrl: string;
   deleteView: () => void;
   duplicateView: () => void;
   setIsEditing: (isEditing: boolean) => void;
-  updateView: (view: IssueViewPF) => void;
-  view: IssueViewPF;
+  updateView: (view: IssueView) => void;
+  view: IssueView;
   sectionRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -153,7 +153,7 @@ function FeedbackFooter() {
   );
 }
 
-const constructViewLink = (baseUrl: string, view: IssueViewPF) => {
+const constructViewLink = (baseUrl: string, view: IssueView) => {
   return normalizeUrl({
     pathname: `${baseUrl}/views/${view.id}/`,
     query: {

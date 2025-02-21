@@ -7,17 +7,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-interface IssueViewEllipsisMenuPFProps {
+interface IssueViewEllipsisMenuProps {
   menuOptions: MenuItemProps[];
   'aria-label'?: string;
   hasUnsavedChanges?: boolean;
 }
 
-export function IssueViewEllipsisMenuPF({
+export function IssueViewEllipsisMenu({
   hasUnsavedChanges = false,
   menuOptions,
   ...props
-}: IssueViewEllipsisMenuPFProps) {
+}: IssueViewEllipsisMenuProps) {
   return (
     <TriggerIconWrap>
       <StyledDropdownMenu
