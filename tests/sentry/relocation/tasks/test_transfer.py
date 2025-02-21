@@ -50,6 +50,17 @@ class FindRelocationTransferControlTest(TestCase):
         transfer.refresh_from_db()
         assert transfer.scheduled_for > timezone.now()
 
+    @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
+    def test_purge_expired(self, mock_process):
+        transfer = self.create_control_relocation_transfer(
+            scheduled_for=timezone.now() - timedelta(minutes=2),
+        )
+        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=2)
+        transfer.save()
+        find_relocation_transfer_control()
+        assert not mock_process.delay.called
+        assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
+
 
 class FindRelocationTransferRegionTest(TestCase):
     def create_region_relocation_transfer(self, **kwargs):
@@ -82,3 +93,15 @@ class FindRelocationTransferRegionTest(TestCase):
         assert mock_process.delay.called
         transfer.refresh_from_db()
         assert transfer.scheduled_for > timezone.now()
+
+    @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
+    def test_purge_expired(self, mock_process):
+        transfer = self.create_region_relocation_transfer(
+            scheduled_for=timezone.now() - timedelta(minutes=2),
+        )
+        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=2)
+        transfer.save()
+
+        find_relocation_transfer_region()
+        assert not mock_process.delay.called
+        assert not RegionRelocationTransfer.objects.filter(id=transfer.id).exists()
