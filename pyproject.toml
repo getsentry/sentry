@@ -176,7 +176,6 @@ module = [
     "sentry.integrations.pagerduty.integration",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.actions.form",
-    "sentry.integrations.slack.integration",
     "sentry.integrations.slack.message_builder.notifications.issues",
     "sentry.integrations.slack.notifications",
     "sentry.integrations.slack.webhooks.command",

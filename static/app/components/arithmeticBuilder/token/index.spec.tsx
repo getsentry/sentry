@@ -392,6 +392,28 @@ describe('token', function () {
         })
       ).toBeInTheDocument();
     });
+
+    it('can delete function tokens with the delete button', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: 'Remove function avg(span.duration)',
+        })
+      );
+
+      expect(
+        screen.queryByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('ArithmeticTokenOperator', function () {
@@ -506,7 +528,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.OPEN_PARENTHESIS,
           parenthesis: Parenthesis.OPEN,
         }),
         focusOverride: {
@@ -531,7 +553,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.CLOSE_PARENTHESIS,
           parenthesis: Parenthesis.CLOSE,
         }),
         focusOverride: {

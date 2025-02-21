@@ -19,7 +19,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
     # want it to actually appear of the Integrations page.
     visible = False
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         views = super().get_pipeline_views()
         views = [view for view in views if not isinstance(view, AccountConfigView)]
         views.append(VstsExtensionFinishedView())
