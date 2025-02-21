@@ -23,7 +23,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
         secondary: colorScheme.dynamic.grayTransparent400,
         accent: colorScheme.dynamic.blurple400,
         success: colorScheme.dynamic.green400,
-        warning: colorScheme.dynamic.gold400,
+        warning: colorScheme.dynamic.yellow400,
         danger: colorScheme.dynamic.red400,
       },
       graphic: {
@@ -34,7 +34,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           quaternary: colorScheme.dynamic.grayTransparent200,
           accent: colorScheme.static.blurple400,
           success: colorScheme.static.green100,
-          warning: colorScheme.static.gold100,
+          warning: colorScheme.static.yellow100,
           danger: colorScheme.static.red400,
         },
         chart: {
@@ -103,12 +103,12 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           },
         },
         warning: {
-          chonk: colorScheme.dynamic.gold100,
+          chonk: colorScheme.dynamic.yellow100,
           children: colorScheme.static.black,
           background: {
-            default: colorScheme.static.gold400,
-            hover: colorScheme.static.gold300,
-            active: colorScheme.static.gold200,
+            default: colorScheme.static.yellow400,
+            hover: colorScheme.static.yellow300,
+            active: colorScheme.static.yellow200,
           },
         },
         danger: {
@@ -168,10 +168,10 @@ const lightColors = {
     red200: '#C2003B',
     red100: '#A80033',
 
-    gold400: '#FFD00E',
-    gold300: '#F0C40D',
-    gold200: '#E0B70C',
-    gold100: '#C9A30A',
+    yellow400: '#FFD00E',
+    yellow300: '#F0C40D',
+    yellow200: '#E0B70C',
+    yellow100: '#C9A30A',
 
     green400: '#00F261',
     green300: '#00E35B',
@@ -213,10 +213,10 @@ const lightColors = {
     red200: '#99002E',
     red100: '#A80033',
 
-    gold400: '#9D5710',
-    gold300: '#8A4D0F',
-    gold200: '#7B450F',
-    gold100: '#C9A30A',
+    yellow400: '#9D5710',
+    yellow300: '#8A4D0F',
+    yellow200: '#7B450F',
+    yellow100: '#C9A30A',
 
     green400: '#17753D',
     green300: '#146635',
@@ -245,10 +245,10 @@ const darkColors: typeof lightColors = {
     red200: '#C2003B',
     red100: '#A80033',
 
-    gold400: '#FFD00E',
-    gold300: '#F0C40D',
-    gold200: '#E0B70C',
-    gold100: '#C9A30A',
+    yellow400: '#FFD00E',
+    yellow300: '#F0C40D',
+    yellow200: '#E0B70C',
+    yellow100: '#C9A30A',
 
     green400: '#00F261',
     green300: '#00E35B',
@@ -291,10 +291,10 @@ const darkColors: typeof lightColors = {
     red200: '#FFA8C2',
     red100: '#1A0007',
 
-    gold400: '#FFE166',
-    gold300: '#FFE680',
-    gold200: '#FFEB99',
-    gold100: '#0A0800',
+    yellow400: '#FFE166',
+    yellow300: '#FFE680',
+    yellow200: '#FFEB99',
+    yellow100: '#0A0800',
 
     green400: '#55F294',
     green300: '#6DF2A2',
@@ -454,7 +454,7 @@ const generateAliases = (
   warning: tokens.static.graphic.icon.warning,
   warningText: tokens.static.text.warning,
   // @TODO(jonasbadalic): should this reference a static color?
-  warningFocus: colors.static.gold200, // Not being used
+  warningFocus: colors.static.yellow200, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -558,8 +558,8 @@ const generateAliases = (
     validActive: color(colors.static.blurple100).opaquer(1.0).string(),
     invalid: colors.static.red100,
     invalidActive: color(colors.static.red100).opaquer(0.8).string(),
-    warning: colors.static.gold100,
-    warningActive: color(colors.static.gold100).opaquer(0.8).string(),
+    warning: colors.static.yellow100,
+    warningActive: color(colors.static.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -571,8 +571,8 @@ const generateAliases = (
     validActive: color(colors.static.blurple200).opaquer(1).string(),
     invalid: colors.static.red200,
     invalidActive: color(colors.static.red200).opaquer(1).string(),
-    warning: colors.static.gold200,
-    warningActive: color(colors.static.gold200).opaquer(1).string(),
+    warning: colors.static.yellow200,
+    warningActive: color(colors.static.yellow200).opaquer(1).string(),
   },
 
   /**
@@ -634,10 +634,10 @@ const chonkLightColorMapping: ColorMapping = {
   green200: lightColors.dynamic.green200,
   green100: lightColors.dynamic.green100,
 
-  yellow400: lightColors.dynamic.gold400,
-  yellow300: lightColors.dynamic.gold300,
-  yellow200: lightColors.dynamic.gold200,
-  yellow100: lightColors.dynamic.gold100,
+  yellow400: lightColors.dynamic.yellow400,
+  yellow300: lightColors.dynamic.yellow300,
+  yellow200: lightColors.dynamic.yellow200,
+  yellow100: lightColors.dynamic.yellow100,
 
   red400: lightColors.dynamic.red400,
   red300: lightColors.dynamic.red300,
@@ -692,10 +692,10 @@ const chonkDarkColorMapping: ColorMapping = {
   green200: darkColors.dynamic.green200,
   green100: darkColors.dynamic.green100,
 
-  yellow400: darkColors.dynamic.gold400,
-  yellow300: darkColors.dynamic.gold300,
-  yellow200: darkColors.dynamic.gold200,
-  yellow100: darkColors.dynamic.gold100,
+  yellow400: darkColors.dynamic.yellow400,
+  yellow300: darkColors.dynamic.yellow300,
+  yellow200: darkColors.dynamic.yellow200,
+  yellow100: darkColors.dynamic.yellow100,
 
   red400: darkColors.dynamic.red400,
   red300: darkColors.dynamic.red300,
