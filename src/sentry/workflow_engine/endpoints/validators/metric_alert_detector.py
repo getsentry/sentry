@@ -3,7 +3,7 @@ from typing import Any, TypedDict
 
 from rest_framework import serializers
 
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
 from sentry.workflow_engine.endpoints.validators.base import (
@@ -107,7 +107,12 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             return
         if source_instance:
             try:
-                snuba_query = SnubaQuery.objects.get(id=source_instance.source_id)
+                query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
+            except QuerySubscription.DoesNotExist:
+                raise serializers.ValidationError("QuerySubscription not found, can't update")
+        if query_subscription:
+            try:
+                snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
             except SnubaQuery.DoesNotExist:
                 raise serializers.ValidationError("SnubaQuery not found, can't update")
 
