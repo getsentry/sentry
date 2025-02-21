@@ -13,7 +13,7 @@ class RpcSentryAppRequest(RpcModel):
     date: str
     response_code: int
     webhook_url: str
-    organization_id: int
+    organization_id: int | None
     event_type: str
     error_id: str | None = None
     project_id: int | None = None
@@ -23,5 +23,5 @@ class RpcSentryAppRequest(RpcModel):
 
 
 class SentryAppRequestFilterArgs(TypedDict, total=False):
-    event: str
+    event: str | list[str]
     errors_only: bool
