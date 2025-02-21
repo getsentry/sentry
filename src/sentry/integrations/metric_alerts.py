@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from typing import TypedDict
 from urllib import parse
 
-import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -117,20 +116,16 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
 def incident_attachment_info(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value=None,
     notification_uuid=None,
     referrer="metric_alert",
 ) -> AttachmentInfo:
     alert_rule = incident.alert_rule
 
-    if metric_value is None:
-        sentry_sdk.capture_message(
-            "Metric value is None when building incident attachment info",
-            level="warning",
-            extra={"incident_id": incident.id, "alert_rule_id": alert_rule.id},
-        )
-
     status = INCIDENT_STATUS[new_status]
+
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
 
     text = get_incident_status_text(alert_rule, metric_value)
     if features.has(
@@ -169,7 +164,7 @@ def incident_attachment_info(
     )
 
 
-def metric_alert_unfurl_attachment_info(
+def metric_alert_attachment_info(
     alert_rule: AlertRule,
     selected_incident: Incident | None = None,
     new_status: IncidentStatus | None = None,

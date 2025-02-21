@@ -804,9 +804,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
-        assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=0
-        ).build() == {
+        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CRITICAL).build() == {
             "blocks": [
                 {
                     "type": "section",
@@ -870,9 +868,7 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
-        assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CLOSED, metric_value=0
-        ).build() == {
+        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
                 {
                     "type": "section",
@@ -945,7 +941,7 @@ class BuildIncidentAttachmentTest(TestCase):
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CLOSED, metric_value=0, chart_url="chart-url"
+            incident, IncidentStatus.CLOSED, chart_url="chart-url"
         ).build() == {
             "blocks": [
                 {
@@ -993,9 +989,7 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={detection_type}"
         )
-        assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=0
-        ).build() == {
+        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CRITICAL).build() == {
             "blocks": [
                 {
                     "type": "section",

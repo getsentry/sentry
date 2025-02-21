@@ -332,7 +332,6 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             action_id=1,
             incident_id=1,
             new_status=0,
-            metric_value=100,
             organization_id=self.organization.id,
             incident_attachment_json="{}",
         )

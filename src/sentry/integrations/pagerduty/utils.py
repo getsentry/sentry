@@ -91,7 +91,7 @@ def build_incident_attachment(
     incident,
     integration_key,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value: float | None = None,
     notfication_uuid: str | None = None,
 ) -> dict[str, Any]:
     data = incident_attachment_info(
