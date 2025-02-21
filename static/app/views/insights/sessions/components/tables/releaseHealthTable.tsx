@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -35,7 +35,9 @@ interface Props {
   meta: EventsMetaType;
 }
 
-const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
+type Column = GridColumnHeader<keyof ReleaseHealthItem>;
+
+const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'release', name: 'version'},
   {key: 'date', name: 'date created'},
   {key: 'stage', name: 'stage'},
@@ -76,11 +78,11 @@ export default function ReleaseHealthTable({
   );
 
   const renderBodyCell = useCallback(
-    (column: any, dataRow: any) => {
+    (column: Column, dataRow: ReleaseHealthItem) => {
       const value = dataRow[column.key];
 
       if (column.key === 'crash_free_sessions') {
-        return `${value.toFixed(2)}%`;
+        return `${(value as number).toFixed(2)}%`;
       }
 
       if (column.key === 'error_count') {
