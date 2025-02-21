@@ -11,6 +11,7 @@ from django.conf import settings
 from django.db.models import Model
 
 from sentry.celery import app
+from sentry.features.rollout import in_random_rollout
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -84,10 +85,8 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            record_queue_wait_time = record_timing
-
-            # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
-            # Unhandled exception could cause all tasks to be effected and not work
+            record_timing_rollout = in_random_rollout("sentry.tasks.record.timing.rollout")
+            record_queue_wait_time = record_timing or record_timing_rollout
 
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
