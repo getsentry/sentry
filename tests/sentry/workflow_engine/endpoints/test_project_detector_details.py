@@ -127,48 +127,6 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
 
     def setUp(self):
         super().setUp()
-        self.login_as(user=self.user)
-        self.environment = self.create_environment(
-            organization_id=self.organization.id, name="staging"
-        )
-        self.snuba_query = SnubaQuery.objects.create(
-            type=SnubaQuery.Type.ERROR.value,
-            dataset=Dataset.Events.value,
-            query="hello",
-            aggregate="count()",
-            time_window=60,
-            resolution=60,
-            environment=self.environment,
-        )
-        with self.tasks():
-            self.query_subscription = create_snuba_subscription(
-                project=self.project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=self.snuba_query,
-            )
-        self.data_source = self.create_data_source(
-            organization=self.organization, source_id=self.query_subscription.id
-        )
-        self.data_condition_group = self.create_data_condition_group(
-            organization_id=self.organization.id,
-            logic_type=DataConditionGroup.Type.ANY,
-        )
-        self.condition = self.create_data_condition(
-            condition_group=self.data_condition_group,
-            type=Condition.LESS,
-            comparison=50,
-            condition_result=DetectorPriorityLevel.LOW,
-        )
-        self.detector = self.create_detector(
-            project_id=self.project.id,
-            name="Test Detector 2",
-            type=MetricAlertFire.slug,
-            workflow_condition_group=self.data_condition_group,
-        )
-        self.data_source_detector = self.create_data_source_detector(
-            data_source=self.data_source, detector=self.detector
-        )
-        assert self.detector.data_sources is not None
         self.valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
