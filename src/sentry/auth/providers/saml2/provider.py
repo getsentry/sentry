@@ -20,6 +20,7 @@ from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -308,7 +309,7 @@ class SAML2Provider(Provider, abc.ABC):
             "name": name,
         }
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         # Nothing to refresh
         return
 
