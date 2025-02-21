@@ -119,6 +119,13 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if not subscription.subscription_id:
             # Edge case where we can have no subscription_id here
             return
+
+        # XXX: Randomly check for updates once an hour - this is a hack to fix a bug where we're seeing some checks
+        # not update correctly.
+        chance_to_run = subscription.interval_seconds / timedelta(hours=1).total_seconds()
+        if random.random() >= chance_to_run:
+            return
+
         # Run region checks and updates once an hour
         runs_per_hour = UptimeSubscription.IntervalSeconds.ONE_HOUR / subscription.interval_seconds
         subscription_run = UUID(subscription.subscription_id).int % runs_per_hour
@@ -174,10 +181,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if subscription is None:
             # If no subscription in the Postgres, this subscription has been orphaned. Remove
             # from the checker
-            # TODO: Send to region specifically from this check result once we update the schema
-            send_uptime_config_deletion(
-                get_active_region_configs()[0].slug, result["subscription_id"]
-            )
+            send_uptime_config_deletion(result["region"], result["subscription_id"])
             metrics.incr(
                 "uptime.result_processor.subscription_not_found",
                 sample_rate=1.0,

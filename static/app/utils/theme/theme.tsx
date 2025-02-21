@@ -345,26 +345,12 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
 });
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
-  muted: {
-    background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
-    color: 'inherit',
-  },
   info: {
-    background: colors.blue300,
-    backgroundLight: colors.blue100,
     border: colors.blue200,
-    borderHover: colors.blue300,
+    background: colors.blue300,
     color: colors.blue400,
-  },
-  warning: {
-    background: colors.yellow300,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
+    backgroundLight: colors.blue100,
+    borderHover: colors.blue300,
   },
   success: {
     background: colors.green300,
@@ -372,6 +358,20 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
     border: colors.green200,
     borderHover: colors.green300,
     color: colors.green400,
+  },
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    borderHover: alias.border,
+    color: 'inherit',
+  },
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
+    borderHover: colors.yellow300,
+    color: colors.yellow400,
   },
   error: {
     background: colors.red300,
@@ -1121,12 +1121,3 @@ export type ColorOrAlias = keyof Aliases | Color;
  */
 const commonThemeExport = {...commonTheme};
 export default commonThemeExport;
-
-/**
- * Configure Emotion to use our theme
- */
-declare module '@emotion/react' {
-  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  type SentryTheme = typeof lightTheme;
-  export interface Theme extends SentryTheme {}
-}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
@@ -45,6 +45,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
@@ -339,7 +340,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -404,7 +405,7 @@ def record_event(event: IntegrationPipelineViewType):
 class OAuthLoginView(PipelineView):
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -488,7 +489,7 @@ class GitHubInstallation(PipelineView):
                 return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,

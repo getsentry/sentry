@@ -30,7 +30,11 @@ function useHoverWithin({isDisabled}: {isDisabled?: boolean}) {
     }
 
     const handleMouseEnter = () => setIsHovered(true);
-    const handleMouseLeave = () => setIsHovered(false);
+    const handleMouseLeave = () => {
+      if (!ref.current?.contains(document.activeElement as Node)) {
+        setIsHovered(false);
+      }
+    };
 
     element.addEventListener('mouseenter', handleMouseEnter);
     element.addEventListener('mouseleave', handleMouseLeave);

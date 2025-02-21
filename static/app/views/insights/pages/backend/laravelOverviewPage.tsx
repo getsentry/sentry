@@ -26,6 +26,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -40,7 +41,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {BarChartWidget} from 'sentry/views/dashboards/widgets/barChartWidget/barChartWidget';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {LineChartWidget} from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidget';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -69,26 +69,6 @@ function getFreeTextFromQuery(query: string) {
     return conditions.freeText.join(' ');
   }
   return '';
-}
-
-function PlaceholderWidget({title}: {title?: string}) {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={title} />}
-      Visualization={
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%',
-          }}
-        >
-          Not implemented
-        </div>
-      }
-    />
-  );
 }
 
 export function LaravelOverviewPage() {
@@ -187,7 +167,7 @@ export function LaravelOverviewPage() {
                       <DurationWidget query={derivedQuery} />
                     </DurationContainer>
                     <JobsContainer>
-                      <PlaceholderWidget title="Jobs" />
+                      <JobsWidget query={derivedQuery} />
                     </JobsContainer>
                     <QueriesContainer>
                       <WidgetContainer
@@ -392,29 +372,37 @@ function IssuesWidget({
   );
 }
 
-function RequestsWidget({query}: {query?: string}) {
-  const organization = useOrganization();
+function usePageFilterChartParams() {
   const {selection} = usePageFilters();
-  const theme = useTheme();
 
   const normalizedDateTime = useMemo(
     () => normalizeDateTimeParams(selection.datetime),
     [selection.datetime]
   );
 
+  return {
+    ...normalizedDateTime,
+    interval: getInterval(selection.datetime, 'low'),
+    project: selection.projects,
+  };
+}
+
+function RequestsWidget({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+  const theme = useTheme();
+
   const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
         query: {
-          ...normalizedDateTime,
-          interval: getInterval(selection.datetime, 'low'),
+          ...pageFilterChartParams,
           dataset: 'spans',
           field: ['http.status_code', 'count(span.duration)'],
           yAxis: 'count(span.duration)',
           orderby: '-count(span.duration)',
           partial: 1,
-          project: selection.projects,
           query: `has:http.status_code ${query}`.trim(),
           useRpc: 1,
           topEvents: 10,
@@ -456,8 +444,8 @@ function RequestsWidget({query}: {query?: string}) {
 
   return (
     <BarChartWidget
-      isLoading={isLoading}
       title="Requests"
+      isLoading={isLoading}
       timeSeries={[
         getTimeSeries('2', theme.gray200),
         getTimeSeries('5', theme.error),
@@ -469,26 +457,19 @@ function RequestsWidget({query}: {query?: string}) {
 
 function DurationWidget({query}: {query?: string}) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const normalizedDateTime = useMemo(
-    () => normalizeDateTimeParams(selection.datetime),
-    [selection.datetime]
-  );
+  const pageFilterChartParams = usePageFilterChartParams();
 
   const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
         query: {
-          ...normalizedDateTime,
-          interval: getInterval(selection.datetime, 'low'),
+          ...pageFilterChartParams,
           dataset: 'spans',
           yAxis: ['avg(span.duration)', 'p95(span.duration)'],
           orderby: 'avg(span.duration)',
           partial: 1,
           useRpc: 1,
-          project: selection.projects,
           query: `has:http.status_code ${query}`.trim(),
         },
       },
@@ -518,12 +499,97 @@ function DurationWidget({query}: {query?: string}) {
 
   return (
     <LineChartWidget
-      isLoading={isLoading}
       title="Duration"
+      isLoading={isLoading}
       timeSeries={[
         getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
         getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
       ].filter(series => !!series)}
     />
+  );
+}
+
+function JobsWidget({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+  const theme = useTheme();
+
+  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+    [
+      `/organizations/${organization.slug}/events-stats/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spansMetrics',
+          excludeOther: 0,
+          per_page: 50,
+          partial: 1,
+          transformAliasToInputFormat: 1,
+          query: `span.op:queue.process ${query}`.trim(),
+          yAxis: ['trace_status_rate(ok)', 'spm()'],
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const intervalInMinutes = parsePeriodToHours(pageFilterChartParams.interval) * 60;
+
+  const timeSeries = useMemo<TimeSeries[]>(() => {
+    if (!data) {
+      return [];
+    }
+
+    const okJobsRate = data['trace_status_rate(ok)'];
+    const spansPerMinute = data['spm()'];
+
+    if (!okJobsRate || !spansPerMinute) {
+      return [];
+    }
+
+    const getSpansInTimeBucket = (index: number) => {
+      const spansPerMinuteValue = spansPerMinute.data[index]?.[1][0]?.count! || 0;
+      return spansPerMinuteValue * intervalInMinutes;
+    };
+
+    const [okJobs, failedJobs] = okJobsRate.data.reduce<[TimeSeries, TimeSeries]>(
+      (acc, [time, [value]], index) => {
+        const spansInTimeBucket = getSpansInTimeBucket(index);
+        const okJobsRateValue = value?.count! || 0;
+        const failedJobsRateValue = value?.count ? 1 - value.count : 0;
+
+        acc[0].data.push({
+          value: okJobsRateValue * spansInTimeBucket,
+          timestamp: new Date(time).toISOString(),
+        });
+
+        acc[1].data.push({
+          value: failedJobsRateValue * spansInTimeBucket,
+          timestamp: new Date(time).toISOString(),
+        });
+
+        return acc;
+      },
+      [
+        {
+          data: [],
+          color: theme.gray200,
+          field: 'Processed',
+          meta: okJobsRate.meta!,
+        },
+        {
+          data: [],
+          color: theme.error,
+          field: 'Failed',
+          meta: okJobsRate.meta!,
+        },
+      ]
+    );
+
+    return [okJobs, failedJobs];
+  }, [data, intervalInMinutes, theme.error, theme.gray200]);
+
+  return (
+    <BarChartWidget title="Jobs" stacked isLoading={isLoading} timeSeries={timeSeries} />
   );
 }

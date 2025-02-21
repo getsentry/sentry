@@ -2904,6 +2904,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "uptime.checker-regions-mode-override",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
 register(
