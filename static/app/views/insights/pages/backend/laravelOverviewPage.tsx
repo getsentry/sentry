@@ -26,13 +26,12 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
@@ -40,9 +39,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {BarChartWidget} from 'sentry/views/dashboards/widgets/barChartWidget/barChartWidget';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {LineChartWidget} from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -58,6 +54,10 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {InsightsBarChartWidget} from '../../common/components/insightsBarChartWidget';
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import type {DiscoverSeries} from '../../common/queries/useDiscoverSeries';
 
 function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
@@ -389,21 +389,6 @@ function usePageFilterChartParams() {
   };
 }
 
-function getRequestErrorMessage(error: RequestError | null): string | undefined {
-  if (typeof error?.responseJSON?.detail === 'string') {
-    return error.responseJSON.detail;
-  }
-  if (error?.responseJSON?.detail?.message) {
-    return error.responseJSON.detail.message;
-  }
-
-  if (error?.name === ERROR_MAP[500]) {
-    return t('There was an internal systems error.');
-  }
-
-  return error?.name;
-}
-
 function RequestsWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -430,10 +415,11 @@ function RequestsWidget({query}: {query?: string}) {
   );
 
   const getTimeSeries = useCallback(
-    (codePrefix: string, color?: string): TimeSeries | undefined => {
+    (codePrefix: string, color?: string): DiscoverSeries | undefined => {
       if (!data) {
         return undefined;
       }
+
       const filteredSeries = Object.keys(data)
         .filter(key => key.startsWith(codePrefix))
         .map(key => data[key]!);
@@ -447,23 +433,21 @@ function RequestsWidget({query}: {query?: string}) {
 
       return {
         data: firstSeries.data.map(([time], index) => ({
+          name: new Date(time).toISOString(),
           value: filteredSeries.reduce(
             (acc, series) => acc + series.data[index]?.[1][0]?.count!,
             0
           ),
-          timestamp: new Date(time).toISOString(),
         })),
-        field,
+        seriesName: `${codePrefix}xx`,
         meta: {
           fields: {
             [field]: 'integer',
           },
-          units: {
-            [field]: null,
-          },
+          units: {},
         },
         color,
-      } satisfies TimeSeries;
+      } satisfies DiscoverSeries;
     },
     [data]
   );
@@ -475,11 +459,11 @@ function RequestsWidget({query}: {query?: string}) {
   }, [getTimeSeries, theme.error, theme.gray200]);
 
   return (
-    <BarChartWidget
+    <InsightsBarChartWidget
       title="Requests"
       isLoading={isLoading}
-      error={getRequestErrorMessage(error)}
-      timeSeries={timeSeries.length > 0 ? timeSeries : undefined}
+      error={error}
+      series={timeSeries}
       stacked
     />
   );
@@ -508,7 +492,7 @@ function DurationWidget({query}: {query?: string}) {
   );
 
   const getTimeSeries = useCallback(
-    (field: string, color?: string): TimeSeries | undefined => {
+    (field: string, color?: string): DiscoverSeries | undefined => {
       const series = data?.[field];
       if (!series) {
         return undefined;
@@ -517,12 +501,12 @@ function DurationWidget({query}: {query?: string}) {
       return {
         data: series.data.map(([time, [value]]) => ({
           value: value?.count!,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         })),
-        field,
-        meta: series.meta!,
+        seriesName: field,
+        meta: series.meta as EventsMetaType,
         color,
-      } satisfies TimeSeries;
+      } satisfies DiscoverSeries;
     },
     [data]
   );
@@ -535,11 +519,11 @@ function DurationWidget({query}: {query?: string}) {
   }, [getTimeSeries]);
 
   return (
-    <LineChartWidget
+    <InsightsLineChartWidget
       title="Duration"
       isLoading={isLoading}
-      error={getRequestErrorMessage(error)}
-      timeSeries={timeSeries.length > 0 ? timeSeries : undefined}
+      error={error}
+      series={timeSeries}
     />
   );
 }
@@ -570,7 +554,7 @@ function JobsWidget({query}: {query?: string}) {
 
   const intervalInMinutes = parsePeriodToHours(pageFilterChartParams.interval) * 60;
 
-  const timeSeries = useMemo<TimeSeries[]>(() => {
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
     if (!data) {
       return [];
     }
@@ -587,7 +571,7 @@ function JobsWidget({query}: {query?: string}) {
       return spansPerMinuteValue * intervalInMinutes;
     };
 
-    const [okJobs, failedJobs] = okJobsRate.data.reduce<[TimeSeries, TimeSeries]>(
+    const [okJobs, failedJobs] = okJobsRate.data.reduce<[DiscoverSeries, DiscoverSeries]>(
       (acc, [time, [value]], index) => {
         const spansInTimeBucket = getSpansInTimeBucket(index);
         const okJobsRateValue = value?.count! || 0;
@@ -595,12 +579,12 @@ function JobsWidget({query}: {query?: string}) {
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         });
 
         acc[1].data.push({
           value: failedJobsRateValue * spansInTimeBucket,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         });
 
         return acc;
@@ -609,27 +593,23 @@ function JobsWidget({query}: {query?: string}) {
         {
           data: [],
           color: theme.gray200,
-          field: 'Processed',
+          seriesName: 'Processed',
           meta: {
             fields: {
               Processed: 'integer',
             },
-            units: {
-              Processed: null,
-            },
+            units: {},
           },
         },
         {
           data: [],
           color: theme.error,
-          field: 'Failed',
+          seriesName: 'Failed',
           meta: {
             fields: {
               Failed: 'integer',
             },
-            units: {
-              Failed: null,
-            },
+            units: {},
           },
         },
       ]
@@ -639,12 +619,12 @@ function JobsWidget({query}: {query?: string}) {
   }, [data, intervalInMinutes, theme.error, theme.gray200]);
 
   return (
-    <BarChartWidget
+    <InsightsBarChartWidget
       title="Jobs"
       stacked
       isLoading={isLoading}
-      error={getRequestErrorMessage(error)}
-      timeSeries={timeSeries.length > 0 ? timeSeries : undefined}
+      error={error}
+      series={timeSeries}
     />
   );
 }
