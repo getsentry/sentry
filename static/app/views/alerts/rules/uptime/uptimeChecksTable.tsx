@@ -33,7 +33,8 @@ export const checkStatusToIndicatorStatus: Record<
   StatusIndicatorProps['status']
 > = {
   [CheckStatus.SUCCESS]: 'success',
-  [CheckStatus.FAILURE]: 'error',
+  [CheckStatus.FAILURE]: 'warning',
+  [CheckStatus.FAILURE_INCIDENT]: 'error',
   [CheckStatus.MISSED_WINDOW]: 'muted',
 };
 
