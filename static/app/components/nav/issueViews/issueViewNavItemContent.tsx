@@ -281,8 +281,8 @@ const hasUnsavedChanges = (
   return newUnsavedChanges;
 };
 
-// framer-motion's reorder item handles putting the dragging item in front of other items out of the box
-// but we need to make sure the item is relatively positioned and has a background color for it to work
+// Reorder.Item does handle lifting an item being dragged above other items out of the box,
+// but we need to ensure the item is relatively positioned and has a background color for it to work
 const StyledReorderItem = styled(Reorder.Item)`
   position: relative;
   background-color: ${p => p.theme.surface200};
