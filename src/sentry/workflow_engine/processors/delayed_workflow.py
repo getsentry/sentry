@@ -47,7 +47,7 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflows_action_filters,
 )
-from sentry.workflow_engine.types import DataConditionHandlerType, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 
@@ -102,18 +102,18 @@ def fetch_group_to_event_data(
 
 def get_dcg_group_workflow_detector_data(
     workflow_event_dcg_data: dict[str, str]
-) -> tuple[DataConditionGroupGroups, dict[DataConditionHandlerType, dict[int, int]]]:
+) -> tuple[DataConditionGroupGroups, dict[DataConditionHandler.Type, dict[int, int]]]:
     """
     Parse the data in the buffer hash, which is in the form of {workflow/detector_id}:{group_id}:{dcg_id, ..., dcg_id}:{dcg_type}
     """
 
     dcg_to_groups: DataConditionGroupGroups = defaultdict(set)
-    trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]] = defaultdict(dict)
+    trigger_type_to_dcg_model: dict[DataConditionHandler.Type, dict[int, int]] = defaultdict(dict)
 
     for workflow_group_dcg, _ in workflow_event_dcg_data.items():
         data = workflow_group_dcg.split(":")
         try:
-            dcg_type = DataConditionHandlerType(data[3])
+            dcg_type = DataConditionHandler.Type(data[3])
         except ValueError:
             continue
 
@@ -386,7 +386,7 @@ def get_group_to_groupevent(
 
 def fire_actions_for_groups(
     groups_to_fire: dict[int, set[DataConditionGroup]],
-    trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]],
+    trigger_type_to_dcg_model: dict[DataConditionHandler.Type, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
     for group, group_event in group_to_groupevent.items():
@@ -396,9 +396,9 @@ def fire_actions_for_groups(
         workflow_triggers: set[DataConditionGroup] = set()
         action_filters: set[DataConditionGroup] = set()
         for dcg in groups_to_fire[group.id]:
-            if dcg.id in trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]:
+            if dcg.id in trigger_type_to_dcg_model[DataConditionHandler.Type.WORKFLOW_TRIGGER]:
                 workflow_triggers.add(dcg)
-            elif dcg.id in trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER]:
+            elif dcg.id in trigger_type_to_dcg_model[DataConditionHandler.Type.ACTION_FILTER]:
                 action_filters.add(dcg)
 
         # process action filters
@@ -450,8 +450,8 @@ def process_delayed_workflows(
     dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
-    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER].copy()
-    dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
+    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandler.Type.WORKFLOW_TRIGGER].copy()
+    dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandler.Type.ACTION_FILTER])
 
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
