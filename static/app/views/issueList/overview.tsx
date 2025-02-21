@@ -1071,13 +1071,14 @@ function IssueListOverview({router}: Props) {
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
   const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
+  const hasNavigationSidebarV2 = organization.features.includes('navigation-sidebar-v2');
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {hasLeftNavIssueViews && (
+        {hasLeftNavIssueViews && hasNavigationSidebarV2 && (
           <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
         {!hasLeftNavIssueViews &&
