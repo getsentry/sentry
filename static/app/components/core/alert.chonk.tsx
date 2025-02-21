@@ -56,8 +56,8 @@ function makeChonkAlertTheme(
     case 'info':
       return css`
         color: ${theme.colors.static.white};
-        background: ${theme.colors.static.blurple400};
-        border: 2px solid ${theme.colors.static.blurple400};
+        background: ${theme.colors.static.blue400};
+        border: 2px solid ${theme.colors.static.blue400};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'success':
