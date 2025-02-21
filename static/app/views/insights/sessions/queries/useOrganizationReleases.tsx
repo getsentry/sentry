@@ -20,6 +20,7 @@ export default function useOrganizationReleases() {
           ...locationWithoutWidth.query,
           adoptionStages: 1,
           health: 1,
+          per_page: 25,
         },
       },
     ],
