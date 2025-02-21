@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,7 +29,6 @@ function WidgetTemplatesList({
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
 }: WidgetTemplatesListProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
@@ -63,7 +62,7 @@ function WidgetTemplatesList({
   return (
     <Fragment>
       {widgets.map((widget, index) => {
-        const iconColor = theme.charts.getColorPalette(widgets.length - 2)?.[index]!;
+        const iconColor = getChartColorPalette(widgets.length - 2)?.[index]!;
 
         const Icon = getWidgetIcon(widget.displayType);
         const lastWidget = index === widgets.length - 1;

@@ -15,6 +15,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -203,9 +204,9 @@ class MiniGraph extends Component<Props> {
 
           const hasOther = topEvents && topEvents + 1 === allSeries.length;
           const chartColors = allSeries.length
-            ? (theme.charts
-                .getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))
-                ?.slice() as string[] | undefined) ?? []
+            ? (getChartColorPalette(
+                allSeries.length - 2 - (hasOther ? 1 : 0)
+              ).slice() as string[])
             : undefined;
 
           if (chartColors?.length && hasOther) {

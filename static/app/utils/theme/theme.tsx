@@ -1089,12 +1089,6 @@ const commonTheme = {
   // @TODO(jonasbadalic) Do these need to be here?
   outcome,
   dataCategory,
-
-  charts: {
-    // We have an array that maps `number + 1` --> list of `number` colors
-    getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-  },
 };
 
 // Light and dark theme definitions
