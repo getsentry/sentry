@@ -115,22 +115,14 @@ function _sortFn(
 ) {
   // The labels should always be strings in this component, but we'll
   // handle the cases where they are not.
-  if (typeof a.label !== 'string' && typeof b.label !== 'string') {
+  if (typeof a.label !== 'string' || typeof b.label !== 'string') {
     return 0;
   }
   if (!defined(a.label) || !defined(b.label)) {
     return 0;
   }
 
-  if (a.label < b.label) {
-    return -1;
-  }
-
-  if (a.label > b.label) {
-    return 1;
-  }
-
-  return 0;
+  return a.label.localeCompare(b.label);
 }
 
 export function getColumnOptions(
