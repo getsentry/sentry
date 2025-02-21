@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
@@ -74,6 +74,31 @@ const trackExploreSearch = (
 const trackShowInView = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.show_in_view', {
     organization,
+  });
+
+const trackTracingOnboarding = (
+  organization: Organization,
+  platform: PlatformKey,
+  supports_performance: boolean,
+  supports_onboarding_checklist: boolean
+) =>
+  trackAnalytics('trace.tracing_onboarding', {
+    organization,
+    platform,
+    supports_performance,
+    supports_onboarding_checklist,
+  });
+
+const trackPlatformDocsViewed = (organization: Organization, platform: string) =>
+  trackAnalytics('trace.tracing_onboarding_platform_docs_viewed', {
+    organization,
+    platform,
+  });
+
+const trackPerformanceSetupDocsViewed = (organization: Organization, platform: string) =>
+  trackAnalytics('trace.tracing_onboarding_performance_docs_viewed', {
+    organization,
+    platform,
   });
 
 const trackViewEventJSON = (organization: Organization) =>
@@ -231,6 +256,10 @@ function trackTraceShape(
 }
 
 const traceAnalytics = {
+  // Trace Onboarding
+  trackTracingOnboarding,
+  trackPlatformDocsViewed,
+  trackPerformanceSetupDocsViewed,
   // Trace shape
   trackTraceMetadata,
   trackTraceShape,
