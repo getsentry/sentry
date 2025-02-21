@@ -153,7 +153,6 @@ class MessageBuilder:
             reply_to = headers["X-Sentry-Reply-To"]
         else:
             reply_to = set(reply_to or ())
-            reply_to.discard(to)
             reply_to = ", ".join(reply_to)
 
         if reply_to:
@@ -205,7 +204,6 @@ class MessageBuilder:
     ) -> Sequence[EmailMultiAlternatives]:
         send_to = set(to or ())
         send_to.update(self._send_to)
-        reply_to = send_to.union(reply_to or ())
         results = [
             self.build(to=email, reply_to=reply_to, cc=cc, bcc=bcc) for email in send_to if email
         ]
