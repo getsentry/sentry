@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
@@ -8,17 +8,20 @@ import useMedia from 'sentry/utils/useMedia';
 
 export interface NavContext {
   activeGroup: PrimaryNavGroup | null;
+  endInteraction: () => void;
   isCollapsed: boolean;
-  isInteracting: boolean;
+  isInteractingRef: React.RefObject<boolean>;
   layout: NavLayout;
+  navParentRef: React.RefObject<HTMLDivElement>;
   secondaryNavEl: HTMLElement | null;
   setActiveGroup: (group: PrimaryNavGroup | null) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
   setSecondaryNavEl: (el: HTMLElement | null) => void;
-  setisInteracting: (isInteracting: boolean) => void;
+  startInteraction: () => void;
 }
 
 const NavContext = createContext<NavContext>({
+  navParentRef: {current: null},
   secondaryNavEl: null,
   setSecondaryNavEl: () => {},
   layout: NavLayout.SIDEBAR,
@@ -26,8 +29,9 @@ const NavContext = createContext<NavContext>({
   setIsCollapsed: () => {},
   activeGroup: null,
   setActiveGroup: () => {},
-  isInteracting: false,
-  setisInteracting: () => {},
+  isInteractingRef: {current: false},
+  startInteraction: () => {},
+  endInteraction: () => {},
 });
 
 export function useNavContext(): NavContext {
@@ -35,19 +39,29 @@ export function useNavContext(): NavContext {
 }
 
 export function NavContextProvider({children}: {children: React.ReactNode}) {
+  const navParentRef = useRef<HTMLDivElement>(null);
+  const isInteractingRef = useRef(false);
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
   );
   const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
   const [activeGroup, setActiveGroup] = useState<PrimaryNavGroup | null>(null);
-  const [isInteracting, setisInteracting] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
+  const startInteraction = useCallback(() => {
+    isInteractingRef.current = true;
+  }, []);
+
+  const endInteraction = useCallback(() => {
+    isInteractingRef.current = false;
+  }, []);
+
   const value = useMemo(
     () => ({
+      navParentRef,
       secondaryNavEl,
       setSecondaryNavEl,
       layout: isMobile ? NavLayout.MOBILE : NavLayout.SIDEBAR,
@@ -55,8 +69,9 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setIsCollapsed,
       activeGroup,
       setActiveGroup,
-      isInteracting,
-      setisInteracting,
+      isInteractingRef,
+      startInteraction,
+      endInteraction,
     }),
     [
       secondaryNavEl,
@@ -64,8 +79,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       isCollapsed,
       setIsCollapsed,
       activeGroup,
-      isInteracting,
-      setisInteracting,
+      startInteraction,
+      endInteraction,
     ]
   );
 
