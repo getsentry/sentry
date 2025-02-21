@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from dateutil.parser import parse as parse_date
 from rest_framework import serializers, status
@@ -37,7 +37,7 @@ class IncomingRequestSerializer(serializers.Serializer):
     organizationSlug = serializers.CharField(required=False)
     start = serializers.DateTimeField(
         format=date_format,
-        default=datetime.strptime("2000-01-01 00:00:00", date_format).replace(tzinfo=timezone.utc),
+        default=datetime.now(tz=timezone.utc) - timedelta(days=30),
         default_timezone=timezone.utc,
         required=False,
     )
