@@ -109,22 +109,18 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
-    def check_and_update_regions(self, subscription: UptimeSubscription, result: CheckResult):
-        """
-        This method will check if regions have been added or removed from our region configuration,
-        and updates regions associated with this uptime monitor to reflect the new state. This is
-        done probabilistically, so that the check is performed roughly once an hour for each uptime
-        monitor.
-        """
+    def should_run_region_checks(
+        self, subscription: UptimeSubscription, result: CheckResult
+    ) -> bool:
         if not subscription.subscription_id:
             # Edge case where we can have no subscription_id here
-            return
+            return False
 
         # XXX: Randomly check for updates once an hour - this is a hack to fix a bug where we're seeing some checks
         # not update correctly.
         chance_to_run = subscription.interval_seconds / timedelta(hours=1).total_seconds()
-        if random.random() >= chance_to_run:
-            return
+        if random.random() < chance_to_run:
+            return True
 
         # Run region checks and updates once an hour
         runs_per_hour = UptimeSubscription.IntervalSeconds.ONE_HOUR / subscription.interval_seconds
@@ -133,7 +129,19 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             datetime.fromtimestamp(result["scheduled_check_time_ms"] / 1000, timezone.utc).minute
             * 60
         ) // subscription.interval_seconds
-        if subscription_run != current_run:
+        if subscription_run == current_run:
+            return True
+
+        return False
+
+    def check_and_update_regions(self, subscription: UptimeSubscription, result: CheckResult):
+        """
+        This method will check if regions have been added or removed from our region configuration,
+        and updates regions associated with this uptime monitor to reflect the new state. This is
+        done probabilistically, so that the check is performed roughly once an hour for each uptime
+        monitor.
+        """
+        if not self.should_run_region_checks(subscription, result):
             return
 
         subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
