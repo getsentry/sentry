@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import AlertLink from 'sentry/components/alertLink';
+import AlertLink from 'sentry/components/core/alertLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconSentry} from 'sentry/icons';
