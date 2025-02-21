@@ -28,13 +28,11 @@ class OrganizationAuthProviders(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        auth.register(ChannelName.FLY_IO.value, FlyOAuth2Provider)
-        self.addCleanup(auth.unregister, ChannelName.FLY_IO.value, FlyOAuth2Provider)
+        auth.register(FlyOAuth2Provider)
+        self.addCleanup(auth.unregister, FlyOAuth2Provider)
 
-        auth.register(ChannelName.FLY_NON_PARTNER.value, NonPartnerFlyOAuth2Provider)
-        self.addCleanup(
-            auth.unregister, ChannelName.FLY_NON_PARTNER.value, NonPartnerFlyOAuth2Provider
-        )
+        auth.register(NonPartnerFlyOAuth2Provider)
+        self.addCleanup(auth.unregister, NonPartnerFlyOAuth2Provider)
 
     def test_get_list_of_auth_providers(self):
         with self.feature("organizations:sso-basic"):
