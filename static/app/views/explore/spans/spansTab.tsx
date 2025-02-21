@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -136,14 +135,6 @@ export function SpansTabContentImpl({
     [timeseriesResult.data, visualizes]
   );
 
-  const tableError =
-    queryType === 'aggregate'
-      ? aggregatesTableResult.result.error?.message ?? ''
-      : queryType === 'traces'
-        ? tracesTableResult.result.error?.message ?? ''
-        : spansTableResult.result.error?.message ?? '';
-  const chartError = timeseriesResult.error?.message ?? '';
-
   const [expanded, setExpanded] = useState(true);
 
   useAnalytics({
@@ -208,13 +199,6 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {(tableError || chartError) && (
-          <Alert.Container>
-            <Alert type="error" showIcon>
-              {tableError || chartError}
-            </Alert>
-          </Alert.Container>
-        )}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
