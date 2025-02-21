@@ -36,6 +36,8 @@ function Tokens(props: TokensProp) {
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
+        aggregateFunctions: [{name: 'avg'}, {name: 'sum'}, {name: 'count'}],
+        functionArguments: [{name: 'span.duration'}, {name: 'span.self_time'}],
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -78,11 +80,11 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
-      await userEvent.click(screen.getByRole('option', {name: 'avg(\u2026)'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       expect(
         await screen.findByRole('row', {
@@ -101,7 +103,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(11);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -390,6 +392,28 @@ describe('token', function () {
         })
       ).toBeInTheDocument();
     });
+
+    it('can delete function tokens with the delete button', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: 'Remove function avg(span.duration)',
+        })
+      );
+
+      expect(
+        screen.queryByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('ArithmeticTokenOperator', function () {
@@ -504,7 +528,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.OPEN_PARENTHESIS,
           parenthesis: Parenthesis.OPEN,
         }),
         focusOverride: {
@@ -529,7 +553,7 @@ describe('token', function () {
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
-          kind: TokenKind.PARENTHESIS,
+          kind: TokenKind.CLOSE_PARENTHESIS,
           parenthesis: Parenthesis.CLOSE,
         }),
         focusOverride: {

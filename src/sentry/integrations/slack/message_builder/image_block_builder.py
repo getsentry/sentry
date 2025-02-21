@@ -1,4 +1,3 @@
-from sentry import features
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
@@ -23,15 +22,11 @@ class ImageBlockBuilder(BlockSlackMessageBuilder, IssueAlertImageBuilder):
         )
 
     def build_image_block(self) -> SlackBlock | None:
-        # TODO @athena: Clean up! These feature flags are basically equal because they're tied within the same launch
-        if features.has(
-            "organizations:slack-endpoint-regression-image", self.group.organization
-        ) or features.has("organizations:slack-function-regression-image", self.group.organization):
-            image_url = self.get_image_url()
-            if image_url:
-                return self.get_image_block(
-                    url=image_url,
-                    title=self.group.title,
-                    alt=IMAGE_ALT.get(self.group.issue_type, "issue chart"),
-                )
+        image_url = self.get_image_url()
+        if image_url:
+            return self.get_image_block(
+                url=image_url,
+                title=self.group.title,
+                alt=IMAGE_ALT.get(self.group.issue_type, "issue chart"),
+            )
         return None

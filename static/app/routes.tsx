@@ -2105,6 +2105,7 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues" component={errorHandler(IssueNavigation)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
       <Route
         path=":groupId/"

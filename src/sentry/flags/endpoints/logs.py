@@ -13,7 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.flags.models import ActionEnum, CreatedByTypeEnum, FlagAuditLogModel
+from sentry.flags.models import ActionEnum, CreatedByTypeEnum, FlagAuditLogModel, ProviderEnum
 from sentry.models.organization import Organization
 
 
@@ -24,6 +24,7 @@ class FlagAuditLogModelSerializerResponse(TypedDict):
     createdBy: str | None
     createdByType: str | None
     flag: str
+    provider: str | None
     tags: dict[str, Any]
 
 
@@ -41,6 +42,7 @@ class FlagAuditLogModelSerializer(Serializer):
                 else CreatedByTypeEnum.to_string(obj.created_by_type)
             ),
             "flag": obj.flag,
+            "provider": (None if obj.provider is None else ProviderEnum.to_string(obj.provider)),
             "tags": obj.tags,
         }
 

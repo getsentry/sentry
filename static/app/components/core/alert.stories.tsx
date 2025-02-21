@@ -5,13 +5,12 @@ import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconClose, IconDelete, IconSad, IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/alert';
+import types from '!!type-loader!sentry/components/core/alert';
 
 export default storyBook('Alert', (story, APIReference) => {
   APIReference(types.Alert);
@@ -84,27 +83,6 @@ export default storyBook('Alert', (story, APIReference) => {
             Oh no!
           </Alert>
         </Alert.Container>
-      </Fragment>
-    );
-  });
-
-  story('opaque', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="opaque" value /> prop is a boolean that's{' '}
-          <code>false</code> by default.
-        </p>
-        <SizingWindow display="block">
-          <Alert.Container>
-            <Alert type="success" showIcon opaque>
-              This one is opaque.
-            </Alert>
-            <Alert type="success" showIcon>
-              This is not opaque.
-            </Alert>
-          </Alert.Container>
-        </SizingWindow>
       </Fragment>
     );
   });
