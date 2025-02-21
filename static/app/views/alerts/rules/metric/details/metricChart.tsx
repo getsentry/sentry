@@ -99,6 +99,48 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return moment.tz(date, timezone).format(format);
 }
 
+export function getRuleChangeSeries(
+  rule: MetricRule,
+  data: AreaChartSeries[],
+  theme: Theme
+): LineSeriesOption[] {
+  const {dateModified} = rule;
+  if (!data.length || !data[0]!.data.length || !dateModified) {
+    return [];
+  }
+
+  const seriesData = data[0]!.data;
+  const seriesStart = new Date(seriesData[0]!.name).getTime();
+  const ruleChanged = new Date(dateModified).getTime();
+
+  if (ruleChanged < seriesStart) {
+    return [];
+  }
+
+  return [
+    {
+      type: 'line',
+      markLine: MarkLine({
+        silent: true,
+        animation: false,
+        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        data: [{xAxis: ruleChanged}],
+        label: {
+          show: false,
+        },
+      }),
+      markArea: MarkArea({
+        silent: true,
+        itemStyle: {
+          color: color(theme.gray100).alpha(0.42).rgb().string(),
+        },
+        data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
+      }),
+      data: [],
+    },
+  ];
+}
+
 export default function MetricChart({
   rule,
   project,
@@ -452,48 +494,6 @@ export default function MetricChart({
       )}
     </Fragment>
   );
-}
-
-export function getRuleChangeSeries(
-  rule: MetricRule,
-  data: AreaChartSeries[],
-  theme: Theme
-): LineSeriesOption[] {
-  const {dateModified} = rule;
-  if (!data.length || !data[0]!.data.length || !dateModified) {
-    return [];
-  }
-
-  const seriesData = data[0]!.data;
-  const seriesStart = new Date(seriesData[0]!.name).getTime();
-  const ruleChanged = new Date(dateModified).getTime();
-
-  if (ruleChanged < seriesStart) {
-    return [];
-  }
-
-  return [
-    {
-      type: 'line',
-      markLine: MarkLine({
-        silent: true,
-        animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-        data: [{xAxis: ruleChanged}],
-        label: {
-          show: false,
-        },
-      }),
-      markArea: MarkArea({
-        silent: true,
-        itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
-        },
-        data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
-      }),
-      data: [],
-    },
-  ];
 }
 
 export function getMetricChartTooltipFormatter({
