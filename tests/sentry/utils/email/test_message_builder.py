@@ -275,7 +275,6 @@ class MessageBuilderTest(TestCase):
         )
         results = msg.get_built_messages(to=["foo@example.com"], reply_to=["abc123@sentry.io"])
         assert len(results) == 1
-        # Verify Reply-To header is properly set
         assert results[0].message()["Reply-To"] == "abc123@sentry.io"
 
     def test_bcc_on_send(self):
