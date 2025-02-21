@@ -284,8 +284,7 @@ const hasUnsavedChanges = (
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  margin-right: ${space(0.25)};
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
@@ -323,7 +322,7 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
 
   border-radius: 50%;
   background: ${p => p.theme.purple400};
-  border: solid 2px ${p => p.theme.background};
+  border: solid 2px ${p => p.theme.surface200};
   position: absolute;
   width: 12px;
   height: 12px;
