@@ -63,6 +63,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             "timestamp",
             "durationMs",
             "region",
+            "regionName",
             "checkStatus",
             "checkStatusReason",
             "traceId",
@@ -71,6 +72,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         ]:
             assert key in first, f"{key} not in {first}"
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
+        assert first["regionName"] == "Default Region"
         assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
         assert any(v for v in response.data if v["httpStatusCode"] is None)
 
