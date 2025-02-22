@@ -262,7 +262,7 @@ class DetectorValidatorTest(BaseValidatorTest):
             request=self.context["request"],
             organization=self.project.organization,
             target_object=detector.id,
-            event=audit_log.get_event_id("DETECTOR_CREATE"),
+            event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
 
@@ -381,7 +381,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             request=self.context["request"],
             organization=self.project.organization,
             target_object=detector.id,
-            event=audit_log.get_event_id("DETECTOR_CREATE"),
+            event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
 
