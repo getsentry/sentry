@@ -61,6 +61,8 @@ SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
 REPLAY_ALIAS = "replay"
+MESSAGING_OPERATION_TYPE_ALIAS = "messaging.operation.type"
+MESSAGING_OPERATION_NAME_ALIAS = "messaging.operation.name"
 
 
 class ThresholdDict(TypedDict):
