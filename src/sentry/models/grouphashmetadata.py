@@ -8,6 +8,25 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.types.grouphash_metadata import HashingMetadata
 
+# The current version of the metadata schema. Any record encountered whose schema version is earlier
+# than this will have its data updated and its version set to this value. Stored as a string for
+# flexibility, in case we ever want to switch the way we denote versions.
+#
+# TODO: That second sentence isn't yet true.
+#
+# Schema history:
+#
+# 0 -> table creation/initial schema, with grouphash and date added fields (2024-09-09)
+# 1 -> add seer data (2024-10-01)
+# 2 -> add grouping config (2024-10-03)
+# 3 -> add hash basis (2024-11-01)
+# 4 -> add hashing metadata (2024-11-18)
+# 5 -> store resolved fingerprint as JSON rather than string (2025-01-24)
+# 6 -> store client fingerprint as JSON rather than string (2025-02-07)
+# 7 -> add platform (2025-02-11)
+# 8 -> add schema version (2025-02-24)
+GROUPHASH_METADATA_SCHEMA_VERSION = "8"
+
 
 # The overall grouping method used
 class HashBasis(models.TextChoices):
