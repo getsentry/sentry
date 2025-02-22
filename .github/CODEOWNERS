@@ -544,9 +544,11 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/post_process.py                           @getsentry/issues
 /src/sentry/tasks/unmerge.py                                @getsentry/issues
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issues
+/static/app/components/nav/issueViews/                      @getsentry/issues
 /static/app/components/events/contexts/                     @getsentry/issues
 /static/app/components/events/eventTags/                    @getsentry/issues
 /static/app/components/events/highlights/                   @getsentry/issues
+/static/app/views/issues/navigation.tsx                     @getsentry/issues
 /static/app/views/issueList                                 @getsentry/issues
 /static/app/views/issueDetails/                             @getsentry/issues
 /static/app/views/organizationStats/teamInsights/           @getsentry/issues
