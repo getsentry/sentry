@@ -1,5 +1,5 @@
 ---
-created: '2025-02-20T15:17:58.268855+00:00'
+created: '2025-02-21T22:01:09.035981+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -108,12 +108,12 @@ contributing variants:
             frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "UFunction::Invoke"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "USentrySubsystem::execCaptureEventWithScope"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "USentrySubsystem::CaptureEventWithScope"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "SentrySubsystemApple::CaptureEventWithScope"

@@ -1,5 +1,5 @@
 ---
-created: '2025-02-19T15:23:51.119285+00:00'
+created: '2025-02-21T22:01:05.773639+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -111,13 +111,13 @@ contributing variants:
             frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "UFunction::Invoke"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "USentrySubsystem::execCaptureEventWithScope"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "USentrySubsystem::CaptureEventWithScope"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "SentrySubsystemApple::CaptureEventWithScope"
   system*
@@ -127,10 +127,10 @@ contributing variants:
       system*
         threads*
           stacktrace*
-            frame*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
               function*
                 "thread_start"
-            frame*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
               function*
                 "_pthread_start"
             frame*
@@ -217,12 +217,12 @@ contributing variants:
             frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "UFunction::Invoke"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "USentrySubsystem::execCaptureEventWithScope"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "USentrySubsystem::CaptureEventWithScope"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
               function*
                 "SentrySubsystemApple::CaptureEventWithScope"
