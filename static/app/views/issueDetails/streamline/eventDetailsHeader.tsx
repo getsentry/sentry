@@ -230,6 +230,7 @@ const GraphSection = styled('div')`
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
+  white-space: unset;
   grid-area: timeline;
   padding: ${space(1)};
   padding-left: 0;
