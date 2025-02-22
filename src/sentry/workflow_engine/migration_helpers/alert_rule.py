@@ -15,7 +15,6 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -418,14 +417,13 @@ def create_data_condition_group(organization_id: int) -> DataConditionGroup:
 def create_workflow(
     name: str,
     organization_id: int,
-    enabled: bool,
     user: RpcUser | None = None,
 ) -> Workflow:
     return Workflow.objects.create(
         name=name,
         organization_id=organization_id,
         when_condition_group=None,
-        enabled=enabled,
+        enabled=True,
         created_by_id=user.id if user else None,
         config={},
     )
@@ -434,13 +432,12 @@ def create_workflow(
 def create_detector(
     alert_rule: AlertRule,
     project_id: int,
-    enabled: bool,
     data_condition_group: DataConditionGroup,
     user: RpcUser | None = None,
 ) -> Detector:
     return Detector.objects.create(
         project_id=project_id,
-        enabled=enabled,
+        enabled=True,
         created_by_id=user.id if user else None,
         name=alert_rule.name,
         workflow_condition_group=data_condition_group,
@@ -474,17 +471,14 @@ def migrate_alert_rule(
     organization_id = alert_rule.organization_id
     project = alert_rule.projects.get()
 
-    snoozed = RuleSnooze.objects.filter(alert_rule_id=alert_rule.id, user_id=None).exists()
-    enabled = not snoozed
-
     data_source = create_data_source(organization_id, alert_rule.snuba_query)
     if not data_source:
         raise CouldNotCreateDataSource
 
     detector_data_condition_group = create_data_condition_group(organization_id)
-    detector = create_detector(alert_rule, project.id, enabled, detector_data_condition_group, user)
+    detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
 
-    workflow = create_workflow(alert_rule.name, organization_id, enabled, user)
+    workflow = create_workflow(alert_rule.name, organization_id, user)
 
     open_incident = Incident.objects.get_active_incident(alert_rule, project)
     if open_incident:
