@@ -9,13 +9,16 @@ import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+import {unreachable} from 'sentry/utils/unreachable';
+
+import * as ChonkAlert from './alert.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
-  opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
@@ -24,10 +27,8 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Alert({
   showIcon,
   icon,
-  opaque,
   system,
   expand,
-  defaultExpanded,
   trailingItems,
   className,
   children,
@@ -36,7 +37,7 @@ export function Alert({
 }: AlertProps) {
   const theme = useTheme();
   const showExpand = defined(expand);
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 
   // Show the hover state (with darker borders) only when hovering over the
   // IconWrapper or MessageContainer.
@@ -65,7 +66,6 @@ export function Alert({
   return (
     <AlertContainer
       system={system}
-      opaque={opaque}
       expand={expand}
       trailingItems={trailingItems}
       showIcon={showIcon}
@@ -153,11 +153,12 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     default:
       unreachable(type);
-      throw new Error(`Invalid alert type, got ${type}`);
   }
+
+  throw new Error(`Invalid alert type, got ${type}`);
 }
 
-const AlertContainer = styled('div')<
+const AlertPanel = styled('div')<
   AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
 >`
   display: grid;
@@ -172,16 +173,7 @@ const AlertContainer = styled('div')<
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.alertColors.border};
   padding: ${space(1.5)} ${space(2)};
-  background: ${p =>
-    p.opaque
-      ? `linear-gradient(
-          ${p.alertColors.backgroundLight},
-          ${p.alertColors.backgroundLight}),
-          linear-gradient(${p.theme.background}, ${p.theme.background}
-        )`
-      : `
-          ${p.alertColors.backgroundLight}
-        `};
+  background: ${p => p.alertColors.backgroundLight};
 
   a:not([role='button']) {
     color: ${p => p.alertColors.color};
@@ -216,13 +208,19 @@ const AlertContainer = styled('div')<
       }
     `}
 
-  ${p =>
+${p =>
     p.system &&
     css`
       border-width: 0 0 1px 0;
       border-radius: 0;
     `}
 `;
+
+const AlertContainer = withChonk(
+  AlertPanel,
+  ChonkAlert.AlertPanel,
+  ChonkAlert.chonkAlertPropMapping
+);
 
 const IconWrapper = styled('div')`
   display: flex;
@@ -270,12 +268,6 @@ const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boo
   }
 `;
 
-// Dont return never just because we are throwing an error and TS will think the code
-// is unreachable and try suggest us to remove it.
-function unreachable(x: never) {
-  return x;
-}
-
 function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {
     case 'warning':
@@ -302,5 +294,3 @@ const Container = styled('div')`
 `;
 
 Alert.Container = Container;
-
-export default Alert;

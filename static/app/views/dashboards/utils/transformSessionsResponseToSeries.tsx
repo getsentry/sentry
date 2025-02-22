@@ -3,8 +3,12 @@ import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
+import type {WidgetQuery} from '../types';
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
-import {derivedMetricsToField} from '../widgetCard/releaseWidgetQueries';
+import {
+  derivedMetricsToField,
+  resolveDerivedStatusFields,
+} from '../widgetCard/releaseWidgetQueries';
 
 export function getSeriesName(
   field: string,
@@ -21,22 +25,30 @@ export function getSeriesName(
 }
 
 export function transformSessionsResponseToSeries(
-  response: SessionApiResponse | null,
-  requestedStatusMetrics: string[],
-  injectedFields: string[],
-  queryAlias?: string
-): Series[] {
-  if (response === null) {
+  data: SessionApiResponse,
+  widgetQuery: WidgetQuery
+) {
+  if (data === null) {
     return [];
   }
 
+  const queryAlias = widgetQuery.name;
+
+  const useSessionAPI = widgetQuery.columns.includes('session.status');
+  const {derivedStatusFields: requestedStatusMetrics, injectedFields} =
+    resolveDerivedStatusFields(
+      widgetQuery.aggregates,
+      widgetQuery.orderby,
+      useSessionAPI
+    );
+
   const results: Series[] = [];
 
-  if (!response.groups.length) {
+  if (!data.groups.length) {
     return [
       {
         seriesName: `(${t('no results')})`,
-        data: response.intervals.map(interval => ({
+        data: data.intervals.map(interval => ({
           name: interval,
           value: 0,
         })),
@@ -44,7 +56,7 @@ export function transformSessionsResponseToSeries(
     ];
   }
 
-  response.groups.forEach(group => {
+  data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       // if `sum(session)` or `count_unique(user)` are not
       // requested as a part of the payload for
@@ -54,7 +66,7 @@ export function transformSessionsResponseToSeries(
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
-          data: response.intervals.map((interval, index) => ({
+          data: data.intervals.map((interval, index) => ({
             name: interval,
             value: group.series[field]?.[index] ?? 0,
           })),
@@ -78,7 +90,7 @@ export function transformSessionsResponseToSeries(
           }
           results.push({
             seriesName: getSeriesName(status, group, queryAlias),
-            data: response.intervals.map((interval, index) => ({
+            data: data.intervals.map((interval, index) => ({
               name: interval,
               value: metricField ? group.series[metricField]?.[index] ?? 0 : 0,
             })),

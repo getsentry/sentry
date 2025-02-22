@@ -73,33 +73,40 @@ function formatColumnOptions(
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
-  ) => boolean
+  ) => boolean,
+  field: QueryFieldValue
 ) {
   return options
     .filter(option => {
-      // Don't show any aggregates under the columns, and if
-      // there isn't a filter method, just show the option
-      return (
-        option.value.kind !== FieldValueKind.FUNCTION &&
-        (columnFilterMethod?.(option) ?? true)
-      );
+      // Don't show any aggregates under the columns
+      return option.value.kind !== FieldValueKind.FUNCTION;
     })
-    .map(option => ({
-      value: option.value.meta.name,
-      label:
-        dataset === WidgetType.SPANS
-          ? prettifyTagKey(option.value.meta.name)
-          : option.value.meta.name,
+    .map(option => {
+      const supported = columnFilterMethod ? columnFilterMethod(option, field) : false;
+      return {
+        value: option.value.meta.name,
+        label:
+          dataset === WidgetType.SPANS
+            ? prettifyTagKey(option.value.meta.name)
+            : option.value.meta.name,
 
-      trailingItems: renderTag(
-        option.value.kind,
-        option.value.meta.name,
-        option.value.kind !== FieldValueKind.FUNCTION &&
-          option.value.kind !== FieldValueKind.EQUATION
-          ? option.value.meta.dataType!
-          : undefined
-      ),
-    }));
+        trailingItems: renderTag(
+          option.value.kind,
+          option.value.meta.name,
+          option.value.kind !== FieldValueKind.FUNCTION &&
+            option.value.kind !== FieldValueKind.EQUATION
+            ? option.value.meta.dataType!
+            : undefined
+        ),
+        disabled: !supported,
+        tooltip:
+          !supported && field.kind === FieldValueKind.FUNCTION
+            ? tct('This field is not available for the [aggregate] function', {
+                aggregate: <strong>{field.function[0]}</strong>,
+              })
+            : undefined,
+      };
+    });
 }
 
 export function getColumnOptions(
@@ -113,20 +120,20 @@ export function getColumnOptions(
 ) {
   const fieldValues = Object.values(fieldOptions);
   if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField);
   }
 
-  const field = fieldValues.find(
+  const fieldData = fieldValues.find(
     option => option.value.meta.name === selectedField.function[0]
   )?.value;
 
   if (
-    field &&
-    field.kind === FieldValueKind.FUNCTION &&
-    field.meta.parameters.length > 0 &&
-    field.meta.parameters[0]
+    fieldData &&
+    fieldData.kind === FieldValueKind.FUNCTION &&
+    fieldData.meta.parameters.length > 0 &&
+    fieldData.meta.parameters[0]
   ) {
-    const parameter = field.meta.parameters[0];
+    const parameter = fieldData.meta.parameters[0];
     if (parameter && parameter.kind === 'dropdown') {
       // Parameters for dropdowns are already formatted in the correct manner
       // for select fields
@@ -134,26 +141,38 @@ export function getColumnOptions(
     }
 
     if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
+      // Release Health widgets are the only widgets that actually have different
+      // columns than the aggregates accept. e.g. project will never be a valid
+      // parameter for any of the aggregates.
+      const allowedColumns =
+        dataset === WidgetType.RELEASE
+          ? fieldValues.filter(
+              option =>
+                option.value.kind === FieldValueKind.METRICS &&
+                validateColumnTypes(
+                  parameter.columnTypes as ValidateColumnTypes,
+                  option.value
+                )
+            )
+          : fieldValues;
       return formatColumnOptions(
         dataset,
-        fieldValues.filter(({value}) =>
-          dataset === WidgetType.RELEASE
-            ? value.kind === FieldValueKind.METRICS &&
-              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
-            : (value.kind === FieldValueKind.FIELD ||
-                value.kind === FieldValueKind.TAG ||
-                value.kind === FieldValueKind.MEASUREMENT ||
-                value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
-                value.kind === FieldValueKind.METRICS ||
-                value.kind === FieldValueKind.BREAKDOWN) &&
-              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
-        ),
-        columnFilterMethod
+        allowedColumns,
+        (option, field) =>
+          columnFilterMethod(option, field) &&
+          (option.value.kind === FieldValueKind.FIELD ||
+            option.value.kind === FieldValueKind.TAG ||
+            option.value.kind === FieldValueKind.MEASUREMENT ||
+            option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+            option.value.kind === FieldValueKind.METRICS ||
+            option.value.kind === FieldValueKind.BREAKDOWN) &&
+          validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, option.value),
+        selectedField
       );
     }
   }
 
-  return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+  return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField);
 }
 
 function canDeleteField(

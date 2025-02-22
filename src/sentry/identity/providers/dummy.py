@@ -22,7 +22,7 @@ class DummyProvider(Provider):
 
     TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [AskEmail()]
 
     def build_identity(self, state):
