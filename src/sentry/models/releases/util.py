@@ -61,7 +61,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         self,
         organization_id: int,
         operator: str,
-        build: str,
+        build: str | Sequence[str],
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> Self:
@@ -81,14 +81,38 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 )
             )
 
-        if build.isdecimal() and validate_bigint(int(build)):
-            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
-        else:
-            if not build or build.endswith("*"):
-                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
-            else:
-                qs = getattr(qs, query_func)(build_code=build)
+        # Convert single string to list to simplify logic
+        builds = [build] if isinstance(build, str) else build
 
+        build_number_filters = Q()
+        build_code_filters = Q()
+        for b in builds:
+            if b.isdecimal() and validate_bigint(int(b)):
+                build_number_filters |= Q(**{f"build_number__{operator}": int(b)})
+            else:
+                if not b or b.endswith("*"):
+                    build_code_filters |= Q(build_code__startswith=b[:-1])
+                else:
+                    build_code_filters |= Q(build_code=b)
+
+        if build_number_filters:
+            qs = getattr(qs, query_func)(build_number_filters)
+        if build_code_filters:
+            qs = getattr(qs, query_func)(build_code_filters)
+
+        if operator == "in":
+            return qs.filter(
+                Q(
+                    build_number__in=[
+                        int(b) for b in builds if b.isdecimal() and validate_bigint(int(b))
+                    ]
+                )
+                | Q(
+                    build_code__in=[
+                        b for b in builds if not b.isdecimal() or not validate_bigint(int(b))
+                    ]
+                )
+            )
         return qs
 
     def filter_by_semver(
