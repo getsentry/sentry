@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 import sentry_sdk
-from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from sentry import features
@@ -13,33 +12,41 @@ from sentry.models.organization import Organization
 def find_missing_chunks(organization: Organization, chunks: Sequence[str]):
     """Returns a list of chunks which are missing for an org."""
     if features.has("organizations:find-missing-chunks-new", organization):
-        return _find_missing_chunks_new(organization.id, chunks)
+        return _find_missing_chunks_new(organization.id, set(chunks))
 
-    return _find_missing_chunks_old(organization.id, chunks)
+    return _find_missing_chunks_old(organization.id, set(chunks))
 
 
-def _find_missing_chunks_new(organization_id: int, chunks: Sequence[str]):
+def _find_missing_chunks_new(organization_id: int, chunks: set[str]):
     with sentry_sdk.start_span(op="find_missing_chunks_new") as span:
         span.set_tag("organization_id", organization_id)
         span.set_data("chunks_size", len(chunks))
 
-        with sentry_sdk.start_span(op="find_missing_chunks_new.fetch_file_blobs"):
-            # We get all the file blobs given the chunks. If a file blob is already tied to an organization, the organization id
-            # will be returned.
-            file_blobs = (
-                FileBlob.objects.filter(checksum__in=chunks)
-                .select_related("fileblobowner")  # Optimize the join with the related model
-                .filter(
-                    Q(fileblobowner__organization_id=organization_id)
-                    | Q(fileblobowner__isnull=True)
-                )
-                .values_list(
-                    "id",
-                    "checksum",
-                    "timestamp",
-                    "fileblobowner__organization_id",
-                    flat=False,  # Set to True if you want a flat list instead of tuples
-                )
+        if not chunks:
+            return []
+
+        with sentry_sdk.start_span(op="find_missing_chunks_new.fetch_owned_file_blobs"):
+            owned_file_blobs = FileBlob.objects.filter(
+                checksum__in=chunks, fileblobowner__organization_id=organization_id
+            ).values_list(
+                "id",
+                "checksum",
+                "timestamp",
+                flat=False,
+            )
+
+        # We compute the chunks that we know are owned and the ones that are not owned, but we still want to check.
+        owned_file_chunks = {checksum for _, checksum, _ in owned_file_blobs}
+        unowned_file_chunks = chunks - owned_file_chunks
+
+        with sentry_sdk.start_span(op="find_missing_chunks_new.fetch_unowned_file_blobs"):
+            unowned_file_blobs = FileBlob.objects.filter(
+                checksum__in=unowned_file_chunks,
+            ).values_list(
+                "id",
+                "checksum",
+                "timestamp",
+                flat=False,
             )
 
         now = timezone.now()
@@ -47,23 +54,20 @@ def _find_missing_chunks_new(organization_id: int, chunks: Sequence[str]):
 
         # For each file blob we compute whether we should renew it and whether it has already an organization bound to it.
         file_blobs_to_renew = set()
-        chunks_with_organization_id = set()
-        for id, checksum, timestamp, organization_id in file_blobs:
+        for id, checksum, timestamp in list(owned_file_blobs) + list(unowned_file_blobs):
             if timestamp <= oldest_timestamp:
                 file_blobs_to_renew.add(id)
-
-            if organization_id is not None:
-                chunks_with_organization_id.add(checksum)
 
         if file_blobs_to_renew:
             with sentry_sdk.start_span(op="find_missing_chunks_new.update_timestamp"):
                 # We update the timestamp of the file blobs that need renewal.
                 FileBlob.objects.filter(id__in=file_blobs_to_renew).update(timestamp=now)
 
-        return list(set(chunks) - chunks_with_organization_id)
+        # We return all the file chunks that are not bound to the supply organization.
+        return list(unowned_file_chunks)
 
 
-def _find_missing_chunks_old(organization_id: int, chunks: Sequence[str]):
+def _find_missing_chunks_old(organization_id: int, chunks: set[str]):
     with sentry_sdk.start_span(op="find_missing_chunks_old") as span:
         span.set_tag("organization_id", organization_id)
         span.set_data("chunks_size", len(chunks))
@@ -84,4 +88,4 @@ def _find_missing_chunks_old(organization_id: int, chunks: Sequence[str]):
                 ).values_list("blob__checksum", flat=True)
             )
 
-        return list(set(chunks) - owned)
+        return list(chunks - owned)
