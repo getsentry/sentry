@@ -1,3 +1,10 @@
+"""
+IMPORTANT:
+
+If you make changes here that affect what's stored, increment GROUPHASH_METADATA_SCHEMA_VERSION in
+the `GroupHash` model file, so that existing records will get updated with the new data.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -29,7 +36,11 @@ from sentry.grouping.variants import (
     VariantsByDescriptor,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
+from sentry.models.grouphashmetadata import (
+    GROUPHASH_METADATA_SCHEMA_VERSION,
+    GroupHashMetadata,
+    HashBasis,
+)
 from sentry.models.project import Project
 from sentry.types.grouphash_metadata import (
     ChecksumHashingMetadata,
@@ -180,6 +191,7 @@ def get_grouphash_metadata_data(
         "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
         base_data = {
+            "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
             "latest_grouping_config": grouping_config,
             "platform": event.platform or "unknown",
         }

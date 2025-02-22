@@ -8,6 +8,25 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.types.grouphash_metadata import HashingMetadata
 
+# The current version of the metadata schema. Any record encountered whose schema version is earlier
+# than this will have its data updated and its version set to this value. Stored as a string for
+# flexibility, in case we ever want to switch the way we denote versions.
+#
+# TODO: That second sentence isn't yet true.
+#
+# Schema history:
+#
+# 0 -> table creation/initial schema, with grouphash and date added fields (2024-09-09)
+# 1 -> add seer data (2024-10-01)
+# 2 -> add grouping config (2024-10-03)
+# 3 -> add hash basis (2024-11-01)
+# 4 -> add hashing metadata (2024-11-18)
+# 5 -> store resolved fingerprint as JSON rather than string (2025-01-24)
+# 6 -> store client fingerprint as JSON rather than string (2025-02-07)
+# 7 -> add platform (2025-02-11)
+# 8 -> add schema version (2025-02-24)
+GROUPHASH_METADATA_SCHEMA_VERSION = "8"
+
 
 # The overall grouping method used
 class HashBasis(models.TextChoices):
@@ -45,6 +64,10 @@ class HashBasis(models.TextChoices):
 class GroupHashMetadata(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
+    # IMPORTANT:
+    # If you make changes to this schema, increment GROUPHASH_METADATA_SCHEMA_VERSION above so
+    # existing records will get updated with the new data.
+
     # GENERAL
 
     grouphash = models.OneToOneField(
@@ -53,6 +76,9 @@ class GroupHashMetadata(Model):
     # When the grouphash was created. Will be null for grouphashes created before we started
     # collecting metadata.
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    # The version of the metadata schema which produced the data. Useful for backfilling when we add
+    # to or change the data we collect and want to update existing records.
+    schema_version = models.CharField(null=True)
     # The platform of the event when generated the metadata. Likely different than the project
     # platform, as event platforms are normalized to a handful of known values, whereas project
     # platforms are all over the place.
