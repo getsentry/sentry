@@ -101,7 +101,7 @@ export default function GroupUptimeChecks() {
           {key: 'checkStatus', width: 115, name: t('Status')},
           {key: 'durationMs', width: 110, name: t('Duration')},
           {key: 'traceId', width: 100, name: t('Trace')},
-          {key: 'region', width: 100, name: t('Region')},
+          {key: 'regionName', width: 100, name: t('Region')},
           {key: 'uptimeCheckId', width: 100, name: t('ID')},
         ]}
         columnSortBy={[]}

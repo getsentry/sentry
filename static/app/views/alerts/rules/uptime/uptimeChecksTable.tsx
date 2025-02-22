@@ -115,7 +115,7 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                 <div>
                   <Duration seconds={check.durationMs / 1000} abbreviation exact />
                 </div>
-                <div>{check.region}</div>
+                <div>{check.regionName}</div>
                 <div>
                   <Link to={`/performance/trace/${check.traceId}/`}>
                     {getShortEventId(check.traceId)}

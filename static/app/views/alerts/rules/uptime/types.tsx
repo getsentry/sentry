@@ -36,6 +36,7 @@ export interface UptimeCheck {
   environment: string;
   projectUptimeSubscriptionId: number;
   region: string;
+  regionName: string;
   scheduledCheckTime: string;
   // TODO(epurkhiser): This hasn't been implemented on the backend yet
   statusCode: string;
