@@ -83,6 +83,23 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
+  story('Without icon and custom trailing items', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXProperty name="showIcon" value /> and{' '}
+          <JSXProperty name="trailingItems" value /> props can be used to customize the
+          alert.
+        </p>
+        <Alert.Container>
+          <Alert type="info" showIcon={false} trailingItems={<IconStar />}>
+            This alert has no icon and a custom trailing item.
+          </Alert>
+        </Alert.Container>
+      </Fragment>
+    );
+  });
+
   story('Dismissible Alerts', () => {
     const LOCAL_STORAGE_KEY = 'alert-stories-banner-dismissed';
     const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});

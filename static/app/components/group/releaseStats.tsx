@@ -2,7 +2,7 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import AlertLink from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
@@ -165,9 +165,11 @@ function GroupReleaseStats({
             <SidebarSection.Wrap>
               <SidebarSection.Title>{t('Releases')}</SidebarSection.Title>
               <SidebarSection.Content>
-                <AlertLink priority="muted" size="small" to={releaseTrackingUrl}>
-                  {t('See which release caused this issue ')}
-                </AlertLink>
+                <AlertLink.Container>
+                  <AlertLink type="muted" to={releaseTrackingUrl}>
+                    {t('See which release caused this issue ')}
+                  </AlertLink>
+                </AlertLink.Container>
               </SidebarSection.Content>
             </SidebarSection.Wrap>
           ) : null}
