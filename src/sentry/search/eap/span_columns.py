@@ -1,12 +1,25 @@
-from typing import Literal
+from typing import Any, Literal
 
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function, VirtualColumnContext
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    ExtrapolationMode,
+    Function,
+    StrArray,
+    VirtualColumnContext,
+)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ArgumentDefinition,
     ColumnDefinitions,
+    CustomFunction,
     FunctionDefinition,
     ResolvedColumn,
     VirtualColumnDefinition,
@@ -627,3 +640,67 @@ SPAN_DEFINITIONS = ColumnDefinitions(
     contexts=SPAN_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
 )
+
+CUSTOM_FUNCTIONS_FORMULAS: dict[Any, Column.BinaryFormula] = {
+    "http_response_rate": Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status_code",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.status_code",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_IN,
+                        value=AttributeValue(
+                            val_str_array=StrArray(
+                                values=[
+                                    "500",
+                                    "501",
+                                    "502",
+                                    "503",
+                                    "504",
+                                    "505",
+                                    "506",
+                                    "507",
+                                    "508",
+                                    "509",
+                                    "510",
+                                    "511",
+                                ],
+                            ),
+                        ),
+                    )
+                ),
+                label="error_request_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status_code",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                label="total_request_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+    ),
+}
+
+
+CUSTOM_FUNCTIONS: dict[Any, CustomFunction] = {
+    "http_response_rate": CustomFunction(
+        public_alias="http_response_rate_5",
+        formula=CUSTOM_FUNCTIONS_FORMULAS["http_response_rate"],
+        search_type="percentage",
+    )
+}

@@ -36,10 +36,12 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ColumnDefinitions,
+    CustomFunction,
     ResolvedColumn,
     ResolvedFunction,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.span_columns import CUSTOM_FUNCTIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
@@ -547,9 +549,10 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(
-        self, selected_columns: list[str]
-    ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnDefinition | None]]:
+    def resolve_columns(self, selected_columns: list[str]) -> tuple[
+        list[ResolvedColumn | ResolvedFunction | CustomFunction],
+        list[VirtualColumnDefinition | None],
+    ]:
         """Given a list of columns resolve them and get their context if applicable
 
         This function will also dedupe the virtual column contexts if necessary
@@ -584,7 +587,7 @@ class SearchResolver:
 
     def resolve_column(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn | ResolvedFunction, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedColumn | ResolvedFunction | CustomFunction, VirtualColumnDefinition | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -666,7 +669,7 @@ class SearchResolver:
     @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedFunction], list[VirtualColumnDefinition | None]]:
+    ) -> tuple[list[ResolvedFunction | CustomFunction], list[VirtualColumnDefinition | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -677,10 +680,10 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedFunction | CustomFunction, VirtualColumnDefinition | None]:
         if column in self._resolved_function_cache:
             return self._resolved_function_cache[column]
-        # Check if this is a valid function, parse the function name and args out
+        # Check if the column looks like a function (matches a pattern), parse the function name and args out
         if match is None:
             match = fields.is_function(column)
             if match is None:
@@ -690,6 +693,9 @@ class SearchResolver:
         columns = match.group("columns")
         # Alias defaults to the name of the function
         alias = match.group("alias") or column
+
+        if function in CUSTOM_FUNCTIONS:
+            return (CUSTOM_FUNCTIONS.get(function), None)
 
         # Get the function definition
         if function not in self.definitions.functions:
