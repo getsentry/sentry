@@ -102,6 +102,7 @@ export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   isSidebarOpen: true,
   navScrollMargin: 0,
   eventCount: 0,
+  activeSection: null,
   dispatch: () => {},
 });
 
@@ -110,6 +111,11 @@ export function useIssueDetails() {
 }
 
 export interface IssueDetailsState {
+  /**
+   * Tracks which section is currently most visible in the viewport based on
+   * its proximity to the activation offset
+   */
+  activeSection: string | null;
   /**
    * Detector details for the current issue
    */
@@ -160,12 +166,18 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
+type UpdateSectionVisibilityAction = {
+  sectionId: string;
+  type: 'UPDATE_SECTION_VISIBILITY';
+};
+
 export type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
   | UpdateSidebarAction
-  | UpdateDetectorDetailsAction;
+  | UpdateDetectorDetailsAction
+  | UpdateSectionVisibilityAction;
 
 function updateEventSection(
   state: IssueDetailsState,
@@ -194,6 +206,7 @@ export function useIssueDetailsReducer() {
     isSidebarOpen: true,
     eventCount: 0,
     navScrollMargin: 0,
+    activeSection: null,
   };
 
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
@@ -209,6 +222,11 @@ export function useIssueDetailsReducer() {
           return {...state, eventCount: action.count};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
+        case 'UPDATE_SECTION_VISIBILITY':
+          return {
+            ...state,
+            activeSection: action.sectionId,
+          };
         default:
           return state;
       }
