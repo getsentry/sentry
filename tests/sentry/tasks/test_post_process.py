@@ -823,6 +823,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
+            "assigneeName": self.user.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),

@@ -223,6 +223,7 @@ class StatusActionTest(APITestCase):
         assert activity.data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
+            "assigneeName": self.team.name,
             "assigneeType": "team",
             "integration": ActivityIntegration.MSTEAMS.value,
         }
@@ -242,6 +243,7 @@ class StatusActionTest(APITestCase):
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
+            "assigneeName": self.user.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.MSTEAMS.value,
         }
