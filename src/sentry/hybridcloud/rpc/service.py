@@ -21,7 +21,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
-import django.urls
 import pydantic
 import requests
 import sentry_sdk
@@ -502,10 +501,10 @@ class _RemoteSiloCall:
 
     @property
     def path(self) -> str:
-        return django.urls.reverse(
-            "sentry-api-0-rpc-service",
-            kwargs={"service_name": self.service_name, "method_name": self.method_name},
-        )
+        # don't use reverse here because this is an extremely hot path
+        # and we kept seeing perf issues to do with lock contention
+        # with how django's reverse is implemented
+        return f"/api/0/internal/rpc/{self.service_name}/{self.method_name}/"
 
     def dispatch(self, use_test_client: bool = False) -> Any:
         serial_response = self._send_to_remote_silo(use_test_client)
