@@ -98,6 +98,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             3,
         )
 
+        # Add profile_chunk outcome data
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self.now - timedelta(hours=1),
+                "project_id": self.project.id,
+                "category": DataCategory.PROFILE_CHUNK,
+                "quantity": 10,
+            },
+        )
+
     def do_request(self, query, user=None, org=None, status_code=200):
         self.login_as(user=user or self.user)
         org_slug = (org or self.organization).slug
@@ -473,6 +484,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "by": {"category": "profile_duration", "outcome": "accepted", "reason": "none"},
                     "series": {"sum(quantity)": [0, 0, 3000]},
                     "totals": {"sum(quantity)": 3000},
+                },
+                {
+                    "by": {"category": "profile_chunk", "outcome": "accepted", "reason": "none"},
+                    "series": {"sum(quantity)": [0, 0, 10]},
+                    "totals": {"sum(quantity)": 10},
                 },
                 {
                     "by": {
@@ -926,6 +942,61 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "by": {"category": "profile_duration"},
                     "series": {"sum(quantity)": [0, 3000]},
                     "totals": {"sum(quantity)": 3000},
+                }
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_profile_chunk_filter(self):
+        """Test that profile_chunk data is correctly filtered and returned"""
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["profile_chunk"],
+            },
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "groups": [
+                {
+                    "by": {},
+                    "series": {"sum(quantity)": [0, 10]},
+                    "totals": {"sum(quantity)": 10},
+                }
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_profile_chunk_groupby(self):
+        """Test that profile_chunk data is correctly grouped"""
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "groupBy": ["category"],
+                "category": ["profile_chunk"],
+            },
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "groups": [
+                {
+                    "by": {"category": "profile_chunk"},
+                    "series": {"sum(quantity)": [0, 10]},
+                    "totals": {"sum(quantity)": 10},
                 }
             ],
         }
