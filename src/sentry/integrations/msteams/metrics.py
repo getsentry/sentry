@@ -12,7 +12,10 @@ MSTEAMS_HALT_ERROR_CODES = [
 
 
 def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:
-    if isinstance(error, ApiRateLimitedError):
+    # permission_denied
+    if error.code == 403:
+        lifecycle.record_halt(error)
+    elif isinstance(error, ApiRateLimitedError):
         # TODO(ecosystem): We should batch this on a per-organization basis
         lifecycle.record_halt(error)
     elif error.json:
