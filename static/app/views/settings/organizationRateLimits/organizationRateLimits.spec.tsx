@@ -28,6 +28,7 @@ describe('Organization Rate Limits', function () {
     );
 
   beforeEach(function () {
+    organization.features = ['legacy-rate-limits'];
     MockApiClient.clearMockResponses();
   });
 
@@ -108,5 +109,14 @@ describe('Organization Rate Limits', function () {
         },
       })
     );
+  });
+
+  it('renders disabled message if organization does not have legacy rate limits', function () {
+    organization.features = [];
+    renderComponent();
+
+    expect(
+      screen.getByText('Legacy rate limits are not available in this organization.')
+    ).toBeInTheDocument();
   });
 });
