@@ -204,7 +204,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         }
 
         return EapCheckEntry(
-            uptime_check_id=row_dict["uptime_check_id"].val_int,
+            uptime_check_id=row_dict["uptime_check_id"].val_str,
             uptime_subscription_id=uptime_subscription.id,
             timestamp=datetime.fromtimestamp(row_dict["timestamp"].val_double),
             scheduled_check_time=datetime.fromtimestamp(
