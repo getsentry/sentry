@@ -9,7 +9,17 @@ import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 interface BaseAlertLinkProps
-  extends Pick<AlertProps, 'type' | 'system' | 'children' | 'trailingItems'> {}
+  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems'> {
+  /**
+   * @deprecated Use `type` instead.
+   */
+  priority?: AlertProps['type'];
+  /**
+   * @deprecated use trailingItems instead
+   */
+  trailingItems?: React.ReactNode;
+  type?: AlertProps['type'];
+}
 
 interface ExternalAlertLinkProps extends BaseAlertLinkProps {
   href: string;
@@ -44,7 +54,7 @@ export type AlertLinkProps =
 
 export function AlertLink(props: AlertLinkProps): React.ReactNode {
   const alertProps: AlertProps = {
-    type: props.type,
+    type: props.type ?? props.priority ?? 'info',
     system: props.system,
     trailingItems: props.trailingItems ?? <IconChevron direction="right" />,
   };
@@ -54,7 +64,7 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
     // @TODO(jonasbadalic): Should we validate that the href is a valid URL?
     return (
       <ExternalLinkWithTextDecoration
-        type={props.type}
+        type={alertProps.type}
         href={props.href}
         openInNewTab={props.openInNewTab}
       >
@@ -69,7 +79,7 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
       // causes the link to render a path to / which probably means that even though a manual link is specified,
       // the user might still be redirected to a path that they dont want to be redirected to?. Should this
       // be a button in this case?
-      <LinkWithTextDecoration type={props.type} to="" onClick={props.onClick}>
+      <LinkWithTextDecoration type={alertProps.type} to="" onClick={props.onClick}>
         <Alert {...alertProps}>{props.children}</Alert>
       </LinkWithTextDecoration>
     );
@@ -77,7 +87,7 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
 
   // @TODO(jonasbadalic): we should check for empty to value and report to sentry
   return (
-    <LinkWithTextDecoration type={props.type} to={props.to}>
+    <LinkWithTextDecoration type={alertProps.type} to={props.to}>
       <Alert {...alertProps}>{props.children}</Alert>
     </LinkWithTextDecoration>
   );
