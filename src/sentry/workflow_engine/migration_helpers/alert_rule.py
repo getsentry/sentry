@@ -498,7 +498,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=False,
+        active=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
