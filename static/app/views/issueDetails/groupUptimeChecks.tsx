@@ -98,6 +98,7 @@ export default function GroupUptimeChecks() {
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
+          {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
           {key: 'checkStatus', width: 115, name: t('Status')},
           {key: 'durationMs', width: 110, name: t('Duration')},
           {key: 'traceId', width: 100, name: t('Trace')},
@@ -134,8 +135,8 @@ function CheckInBodyCell({
   const {
     scheduledCheckTime,
     durationMs,
-    statusCode,
     checkStatus,
+    httpStatusCode,
     checkStatusReason,
     traceId,
   } = dataRow;
@@ -186,18 +187,21 @@ function CheckInBodyCell({
           <Duration seconds={durationMs / 1000} abbreviation exact />
         </Cell>
       );
-    case 'statusCode': {
-      const statusCodeFirstDigit = String(statusCode)?.[0];
+    case 'httpStatusCode': {
+      if (httpStatusCode === null) {
+        return <Cell style={{color: theme.subText}}>{t('None')}</Cell>;
+      }
+      const statusCodeFirstDigit = String(httpStatusCode)?.[0];
       switch (statusCodeFirstDigit) {
         case '2':
-          return <Cell style={{color: theme.successText}}>{statusCode}</Cell>;
+          return <Cell style={{color: theme.successText}}>{httpStatusCode}</Cell>;
         case '3':
-          return <Cell style={{color: theme.warningText}}>{statusCode}</Cell>;
+          return <Cell style={{color: theme.warningText}}>{httpStatusCode}</Cell>;
         case '4':
         case '5':
-          return <Cell style={{color: theme.errorText}}>{statusCode}</Cell>;
+          return <Cell style={{color: theme.errorText}}>{httpStatusCode}</Cell>;
         default:
-          return <Cell>{statusCode}</Cell>;
+          return <Cell>{httpStatusCode}</Cell>;
       }
     }
     case 'checkStatus': {
