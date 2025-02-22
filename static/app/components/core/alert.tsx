@@ -158,15 +158,26 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   throw new Error(`Invalid alert type, got ${type}`);
 }
 
+function getAlertGridLayout(p: AlertProps) {
+  // ${p => p.showIcon && `minmax(0, max-content)`}
+  //   minmax(0, 1fr)
+  //   ${p => defined(p.trailingItems) && 'max-content'}
+  //   ${p => defined(p.expand) && 'max-content'};
+
+  if (p.showIcon) {
+    return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
+      p.expand ? 'min-content' : ''
+    }`;
+  }
+
+  return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''}`;
+}
+
 const AlertPanel = styled('div')<
   AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
 >`
   display: grid;
-  grid-template-columns:
-    ${p => p.showIcon && `minmax(0, max-content)`}
-    minmax(0, 1fr)
-    ${p => defined(p.trailingItems) && 'max-content'}
-    ${p => defined(p.expand) && 'max-content'};
+  grid-template-columns: ${p => getAlertGridLayout(p)};
   gap: ${space(1)};
   color: ${p => p.alertColors.color};
   font-size: ${p => p.theme.fontSizeMedium};
