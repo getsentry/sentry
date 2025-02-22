@@ -264,7 +264,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     name=alert_rule.name,
                     organization_id=organization_id,
                     when_condition_group=None,
-                    enabled=enabled,
+                    enabled=True,
                     created_by_id=create_activity.user_id,
                     config={},
                 )
