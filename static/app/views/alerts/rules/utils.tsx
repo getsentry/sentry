@@ -119,11 +119,11 @@ export function shouldUseErrorsDiscoverDataset(
 
 export function getAlertRuleExploreUrl({
   rule,
-  orgSlug,
+  organization,
   period,
   projectId,
 }: {
-  orgSlug: string;
+  organization: Organization;
   period: string;
   projectId: string;
   rule: MetricRule;
@@ -135,7 +135,7 @@ export function getAlertRuleExploreUrl({
   const interval = TIME_WINDOW_TO_INTERVAL[rule.timeWindow];
 
   return getExploreUrl({
-    orgSlug,
+    organization,
     selection: {
       datetime: {
         period: period === '9998m' ? '7d' : period,

@@ -5,7 +5,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {
   const profileId = event?.contexts?.profile?.profile_id;
@@ -61,7 +61,10 @@ export function getSearchInExploreTarget(
   }
 
   return {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/traces/`),
+    pathname: makeTracesPathname({
+      organization,
+      path: '/',
+    }),
     query: {
       start,
       end,
