@@ -64,6 +64,10 @@ class HashBasis(models.TextChoices):
 class GroupHashMetadata(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
+    # IMPORTANT:
+    # If you make changes to this schema, increment GROUPHASH_METADATA_SCHEMA_VERSION above so
+    # existing records will get updated with the new data.
+
     # GENERAL
 
     grouphash = models.OneToOneField(

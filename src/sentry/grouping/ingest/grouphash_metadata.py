@@ -1,3 +1,10 @@
+"""
+IMPORTANT:
+
+If you make changes here that affect what's stored, increment GROUPHASH_METADATA_SCHEMA_VERSION in
+the `GroupHash` model file, so that existing records will get updated with the new data.
+"""
+
 from __future__ import annotations
 
 import logging
