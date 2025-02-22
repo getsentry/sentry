@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {
@@ -15,8 +15,6 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 interface ActivityDrawerProps {
@@ -25,26 +23,8 @@ interface ActivityDrawerProps {
 }
 
 export function ActivityDrawer({group, project}: ActivityDrawerProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [filterComments, setFilterComments] = useState(
-    location.query.filter === 'comments'
-  );
-
-  useEffect(() => {
-    if (location.query.filter) {
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            filter: undefined,
-          },
-        },
-        {replace: true}
-      );
-    }
-  }, [location, navigate]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter = searchParams.get('filter') ?? 'all';
 
   return (
     <EventDrawerContainer>
@@ -68,8 +48,20 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
         <SegmentedControl
           size="xs"
           aria-label={t('Filter activity')}
-          value={filterComments ? 'comments' : 'all'}
-          onChange={() => setFilterComments(!filterComments)}
+          value={filter}
+          onChange={value => {
+            setSearchParams(
+              params => {
+                if (value === 'comments') {
+                  params.set('filter', 'comments');
+                } else {
+                  params.delete('filter');
+                }
+                return params;
+              },
+              {replace: true}
+            );
+          }}
         >
           <SegmentedControl.Item key="comments">
             {t('Comments Only')}
@@ -81,7 +73,7 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
         <StreamlinedActivitySection
           group={group}
           isDrawer
-          filterComments={filterComments}
+          filterComments={filter === 'comments'}
         />
       </EventDrawerBody>
     </EventDrawerContainer>
