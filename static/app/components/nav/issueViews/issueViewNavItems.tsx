@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import {IssueViewNavItemContent} from 'sentry/components/nav/issueViews/issueViewNavItemContent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -136,8 +137,13 @@ export function IssueViewNavItems({
     (newOrder: IssueView[]) => {
       setViews(newOrder);
       debounceUpdateViews(newOrder);
+
+      trackAnalytics('issue_views.reordered_views', {
+        leftNav: true,
+        organization: organization.slug,
+      });
     },
-    [debounceUpdateViews]
+    [debounceUpdateViews, organization.slug]
   );
 
   const handleUpdateView = useCallback(
@@ -150,8 +156,13 @@ export function IssueViewNavItems({
       });
       debounceUpdateViews(newViews);
       setViews(newViews);
+
+      trackAnalytics('issue_views.updated_view', {
+        leftNav: true,
+        organization: organization.slug,
+      });
     },
-    [debounceUpdateViews, views]
+    [debounceUpdateViews, views, organization.slug]
   );
 
   const handleDeleteView = useCallback(
@@ -165,8 +176,13 @@ export function IssueViewNavItems({
           newViews.length > 0 ? constructViewLink(baseUrl, newViews[0]!) : `${baseUrl}/`;
         navigate(newUrl);
       }
+
+      trackAnalytics('issue_views.deleted_view', {
+        leftNav: true,
+        organization: organization.slug,
+      });
     },
-    [views, debounceUpdateViews, viewId, baseUrl, navigate]
+    [views, debounceUpdateViews, viewId, baseUrl, navigate, organization.slug]
   );
 
   const handleDuplicateView = useCallback(
