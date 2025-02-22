@@ -66,6 +66,7 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool
+    prefersStackedNavigation: bool
     quickStartDisplay: dict[str, int]
 
 
@@ -199,6 +200,7 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui", False
                 ),
+                "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
                 "quickStartDisplay": options.get("quick_start_display") or {},
             }
 
