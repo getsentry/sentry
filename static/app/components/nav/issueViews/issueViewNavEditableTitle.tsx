@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
+import {useNavContext} from 'sentry/components/nav/context';
 import {Tooltip} from 'sentry/components/tooltip';
 
 interface IssueViewNavEditableTitleProps {
@@ -27,6 +28,7 @@ function IssueViewNavEditableTitle({
     setInputValue(label);
   }, [label]);
 
+  const {isInteractingRef} = useNavContext();
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
@@ -84,7 +86,12 @@ function IssueViewNavEditableTitle({
   };
 
   return (
-    <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
+    <Tooltip
+      title={label}
+      disabled={isEditing || !!isInteractingRef.current}
+      showOnlyOnOverflow
+      skipWrapper
+    >
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isEditing ? (
           <StyledGrowingInput
