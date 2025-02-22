@@ -630,3 +630,11 @@ default_manager.add(
         template="created project {slug} via {origin}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=1155,
+        name="DETECTOR_CREATE",
+        api_name="detector.create",
+        template="created detector {name}",
+    )
+)
