@@ -28,6 +28,15 @@ from sentry.replays.usecases.ingest.dom_index import (
     emit_replay_actions,
     parse_replay_actions,
 )
+from sentry.replays.usecases.ingest.event_logger import (
+    emit_request_response_metrics,
+    log_canvas_size,
+    log_mutation_events,
+    log_option_events,
+    report_hydration_error,
+    report_rage_click,
+)
+from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta, parse_events
 from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -254,8 +263,7 @@ def recording_post_processor(
 
         # Conditionally use the new separated event parsing and logging logic. This way we can
         # feature flag access and fix any issues we find.
-        VALID_ORG_IDS = []
-        if message.org_id in VALID_ORG_IDS:
+        if message.org_id in options.get("replay.consumer.separate-compute-and-io"):
             event_meta = parse_replay_events(segment)
             if not event_meta:
                 return None
@@ -352,17 +360,6 @@ def try_get_replay_actions(
         replay_event=parsed_replay_event,
         org_id=message.org_id,
     )
-
-
-from sentry.replays.usecases.ingest.event_logger import (
-    emit_request_response_metrics,
-    log_canvas_size,
-    log_mutation_events,
-    log_option_events,
-    report_hydration_error,
-    report_rage_click,
-)
-from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta, parse_events
 
 
 def parse_replay_events(events: list[dict[str, Any]]) -> ParsedEventMeta | None:
