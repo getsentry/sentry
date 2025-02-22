@@ -259,5 +259,20 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
     )
 
 
+@cache_func_for_models(
+    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
+    recalculate=False,
+    cache_ttl=timedelta(hours=4),
+)
+def get_project_subscriptions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[ProjectUptimeSubscription]:
+    return list(
+        ProjectUptimeSubscription.objects.filter(
+            uptime_subscription_id=uptime_subscription_id
+        ).select_related("project", "project__organization")
+    )
+
+
 class UptimeRegionScheduleMode(enum.StrEnum):
     ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN

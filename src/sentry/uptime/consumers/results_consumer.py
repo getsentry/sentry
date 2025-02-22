@@ -32,6 +32,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_project_subscriptions_for_uptime_subscription,
     get_top_hosting_provider_names,
 )
 from sentry.uptime.subscriptions.regions import get_active_region_configs
@@ -205,11 +206,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         self.check_and_update_regions(subscription, result)
 
-        project_subscriptions = list(
-            subscription.projectuptimesubscription_set.select_related(
-                "project", "project__organization"
-            ).all()
-        )
+        project_subscriptions = get_project_subscriptions_for_uptime_subscription(subscription.id)
 
         cluster = _get_cluster()
         last_updates: list[str | None] = cluster.mget(
