@@ -84,7 +84,7 @@ describe('GroupUptimeChecks', () => {
     expect(
       screen.getByRole('link', {name: getShortEventId(uptimeCheck.traceId)})
     ).toHaveAttribute('href', `/performance/trace/${uptimeCheck.traceId}/`);
-    expect(screen.getByText(uptimeCheck.region)).toBeInTheDocument();
+    expect(screen.getByText(uptimeCheck.regionName)).toBeInTheDocument();
     expect(screen.getByText(uptimeCheck.uptimeCheckId)).toBeInTheDocument();
   });
 });
