@@ -1,3 +1,6 @@
+from datetime import datetime
+from datetime import timezone as tz
+
 from django.db import models
 from django.utils import timezone
 
@@ -128,3 +131,41 @@ class GroupHashMetadata(Model):
         return self.grouphash.hash
 
     __repr__ = sane_repr("grouphash_id", "group_id", "hash")
+
+    def get_best_guess_schema_version(self) -> str:
+        """
+        Temporary hack to let us record metrics for grouphash metadata records created before we
+        were storing schema version. Once we hit May of 2025 or so, we should have backfilled or
+        aged out any such records, and can probably delete this.
+
+        Note: This is "best guess" because the schema transitions didn't happen right at midnight on
+        the dates in question, even though the logic below implies that they did. For our purposes
+        it's close enough, though, especially since this isn't sticking around forever.
+        """
+        if self.schema_version:
+            return self.schema_version
+
+        # Any metadata record without a creation date is one created between the time we enabled
+        # backfill for existing grouphashes and the time we added schema versioning, which was
+        # during the version 7 era.
+        if not self.date_added:
+            return "7"
+
+        if self.date_added < datetime(2024, 10, 1, tzinfo=tz.utc):
+            return "0"
+        elif self.date_added < datetime(2024, 10, 3, tzinfo=tz.utc):
+            return "1"
+        elif self.date_added < datetime(2024, 11, 1, tzinfo=tz.utc):
+            return "2"
+        elif self.date_added < datetime(2024, 11, 18, tzinfo=tz.utc):
+            return "3"
+        elif self.date_added < datetime(2025, 1, 24, tzinfo=tz.utc):
+            return "4"
+        elif self.date_added < datetime(2025, 2, 7, tzinfo=tz.utc):
+            return "5"
+        elif self.date_added < datetime(2025, 2, 11, tzinfo=tz.utc):
+            return "6"
+        # Schema version 8 introduced schema versioning, so anything that version or above will know
+        # its version and have short-circuited at the top of this function
+        else:
+            return "7"
