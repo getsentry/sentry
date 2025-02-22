@@ -23,7 +23,7 @@ export function LatencyChart({error, destination, referrer}: Props) {
 
   return (
     <InsightsAreaChartWidget
-      title={t('Avg Latency')}
+      title={t('Average Duration')}
       series={[
         data['avg(messaging.message.receive.latency)'],
         data['avg(span.duration)'],
