@@ -9,62 +9,6 @@ import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import type {Automation} from 'sentry/views/automations/components/automationListRow';
 
-const automations: Automation[] = [
-  {
-    actions: ['email'],
-    lastTriggered: new Date(Date.now() - 25 * 60 * 60 * 1000),
-    monitors: [
-      {
-        name: 'test automation',
-        project: {slug: 'bruh', platform: 'android'},
-        description: 'transaction.duration',
-        link: 'automations/jkl012',
-      },
-      {
-        name: 'test python automation',
-        project: {slug: 'bruh.py', platform: 'python'},
-        link: 'automations/mno345',
-      },
-      {
-        name: 'test swift automation',
-        project: {slug: 'bruh.swift', platform: 'swift'},
-        link: 'automations/pqr678',
-      },
-    ],
-    id: '123',
-    link: 'hello.com',
-    name: 'Email suggested assignees',
-    project: {
-      slug: 'javascript',
-      platform: 'javascript',
-    },
-  },
-  {
-    actions: ['email', 'slack', 'discord'],
-    lastTriggered: new Date(Date.now() - 60 * 60 * 60 * 1000),
-    monitors: [],
-    id: '234',
-    link: 'hello.com',
-    name: 'Notify suggested assignees',
-    project: {
-      slug: 'sentry',
-      platform: 'python',
-    },
-  },
-  {
-    actions: ['email', 'slack'],
-    monitors: [],
-    id: '345',
-    link: 'hello.com',
-    name: 'My test automation',
-    project: {
-      slug: 'sentry',
-      platform: 'python',
-    },
-    disabled: true,
-  },
-];
-
 export function ConnectedAutomationsList() {
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
 
@@ -97,7 +41,7 @@ export function ConnectedAutomationsList() {
   return (
     <Wrapper>
       <GridEditable
-        data={automations}
+        data={[]}
         columnOrder={columnOrder}
         columnSortBy={[]}
         grid={{

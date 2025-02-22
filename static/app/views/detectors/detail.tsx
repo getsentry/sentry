@@ -27,10 +27,6 @@ const priorities: Priority[] = [
   {sensitivity: 'high', threshold: 10},
 ];
 
-const assignee = 'admin@sentry.io';
-
-const resolve_threshold = 2600000;
-
 export default function DetectorDetail() {
   useWorkflowEngineFeatureGate({redirect: true});
 
@@ -52,7 +48,9 @@ export default function DetectorDetail() {
               <Section title={t('Detect')}>
                 <DetailsPanel />
               </Section>
-              <Section title={t('Assign')}>{t('Assign to %s', assignee)}</Section>
+              <Section title={t('Assign')}>
+                {t('Assign to %s', 'admin@sentry.io')}
+              </Section>
               <Section title={t('Prioritize')}>
                 <PrioritiesList>
                   {priorities.map(priority => (
@@ -67,7 +65,7 @@ export default function DetectorDetail() {
                 </PrioritiesList>
               </Section>
               <Section title={t('Resolve')}>
-                {t('Auto-resolve after %s of inactivity', getDuration(resolve_threshold))}
+                {t('Auto-resolve after %s of inactivity', getDuration(3000000))}
               </Section>
             </DetailLayout.Sidebar>
           </DetailLayout>
