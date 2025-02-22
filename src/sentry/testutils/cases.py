@@ -2391,7 +2391,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "retention_days": 30,
-                "region": f"region_{random.randint(1, 3)}",
+                "region": "default",
                 "environment": "production",
                 "subscription_id": subscription_id,
                 "guid": str(uuid.uuid4()),
