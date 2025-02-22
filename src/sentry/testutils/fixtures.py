@@ -50,6 +50,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
@@ -716,9 +717,17 @@ class Fixtures:
             trace_sampling=trace_sampling,
         )
         for region_slug in region_slugs:
-            Factories.create_uptime_subscription_region(subscription, region_slug)
+            self.create_uptime_subscription_region(subscription, region_slug)
 
         return subscription
+
+    def create_uptime_subscription_region(
+        self,
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode = UptimeSubscriptionRegion.RegionMode.ACTIVE,
+    ):
+        Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
     def create_project_uptime_subscription(
         self,

@@ -2021,10 +2021,14 @@ class Factories:
 
     @staticmethod
     def create_uptime_subscription_region(
-        subscription: UptimeSubscription, region_slug: str
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode,
     ) -> UptimeSubscriptionRegion:
         return UptimeSubscriptionRegion.objects.create(
-            uptime_subscription=subscription, region_slug=region_slug
+            uptime_subscription=subscription,
+            region_slug=region_slug,
+            mode=mode,
         )
 
     @staticmethod

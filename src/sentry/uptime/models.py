@@ -122,8 +122,13 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     class RegionMode(enum.StrEnum):
+        # Region is running as usual
         ACTIVE = "active"
+        # Region is disabled and not running
         INACTIVE = "inactive"
+        # Region is running in shadow mode. This means it is performing checks, but results are
+        # ignored.
+        SHADOW = "shadow"
 
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     region_slug = models.CharField(max_length=255, db_index=True, db_default="")
