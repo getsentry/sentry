@@ -72,7 +72,6 @@ export function UptimeChecksTable({uptimeRule}: Props) {
     t('Duration'),
     t('Region'),
     t('Trace'),
-    t('Check ID'),
   ];
 
   return (
@@ -121,7 +120,6 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                     {getShortEventId(check.traceId)}
                   </Link>
                 </div>
-                <div>{check.uptimeCheckId}</div>
               </Fragment>
             ))}
       </PanelTable>
