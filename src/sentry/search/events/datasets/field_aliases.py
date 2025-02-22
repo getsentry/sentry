@@ -158,3 +158,11 @@ def resolve_replay_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
         [Function("nullif", [builder.column(column), ""]) for column in columns],
         alias,
     )
+
+
+def resolve_column_if_exists(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    if hasattr(builder, "resolve_tag_key"):
+        hasColumn = builder.resolve_tag_key(alias)
+        if hasColumn:
+            return builder.column(alias)
+    return Function("nullif", ["", ""], alias)
