@@ -7,7 +7,7 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
 from django.test import override_settings
 
-from sentry.issues.ingest import process_occurrence_data
+from sentry.issues.ingest import hash_fingerprint_parts
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -315,8 +315,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 payload_type=PayloadType.STATUS_CHANGE,
                 status_change=bad_status_change,
             )
-            processed_fingerprint = {"fingerprint": ["group-1"]}
-            process_occurrence_data(processed_fingerprint)
+            processed_fingerprint = {"fingerprint": hash_fingerprint_parts(["group-1"])}
 
             self.group.refresh_from_db()
             mock_logger_error.assert_called_with(
@@ -346,8 +345,6 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert group
         initial_status = group.status
         initial_substatus = group.substatus
-        wrong_fingerprint = {"fingerprint": ["wronghash"]}
-        process_occurrence_data(wrong_fingerprint)
 
         bad_status_change_resolve = StatusChangeMessage(
             fingerprint=["wronghash"],
