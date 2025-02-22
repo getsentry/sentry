@@ -67,7 +67,7 @@ def report_hydration_error(
 ) -> None:
     metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
-    if not _should_report_hydration_error_issue(project):
+    if not replay_event or not _should_report_hydration_error_issue(project):
         return None
 
     for error in event_meta.hydration_errors:
@@ -88,13 +88,13 @@ def report_rage_click(
 ) -> None:
     for click in filter(lambda c: c.is_rage, event_meta.click_events):
         metrics.incr("replay.rage_click_detected")
-        if replay_event is not None and _should_report_rage_click_issue(project):
+        if replay_event is not None and click.url and _should_report_rage_click_issue(project):
             node = {
                 "id": click.node_id,
                 "tagName": click.tag,
                 "attributes": {
                     "id": click.id,
-                    "class": click.classes.join(" "),
+                    "class": " ".join(click.classes),
                     "aria-label": click.aria_label,
                     "role": click.role,
                     "alt": click.alt,
@@ -108,6 +108,7 @@ def report_rage_click(
                 project.id,
                 replay_id,
                 click.timestamp,
+                click.selector,
                 click.url,
                 node,
                 click.component_name,

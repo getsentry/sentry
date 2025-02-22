@@ -274,7 +274,7 @@ def recording_post_processor(
                 message.org_id,
                 project,
                 message.replay_id,
-                message.replay_event,
+                replay_event,
             )
         else:
             actions_event = try_get_replay_actions(message, segment, replay_event)
