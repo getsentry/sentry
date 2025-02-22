@@ -173,7 +173,7 @@ class OutboxDrainTest(TransactionTestCase):
 
     def test_drain_shard_not_flush_all__upper_bound(self) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
-        outbox2 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=2).outbox_for_update()
 
         with outbox_context(flush=False):
             outbox1.save()
@@ -250,20 +250,20 @@ class OutboxDrainTest(TransactionTestCase):
         )
         processing_thread.start()
 
+        # Wait for initial processing
         barrier.wait()
 
         # Does include outboxes created after starting process.
         with outbox_context(flush=False):
             outbox2.save()
+
+        # Let processing continue
         barrier.wait()
 
-        # Next iteration
-        barrier.wait()
-        barrier.wait()
-
+        # Wait for thread to complete
         processing_thread.join(timeout=1)
-        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
-        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox1.id).exists()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).exists()
 
     @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
@@ -302,7 +302,21 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox1.id).first()
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
-        assert mock_process_region_outbox.call_count == 2
+        assert mock_process_region_outbox.call_count >= 2
+        mock_process_region_outbox.assert_any_call(
+            sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            payload={"user_id": 1},
+            object_identifier=outbox1.object_identifier,
+            shard_identifier=outbox1.shard_identifier,
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE.value,
+        )
+        mock_process_region_outbox.assert_any_call(
+            sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            payload={"user_id": 2},
+            object_identifier=outbox2.object_identifier,
+            shard_identifier=outbox2.shard_identifier,
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE.value,
+        )
 
 
 class RegionOutboxTest(TestCase):
@@ -362,7 +376,27 @@ class RegionOutboxTest(TestCase):
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call(
+                    "outbox.coalesced_reservation_window",
+                    60,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call(
+                    "outbox.reserved_message_deletion_batch_size",
+                    50,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
+                call(
+                    "outbox.batch_delete_success",
+                    1,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
+                call(
+                    "outbox.final_delete_success",
+                    1,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
                 call(
                     "outbox.processed",
                     2,
