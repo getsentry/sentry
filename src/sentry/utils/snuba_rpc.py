@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
 )
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
@@ -82,6 +83,13 @@ def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableRespo
 
 def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse]:
     return _make_rpc_requests(timeseries_requests=requests).timeseries_response
+
+
+def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
+    resp = _make_rpc_request("EndpointGetTrace", "v1", referrer=request.meta.referrer, req=request)
+    response = GetTraceResponse()
+    response.ParseFromString(resp.data)
+    return response
 
 
 def _make_rpc_requests(
