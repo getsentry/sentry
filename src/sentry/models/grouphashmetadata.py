@@ -15,8 +15,6 @@ from sentry.types.grouphash_metadata import HashingMetadata
 # than this will have its data updated and its version set to this value. Stored as a string for
 # flexibility, in case we ever want to switch the way we denote versions.
 #
-# TODO: That second sentence isn't yet true.
-#
 # Schema history:
 #
 # 0 -> table creation/initial schema, with grouphash and date added fields (2024-09-09)
