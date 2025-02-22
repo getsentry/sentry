@@ -3,11 +3,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
+import Section from 'sentry/components/workflowEngine/ui/section';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconArrow, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,40 +41,34 @@ export default function DetectorDetail() {
           <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>
               {/* TODO: Add chart here */}
-              <Flex column gap={space(1)}>
-                <strong>{t('Ongoing Issues')}</strong>
+              <Section title={t('Ongoing Issues')}>
                 <IssuesList />
-              </Flex>
-              <Flex column gap={space(1)}>
-                <strong>{t('Connected Automations')}</strong>
+              </Section>
+              <Section title={t('Connected Automations')}>
                 <ConnectedAutomationsList />
-              </Flex>
+              </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>
-              <Flex column gap={space(0.75)}>
-                <strong>{t('Detect')}</strong>
+              <Section title={t('Detect')}>
                 <DetailsPanel />
-              </Flex>
-              <Flex column gap={space(0.75)}>
-                <strong>{t('Assign')}</strong>
-                {t('Assign to %s', assignee)}
-              </Flex>
-              <Flex column gap={space(0.75)}>
-                <strong>{t('Prioritize')}</strong>
+              </Section>
+              <Section title={t('Assign')}>{t('Assign to %s', assignee)}</Section>
+              <Section title={t('Prioritize')}>
                 <PrioritiesList>
                   {priorities.map(priority => (
                     <Fragment key={priority.sensitivity}>
-                      <p>{getDuration(priority.threshold, 0, false, true)}</p>
+                      <PriorityDuration>
+                        {getDuration(priority.threshold, 0, false, true)}
+                      </PriorityDuration>
                       <IconArrow direction="right" />
                       <p>{priority.sensitivity}</p>
                     </Fragment>
                   ))}
                 </PrioritiesList>
-              </Flex>
-              <Flex column gap={space(0.75)}>
-                <strong>{t('Resolve')}</strong>
+              </Section>
+              <Section title={t('Resolve')}>
                 {t('Auto-resolve after %s of inactivity', getDuration(resolve_threshold))}
-              </Flex>
+              </Section>
             </DetailLayout.Sidebar>
           </DetailLayout>
         </ActionsProvider>
@@ -101,11 +95,16 @@ const PrioritiesList = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   grid-template-rows: repeat(${priorities.length}, 1fr);
-  gap: ${space(0.5)};
-  width: auto;
+  align-items: center;
+  width: fit-content;
+  gap: ${space(0.5)} ${space(1)};
 
   p {
     margin: 0;
     width: fit-content;
   }
+`;
+
+const PriorityDuration = styled('p')`
+  justify-self: flex-end;
 `;
