@@ -83,7 +83,7 @@ CheckStatus = Literal["success", "failure", "failure_incident", "missed_window"]
 
 
 class EapCheckEntrySerializerResponse(TypedDict):
-    uptimeCheckId: int
+    uptimeCheckId: str
     uptimeSubscriptionId: int
     projectUptimeSubscriptionId: int
     timestamp: str
