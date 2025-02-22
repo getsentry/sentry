@@ -95,3 +95,32 @@ class CommitContextIntegrationTest(TestCase):
         assert result == []
         assert len(mock_record.mock_calls) == 2
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_gitlab_halt(self, mock_record):
+
+        class MockCommitContextGitlabIntegration(CommitContextIntegration):
+            """Mock gitlab for testing"""
+
+            integration_name = "gitlab"
+
+            def __init__(self):
+                self.client = Mock()
+
+            def get_client(self):
+                return self.client
+
+        integration = MockCommitContextGitlabIntegration()
+
+        from sentry.shared_integrations.exceptions import ApiError
+
+        """Test rate limited requests record halt"""
+
+        integration.client.get_blame_for_files = Mock(
+            side_effect=ApiError(text='{"error":"file_path should be a valid file path"}')
+        )
+
+        result = integration.get_blame_for_files([self.source_line], {})
+
+        assert result == []
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)

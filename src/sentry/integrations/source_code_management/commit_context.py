@@ -12,12 +12,14 @@ from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.gitlab.metrics import record_lifecycle_termination_level
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -31,7 +33,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -78,6 +80,19 @@ class FileBlameInfo(SourceLineInfo):
     commit: CommitInfo
 
 
+def _default_lifecycle_handler(lifecycle, error):
+    lifecycle.record_failure(error)
+
+
+def _gitlab_lifecycle_handler(lifecycle, error):
+    record_lifecycle_termination_level(lifecycle, error)
+
+
+PROVIDER_LIFECYCLE_HANDLERS = {
+    ExternalProviderEnum.GITLAB: _gitlab_lifecycle_handler,
+}
+
+
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -108,19 +123,21 @@ class CommitContextIntegration(ABC):
                 client = self.get_client()
             except Identity.DoesNotExist as e:
                 lifecycle.record_failure(e)
-                sentry_sdk.capture_exception(e)
                 return []
             try:
                 response = client.get_blame_for_files(files, extra)
             except IdentityNotValid as e:
                 lifecycle.record_failure(e)
-                sentry_sdk.capture_exception(e)
                 return []
-            # Swallow rate limited errors so we don't log them as exceptions
             except ApiRateLimitedError as e:
-                sentry_sdk.capture_exception(e)
                 lifecycle.record_halt(e)
                 return []
+            except ApiError as e:
+                PROVIDER_LIFECYCLE_HANDLERS.get(
+                    ExternalProviderEnum(self.integration_name), _default_lifecycle_handler
+                )(lifecycle, e)
+                return []
+
             return response
 
     def get_commit_context_all_frames(
