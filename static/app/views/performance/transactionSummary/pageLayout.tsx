@@ -359,10 +359,15 @@ export function redirectToPerformanceHomepage(
   organization: Organization,
   location: Location
 ) {
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug),
+      pathname: hasPerfLandingRemovalFlag
+        ? getPerformanceBaseUrl(organization.slug, 'backend')
+        : getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },
