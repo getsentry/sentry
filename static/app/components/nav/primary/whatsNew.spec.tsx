@@ -30,7 +30,7 @@ describe('WhatsNew', function () {
     expect(await screen.findByText(/No recent updates/)).toBeInTheDocument();
   });
 
-  it('displays the correct number of unseen broadcasts as a badge', async function () {
+  it('displays unseen broadcasts indicator', async function () {
     jest.useFakeTimers();
 
     MockApiClient.clearMockResponses();
@@ -64,7 +64,7 @@ describe('WhatsNew', function () {
 
     render(<WhatsNew />);
 
-    expect(await screen.findByTestId('whats-new-badge')).toHaveTextContent('2');
+    expect(await screen.findByTestId('whats-new-unread-indicator')).toBeInTheDocument();
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,

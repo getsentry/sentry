@@ -1,3 +1,6 @@
+import logging
+
+from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -28,6 +31,7 @@ from sentry.incidents.logic import (
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
@@ -39,6 +43,8 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):
@@ -114,8 +120,21 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
         # the user could be removed from the dual write flag for whatever reason, and we need to make sure
         # that the extra table data is deleted. If the rows don't exist, we'll exit early.
-        dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=request.user)
-        delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            try:
+                dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=request.user)
+            except Exception as e:
+                logger.exception(
+                    "Error when dual deleting alert rule",
+                    extra={"details": str(e)},
+                )
+                return Response(
+                    "Error when dual deleting alert rule",
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+            delete_alert_rule(
+                alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR")
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
     except AlreadyDeletedError:
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)

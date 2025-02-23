@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
@@ -101,8 +102,8 @@ class IntegrationPipeline(Pipeline):
 
         if (
             org_context
-            and org_context.member
-            and "org:integrations" not in org_context.member.scopes
+            and (not org_context.member or "org:integrations" not in org_context.member.scopes)
+            and not superuser_has_permission(self.request, ["org:integrations"])
         ):
             error_message = (
                 "You must be an organization owner, manager or admin to install this integration."

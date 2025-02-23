@@ -120,7 +120,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 
-        result = OrderedSet()
+        result: OrderedSet[str] = OrderedSet()
 
         for j in exact_search_resp.get("values", []):
             result.add(j["full_name"])
@@ -186,7 +186,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
         identity_pipeline_view = NestedPipelineView(
             bind_key="identity",

@@ -61,6 +61,13 @@ describe('StreamlinedSidebar', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/`,
+      body: {
+        steps: [],
+      },
+    });
+
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
@@ -101,7 +108,7 @@ describe('StreamlinedSidebar', function () {
     expect(screen.getByText('Last seen')).toBeInTheDocument();
     expect(mockFirstLastRelease).toHaveBeenCalled();
 
-    expect(screen.getByRole('heading', {name: 'Issue Tracking'})).toBeInTheDocument();
+    expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: issueTrackingKey})
     ).toBeInTheDocument();

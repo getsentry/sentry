@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
+import {Alert} from 'sentry/components/core/alert';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -19,6 +19,7 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -143,9 +144,10 @@ function SuggestedOwnerHovercard(props: Props) {
                           // Link to release commits
                           <Link
                             to={{
-                              pathname: `/organizations/${
-                                organization?.slug
-                              }/releases/${encodeURIComponent(release.version)}/commits/`,
+                              pathname: makeReleasesPathname({
+                                organization,
+                                path: `/${encodeURIComponent(release.version)}/commits/`,
+                              }),
                               query: {project: projectId},
                             }}
                           >

@@ -12,14 +12,10 @@ import type {Color} from 'sentry/utils/theme';
 
 import type {AutofixTimelineEvent} from './types';
 
-type ExtendedTimelineEvent = AutofixTimelineEvent & {
-  isTruncated?: boolean;
-};
-
 type Props = {
-  events: ExtendedTimelineEvent[];
+  events: AutofixTimelineEvent[];
   activeColor?: Color;
-  getCustomIcon?: (event: ExtendedTimelineEvent) => React.ReactNode;
+  getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode;
 };
 
 function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
@@ -41,7 +37,7 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive: boolean, activeColor?: Color): ColorConfig {
+function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
     icon: isActive ? activeColor ?? 'pink400' : 'gray400',
@@ -50,7 +46,17 @@ function getEventColor(isActive: boolean, activeColor?: Color): ColorConfig {
 }
 
 export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  const [expandedItems, setExpandedItems] = useState<number[]>(() => {
+    if (!events?.length || events.length > 3) {
+      return [];
+    }
+
+    // For 3 or fewer items, find the first highlighted item or default to first item
+    const firstHighlightedIndex = events.findIndex(
+      event => event.is_most_important_event
+    );
+    return [firstHighlightedIndex !== -1 ? firstHighlightedIndex : 0];
+  });
 
   if (!events?.length) {
     return null;
@@ -66,16 +72,14 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
     <Timeline.Container>
       {events.map((event, index) => {
         const isActive = event.is_most_important_event && index !== events.length - 1;
-        const isTruncated = event.isTruncated;
 
         return (
           <Timeline.Item
             key={index}
             title={
               <StyledTimelineHeader
-                onClick={isTruncated ? undefined : () => toggleItem(index)}
+                onClick={() => toggleItem(index)}
                 isActive={isActive}
-                isTruncated={isTruncated}
                 data-test-id={`autofix-root-cause-timeline-item-${index}`}
               >
                 <div
@@ -83,12 +87,10 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
                     __html: singleLineRenderer(event.title),
                   }}
                 />
-                {!isTruncated && (
-                  <StyledIconChevron
-                    direction={expandedItems.includes(index) ? 'down' : 'right'}
-                    size="xs"
-                  />
-                )}
+                <StyledIconChevron
+                  direction={expandedItems.includes(index) ? 'down' : 'right'}
+                  size="xs"
+                />
               </StyledTimelineHeader>
             }
             isActive={isActive}
@@ -96,7 +98,7 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
             colorConfig={getEventColor(isActive, activeColor)}
           >
             <AnimatePresence>
-              {!isTruncated && expandedItems.includes(index) && (
+              {expandedItems.includes(index) && (
                 <AnimatedContent
                   initial={{height: 0, opacity: 0}}
                   animate={{height: 'auto', opacity: 1}}
@@ -133,14 +135,14 @@ const StyledSpan = styled('span')`
   }
 `;
 
-const StyledTimelineHeader = styled('div')<{isActive?: boolean; isTruncated?: boolean}>`
+const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   padding: ${space(0.25)};
   border-radius: ${p => p.theme.borderRadius};
-  cursor: ${p => (p.isTruncated ? 'default' : 'pointer')};
+  cursor: pointer;
   font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   gap: ${space(1)};
 
@@ -151,8 +153,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean; isTruncated?: bo
   }
 
   &:hover {
-    background-color: ${p =>
-      p.isTruncated ? 'transparent' : p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
