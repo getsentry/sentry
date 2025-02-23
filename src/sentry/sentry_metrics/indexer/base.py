@@ -464,10 +464,12 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it
         With every call to this method, the lifetime of the entry will be
         prolonged.
+
+        If the string cannot be recorded, this method should raise an exception.
         """
         raise NotImplementedError()
 
