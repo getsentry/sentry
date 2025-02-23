@@ -44,7 +44,7 @@ The number of previous days from now to find issues and events.
 This number is global so that fetching issues and events is consistent.
 """
 
-STACKFRAME_COUNT = 10
+STACKFRAME_COUNT = 20
 """
 The number of stack frames to check for function name and file name matches.
 """
@@ -225,9 +225,8 @@ def _add_event_details(
     """
     Bulk-fetch the events corresponding to the issues, and bulk-serialize them.
     """
-    group_id_to_group_dict = {
-        group_dict["group_id"]: group_dict for group_dict in issues_result_set
-    }
+    if not issues_result_set:
+        return []
     event_filter = eventstore.Filter(
         start=event_timestamp_start,
         end=event_timestamp_end,
@@ -242,13 +241,15 @@ def _add_event_details(
     serialized_events: list[EventSerializerResponse] = serialize(
         events, serializer=EventSerializer()
     )
+    group_id_to_group_dict = {
+        group_dict["group_id"]: group_dict for group_dict in issues_result_set
+    }
     return [
         {  # Structured like seer.automation.models.IssueDetails
             "id": int(event_dict["groupID"]),
             "title": event_dict["title"],
             "events": [event_dict],
             "function_name": group_id_to_group_dict[int(event_dict["groupID"])]["function_name"],
-            # function_name is used for testing
         }
         for event_dict in serialized_events
         if event_dict["groupID"] is not None
@@ -271,11 +272,10 @@ def get_issues_with_event_details_for_file(
         event_timestamp_end,
         max_num_issues_per_file=max_num_issues_per_file,
     )
-    if not issues_result_set:
-        return []
-    return _add_event_details(
+    issues = _add_event_details(
         projects, issues_result_set, event_timestamp_start, event_timestamp_end
     )
+    return issues
 
 
 def _left_truncated_paths(filename: str, max_num_paths: int = 2) -> list[str]:
@@ -312,7 +312,7 @@ def _get_projects_and_filenames_from_source_file(
         .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
         .filter(substring_match=1)
     )
-    project_set = {code_mapping.project for code_mapping in code_mappings}
+    projects_set = {code_mapping.project for code_mapping in code_mappings}
     sentry_filenames = {
         pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
         for code_mapping in code_mappings
@@ -322,7 +322,7 @@ def _get_projects_and_filenames_from_source_file(
     # out irrelevant issues.
     sentry_filenames.add(pr_filename)
     sentry_filenames.update(_left_truncated_paths(pr_filename, max_num_left_truncated_paths))
-    return project_set, sentry_filenames
+    return projects_set, sentry_filenames
 
 
 def get_issues_related_to_file_patches(

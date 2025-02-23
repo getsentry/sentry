@@ -280,7 +280,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             self.organization.id, self.gh_repo.id, "some/path/foo.py"
         )
         assert projects == {self.project}
-        assert filenames == {"foo.py", "some/path/foo.py", "path/foo.py"}
+        assert filenames == {"some/path/foo.py", "path/foo.py", "foo.py"}
 
     @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
     @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
