@@ -2,51 +2,46 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Count from 'sentry/components/count';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Duration from 'sentry/components/duration';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
-type ReleaseHealthItem = {
-  crash_free_sessions: number;
+type ReleaseAdoptionItem = {
+  adoption: number;
   date: string;
-  error_count: number;
+  lifespan: number | undefined;
   project_id: number;
   release: string;
-  sessions: number;
   stage: string;
 };
 
 interface Props {
-  data: ReleaseHealthItem[];
+  data: ReleaseAdoptionItem[];
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
   meta: EventsMetaType;
 }
 
-type Column = GridColumnHeader<keyof ReleaseHealthItem>;
+type Column = GridColumnHeader<keyof ReleaseAdoptionItem>;
 
-const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
+const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseAdoptionItem>> = [
   {key: 'release', name: 'version'},
   {key: 'date', name: 'date created'},
+  {key: 'lifespan', name: 'lifespan'},
+  {key: 'adoption', name: 'adoption'},
   {key: 'stage', name: 'stage'},
-  {key: 'crash_free_sessions', name: 'crash free rate'},
-  {key: 'sessions', name: 'total sessions'},
-  {key: 'error_count', name: 'new issues'},
 ];
 
-export default function ReleaseHealthTable({
+export default function ReleaseAdoptionTable({
   data,
   isError,
   isLoading,
@@ -61,7 +56,7 @@ export default function ReleaseHealthTable({
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
     location,
-    paramName: 'width_health_table',
+    paramName: 'width_adoption_table',
   });
 
   const organization = useOrganization();
@@ -79,28 +74,28 @@ export default function ReleaseHealthTable({
   );
 
   const renderBodyCell = useCallback(
-    (column: Column, dataRow: ReleaseHealthItem) => {
+    (column: Column, dataRow: ReleaseAdoptionItem) => {
       const value = dataRow[column.key];
 
-      if (column.key === 'crash_free_sessions') {
+      if (column.key === 'lifespan') {
+        return value !== undefined ? (
+          <CellWrapper>
+            <Duration
+              precision="hours"
+              abbreviation
+              seconds={(value as number) * (1 / 1000)}
+            />
+          </CellWrapper>
+        ) : (
+          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
+          '--'
+        );
+      }
+
+      if (column.key === 'adoption') {
         return `${(value as number).toFixed(2)}%`;
       }
 
-      if (column.key === 'error_count') {
-        return (
-          <Tooltip title={t('Open in Issues')} position="auto-start">
-            <GlobalSelectionLink
-              to={getReleaseNewIssuesUrl(
-                organization.slug,
-                dataRow.project_id,
-                dataRow.release
-              )}
-            >
-              <Count value={value} />
-            </GlobalSelectionLink>
-          </Tooltip>
-        );
-      }
       if (!meta?.fields) {
         return value;
       }
@@ -122,10 +117,10 @@ export default function ReleaseHealthTable({
 
   const tableEmptyMessage = (
     <MessageContainer>
-      <Title>{t('No session health data was found')}</Title>
+      <Title>{t('No release adoption data was found')}</Title>
       <Subtitle>
         {t(
-          'There was no session health data within this timeframe. Try expanding your timeframe or changing your global filters.'
+          'There was no release adoption data within this timeframe. Try expanding your timeframe or changing your global filters.'
         )}
       </Subtitle>
     </MessageContainer>
@@ -145,7 +140,7 @@ export default function ReleaseHealthTable({
         renderHeadCell,
         renderBodyCell: (column, row) => renderBodyCell(column, row),
       }}
-      title={t('Release Health')}
+      title={t('Release Adoption')}
     />
   );
 }
