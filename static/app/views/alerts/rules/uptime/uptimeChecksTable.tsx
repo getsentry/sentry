@@ -68,11 +68,11 @@ export function UptimeChecksTable({uptimeRule}: Props) {
 
   const headers = [
     t('Status'),
+    t('HTTP Status'),
     t('Checked At'),
     t('Duration'),
     t('Region'),
     t('Trace'),
-    t('Check ID'),
   ];
 
   return (
@@ -109,6 +109,7 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                     )}
                   </Text>
                 </Status>
+                <div>{check.httpStatusCode ?? t('None')}</div>
                 <div>
                   <DateTime date={check.timestamp} timeZone />
                 </div>
@@ -121,7 +122,6 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                     {getShortEventId(check.traceId)}
                   </Link>
                 </div>
-                <div>{check.uptimeCheckId}</div>
               </Fragment>
             ))}
       </PanelTable>

@@ -1,5 +1,5 @@
-import Badge from 'sentry/components/badge/badge';
 import {Flex} from 'sentry/components/container/flex';
+import Badge from 'sentry/components/core/badge';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
