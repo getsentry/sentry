@@ -193,7 +193,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             headers=[["header", "value"]],
         )
         new_uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
-        assert uptime_monitor.uptime_subscription_id == new_uptime_monitor.uptime_subscription_id
+        assert uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
         assert new_uptime_monitor.project_id != uptime_monitor.project_id
         resp = self.get_success_response(
             self.organization.slug,

@@ -39,8 +39,7 @@ from sentry.uptime.models import (
 from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
-    get_or_create_uptime_subscription,
-    remove_uptime_subscription_if_unused,
+    update_project_uptime_subscription,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
@@ -425,17 +424,13 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > project_subscription.date_added:
                 # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
                 # to active.
-                onboarding_subscription = project_subscription.uptime_subscription
-                active_subscription = get_or_create_uptime_subscription(
-                    onboarding_subscription.url,
-                    int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
-                    onboarding_subscription.timeout_ms,
-                )
-                project_subscription.update(
-                    uptime_subscription=active_subscription,
+                update_project_uptime_subscription(
+                    project_subscription,
+                    interval_seconds=int(
+                        AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
+                    ),
                     mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
                 )
-                remove_uptime_subscription_if_unused(onboarding_subscription)
                 metrics.incr(
                     "uptime.result_processor.autodetection.graduated_onboarding",
                     sample_rate=1.0,
