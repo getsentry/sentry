@@ -12,8 +12,6 @@
               "symbol": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -22,8 +20,6 @@
               "symbol": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL",
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -36,7 +32,6 @@
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 288,
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -49,8 +44,6 @@
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 102,
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -59,7 +52,6 @@
               "symbol": "WinMain",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -69,7 +61,6 @@
               "symbol": "?LaunchWindowsStartup@@YAHPEAUHINSTANCE__@@0PEADHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -79,7 +70,6 @@
               "symbol": "?GuardedMainWrapper@@YAHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -89,7 +79,6 @@
               "symbol": "?GuardedMain@@YAHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -99,7 +88,6 @@
               "symbol": "?Tick@FEngineLoop@@UEAAXXZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -109,7 +97,6 @@
               "symbol": "?PumpMessages@FWindowsPlatformApplicationMisc@@SAX_N@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -118,8 +105,6 @@
               "symbol": "DispatchMessageWorker",
               "package": "C:\\Windows\\System32\\USER32.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "system",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -129,8 +114,6 @@
               "symbol": "?UserCallWinProcCheckWow@@YA_JPEAU_ACTIVATION_CONTEXT@@P6A_JPEAUtagWND@@I_K_J@ZPEAUHWND__@@W4_WM_VALUE@@23PEAXH@Z",
               "package": "C:\\Windows\\System32\\USER32.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "internals",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -140,7 +123,6 @@
               "symbol": "?AppWndProc@FWindowsApplication@@KA_JPEAUHWND__@@I_K_J@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -150,7 +132,6 @@
               "symbol": "?ProcessMessage@FWindowsApplication@@IEAAHPEAUHWND__@@I_K_J@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -160,7 +141,6 @@
               "symbol": "?DeferMessage@FWindowsApplication@@AEAAXAEAV?$TSharedPtr@VFWindowsWindow@@$00@@PEAUHWND__@@I_K_JHHI@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -170,7 +150,6 @@
               "symbol": "?ProcessDeferredMessage@FWindowsApplication@@IEAAHAEBUFDeferredWindowsMessage@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -180,7 +159,6 @@
               "symbol": "?OnMouseUp@FSlateApplication@@UEAA_NW4Type@EMouseButtons@@U?$TVector2@N@Math@UE@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -190,7 +168,6 @@
               "symbol": "?ProcessMouseButtonUpEvent@FSlateApplication@@QEAA_NAEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -200,7 +177,6 @@
               "symbol": "?RoutePointerUpEvent@FSlateApplication@@QEAA?AVFReply@@AEBVFWidgetPath@@AEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -210,7 +186,6 @@
               "symbol": "??$NewIntrusiveReferenceController@$00VSWindowTitleBar@@$$V@SharedPointerInternals@@YAPEAV?$TIntrusiveReferenceController@VSWindowTitleBar@@$00@0@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -220,8 +195,6 @@
               "symbol": "??R<lambda_1>@?1??Remove@?$TArray@V?$TWeakPtr@VTAnimatedAttributeBase@@$00@@V?$TSizedDefaultAllocator@$0CA@@@@@QEAAHAEBV?$TWeakPtr@VTAnimatedAttributeBase@@$00@@@Z@QEBA@AEAV3@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
-                "category": "indirection",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -231,7 +204,6 @@
               "symbol": "?OnMouseButtonUp@SButton@@UEAA?AVFReply@@AEBUFGeometry@@AEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -241,7 +213,6 @@
               "symbol": "?ExecuteOnClick@SButton@@IEAA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -251,7 +222,6 @@
               "symbol": "?Execute@?$TBaseUObjectMethodDelegateInstance@$0A@VUButton@@$$A6A?AVFReply@@XZUFDefaultDelegateUserPolicy@@$$V@@UEBA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -261,7 +231,6 @@
               "symbol": "?SlateHandleClicked@UButton@@IEAA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -271,7 +240,6 @@
               "symbol": "??$ProcessMulticastDelegate@VUObject@@@?$TMulticastScriptDelegate@UFNotThreadSafeDelegateMode@@@@QEBAXPEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -281,7 +249,6 @@
               "symbol": "?ProcessEvent@UObject@@UEAAXPEAVUFunction@@PEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -291,7 +258,6 @@
               "symbol": "?Invoke@UFunction@@QEAAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -301,7 +267,6 @@
               "symbol": "?ProcessInternal@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -311,7 +276,6 @@
               "symbol": "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -321,7 +285,6 @@
               "symbol": "?ProcessLocalFunction@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -331,8 +294,6 @@
               "symbol": "??R<lambda_1>@?1??Get@?$TThreadSingleton@UFDeferredScriptTracker@@@@SAAEAUFDeferredScriptTracker@@XZ@QEBA@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
-                "category": "indirection",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -342,7 +303,6 @@
               "symbol": "??$ProcessScriptFunction@P6AXPEAVUObject@@AEAUFFrame@@PEAX@Z@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAXP6AX02PEAX@Z@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -352,7 +312,6 @@
               "symbol": "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -362,7 +321,6 @@
               "symbol": "?execCallMathFunction@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -376,7 +334,6 @@
               "lineno": 127,
               "context_line": "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -390,7 +347,6 @@
               "lineno": 40,
               "context_line": "\t\t\t\tensure(ensurePtr != nullptr);",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -400,7 +356,6 @@
               "symbol": "?ExecCheckImplInternal@Private@Assert@UE@@YA_NAEAU?$atomic@_N@std@@_NPEBDH2@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -410,7 +365,6 @@
               "symbol": "?CheckVerifyImpl@@YA_NAEAU?$atomic@_N@std@@_NPEBDHPEAX2PEB_WPEAD@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -420,7 +374,6 @@
               "symbol": "?OptionallyLogFormattedEnsureMessageReturningFalseImpl@FDebug@@CA_N_NPEBD1HPEAXPEB_WPEAD@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -430,7 +383,6 @@
               "symbol": "?EnsureFailed@FDebug@@SAXPEBD0HPEAXPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -440,7 +392,6 @@
               "symbol": "?Broadcast@?$TMulticastDelegate@$$A6AXXZUFDefaultDelegateUserPolicy@@@@QEBAXXZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -454,7 +405,6 @@
               "lineno": 870,
               "context_line": "\t\t(void)this->Payload.ApplyAfter(Functor, Forward<ParamTypes>(Params)...);",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -468,7 +418,6 @@
               "lineno": 317,
               "context_line": "\t\ttemplate <typename FuncType, typename... ArgTypes> decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const         &  { retur {snip}",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -482,7 +431,6 @@
               "lineno": 47,
               "context_line": "\treturn Forward<FuncType>(Func)(Forward<ArgTypes>(Args)...);",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -496,8 +444,6 @@
               "lineno": 151,
               "context_line": "\t\tSubsystemNativeImpl->CaptureEnsure(TEXT(\"Ensure failed\"), EnsureMessage.TrimStartAndEnd());",
               "data": {
-                "orig_in_app": -1,
-                "category": "indirection",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -511,7 +457,6 @@
               "lineno": 439,
               "context_line": "\tsentry_value_set_stacktrace(exceptionEvent, nullptr, 0);",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -520,7 +465,6 @@
               "symbol": "sentry_value_set_stacktrace",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -529,7 +473,6 @@
               "symbol": "sentry_value_new_stacktrace",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -538,7 +481,6 @@
               "symbol": "sentry_unwind_stack_from_ucontext",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               }
             }

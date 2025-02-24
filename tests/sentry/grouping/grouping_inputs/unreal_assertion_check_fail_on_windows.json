@@ -12,8 +12,6 @@
               "symbol": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -23,8 +21,6 @@
               "symbol": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL",
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -37,7 +33,7 @@
               "filename": "exe_common.inl",
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 288,
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -49,8 +45,6 @@
               "abs_path": "D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
               "lineno": 102,
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -59,7 +53,7 @@
               "function": "WinMain",
               "symbol": "WinMain",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -67,7 +61,7 @@
               "raw_function": "LaunchWindowsStartup(HINSTANCE__*, HINSTANCE__*, char*, int, wchar_t const*)",
               "symbol": "?LaunchWindowsStartup@@YAHPEAUHINSTANCE__@@0PEADHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -75,7 +69,7 @@
               "raw_function": "GuardedMainWrapper(wchar_t const*)",
               "symbol": "?GuardedMainWrapper@@YAHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -83,7 +77,7 @@
               "raw_function": "GuardedMain(wchar_t const*)",
               "symbol": "?GuardedMain@@YAHPEB_W@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -91,7 +85,7 @@
               "raw_function": "FEngineLoop::Tick(void)",
               "symbol": "?Tick@FEngineLoop@@UEAAXXZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -99,7 +93,7 @@
               "raw_function": "FWindowsPlatformApplicationMisc::PumpMessages(bool)",
               "symbol": "?PumpMessages@FWindowsPlatformApplicationMisc@@SAX_N@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -107,8 +101,6 @@
               "symbol": "DispatchMessageWorker",
               "package": "C:\\Windows\\System32\\USER32.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "system",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -119,8 +111,6 @@
               "symbol": "?UserCallWinProcCheckWow@@YA_JPEAU_ACTIVATION_CONTEXT@@P6A_JPEAUtagWND@@I_K_J@ZPEAUHWND__@@W4_WM_VALUE@@23PEAXH@Z",
               "package": "C:\\Windows\\System32\\USER32.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "internals",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -130,7 +120,7 @@
               "raw_function": "FWindowsApplication::AppWndProc(HWND__*, unsigned int, uint64_t, int64_t)",
               "symbol": "?AppWndProc@FWindowsApplication@@KA_JPEAUHWND__@@I_K_J@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -138,7 +128,7 @@
               "raw_function": "FWindowsApplication::ProcessMessage(HWND__*, unsigned int, uint64_t, int64_t)",
               "symbol": "?ProcessMessage@FWindowsApplication@@IEAAHPEAUHWND__@@I_K_J@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -146,7 +136,7 @@
               "raw_function": "FWindowsApplication::DeferMessage(TSharedPtr<FWindowsWindow, 1>&, HWND__*, unsigned int, uint64_t, int64_t, int, int, unsigned int)",
               "symbol": "?DeferMessage@FWindowsApplication@@AEAAXAEAV?$TSharedPtr@VFWindowsWindow@@$00@@PEAUHWND__@@I_K_JHHI@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -154,7 +144,7 @@
               "raw_function": "FWindowsApplication::ProcessDeferredMessage(FDeferredWindowsMessage const&)",
               "symbol": "?ProcessDeferredMessage@FWindowsApplication@@IEAAHAEBUFDeferredWindowsMessage@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -162,7 +152,7 @@
               "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
               "symbol": "?OnMouseUp@FSlateApplication@@UEAA_NW4Type@EMouseButtons@@U?$TVector2@N@Math@UE@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -170,7 +160,7 @@
               "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
               "symbol": "?ProcessMouseButtonUpEvent@FSlateApplication@@QEAA_NAEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -178,7 +168,7 @@
               "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
               "symbol": "?RoutePointerUpEvent@FSlateApplication@@QEAA?AVFReply@@AEBVFWidgetPath@@AEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -186,7 +176,7 @@
               "raw_function": "SharedPointerInternals::NewIntrusiveReferenceController<1, SWindowTitleBar>(void)",
               "symbol": "??$NewIntrusiveReferenceController@$00VSWindowTitleBar@@$$V@SharedPointerInternals@@YAPEAV?$TIntrusiveReferenceController@VSWindowTitleBar@@$00@0@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -195,8 +185,6 @@
               "symbol": "??R<lambda_1>@?1??Remove@?$TArray@V?$TWeakPtr@VTAnimatedAttributeBase@@$00@@V?$TSizedDefaultAllocator@$0CA@@@@@QEAAHAEBV?$TWeakPtr@VTAnimatedAttributeBase@@$00@@@Z@QEBA@AEAV3@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
-                "category": "indirection",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -206,7 +194,7 @@
               "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
               "symbol": "?OnMouseButtonUp@SButton@@UEAA?AVFReply@@AEBUFGeometry@@AEBUFPointerEvent@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -214,7 +202,7 @@
               "raw_function": "SButton::ExecuteOnClick(void)",
               "symbol": "?ExecuteOnClick@SButton@@IEAA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -222,7 +210,7 @@
               "raw_function": "TBaseUObjectMethodDelegateInstance<0, UButton, FReply (void), FDefaultDelegateUserPolicy>::Execute(void) const",
               "symbol": "?Execute@?$TBaseUObjectMethodDelegateInstance@$0A@VUButton@@$$A6A?AVFReply@@XZUFDefaultDelegateUserPolicy@@$$V@@UEBA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -230,7 +218,7 @@
               "raw_function": "UButton::SlateHandleClicked(void)",
               "symbol": "?SlateHandleClicked@UButton@@IEAA?AVFReply@@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -238,7 +226,7 @@
               "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
               "symbol": "??$ProcessMulticastDelegate@VUObject@@@?$TMulticastScriptDelegate@UFNotThreadSafeDelegateMode@@@@QEBAXPEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -246,7 +234,7 @@
               "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
               "symbol": "?ProcessEvent@UObject@@UEAAXPEAVUFunction@@PEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -254,7 +242,7 @@
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void* const)",
               "symbol": "?Invoke@UFunction@@QEAAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -262,7 +250,7 @@
               "raw_function": "UObject::ProcessInternal(UObject*, FFrame&, void* const)",
               "symbol": "?ProcessInternal@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -270,7 +258,7 @@
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)",
               "symbol": "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -278,7 +266,7 @@
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void* const)",
               "symbol": "?ProcessLocalFunction@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -287,8 +275,6 @@
               "symbol": "??R<lambda_1>@?1??Get@?$TThreadSingleton@UFDeferredScriptTracker@@@@SAAEAUFDeferredScriptTracker@@XZ@QEBA@XZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
               "data": {
-                "orig_in_app": -1,
-                "category": "indirection",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "cfi"
@@ -298,7 +284,7 @@
               "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void* const, void (*)(UObject*, FFrame&, void*))",
               "symbol": "??$ProcessScriptFunction@P6AXPEAVUObject@@AEAUFFrame@@PEAX@Z@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAXP6AX02PEAX@Z@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -306,7 +292,7 @@
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)",
               "symbol": "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -314,7 +300,7 @@
               "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void* const)",
               "symbol": "?execCallMathFunction@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -326,7 +312,7 @@
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Intermediate\\Build\\Win64\\UnrealGame\\Inc\\SentryPlayground\\UHT\\SentryPlaygroundUtils.gen.cpp",
               "lineno": 127,
               "context_line": "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -338,7 +324,7 @@
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp",
               "lineno": 34,
               "context_line": "\t\t\t\tcheck(assertPtr != nullptr);",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -346,7 +332,7 @@
               "raw_function": "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, wchar_t const*, ...)",
               "symbol": "?CheckVerifyFailedImpl2@FDebug@@SA_NPEBD0HPEB_WZZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -354,7 +340,7 @@
               "raw_function": "FDebug::AssertFailed(char const*, char const*, int, wchar_t const*, ...)",
               "symbol": "?AssertFailed@FDebug@@SAXPEBD0HPEB_WZZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -362,7 +348,7 @@
               "raw_function": "FOutputDevice::LogfImpl(wchar_t const*, ...)",
               "symbol": "?LogfImpl@FOutputDevice@@AEAAXPEB_WZZ",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -374,7 +360,7 @@
               "abs_path": "D:\\projects\\sentry-unreal\\sample\\Plugins\\sentry\\Source\\Sentry\\Private\\SentryOutputDeviceError.cpp",
               "lineno": 22,
               "context_line": "\tParentDevice->Serialize(V, Verbosity, Category);",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -382,7 +368,7 @@
               "raw_function": "FWindowsErrorOutputDevice::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)",
               "symbol": "?Serialize@FWindowsErrorOutputDevice@@UEAAXPEB_WW4Type@ELogVerbosity@@AEBVFName@@@Z",
               "package": "C:\\Users\\foo\\Desktop\\Windows\\SentryPlayground\\Binaries\\Win64\\SentryPlayground.exe",
-              "data": {"orig_in_app": -1, "symbolicator_status": "symbolicated"},
+              "data": {"symbolicator_status": "symbolicated"},
               "trust": "cfi"
             },
             {
@@ -390,8 +376,6 @@
               "symbol": "RaiseException",
               "package": "C:\\Windows\\System32\\KERNELBASE.dll",
               "data": {
-                "orig_in_app": -1,
-                "category": "throw",
                 "symbolicator_status": "symbolicated"
               },
               "trust": "context"
