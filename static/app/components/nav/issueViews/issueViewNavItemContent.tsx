@@ -16,6 +16,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -71,6 +72,7 @@ export function IssueViewNavItemContent({
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const {projects} = useProjects();
 
@@ -105,7 +107,7 @@ export function IssueViewNavItemContent({
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
   return (
-    <Reorder.Item
+    <StyledReorderItem
       as="div"
       dragConstraints={sectionRef}
       dragElastic={0.03}
@@ -115,9 +117,11 @@ export function IssueViewNavItemContent({
         cursor: 'grabbing',
       }}
       onDragStart={() => {
+        setIsDragging(true);
         startInteraction();
       }}
       onDragEnd={() => {
+        setIsDragging(false);
         endInteraction();
       }}
     >
@@ -146,9 +150,14 @@ export function IssueViewNavItemContent({
         onPointerDown={e => {
           e.preventDefault();
         }}
-        onPointerUp={e => {
+        onClick={e => {
           if (isInteractingRef.current) {
             e.preventDefault();
+          } else {
+            trackAnalytics('issue_views.switched_views', {
+              leftNav: true,
+              organization: organization.slug,
+            });
           }
         }}
       >
@@ -158,8 +167,13 @@ export function IssueViewNavItemContent({
           isSelected={isActive}
           onChange={value => {
             updateView({...view, label: value});
+            trackAnalytics('issue_views.renamed_view', {
+              leftNav: true,
+              organization: organization.slug,
+            });
           }}
           setIsEditing={setIsEditing}
+          isDragging={isDragging}
         />
         {view.unsavedChanges && (
           <Tooltip
@@ -175,7 +189,7 @@ export function IssueViewNavItemContent({
           </Tooltip>
         )}
       </StyledSecondaryNavItem>
-    </Reorder.Item>
+    </StyledReorderItem>
   );
 }
 
@@ -280,6 +294,13 @@ const hasUnsavedChanges = (
 
   return newUnsavedChanges;
 };
+
+// Reorder.Item does handle lifting an item being dragged above other items out of the box,
+// but we need to ensure the item is relatively positioned and has a background color for it to work
+const StyledReorderItem = styled(Reorder.Item)`
+  position: relative;
+  background-color: ${p => p.theme.surface200};
+`;
 
 const TrailingItemsWrapper = styled('div')`
   display: flex;

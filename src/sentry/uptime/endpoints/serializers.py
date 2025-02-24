@@ -7,6 +7,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.types.actor import Actor
 from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import EapCheckEntry, IncidentStatus
 
 
@@ -82,7 +83,7 @@ CheckStatus = Literal["success", "failure", "failure_incident", "missed_window"]
 
 
 class EapCheckEntrySerializerResponse(TypedDict):
-    uptimeCheckId: int
+    uptimeCheckId: str
     uptimeSubscriptionId: int
     projectUptimeSubscriptionId: int
     timestamp: str
@@ -95,6 +96,7 @@ class EapCheckEntrySerializerResponse(TypedDict):
     incidentStatus: int
     environment: str
     region: str
+    regionName: str
 
 
 @register(EapCheckEntry)
@@ -110,6 +112,9 @@ class EapCheckEntrySerializer(Serializer):
         if check_status == "failure" and obj.incident_status == IncidentStatus.IN_INCIDENT:
             check_status = "failure_incident"
 
+        region_config = get_region_config(obj.region)
+        region_name = region_config.name if region_config else "Unknown"
+
         return {
             "uptimeCheckId": obj.uptime_check_id,
             "uptimeSubscriptionId": obj.uptime_subscription_id,
@@ -124,4 +129,5 @@ class EapCheckEntrySerializer(Serializer):
             "incidentStatus": obj.incident_status,
             "environment": obj.environment,
             "region": obj.region,
+            "regionName": region_name,
         }

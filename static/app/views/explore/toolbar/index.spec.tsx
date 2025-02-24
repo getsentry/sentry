@@ -651,7 +651,7 @@ describe('ExploreToolbar', function () {
 
     await userEvent.click(within(section).getByText(/Compare/));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/traces/compare',
+      pathname: '/organizations/org-slug/traces/compare/',
       query: expect.objectContaining({
         queries: [
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
