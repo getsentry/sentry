@@ -479,7 +479,7 @@ register(
 )
 # Separate compute and IO.
 register(
-    "replay.consumer.separate-compute-and-io",
+    "replay.consumer.separate-compute-and-io-org-ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
