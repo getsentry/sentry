@@ -85,6 +85,7 @@ export function IssueViewNavEllipsisMenu({
             e.preventDefault();
             e.currentTarget.click();
           }}
+          size="zero"
         >
           <InteractionStateLayer />
           <IconEllipsis compact color="gray500" />
@@ -181,7 +182,8 @@ const constructViewLink = (baseUrl: string, view: IssueView) => {
   });
 };
 
-const TriggerWrapper = styled('div')`
+const TriggerWrapper = styled(Button)`
+  display: none;
   position: relative;
   width: 24px;
   height: 20px;
@@ -192,7 +194,6 @@ const TriggerWrapper = styled('div')`
   padding: 0;
   background-color: inherit;
   opacity: inherit;
-  display: none;
 `;
 
 const SectionedOverlayFooter = styled('div')`
