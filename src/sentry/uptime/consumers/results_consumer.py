@@ -33,8 +33,8 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_project_subscriptions_for_uptime_subscription,
-    get_regions_for_uptime_subscription,
     get_top_hosting_provider_names,
+    load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
@@ -195,7 +195,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             "status": result["status"],
             "uptime_region": result["region"],
         }
-        subscription_regions = get_regions_for_uptime_subscription(subscription.id)
+        subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
         if self.is_shadow_region_result(result, subscription_regions):
             metrics.incr(
