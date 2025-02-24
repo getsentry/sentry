@@ -46,6 +46,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
+        assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["quickStartDisplay"]
 
     def test_superuser_simple(self):
@@ -117,6 +118,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
+                "prefersStackedNavigation": True,
                 "quickStartDisplay": {self.organization.id: 1},
             },
         )
@@ -137,6 +139,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
         )
+        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert (
             UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
                 str(self.organization.id)
