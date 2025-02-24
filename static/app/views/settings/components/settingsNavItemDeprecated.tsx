@@ -4,8 +4,8 @@ import {NavLink as RouterNavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+import Badge from 'sentry/components/core/badge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
