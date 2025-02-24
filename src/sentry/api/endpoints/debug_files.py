@@ -478,7 +478,7 @@ def batch_assemble(project, files):
     checksums_to_check -= checksums_without_chunks
 
     # 4. Find missing chunks and group them per checksum.
-    all_missing_chunks = find_missing_chunks(project.organization.id, list(chunks_to_check.keys()))
+    all_missing_chunks = find_missing_chunks(project.organization, list(chunks_to_check.keys()))
 
     missing_chunks_per_checksum: dict[str, set[str]] = {}
     for chunk in all_missing_chunks:

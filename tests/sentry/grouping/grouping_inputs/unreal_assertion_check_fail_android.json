@@ -1,0 +1,248 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "SIGTRAP",
+        "value": "Trap",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "__start_thread",
+              "symbol": "__start_thread",
+              "package": "/system/lib64/libc.so",
+              "data": {
+                "orig_in_app": -1,
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "__pthread_start",
+              "symbol": "_ZL15__pthread_startPv",
+              "package": "/system/lib64/libc.so",
+              "data": {
+                "orig_in_app": -1,
+                "category": "threadbase",
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "android_main",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "AndroidMain",
+              "raw_function": "AndroidMain(android_app*)",
+              "symbol": "_Z11AndroidMainP11android_app",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "FEngineLoop::Tick",
+              "raw_function": "FEngineLoop::Tick()",
+              "symbol": "_ZN11FEngineLoop4TickEv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "UGameEngine::Tick",
+              "raw_function": "UGameEngine::Tick(float, bool)",
+              "symbol": "_ZN11UGameEngine4TickEfb",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "UWorld::Tick",
+              "raw_function": "UWorld::Tick(ELevelTick, float)",
+              "symbol": "_ZN6UWorld4TickE10ELevelTickf",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "FLatentActionManager::ProcessLatentActions",
+              "raw_function": "FLatentActionManager::ProcessLatentActions(UObject*, float)",
+              "symbol": "_ZN20FLatentActionManager20ProcessLatentActionsEP7UObjectf",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "FLatentActionManager::TickLatentActionForObject",
+              "raw_function": "FLatentActionManager::TickLatentActionForObject(float, TMultiMap<int, FPendingLatentAction*, FDefaultSetAllocator, TDefaultMapHashableKeyFuncs<int, FPendingLatentAction*, true> >&, UObject*)",
+              "symbol": "_ZN20FLatentActionManager25TickLatentActionForObjectEfR9TMultiMapIiP20FPendingLatentAction20FDefaultSetAllocator27TDefaultMapHashableKeyFuncsIiS2_Lb1EEEP7UObject",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "AActor::ProcessEvent",
+              "raw_function": "AActor::ProcessEvent(UFunction*, void*)",
+              "symbol": "_ZN6AActor12ProcessEventEP9UFunctionPv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "UObject::ProcessEvent",
+              "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
+              "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "UFunction::Invoke",
+              "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
+              "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "UObject::ProcessInternal",
+              "raw_function": "UObject::ProcessInternal(UObject*, FFrame&, void*)",
+              "symbol": "_ZN7UObject15ProcessInternalEPS_R6FFramePv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "ProcessLocalScriptFunction",
+              "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
+              "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "UObject::execCallMathFunction",
+              "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void*)",
+              "symbol": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "USentryPlaygroundUtils::execTerminate",
+              "raw_function": "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void*)",
+              "symbol": "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "USentryPlaygroundUtils::Terminate",
+              "raw_function": "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)",
+              "symbol": "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "FDebug::CheckVerifyFailedImpl2",
+              "raw_function": "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, char16_t const*, ...)",
+              "symbol": "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "FOutputDevice::LogfImpl",
+              "raw_function": "FOutputDevice::LogfImpl(char16_t const*, ...)",
+              "symbol": "_ZN13FOutputDevice8LogfImplEPKDsz",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "FSentryOutputDeviceError::Serialize",
+              "raw_function": "FSentryOutputDeviceError::Serialize(char16_t const*, ELogVerbosity::Type, FName const&)",
+              "symbol": "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "TMulticastDelegateBase<T>::Broadcast<T>",
+              "raw_function": "TMulticastDelegateBase<FDefaultTSDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (FString const&), FDefaultTSDelegateUserPolicy>, FString const&>(FString const&) const",
+              "symbol": "_ZNK22TMulticastDelegateBaseI28FDefaultTSDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvRK7FStringES0_EJS6_EEEvDpT0_",
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing"
+              }
+            },
+            {
+              "function": "tgkill",
+              "symbol": "tgkill",
+              "package": "/system/lib64/libc.so",
+              "data": {
+                "orig_in_app": -1,
+                "category": "system",
+                "symbolicator_status": "symbolicated"
+              }
+            }
+          ]
+        },
+        "mechanism": {"type": "minidump", "synthetic": true, "handled": false}
+      }
+    ]
+  }
+}

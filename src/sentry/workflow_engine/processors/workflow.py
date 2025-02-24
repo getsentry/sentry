@@ -2,6 +2,7 @@ import logging
 from enum import StrEnum
 
 import sentry_sdk
+from django.db import router, transaction
 
 from sentry import buffer
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -126,7 +127,9 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         return set()
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
-    workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
+    workflows = set(
+        Workflow.objects.filter(detectorworkflow__detector_id=detector.id, enabled=True).distinct()
+    )
 
     if workflows:
         metrics.incr(
@@ -161,3 +164,29 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
             action.trigger(job, detector)
 
     return triggered_workflows
+
+
+def delete_workflow(workflow: Workflow) -> bool:
+    with transaction.atomic(router.db_for_write(Workflow)):
+        action_filters = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+
+        actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=action_filters
+        )
+
+        # Delete the actions associated with a workflow, this is not a cascade delete
+        # because we want to create a UI to maintain notification actions separately
+        if actions:
+            actions.delete()
+
+        if action_filters:
+            action_filters.delete()
+
+        if workflow.when_condition_group:
+            workflow.when_condition_group.delete()
+
+        workflow.delete()
+
+    return True
