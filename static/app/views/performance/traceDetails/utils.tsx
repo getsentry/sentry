@@ -39,7 +39,12 @@ function getBaseTraceUrl(
       ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]
       : 'traces';
 
-  return normalizeUrl(`/organizations/${organization.slug}/${url}`);
+  const routeSuffix =
+    url === 'traces' && organization.features.includes('navigation-sidebar-v2')
+      ? 'explore/traces'
+      : url;
+
+  return normalizeUrl(`/organizations/${organization.slug}/${routeSuffix}`);
 }
 
 export function getTraceDetailsUrl({
