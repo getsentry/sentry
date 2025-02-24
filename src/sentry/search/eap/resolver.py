@@ -325,7 +325,7 @@ class SearchResolver:
         self,
         term: str,
         raw_value: str | list[str],
-        resolved_column: ResolvedColumn,
+        resolved_column: ResolvedColumn | ResolvedFormula | ResolvedFormula,
         context: VirtualColumnDefinition,
     ) -> list[str] | str:
         # Convert the term to the expected values
@@ -469,7 +469,7 @@ class SearchResolver:
 
     def _resolve_search_value(
         self,
-        column: ResolvedColumn,
+        column: ResolvedColumn | ResolvedFormula,
         operator: str,
         value: str | float | datetime | Sequence[float] | Sequence[str],
     ) -> AttributeValue:
