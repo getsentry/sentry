@@ -199,7 +199,7 @@ type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
       Rest,
       [...A, unknown]
     >
-  : {};
+  : Record<number, unknown>;
 
 type NextMap = NextTuple<TupleOf<ColorLength>>;
 type Next<R extends ValidLengthArgument> = NextMap[R];
