@@ -8,12 +8,14 @@ from urllib.parse import parse_qsl, urlencode
 
 import orjson
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.models.authidentity import AuthIdentity
 from sentry.utils.http import absolute_uri
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
@@ -65,7 +67,7 @@ class OAuth2Login(AuthView):
         if request.subdomain:
             helper.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(authorization_url)
+        return HttpResponseRedirect(authorization_url)
 
 
 class OAuth2Callback(AuthView):
@@ -149,7 +151,7 @@ class OAuth2Provider(Provider, abc.ABC):
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
 
-    def get_refresh_token_params(self, refresh_token):
+    def get_refresh_token_params(self, refresh_token: str) -> dict[str, str | None]:
         return {
             "client_id": self.get_client_id(),
             "client_secret": self.get_client_secret(),
@@ -186,7 +188,7 @@ class OAuth2Provider(Provider, abc.ABC):
             new_data.setdefault("refresh_token", current_data["refresh_token"])
         return new_data
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         refresh_token = auth_identity.data.get("refresh_token")
 
         if not refresh_token:

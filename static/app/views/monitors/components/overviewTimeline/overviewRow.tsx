@@ -397,14 +397,14 @@ const TimelineContainer = styled('div')`
 
 const TimelineEnvOuterContainer = styled('div')`
   position: relative;
+  display: flex;
+  align-items: center;
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
   opacity: var(--disabled-opacity);
 `;
 
 const TimelineEnvContainer = styled('div')`
-  position: absolute;
-  inset: 0;
+  width: 100%;
   opacity: 0;
   animation: ${fadeIn} 1.5s ease-out forwards;
-  contain: content;
 `;

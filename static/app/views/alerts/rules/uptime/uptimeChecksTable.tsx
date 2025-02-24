@@ -21,7 +21,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CheckStatus, type UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
+import {reasonToText, statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
 
 type Props = {
@@ -66,7 +66,14 @@ export function UptimeChecksTable({uptimeRule}: Props) {
     return <LoadingError />;
   }
 
-  const headers = [t('Status'), t('Checked At'), t('Duration'), t('Region'), t('Trace')];
+  const headers = [
+    t('Status'),
+    t('HTTP Status'),
+    t('Checked At'),
+    t('Duration'),
+    t('Region'),
+    t('Trace'),
+  ];
 
   return (
     <Fragment>
@@ -93,15 +100,13 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                   />
                   <Text>
                     {statusToText[check.checkStatus]}{' '}
-                    {check.checkStatusReason && (
-                      <Fragment>
-                        {'('}
-                        <code>{check.checkStatusReason}</code>
-                        {')'}
-                      </Fragment>
-                    )}
+                    {check.checkStatusReason &&
+                      tct('([reason])', {
+                        reason: reasonToText[check.checkStatusReason](check),
+                      })}
                   </Text>
                 </Status>
+                <div>{check.httpStatusCode ?? t('None')}</div>
                 <div>
                   <DateTime date={check.timestamp} timeZone />
                 </div>
