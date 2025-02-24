@@ -15,6 +15,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -51,13 +52,13 @@ PRIORITY_MAP = {
 }
 
 TYPE_TO_PROVIDER = {
-    0: Action.Type.EMAIL,
-    1: Action.Type.PAGERDUTY,
-    2: Action.Type.SLACK,
-    3: Action.Type.MSTEAMS,
-    4: Action.Type.SENTRY_APP,
-    6: Action.Type.OPSGENIE,
-    7: Action.Type.DISCORD,
+    ActionService.EMAIL.value: Action.Type.EMAIL,
+    ActionService.PAGERDUTY.value: Action.Type.PAGERDUTY,
+    ActionService.SLACK.value: Action.Type.SLACK,
+    ActionService.MSTEAMS.value: Action.Type.MSTEAMS,
+    ActionService.SENTRY_APP.value: Action.Type.SENTRY_APP,
+    ActionService.OPSGENIE.value: Action.Type.OPSGENIE,
+    ActionService.DISCORD.value: Action.Type.DISCORD,
 }
 
 # XXX: "target_identifier" is not here because there is special logic to handle it
