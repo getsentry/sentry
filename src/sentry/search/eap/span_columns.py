@@ -625,7 +625,9 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="percentage",
         arguments=[
             ArgumentDefinition(
-                argument_types={"integer"},
+                argument_types={
+                    "string"
+                },  # TODO - this should be an integer, but `resolve_attribute` returns a string
                 default_arg=None,  # TODO - this should only accept 2,3,4,5
             )
         ],

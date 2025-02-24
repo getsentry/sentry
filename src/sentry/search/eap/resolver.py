@@ -710,28 +710,6 @@ class SearchResolver:
         for index, argument in enumerate(function_definition.arguments):
             if argument.ignored:
                 continue
-
-            # if a function only accepts one type of argument, we can resolve it directly
-            if (
-                argument.argument_types is not None
-                and len(argument.argument_types) == 1
-                and index < len(attribute_args)
-            ):
-                arg = attribute_args[index]
-                arg_type = next(iter(argument.argument_types))
-                if (
-                    arg_type == constants.TYPE_TO_STRING_MAP.get(AttributeKey.TYPE_INT)
-                    and arg.isdigit()
-                ):
-                    parsed_argument = ResolvedColumn(
-                        public_alias=arg,
-                        internal_name=arg,
-                        search_type="integer",
-                    )
-                else:
-                    parsed_argument = ResolvedColumn(
-                        public_alias=arg, internal_name=arg, search_type="string"
-                    )
             elif index < len(attribute_args):
                 parsed_argument, _ = self.resolve_attribute(attribute_args[index])
             elif argument.default_arg:
