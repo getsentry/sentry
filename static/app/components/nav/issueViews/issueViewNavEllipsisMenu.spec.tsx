@@ -1,12 +1,10 @@
-import styled from '@emotion/styled';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {IssueViewNavEllipsisMenu} from './issueViewNavEllipsisMenu';
 
-describe('StyledIssueViewNavEllipsisMenu', () => {
+describe('IssueViewNavEllipsisMenu', () => {
   const mockView = {
     id: '123',
     name: 'Test View',
@@ -39,13 +37,13 @@ describe('StyledIssueViewNavEllipsisMenu', () => {
   });
 
   it('renders ellipsis menu trigger', () => {
-    render(<StyledIssueViewNavEllipsisMenu {...defaultProps} />);
+    render(<IssueViewNavEllipsisMenu {...defaultProps} />);
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
   it('shows menu items when clicked', async () => {
     const user = userEvent.setup();
-    render(<StyledIssueViewNavEllipsisMenu {...defaultProps} />);
+    render(<IssueViewNavEllipsisMenu {...defaultProps} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -57,9 +55,7 @@ describe('StyledIssueViewNavEllipsisMenu', () => {
   it('handles rename action', async () => {
     const user = userEvent.setup();
     const setIsEditing = jest.fn();
-    render(
-      <StyledIssueViewNavEllipsisMenu {...defaultProps} setIsEditing={setIsEditing} />
-    );
+    render(<IssueViewNavEllipsisMenu {...defaultProps} setIsEditing={setIsEditing} />);
 
     await user.click(screen.getByRole('button'));
     await user.click(screen.getByText('Rename'));
@@ -76,7 +72,7 @@ describe('StyledIssueViewNavEllipsisMenu', () => {
       },
     };
 
-    render(<StyledIssueViewNavEllipsisMenu {...defaultProps} view={viewWithChanges} />);
+    render(<IssueViewNavEllipsisMenu {...defaultProps} view={viewWithChanges} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -86,7 +82,7 @@ describe('StyledIssueViewNavEllipsisMenu', () => {
 
   it('handles keyboard interactions correctly', async () => {
     const user = userEvent.setup();
-    render(<StyledIssueViewNavEllipsisMenu {...defaultProps} />);
+    render(<IssueViewNavEllipsisMenu {...defaultProps} />);
 
     const trigger = screen.getByRole('button');
 
@@ -102,11 +98,3 @@ describe('StyledIssueViewNavEllipsisMenu', () => {
     });
   });
 });
-
-/**
- * By default, the ellipsis menu is hidden (display:none),
- * so we need to force it to be visible for testing purposes.
- */
-const StyledIssueViewNavEllipsisMenu = styled(IssueViewNavEllipsisMenu)`
-  display: flex;
-`;

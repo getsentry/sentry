@@ -183,7 +183,7 @@ const constructViewLink = (baseUrl: string, view: IssueView) => {
 };
 
 const TriggerWrapper = styled(Button)`
-  display: none;
+  display: flex;
   position: relative;
   width: 24px;
   height: 20px;
