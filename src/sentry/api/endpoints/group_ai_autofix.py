@@ -18,9 +18,11 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba.dataset import Dataset
@@ -442,19 +444,36 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
             project = group.project
             repositories = []
+
+            autofix_codebase_state = response_state.get("codebases", {})
+
+            repo_code_mappings: dict[str, RepositoryProjectPathConfig] = {}
             if project:
                 code_mappings = get_sorted_code_mapping_configs(project=project)
                 for mapping in code_mappings:
-                    repo = mapping.repository
-                    repositories.append(
-                        {
-                            "url": repo.url,
-                            "external_id": repo.external_id,
-                            "name": repo.name,
-                            "provider": repo.provider,
-                            "default_branch": mapping.default_branch,
-                        }
-                    )
+                    repo_code_mappings[mapping.repository.external_id] = mapping
+
+            for repo_external_id, repo_state in autofix_codebase_state.items():
+                mapping = repo_code_mappings.get(repo_external_id, None)
+
+                if not mapping:
+                    continue
+
+                mapping_repo: Repository = mapping.repository
+
+                repositories.append(
+                    {
+                        "integration_id": mapping_repo.integration_id,
+                        "url": mapping_repo.url,
+                        "external_id": repo_external_id,
+                        "name": mapping_repo.name,
+                        "provider": mapping_repo.provider,
+                        "default_branch": mapping.default_branch,
+                        "is_readable": repo_state.get("is_readable", False),
+                        "is_writable": repo_state.get("is_writable", False),
+                    }
+                )
+
             response_state["repositories"] = repositories
 
         return Response({"autofix": response_state})
