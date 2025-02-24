@@ -408,6 +408,11 @@ def maybe_check_seer_for_matching_grouphash(
             if metadata_id is None:
                 gh_metadata.save()
 
+                # If that didn't work, log it and bail
+                metadata_id = gh_metadata.id
+                if metadata_id is None:
+                    return seer_matched_grouphash
+
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer
                 # request will be some milliseconds apart, but a) the difference isn't meaningful
