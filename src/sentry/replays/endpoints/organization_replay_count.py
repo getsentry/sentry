@@ -77,7 +77,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a count of replays for a list of issue or transaction IDs.
 
-        The `query` parameter is required. It is a search query that includes exactly one of `issue.id`, `transaction`, or `replay_id` (list of strings).
+        The `query` parameter is required. It is a search query that includes exactly one of `issue.id`, `transaction`, or `replay_id` (string or list of strings).
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
