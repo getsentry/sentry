@@ -115,7 +115,7 @@ export function useMetricIssueLegend({
         case 'Status Area':
           return {
             name,
-            icon: HORIZONTAL_WIDE_LINE_CHART_ICON,
+            icon: HORIZONTAL_BAR_CHART_ICON,
             itemStyle: {
               color: theme.error,
             },
@@ -139,11 +139,20 @@ export function useMetricIssueLegend({
   }, [rule, series, theme]);
 }
 
+/**
+ * The legend icon for the dashed horizontal lines in a chart, commonly for thresholds.
+ */
 const HORIZONTAL_DASHED_LINE_CHART_ICON =
   'path://M180 1000 l0 -80 200 0 200 0 0 80 0 80 -200 0 -200 0 0 -80z, M810 1000 l0 -80 200 0 200 0 0 80 0 80 -200 0 -200 0 0 -80zm, M1440 1000 l0 -80 200 0 200 0 0 80 0 80 -200 0 -200 0 0 -80z';
 
+/**
+ * The legend icon for the vertical lines in a chart, commonly for incidents, or releases.
+ */
 const VERTICAL_LINE_CHART_ICON =
   'path://M1000 180 l0 -40 40 0 40 0 0 200 0 200 0 200 0 200 -40 0 -40 0 0 -200 0 -200 0 -200 0 -200z';
 
-const HORIZONTAL_WIDE_LINE_CHART_ICON =
+/**
+ * The legend icon for the thick horizontal bar along y=0 in a chart, commonly for status areas in metric alerts.
+ */
+const HORIZONTAL_BAR_CHART_ICON =
   'path://M180 1000 l0 -160 400 0 400 0 0 160 0 160 -400 0 -400 0 0 -160z';
