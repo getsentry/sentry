@@ -586,6 +586,30 @@ default_manager.add(
         template="removed detector {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=213,
+        name="WORFKLOW_ADD",
+        api_name="workflow.add",
+        template="added workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=214,
+        name="WORFKLOW_EDIT",
+        api_name="workflow.edit",
+        template="edited workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=215,
+        name="WORFKLOW_REMOVE",
+        api_name="workflow.remove",
+        template="removed workflow {name}",
+    )
+)
 
 default_manager.add(
     AuditLogEvent(
