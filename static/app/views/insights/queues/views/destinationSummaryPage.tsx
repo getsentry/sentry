@@ -18,7 +18,7 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
+import {DurationChart} from 'sentry/views/insights/queues/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
 import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/transactionsTable';
@@ -126,7 +126,7 @@ function DestinationSummaryPage() {
               {!onboardingProject && (
                 <Fragment>
                   <ModuleLayout.Half>
-                    <LatencyChart
+                    <DurationChart
                       destination={destination}
                       referrer={Referrer.QUEUES_SUMMARY_CHARTS}
                     />
