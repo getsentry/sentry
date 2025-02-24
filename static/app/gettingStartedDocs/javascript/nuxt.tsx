@@ -32,7 +32,7 @@ import {t, tct, tctCode} from 'sentry/locale';
 type Params = DocsParams;
 
 const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '--saas' : '--saas';
+  const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
     {
