@@ -534,7 +534,13 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       {datatype === Datatype.PAGELOADS && (
         <GridEditable
           isLoading={isLoading}
-          columnOrder={PAGELOADS_COLUMN_ORDER}
+          columnOrder={
+            organization.features.includes('performance-vitals-standalone-cls-lcp')
+              ? PAGELOADS_COLUMN_ORDER.filter(
+                  col => !['measurements.cls', 'measurements.lcp'].includes(col.key)
+                )
+              : PAGELOADS_COLUMN_ORDER
+          }
           columnSortBy={[]}
           data={tableData}
           grid={{
