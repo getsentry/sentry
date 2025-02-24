@@ -495,6 +495,8 @@ def register_temporary_features(manager: FeatureManager):
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=False
     )
+    # Enable per-project selection for Jira integration
+    manager.add("organizations:jira-per-project-statuses", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Relay extracting logs from breadcrumbs for a project.
     manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
