@@ -398,6 +398,16 @@ def maybe_check_seer_for_matching_grouphash(
         # Update the relevant GroupHash with Seer results
         gh_metadata = grouphash_sent.metadata
         if gh_metadata:
+
+            # TODO: This should never be true (anything created with `objects.create` should have an
+            # id), but it seems in some cases to happen anyway. This is an attempt to mitigate the
+            # problem.
+            metadata_id: Any = (
+                gh_metadata.id
+            )  # Even mypy knows this should never happen, hence the need for the Any
+            if metadata_id is None:
+                gh_metadata.save()
+
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer
                 # request will be some milliseconds apart, but a) the difference isn't meaningful
