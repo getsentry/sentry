@@ -19,6 +19,7 @@ type Params = DocsParams;
 const getSdkConfigureSnippetToml = () => `
 compatibility_flags = ["nodejs_compat"]
 # compatibility_flags = ["nodejs_als"]
+compatibility_date = "2024-09-23"
 `;
 
 const getSdkConfigureSnippetJson = () => `
@@ -45,14 +46,17 @@ export const onRequest = [
 ];`;
 
 const getVerifySnippet = () => `
-setTimeout(() => {
+export function onRequest(context) {
   throw new Error();
-});`;
+}`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    t(
-      'In this quick guide you’ll set up and configure the Sentry Cloudflare SDK for the use in your Cloudflare Pages application.'
+    tct(
+      "In this quick guide, you'll set up and configure the Sentry Cloudflare SDK for use in your Cloudflare Pages application. This will enable Sentry for the backend part of your application: the functions. If you'd like to monitor the frontend as well, refer to the instrumentation guide for [platformLink:the framework of your choice].",
+      {
+        platformLink: <ExternalLink href="https://docs.sentry.io/platforms/" />,
+      }
     ),
   install: params => [
     {
@@ -125,12 +129,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      description: tct(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. To trigger it, you need to access the [code:/customerror] path on your deployment.",
+        {
+          code: <code />,
+        }
       ),
       configurations: [
         {
+          label: 'JavaScript',
+          value: 'javascript',
           language: 'javascript',
+          filename: 'functions/customerror.js',
           code: getVerifySnippet(),
         },
       ],
