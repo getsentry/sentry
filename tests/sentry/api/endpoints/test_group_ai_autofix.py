@@ -153,8 +153,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is not None
         assert len(response.data["autofix"]["repositories"]) == 2
 
+        repositories = sorted(
+            response.data["autofix"]["repositories"], key=lambda x: x["integration_id"]
+        )
+
         # Check first repo
-        repo = response.data["autofix"]["repositories"][0]
+        repo = repositories[0]
         assert repo["default_branch"] == "main"
         assert repo["name"] == "repo1"
         assert repo["provider"] == "github"
@@ -165,7 +169,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert repo["is_writeable"] is True
 
         # Check second repo
-        repo = response.data["autofix"]["repositories"][1]
+        repo = repositories[1]
         assert repo["default_branch"] == "master"
         assert repo["name"] == "repo2"
         assert repo["provider"] == "gitlab"

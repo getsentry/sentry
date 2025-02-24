@@ -471,7 +471,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         "external_id": repo_external_id,
                         "name": mapping_repo.name,
                         "provider": mapping_repo.provider,
-                        "default_branch": mapping.default_branch,
+                        "default_branch": retrieved_mapping.default_branch,
                         "is_readable": repo_state.get("is_readable", False),
                         "is_writeable": repo_state.get("is_writeable", False),
                     }
