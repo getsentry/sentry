@@ -120,6 +120,7 @@ export enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  TYPE = 'type',
   UNREAL_CRASH_TYPE = 'unreal.crash_type',
   USER = 'user',
   USER_DISPLAY = 'user.display',
@@ -1750,6 +1751,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.TRANSACTION_STATUS]: {
     desc: t('Describes the status of the span/transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TYPE]: {
+    desc: t('Type of event (Errors, transactions, csp and default)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
