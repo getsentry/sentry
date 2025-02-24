@@ -114,8 +114,8 @@ def _ingest_recording(message_bytes: bytes) -> None:
     set_tag("org_id", message.org_id)
     set_tag("project_id", message.project_id)
 
-    headers, segment_data = parse_headers(message.payload_with_headers, message.replay_id)
-    segment = decompress_segment(segment_data)
+    headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
+    segment = decompress_segment(segment_bytes)
     _report_size_metrics(len(segment.compressed), len(segment.decompressed))
 
     # Normalize ingest data into a standardized ingest format.
