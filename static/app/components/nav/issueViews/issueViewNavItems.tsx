@@ -5,19 +5,20 @@ import isEqual from 'lodash/isEqual';
 
 import {IssueViewNavItemContent} from 'sentry/components/nav/issueViews/issueViewNavItemContent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
-import {generateTempViewId} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
+import {generateTempViewId} from 'sentry/views/issueList/issueViews/issueViews';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 interface IssueViewNavItemsProps {
   baseUrl: string;
-  loadedViews: IssueViewPF[];
+  loadedViews: IssueView[];
   sectionRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -33,7 +34,7 @@ export function IssueViewNavItems({
 
   const queryParams = location.query;
 
-  const [views, setViews] = useState<IssueViewPF[]>(loadedViews);
+  const [views, setViews] = useState<IssueView[]>(loadedViews);
 
   // If the `viewId` (from `/issues/views/:viewId`) is not found in the views array,
   // then redirect to the "All Issues" page
@@ -106,7 +107,7 @@ export function IssueViewNavItems({
 
   const debounceUpdateViews = useMemo(
     () =>
-      debounce((newTabs: IssueViewPF[]) => {
+      debounce((newTabs: IssueView[]) => {
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
@@ -133,15 +134,20 @@ export function IssueViewNavItems({
   );
 
   const handleReorder = useCallback(
-    (newOrder: IssueViewPF[]) => {
+    (newOrder: IssueView[]) => {
       setViews(newOrder);
       debounceUpdateViews(newOrder);
+
+      trackAnalytics('issue_views.reordered_views', {
+        leftNav: true,
+        organization: organization.slug,
+      });
     },
-    [debounceUpdateViews]
+    [debounceUpdateViews, organization.slug]
   );
 
   const handleUpdateView = useCallback(
-    (view: IssueViewPF, updatedView: IssueViewPF) => {
+    (view: IssueView, updatedView: IssueView) => {
       const newViews = views.map(v => {
         if (v.id === view.id) {
           return updatedView;
@@ -150,12 +156,17 @@ export function IssueViewNavItems({
       });
       debounceUpdateViews(newViews);
       setViews(newViews);
+
+      trackAnalytics('issue_views.updated_view', {
+        leftNav: true,
+        organization: organization.slug,
+      });
     },
-    [debounceUpdateViews, views]
+    [debounceUpdateViews, views, organization.slug]
   );
 
   const handleDeleteView = useCallback(
-    (view: IssueViewPF) => {
+    (view: IssueView) => {
       const newViews = views.filter(v => v.id !== view.id);
       setViews(newViews);
       debounceUpdateViews(newViews);
@@ -165,12 +176,17 @@ export function IssueViewNavItems({
           newViews.length > 0 ? constructViewLink(baseUrl, newViews[0]!) : `${baseUrl}/`;
         navigate(newUrl);
       }
+
+      trackAnalytics('issue_views.deleted_view', {
+        leftNav: true,
+        organization: organization.slug,
+      });
     },
-    [views, debounceUpdateViews, viewId, baseUrl, navigate]
+    [views, debounceUpdateViews, viewId, baseUrl, navigate, organization.slug]
   );
 
   const handleDuplicateView = useCallback(
-    (view: IssueViewPF) => {
+    (view: IssueView) => {
       const idx = views.findIndex(v => v.id === view.id);
       if (idx !== -1) {
         const newViewId = generateTempViewId();
@@ -219,7 +235,7 @@ export function IssueViewNavItems({
   );
 }
 
-export const constructViewLink = (baseUrl: string, view: IssueViewPF) => {
+export const constructViewLink = (baseUrl: string, view: IssueView) => {
   return normalizeUrl({
     pathname: `${baseUrl}/views/${view.id}/`,
     query: {
