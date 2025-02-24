@@ -200,9 +200,13 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             # that have already been migrated
             continue
 
+        organization_id = alert_rule.organization_id
+        if organization_id != 1:
+            # we'll first test the migration on just the Sentry org
+            continue
+
         try:
             with transaction.atomic(router.db_for_write(AlertRule)):
-                organization_id = alert_rule.organization_id
                 project = alert_rule.projects.get()
                 snoozed = None
                 try:
