@@ -25,18 +25,6 @@ class IdentityProviderPipeline(Pipeline):
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
 
-    def redirect_url(self):
-        associate_url = reverse(
-            "sentry-extension-setup",
-            kwargs={
-                # TODO(adhiraj): Remove provider_id from the callback URL, it's unused.
-                "provider_id": "default"
-            },
-        )
-
-        # Use configured redirect_url if specified for the pipeline if available
-        return self.config.get("redirect_url", associate_url)
-
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
     def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
         if kwargs.get("organization"):
