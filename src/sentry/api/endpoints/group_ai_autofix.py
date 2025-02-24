@@ -451,7 +451,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
             if project:
                 code_mappings = get_sorted_code_mapping_configs(project=project)
                 for mapping in code_mappings:
-                    repo_code_mappings[mapping.repository.external_id] = mapping
+                    if mapping.repository.external_id:
+                        repo_code_mappings[mapping.repository.external_id] = mapping
 
             for repo_external_id, repo_state in autofix_codebase_state.items():
                 mapping = repo_code_mappings.get(repo_external_id, None)
