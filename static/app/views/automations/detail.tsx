@@ -17,7 +17,7 @@ export default function AutomationDetail() {
     <SentryDocumentTitle title={t('Automation')} noSuffix>
       <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/automations'}}>
         <ActionsProvider actions={<Actions />}>
-          <DetailLayout>
+          <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>main</DetailLayout.Main>
             <DetailLayout.Sidebar>sidebar</DetailLayout.Sidebar>
           </DetailLayout>
