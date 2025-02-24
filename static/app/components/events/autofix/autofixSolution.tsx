@@ -431,7 +431,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
     );
   }
 
-  const changesDisabled = !props.repos.every(repo => repo.is_readable);
+  const changesDisabled = !props.repos.some(repo => repo.is_readable);
 
   return (
     <AnimatePresence initial>
