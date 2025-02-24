@@ -19,7 +19,7 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig} from 'sentry/utils/gettingStartedDocs/node';
+import {getInstallConfig} from 'sentry/utils/gettingStartedDocs/reactNative';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -171,6 +171,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: t('Install the @sentry/react-native package:'),
             configurations: getInstallConfig(params, {
               basePackage: '@sentry/react-native',
+              additionalPackages: [],
             }),
           },
         ],
