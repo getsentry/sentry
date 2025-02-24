@@ -43,6 +43,14 @@ def simple_task() -> None:
     logger.info("simple_task complete")
 
 
+@exampletasks.register(
+    name="examples.simple_task_with_processing_deadline", processing_deadline_duration=30
+)
+def simple_task_with_processing_deadline() -> None:
+    sleep(0.8)
+    logger.info("simple_task complete")
+
+
 @exampletasks.register(name="examples.simple_task_wait_delivery", wait_for_delivery=True)
 def simple_task_wait_delivery() -> None:
     logger.info("simple_task_wait_delivery complete")
