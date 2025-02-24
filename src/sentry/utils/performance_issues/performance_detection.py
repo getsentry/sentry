@@ -8,7 +8,8 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -18,6 +19,8 @@ from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models.detector import Detector
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
@@ -27,6 +30,7 @@ from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainT
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
+from .detectors.n_plus_one_api_calls_detector_handler import NPlusOneAPICallsDetectorHandler
 from .detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
     NPlusOneDBSpanDetectorExtended,
@@ -35,6 +39,9 @@ from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSp
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
+
+# from sentry.workflow_engine.processors.detector import process_detectors
+
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
@@ -330,16 +337,41 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     HTTPOverheadDetector,
 ]
 
+DETECTOR_HANDLERS = [NPlusOneAPICallsDetectorHandler]  # add onto this
+
 
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project, is_standalone_spans: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
+    if features.has(
+        "organizations:workflow-engine-metric-alert-processing",
+        project.organization,
+    ):  # TODO use a new feature flag for this
+        data_packet = DataPacket(source_id=str(event_id), packet=data)
+        detectors = Detector.objects.filter(
+            project=project.id, name__in=[option.value for option in InternalProjectOptions]
+        )
+        for detector in detectors:
+            # detector_handler = handler(detector)
+            detector_handler = detector.detector_handler
+            if not detector_handler.is_event_eligible(data):
+                return
+
+            spans = data.get("spans", [])
+            for span in spans:
+                detector_handler.visit_span(span)
+
+            detector_handler.evaluate(data_packet)
+
+        # process_detectors(data_packet, detectors)
+
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
+
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings, data)
             for detector_class in DETECTOR_CLASSES

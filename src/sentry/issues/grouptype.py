@@ -18,6 +18,9 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    NPlusOneAPICallsDetectorHandler,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -333,6 +336,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    detector_handler = NPlusOneAPICallsDetectorHandler
 
 
 @dataclass(frozen=True)
