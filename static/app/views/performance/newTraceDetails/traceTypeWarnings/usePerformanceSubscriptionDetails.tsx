@@ -19,6 +19,7 @@ type Subscription = {
     billingInterval: 'monthly' | 'annual';
   };
   planTier: string;
+  renewalDate: string;
   onDemandBudgets?: {
     enabled: boolean;
   };

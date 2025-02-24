@@ -24,6 +24,9 @@ import {TraceWarningComponents} from './styles';
 import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
+// 1 hour in milliseconds
+const ONE_HOUR = 60 * 60 * 1000;
+
 type ErrorOnlyWarningsProps = {
   organization: Organization;
   traceSlug: string | undefined;
@@ -130,9 +133,20 @@ function PerformanceSetupBanner({
 }
 
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
+  const traceNode = props.tree.root.children[0];
+  const traceStartDate = new Date(traceNode?.space?.[0]!);
+  const traceEndDate = new Date(traceNode?.space?.[0]! + traceNode?.space?.[1]!);
+
+  // Add 1 hour buffer to the trace start and end date.
+  const start = traceNode
+    ? new Date(traceStartDate.getTime() - ONE_HOUR).toISOString()
+    : '';
+  const end = traceNode ? new Date(traceEndDate.getTime() + ONE_HOUR).toISOString() : '';
+
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
-    tree: props.tree,
+    dateRange: {start, end},
+    projectIds: Array.from(props.tree.projects.keys()),
   });
 
   const {

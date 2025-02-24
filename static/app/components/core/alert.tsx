@@ -167,6 +167,7 @@ const AlertPanel = styled('div')<
     minmax(0, 1fr)
     ${p => defined(p.trailingItems) && 'max-content'}
     ${p => defined(p.expand) && 'max-content'};
+  align-items: center;
   gap: ${space(1)};
   color: ${p => p.alertColors.color};
   font-size: ${p => p.theme.fontSizeMedium};
