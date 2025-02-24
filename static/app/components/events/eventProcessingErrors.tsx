@@ -84,7 +84,7 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
 export function EventProcessingErrors({event, project, isShare}: Props) {
   const errors = useActionableItemsWithProguardErrors({event, project, isShare});
 
-  if (!errors) {
+  if (!errors || errors.length === 0) {
     return null;
   }
 
