@@ -92,39 +92,6 @@ class ProjectDetectorDetailsGetTest(ProjectDetectorDetailsBaseTest):
 
 
 @region_silo_test
-class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
-    method = "DELETE"
-
-    def test_simple(self):
-        with outbox_runner():
-            self.get_success_response(self.organization.slug, self.project.slug, self.detector.id)
-
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=self.detector.id
-        ).exists()
-
-    def test_error_group_type(self):
-        """
-        Test that we do not delete the required error detector
-        """
-        data_condition_group = self.create_data_condition_group()
-        error_detector = self.create_detector(
-            project_id=self.project.id,
-            name="Error Detector",
-            type=ErrorGroupType.slug,
-            workflow_condition_group=data_condition_group,
-        )
-        with outbox_runner():
-            self.get_error_response(
-                self.organization.slug, self.project.slug, error_detector.id, status_code=403
-            )
-
-        assert not RegionScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=error_detector.id
-        ).exists()
-
-
-@region_silo_test
 class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
     method = "PUT"
 
@@ -258,3 +225,36 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
                 **data,
                 status_code=400,
             )
+
+
+@region_silo_test
+class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
+    method = "DELETE"
+
+    def test_simple(self):
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.project.slug, self.detector.id)
+
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+
+    def test_error_group_type(self):
+        """
+        Test that we do not delete the required error detector
+        """
+        data_condition_group = self.create_data_condition_group()
+        error_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+            workflow_condition_group=data_condition_group,
+        )
+        with outbox_runner():
+            self.get_error_response(
+                self.organization.slug, self.project.slug, error_detector.id, status_code=403
+            )
+
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=error_detector.id
+        ).exists()
