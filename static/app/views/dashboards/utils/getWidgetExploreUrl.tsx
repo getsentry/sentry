@@ -92,7 +92,7 @@ export function getWidgetExploreUrl(
       ...selection,
       datetime,
     },
-    orgSlug: organization.slug,
+    organization,
     mode: exploreMode,
     visualize: [
       {

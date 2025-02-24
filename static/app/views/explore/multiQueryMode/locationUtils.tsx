@@ -8,7 +8,6 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -18,6 +17,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
 
@@ -261,7 +261,10 @@ export function getQueryMode(groupBys?: string[]): Mode {
 }
 
 function getCompareBaseUrl(organization: Organization) {
-  return normalizeUrl(`/organizations/${organization.slug}/traces/compare`);
+  return makeTracesPathname({
+    organization,
+    path: '/compare/',
+  });
 }
 
 type CompareRouteProps = {
