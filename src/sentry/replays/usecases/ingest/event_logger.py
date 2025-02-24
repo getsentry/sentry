@@ -1,6 +1,8 @@
 import logging
 from typing import Any
 
+import sentry_sdk
+
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -12,6 +14,7 @@ from sentry.utils import metrics
 logger = logging.getLogger()
 
 
+@sentry_sdk.trace
 def emit_request_response_metrics(event_meta: ParsedEventMeta) -> None:
     for sizes in event_meta.request_response_sizes:
         req_size, res_size = sizes
@@ -25,6 +28,7 @@ def emit_request_response_metrics(event_meta: ParsedEventMeta) -> None:
             )
 
 
+@sentry_sdk.trace
 def log_canvas_size(
     event_meta: ParsedEventMeta, org_id: int, project_id: int, replay_id: str
 ) -> None:
@@ -41,6 +45,7 @@ def log_canvas_size(
         )
 
 
+@sentry_sdk.trace
 def log_mutation_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     # TODO: sampled differently from the rest (0 <= i <= 99)
     # probably fine to ignore.
@@ -51,6 +56,7 @@ def log_mutation_events(event_meta: ParsedEventMeta, project_id: int, replay_id:
         logger.info("Large DOM Mutations List:", extra=log)
 
 
+@sentry_sdk.trace
 def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     for option in event_meta.options_events:
         log = option["data"].get("payload", {}).copy()
@@ -59,6 +65,7 @@ def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: s
         logger.info("sentry.replays.slow_click", extra=log)
 
 
+@sentry_sdk.trace
 def report_hydration_error(
     event_meta: ParsedEventMeta,
     project: Project,
@@ -80,6 +87,7 @@ def report_hydration_error(
         )
 
 
+@sentry_sdk.trace
 def report_rage_click(
     event_meta: ParsedEventMeta,
     project: Project,
@@ -116,6 +124,7 @@ def report_rage_click(
             )
 
 
+@sentry_sdk.trace
 def _should_report_hydration_error_issue(project: Project) -> bool:
     """
     Checks the project option, controlled by a project owner.
@@ -123,6 +132,7 @@ def _should_report_hydration_error_issue(project: Project) -> bool:
     return project.get_option("sentry:replay_hydration_error_issues")
 
 
+@sentry_sdk.trace
 def _should_report_rage_click_issue(project: Project) -> bool:
     """
     Checks the project option, controlled by a project owner.
