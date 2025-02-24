@@ -2545,21 +2545,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_user_display(self):
         super().test_user_display()
 
-    def test_aggregate_filter(self):
-        self._test_aggregate_filter(
-            [
-                "count():2",
-                "count():>1",
-                "avg(measurements.lcp):>3000",
-                "avg(measurements.lcp):>3s",
-                "avg(span.duration):>3s",
-                "count():>1 avg(measurements.lcp):>3000",
-                "count():>1 AND avg(measurements.lcp):>3000",
-                "count():>1 OR avg(measurements.lcp):>3000",
-            ]
-        )
-
-    def test_shortform_aggregate_filtering(self):
+    def test_unit_aggregate_filtering(self):
         spans = [
             self.create_span(
                 {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
