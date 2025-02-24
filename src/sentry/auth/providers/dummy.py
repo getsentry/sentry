@@ -3,6 +3,7 @@ from django.http import HttpRequest, HttpResponse
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.view import AuthView
+from sentry.models.authidentity import AuthIdentity
 
 PLACEHOLDER_TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
 
@@ -37,7 +38,7 @@ class DummyProvider(Provider):
             "name": "Dummy",
         }
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         pass
 
     def build_config(self, state):
