@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode
 
 import orjson
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth.exceptions import IdentityNotValid
@@ -65,7 +66,7 @@ class OAuth2Login(AuthView):
         if request.subdomain:
             helper.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(authorization_url)
+        return HttpResponseRedirect(authorization_url)
 
 
 class OAuth2Callback(AuthView):
