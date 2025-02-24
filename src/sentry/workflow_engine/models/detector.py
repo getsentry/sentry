@@ -106,8 +106,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_type.detector_handler(self)
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        # TODO: Create proper audit log data for the detector, group and conditions
-        return {}
+        return {"name": self.name}
 
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None

@@ -565,25 +565,49 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=210,
-        name="WORKFLOW_ENGINE_DETECTOR_ADD",
-        api_name="workflow_engine_detector.add",
-        template="added workflow engine detector {name}",
+        name="DETECTOR_ADD",
+        api_name="detector.add",
+        template="added detector {name}",
     )
 )
 default_manager.add(
     AuditLogEvent(
         event_id=211,
-        name="WORKFLOW_ENGINE_DETECTOR_EDIT",
-        api_name="workflow_engine_detector.edit",
-        template="edited workflow engine detector {name}",
+        name="DETECTOR_EDIT",
+        api_name="detector.edit",
+        template="edited detector {name}",
     )
 )
 default_manager.add(
     AuditLogEvent(
         event_id=212,
-        name="WORKFLOW_ENGINE_DETECTOR_REMOVE",
-        api_name="workflow_engine_detector.remove",
-        template="removed workflow engine detector {name}",
+        name="DETECTOR_REMOVE",
+        api_name="detector.remove",
+        template="removed detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=213,
+        name="WORFKLOW_ADD",
+        api_name="workflow.add",
+        template="added workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=214,
+        name="WORFKLOW_EDIT",
+        api_name="workflow.edit",
+        template="edited workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=215,
+        name="WORFKLOW_REMOVE",
+        api_name="workflow.remove",
+        template="removed workflow {name}",
     )
 )
 

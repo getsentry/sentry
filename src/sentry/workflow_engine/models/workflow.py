@@ -70,6 +70,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
         ]
 
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {"name": self.name}
+
     def evaluate_trigger_conditions(self, job: WorkflowJob) -> tuple[bool, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
