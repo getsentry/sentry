@@ -33,6 +33,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_project_subscriptions_for_uptime_subscription,
+    get_regions_for_uptime_subscription,
     get_top_hosting_provider_names,
 )
 from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
@@ -135,7 +136,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         return False
 
-    def check_and_update_regions(self, subscription: UptimeSubscription, result: CheckResult):
+    def check_and_update_regions(
+        self,
+        subscription: UptimeSubscription,
+        result: CheckResult,
+        regions: list[UptimeSubscriptionRegion],
+    ):
         """
         This method will check if regions have been added or removed from our region configuration,
         and updates regions associated with this uptime monitor to reflect the new state. This is
@@ -147,7 +153,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         subscription_region_modes = {
             UptimeRegionWithMode(r.region_slug, UptimeSubscriptionRegion.RegionMode(r.mode))
-            for r in subscription.regions.all()
+            for r in regions
         }
         active_regions = set(get_active_regions())
         if subscription_region_modes == active_regions:
@@ -195,6 +201,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             return subscription.host_provider_name
         return "other"
 
+    def is_shadow_region_result(
+        self, result: CheckResult, regions: list[UptimeSubscriptionRegion]
+    ) -> bool:
+        shadow_region_slugs = {
+            region.region_slug
+            for region in regions
+            if region.mode == UptimeSubscriptionRegion.RegionMode.SHADOW
+        }
+        return result["region"] in shadow_region_slugs
+
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         if random.random() < 0.01:
             logger.info("process_result", extra=result)
@@ -213,10 +229,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         metric_tags = {
             "host_provider": self.get_host_provider_if_valid(subscription),
             "status": result["status"],
-            "uptime_region": result.get("region", "default"),
+            "uptime_region": result["region"],
         }
+        subscription_regions = get_regions_for_uptime_subscription(subscription.id)
 
-        self.check_and_update_regions(subscription, result)
+        if self.is_shadow_region_result(result, subscription_regions):
+            metrics.incr(
+                "uptime.result_processor.dropped_shadow_result", sample_rate=1.0, tags=metric_tags
+            )
+            return
+
+        self.check_and_update_regions(subscription, result, subscription_regions)
 
         project_subscriptions = get_project_subscriptions_for_uptime_subscription(subscription.id)
 
