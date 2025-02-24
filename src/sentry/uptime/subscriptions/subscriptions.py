@@ -19,8 +19,8 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_regions_for_uptime_subscription,
     headers_json_encoder,
+    load_regions_for_uptime_subscription,
 )
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
 from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
@@ -326,7 +326,7 @@ def update_uptime_subscription(
     )
 
     # Associate active regions with this subscription
-    check_and_update_regions(subscription, get_regions_for_uptime_subscription(subscription.id))
+    check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
     update_remote_uptime_subscription.delay(subscription.id)
     fetch_subscription_rdap_info.delay(subscription.id)
 
@@ -640,18 +640,11 @@ def check_and_update_regions(
     removed_regions = {srm.slug for srm in subscription_region_modes} - {
         ar.slug for ar in active_regions
     }
-    if new_or_updated_regions:
-        new_or_updated_region_objs = [
-            UptimeSubscriptionRegion(
-                uptime_subscription=subscription, region_slug=r.slug, mode=r.mode
-            )
-            for r in new_or_updated_regions
-        ]
-        UptimeSubscriptionRegion.objects.bulk_create(
-            new_or_updated_region_objs,
-            update_conflicts=True,
-            update_fields=["mode"],
-            unique_fields=["uptime_subscription", "region_slug"],
+    for region in new_or_updated_regions:
+        UptimeSubscriptionRegion.objects.update_or_create(
+            uptime_subscription=subscription,
+            region_slug=region.slug,
+            defaults={"mode": region.mode},
         )
 
     if removed_regions:
