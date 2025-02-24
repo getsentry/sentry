@@ -205,6 +205,23 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <code>stacked</code> prop. Area charts are always stacked. Line charts are never
           stacked.
         </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
+              stacked
+            />
+          </MediumWidget>
+          <SmallWidget />
+        </SideBySide>
       </Fragment>
     );
   });
