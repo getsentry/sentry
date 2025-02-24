@@ -48,7 +48,7 @@ export function SolutionsHubNotices({
   autofixRepositories,
   hasGithubIntegration,
 }: SolutionsHubNoticesProps) {
-  const unreadableRepos = autofixRepositories.filter(repo => !repo.is_readable);
+  const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
   const notices: JSX.Element[] = [];
 
   const integrationId = autofixRepositories.find(repo =>
