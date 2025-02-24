@@ -470,7 +470,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         "provider": mapping_repo.provider,
                         "default_branch": mapping.default_branch,
                         "is_readable": repo_state.get("is_readable", False),
-                        "is_writable": repo_state.get("is_writable", False),
+                        "is_writeable": repo_state.get("is_writeable", False),
                     }
                 )
 

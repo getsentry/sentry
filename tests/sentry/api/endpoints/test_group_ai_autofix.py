@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import ANY, Mock, patch
 
 from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS, GroupAutofixEndpoint
-from sentry.autofix.utils import AutofixState, AutofixStatus
+from sentry.autofix.utils import AutofixState, AutofixStatus, CodebaseState
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -61,12 +61,20 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self, mock_get_sorted_code_mapping_configs, mock_get_autofix_state
     ):
         group = self.create_group()
-        mock_get_autofix_state.return_value = AutofixState(
+        autofix_state = AutofixState(
             run_id=123,
             request={"project_id": 456, "issue": {"id": 789}},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
+            codebases={
+                "id123": CodebaseState(
+                    repo_external_id="id123",
+                    is_readable=True,
+                    is_writeable=True,
+                )
+            },
         )
+        mock_get_autofix_state.return_value = autofix_state
 
         class TestRepo:
             def __init__(self):
@@ -74,6 +82,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.external_id = "id123"
                 self.name = "test_repo"
                 self.provider = "github"
+                self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
             Mock(repository=TestRepo(), default_branch="main"),
@@ -85,7 +94,164 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["autofix"] is not None
         assert len(response.data["autofix"]["repositories"]) == 1
-        assert response.data["autofix"]["repositories"][0]["default_branch"] == "main"
+        repo = response.data["autofix"]["repositories"][0]
+        assert repo["default_branch"] == "main"
+        assert repo["name"] == "test_repo"
+        assert repo["provider"] == "github"
+        assert repo["external_id"] == "id123"
+        assert repo["url"] == "example.com"
+        assert repo["integration_id"] == 42
+        assert repo["is_readable"] is True
+        assert repo["is_writeable"] is True
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    def test_ai_autofix_get_endpoint_multiple_repositories(
+        self, mock_get_sorted_code_mapping_configs, mock_get_autofix_state
+    ):
+        group = self.create_group()
+        autofix_state = AutofixState(
+            run_id=123,
+            request={"project_id": 456, "issue": {"id": 789}},
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
+            status=AutofixStatus.PROCESSING,
+            codebases={
+                "id123": CodebaseState(
+                    repo_external_id="id123",
+                    is_readable=True,
+                    is_writeable=True,
+                ),
+                "id456": CodebaseState(
+                    repo_external_id="id456",
+                    is_readable=True,
+                    is_writeable=False,
+                ),
+            },
+        )
+        mock_get_autofix_state.return_value = autofix_state
+
+        class TestRepo:
+            def __init__(self, external_id, name, provider, url, integration_id):
+                self.url = url
+                self.external_id = external_id
+                self.name = name
+                self.provider = provider
+                self.integration_id = integration_id
+
+        repo1 = TestRepo("id123", "repo1", "github", "example.com/repo1", 42)
+        repo2 = TestRepo("id456", "repo2", "gitlab", "example.com/repo2", 43)
+
+        mock_get_sorted_code_mapping_configs.return_value = [
+            Mock(repository=repo1, default_branch="main"),
+            Mock(repository=repo2, default_branch="master"),
+        ]
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200
+        assert response.data["autofix"] is not None
+        assert len(response.data["autofix"]["repositories"]) == 2
+
+        # Check first repo
+        repo = response.data["autofix"]["repositories"][0]
+        assert repo["default_branch"] == "main"
+        assert repo["name"] == "repo1"
+        assert repo["provider"] == "github"
+        assert repo["external_id"] == "id123"
+        assert repo["url"] == "example.com/repo1"
+        assert repo["integration_id"] == 42
+        assert repo["is_readable"] is True
+        assert repo["is_writeable"] is True
+
+        # Check second repo
+        repo = response.data["autofix"]["repositories"][1]
+        assert repo["default_branch"] == "master"
+        assert repo["name"] == "repo2"
+        assert repo["provider"] == "gitlab"
+        assert repo["external_id"] == "id456"
+        assert repo["url"] == "example.com/repo2"
+        assert repo["integration_id"] == 43
+        assert repo["is_readable"] is True
+        assert repo["is_writeable"] is False
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    def test_ai_autofix_get_endpoint_repository_not_in_codebase(
+        self, mock_get_sorted_code_mapping_configs, mock_get_autofix_state
+    ):
+        group = self.create_group()
+        autofix_state = AutofixState(
+            run_id=123,
+            request={"project_id": 456, "issue": {"id": 789}},
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
+            status=AutofixStatus.PROCESSING,
+            codebases={
+                "id123": CodebaseState(
+                    repo_external_id="id123",
+                    is_readable=True,
+                    is_writeable=True,
+                )
+            },
+        )
+        mock_get_autofix_state.return_value = autofix_state
+
+        class TestRepo:
+            def __init__(self, external_id):
+                self.url = "example.com"
+                self.external_id = external_id
+                self.name = "test_repo"
+                self.provider = "github"
+                self.integration_id = 42
+
+        # Create a repo with a different external_id than what's in the codebase
+        mock_get_sorted_code_mapping_configs.return_value = [
+            Mock(repository=TestRepo("different_id"), default_branch="main"),
+        ]
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200
+        assert response.data["autofix"] is not None
+        # No repositories should be included since the external_id doesn't match
+        assert len(response.data["autofix"]["repositories"]) == 0
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    def test_ai_autofix_get_endpoint_no_codebases(
+        self, mock_get_sorted_code_mapping_configs, mock_get_autofix_state
+    ):
+        group = self.create_group()
+        autofix_state = AutofixState(
+            run_id=123,
+            request={"project_id": 456, "issue": {"id": 789}},
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
+            status=AutofixStatus.PROCESSING,
+            # Empty codebases dictionary
+            codebases={},
+        )
+        mock_get_autofix_state.return_value = autofix_state
+
+        class TestRepo:
+            def __init__(self):
+                self.url = "example.com"
+                self.external_id = "id123"
+                self.name = "test_repo"
+                self.provider = "github"
+                self.integration_id = 42
+
+        mock_get_sorted_code_mapping_configs.return_value = [
+            Mock(repository=TestRepo(), default_branch="main"),
+        ]
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200
+        assert response.data["autofix"] is not None
+        # Should have empty repositories list since there are no codebases
+        assert len(response.data["autofix"]["repositories"]) == 0
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._get_profile_for_event")
@@ -761,7 +927,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "contexts": {
                     "trace": {
                         "trace_id": "a" * 32,
-                        "span_id": "b" * 16,  # Different span_id than the error event
+                        "span_id": "b"
+                        * 16,  # Different span_id than both error event and transaction
                     },
                     "profile": {"profile_id": profile_id},
                 },
