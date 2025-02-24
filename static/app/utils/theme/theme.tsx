@@ -396,49 +396,6 @@ export const generateLevelTheme = (colors: Colors): LevelColors => ({
   unknown: colors.gray200,
 });
 
-export const generateBadgeTheme = (colors: Colors): BadgeColors => ({
-  default: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  alpha: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.pink300,
-    color: colors.white,
-  },
-  beta: {
-    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
-    indicatorColor: colors.purple300,
-    color: colors.white,
-  },
-  new: {
-    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
-    indicatorColor: colors.green300,
-    color: colors.white,
-  },
-  experimental: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  internal: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  warning: {
-    background: colors.yellow300,
-    indicatorColor: colors.yellow300,
-    color: colors.gray500,
-  },
-  gray: {
-    background: `rgba(43, 34, 51, 0.08)`,
-    indicatorColor: `rgba(43, 34, 51, 0.08)`,
-    color: colors.gray500,
-  },
-});
-
 export const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
     background: colors.surface400,
@@ -735,25 +692,6 @@ const darkShadows = {
   dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
-
-type Badge =
-  | 'default'
-  | 'alpha'
-  | 'beta'
-  | 'warning'
-  | 'new'
-  | 'experimental'
-  // @TODO(jonasbadalic): What is gray a tag type?
-  | 'gray'
-  | 'internal';
-
-type BadgeColors = {
-  [key in Badge]: {
-    background: string;
-    color: string;
-    indicatorColor: string;
-  };
 };
 
 type Tag =
@@ -1113,7 +1051,6 @@ export const lightTheme = {
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
@@ -1150,7 +1087,6 @@ export const darkTheme: typeof lightTheme = {
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
