@@ -32,9 +32,11 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_project_subscriptions_for_uptime_subscription,
+    get_regions_for_uptime_subscription,
     get_top_hosting_provider_names,
 )
-from sentry.uptime.subscriptions.regions import get_active_region_configs
+from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
     get_or_create_uptime_subscription,
@@ -134,7 +136,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         return False
 
-    def check_and_update_regions(self, subscription: UptimeSubscription, result: CheckResult):
+    def check_and_update_regions(
+        self,
+        subscription: UptimeSubscription,
+        result: CheckResult,
+        regions: list[UptimeSubscriptionRegion],
+    ):
         """
         This method will check if regions have been added or removed from our region configuration,
         and updates regions associated with this uptime monitor to reflect the new state. This is
@@ -144,24 +151,36 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if not self.should_run_region_checks(subscription, result):
             return
 
-        subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
-        active_region_slugs = {c.slug for c in get_active_region_configs()}
-        if subscription_region_slugs == active_region_slugs:
+        subscription_region_modes = {
+            UptimeRegionWithMode(r.region_slug, UptimeSubscriptionRegion.RegionMode(r.mode))
+            for r in regions
+        }
+        active_regions = set(get_active_regions())
+        if subscription_region_modes == active_regions:
             # Regions haven't changed, exit early.
             return
 
-        new_region_slugs = active_region_slugs - subscription_region_slugs
-        removed_region_slugs = subscription_region_slugs - active_region_slugs
-        if new_region_slugs:
-            new_regions = [
-                UptimeSubscriptionRegion(uptime_subscription=subscription, region_slug=slug)
-                for slug in new_region_slugs
+        new_or_updated_regions = active_regions - subscription_region_modes
+        removed_regions = {srm.slug for srm in subscription_region_modes} - {
+            ar.slug for ar in active_regions
+        }
+        if new_or_updated_regions:
+            new_or_updated_region_objs = [
+                UptimeSubscriptionRegion(
+                    uptime_subscription=subscription, region_slug=r.slug, mode=r.mode
+                )
+                for r in new_or_updated_regions
             ]
-            UptimeSubscriptionRegion.objects.bulk_create(new_regions, ignore_conflicts=True)
+            UptimeSubscriptionRegion.objects.bulk_create(
+                new_or_updated_region_objs,
+                update_conflicts=True,
+                update_fields=["mode"],
+                unique_fields=["uptime_subscription", "region_slug"],
+            )
 
-        if removed_region_slugs:
+        if removed_regions:
             for deleted_region in UptimeSubscriptionRegion.objects.filter(
-                uptime_subscription=subscription, region_slug__in=removed_region_slugs
+                uptime_subscription=subscription, region_slug__in=removed_regions
             ):
                 if subscription.subscription_id:
                     # We need to explicitly send deletes here before we remove the region
@@ -182,6 +201,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             return subscription.host_provider_name
         return "other"
 
+    def is_shadow_region_result(
+        self, result: CheckResult, regions: list[UptimeSubscriptionRegion]
+    ) -> bool:
+        shadow_region_slugs = {
+            region.region_slug
+            for region in regions
+            if region.mode == UptimeSubscriptionRegion.RegionMode.SHADOW
+        }
+        return result["region"] in shadow_region_slugs
+
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         if random.random() < 0.01:
             logger.info("process_result", extra=result)
@@ -200,16 +229,19 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         metric_tags = {
             "host_provider": self.get_host_provider_if_valid(subscription),
             "status": result["status"],
-            "uptime_region": result.get("region", "default"),
+            "uptime_region": result["region"],
         }
+        subscription_regions = get_regions_for_uptime_subscription(subscription.id)
 
-        self.check_and_update_regions(subscription, result)
+        if self.is_shadow_region_result(result, subscription_regions):
+            metrics.incr(
+                "uptime.result_processor.dropped_shadow_result", sample_rate=1.0, tags=metric_tags
+            )
+            return
 
-        project_subscriptions = list(
-            subscription.projectuptimesubscription_set.select_related(
-                "project", "project__organization"
-            ).all()
-        )
+        self.check_and_update_regions(subscription, result, subscription_regions)
+
+        project_subscriptions = get_project_subscriptions_for_uptime_subscription(subscription.id)
 
         cluster = _get_cluster()
         last_updates: list[str | None] = cluster.mget(

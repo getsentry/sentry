@@ -35,6 +35,7 @@ class JiraCloudClient(ApiClient):
     USERS_URL = "/rest/api/2/user/assignable/search"
     USER_URL = "/rest/api/2/user"
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
+    STATUS_SEARCH_URL = "/rest/api/2/statuses/search"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
     EMAIL_URL = "/rest/api/3/user/email"
@@ -219,3 +220,6 @@ class JiraCloudClient(ApiClient):
         return self.get_cached(
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
+
+    def get_project_statuses(self, project_id: str) -> dict[str, Any]:
+        return dict(self.get_cached(self.STATUS_SEARCH_URL, params={"projectId": project_id}))

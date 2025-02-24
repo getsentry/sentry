@@ -120,6 +120,9 @@ class OAuth2Provider(Provider):
             "refresh_token": refresh_token,
         }
 
+    def get_refresh_token_url(self) -> str:
+        raise NotImplementedError
+
     def get_oauth_data(self, payload):
         data = {"access_token": payload["access_token"]}
         if "expires_in" in payload:
@@ -147,7 +150,7 @@ class OAuth2Provider(Provider):
         formatted_error = f"HTTP {req.status_code} ({error_name}): {error_description}"
 
         if req.status_code == 401:
-            self.logger.info(
+            logger.info(
                 "identity.oauth.refresh.identity-not-valid-error",
                 extra={
                     "error_name": error_name,
@@ -162,7 +165,7 @@ class OAuth2Provider(Provider):
             # this may not be common, but at the very least Google will return
             # an invalid grant when a user is suspended
             if error_name == "invalid_grant":
-                self.logger.info(
+                logger.info(
                     "identity.oauth.refresh.identity-not-valid-error",
                     extra={
                         "error_name": error_name,
@@ -174,7 +177,7 @@ class OAuth2Provider(Provider):
                 raise IdentityNotValid(formatted_error)
 
         if req.status_code != 200:
-            self.logger.info(
+            logger.info(
                 "identity.oauth.refresh.api-error",
                 extra={
                     "error_name": error_name,
@@ -353,14 +356,14 @@ class OAuth2CallbackView(PipelineView):
             code = request.GET.get("code")
 
             if error:
-                pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
+                logger.info("identity.token-exchange-error", extra={"error": error})
                 lifecycle.record_failure(
                     "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
             if state != pipeline.fetch_state("state"):
-                pipeline.logger.info(
+                logger.info(
                     "identity.token-exchange-error",
                     extra={
                         "error": "invalid_state",
@@ -383,7 +386,7 @@ class OAuth2CallbackView(PipelineView):
             return pipeline.error(data["error_description"])
 
         if "error" in data:
-            pipeline.logger.info("identity.token-exchange-error", extra={"error": data["error"]})
+            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
             return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
 
         # we can either expect the API to be implicit and say "im looking for
