@@ -6,6 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   getQueryMode,
   useReadQueriesFromLocation,
@@ -27,6 +28,7 @@ export function useMultiQueryTimeseries({
   index,
 }: UseMultiQueryTimeseriesOptions): UseMultiQueryTimeseriesResults {
   const queries = useReadQueriesFromLocation();
+  const [interval] = useChartInterval();
   const queryParts = queries[index]!;
   const sortBys = queryParts.sortBys;
   const groupBys = queryParts.groupBys;
@@ -64,15 +66,20 @@ export function useMultiQueryTimeseries({
       yAxis: yAxes,
       fields,
       orderby,
+      interval,
       topEvents: mode === Mode.SAMPLES ? undefined : 5,
       enabled,
     };
-  }, [query, yAxes, fields, orderby, mode, enabled]);
+  }, [query, yAxes, fields, orderby, interval, mode, enabled]);
 
   const previousQuery = usePrevious(query);
   const previousOptions = usePrevious(options);
   const canUsePreviousResults = useMemo(() => {
     if (!isEqual(query, previousQuery)) {
+      return false;
+    }
+
+    if (!isEqual(options.interval, previousOptions.interval)) {
       return false;
     }
 
@@ -91,7 +98,18 @@ export function useMultiQueryTimeseries({
     // The query we're using has remained the same except for the y axis.
     // This means we can  re-use the previous results to prevent a loading state.
     return true;
-  }, [query, previousQuery, options, previousOptions]);
+  }, [
+    query,
+    previousQuery,
+    options.interval,
+    options.fields,
+    options.orderby,
+    options.topEvents,
+    previousOptions.interval,
+    previousOptions.fields,
+    previousOptions.orderby,
+    previousOptions.topEvents,
+  ]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,

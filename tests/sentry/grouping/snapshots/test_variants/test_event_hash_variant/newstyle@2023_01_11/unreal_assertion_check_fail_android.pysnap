@@ -1,0 +1,164 @@
+---
+created: '2025-02-20T15:26:41.187921+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "8c134ce2a43a0b2c55654902491307c2"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__start_thread"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__pthread_start"
+          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "android_main"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "AndroidMain"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "FEngineLoop::Tick"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UGameEngine::Tick"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UWorld::Tick"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "FLatentActionManager::ProcessLatentActions"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "FLatentActionManager::TickLatentActionForObject"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "AActor::ProcessEvent"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UObject::ProcessEvent"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UFunction::Invoke"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UObject::ProcessInternal"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "ProcessLocalScriptFunction"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UObject::execCallMathFunction"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame (non app frame)
+            function*
+              "FDebug::CheckVerifyFailedImpl2"
+          frame (non app frame)
+            function*
+              "FOutputDevice::LogfImpl"
+          frame (non app frame)
+            function*
+              "FSentryOutputDeviceError::Serialize"
+          frame (non app frame)
+            function*
+              "TMulticastDelegateBase<T>::Broadcast<T>"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "tgkill"
+        type (ignored because exception is synthetic)
+          "SIGTRAP"
+        value (ignored because stacktrace takes precedence)
+          "Trap"
+--------------------------------------------------------------------------
+system:
+  hash: "f203e9bc12df86bb01fbd92a45643f86"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__start_thread"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__pthread_start"
+          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "android_main"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "AndroidMain"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "FEngineLoop::Tick"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UGameEngine::Tick"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UWorld::Tick"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "FLatentActionManager::ProcessLatentActions"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "FLatentActionManager::TickLatentActionForObject"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "AActor::ProcessEvent"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UObject::ProcessEvent"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UFunction::Invoke"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UObject::ProcessInternal"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "ProcessLocalScriptFunction"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "UObject::execCallMathFunction"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app))
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame*
+            function*
+              "FDebug::CheckVerifyFailedImpl2"
+          frame*
+            function*
+              "FOutputDevice::LogfImpl"
+          frame*
+            function*
+              "FSentryOutputDeviceError::Serialize"
+          frame*
+            function*
+              "TMulticastDelegateBase<T>::Broadcast<T>"
+          frame
+          frame*
+            function*
+              "tgkill"
+        type (ignored because exception is synthetic)
+          "SIGTRAP"
+        value (ignored because stacktrace takes precedence)
+          "Trap"

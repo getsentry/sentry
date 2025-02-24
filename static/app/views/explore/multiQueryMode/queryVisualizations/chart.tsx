@@ -1,13 +1,22 @@
 import {Fragment, useCallback} from 'react';
 
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconClock} from 'sentry/icons/iconClock';
 import {IconGraph} from 'sentry/icons/iconGraph';
+import {t} from 'sentry/locale';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import usePrevious from 'sentry/utils/usePrevious';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
-import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  type ReadableExploreQueryParts,
+  useUpdateQueryAtIndex,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -27,10 +36,14 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
   });
   const yAxes = queryParts.yAxes;
 
+  const [interval, setInterval, intervalOptions] = useChartInterval();
+
   const formattedYAxes = yAxes.map(yaxis => {
     const func = parseFunction(yaxis);
     return func ? prettifyParsedFunction(func) : undefined;
   });
+
+  const updateChartType = useUpdateQueryAtIndex(index);
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
@@ -82,9 +95,16 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
 
   const {data, error, loading} = getSeries();
 
+  const visualizationType =
+    queryParts.chartType === ChartType.LINE
+      ? 'line'
+      : queryParts.chartType === ChartType.AREA
+        ? 'area'
+        : 'bar';
+
   const chartInfo = {
-    chartIcon: <IconGraph type={'line'} />,
-    chartType: ChartType.LINE,
+    chartIcon: <IconGraph type={visualizationType} />,
+    chartType: queryParts.chartType,
     yAxes,
     formattedYAxes,
     data,
@@ -126,17 +146,49 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
+      Actions={[
+        <Tooltip
+          key="visualization"
+          title={t('Type of chart displayed in this visualization (ex. line)')}
+        >
+          <CompactSelect
+            triggerProps={{
+              icon: chartInfo.chartIcon,
+              borderless: true,
+              showChevron: false,
+              size: 'xs',
+            }}
+            value={chartInfo.chartType}
+            menuTitle={t('Type')}
+            options={EXPLORE_CHART_TYPE_OPTIONS}
+            onChange={option => {
+              updateChartType({chartType: option.value});
+            }}
+          />
+        </Tooltip>,
+        <Tooltip
+          key="interval"
+          title={t('Time interval displayed in this visualization (ex. 5m)')}
+        >
+          <CompactSelect
+            value={interval}
+            onChange={({value}) => setInterval(value)}
+            triggerProps={{
+              icon: <IconClock />,
+              borderless: true,
+              showChevron: false,
+              size: 'xs',
+            }}
+            menuTitle="Interval"
+            options={intervalOptions}
+          />
+        </Tooltip>,
+      ]}
       revealActions="always"
       Visualization={
         <TimeSeriesWidgetVisualization
           dataCompletenessDelay={INGESTION_DELAY}
-          visualizationType={
-            chartInfo.chartType === ChartType.AREA
-              ? 'area'
-              : chartInfo.chartType === ChartType.LINE
-                ? 'line'
-                : 'bar'
-          }
+          visualizationType={visualizationType}
           timeSeries={chartInfo.data}
         />
       }

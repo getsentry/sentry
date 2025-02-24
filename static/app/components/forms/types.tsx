@@ -54,7 +54,7 @@ interface BaseField {
    * Function to format the value displayed in the undo toast. May also be
    * specified as false to disable showing the changed fields in the toast.
    */
-  formatMessageValue?: Function | false;
+  formatMessageValue?: boolean | ((props: any) => React.ReactNode);
   getData?: (data: Record<PropertyKey, unknown>) => Record<PropertyKey, unknown>;
   getValue?: (value: FieldValue) => any;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
@@ -217,7 +217,7 @@ export type Field = (
 ) &
   BaseField;
 
-export type FieldObject = Field | Function;
+export type FieldObject = Field | (() => React.ReactNode);
 
 export type JsonFormObject = {
   fields: FieldObject[];

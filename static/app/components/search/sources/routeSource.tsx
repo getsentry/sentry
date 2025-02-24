@@ -27,8 +27,8 @@ type Config = ((params: ConfigParams) => NavigationSection[]) | NavigationSectio
 // XXX(epurkhiser): We use the context in mapFunc to handle both producing the
 // NavigationSection list AND filtering out items in the sections that should
 // not be shown using the `show` attribute of the NavigationItem
-type Context = Parameters<Extract<Config, Function>>[0] &
-  Parameters<Extract<NavigationItem['show'], Function>>[0];
+type Context = Parameters<Extract<Config, (args: never) => unknown>>[0] &
+  Parameters<Extract<NavigationItem['show'], (args: never) => unknown>>[0];
 
 /**
  * navigation configuration can currently be either:

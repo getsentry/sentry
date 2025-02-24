@@ -121,8 +121,13 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
+    class RegionMode(enum.StrEnum):
+        ACTIVE = "active"
+        INACTIVE = "inactive"
+
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     region_slug = models.CharField(max_length=255, db_index=True, db_default="")
+    mode = models.CharField(max_length=32, db_default=RegionMode.ACTIVE)
 
     class Meta:
         app_label = "uptime"

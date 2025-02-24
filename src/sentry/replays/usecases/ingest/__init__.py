@@ -23,11 +23,9 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest.dom_index import (
-    ReplayActionsEvent,
-    emit_replay_actions,
-    parse_replay_actions,
-)
+from sentry.replays.usecases.ingest.dom_index import ReplayActionsEvent, emit_replay_actions
+from sentry.replays.usecases.ingest.dom_index import log_canvas_size as log_canvas_size_old
+from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
 from sentry.replays.usecases.ingest.event_logger import (
     emit_request_response_metrics,
     log_canvas_size,
@@ -122,9 +120,9 @@ def _ingest_recording(message_bytes: bytes) -> None:
     set_tag("org_id", message.org_id)
     set_tag("project_id", message.project_id)
 
-    headers, compressed_segment = parse_headers(message.payload_with_headers, message.replay_id)
-    compressed_segment, recording_segment = decompress_segment(compressed_segment)
-    _report_size_metrics(len(compressed_segment), len(recording_segment))
+    headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
+    segment = decompress_segment(segment_bytes)
+    _report_size_metrics(len(segment.compressed), len(segment.decompressed))
 
     # Normalize ingest data into a standardized ingest format.
     segment_data = RecordingSegmentStorageMeta(
@@ -154,7 +152,7 @@ def _ingest_recording(message_bytes: bytes) -> None:
             unit="byte",
         )
 
-        dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
+        dat = zlib.compress(pack(rrweb=segment.decompressed, video=message.replay_video))
         storage_kv.set(make_recording_filename(segment_data), dat)
 
         # Track combined payload size.
@@ -162,9 +160,9 @@ def _ingest_recording(message_bytes: bytes) -> None:
             "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
         )
     else:
-        storage_kv.set(make_recording_filename(segment_data), compressed_segment)
+        storage_kv.set(make_recording_filename(segment_data), segment.compressed)
 
-    recording_post_processor(message, headers, recording_segment, message.replay_event)
+    recording_post_processor(message, headers, segment.decompressed, message.replay_event)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -280,6 +278,26 @@ def recording_post_processor(
             actions_event = try_get_replay_actions(message, segment, replay_event)
             if actions_event:
                 emit_replay_actions(actions_event)
+
+            # Log canvas mutations to bigquery.
+            log_canvas_size_old(
+                message.org_id,
+                message.project_id,
+                message.replay_id,
+                segment,
+            )
+
+            # Log # of rrweb events to bigquery.
+            logger.info(
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "rrweb_event_count",
+                    "org_id": message.org_id,
+                    "project_id": message.project_id,
+                    "replay_id": message.replay_id,
+                    "size": len(segment),
+                },
+            )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
@@ -323,15 +341,21 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[RecordingSegmentHea
         raise DropSilently()
 
 
+@dataclasses.dataclass(frozen=True)
+class Segment:
+    compressed: bytes
+    decompressed: bytes
+
+
 @sentry_sdk.trace
-def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
+def decompress_segment(segment: bytes) -> Segment:
     try:
         decompressed_segment = zlib.decompress(segment)
-        return segment, decompressed_segment
+        return Segment(segment, decompressed_segment)
     except zlib.error:
         if segment[0] == ord("["):
             compressed_segment = zlib.compress(segment)
-            return compressed_segment, segment
+            return Segment(compressed_segment, segment)
         else:
             logger.exception("Invalid recording body.")
             raise DropSilently()

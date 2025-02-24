@@ -303,7 +303,7 @@ export function generateExploreCompareRoute({
       [URL_PARAM.PERIOD]: location.query.statsPeriod,
       [URL_PARAM.PROJECT]: location.query.project,
       [URL_PARAM.ENVIRONMENT]: location.query.environment,
-      queries: getQueriesAsUrlParam([compareQuery]),
+      queries: getQueriesAsUrlParam([compareQuery, DEFAULT_QUERY]),
     },
   };
 }
