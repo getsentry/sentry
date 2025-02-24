@@ -455,14 +455,14 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         repo_code_mappings[mapping.repository.external_id] = mapping
 
             for repo_external_id, repo_state in autofix_codebase_state.items():
-                mapping: RepositoryProjectPathConfig | None = repo_code_mappings.get(
+                retrieved_mapping: RepositoryProjectPathConfig | None = repo_code_mappings.get(
                     repo_external_id, None
                 )
 
-                if not mapping:
+                if not retrieved_mapping:
                     continue
 
-                mapping_repo: Repository = mapping.repository
+                mapping_repo: Repository = retrieved_mapping.repository
 
                 repositories.append(
                     {
