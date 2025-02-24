@@ -29,7 +29,7 @@ from sentry.organizations.services.organization import RpcOrganization, organiza
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
-from sentry.utils import auth, demo_mode, json, metrics
+from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,
     get_login_redirect,
@@ -38,6 +38,7 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
+from sentry.utils.demo_mode import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
@@ -567,8 +568,8 @@ class AuthLoginView(BaseView):
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
 
-        if demo_mode.is_demo_org(organization):
-            user = demo_mode.get_readonly_user()
+        if is_demo_mode_enabled() and is_demo_org(organization):
+            user = get_demo_user()
             self._handle_login(request, user, organization)
             return self.redirect(get_login_redirect(request))
 
