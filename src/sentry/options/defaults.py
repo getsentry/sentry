@@ -477,6 +477,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate compute and IO.
+register(
+    "replay.consumer.separate-compute-and-io-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Used for internal dogfooding of a reduced timeout on rage/dead clicks.
 register(
     "replay.rage-click.experimental-timeout.org-id-list",
