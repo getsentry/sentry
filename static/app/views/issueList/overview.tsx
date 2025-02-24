@@ -1071,17 +1071,15 @@ function IssueListOverview({router}: Props) {
   const showReprocessingTab = !!queryCounts?.[Query.REPROCESSING]?.count;
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
-  const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
-
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {hasLeftNavIssueViews && prefersStackedNav && (
+        {prefersStackedNav && (
           <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
-        {!hasLeftNavIssueViews &&
+        {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader

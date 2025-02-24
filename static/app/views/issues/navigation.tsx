@@ -16,18 +16,12 @@ interface IssuesWrapperProps extends RouteComponentProps {
 
 export function IssueNavigation({children}: IssuesWrapperProps) {
   const organization = useOrganization();
-  const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews(
-    {
-      orgSlug: organization.slug,
-    },
-    {
-      enabled: hasIssueViewsInLeftNav,
-    }
-  );
+  const {data: groupSearchViews} = useFetchGroupSearchViews({
+    orgSlug: organization.slug,
+  });
 
   const prefersStackedNav = usePrefersStackedNav();
 
@@ -50,7 +44,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          {hasIssueViewsInLeftNav && groupSearchViews && (
+          {groupSearchViews && (
             <SecondaryNav.Section title={t('Views')}>
               <IssueViewNavItems
                 loadedViews={groupSearchViews.map(
