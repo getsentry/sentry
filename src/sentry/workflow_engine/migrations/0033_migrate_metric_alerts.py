@@ -184,6 +184,121 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     Workflow = apps.get_model("workflow_engine", "Workflow")
     WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
 
+    def _migrate_trigger_action(trigger_action: Any, condition_group_id: int) -> None:
+        if trigger_action.sentry_app_id:
+            action_type = ActionType.SENTRY_APP
+
+        elif trigger_action.integration_id:
+            try:
+                action_type = ActionType(TYPE_TO_PROVIDER[trigger_action.type])
+            except Exception:
+                logger.info(
+                    "could not find a matching action type for the trigger action",
+                    extra={"trigger_action_id": trigger_action.id},
+                )
+                raise
+        else:
+            action_type = ActionType.EMAIL
+
+        # build data blob
+        if action_type == ActionType.SENTRY_APP:
+            if not trigger_action.sentry_app_config:
+                data = {}
+            settings = (
+                [trigger_action.sentry_app_config]
+                if isinstance(trigger_action.sentry_app_config, dict)
+                else trigger_action.sentry_app_config
+            )
+            data = dataclasses.asdict(SentryAppDataBlob.from_list(settings))
+        elif action_type in (ActionType.OPSGENIE, ActionType.PAGERDUTY):
+            default_priority = (
+                OPSGENIE_DEFAULT_PRIORITY
+                if action_type == ActionType.OPSGENIE
+                else PAGERDUTY_DEFAULT_SEVERITY
+            )
+
+            if not trigger_action.sentry_app_config:
+                data = {"priority": default_priority}
+
+            # Ensure sentry_app_config is a dict before accessing
+            config = trigger_action.sentry_app_config
+            if not isinstance(config, dict):
+                data = {"priority": default_priority}
+            else:
+                priority = config.get("priority", default_priority)
+                data = dataclasses.asdict(OnCallDataBlob(priority=priority))
+        else:
+            data = {
+                "type": trigger_action.type,
+                "sentry_app_id": trigger_action.sentry_app_id,
+                "sentry_app_config": trigger_action.sentry_app_config,
+            }
+
+        # get target identifier
+        if action_type == ActionType.SENTRY_APP:
+            if not trigger_action.sentry_app_id:
+                logger.info(
+                    "trigger action missing sentry app ID",
+                    extra={"trigger_action_id": trigger_action.id},
+                )
+                raise Exception("Trigger action missing Sentry app ID")
+            target_identifier = str(trigger_action.sentry_app_id)
+        else:
+            target_identifier = trigger_action.target_identifier
+
+        # create the models
+        action = Action.objects.create(
+            type=action_type,
+            data=data,
+            integration_id=trigger_action.integration_id,
+            target_display=trigger_action.target_display,
+            target_identifier=target_identifier,
+            target_type=trigger_action.target_type,
+        )
+        DataConditionGroupAction.objects.create(
+            condition_group_id=condition_group_id,
+            action_id=action.id,
+        )
+        ActionAlertRuleTriggerAction.objects.create(
+            action_id=action.id,
+            alert_rule_trigger_action_id=trigger_action.id,
+        )
+
+    def _migrate_trigger(trigger: Any) -> None:
+        alert_rule = trigger.alert_rule
+        threshold_type = (
+            Condition.GREATER
+            if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+            else Condition.LESS
+        )
+        condition_result = PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH)
+        # create detector trigger
+        DataCondition.objects.create(
+            comparison=trigger.alert_threshold,
+            condition_result=condition_result,
+            type=threshold_type,
+            condition_group=detector.workflow_condition_group,
+        )
+        # create action filter
+        data_condition_group = DataConditionGroup.objects.create(
+            organization_id=alert_rule.organization_id
+        )
+        WorkflowDataConditionGroup.objects.create(
+            condition_group=data_condition_group,
+            workflow=alert_rule_workflow.workflow,
+        )
+        action_filter = DataCondition.objects.create(
+            comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
+            condition_result=True,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            condition_group=data_condition_group,
+        )
+
+        trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+        for trigger_action in trigger_actions:
+            _migrate_trigger_action(trigger_action, action_filter.condition_group.id)
+
+    # MAIN MIGRATION LOOP STARTS HERE
     for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(
         AlertRule.objects_with_snapshots.all()
     ):
@@ -201,9 +316,10 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             continue
 
         organization_id = alert_rule.organization_id
-        if organization_id != 1:
-            # we'll first test the migration on just the Sentry org
-            continue
+        # uncomment this when we do run the test migration (it messes up the tests)
+        # if organization_id != 1:
+        #     # we'll first test the migration on just the Sentry org
+        #     continue
 
         try:
             with transaction.atomic(router.db_for_write(AlertRule)):
@@ -310,116 +426,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                 # migrate triggers
                 triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
                 for trigger in triggers:
-                    threshold_type = (
-                        Condition.GREATER
-                        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-                        else Condition.LESS
-                    )
-                    condition_result = PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH)
-                    # create detector trigger
-                    DataCondition.objects.create(
-                        comparison=trigger.alert_threshold,
-                        condition_result=condition_result,
-                        type=threshold_type,
-                        condition_group=detector.workflow_condition_group,
-                    )
-                    # create action filter
-                    data_condition_group = DataConditionGroup.objects.create(
-                        organization_id=alert_rule.organization_id
-                    )
-                    WorkflowDataConditionGroup.objects.create(
-                        condition_group=data_condition_group,
-                        workflow=alert_rule_workflow.workflow,
-                    )
-                    action_filter = DataCondition.objects.create(
-                        comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
-                        condition_result=True,
-                        type=Condition.ISSUE_PRIORITY_EQUALS,
-                        condition_group=data_condition_group,
-                    )
-
-                    trigger_actions = AlertRuleTriggerAction.objects.filter(
-                        alert_rule_trigger=trigger
-                    )
-                    for trigger_action in trigger_actions:
-                        if trigger_action.sentry_app_id:
-                            action_type = ActionType.SENTRY_APP
-
-                        elif trigger_action.integration_id:
-                            try:
-                                action_type = ActionType(TYPE_TO_PROVIDER[trigger_action.type])
-                            except Exception:
-                                logger.info(
-                                    "could not find a matching action type for the trigger action",
-                                    extra={"trigger_action_id": trigger_action.id},
-                                )
-                                raise
-                        else:
-                            action_type = ActionType.EMAIL
-
-                        # build data blob
-                        if action_type == ActionType.SENTRY_APP:
-                            if not trigger_action.sentry_app_config:
-                                data = {}
-                            settings = (
-                                [trigger_action.sentry_app_config]
-                                if isinstance(trigger_action.sentry_app_config, dict)
-                                else trigger_action.sentry_app_config
-                            )
-                            data = dataclasses.asdict(SentryAppDataBlob.from_list(settings))
-                        elif action_type in (ActionType.OPSGENIE, ActionType.PAGERDUTY):
-                            default_priority = (
-                                OPSGENIE_DEFAULT_PRIORITY
-                                if action_type == ActionType.OPSGENIE
-                                else PAGERDUTY_DEFAULT_SEVERITY
-                            )
-
-                            if not trigger_action.sentry_app_config:
-                                data = {"priority": default_priority}
-
-                            # Ensure sentry_app_config is a dict before accessing
-                            config = trigger_action.sentry_app_config
-                            if not isinstance(config, dict):
-                                data = {"priority": default_priority}
-                            else:
-                                priority = config.get("priority", default_priority)
-                                data = dataclasses.asdict(OnCallDataBlob(priority=priority))
-                        else:
-                            data = {
-                                "type": trigger_action.type,
-                                "sentry_app_id": trigger_action.sentry_app_id,
-                                "sentry_app_config": trigger_action.sentry_app_config,
-                            }
-
-                        # get target identifier
-                        if action_type == ActionType.SENTRY_APP:
-                            if not trigger_action.sentry_app_id:
-                                logger.info(
-                                    "trigger action missing sentry app ID",
-                                    extra={"trigger_action_id": trigger_action.id},
-                                )
-                                raise Exception("Trigger action missing Sentry app ID")
-                            target_identifier = str(trigger_action.sentry_app_id)
-                        else:
-                            target_identifier = trigger_action.target_identifier
-
-                        # create the models
-                        action = Action.objects.create(
-                            type=action_type,
-                            data=data,
-                            integration_id=trigger_action.integration_id,
-                            target_display=trigger_action.target_display,
-                            target_identifier=target_identifier,
-                            target_type=trigger_action.target_type,
-                        )
-                        DataConditionGroupAction.objects.create(
-                            condition_group_id=action_filter.condition_group.id,
-                            action_id=action.id,
-                        )
-                        ActionAlertRuleTriggerAction.objects.create(
-                            action_id=action.id,
-                            alert_rule_trigger_action_id=trigger_action.id,
-                        )
+                    # migrates the trigger and its associated actions
+                    _migrate_trigger(trigger)
 
                 # migrate resolve threshold
                 resolve_threshold_type = (
