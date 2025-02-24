@@ -36,12 +36,11 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ColumnDefinitions,
-    CustomFunction,
     ResolvedColumn,
+    ResolvedFormula,
     ResolvedFunction,
     VirtualColumnDefinition,
 )
-from sentry.search.eap.span_columns import CUSTOM_FUNCTIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
@@ -62,9 +61,9 @@ class SearchResolver:
     _resolved_attribute_cache: dict[str, tuple[ResolvedColumn, VirtualColumnDefinition | None]] = (
         field(default_factory=dict)
     )
-    _resolved_function_cache: dict[str, tuple[ResolvedFunction, VirtualColumnDefinition | None]] = (
-        field(default_factory=dict)
-    )
+    _resolved_function_cache: dict[
+        str, tuple[ResolvedFunction | ResolvedFormula, VirtualColumnDefinition | None]
+    ] = field(default_factory=dict)
 
     @sentry_sdk.trace
     def resolve_meta(self, referrer: str) -> RequestMeta:
@@ -550,7 +549,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_columns(self, selected_columns: list[str]) -> tuple[
-        list[ResolvedColumn | ResolvedFunction | CustomFunction],
+        list[ResolvedColumn | ResolvedFunction | ResolvedFormula],
         list[VirtualColumnDefinition | None],
     ]:
         """Given a list of columns resolve them and get their context if applicable
@@ -587,7 +586,7 @@ class SearchResolver:
 
     def resolve_column(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn | ResolvedFunction | CustomFunction, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedColumn | ResolvedFunction | ResolvedFormula, VirtualColumnDefinition | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -669,7 +668,7 @@ class SearchResolver:
     @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedFunction | CustomFunction], list[VirtualColumnDefinition | None]]:
+    ) -> tuple[list[ResolvedFunction | ResolvedFormula], list[VirtualColumnDefinition | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -680,7 +679,7 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedFunction | CustomFunction, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedFunction | ResolvedFormula, VirtualColumnDefinition | None]:
         if column in self._resolved_function_cache:
             return self._resolved_function_cache[column]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
@@ -693,9 +692,6 @@ class SearchResolver:
         columns = match.group("columns")
         # Alias defaults to the name of the function
         alias = match.group("alias") or column
-
-        if function in CUSTOM_FUNCTIONS:
-            return (CUSTOM_FUNCTIONS.get(function), None)
 
         # Get the function definition
         if function not in self.definitions.functions:
@@ -714,7 +710,29 @@ class SearchResolver:
         for index, argument in enumerate(function_definition.arguments):
             if argument.ignored:
                 continue
-            if index < len(attribute_args):
+
+            # if a function only accepts one type of argument, we can resolve it directly
+            if (
+                argument.argument_types is not None
+                and len(argument.argument_types) == 1
+                and index < len(attribute_args)
+            ):
+                arg = attribute_args[index]
+                arg_type = next(iter(argument.argument_types))
+                if (
+                    arg_type == constants.TYPE_TO_STRING_MAP.get(AttributeKey.TYPE_INT)
+                    and arg.isdigit()
+                ):
+                    parsed_argument = ResolvedColumn(
+                        public_alias=arg,
+                        internal_name=arg,
+                        search_type="integer",
+                    )
+                else:
+                    parsed_argument = ResolvedColumn(
+                        public_alias=arg, internal_name=arg, search_type="string"
+                    )
+            elif index < len(attribute_args):
                 parsed_argument, _ = self.resolve_attribute(attribute_args[index])
             elif argument.default_arg:
                 parsed_argument, _ = self.resolve_attribute(argument.default_arg)
@@ -749,15 +767,8 @@ class SearchResolver:
             resolved_argument = None
             search_type = function_definition.default_search_type
 
-        resolved_function = ResolvedFunction(
-            public_alias=alias,
-            internal_name=function_definition.internal_function,
-            search_type=search_type,
-            internal_type=function_definition.internal_type,
-            processor=function_definition.processor,
-            extrapolation=function_definition.extrapolation,
-            argument=resolved_argument,
-        )
+        resolved_function = function_definition.resolve(alias, search_type, resolved_argument)
+
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)
         return self._resolved_function_cache[column]

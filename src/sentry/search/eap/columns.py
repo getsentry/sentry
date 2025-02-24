@@ -84,27 +84,6 @@ class ArgumentDefinition:
 
 
 @dataclass
-class FunctionDefinition:
-    internal_function: Function.ValueType
-    # The list of arguments for this function
-    arguments: list[ArgumentDefinition]
-    # The search_type the argument should be the default type for this column
-    default_search_type: constants.SearchType
-    # Try to infer the search type from the function arguments
-    infer_search_type_from_arguments: bool = True
-    # The internal rpc type for this function, optional as it can mostly be inferred from search_type
-    internal_type: AttributeKey.Type.ValueType | None = None
-    # Processor is the function run in the post process step to transform a row into the final result
-    processor: Callable[[Any], Any] | None = None
-    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
-    extrapolation: bool = True
-
-    @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
-        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
-
-
-@dataclass
 class VirtualColumnDefinition:
     constructor: Callable[[SnubaParams], VirtualColumnContext]
     # Allows additional processing to the term after its been resolved
@@ -120,7 +99,7 @@ class VirtualColumnDefinition:
 
 
 @dataclass(frozen=True, kw_only=True)
-class CustomFunction(ResolvedAttribute):
+class ResolvedFormula(ResolvedAttribute):
     formula: Any
 
     @property
@@ -165,6 +144,54 @@ class ResolvedFunction(ResolvedAttribute):
         see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
         """
         return constants.DOUBLE
+
+
+@dataclass
+class FunctionDefinition:
+    internal_function: Function.ValueType
+    # The list of arguments for this function
+    arguments: list[ArgumentDefinition]
+    # The search_type the argument should be the default type for this column
+    default_search_type: constants.SearchType
+    # Try to infer the search type from the function arguments
+    infer_search_type_from_arguments: bool = True
+    # The internal rpc type for this function, optional as it can mostly be inferred from search_type
+    internal_type: AttributeKey.Type.ValueType | None = None
+    # Processor is the function run in the post process step to transform a row into the final result
+    processor: Callable[[Any], Any] | None = None
+    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    extrapolation: bool = True
+    # For more complex functions, a formula can be specified
+    formula_resolver: Callable[[Any], Any] | None = None
+
+    @property
+    def required_arguments(self) -> list[ArgumentDefinition]:
+        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
+
+    def resolve(
+        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+    ) -> ResolvedFormula | ResolvedFunction:
+        if self.formula_resolver:
+            return ResolvedFormula(
+                public_alias=alias,
+                search_type=search_type,
+                formula=self.formula_resolver(
+                    resolved_argument.name if resolved_argument else None
+                ),
+                argument=resolved_argument,
+                internal_type=self.internal_type,
+                processor=self.processor,
+            )
+        else:
+            return ResolvedFunction(
+                public_alias=alias,
+                internal_name=self.internal_function,
+                search_type=search_type,
+                internal_type=self.internal_type,
+                processor=self.processor,
+                extrapolation=self.extrapolation,
+                argument=resolved_argument,
+            )
 
 
 def simple_sentry_field(field) -> ResolvedColumn:
