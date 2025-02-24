@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import TypedDict
 from urllib import parse
 
 from django.db.models import Max
@@ -36,6 +37,15 @@ TEXT_COMPARISON_DELTA = {
     10080: ("same time one week ago"),  # one week
     43200: ("same time one month ago"),  # 30 days
 }
+
+
+class AttachmentInfo(TypedDict):
+    title_link: str
+    title: str
+    text: str
+    status: str
+    logo_url: str
+    date_started: datetime | None
 
 
 def logo_url() -> str:
@@ -109,7 +119,7 @@ def incident_attachment_info(
     metric_value=None,
     notification_uuid=None,
     referrer="metric_alert",
-):
+) -> AttachmentInfo:
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
@@ -144,14 +154,14 @@ def incident_attachment_info(
         query=parse.urlencode(title_link_params),
     )
 
-    return {
-        "title": title,
-        "text": text,
-        "logo_url": logo_url(),
-        "status": status,
-        "ts": incident.date_started,
-        "title_link": title_link,
-    }
+    return AttachmentInfo(
+        title=title,
+        text=text,
+        logo_url=logo_url(),
+        status=status,
+        date_started=incident.date_started,
+        title_link=title_link,
+    )
 
 
 def metric_alert_attachment_info(
@@ -159,7 +169,7 @@ def metric_alert_attachment_info(
     selected_incident: Incident | None = None,
     new_status: IncidentStatus | None = None,
     metric_value: float | None = None,
-):
+) -> AttachmentInfo:
     latest_incident = None
     if selected_incident is None:
         try:
@@ -225,16 +235,11 @@ def metric_alert_attachment_info(
     if selected_incident:
         date_started = selected_incident.date_started
 
-    last_triggered_date = None
-    if latest_incident:
-        last_triggered_date = latest_incident.date_started
-
-    return {
-        "title": title,
-        "text": text,
-        "logo_url": logo_url(),
-        "status": status,
-        "date_started": date_started,
-        "last_triggered_date": last_triggered_date,
-        "title_link": title_link,
-    }
+    return AttachmentInfo(
+        title_link=title_link,
+        title=title,
+        text=text,
+        status=status,
+        logo_url=logo_url(),
+        date_started=date_started,
+    )

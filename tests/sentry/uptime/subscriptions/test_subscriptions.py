@@ -9,12 +9,14 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.uptime.subscriptions.subscriptions import (
     UPTIME_SUBSCRIPTION_TYPE,
@@ -275,24 +277,30 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
                 name="Region 1",
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 config_redis_key_prefix="r1",
-                enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 config_redis_key_prefix="r2",
-                enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region3",
                 name="Region 3",
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 config_redis_key_prefix="r3",
-                enabled=False,  # This one shouldn't be associated
             ),
         ]
-        with override_settings(UPTIME_REGIONS=regions):
+        with (
+            override_settings(UPTIME_REGIONS=regions),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "region3": UptimeSubscriptionRegion.RegionMode.INACTIVE.value
+                    }
+                }
+            ),
+        ):
             subscription = get_or_create_uptime_subscription(
                 url="https://example.com",
                 interval_seconds=60,

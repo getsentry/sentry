@@ -8,6 +8,7 @@ import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Alert} from 'sentry/components/core/alert';
 import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -33,19 +34,22 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {
   CheckStatus,
   type CheckStatusBucket,
   type UptimeRule,
 } from 'sentry/views/alerts/rules/uptime/types';
+import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
+import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
@@ -118,7 +122,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             crumbs={[
               {
                 label: t('Alerts'),
-                to: `/organizations/${organization.slug}/alerts/rules/`,
+                to: makeAlertsPathname({
+                  path: `/rules/`,
+                  organization,
+                }),
               },
               {
                 label: t('Uptime Monitor'),
@@ -145,7 +152,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <LinkButton
               size="sm"
               icon={<IconEdit />}
-              to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
+              to={makeAlertsPathname({
+                path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
+                organization,
+              })}
             >
               {t('Edit Rule')}
             </LinkButton>
@@ -157,25 +167,47 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <StyledPageFilterBar condensed>
             <DatePageFilter />
           </StyledPageFilterBar>
+          {uptimeRule.status === 'disabled' && (
+            <Alert.Container>
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    uptimeRule={uptimeRule}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and not recording uptime checks.')}
+              </Alert>
+            </Alert.Container>
+          )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
+          <UptimeChecksTable uptimeRule={uptimeRule} />
         </Layout.Main>
         <Layout.Side>
-          <SectionHeading>{t('Checked URL')}</SectionHeading>
-          <CodeSnippet
-            hideCopyButton
-          >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          <MonitorUrlContainer>
+            <SectionHeading>{t('Checked URL')}</SectionHeading>
+            <CodeSnippet
+              hideCopyButton
+            >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          </MonitorUrlContainer>
           <SectionHeading>{t('Legend')}</SectionHeading>
           <CheckLegend>
             <CheckLegendItem>
               <CheckIndicator status={CheckStatus.SUCCESS} />
               <LegendText>
-                {t('Check succeeded')}
+                {statusToText[CheckStatus.SUCCESS]}
                 <QuestionTooltip
                   isHoverable
                   size="sm"
                   title={tct(
-                    "A check status is successful when it meets uptime's check criteria. [link:Learn more].",
+                    'A check status is considered uptime when it meets the uptime check criteria. [link:Learn more].',
                     {
                       link: (
                         <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-criteria" />
@@ -188,12 +220,30 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <CheckLegendItem>
               <CheckIndicator status={CheckStatus.FAILURE} />
               <LegendText>
-                {t('Check failed')}
+                {statusToText[CheckStatus.FAILURE]}
                 <QuestionTooltip
                   isHoverable
                   size="sm"
                   title={tct(
-                    "A check status is failed when it does't meet uptime's check criteria. A downtime issue is created after three consecutive failures. [link:Learn more].",
+                    'A check status is marked as flakiness when it fails but has not yet met the threshold to be considered downtime. [link:Learn more].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                      ),
+                    }
+                  )}
+                />
+              </LegendText>
+            </CheckLegendItem>
+            <CheckLegendItem>
+              <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} />
+              <LegendText>
+                {statusToText[CheckStatus.FAILURE_INCIDENT]}
+                <QuestionTooltip
+                  isHoverable
+                  size="sm"
+                  title={tct(
+                    'A check status is considered downtime when it fails 3 consecutive times, meeting the downtime threshold. [link:Learn more].',
                     {
                       link: (
                         <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
@@ -207,7 +257,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               <CheckLegendItem>
                 <CheckIndicator status={CheckStatus.MISSED_WINDOW} />
                 <LegendText>
-                  {t('Did not perform check')}
+                  {statusToText[CheckStatus.MISSED_WINDOW]}
                   <QuestionTooltip
                     isHoverable
                     size="sm"
@@ -275,4 +325,12 @@ const LegendText = styled(Text)`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const MonitorUrlContainer = styled('div')`
+  margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
 `;

@@ -82,7 +82,7 @@ def check_minimum_version(minimum_version: str) -> bool:
 
 
 def main(context: dict[str, str]) -> int:
-    minimum_version = "1.13.0"
+    minimum_version = "1.14.2"
     if not check_minimum_version(minimum_version):
         raise SystemExit(
             f"""
@@ -107,16 +107,14 @@ Then, use it to run sync this one time.
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+    SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
 
     USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
-    if constants.DARWIN and check_minimum_version("1.14.2"):
-        # `devenv update`ing to >=1.14.0 will install global colima
-        # so if it's there, uninstall the repo local stuff
-        if os.path.exists(f"{constants.root}/bin/colima"):
-            binroot = f"{reporoot}/.devenv/bin"
-            colima.uninstall(binroot)
-            limactl.uninstall(binroot)
+    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
+        binroot = f"{reporoot}/.devenv/bin"
+        colima.uninstall(binroot)
+        limactl.uninstall(binroot)
 
     from devenv.lib import node
 
@@ -138,20 +136,6 @@ Then, use it to run sync this one time.
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    if constants.DARWIN:
-        colima.install(
-            repo_config["colima"]["version"],
-            repo_config["colima"][constants.SYSTEM_MACHINE],
-            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        limactl.install(
-            repo_config["lima"]["version"],
-            repo_config["lima"][constants.SYSTEM_MACHINE],
-            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-
     if not run_procs(
         repo,
         reporoot,
@@ -159,7 +143,7 @@ Then, use it to run sync this one time.
         (
             # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
             (
-                "python dependencies (1/4)",
+                "python dependencies (1/3)",
                 (
                     # upgrading pip first
                     "pip",
@@ -175,7 +159,7 @@ Then, use it to run sync this one time.
     ):
         return 1
 
-    if not run_procs(
+    if not SKIP_FRONTEND and not run_procs(
         repo,
         reporoot,
         venv_dir,
@@ -195,17 +179,6 @@ Then, use it to run sync this one time.
                     "NODE_ENV": "development",
                 },
             ),
-            (
-                "python dependencies (2/4)",
-                (
-                    "pip",
-                    "uninstall",
-                    "-qqy",
-                    "djangorestframework-stubs",
-                    "django-stubs",
-                ),
-                {},
-            ),
         ),
         verbose,
     ):
@@ -219,7 +192,7 @@ Then, use it to run sync this one time.
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
-                "python dependencies (3/4)",
+                "python dependencies (2/3)",
                 (
                     "pip",
                     "install",
@@ -241,7 +214,7 @@ Then, use it to run sync this one time.
         venv_dir,
         (
             (
-                "python dependencies (4/4)",
+                "python dependencies (3/3)",
                 ("python3", "-m", "tools.fast_editable", "--path", "."),
                 {},
             ),

@@ -92,6 +92,10 @@ const restrictedImportPaths = [
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
   },
   {
+    name: 'react-select',
+    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+  },
+  {
     name: 'sentry/utils/withSentryRouter',
     message:
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
@@ -107,7 +111,7 @@ const restrictedImportPaths = [
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
-const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
+const ecmaVersion = 'latest';
 
 export default typescript.config([
   {
@@ -297,6 +301,8 @@ export default typescript.config([
     ...importPlugin.flatConfigs.recommended,
     name: 'plugin/import',
     rules: {
+      // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
+      ...importPlugin.flatConfigs.recommended.rules,
       'import/newline-after-import': 'error', // https://prettier.io/docs/en/rationale.html#empty-lines
       'import/no-absolute-path': 'error',
       'import/no-amd': 'error',
@@ -305,9 +311,6 @@ export default typescript.config([
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
-
-      // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
-      ...importPlugin.flatConfigs.recommended.rules,
       'import/default': 'off', // Disabled in favor of typescript-eslint
       'import/named': 'off', // Disabled in favor of typescript-eslint
       'import/namespace': 'off', // Disabled in favor of typescript-eslint
@@ -372,11 +375,11 @@ export default typescript.config([
         'error',
         {
           types: {
-            // TODO(scttcper): Turn object on to make our types more strict
-            // object: {
-            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-            //   fixWith: 'Record<string, unknown>'
-            // },
+            object: {
+              message:
+                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+              fixWith: 'Record<PropertyKey, unknown>',
+            },
             Buffer: {
               message:
                 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
@@ -410,13 +413,12 @@ export default typescript.config([
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-unsafe-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Strict overrides
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -431,7 +433,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [

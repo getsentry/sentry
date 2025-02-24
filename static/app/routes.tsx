@@ -1297,6 +1297,12 @@ function buildRoutes() {
               path=":projectId/:uptimeRuleId/details/"
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
+            <Route
+              path="existing-or-create/"
+              component={make(
+                () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
+              )}
+            />
           </Route>
           <Route
             path="crons/"
@@ -1926,7 +1932,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
       {traceViewRoute}
       <Route
-        path="multi-query/"
+        path="compare/"
         component={make(() => import('sentry/views/explore/multiQueryMode'))}
       />
     </Fragment>
@@ -2061,6 +2067,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
       />
       <Route
+        path={TabPaths[Tab.CHECK_INS]}
+        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
+      />
+      <Route
         path={TabPaths[Tab.TAGS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />
@@ -2095,6 +2105,7 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues" component={errorHandler(IssueNavigation)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
       <Route
         path=":groupId/"

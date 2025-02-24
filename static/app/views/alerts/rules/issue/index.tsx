@@ -1,6 +1,5 @@
 import type {ChangeEvent, ReactNode} from 'react';
 import {Fragment} from 'react';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -17,16 +16,17 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alertLink';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -67,9 +67,9 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
@@ -146,7 +146,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
@@ -468,8 +468,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+      makeAlertsPathname({
+        path: `/rules/${project.slug}/${rule.id}/details/`,
+        organization,
       })
     );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
@@ -601,7 +602,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   handleCancel = () => {
     const {organization, router} = this.props;
 
-    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
+    router.push(
+      makeAlertsPathname({
+        path: `/rules/`,
+        organization,
+      })
+    );
   };
 
   hasError = (field: string) => {
@@ -833,11 +839,13 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
   renderError() {
     return (
-      <Alert type="error" showIcon>
-        {t(
-          'Unable to access this alert rule -- check to make sure you have the correct permissions'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {t(
+            'Unable to access this alert rule -- check to make sure you have the correct permissions'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -905,22 +913,25 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     // We want this to open in a new tab to not lose the current state of the rule editor
     return (
-      <AlertLink
-        openInNewTab
-        priority="error"
-        icon={<IconNot color="red300" />}
-        href={normalizeUrl(
-          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
-        )}
-      >
-        {tct(
-          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
-          {
-            alertName: duplicateName,
-            projectName: project.name,
-          }
-        )}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink
+          openInNewTab
+          type="error"
+          trailingItems={<IconNot color="red300" />}
+          href={makeAlertsPathname({
+            path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
+            organization,
+          })}
+        >
+          {tct(
+            'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
+            {
+              alertName: duplicateName,
+              projectName: project.name,
+            }
+          )}
+        </AlertLink>
+      </AlertLink.Container>
     );
   }
 
@@ -954,41 +965,43 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     }
 
     return (
-      <Alert type="warning" showIcon>
-        <div>
-          {t(
-            'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
-          )}
-        </div>
-        <AcknowledgeField
-          label={null}
-          help={null}
-          error={detailedError?.acceptedNoisyAlert?.[0]}
-          disabled={disabled}
-          required
-          stacked
-          flexibleControlStateSize
-          inline
-        >
-          <AcknowledgeLabel>
-            <Checkbox
-              size="sm"
-              name="acceptedNoisyAlert"
-              checked={acceptedNoisyAlert}
-              onChange={() => {
-                this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
-                if (!acceptedNoisyAlert) {
-                  trackAnalytics('alert_builder.noisy_warning_agreed', {
-                    organization: this.props.organization,
-                  });
-                }
-              }}
-              disabled={disabled}
-            />
-            {t('Yes, I don’t mind if this alert gets noisy')}
-          </AcknowledgeLabel>
-        </AcknowledgeField>
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
+          <div>
+            {t(
+              'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
+            )}
+          </div>
+          <AcknowledgeField
+            label={null}
+            help={null}
+            error={detailedError?.acceptedNoisyAlert?.[0]}
+            disabled={disabled}
+            required
+            stacked
+            flexibleControlStateSize
+            inline
+          >
+            <AcknowledgeLabel>
+              <Checkbox
+                size="sm"
+                name="acceptedNoisyAlert"
+                checked={acceptedNoisyAlert}
+                onChange={() => {
+                  this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
+                  if (!acceptedNoisyAlert) {
+                    trackAnalytics('alert_builder.noisy_warning_agreed', {
+                      organization: this.props.organization,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              />
+              {t('Yes, I don’t mind if this alert gets noisy')}
+            </AcknowledgeLabel>
+          </AcknowledgeField>
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -1300,7 +1313,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <StyledAlert type="error">
+                              <Alert type="error">
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1312,7 +1325,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                                     </ExternalLink>
                                   </Fragment>
                                 )}
-                              </StyledAlert>
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleConditions}
@@ -1387,9 +1400,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <StyledAlert type="error">
-                                {detailedError?.filters![0]}
-                              </StyledAlert>
+                              <Alert type="error">{detailedError?.filters![0]}</Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
@@ -1436,9 +1447,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <StyledAlert type="error">
-                                {detailedError?.actions![0]}
-                              </StyledAlert>
+                              <Alert type="error">{detailedError?.actions![0]}</Alert>
                             )
                           }
                           additionalAction={{
@@ -1609,10 +1618,6 @@ const StyledForm = styled(Form)<FormProps>`
 const ConditionsPanel = styled(Panel)`
   padding-top: ${space(0.5)};
   padding-bottom: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledListItem = styled(ListItem)`

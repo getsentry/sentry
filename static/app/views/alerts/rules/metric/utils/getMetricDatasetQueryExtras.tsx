@@ -1,9 +1,11 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
+import {getDiscoverDataset} from 'sentry/views/alerts/wizard/options';
 
 import {Dataset, type MetricRule} from '../types';
 
@@ -11,6 +13,7 @@ export function getMetricDatasetQueryExtras({
   organization,
   location,
   dataset,
+  query,
   newAlertOrQuery,
   useOnDemandMetrics,
 }: {
@@ -18,11 +21,12 @@ export function getMetricDatasetQueryExtras({
   newAlertOrQuery: boolean;
   organization: Organization;
   location?: Location;
+  query?: string;
   useOnDemandMetrics?: boolean;
 }) {
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return {
-      dataset: 'spans',
+      dataset: DiscoverDatasets.SPANS_EAP,
     };
   }
 
@@ -35,15 +39,19 @@ export function getMetricDatasetQueryExtras({
 
   const queryExtras: Record<string, string> = {};
   if (hasMetricDataset && !disableMetricDataset) {
-    queryExtras.dataset = getMEPAlertsDataset(dataset, newAlertOrQuery);
+    queryExtras.dataset = getDiscoverDataset(dataset, newAlertOrQuery);
   }
   if (location?.query?.aggregate?.includes('ai.total')) {
-    queryExtras.dataset = 'spansMetrics';
+    queryExtras.dataset = DiscoverDatasets.SPANS_METRICS;
     queryExtras.query = '';
   }
 
   if (useOnDemandMetrics) {
     queryExtras.useOnDemandMetrics = 'true';
+  }
+
+  if (shouldUseErrorsDiscoverDataset(query ?? '', dataset, organization)) {
+    queryExtras.dataset = DiscoverDatasets.ERRORS;
   }
 
   return queryExtras;

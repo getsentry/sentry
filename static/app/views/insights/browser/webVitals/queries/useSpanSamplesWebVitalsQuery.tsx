@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
-  DEFAULT_INDEXED_INTERACTION_SORT,
+  DEFAULT_INDEXED_SPANS_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
   type SpanSampleRowWithScore,
@@ -13,8 +13,14 @@ import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types'
 export const INTERACTION_SPANS_FILTER =
   'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]';
 
+export const LCP_SPANS_FILTER =
+  'span.op:[ui.webvital.lcp,pageload] (!measurements.score.weight.lcp:0)';
+
+export const CLS_SPANS_FILTER =
+  'span.op:[ui.webvital.cls,pageload] (!measurements.score.weight.cls:0)';
+
 export const SPANS_FILTER =
-  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvitals.lcp,ui.webvitals.cls,pageload] (!measurements.score.weight.inp:0 OR !measurements.score.weight.lcp:0 OR !measurements.score.weight.cls:0)';
+  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.lcp,ui.webvital.cls,pageload] (!measurements.score.weight.inp:0 OR !measurements.score.weight.lcp:0 OR !measurements.score.weight.cls:0)';
 
 export function useSpanSamplesWebVitalsQuery({
   transaction,
@@ -39,7 +45,7 @@ export function useSpanSamplesWebVitalsQuery({
   ];
   const sort = useWebVitalsSort({
     sortName,
-    defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
+    defaultSort: DEFAULT_INDEXED_SPANS_SORT,
     sortableFields: filteredSortableFields as unknown as string[],
   });
 
@@ -68,23 +74,20 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.INP,
         SpanIndexedField.LCP,
         SpanIndexedField.CLS,
-        SpanIndexedField.INP_SCORE,
-        SpanIndexedField.LCP_SCORE,
-        SpanIndexedField.CLS_SCORE,
+        SpanIndexedField.INP_SCORE_RATIO,
+        SpanIndexedField.LCP_SCORE_RATIO,
+        SpanIndexedField.CLS_SCORE_RATIO,
         SpanIndexedField.TOTAL_SCORE,
         SpanIndexedField.TRACE,
         SpanIndexedField.PROFILE_ID,
-        SpanIndexedField.REPLAY_ID,
-        SpanIndexedField.USER,
-        SpanIndexedField.USER_EMAIL,
-        SpanIndexedField.USER_USERNAME,
-        SpanIndexedField.USER_ID,
-        SpanIndexedField.USER_IP,
+        SpanIndexedField.REPLAY,
+        SpanIndexedField.USER_DISPLAY,
         SpanIndexedField.PROJECT,
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_SELF_TIME,
         SpanIndexedField.TRANSACTION,
+        SpanIndexedField.SPAN_OP,
       ],
       enabled,
       limit,
@@ -97,22 +100,24 @@ export function useSpanSamplesWebVitalsQuery({
           return {
             ...row,
             'measurements.inp':
-              row[SpanIndexedField.INP_SCORE] > 0 ? row[SpanIndexedField.INP] : undefined,
+              row[SpanIndexedField.INP_SCORE_RATIO] > 0
+                ? row[SpanIndexedField.INP]
+                : undefined,
             'measurements.lcp':
-              row[SpanIndexedField.LCP_SCORE] > 0 ? row[SpanIndexedField.LCP] : undefined,
+              row[SpanIndexedField.LCP_SCORE_RATIO] > 0
+                ? row[SpanIndexedField.LCP]
+                : undefined,
             'measurements.cls':
-              row[SpanIndexedField.CLS_SCORE] > 0 ? row[SpanIndexedField.CLS] : undefined,
-            'user.display':
-              [
-                row[SpanIndexedField.USER_EMAIL],
-                row[SpanIndexedField.USER_USERNAME],
-                row[SpanIndexedField.USER_ID],
-                row[SpanIndexedField.USER_IP],
-                row[SpanIndexedField.USER],
-              ].find(field => field && field !== '') ?? undefined,
-            replayId: row[SpanIndexedField.REPLAY_ID],
+              row[SpanIndexedField.CLS_SCORE_RATIO] > 0
+                ? row[SpanIndexedField.CLS]
+                : undefined,
+            'user.display': row[SpanIndexedField.USER_DISPLAY],
+            replayId: row[SpanIndexedField.REPLAY],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
+            inpScore: Math.round((row[SpanIndexedField.INP_SCORE_RATIO] ?? 0) * 100),
+            lcpScore: Math.round((row[SpanIndexedField.LCP_SCORE_RATIO] ?? 0) * 100),
+            clsScore: Math.round((row[SpanIndexedField.CLS_SCORE_RATIO] ?? 0) * 100),
             projectSlug: row[SpanIndexedField.PROJECT],
           };
         })

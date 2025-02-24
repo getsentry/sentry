@@ -1,15 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
 import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import {AlertLink} from 'sentry/components/core/alertLink';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import Placeholder from 'sentry/components/placeholder';
-import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,7 +16,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 function getActionLabelAndTextValue({
   action,
@@ -68,23 +68,19 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
     project,
   });
 
-  if (isLoading) {
-    return (
-      <div data-test-id="linked-issues">
-        <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
-        <SidebarSection.Content>
-          <Placeholder height="25px" testId="issue-tracking-loading" />
-        </SidebarSection.Content>
-      </div>
-    );
-  }
+  const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
 
   return (
-    <div data-test-id="linked-issues">
-      <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
-      <SidebarSection.Content>
-        {integrations.length || linkedIssues.length ? (
-          <Fragment>
+    <SidebarFoldSection
+      data-test-id="linked-issues"
+      title={<Title>{t('Issue Tracking')}</Title>}
+      sectionKey={SectionKey.EXTERNAL_ISSUES}
+    >
+      {isLoading ? (
+        <Placeholder height="25px" testId="issue-tracking-loading" />
+      ) : hasLinkedIssuesOrIntegrations ? (
+        <Fragment>
+          {linkedIssues.length > 0 && (
             <IssueActionWrapper>
               {linkedIssues.map(linkedIssue => (
                 <ErrorBoundary key={linkedIssue.key} mini>
@@ -118,6 +114,8 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                 </ErrorBoundary>
               ))}
             </IssueActionWrapper>
+          )}
+          {integrations.length > 0 && (
             <IssueActionWrapper>
               {integrations.map(integration => {
                 const sharedButtonProps: ButtonProps = {
@@ -130,7 +128,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                   const action = integration.actions[0]!;
                   return (
                     <ErrorBoundary key={integration.key} mini>
-                      {action.to ? (
+                      {action.href ? (
                         // Exclusively used for group.pluginActions
                         <IssueActionLinkButton
                           size="zero"
@@ -140,7 +138,8 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                             integration.disabled ? integration.disabledText : undefined
                           }
                           onClick={action.onClick}
-                          to={action.to}
+                          href={action.href}
+                          external
                         >
                           <IssueActionName>{integration.displayName}</IssueActionName>
                         </IssueActionLinkButton>
@@ -182,21 +181,23 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                 );
               })}
             </IssueActionWrapper>
-          </Fragment>
-        ) : (
-          <AlertLink
-            priority="muted"
-            size="small"
-            to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-            withoutMarginBottom
-          >
-            {t('Track this issue in Jira, GitHub, etc.')}
-          </AlertLink>
-        )}
-      </SidebarSection.Content>
-    </div>
+          )}
+        </Fragment>
+      ) : (
+        <AlertLink
+          type="muted"
+          to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
+        >
+          {t('Track this issue in Jira, GitHub, etc.')}
+        </AlertLink>
+      )}
+    </SidebarFoldSection>
   );
 }
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const IssueActionWrapper = styled('div')`
   display: flex;

@@ -8,7 +8,7 @@ import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.db.models.fields.hybrid_cloud_foreign_key
 import sentry.db.models.fields.uuid
-import sentry.models.relocation
+import sentry.relocation.models.relocation
 from sentry.new_migrations.migrations import CheckedMigration
 
 
@@ -57,7 +57,7 @@ class Migration(CheckedMigration):
                     "uuid",
                     sentry.db.models.fields.uuid.UUIDField(
                         db_index=True,
-                        default=sentry.models.relocation.default_guid,
+                        default=sentry.relocation.models.relocation.default_guid,
                         max_length=32,
                         unique=True,
                     ),

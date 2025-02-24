@@ -6,59 +6,75 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function useErrorFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
+
+  const locationWithoutWidth = {
+    ...location,
+    query: {...location.query, width: undefined},
+  };
+
   const {
-    data: sessionsData,
+    data: sessionData,
     isPending,
     error,
   } = useApiQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
-      {query: {...location.query, field: ['sum(session)'], groupBy: ['session.status']}},
+      {
+        query: {
+          ...locationWithoutWidth.query,
+          field: ['sum(session)'],
+          groupBy: ['session.status'],
+        },
+      },
     ],
     {staleTime: 0}
   );
 
-  if (isPending) {
+  if (isPending || !sessionData) {
     return {
-      seriesData: [],
-      isPending: true,
+      series: [],
+      isPending,
       error,
     };
   }
 
-  if (!sessionsData && !isPending) {
-    return {
-      seriesData: [],
-      isPending: false,
-      error,
-    };
-  }
+  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
+    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
+    [];
 
-  // Get the healthy sessions series data
-  const healthySessionsSeries =
-    sessionsData.groups.find(group => group.by['session.status'] === 'healthy')?.series[
-      'sum(session)'
-    ] ?? [];
-
-  // Calculate total sessions for each interval
-  const totalSessionsByInterval = sessionsData.groups[0]?.series['sum(session)']?.map(
-    (_, intervalIndex) =>
-      sessionsData.groups.reduce(
-        (acc, group) => acc + (group.series['sum(session)']?.[intervalIndex] ?? 0),
+  // Returns series data not grouped by release
+  const seriesData = getStatusSeries('healthy', sessionData.groups).map(
+    (healthyCount, idx) => {
+      const intervalTotal = sessionData.groups.reduce(
+        (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),
         0
-      )
+      );
+
+      return {
+        name: sessionData.intervals[idx] ?? '',
+        value: intervalTotal > 0 ? healthyCount / intervalTotal : 1,
+      };
+    }
   );
 
-  // Calculate percentage for each interval
-  const healthySessionsPercentageData = healthySessionsSeries.map((healthyCount, idx) => {
-    const total = totalSessionsByInterval?.[idx] ?? 1;
-    return total > 0 ? healthyCount / total : 0;
-  });
+  const series = [
+    {
+      data: seriesData,
+      seriesName: 'successful_session_rate',
+      meta: {
+        fields: {
+          successful_session_rate: 'percentage' as const,
+          time: 'date' as const,
+        },
+        units: {
+          successful_session_rate: '%',
+        },
+      },
+    },
+  ];
 
   return {
-    seriesData: healthySessionsPercentageData.map((val, idx) => {
-      return {name: sessionsData.intervals[idx] ?? '', value: val};
-    }),
+    series,
     isPending,
     error,
   };

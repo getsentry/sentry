@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {ASAP} from 'downsample/methods/ASAP';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
@@ -11,7 +12,6 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   platformToPerformanceType,
@@ -107,26 +107,28 @@ export const TRENDS_PARAMETERS: TrendParameter[] = [
   },
 ];
 
-export const trendToColor = {
-  [TrendChangeType.IMPROVED]: {
-    lighter: theme.green200,
-    default: theme.green300,
-  },
-  [TrendChangeType.REGRESSION]: {
-    lighter: theme.red200,
-    default: theme.red300,
-  },
-  neutral: {
-    lighter: theme.yellow200,
-    default: theme.yellow300,
-  },
-  // TODO remove this once backend starts sending
-  // TrendChangeType.IMPROVED as change type
-  improvement: {
-    lighter: theme.green200,
-    default: theme.green300,
-  },
-};
+export function makeTrendToColorMapping(theme: Theme) {
+  return {
+    [TrendChangeType.IMPROVED]: {
+      lighter: theme.green200,
+      default: theme.green300,
+    },
+    [TrendChangeType.REGRESSION]: {
+      lighter: theme.red200,
+      default: theme.red300,
+    },
+    neutral: {
+      lighter: theme.yellow200,
+      default: theme.yellow300,
+    },
+    // TODO remove this once backend starts sending
+    // TrendChangeType.IMPROVED as change type
+    improvement: {
+      lighter: theme.green200,
+      default: theme.green300,
+    },
+  };
+}
 
 export const trendSelectedQueryKeys = {
   [TrendChangeType.IMPROVED]: 'improvedSelected',
@@ -249,7 +251,7 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  canUseMetricsTrends: boolean = false
+  canUseMetricsTrends = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);

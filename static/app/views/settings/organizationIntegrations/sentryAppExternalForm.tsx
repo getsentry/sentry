@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
@@ -52,7 +52,12 @@ type Props = {
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: Function;
+  onSubmitSuccess: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {new: FieldValue; old: FieldValue}
+  ) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request

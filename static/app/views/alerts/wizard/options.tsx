@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   FieldKey,
   makeTagCollection,
@@ -46,12 +47,6 @@ export enum MEPAlertsQueryType {
   ERROR = 0,
   PERFORMANCE = 1,
   CRASH_RATE = 2,
-}
-
-export enum MEPAlertsDataset {
-  DISCOVER = 'discover',
-  METRICS = 'metrics',
-  METRICS_ENHANCED = 'metricsEnhanced',
 }
 
 export type MetricAlertType = Exclude<
@@ -100,7 +95,7 @@ export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>
       title={t('This feature is available for early adopters and the UX may change')}
     />
   ),
-  uptime_monitor: <FeatureBadge type="beta" />,
+  uptime_monitor: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -408,22 +403,22 @@ export function getSupportedAndOmittedTags(
   }, {});
 }
 
-export function getMEPAlertsDataset(
+export function getDiscoverDataset(
   dataset: Dataset,
   newAlert: boolean
-): MEPAlertsDataset {
+): DiscoverDatasets {
   // Dataset.ERRORS overrides all cases
   if (dataset === Dataset.ERRORS) {
-    return MEPAlertsDataset.DISCOVER;
+    return DiscoverDatasets.DISCOVER;
   }
 
   if (newAlert) {
-    return MEPAlertsDataset.METRICS_ENHANCED;
+    return DiscoverDatasets.METRICS_ENHANCED;
   }
 
   if (dataset === Dataset.GENERIC_METRICS) {
-    return MEPAlertsDataset.METRICS_ENHANCED;
+    return DiscoverDatasets.METRICS_ENHANCED;
   }
 
-  return MEPAlertsDataset.DISCOVER;
+  return DiscoverDatasets.DISCOVER;
 }

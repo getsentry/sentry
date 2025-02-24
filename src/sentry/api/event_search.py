@@ -135,6 +135,9 @@ text_filter = negation? text_key sep operator? search_value
 
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+explicit_flag_key       = "flags" open_bracket search_key closed_bracket
+explicit_string_flag_key = "flags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key = "flags" open_bracket search_key spaces comma spaces "number" closed_bracket
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
@@ -143,8 +146,8 @@ function_args          = aggregate_param (spaces comma spaces !comma aggregate_p
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = explicit_number_tag_key / key / quoted_key
-text_key               = explicit_tag_key / explicit_string_tag_key / search_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -222,6 +225,39 @@ def translate_wildcard(pat: str) -> str:
         else:
             res += c
     return "^" + res + "$"
+
+
+def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
+    """
+    Translate a wildcard pattern to clickhouse pattern.
+
+    See https://clickhouse.com/docs/en/sql-reference/functions/string-search-functions#like
+    """
+    chars: list[str] = []
+
+    i = 0
+    n = len(pattern)
+
+    while i < n:
+        c = pattern[i]
+        i += 1
+        if c == "\\" and i < n:
+            c = pattern[i]
+            if c not in {"*"}:
+                raise InvalidSearchQuery(f"Unexpected escape character: {c}")
+            chars.append(c)
+            i += 1
+        elif c == "*":
+            # sql uses % as the wildcard character
+            chars.append("%")
+        elif c in {"%", "_"}:
+            # these are special characters and need to be escaped
+            chars.append("\\")
+            chars.append(c)
+        else:
+            chars.append(c)
+
+    return "".join(chars)
 
 
 def translate_escape_sequences(string: str) -> str:
@@ -1075,6 +1111,15 @@ class SearchVisitor(NodeVisitor):
 
     def visit_explicit_number_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name},number]")
+
+    def visit_explicit_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name}]")
+
+    def visit_explicit_string_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},string]")
+
+    def visit_explicit_number_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},number]")
 
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)

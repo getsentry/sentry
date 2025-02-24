@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE, null=True)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
@@ -74,8 +74,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     }
 
     @property
-    def group_type(self) -> builtins.type[GroupType] | None:
-        return grouptype.registry.get_by_slug(self.type)
+    def group_type(self) -> builtins.type[GroupType]:
+        group_type = grouptype.registry.get_by_slug(self.type)
+        if not group_type:
+            raise ValueError(f"Group type {self.type} not registered")
+        return group_type
 
     @property
     def detector_handler(self) -> DetectorHandler | None:

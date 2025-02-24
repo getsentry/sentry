@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
 
 import responses
 
@@ -107,6 +108,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
         assert integration.name == self.username
+        del integration.metadata["webhook_secret"]
         assert integration.metadata == self.metadata
 
     def test_installed_without_public_key(self):
@@ -124,6 +126,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider, external_id=self.client_key
         )
         assert integration.name == integration_after.name
+        del integration_after.metadata["webhook_secret"]
         assert integration.metadata == integration_after.metadata
 
     def test_installed_without_username(self):
@@ -136,7 +139,17 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
         assert integration.name == self.user_display_name
+        del integration.metadata["webhook_secret"]
         assert integration.metadata == self.user_metadata
+
+    @mock.patch("sentry.integrations.bitbucket.integration.generate_token", return_value="0" * 64)
+    def test_installed_with_secret(self, mock_generate_token):
+        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+        assert mock_generate_token.called
+        assert response.status_code == 200
+        integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
+        assert integration.name == self.username
+        assert integration.metadata["webhook_secret"] == "0" * 64
 
     @responses.activate
     def test_plugin_migration(self):

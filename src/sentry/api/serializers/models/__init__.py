@@ -48,7 +48,6 @@ from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403
 from .release_threshold import *  # noqa: F401,F403
-from .relocation import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403

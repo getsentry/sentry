@@ -4,7 +4,8 @@ import {defined} from 'sentry/utils';
 
 export enum TokenKind {
   UNKNOWN = 'unknown',
-  PARENTHESIS = 'paren',
+  CLOSE_PARENTHESIS = 'close_paren',
+  OPEN_PARENTHESIS = 'open_paren',
   OPERATOR = 'op',
   FREE_TEXT = 'str',
   ATTRIBUTE = 'attr',
@@ -14,7 +15,7 @@ export enum TokenKind {
 export abstract class Token {
   kind: TokenKind = TokenKind.UNKNOWN;
 
-  key: string = '';
+  key = '';
   location: LocationRange;
 
   constructor(location: LocationRange) {
@@ -27,14 +28,28 @@ export enum Parenthesis {
   CLOSE = ')',
 }
 
-export class TokenParenthesis extends Token {
-  kind: TokenKind = TokenKind.PARENTHESIS;
-
+export abstract class TokenParenthesis extends Token {
   parenthesis: Parenthesis;
 
   constructor(location: LocationRange, parenthesis: Parenthesis) {
     super(location);
     this.parenthesis = parenthesis;
+  }
+}
+
+export class TokenOpenParenthesis extends TokenParenthesis {
+  kind: TokenKind = TokenKind.OPEN_PARENTHESIS;
+
+  constructor(location: LocationRange) {
+    super(location, Parenthesis.OPEN);
+  }
+}
+
+export class TokenCloseParenthesis extends TokenParenthesis {
+  kind: TokenKind = TokenKind.CLOSE_PARENTHESIS;
+
+  constructor(location: LocationRange) {
+    super(location, Parenthesis.CLOSE);
   }
 }
 
@@ -87,6 +102,11 @@ export class TokenFunction extends Token {
     this.function = func;
     this.attributes = attributes;
   }
+
+  format(): string {
+    const args = this.attributes.map(attr => attr.format());
+    return `${this.function}(${args.join(',')})`;
+  }
 }
 
 export class TokenFreeText extends Token {
@@ -111,7 +131,10 @@ export class TokenFreeText extends Token {
 export function isTokenParenthesis(
   token: Token | null | undefined
 ): token is TokenParenthesis {
-  return token?.kind === TokenKind.PARENTHESIS;
+  return (
+    token?.kind === TokenKind.OPEN_PARENTHESIS ||
+    token?.kind === TokenKind.CLOSE_PARENTHESIS
+  );
 }
 
 export function isTokenOperator(token: Token | null | undefined): token is TokenOperator {

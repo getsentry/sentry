@@ -1,9 +1,9 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {useDismissable} from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -113,7 +113,6 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
   padding-top: ${space(3)};
   padding-bottom: ${space(3)};
 `;

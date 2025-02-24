@@ -620,6 +620,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'divide',
+        groups: ['action'],
+        keywords: ['divided', 'math'],
+        name: 'Divide',
+        defaultProps: {},
+      },
+      {
         id: 'upload',
         groups: ['action'],
         keywords: ['file', 'image', 'up'],
@@ -924,13 +931,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {
           direction: 'up',
         },
-      },
-      {
-        id: 'toggle',
-        groups: ['action'],
-        keywords: ['switch', 'form', 'disable', 'enable'],
-        name: 'Toggle',
-        defaultProps: {},
       },
       {
         id: 'fix',
@@ -1355,6 +1355,13 @@ function Section({section}: {section: TSection}) {
           const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const Component = Icons[name];
+
+          if (!Component) {
+            // The definition is not type safe, so lets log the icon instead of throwing an error
+            // eslint-disable-next-line no-console
+            console.log('Missing icon', name);
+            return null;
+          }
 
           const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};
           return (

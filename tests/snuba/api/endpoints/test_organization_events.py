@@ -30,6 +30,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.testutils.cases import (
     APITransactionTestCase,
+    OurLogTestCase,
     PerformanceIssueTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
@@ -48,7 +49,9 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+class OrganizationEventsEndpointTestBase(
+    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 

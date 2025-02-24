@@ -18,6 +18,7 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
@@ -190,7 +191,7 @@ export function generateProfileLink() {
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
       return generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(tableRow['project.name']),
         profileId: String(profileId),
       });
@@ -214,7 +215,7 @@ export function generateProfileLink() {
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(projectSlug),
         profilerId: String(profilerId),
         start: start.toISOString(),
@@ -242,9 +243,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: normalizeUrl(
-          `/organizations/${organization.slug}/replays/${replayId}/`
-        ),
+        pathname: makeReplaysPathname({
+          path: `/${replayId}/`,
+          organization,
+        }),
         query: {
           referrer,
         },
@@ -257,7 +259,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
       : undefined;
 
     return {
-      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
+      pathname: makeReplaysPathname({
+        path: `/${replayId}/`,
+        organization,
+      }),
       query: {
         event_t: transactionStartTimestamp,
         referrer,
@@ -269,7 +274,7 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 export function getTransactionSummaryBaseUrl(
   organization: Organization,
   view?: DomainView,
-  bare: boolean = false
+  bare = false
 ) {
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'

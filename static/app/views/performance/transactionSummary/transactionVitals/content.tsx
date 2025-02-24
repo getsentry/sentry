@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -75,18 +75,20 @@ function VitalsContent(props: Props) {
               return (
                 <Fragment>
                   {shouldDisplayMissingVitalsAlert && (
-                    <Alert type="info" showIcon>
-                      {tct(
-                        'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
-                              {t('Read more about browser support.')}
-                            </ExternalLink>
-                          ),
-                        }
-                      )}
-                    </Alert>
+                    <Alert.Container>
+                      <Alert type="info" showIcon>
+                        {tct(
+                          'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
+                                {t('Read more about browser support.')}
+                              </ExternalLink>
+                            ),
+                          }
+                        )}
+                      </Alert>
+                    </Alert.Container>
                   )}
                   <FilterActions>
                     <PageFilterBar condensed>

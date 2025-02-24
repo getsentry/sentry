@@ -1,8 +1,12 @@
 import {Component} from 'react';
-import type {OptionsType, OptionTypeBase, ValueType} from 'react-select';
-import {components as SelectComponents} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
+import type {
+  OptionsType,
+  OptionTypeBase,
+  ValueType,
+} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectOption from 'sentry/components/forms/controls/selectOption';

@@ -1,4 +1,7 @@
+import styled from '@emotion/styled';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {
   IconAdd,
   IconAsana,
@@ -24,7 +27,7 @@ import {
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
-import {IconCellSignal} from 'sentry/icons/iconCellSignal';
+import {space} from 'sentry/styles/space';
 import {
   type Group,
   type GroupActivityCreateIssue,
@@ -51,7 +54,7 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconChat,
     defaultProps: {},
     componentFunction: (_data, user) => {
-      return user ? () => <UserAvatar user={user} /> : IconChat;
+      return user ? () => <StyledUserAvatar user={user} /> : IconChat;
     },
   },
   [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
@@ -126,3 +129,9 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
 };
+
+const StyledUserAvatar = styled(UserAvatar)`
+  svg {
+    margin: ${space(0.25)};
+  }
+`;

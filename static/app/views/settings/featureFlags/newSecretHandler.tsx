@@ -1,9 +1,9 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
+import {Alert} from 'sentry/components/core/alert';
+import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -25,9 +25,9 @@ function NewSecretHandler({
 
   return (
     <div>
-      <StyledAlert type="success" showIcon system>
+      <Alert type="success" showIcon system>
         {t('The secret has been posted.')}
-      </StyledAlert>
+      </Alert>
 
       <StyledPanelItem>
         <InputWrapper>
@@ -37,8 +37,13 @@ function NewSecretHandler({
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
               {
                 link: (
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider.toLowerCase()]} />
+                  <ExternalLink
+                    href={
+                      PROVIDER_TO_SETUP_WEBHOOK_URL[
+                        provider.toLowerCase() as keyof typeof PROVIDER_TO_SETUP_WEBHOOK_URL
+                      ]
+                    }
+                  />
                 ),
               }
             )}
@@ -94,7 +99,4 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1.5)};
 `;
 
-const StyledAlert = styled(Alert)`
-  margin: 0;
-`;
 export default NewSecretHandler;

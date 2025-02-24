@@ -74,8 +74,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:continuous-profiling-beta-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display profile durations on the stats page
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enables Info alert for custom metrics and alerts widgets removal
-    manager.add("organizations:custom-metrics-alerts-widgets-removal-info", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable events analytics platform data in dashboards
@@ -152,6 +150,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable saving page filters to issue views
     manager.add("organizations:issue-views-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable left nav issue views
+    manager.add("organizations:left-nav-issue-views", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the updated empty state for issues
     manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable additional platforms for issue stream empty state
@@ -165,6 +165,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("projects:metric-issue-creation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:issue-open-periods", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable access to Laravel specific insights
+    manager.add("organizations:laravel-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Migrate Orgs to new Azure DevOps Integration
@@ -192,8 +194,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-extraction-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # This spec version includes the environment in the query hash
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Display metrics components with a new design
-    manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display new Source map uploads view in settings
     manager.add('organizations:new-source-map-uploads-view', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements
@@ -256,6 +256,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-trace-details", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace explorer features
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable querying spans fields stats from comparative workflows project
+    manager.add("organizations:performance-spans-fields-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable linking to trace explorer from metrics
     manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable FE/BE for tracing without performance
@@ -266,11 +268,11 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-transaction-name-only-search-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Hides some fields and sections in the transaction summary page that are being deprecated
     manager.add("organizations:performance-transaction-summary-cleanup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the EAP-powered transactions summary view
+    manager.add("organizations:performance-transaction-summary-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the new UI for span summary and the spans tab
     manager.add("organizations:performance-spans-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enable handling missing webvitals in performance score
-    manager.add("organizations:performance-vitals-handle-missing-webvitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable standalone cls and lcp in the web vitals module
     manager.add("organizations:performance-vitals-standalone-cls-lcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable profiling
@@ -347,8 +349,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-session-health-tab-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enable description field in Slack metric alerts
-    manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
@@ -378,6 +378,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-uptime", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Removes performance landing page from sidebar and updates transaction summary breadcrumbs for insights
     manager.add("organizations:insights-performance-landing-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new SentryApp webhook request endpoint
+    manager.add("organizations:sentry-app-webhook-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable mobile starfish app start module view
@@ -400,6 +402,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new trace view ui improvements
     manager.add("organizations:trace-view-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable feature to load new tracing onboarding ui
+    manager.add("organizations:tracing-onboarding-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to search by key value pairs from trace view, in explore.
     manager.add("organizations:trace-drawer-action", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new trace view in replay trace tab.
@@ -447,6 +451,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable admin features on the new explore page
     manager.add("organizations:visibility-explore-admin", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable equations feature on the new explore page
+    manager.add("organizations:visibility-explore-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dataset toggle on the new explore page
@@ -483,6 +489,13 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable updated form for 3p publishing flow
     manager.add("organizations:streamlined-publishing-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new find missing chunks algorithm
+    manager.add(
+        "organizations:find-missing-chunks-new",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=False
+    )
     # Enable Relay extracting logs from breadcrumbs for a project.
     manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

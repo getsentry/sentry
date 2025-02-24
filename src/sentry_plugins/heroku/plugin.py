@@ -7,6 +7,7 @@ from hashlib import sha256
 
 from django.http import HttpRequest, HttpResponse
 
+from sentry.api.endpoints.release_deploys import DeploySerializer, create_deploy
 from sentry.auth.services.auth.model import AuthenticatedToken
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
@@ -19,8 +20,6 @@ from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
-from .client import HerokuApiClient
-
 logger = logging.getLogger("sentry.plugins.heroku")
 
 
@@ -32,9 +31,6 @@ class HerokuReleaseHook(ReleaseHook):
             )
         except ApiKey.DoesNotExist:
             return None
-
-    def get_client(self):
-        return HerokuApiClient()
 
     def is_valid_signature(self, body, heroku_hmac):
         secret = ProjectOption.objects.get_value(project=self.project, key="heroku:webhook_secret")
@@ -129,11 +125,12 @@ class HerokuReleaseHook(ReleaseHook):
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint
-        endpoint = (
-            f"/organizations/{self.project.organization.slug}/releases/{release.version}/deploys/"
+        serializer = DeploySerializer(
+            data={"environment": deploy_project_option},
+            context={"organization": self.project.organization},
         )
-        client = self.get_client()
-        client.post(endpoint, data={"environment": deploy_project_option}, auth=self.get_auth())
+        assert serializer.is_valid()
+        create_deploy(self.project.organization, release, serializer)
 
 
 class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):

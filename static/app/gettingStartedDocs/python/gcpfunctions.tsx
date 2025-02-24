@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -148,7 +148,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <AlertWithMarginBottom type="info">
+        <StyledAlert type="info">
           {tct(
             'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {
@@ -157,7 +157,7 @@ const onboarding: OnboardingConfig = {
               ),
             }
           )}
-        </AlertWithMarginBottom>
+        </StyledAlert>
       ),
     },
   ],
@@ -172,7 +172,6 @@ const docs: Docs = {
 
 export default docs;
 
-const AlertWithMarginBottom = styled(Alert)`
+const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
-  margin-bottom: 0;
 `;

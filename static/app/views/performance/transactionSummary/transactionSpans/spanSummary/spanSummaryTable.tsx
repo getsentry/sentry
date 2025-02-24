@@ -46,7 +46,7 @@ import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/tr
 import Tab from '../../tabs';
 
 type DataRowKeys =
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.TRANSACTION_ID
@@ -54,7 +54,7 @@ type DataRowKeys =
   | SpanIndexedField.PROJECT;
 
 type ColumnKeys =
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_DURATION;
 
@@ -64,7 +64,7 @@ type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -125,7 +125,7 @@ export default function SpanSummaryTable(props: Props) {
   } = useSpansIndexed(
     {
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DURATION,
@@ -271,7 +271,7 @@ export default function SpanSummaryTable(props: Props) {
 function renderBodyCell(
   location: Location,
   organization: Organization,
-  spanOp: string = '',
+  spanOp = '',
   isTxnDurationDataLoading: boolean
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
@@ -307,7 +307,7 @@ function renderBodyCell(
       );
     }
 
-    if (column.key === SpanIndexedField.ID) {
+    if (column.key === SpanIndexedField.SPAN_ID) {
       if (!defined(span_id)) {
         return null;
       }

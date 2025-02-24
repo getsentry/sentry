@@ -9,7 +9,7 @@ interface Props extends SVGIconProps {
 
 const IconAdd = forwardRef<SVGSVGElement, Props>(({isCircled = false, ...props}, ref) => {
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} data-test-id="icon-add">
       {isCircled ? (
         <Fragment>
           <path d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z" />

@@ -229,7 +229,7 @@ class Endpoint(APIView):
     ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -374,6 +374,8 @@ class Endpoint(APIView):
             request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
+
+        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
 
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).

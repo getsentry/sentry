@@ -1,8 +1,8 @@
 from unittest import mock
 
 import pytest
+from django.forms import ValidationError
 
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -17,6 +17,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
@@ -25,7 +26,6 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     PRIORITY_MAP,
-    InvalidActionType,
     MissingDataConditionGroup,
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
@@ -405,6 +405,28 @@ class DualWriteAlertRuleTest(APITestCase):
         detector_state = aci_objects[4]
         assert detector_state.state == DetectorPriorityLevel.HIGH
 
+    def test_rule_snooze_updates_detector(self):
+        aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
+        rule_snooze = RuleSnooze.objects.create(alert_rule=self.metric_alert)
+
+        metric_detector = aci_objects[3]
+        metric_detector.refresh_from_db()
+
+        assert metric_detector.enabled is False
+
+        rule_snooze.delete()
+
+        metric_detector.refresh_from_db()
+        assert metric_detector.enabled is True
+
+    def test_ignores_per_user_rule_snooze(self):
+        aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
+        RuleSnooze.objects.create(alert_rule=self.metric_alert, user_id=self.user.id)
+
+        metric_detector = aci_objects[3]
+        metric_detector.refresh_from_db()
+        assert metric_detector.enabled is True
+
 
 class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
     def setUp(self):
@@ -420,11 +442,16 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
             self.detector_workflow,
             self.data_source_detector,
         ) = self.create_migrated_metric_alert_objects(self.metric_alert)
+        # we need to set up the resolve conditions here, because the dual delete helper expects them
+        # their contents don't matter, they just need to exist
+        self.resolve_detector_trigger, self.resolve_action_filter = (
+            self.create_migrated_metric_alert_rule_resolve_objects(
+                self.metric_alert, 67, Condition.LESS_OR_EQUAL
+            )
+        )
 
     def test_dual_delete_metric_alert_workflow(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
 
         # check workflow-related tables
         assert not Workflow.objects.filter(id=self.workflow.id).exists()
@@ -432,8 +459,6 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_detector(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
 
         # check detector-related tables
         assert not Detector.objects.filter(id=self.detector.id).exists()
@@ -447,11 +472,64 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_data_source(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
 
         # check data source
         assert not DataSource.objects.filter(id=self.data_source.id).exists()
+
+    def test_dual_delete_comprehensive(self):
+        """
+        If we dual delete an alert rule, the associated ACI objects for its triggers and trigger actions
+        also need to be deleted.
+        """
+        alert_rule_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.metric_alert, label="critical", alert_threshold=200
+        )
+        alert_rule_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger
+        )
+
+        detector_trigger, action_filter = self.create_migrated_metric_alert_rule_trigger_objects(
+            alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+        )
+        action_filter_dcg = action_filter.condition_group
+        resolve_action_filter_dcg = self.resolve_action_filter.condition_group
+        action, data_condition_group_action, aarta = (
+            self.create_migrated_metric_alert_rule_action_objects(alert_rule_trigger_action)
+        )
+
+        dual_delete_migrated_alert_rule(self.metric_alert)
+
+        # check trigger action objects
+        assert not Action.objects.filter(id=action.id).exists()
+        assert not DataConditionGroupAction.objects.filter(
+            id=data_condition_group_action.id
+        ).exists()
+        assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta.id).exists()
+
+        # check resolution objects
+        assert not DataConditionGroup.objects.filter(id=resolve_action_filter_dcg.id).exists()
+        assert not DataCondition.objects.filter(id=self.resolve_detector_trigger.id).exists()
+        assert not DataCondition.objects.filter(id=self.resolve_action_filter.id).exists()
+
+        # check trigger objects
+        assert not DataConditionGroup.objects.filter(id=action_filter_dcg.id).exists()
+        assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
+        assert not DataCondition.objects.filter(id=action_filter.id).exists()
+
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_dual_delete_twice(self, mock_logger):
+        """
+        Test that nothing happens if dual delete is run twice. We should just quit early the
+        second time.
+        """
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        mock_logger.info.assert_called_with(
+            "alert rule was not dual written or objects were already deleted, returning early",
+            extra={"alert_rule_id": self.metric_alert.id},
+        )
 
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
@@ -612,6 +690,9 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         dual_delete_migrated_alert_rule_trigger(self.alert_rule_trigger)
         assert not DataCondition.objects.filter(id=self.detector_trigger.id).exists()
         assert not DataCondition.objects.filter(id=self.action_filter.id).exists()
+        assert not DataConditionGroup.objects.filter(
+            id=self.action_filter.condition_group.id
+        ).exists()
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
     def test_dual_delete_unmigrated_alert_rule_trigger(self, mock_logger):
@@ -627,6 +708,25 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
             "alert rule was not dual written, returning early",
             extra={"alert_rule": metric_alert},
         )
+
+    def test_dual_delete_comprehensive(self):
+        """
+        If we dual delete an alert rule trigger, the associated ACI objects for its trigger actions also need
+        to be deleted.
+        """
+        alert_rule_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger
+        )
+        action, data_condition_group_action, aarta = (
+            self.create_migrated_metric_alert_rule_action_objects(alert_rule_trigger_action)
+        )
+        dual_delete_migrated_alert_rule_trigger(self.alert_rule_trigger)
+
+        assert not Action.objects.filter(id=action.id).exists()
+        assert not DataConditionGroupAction.objects.filter(
+            id=data_condition_group_action.id
+        ).exists()
+        assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta.id).exists()
 
 
 class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
@@ -813,7 +913,7 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         with assume_test_silo_mode_of(Integration, OrganizationIntegration):
             self.integration.update(provider="hellboy")
             self.integration.save()
-        with pytest.raises(InvalidActionType):
+        with pytest.raises(ValidationError):
             migrate_metric_action(self.alert_rule_trigger_action_integration)
         mock_logger.warning.assert_called_with(
             "Could not find a matching Action.Type for the trigger action",
@@ -934,7 +1034,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_trigger_action_type_invalid(self):
         self.alert_rule_trigger_action.update(integration_id=12345)
-        with pytest.raises(InvalidActionType):
+        with pytest.raises(ValidationError):
             dual_update_migrated_alert_rule_trigger_action(
                 self.alert_rule_trigger_action, updated_fields={}
             )  # don't care about updated fields in this test

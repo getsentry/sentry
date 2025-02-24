@@ -447,7 +447,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),

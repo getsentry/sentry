@@ -37,7 +37,7 @@ type Props = {
 };
 
 function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDatasets) {
-  let modifiedQuery: boolean = false;
+  let modifiedQuery = false;
   let to = eventView.clone();
   const allowedAggregations = Object.keys(getAggregations(toDataset));
   let newColumns: QueryFieldValue[] = [];
@@ -138,7 +138,7 @@ export function DatasetSelectorTabs(props: Props) {
             : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage
         );
         navigate({

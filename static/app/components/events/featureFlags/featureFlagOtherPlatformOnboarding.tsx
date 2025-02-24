@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
@@ -23,17 +23,19 @@ export function FeatureFlagOtherPlatformOnboarding({
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         {
-          <Alert type="info" showIcon>
-            <Flex gap={space(3)}>
-              {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
-              <LinkButton
-                href={`https://docs.sentry.io/organization/integrations/feature-flag/${provider.toLowerCase()}/#evaluation-tracking/`}
-                external
-              >
-                {t('Read the docs')}
-              </LinkButton>
-            </Flex>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <Flex gap={space(3)}>
+                {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
+                <LinkButton
+                  href={`https://docs.sentry.io/organization/integrations/feature-flag/${provider.toLowerCase()}/#evaluation-tracking/`}
+                  external
+                >
+                  {t('Read the docs')}
+                </LinkButton>
+              </Flex>
+            </Alert>
+          </Alert.Container>
         }
         <OnboardingIntegrationSection provider={provider} integration={integration} />
       </Wrapper>

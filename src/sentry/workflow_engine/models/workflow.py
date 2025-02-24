@@ -10,7 +10,6 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import WorkflowJob
 
 from .json_config import JSONConfigBase
@@ -31,11 +30,15 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     enabled = models.BooleanField(db_default=True)
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
-    when_condition_group = FlexibleForeignKey("workflow_engine.DataConditionGroup", null=True)
+    when_condition_group = FlexibleForeignKey(
+        "workflow_engine.DataConditionGroup", null=True, blank=True
+    )
 
-    environment = FlexibleForeignKey("sentry.Environment", null=True)
+    environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
 
-    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
+    )
 
     DEFAULT_FREQUENCY = 30
 
@@ -72,6 +75,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
+        from sentry.workflow_engine.processors.data_condition_group import (
+            process_data_condition_group,
+        )
+
         if self.when_condition_group is None:
             return True, []
 
