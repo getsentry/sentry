@@ -79,7 +79,7 @@ describe('queuesLandingPage', () => {
     render(<QueuesLandingPage />, {organization});
     await screen.findByRole('table', {name: 'Queues'});
     screen.getByPlaceholderText('Search for more destinations');
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();

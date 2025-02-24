@@ -24,7 +24,7 @@ describe('latencyChart', () => {
       <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
       {organization}
     );
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
