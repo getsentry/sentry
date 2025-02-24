@@ -710,7 +710,7 @@ class SearchResolver:
         for index, argument in enumerate(function_definition.arguments):
             if argument.ignored:
                 continue
-            elif index < len(attribute_args):
+            if index < len(attribute_args):
                 parsed_argument, _ = self.resolve_attribute(attribute_args[index])
             elif argument.default_arg:
                 parsed_argument, _ = self.resolve_attribute(argument.default_arg)

@@ -17,11 +17,13 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 
 def http_response_rate(arg: str) -> Column.BinaryFormula:
     code = int(
-        arg
-    )  # TODO - this is a bit of a hack, we should pass in the int directly if the arg type is int
-    # TODO - this should be handled in the function_definitions (span_columns.py)
+        arg  # TODO - converting this arg is a bit of a hack, we should pass in the int directly if the arg type is int
+    )
+
+    # TODO - handling valid parameters should be handled in the function_definitions (span_columns.py)
     if code not in [1, 2, 3, 4, 5]:
         raise Exception("http_response_rate takes in a single digit (1,2,3,4,5)")
+
     response_code_map = {
         1: ["100", "101", "102"],
         2: ["200", "201", "202", "203", "204", "205", "206", "207", "208", "226"],
