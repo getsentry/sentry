@@ -171,7 +171,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: t('Install the @sentry/react-native package:'),
             configurations: getInstallConfig(params, {
               basePackage: '@sentry/react-native',
-              additionalPackages: [],
             }),
           },
         ],

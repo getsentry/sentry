@@ -1,7 +1,7 @@
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 export function getInstallConfig(
-  params: DocsParams,
+  _params: DocsParams,
   {basePackage}: {basePackage: string}
 ) {
   return [
