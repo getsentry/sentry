@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from sentry import features
+from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -13,9 +14,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.endpoints.validators.metric_alert_detector import (
-    MetricAlertsDetectorValidator,
-)
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
