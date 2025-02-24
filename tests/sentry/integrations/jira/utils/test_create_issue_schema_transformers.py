@@ -194,3 +194,15 @@ class TestDataTransformer(TestCase):
         )
 
         assert transformed_data == {"fixVersion": {"id": 0}}
+
+    def test_title_field(self):
+        field = self.create_standard_field(name="summary", schema_type=JiraSchemaTypes.string)
+        transformed_data = transform_fields(
+            self.client.user_id_field(), jira_fields=[field], **{"title": "a" * 512}
+        )
+        assert transformed_data == {"summary": "a" * 255}
+
+        transformed_data = transform_fields(
+            self.client.user_id_field(), jira_fields=[field], **{"title": "Test Title"}
+        )
+        assert transformed_data == {"summary": "Test Title"}
