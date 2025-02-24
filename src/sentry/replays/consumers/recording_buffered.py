@@ -65,7 +65,10 @@ from sentry.replays.lib.storage import (
 )
 from sentry.replays.usecases.ingest import (
     LOG_SAMPLE_RATE,
-    process_headers,
+    DropSilently,
+    _report_size_metrics,
+    decompress_segment,
+    parse_headers,
     track_initial_segment_event,
 )
 from sentry.replays.usecases.ingest.dom_index import (
@@ -211,7 +214,10 @@ class RecordingBuffer:
         return time.time() >= self._buffer_next_commit_time
 
     def append(self, message: BaseValue[KafkaPayload]) -> None:
-        process_message(self, message.payload.value)
+        try:
+            process_message(self, message.payload.value)
+        except DropSilently:
+            pass
 
     def new(self) -> RecordingBuffer:
         return RecordingBuffer(
@@ -233,34 +239,13 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             logger.exception("Could not decode recording message.")
             return None
 
-    try:
-        headers, compressed_segment = process_headers(
-            cast_payload_bytes(decoded_message["payload"])
-        )
-    except Exception:
-        # TODO: DLQ
-        logger.exception(
-            "Recording headers could not be extracted %s", decoded_message["replay_id"]
-        )
-        return None
+    headers, segment_data = parse_headers(
+        cast_payload_bytes(decoded_message["payload"]), decoded_message["replay_id"]
+    )
 
-    # Segment is decompressed for further analysis. Packed format expects
-    # concatenated, uncompressed bytes.
-    try:
-        recording_data = zlib.decompress(compressed_segment)
-        metrics.distribution(
-            "replays.usecases.ingest.size_compressed", len(compressed_segment), unit="byte"
-        )
-        metrics.distribution(
-            "replays.usecases.ingest.size_uncompressed", len(recording_data), unit="byte"
-        )
-    except zlib.error:
-        if compressed_segment[0] == ord("["):
-            recording_data = compressed_segment
-            compressed_segment = zlib.compress(compressed_segment)  # Save storage $$$
-        else:
-            logger.exception("Invalid recording body.")
-            return None
+    segment = decompress_segment(segment_data)
+    compressed_segment, recording_data = segment.compressed, segment.decompressed
+    _report_size_metrics(len(segment.compressed), len(segment.decompressed))
 
     recording_segment = RecordingSegmentStorageMeta(
         project_id=decoded_message["project_id"],

@@ -1,5 +1,4 @@
 import dataclasses
-import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -9,18 +8,10 @@ from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
-from django.conf import settings
-from sentry_kafka_schemas.codecs import Codec, ValidationError
-from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk.tracing import Span
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.usecases.ingest import ingest_recording
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
-
-logger = logging.getLogger(__name__)
-
-RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
 
 @dataclasses.dataclass
@@ -86,14 +77,11 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
             )
         else:
             # By default we preserve the previous behavior.
-            return RunTask(
-                function=initialize_threaded_context,
-                next_step=RunTaskInThreads(
-                    processing_function=process_message_threaded,
-                    concurrency=self.num_threads,
-                    max_pending_futures=50,
-                    next_step=CommitOffsets(commit),
-                ),
+            return RunTaskInThreads(
+                processing_function=process_message,
+                concurrency=self.num_threads,
+                max_pending_futures=50,
+                next_step=CommitOffsets(commit),
             )
 
     def shutdown(self) -> None:
@@ -101,51 +89,6 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
             self.pool.close()
 
 
-def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:
-    """Initialize a Sentry transaction and unpack the message."""
-    # TODO-anton: remove sampled here and let traces_sampler decide
-    transaction = sentry_sdk.start_transaction(
-        name="replays.consumer.process_recording",
-        op="replays.consumer",
-        custom_sampling_context={
-            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
-        },
-    )
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-    return MessageContext(message.payload.value, transaction, isolation_scope)
-
-
-def process_message_threaded(message: Message[MessageContext]) -> Any:
-    """Move the replay payload to permanent storage."""
-    context: MessageContext = message.payload
-
-    try:
-        message_dict: ReplayRecording = RECORDINGS_CODEC.decode(context.message)
-    except ValidationError:
-        # TODO: DLQ
-        logger.exception("Could not decode recording message.")
-        return None
-
-    ingest_recording(message_dict, context.transaction, context.isolation_scope)
-
-
 def process_message(message: Message[KafkaPayload]) -> Any:
     """Move the replay payload to permanent storage."""
-    # TODO-anton: remove sampled here and let traces_sampler decide
-    transaction = sentry_sdk.start_transaction(
-        name="replays.consumer.process_recording",
-        op="replays.consumer",
-        custom_sampling_context={
-            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
-        },
-    )
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-
-    try:
-        message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message.payload.value)
-    except ValidationError:
-        # TODO: DLQ
-        logger.exception("Could not decode recording message.")
-        return None
-
-    ingest_recording(message_dict, transaction, isolation_scope)
+    ingest_recording(message.payload.value)
