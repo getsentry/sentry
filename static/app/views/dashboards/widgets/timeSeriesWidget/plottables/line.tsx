@@ -2,25 +2,18 @@ import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
-import type {Plottable, TimeSeries} from '../../common/types';
 import {splitSeriesIntoCompleteAndIncomplete} from '../splitSeriesIntoCompleteAndIncomplete';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
+
+import {Plottable} from './plottable';
 
 interface LineOptions {
   color?: string;
   dataCompletenessDelay?: number;
 }
 
-export class Line implements Plottable {
-  timeSeries: TimeSeries;
-  options: LineOptions;
-
-  constructor(timeSeries: TimeSeries, options: LineOptions = {}) {
-    this.timeSeries = timeSeries;
-    this.options = options;
-  }
-
-  toSeries(): LineSeriesOption[] {
+export class Line extends Plottable<LineOptions> {
+  toSeries() {
     const {timeSeries, options} = this;
 
     const [completeTimeSeries, incompleteTimeSeries] =
