@@ -20,7 +20,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
 
         self.user = self.create_user()
         self.member = self.create_member(user=self.user, organization=self.organization)
-        self.team = self.create_team(organization=self.organization, members=[self.user])
+        self.create_team(organization=self.organization, members=[self.user])
         self.actor = Actor.from_identifier(self.user.id)
 
         self.alert_rule = self.create_alert_rule(
