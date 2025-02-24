@@ -51,6 +51,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         color: serie.color ?? COMMON_COLORS[timeserie.field],
       };
     }),
+    dataCompletenessDelay: 90,
     aliases: props.aliases,
     stacked: props.stacked,
   };
