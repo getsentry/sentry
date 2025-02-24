@@ -249,7 +249,7 @@ def test_registry_create_namespace_simple() -> None:
     ns = registry.create_namespace(name="tests")
     assert ns.default_retry is None
     assert ns.default_expires is None
-    assert ns.default_processing_deadline_duration == 30
+    assert ns.default_processing_deadline_duration == 5
     assert ns.name == "tests"
     assert ns.topic == Topic.TASK_WORKER
 
