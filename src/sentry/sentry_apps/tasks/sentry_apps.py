@@ -33,6 +33,7 @@ from sentry.sentry_apps.services.app.service import (
     get_installation,
     get_installations_for_organization,
 )
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -268,10 +269,11 @@ def _process_resource_change(
             return
 
         if isinstance(instance, (Group, Event, GroupEvent)):
-            org = Organization.objects.get_from_cache(
-                id=Project.objects.get_from_cache(id=instance.project_id).organization_id
-            )
-            assert org, "organization must exist to get related sentry app installations"
+            org_id = Project.objects.get_from_cache(id=instance.project_id).organization_id
+            org = Organization.objects.get_from_cache(id=org_id)
+            assert (
+                org
+            ), f"organization must exist to get related sentry app installations, used org id {org_id}"
 
             installations = [
                 installation
@@ -284,7 +286,9 @@ def _process_resource_change(
             for installation in installations:
                 data = {}
                 if isinstance(instance, (Event, GroupEvent)):
-                    assert instance.group_id, "group id is required to create webhook event data"
+                    assert (
+                        instance.group_id
+                    ), f"group id is required to create webhook event data, used event {instance.event_id}"
                     data[name] = _webhook_event_data(
                         instance, instance.group_id, instance.project_id
                     )
@@ -467,14 +471,23 @@ def send_resource_change_webhook(
         region="region",
     ).capture() as lifecycle:
         installation = app_service.installation_by_id(id=installation_id)
+        lifecycle.add_extras({"installation_id": installation_id, "event": event})
         if not installation:
             lifecycle.record_failure(
-                failure_reason="send_resource_change_webhook.missing_installation",
-                extra={"installation_id": installation_id, "event": event},
+                failure_reason="send_resource_change_webhook.missing_installation"
             )
             return
 
-        send_webhooks(installation, event, data=data)
+        try:
+            send_webhooks(installation, event, data=data)
+        except SentryAppSentryError as e:
+            lifecycle.record_failure(failure_reason=e)
+            return
+        except (ApiHostError, ApiTimeoutError, RequestException) as e:
+            lifecycle.record_halt(failure_reason=e)
+            # we retry on these exceptions
+            raise
+
         metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
@@ -522,15 +535,24 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 failure_reason="send_webhooks.missing_servicehook",
                 extra={"installation_id": installation.id, "event": event},
             )
-            return None
+            raise SentryAppSentryError(
+                message="Could not find ServiceHook for given installation",
+                webhook_context={
+                    "status": "FAILURE",
+                },
+            )
 
         if event not in servicehook.events:
             lifecycle.record_failure(
                 failure_reason="send_webhooks.event-not-in-servicehook",
                 extra={"installation_id": installation.id, "event": event},
             )
-            return None
-
+            raise SentryAppSentryError(
+                message="Could not find given event in ServiceHook events list",
+                webhook_context={
+                    "status": "FAILURE",
+                },
+            )
         # The service hook applies to all projects if there are no
         # ServiceHookProject records. Otherwise we want check if
         # the event is within the allowed projects.

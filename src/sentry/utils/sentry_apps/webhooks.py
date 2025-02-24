@@ -142,7 +142,13 @@ def send_and_save_webhook_request(
         url = url or sentry_app.webhook_url
         assert url is not None
 
-        lifecycle.add_extras({"url": url, "event": event})
+        lifecycle.add_extras(
+            {
+                "url": url,
+                "event": event,
+                "request_uuid": app_platform_event.headers.get("Request-ID"),
+            }
+        )
         try:
             response = safe_urlopen(
                 url=url,
@@ -152,13 +158,13 @@ def send_and_save_webhook_request(
             )
         except (Timeout, ConnectionError) as e:
             error_type = e.__class__.__name__.lower()
-            logger.info(
-                "send_and_save_webhook_request.timeout",
+            lifecycle.record_halt(
+                halt_reason=e,
                 extra={
+                    "event": "send_and_save_webhook_request.timeout",
                     "error_type": error_type,
                     "organization_id": org_id,
                     "integration_slug": sentry_app.slug,
-                    "url": url,
                 },
             )
             track_response_code(error_type, slug, event)
@@ -170,7 +176,6 @@ def send_and_save_webhook_request(
                 headers=app_platform_event.headers,
             )
             record_timeout(sentry_app, org_id, e)
-            lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
 
