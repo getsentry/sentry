@@ -119,9 +119,9 @@ function makeRequestLogQueryKey(slug: string): ApiQueryKey {
 }
 
 export default function RequestLog({app}: RequestLogProps) {
-  const [currentPage, setCurrentPage] = useState<number>(0);
-  const [errorsOnly, setErrorsOnly] = useState<boolean>(false);
-  const [eventType, setEventType] = useState<string>(ALL_EVENTS);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [errorsOnly, setErrorsOnly] = useState(false);
+  const [eventType, setEventType] = useState(ALL_EVENTS);
 
   const {slug} = app;
 
