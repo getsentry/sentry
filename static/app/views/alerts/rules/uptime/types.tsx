@@ -37,6 +37,7 @@ export interface UptimeCheck {
   httpStatusCode: number | null;
   projectUptimeSubscriptionId: number;
   region: string;
+  regionName: string;
   scheduledCheckTime: string;
   timestamp: string;
   traceId: string;
