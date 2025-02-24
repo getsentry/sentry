@@ -12,8 +12,6 @@
               "symbol": "__start_thread",
               "package": "/system/lib64/libc.so",
               "data": {
-                "orig_in_app": -1,
-                "category": "internals",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -22,15 +20,12 @@
               "symbol": "_ZL15__pthread_startPv",
               "package": "/system/lib64/libc.so",
               "data": {
-                "orig_in_app": -1,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               }
             },
             {
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -38,7 +33,6 @@
               "function": "android_main",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -48,7 +42,6 @@
               "symbol": "_Z11AndroidMainP11android_app",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -58,7 +51,6 @@
               "symbol": "_ZN11FEngineLoop4TickEv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -68,7 +60,6 @@
               "symbol": "_ZN11UGameEngine4TickEfb",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -78,7 +69,6 @@
               "symbol": "_ZN6UWorld4TickE10ELevelTickf",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -88,7 +78,6 @@
               "symbol": "_ZN20FLatentActionManager20ProcessLatentActionsEP7UObjectf",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -98,7 +87,6 @@
               "symbol": "_ZN20FLatentActionManager25TickLatentActionForObjectEfR9TMultiMapIiP20FPendingLatentAction20FDefaultSetAllocator27TDefaultMapHashableKeyFuncsIiS2_Lb1EEEP7UObject",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -108,7 +96,6 @@
               "symbol": "_ZN6AActor12ProcessEventEP9UFunctionPv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -118,7 +105,6 @@
               "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -128,7 +114,6 @@
               "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -138,7 +123,6 @@
               "symbol": "_ZN7UObject15ProcessInternalEPS_R6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -148,7 +132,6 @@
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -158,7 +141,6 @@
               "symbol": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -168,7 +150,6 @@
               "symbol": "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -178,7 +159,6 @@
               "symbol": "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -188,7 +168,6 @@
               "symbol": "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -198,7 +177,6 @@
               "symbol": "_ZN13FOutputDevice8LogfImplEPKDsz",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -208,7 +186,6 @@
               "symbol": "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -218,14 +195,12 @@
               "symbol": "_ZNK22TMulticastDelegateBaseI28FDefaultTSDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvRK7FStringES0_EJS6_EEEvDpT0_",
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
             {
               "package": "/data/app/io.sentry.unreal.sample-AYKfrnp3OLGXg7fg_lX6dw==/lib/arm64/libUnreal.so",
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing"
               }
             },
@@ -234,8 +209,6 @@
               "symbol": "tgkill",
               "package": "/system/lib64/libc.so",
               "data": {
-                "orig_in_app": -1,
-                "category": "system",
                 "symbolicator_status": "symbolicated"
               }
             }

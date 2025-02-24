@@ -12,8 +12,6 @@
               "symbol": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
               "data": {
-                "orig_in_app": 0,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -22,8 +20,6 @@
               "symbol": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
               "data": {
-                "orig_in_app": 0,
-                "category": "threadbase",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -32,8 +28,6 @@
               "symbol": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
               "data": {
-                "orig_in_app": 0,
-                "category": "internals",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -221,7 +215,6 @@
               "symbol": "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
               "data": {
-                "category": "indirection",
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -285,7 +278,6 @@
               "symbol": "_ZN16USentrySubsystem25execCaptureEventWithScopeEP7UObjectR6FFramePv",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
               "data": {
-                "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -295,7 +287,6 @@
               "symbol": "_ZN16USentrySubsystem21CaptureEventWithScopeEP12USentryEventRK23FConfigureScopeDelegate",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
               "data": {
-                "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -305,7 +296,6 @@
               "symbol": "_ZN16USentrySubsystem21CaptureEventWithScopeEP12USentryEventRK9TDelegateIFvP12USentryScopeE26FDefaultDelegateUserPolicyE",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
               "data": {
-                "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
               }
             },
@@ -315,7 +305,6 @@
               "symbol": "_ZN20SentrySubsystemApple21CaptureEventWithScopeE10TSharedPtrI12ISentryEventL7ESPMode1EERK9TDelegateIFvS0_I12ISentryScopeLS2_1EEE26FDefaultDelegateUserPolicyE",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
               "data": {
-                "orig_in_app": 1,
                 "symbolicator_status": "symbolicated"
               }
             },
