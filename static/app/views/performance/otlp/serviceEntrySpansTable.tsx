@@ -30,11 +30,10 @@ import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
-  SpanOperationBreakdownFilter,
   filterToField,
+  SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -111,8 +110,8 @@ const CURSOR_NAME = 'serviceEntrySpansCursor';
 type Props = {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
-  totalValues: Record<string, number> | null;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  totalValues: Record<string, number> | null;
   transactionName: string;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
@@ -131,7 +130,6 @@ export function ServiceEntrySpansTable({
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  console.dir(totalValues);
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
@@ -139,15 +137,6 @@ export function ServiceEntrySpansTable({
     spanOperationBreakdownFilter,
     p95: totalValues?.['p95()'] ?? 0,
   });
-
-  console.dir(selected);
-  if (selected.query?.[0]) {
-    // const [key, value] = selected.query[0];
-    // const newQuery = new MutableSearch(eventView.query);
-    // newQuery.addFilterValue(key, value);
-    // eventView.query = newQuery.formatString();
-    // console.dir(eventView.query);
-  }
 
   const {
     data: tableData,
