@@ -31,7 +31,7 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
+import type {Aliases, LegendSelection, Release, TimeSeries} from '../common/types';
 
 import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
 import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
@@ -69,9 +69,13 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   dataCompletenessDelay?: number;
   /**
-   * Callback that returns an updated `timeseriesSelection` after a user manipulations the selection via the legend
+   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
-  onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  legendSelection?: LegendSelection;
+  /**
+   * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
+   */
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -84,10 +88,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
    */
   stacked?: boolean;
-  /**
-   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
-   */
-  timeseriesSelection?: TimeseriesSelection;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -364,12 +364,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
                   false
                 );
               },
-              selected: props.timeseriesSelection,
+              selected: props.legendSelection,
             }
           : undefined
       }
       onLegendSelectChanged={event => {
-        props?.onTimeseriesSelectionChange?.(event.selected);
+        props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
         trigger: 'axis',
