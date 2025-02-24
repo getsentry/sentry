@@ -30,7 +30,6 @@ class JiraCloudClient(ApiClient):
     META_URL = "/rest/api/2/issue/createmeta"
     PRIORITIES_URL = "/rest/api/2/priority"
     PROJECT_URL = "/rest/api/2/project"
-    PROJECT_STATUS_URL = "/rest/api/2/project/%s/statuses"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
