@@ -146,7 +146,7 @@ const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(1)} 0 ${space(3)};
+  padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 
@@ -177,7 +177,7 @@ const Section = styled('div')`
 const SectionTitle = styled('div')<{layout: NavLayout}>`
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(1.5)};
+  padding: 0 ${space(1)};
   margin: ${space(2)} 0 ${space(0.5)} 0;
 
   ${p =>
@@ -199,7 +199,7 @@ const SectionSeparator = styled('hr')`
 const Item = styled(Link)<{layout: NavLayout}>`
   position: relative;
   display: flex;
-  padding: 4px ${space(1.5)};
+  padding: 4px ${space(1)};
   height: 34px;
   align-items: center;
   color: ${p => p.theme.textColor};
@@ -244,7 +244,7 @@ const ItemText = styled('span')`
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 
   ${p =>

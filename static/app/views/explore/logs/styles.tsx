@@ -7,6 +7,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
+import {unreachable} from 'sentry/utils/unreachable';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
 export const StyledPanel = styled(Panel)`
@@ -227,9 +228,4 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       unreachable(level);
       throw new Error(`Invalid log type, got ${level}`);
   }
-}
-
-// One day we'll have `match`.
-function unreachable(x: never) {
-  return x;
 }
