@@ -14,6 +14,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -176,6 +177,7 @@ function IssueListOverview({router}: Props) {
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
     useSavedSearches();
@@ -815,7 +817,7 @@ function IssueListOverview({router}: Props) {
         queryData.sort = newSavedSearch.sort;
       }
     } else {
-      if (organization.features.includes('navigation-sidebar-v2')) {
+      if (prefersStackedNav) {
         path = location.pathname;
       } else {
         path = `/organizations/${organization.slug}/issues/`;
@@ -1069,18 +1071,15 @@ function IssueListOverview({router}: Props) {
   const showReprocessingTab = !!queryCounts?.[Query.REPROCESSING]?.count;
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
-  const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
-  const hasNavigationSidebarV2 = organization.features.includes('navigation-sidebar-v2');
-
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {hasLeftNavIssueViews && hasNavigationSidebarV2 && (
+        {prefersStackedNav && (
           <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
-        {!hasLeftNavIssueViews &&
+        {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader

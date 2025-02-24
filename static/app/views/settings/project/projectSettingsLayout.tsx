@@ -1,5 +1,6 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -30,9 +31,9 @@ function InnerProjectSettingsLayout({
     project_platform: project.platform,
   });
 
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (hasNavigationV2) {
+  if (prefersStackedNav) {
     return (
       <Fragment>
         <ProjectSettingsNavigation organization={organization} />

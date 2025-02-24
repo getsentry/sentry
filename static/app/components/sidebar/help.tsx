@@ -8,6 +8,7 @@ import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
@@ -21,6 +22,8 @@ type Props = Pick<
 };
 
 function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
+
   return (
     <DeprecatedDropdownMenu>
       {({isOpen, getActorProps, getMenuProps}) => (
@@ -52,6 +55,13 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                 {t('Join our Discord')}
               </SidebarMenuItem>
               <Hook name="sidebar:help-menu" organization={organization} />
+              {organization?.features?.includes('navigation-sidebar-v2') && (
+                <SidebarMenuItem
+                  onClick={() => mutateUserOptions({prefersStackedNavigation: true})}
+                >
+                  {t('Try new navigation')}
+                </SidebarMenuItem>
+              )}
             </HelpMenu>
           )}
         </HelpRoot>

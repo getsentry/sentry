@@ -10,6 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -73,12 +74,10 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     organizationSettingsUrl,
   };
 
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
   // For the new navigation, we are removing this page. The default base route should
   // be the organization settings page.
   // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
-  if (hasNavigationV2) {
+  if (prefersStackedNav()) {
     return (
       <Redirect
         to={normalizeUrl(
