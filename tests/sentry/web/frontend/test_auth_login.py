@@ -450,19 +450,20 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         assert b"The password is too similar to the username." in resp.content
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
     def test_login_demo_mode(self):
-        readonly_user = self.create_user(
+        demo_user = self.create_user(
             is_staff=False,
             email="readonly@example.com",
             password="foo",
+            id=1,
         )
         self.client.get(self.path)
 
         resp = self.client.post(
             self.path,
             # login with any password
-            {"username": readonly_user.username, "password": "bar", "op": "login"},
+            {"username": demo_user.username, "password": "bar", "op": "login"},
             follow=True,
         )
 
@@ -470,10 +471,11 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         # successful login redirects to organizations/new
         assert resp.redirect_chain == [(reverse("sentry-login"), 302), ("/organizations/new/", 302)]
 
-    @override_options({"demo-mode.enabled": False, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [1]})
     def test_login_demo_mode_disabled(self):
-        readonly_user = self.create_user(
+        demo_user = self.create_user(
             is_staff=False,
+            id=1,
             email="readonly@example.com",
             password="foo",
         )
@@ -482,7 +484,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         resp = self.client.post(
             self.path,
             # login with any password
-            {"username": readonly_user.username, "password": "bar", "op": "login"},
+            {"username": demo_user.username, "password": "bar", "op": "login"},
             follow=True,
         )
 
@@ -492,8 +494,9 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": []})
     def test_login_demo_mode_not_demo_user(self):
-        readonly_user = self.create_user(
+        demo_user = self.create_user(
             is_staff=False,
+            id=1,
             email="readonly@example.com",
             password="foo",
         )
@@ -502,7 +505,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         resp = self.client.post(
             self.path,
             # login with any password
-            {"username": readonly_user.username, "password": "bar", "op": "login"},
+            {"username": demo_user.username, "password": "bar", "op": "login"},
             follow=True,
         )
 
@@ -513,24 +516,25 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @override_options(
         {
             "demo-mode.enabled": True,
-            "demo-mode.users": ["readonly@example.com"],
+            "demo-mode.users": [1],
             "demo-mode.orgs": [1],
         }
     )
     def test_login_demo_mode_with_org(self):
-        readonly_user = self.create_user(
+        demo_user = self.create_user(
             is_staff=False,
+            id=1,
             email="readonly@example.com",
             password="foo",
         )
-        demo_org = self.create_organization(owner=readonly_user, id=1)
+        demo_org = self.create_organization(owner=demo_user, id=1)
 
         self.client.get(self.path)
 
         resp = self.client.post(
             self.path,
             # login with any password
-            {"username": readonly_user.username, "password": "bar", "op": "login"},
+            {"username": demo_user.username, "password": "bar", "op": "login"},
             follow=True,
         )
 
