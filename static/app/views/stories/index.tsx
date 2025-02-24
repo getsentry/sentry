@@ -1,9 +1,12 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconSettings} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -16,6 +19,8 @@ import {StoryHeader} from 'sentry/views/stories/storyHeader';
 import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
+
+import {useLocalStorageState} from '../../utils/useLocalStorageState';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
@@ -35,7 +40,14 @@ export default function Stories() {
   }, [files, location.query.name]);
 
   const story = useStoriesLoader({files: storyFiles});
-  const nodes = useStoryTree(files, location.query.query ?? '');
+  const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
+    'category' | 'filesystem'
+  >('story-representation', 'category');
+
+  const nodes = useStoryTree(files, {
+    query: location.query.query ?? '',
+    representation: storyRepresentation,
+  });
 
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
@@ -71,6 +83,12 @@ export default function Stories() {
                 defaultValue={location.query.query ?? ''}
                 onChange={onSearchInputChange}
               />
+              <InputGroup.TrailingItems>
+                <StoryRepresentationToggle
+                  storyRepresentation={storyRepresentation}
+                  setStoryRepresentation={setStoryRepresentation}
+                />
+              </InputGroup.TrailingItems>
               {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
             </InputGroup>
             <StoryTreeContainer>
@@ -110,6 +128,31 @@ export default function Stories() {
   );
 }
 
+function StoryRepresentationToggle(props: {
+  setStoryRepresentation: (value: 'category' | 'filesystem') => void;
+  storyRepresentation: 'category' | 'filesystem';
+}) {
+  return (
+    <CompactSelect
+      trigger={triggerProps => (
+        <Button
+          borderless
+          icon={<IconSettings />}
+          size="xs"
+          aria-label="Toggle story representation"
+          {...triggerProps}
+        />
+      )}
+      defaultValue={props.storyRepresentation}
+      options={[
+        {label: 'Filesystem', value: 'filesystem'},
+        {label: 'Category', value: 'category'},
+      ]}
+      onChange={option => props.setStoryRepresentation(option.value)}
+    />
+  );
+}
+
 const Layout = styled('div')`
   --stories-grid-space: ${space(2)};
 
@@ -134,6 +177,8 @@ const SidebarContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   min-height: 0;
+  position: relative;
+  z-index: 10;
 `;
 
 const StoryTreeContainer = styled('div')`
@@ -166,8 +211,6 @@ const StoryMainContainer = styled(VerticalScroll)`
   padding-top: 0;
   overflow-x: hidden;
   overflow-y: auto;
-
-  position: relative;
 
   h1,
   h2,

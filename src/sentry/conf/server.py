@@ -428,6 +428,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.issues.apps.Config",
     "sentry.feedback",
     "sentry.hybridcloud",
+    "sentry.relocation",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
@@ -773,6 +774,7 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.relocation.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -799,11 +801,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
-    "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -2748,15 +2748,21 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "is_public": True,
-    },
+    # Right now Symbolicator is not able to successfully download from
+    # the Intel source because the source doesn't accept custom user agents.
+    # Until we are confident we can spoof Symbolicator's user agent without
+    # abusing the source, we are disabling it. See
+    # https://github.com/getsentry/team-ingest/issues/642.
+    #
+    # "intel": {
+    #     "type": "http",
+    #     "id": "sentry:intel",
+    #     "name": "Intel",
+    #     "layout": {"type": "symstore"},
+    #     "filters": {"filetypes": ["pe", "pdb"]},
+    #     "url": "https://software.intel.com/sites/downloads/symbols/",
+    #     "is_public": True,
+    # },
     "amd": {
         "type": "http",
         "id": "sentry:amd",

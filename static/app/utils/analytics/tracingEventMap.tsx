@@ -1,5 +1,5 @@
-import type {Confidence} from 'sentry/types/organization';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {PlatformKey} from 'sentry/types/project';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -10,7 +10,7 @@ export type TracingEventParameters = {
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
-    confidences: Confidence[];
+    confidences: string[];
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
     query_status: 'success' | 'error' | 'pending';
@@ -20,7 +20,7 @@ export type TracingEventParameters = {
     title: string;
     user_queries: string;
     user_queries_count: number;
-    visualizes: Visualize[];
+    visualizes: BaseVisualize[];
     visualizes_count: number;
   };
   'trace.load.empty_state': {
@@ -61,6 +61,7 @@ export type TracingEventParameters = {
   'trace.trace_drawer_explore_search': {
     key: string;
     kind: TraceDrawerActionKind;
+    source: 'drawer' | 'toolbar_menu';
     value: string | number;
   };
   'trace.trace_layout.change': {
@@ -102,6 +103,17 @@ export type TracingEventParameters = {
   'trace.trace_layout.zoom_to_fill': Record<string, unknown>;
   'trace.trace_warning_type': {
     type: string;
+  };
+  'trace.tracing_onboarding': {
+    platform: PlatformKey;
+    supports_onboarding_checklist: boolean;
+    supports_performance: boolean;
+  };
+  'trace.tracing_onboarding_performance_docs_viewed': {
+    platform: string;
+  };
+  'trace.tracing_onboarding_platform_docs_viewed': {
+    platform: string;
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
@@ -146,6 +158,11 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.tracing_onboarding': 'Tracing Onboarding UI',
+  'trace.tracing_onboarding_platform_docs_viewed':
+    'Viewed Platform Docs for Onboarding UI',
+  'trace.tracing_onboarding_performance_docs_viewed':
+    'Viewed Performance Setup Docs from Onboarding UI',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
   'trace.trace_layout.view_event_json': 'Clicked View Event JSON Action',
   'trace.trace_layout.tab_pin': 'Pinned Trace Tab',

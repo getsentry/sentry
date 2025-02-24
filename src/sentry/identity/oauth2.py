@@ -98,7 +98,7 @@ class OAuth2Provider(Provider):
     def get_refresh_token_headers(self):
         return None
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [
             OAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),

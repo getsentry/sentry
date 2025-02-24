@@ -42,6 +42,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
@@ -460,7 +461,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     def test_no_subscription(self):
         subscription_id = uuid.uuid4().hex
-        result = self.create_uptime_result(subscription_id)
+        result = self.create_uptime_result(subscription_id, uptime_region="default")
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
@@ -470,7 +471,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 [
                     call(
                         "uptime.result_processor.subscription_not_found",
-                        tags={"uptime_region": "us-west"},
+                        tags={"uptime_region": "default"},
                         sample_rate=1.0,
                     )
                 ]
@@ -1024,9 +1025,17 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             override_settings(UPTIME_REGIONS=region_configs),
-            override_options({"uptime.disabled-checker-regions": disabled_regions}),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        region: UptimeSubscriptionRegion.RegionMode.INACTIVE.value
+                        for region in disabled_regions
+                    }
+                }
+            ),
             self.tasks(),
             freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
+            mock.patch("random.random", return_value=1),
         ):
             result = self.create_uptime_result(
                 sub.subscription_id,

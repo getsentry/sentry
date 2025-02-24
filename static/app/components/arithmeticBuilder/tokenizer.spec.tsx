@@ -1,16 +1,16 @@
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {
   TokenAttribute,
+  TokenCloseParenthesis,
   TokenFreeText,
   TokenFunction,
+  TokenOpenParenthesis,
   TokenOperator,
-  TokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
 import {
   makeTokenKey,
   tokenizeExpression,
   toOperator,
-  toParenthesis,
 } from 'sentry/components/arithmeticBuilder/tokenizer';
 
 function k<T extends Token>(i: number, token: T): T {
@@ -18,12 +18,12 @@ function k<T extends Token>(i: number, token: T): T {
   return token;
 }
 
-function po(i: number): TokenParenthesis {
-  return k(i, new TokenParenthesis(expect.objectContaining({}), toParenthesis('(')));
+function po(i: number): TokenOpenParenthesis {
+  return k(i, new TokenOpenParenthesis(expect.objectContaining({})));
 }
 
-function pc(i: number): TokenParenthesis {
-  return k(i, new TokenParenthesis(expect.objectContaining({}), toParenthesis(')')));
+function pc(i: number): TokenCloseParenthesis {
+  return k(i, new TokenCloseParenthesis(expect.objectContaining({})));
 }
 
 function o(i: number, op: '+' | '-' | '*' | '/'): TokenOperator {
@@ -256,7 +256,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -272,7 +272,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -288,7 +288,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -304,7 +304,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -320,7 +320,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -336,7 +336,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -352,7 +352,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -368,7 +368,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -384,7 +384,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -400,7 +400,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -416,7 +416,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -432,7 +432,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -448,7 +448,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -464,7 +464,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -480,7 +480,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -496,7 +496,7 @@ describe('tokenizeExpression', function () {
         s(3, ''),
         f(1, 'avg', [a(1, 'foo', 'number')]),
         s(4, ''),
-        pc(1),
+        pc(0),
         s(5, ''),
       ],
     ],
@@ -540,7 +540,7 @@ describe('tokenizeExpression', function () {
         s(2, ''),
         f(0, 'avg', [a(0, 'span.duration')]),
         s(3, ''),
-        pc(1),
+        pc(0),
         s(4, ''),
         o(1, '/'),
         s(5, ''),

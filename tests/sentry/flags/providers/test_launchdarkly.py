@@ -2,7 +2,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
+from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, PROVIDER_MAP
 from sentry.flags.providers import (
     DeserializationError,
     LaunchDarklyItemSerializer,
@@ -155,6 +155,7 @@ def test_launchdarkly_create():
     assert flag_row["created_by"] == "michelle@example.com"
     assert flag_row["created_by_type"] == CREATED_BY_TYPE_MAP["email"]
     assert flag_row["organization_id"] == 123
+    assert flag_row["provider"] == PROVIDER_MAP["launchdarkly"]
     assert flag_row["tags"] is not None
     assert flag_row["tags"]["description"] == "flag was created"
 
@@ -481,6 +482,7 @@ def test_launchdarkly_create_no_member():
     assert flag_row["created_by"] is None
     assert flag_row["created_by_type"] is None
     assert flag_row["organization_id"] == 123
+    assert flag_row["provider"] == PROVIDER_MAP["launchdarkly"]
     assert flag_row["tags"] is not None
     assert flag_row["tags"]["description"] == "flag was created"
 
