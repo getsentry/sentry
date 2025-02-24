@@ -27,7 +27,7 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
 )
 
 
-def is_number(aggregation_value: int | float) -> bool:
+def is_number(aggregation_value: int | float | None) -> bool:
     return (
         True
         if isinstance(aggregation_value, int) or isinstance(aggregation_value, float)
