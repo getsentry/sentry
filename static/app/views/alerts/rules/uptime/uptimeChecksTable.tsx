@@ -66,7 +66,14 @@ export function UptimeChecksTable({uptimeRule}: Props) {
     return <LoadingError />;
   }
 
-  const headers = [t('Status'), t('Checked At'), t('Duration'), t('Region'), t('Trace')];
+  const headers = [
+    t('Status'),
+    t('HTTP Status'),
+    t('Checked At'),
+    t('Duration'),
+    t('Region'),
+    t('Trace'),
+  ];
 
   return (
     <Fragment>
@@ -102,6 +109,7 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                     )}
                   </Text>
                 </Status>
+                <div>{check.httpStatusCode ?? t('None')}</div>
                 <div>
                   <DateTime date={check.timestamp} timeZone />
                 </div>
