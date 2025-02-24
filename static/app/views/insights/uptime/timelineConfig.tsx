@@ -12,7 +12,7 @@ export const checkStatusPrecedent: CheckStatus[] = [
 
 export const statusToText: Record<CheckStatus, string> = {
   [CheckStatus.SUCCESS]: t('Uptime'),
-  [CheckStatus.FAILURE]: t('Flakiness'),
+  [CheckStatus.FAILURE]: t('Intermittent'),
   [CheckStatus.FAILURE_INCIDENT]: t('Downtime'),
   [CheckStatus.MISSED_WINDOW]: t('Unknown'),
 };
