@@ -1,5 +1,6 @@
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
@@ -182,8 +183,7 @@ export function getUserOrgNavigationConfiguration({
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: ({organization}) =>
-            organization?.features.includes('navigation-sidebar-v2') ?? false,
+          show: () => ConfigStore.get('user')?.options?.prefersStackedNavigation ?? false,
         },
       ],
     },
