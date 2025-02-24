@@ -217,41 +217,40 @@ function IssueViewsIssueListHeaderTabsContent({
         environments,
         timeFilters,
       } = views[0]!;
-      if (queryProjects || queryTimeFilters) {
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...router.location.query,
-              viewId: id,
-              query: query ?? viewQuery,
-              sort: sort ?? querySort,
-              project: queryProjects ?? projects,
-              environment: queryEnvs ?? environments,
-              ...normalizeDateTimeParams(queryTimeFilters ?? timeFilters),
-            },
-          }),
-          {replace: true}
-        );
-        tabListState?.setSelectedKey(views[0]!.key);
-        return;
-      }
       if (!query && !sort) {
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...router.location.query,
-              viewId: id,
-              query: viewQuery,
-              sort: querySort,
-              project: projects,
-              environment: environments,
-              ...normalizeDateTimeParams(timeFilters),
-            },
-          }),
-          {replace: true}
-        );
+        if (queryProjects || queryTimeFilters) {
+          navigate(
+            normalizeUrl({
+              ...location,
+              query: {
+                ...router.location.query,
+                viewId: id,
+                query: query ?? viewQuery,
+                sort: sort ?? querySort,
+                project: queryProjects ?? projects,
+                environment: queryEnvs ?? environments,
+                ...normalizeDateTimeParams(queryTimeFilters ?? timeFilters),
+              },
+            }),
+            {replace: true}
+          );
+        } else {
+          navigate(
+            normalizeUrl({
+              ...location,
+              query: {
+                ...router.location.query,
+                viewId: id,
+                query: viewQuery,
+                sort: querySort,
+                project: projects,
+                environment: environments,
+                ...normalizeDateTimeParams(timeFilters),
+              },
+            }),
+            {replace: true}
+          );
+        }
         tabListState?.setSelectedKey(views[0]!.key);
         return;
       }
