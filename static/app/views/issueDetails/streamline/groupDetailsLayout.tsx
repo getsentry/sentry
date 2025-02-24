@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,7 +7,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import {
   IssueDetailsContext,
@@ -32,11 +32,14 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
+  const theme = useTheme();
   const {issueDetails, dispatch} = useIssueDetailsReducer();
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+
+  const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
 
   return (
     <IssueDetailsContext.Provider value={{...issueDetails, dispatch}}>
@@ -53,14 +56,10 @@ export function GroupDetailsLayout({
         <div>
           <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
-            <NavigationSidebarWrapper
-              hasToggleSidebar={!issueTypeConfig.filterAndSearchHeader.enabled}
-            >
+            <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
               <IssueEventNavigation event={event} group={group} />
               {/* Since the event details header is disabled, display the sidebar toggle here */}
-              {!issueTypeConfig.filterAndSearchHeader.enabled && (
-                <ToggleSidebar size="sm" />
-              )}
+              {!hasFilterBar && <ToggleSidebar size="sm" />}
             </NavigationSidebarWrapper>
             <ContentPadding>{children}</ContentPadding>
           </GroupContent>

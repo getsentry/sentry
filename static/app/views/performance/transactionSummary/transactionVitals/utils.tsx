@@ -1,6 +1,7 @@
 import type {ECharts} from 'echarts';
 import type {Query} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import type {WebVital} from 'sentry/utils/fields';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
@@ -9,23 +10,27 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 
 import type {Point, Rectangle} from './types';
 
-export function generateVitalsRoute({orgSlug}: {orgSlug: string}): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug)}/vitals/`;
+export function generateVitalsRoute({
+  organization,
+}: {
+  organization: Organization;
+}): string {
+  return `${getTransactionSummaryBaseUrl(organization)}/vitals/`;
 }
 
 export function vitalsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateVitalsRoute({
-    orgSlug,
+    organization,
   });
 
   return {
@@ -83,10 +88,10 @@ export function getRefRect(chartData: HistogramData): Rectangle | null {
     for (let j = i + 1; j < chartData.length; j++) {
       const data2 = chartData[j]!;
 
-      if (data1!.bin !== data2!.bin && data1!.count !== data2!.count) {
+      if (data1!.bin !== data2.bin && data1!.count !== data2.count) {
         return {
-          point1: {x: i, y: Math.min(data1!.count, data2!.count)},
-          point2: {x: j, y: Math.max(data1!.count, data2!.count)},
+          point1: {x: i, y: Math.min(data1!.count, data2.count)},
+          point2: {x: j, y: Math.max(data1!.count, data2.count)},
         };
       }
     }

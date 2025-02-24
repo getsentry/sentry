@@ -84,7 +84,7 @@ export function getHiddenFrameIndices({
   const repeatedIndeces = getRepeatedFrameIndices(data);
   let hiddenFrameIndices: number[] = [];
   Object.keys(toggleFrameMap)
-    // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     .filter(frameIndex => toggleFrameMap[frameIndex] === true)
     .forEach(indexString => {
       const index = parseInt(indexString, 10);
@@ -225,12 +225,12 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
  */
 export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
   return Object.keys(obj)
-    .reduce<[string, string][]>((out, k) => {
+    .reduce<Array<[string, string]>>((out, k) => {
       const val = obj[k];
       return out.concat(
         Array.isArray(val)
           ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as [string, string][]) // key has single value
+          : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
     .sort(function ([keyA, valA], [keyB, valB]) {

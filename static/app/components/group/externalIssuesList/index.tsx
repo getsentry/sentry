@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import AlertLink from 'sentry/components/alertLink';
+import AlertLink from 'sentry/components/core/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 import type {
@@ -58,8 +58,8 @@ export default function ExternalIssueList({group, event, project}: Props) {
       <ExternalIssueActions {...props} />
     ),
     'plugin-action': ({plugin}: PluginActionComponent['props']) => (
-      <IssueSyncListElement externalIssueLink={(plugin as any)[1]}>
-        {(plugin as any)[0]}
+      <IssueSyncListElement externalIssueLink={plugin[1]}>
+        {plugin[0]}
       </IssueSyncListElement>
     ),
     'plugin-issue': (props: PluginIssueComponent['props']) => (

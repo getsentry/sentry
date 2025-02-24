@@ -7,6 +7,12 @@ import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
 import {resolveFlamegraphSamplesProfileIds} from './utils';
 
+/**
+ * HACK: we need to limit the number of references per node to avoid
+ * rendering too many references.
+ */
+const MAX_PROFILE_REFERENCES_PER_NODE = 100;
+
 function sortStacks(
   a: {stack: number[]; weight: number | undefined},
   b: {stack: number[]; weight: number | undefined}
@@ -25,7 +31,7 @@ function sortStacks(
     if (aStackI === bStackI) {
       continue;
     }
-    return aStackI! - bStackI!;
+    return aStackI - bStackI;
   }
   return 0;
 }
@@ -49,7 +55,11 @@ function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
   profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
-): {aggregate_sample_duration: number; stack: number[]; weight: number | undefined}[] {
+): Array<{
+  aggregate_sample_duration: number;
+  stack: number[];
+  weight: number | undefined;
+}> {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
 }
 
@@ -191,8 +201,8 @@ export class SampledProfile extends Profile {
         size = 0;
         // If we are using the current stack, then we need to resolve the frames,
         // else the processed frames will be the frames that were previously resolved
-        for (let j = 0; j < stack.length; j++) {
-          frame = resolveFrame(stack[j]!);
+        for (const index of stack) {
+          frame = resolveFrame(index);
           if (!frame) {
             continue;
           }
@@ -263,12 +273,23 @@ export class SampledProfile extends Profile {
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
+        if (resolvedProfileIds) {
+          const existingProfileIds = this.callTreeNodeProfileIdMap.get(node) || [];
+          existingProfileIds.push(...resolvedProfileIds);
+          this.callTreeNodeProfileIdMap.set(
+            node,
+            existingProfileIds.slice(0, MAX_PROFILE_REFERENCES_PER_NODE)
+          );
+        }
       } else {
         const parent = node;
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
         if (resolvedProfileIds) {
-          this.callTreeNodeProfileIdMap.set(node, resolvedProfileIds);
+          this.callTreeNodeProfileIdMap.set(
+            node,
+            resolvedProfileIds.slice(0, MAX_PROFILE_REFERENCES_PER_NODE)
+          );
         }
       }
 

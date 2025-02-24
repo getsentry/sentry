@@ -3,6 +3,10 @@ from unittest.mock import patch
 
 import pytest
 from django.test.utils import override_settings
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DEADLETTER,
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
+)
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import TaskNamespace, TaskRegistry
@@ -111,10 +115,10 @@ def test_namespace_send_task_no_retry() -> None:
 
     activation = simple_task.create_activation()
     assert activation.retry_state.attempts == 0
-    assert activation.retry_state.deadletter_after_attempt == 0
-    assert activation.retry_state.discard_after_attempt == 1
+    assert activation.retry_state.max_attempts == 1
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
@@ -140,10 +144,10 @@ def test_namespace_send_task_with_retry() -> None:
 
     activation = simple_task.create_activation()
     assert activation.retry_state.attempts == 0
-    assert activation.retry_state.deadletter_after_attempt == 3
-    assert activation.retry_state.discard_after_attempt == 0
+    assert activation.retry_state.max_attempts == 3
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
@@ -165,10 +169,10 @@ def test_namespace_with_retry_send_task() -> None:
 
     activation = simple_task.create_activation()
     assert activation.retry_state.attempts == 0
-    assert activation.retry_state.deadletter_after_attempt == 3
-    assert activation.retry_state.discard_after_attempt == 0
+    assert activation.retry_state.max_attempts == 3
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
@@ -192,7 +196,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
 
     activation = simple_task.create_activation()
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         ret_value: Future[None] = Future()
         ret_value.set_result(None)
         mock_producer.produce.return_value = ret_value

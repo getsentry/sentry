@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
-  config: [key: string, value: string][];
+  config: Array<[key: string, value: string]>;
   environment: {
     config: string;
     start_date: string;

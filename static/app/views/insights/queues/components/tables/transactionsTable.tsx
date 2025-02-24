@@ -170,13 +170,13 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const op = row['span.op'];
   const isProducer = op === 'queue.publish';
   const isConsumer = op === 'queue.process';
   const key = column.key;
   if (
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     row[key] === undefined ||
     (isConsumer && ['count_op(queue.publish)'].includes(key)) ||
     (isProducer &&
@@ -202,14 +202,14 @@ function renderBodyCell(
     const formatter = FIELD_FORMATTERS.percentage.renderFunc;
     return (
       <AlignRight>
-        {/* @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
+        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
         {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
       </AlignRight>
     );
   }
 
   if (!meta?.fields) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return row[column.key];
   }
 
@@ -219,14 +219,14 @@ function renderBodyCell(
   }
 
   if (key === 'span.op') {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     switch (row[key]) {
       case 'queue.publish':
         return t('Producer');
       case 'queue.process':
         return t('Consumer');
       default:
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return row[key];
     }
   }

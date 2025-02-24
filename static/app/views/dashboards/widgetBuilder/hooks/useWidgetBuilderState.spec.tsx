@@ -71,12 +71,16 @@ describe('useWidgetBuilderState', () => {
     jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({title: 'new title'})})
+      expect.objectContaining({
+        query: expect.objectContaining({title: 'new title'}),
+      }),
+      {replace: true}
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -126,7 +130,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
-        })
+        }),
+        {replace: true}
       );
     });
 
@@ -353,7 +358,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -369,7 +374,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -463,7 +468,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -479,7 +484,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -603,6 +608,121 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.thresholds).toBeUndefined();
     });
+
+    it('sets sort to first available sortable field when switching to release table', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            dataset: WidgetType.RELEASE,
+            field: ['environment', 'crash_free_rate(session)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {field: 'crash_free_rate(session)', kind: 'desc'},
+      ]);
+    });
+
+    it('sets sort to empty array when switching to release table and no sortable fields are available', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            dataset: WidgetType.RELEASE,
+            field: ['project', 'count_errored(session)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('sets sort to default sort when switching to chart from non sortable release fields', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.RELEASE,
+            field: ['project', 'count_errored(session)'],
+            displayType: DisplayType.TABLE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {field: 'crash_free_rate(session)', kind: 'desc'},
+      ]);
+    });
+
+    it('adds the default y-axis when switching a table to a chart with no aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRANSACTIONS,
+            displayType: DisplayType.TABLE,
+            field: ['transaction'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.fields).toEqual([
+        {field: 'transaction', alias: undefined, kind: 'field'},
+      ]);
+    });
   });
 
   describe('dataset', () => {
@@ -635,7 +755,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
-        })
+        }),
+        {replace: true}
       );
     });
 
@@ -902,6 +1023,33 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.thresholds).toBeUndefined();
     });
+
+    it('resets the legend alias when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.LINE,
+            legendAlias: ['test'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendAlias).toEqual(['test']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.legendAlias).toEqual([]);
+    });
   });
 
   describe('fields', () => {
@@ -991,7 +1139,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -1107,6 +1255,202 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
     });
+
+    it('adds a default sort when adding a grouping for a timeseries chart', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {function: ['count', '', undefined, undefined], kind: 'function'},
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'browser.name', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      // The y-axis takes priority
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+    });
+
+    it('ensures that default sort is not an equation', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['equation|count()+1', 'count()'],
+          },
+        })
+      );
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'browser.name', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+    });
+
+    it('ensures the sort is not a disabled release sort option', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.RELEASE,
+            field: ['environment, project, crash_free_rate(session)'],
+            sort: ['-crash_free_rate(session)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {field: 'crash_free_rate(session)', kind: 'desc'},
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {
+              function: ['count_errored', 'session', undefined, undefined, undefined],
+              kind: FieldValueKind.FUNCTION,
+            } as unknown as Column,
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('has no sort when only sortable release field is removed', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.RELEASE,
+            field: ['release', 'project', 'count_errored(session)'],
+            sort: ['-release'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'release', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {
+              function: ['count_errored', 'session', undefined, undefined, undefined],
+              kind: FieldValueKind.FUNCTION,
+            } as unknown as Column,
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('still has no sort when unsortable release field is added', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.RELEASE,
+            field: ['project', 'count_errored(session)'],
+            sort: [],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {
+              function: ['count_errored', 'session', undefined, undefined, undefined],
+              kind: FieldValueKind.FUNCTION,
+            } as unknown as Column,
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('keeps original sort when an unsortable release field is added', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.RELEASE,
+            field: ['crash_free_rate(session)'],
+            sort: ['-crash_free_rate(session)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {field: 'crash_free_rate(session)', kind: 'desc'},
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {
+              function: ['crash_free_rate', 'session', undefined, undefined, undefined],
+              kind: FieldValueKind.FUNCTION,
+            } as unknown as Column,
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {field: 'crash_free_rate(session)', kind: 'desc'},
+      ]);
+    });
   });
 
   describe('yAxis', () => {
@@ -1145,6 +1489,36 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
+    });
+
+    it('clears the sort when the y-axis changes and there is no grouping', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()'],
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {function: ['count_unique', 'user', undefined, undefined], kind: 'function'},
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
     });
   });
 
@@ -1287,7 +1661,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
-        })
+        }),
+        {replace: true}
       );
     });
   });

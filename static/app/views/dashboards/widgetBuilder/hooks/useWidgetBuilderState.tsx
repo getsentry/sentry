@@ -21,8 +21,13 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
+import {
+  DISABLED_SORT,
+  TAG_SORT_DENY_LIST,
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
@@ -186,6 +191,7 @@ function useWidgetBuilderState(): {
 
   const dispatch = useCallback(
     (action: WidgetAction) => {
+      const currentDatasetConfig = getDatasetConfig(dataset);
       switch (action.type) {
         case BuilderStateAction.SET_TITLE:
           setTitle(action.payload);
@@ -193,7 +199,7 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_DESCRIPTION:
           setDescription(action.payload);
           break;
-        case BuilderStateAction.SET_DISPLAY_TYPE:
+        case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload);
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
@@ -224,12 +230,33 @@ function useWidgetBuilderState(): {
               newFields.length > 0 &&
               !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
             ) {
-              setSort([
-                {
-                  kind: 'desc',
-                  field: generateFieldAsString(newFields[0] as QueryFieldValue),
-                },
-              ]);
+              const validReleaseSortOptions = newFields.filter(field => {
+                const fieldString = generateFieldAsString(field);
+                return (
+                  !DISABLED_SORT.includes(fieldString) &&
+                  !TAG_SORT_DENY_LIST.includes(fieldString)
+                );
+              });
+
+              setSort(
+                dataset === WidgetType.RELEASE
+                  ? validReleaseSortOptions.length > 0
+                    ? [
+                        {
+                          kind: 'desc',
+                          field: generateFieldAsString(
+                            validReleaseSortOptions[0] as QueryFieldValue
+                          ),
+                        },
+                      ]
+                    : []
+                  : [
+                      {
+                        kind: 'desc',
+                        field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                      },
+                    ]
+              );
             }
           } else if (action.payload === DisplayType.BIG_NUMBER) {
             // TODO: Reset the selected aggregate here for widgets with equations
@@ -241,15 +268,31 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1));
           } else {
             setFields(columnsWithoutAlias);
-            setYAxis([
+            const nextAggregates = [
               ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
               ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
-            ]);
+            ];
+            if (nextAggregates.length === 0) {
+              nextAggregates.push({
+                ...currentDatasetConfig.defaultField,
+                alias: undefined,
+              });
+            }
+            setYAxis(nextAggregates);
+
+            if (dataset === WidgetType.RELEASE && sort?.length === 0) {
+              setSort(
+                decodeSorts(
+                  getDatasetConfig(WidgetType.RELEASE).defaultWidgetQuery.orderby
+                )
+              );
+            }
           }
           setThresholds(undefined);
           setSelectedAggregate(undefined);
           break;
-        case BuilderStateAction.SET_DATASET:
+        }
+        case BuilderStateAction.SET_DATASET: {
           setDataset(action.payload);
 
           let nextDisplayType = displayType;
@@ -288,9 +331,11 @@ function useWidgetBuilderState(): {
 
           setThresholds(undefined);
           setQuery([config.defaultWidgetQuery.conditions]);
+          setLegendAlias([]);
           setSelectedAggregate(undefined);
           break;
-        case BuilderStateAction.SET_FIELDS:
+        }
+        case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload);
           const isRemoved = action.payload.length < (fields?.length ?? 0);
           if (
@@ -306,21 +351,49 @@ function useWidgetBuilderState(): {
               return;
             }
 
+            const firstActionPayloadNotEquation: QueryFieldValue | undefined =
+              action.payload.filter(field => field.kind !== FieldValueKind.EQUATION)[0];
+
+            let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
+              ? [firstActionPayloadNotEquation]
+              : [];
+            if (dataset === WidgetType.RELEASE) {
+              validSortOptions = [
+                ...action.payload.filter(field => {
+                  const fieldString = generateFieldAsString(field);
+                  return (
+                    !DISABLED_SORT.includes(fieldString) &&
+                    !TAG_SORT_DENY_LIST.includes(fieldString)
+                  );
+                }),
+              ];
+            }
+
             if (isRemoved) {
-              setSort([
-                {
-                  kind: 'desc',
-                  field: generateFieldAsString(action.payload[0] as QueryFieldValue),
-                },
-              ]);
+              setSort(
+                validSortOptions.length > 0
+                  ? [
+                      {
+                        kind: 'desc',
+                        field: generateFieldAsString(
+                          validSortOptions[0] as QueryFieldValue
+                        ),
+                      },
+                    ]
+                  : []
+              );
             } else {
-              // Find the index of the first field that doesn't match the old fields.
+              // Find the index of the first field that doesn't match the old fields, is not an equation, and is not a disabled release sort option.
               const changedFieldIndex = action.payload.findIndex(
                 field =>
                   !fields?.find(
                     originalField =>
                       generateFieldAsString(originalField) ===
-                      generateFieldAsString(field)
+                        generateFieldAsString(field) ||
+                      originalField.kind === FieldValueKind.EQUATION ||
+                      (dataset === WidgetType.RELEASE &&
+                        (DISABLED_SORT.includes(generateFieldAsString(field)) ||
+                          TAG_SORT_DENY_LIST.includes(generateFieldAsString(field))))
                   )
               );
               if (changedFieldIndex !== -1) {
@@ -334,12 +407,53 @@ function useWidgetBuilderState(): {
                     ),
                   },
                 ]);
+              } else {
+                setSort(
+                  validSortOptions.length > 0
+                    ? [
+                        {
+                          kind: sort?.[0]?.kind ?? 'desc',
+                          field: generateFieldAsString(
+                            validSortOptions[0] as QueryFieldValue
+                          ),
+                        },
+                      ]
+                    : []
+                );
               }
             }
           }
+
+          if (
+            displayType !== DisplayType.TABLE &&
+            displayType !== DisplayType.BIG_NUMBER &&
+            action.payload.length > 0
+          ) {
+            const firstYAxisNotEquation = yAxis?.filter(
+              field => field.kind !== FieldValueKind.EQUATION
+            )[0];
+            const firstActionPayloadNotEquation = action.payload.filter(
+              field => field.kind !== FieldValueKind.EQUATION
+            )[0];
+            // Adding a grouping, so default the sort to the first aggregate if possible
+            setSort([
+              {
+                kind: 'desc',
+                field: generateFieldAsString(
+                  (firstYAxisNotEquation as QueryFieldValue) ??
+                    (firstActionPayloadNotEquation as QueryFieldValue)
+                ),
+              },
+            ]);
+          }
           break;
+        }
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
+          if (action.payload.length > 0 && fields?.length === 0) {
+            // Clear the sort if there is no grouping
+            setSort([]);
+          }
           break;
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload);

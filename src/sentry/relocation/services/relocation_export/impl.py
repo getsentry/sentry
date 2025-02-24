@@ -9,13 +9,14 @@ from io import BytesIO
 from uuid import UUID
 
 from django.db import router
+from django.db.utils import IntegrityError
 from sentry_sdk import capture_exception
 
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
     RelocationExportRequestNewExportParameters,
@@ -24,8 +25,8 @@ from sentry.relocation.services.relocation_export.service import (
     ControlRelocationExportService,
     RegionRelocationExportService,
 )
+from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, uuid_to_identifier
 from sentry.utils.db import atomic_transaction
-from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, uuid_to_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
-        from sentry.tasks.relocation import fulfill_cross_region_export_request
+        from sentry.relocation.tasks import fulfill_cross_region_export_request
 
         logger_data = {
             "uuid": relocation_uuid,
@@ -80,7 +81,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         encrypted_contents: bytes | None,
         encrypted_bytes: list[int] | None = None,
     ) -> None:
-        from sentry.tasks.relocation import uploading_complete
+        from sentry.relocation.tasks import uploading_complete
 
         with atomic_transaction(
             using=(
@@ -116,11 +117,16 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
             # idempotent, since only one (relocation_uuid, relocation_file_kind) pairing can exist
             # in that database's table at a time. If we try to write a second, it will fail due to
             # that unique constraint.
-            RelocationFile.objects.create(
-                relocation=relocation,
-                file=file,
-                kind=RelocationFile.Kind.RAW_USER_DATA.value,
-            )
+            try:
+                RelocationFile.objects.create(
+                    relocation=relocation,
+                    file=file,
+                    kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                )
+            except IntegrityError:
+                # We already have the file, we can proceed.
+                pass
+
             logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
 
             uploading_complete.apply_async(args=[relocation.uuid])

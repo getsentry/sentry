@@ -2,9 +2,9 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
@@ -179,7 +179,7 @@ function SpanDetail(props: Props) {
         data-test-id="view-child-transactions"
         size="xs"
         to={childrenEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
@@ -220,7 +220,7 @@ function SpanDetail(props: Props) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.project_id),
@@ -276,7 +276,7 @@ function SpanDetail(props: Props) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: span.op, group: span.hash},
@@ -297,11 +297,13 @@ function SpanDetail(props: Props) {
     }
 
     return (
-      <Alert type="info" showIcon system>
-        {t(
-          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon system>
+          {t(
+            'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -321,43 +323,45 @@ function SpanDetail(props: Props) {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
-        <ErrorMessageTitle>
-          {tn(
-            '%s error event or performance issue is associated with this span.',
-            '%s error events or performance issues are associated with this span.',
-            relatedErrors.length
-          )}
-        </ErrorMessageTitle>
-        <Fragment>
-          {visibleErrors.map(error => (
-            <ErrorMessageContent
-              key={error.event_id}
-              excludeLevel={isErrorPerformanceError(error)}
-            >
-              {isErrorPerformanceError(error) ? (
-                <ErrorDot level="error" />
-              ) : (
-                <Fragment>
-                  <ErrorDot level={error.level} />
-                  <ErrorLevel>{error.level}</ErrorLevel>
-                </Fragment>
-              )}
+      <Alert.Container>
+        <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'} system>
+          <ErrorMessageTitle>
+            {tn(
+              '%s error event or performance issue is associated with this span.',
+              '%s error events or performance issues are associated with this span.',
+              relatedErrors.length
+            )}
+          </ErrorMessageTitle>
+          <Fragment>
+            {visibleErrors.map(error => (
+              <ErrorMessageContent
+                key={error.event_id}
+                excludeLevel={isErrorPerformanceError(error)}
+              >
+                {isErrorPerformanceError(error) ? (
+                  <ErrorDot level="error" />
+                ) : (
+                  <Fragment>
+                    <ErrorDot level={error.level} />
+                    <ErrorLevel>{error.level}</ErrorLevel>
+                  </Fragment>
+                )}
 
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        </Fragment>
-        {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xs" onClick={toggleErrors}>
-            {errorsOpened ? t('Show less') : t('Show more')}
-          </ErrorToggle>
-        )}
-      </Alert>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </ErrorMessageContent>
+            ))}
+          </Fragment>
+          {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
+            <ErrorToggle size="xs" onClick={toggleErrors}>
+              {errorsOpened ? t('Show less') : t('Show more')}
+            </ErrorToggle>
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

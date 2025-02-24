@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {ASAP} from 'downsample/methods/ASAP';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
@@ -11,7 +12,6 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   platformToPerformanceType,
@@ -107,26 +107,28 @@ export const TRENDS_PARAMETERS: TrendParameter[] = [
   },
 ];
 
-export const trendToColor = {
-  [TrendChangeType.IMPROVED]: {
-    lighter: theme.green200,
-    default: theme.green300,
-  },
-  [TrendChangeType.REGRESSION]: {
-    lighter: theme.red200,
-    default: theme.red300,
-  },
-  neutral: {
-    lighter: theme.yellow200,
-    default: theme.yellow300,
-  },
-  // TODO remove this once backend starts sending
-  // TrendChangeType.IMPROVED as change type
-  improvement: {
-    lighter: theme.green200,
-    default: theme.green300,
-  },
-};
+export function makeTrendToColorMapping(theme: Theme) {
+  return {
+    [TrendChangeType.IMPROVED]: {
+      lighter: theme.green200,
+      default: theme.green300,
+    },
+    [TrendChangeType.REGRESSION]: {
+      lighter: theme.red200,
+      default: theme.red300,
+    },
+    neutral: {
+      lighter: theme.yellow200,
+      default: theme.yellow300,
+    },
+    // TODO remove this once backend starts sending
+    // TrendChangeType.IMPROVED as change type
+    improvement: {
+      lighter: theme.green200,
+      default: theme.green300,
+    },
+  };
+}
 
 export const trendSelectedQueryKeys = {
   [TrendChangeType.IMPROVED]: 'improvedSelected',
@@ -163,7 +165,7 @@ export function getCurrentTrendFunction(
 
 function getDefaultTrendParameter(
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const performanceType = platformToPerformanceType(projects, projectIds);
   const trendParameter = performanceTypeToTrendParameterLabel(performanceType!);
@@ -174,7 +176,7 @@ function getDefaultTrendParameter(
 export function getCurrentTrendParameter(
   location: Location,
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
   const trendParameter = TRENDS_PARAMETERS.find(
@@ -249,7 +251,7 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  canUseMetricsTrends: boolean = false
+  canUseMetricsTrends = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
@@ -342,8 +344,8 @@ export function transformValueDelta(value: number, trendType: TrendChangeType) {
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
-): Array<NormalizedTrendsTransaction> {
+  data: TrendsTransaction[]
+): NormalizedTrendsTransaction[] {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
     return {
@@ -355,12 +357,12 @@ export function normalizeTrends(
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendSelectedQueryKeys[trendChangeType];
 }
 
 export function getUnselectedSeries(trendChangeType: TrendChangeType) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendUnselectedSeries[trendChangeType];
 }
 
@@ -390,7 +392,7 @@ function getLimitTransactionItems(query: string) {
   return limitQuery.formatString();
 }
 
-export const smoothTrend = (data: [number, number][], resolution = 100) => {
+export const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
   return ASAP(data, resolution);
 };
 
@@ -423,6 +425,8 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
       currentData.map(({name, value}) => [Number(name), value])
     );
 
+    // smoothed is not iterable - only indexable
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < smoothed.length; i++) {
       const point = smoothed[i] as any;
       const value = point.y;

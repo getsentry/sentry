@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -7,13 +8,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
   resolution: string;
   since: number;
+  theme: Theme;
 };
 
 type State = {
@@ -91,15 +92,15 @@ class EventChart extends Component<Props, State> {
     const aReceived = [0, 0]; // received, points
 
     rawData['events.total']!.forEach((point, idx) => {
-      const dReceived = point![1];
-      const dRejected = rawData['events.dropped']![idx]!?.[1];
-      const ts = point![0]!;
+      const dReceived = point[1];
+      const dRejected = rawData['events.dropped']![idx]?.[1];
+      const ts = point[0];
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
-        sRejected[ts] = dRejected;
+        sRejected[ts] = dRejected!;
       } else {
         sReceived[ts] += dReceived;
-        sRejected[ts]! += dRejected;
+        sRejected[ts]! += dRejected!;
       }
       if (dReceived > 0) {
         aReceived[0]! += dReceived;
@@ -129,12 +130,12 @@ class EventChart extends Component<Props, State> {
       {
         seriesName: t('Accepted'),
         data: stats.accepted!,
-        color: theme.blue300,
+        color: this.props.theme.blue300,
       },
       {
         seriesName: t('Dropped'),
         data: stats.rejected!,
-        color: theme.red200,
+        color: this.props.theme.red200,
       },
     ];
   }

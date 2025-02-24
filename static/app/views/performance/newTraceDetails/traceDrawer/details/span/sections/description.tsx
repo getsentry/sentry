@@ -33,7 +33,8 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
@@ -41,6 +42,7 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 import type {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {TraceDrawerComponents} from '../../styles';
+import {getSearchInExploreTarget, TraceDrawerActionKind} from '../../utils';
 import SpanSummaryLink from '../components/spanSummaryLink';
 
 const formatter = new SQLishFormatter();
@@ -76,7 +78,7 @@ export function SpanDescription({
 }) {
   const hasTraceNewUi = useHasTraceNewUi();
   const span = node.value;
-
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
@@ -115,43 +117,66 @@ export function SpanDescription({
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+  const showAction = hasTraceDrawerAction ? !!span.description : !!span.op && !!span.hash;
   const averageSpanDuration: number | undefined =
     span['span.averageResults']?.['avg(span.duration)'];
 
-  const actions =
-    !span.op || !span.hash ? null : (
-      <BodyContentWrapper
-        padding={
-          resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
+  const actions = !showAction ? null : (
+    <BodyContentWrapper
+      padding={
+        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
+      }
+    >
+      <SpanSummaryLink event={node.event!} organization={organization} span={span} />
+      <Link
+        to={
+          hasTraceDrawerAction
+            ? getSearchInExploreTarget(
+                organization,
+                location,
+                node.event?.projectID,
+                SpanIndexedField.SPAN_DESCRIPTION,
+                span.description!,
+                TraceDrawerActionKind.INCLUDE
+              )
+            : spanDetailsRouteWithQuery({
+                organization,
+                transaction: node.event?.title ?? '',
+                query: location.query,
+                spanSlug: {op: span.op!, group: groupHash},
+                projectID: node.event?.projectID,
+              })
         }
+        onClick={() => {
+          if (hasTraceDrawerAction) {
+            traceAnalytics.trackExploreSearch(
+              organization,
+              SpanIndexedField.SPAN_DESCRIPTION,
+              span.description!,
+              TraceDrawerActionKind.INCLUDE,
+              'drawer'
+            );
+          } else if (hasNewSpansUIFlag) {
+            trackAnalytics('trace.trace_layout.view_span_summary', {
+              organization,
+              module: resolvedModule,
+            });
+          } else {
+            trackAnalytics('trace.trace_layout.view_similar_spans', {
+              organization,
+              module: resolvedModule,
+              source: 'span_description',
+            });
+          }
+        }}
       >
-        <SpanSummaryLink event={node.event!} organization={organization} span={span} />
-        <Link
-          to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: node.event?.title ?? '',
-            query: location.query,
-            spanSlug: {op: span.op, group: groupHash},
-            projectID: node.event?.projectID,
-          })}
-          onClick={() => {
-            hasNewSpansUIFlag
-              ? trackAnalytics('trace.trace_layout.view_span_summary', {
-                  organization,
-                  module: resolvedModule,
-                })
-              : trackAnalytics('trace.trace_layout.view_similar_spans', {
-                  organization,
-                  module: resolvedModule,
-                  source: 'span_description',
-                });
-          }}
-        >
-          <StyledIconGraph type="scatter" size="xs" />
-          {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}
-        </Link>
-      </BodyContentWrapper>
-    );
+        <StyledIconGraph type="scatter" size="xs" />
+        {hasNewSpansUIFlag || hasTraceDrawerAction
+          ? t('More Samples')
+          : t('View Similar Spans')}
+      </Link>
+    </BodyContentWrapper>
+  );
 
   const value =
     resolvedModule === ModuleName.DB ? (
@@ -385,23 +410,25 @@ function LegacySpanDescription({
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: node.event?.title ?? '',
             query: location.query,
             spanSlug: {op: span.op, group: groupHash},
             projectID: node.event?.projectID,
           })}
           onClick={() => {
-            hasNewSpansUIFlag
-              ? trackAnalytics('trace.trace_layout.view_span_summary', {
-                  organization,
-                  module: resolvedModule,
-                })
-              : trackAnalytics('trace.trace_layout.view_similar_spans', {
-                  organization,
-                  module: resolvedModule,
-                  source: 'span_description',
-                });
+            if (hasNewSpansUIFlag) {
+              trackAnalytics('trace.trace_layout.view_span_summary', {
+                organization,
+                module: resolvedModule,
+              });
+            } else {
+              trackAnalytics('trace.trace_layout.view_similar_spans', {
+                organization,
+                module: resolvedModule,
+                source: 'span_description',
+              });
+            }
           }}
         >
           {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}

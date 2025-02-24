@@ -84,11 +84,12 @@ function Filter({
         toggleOperationNameFilter(opt.value);
 
         // Don't send individual analytics events if user clicked on the "Clear" button
-        selectedOpts.length !== 0 &&
+        if (selectedOpts.length !== 0) {
           trackAnalytics('performance_views.event_details.filter_by_op', {
             organization,
             operation: opt.label,
           });
+        }
       }
     });
   }

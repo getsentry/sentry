@@ -50,13 +50,19 @@ export const ChartControls = styled('div')`
 `;
 
 // Header element for charts within panels.
+// @TODO(jonasbadalic) This should be a title component and not a div
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
-  ${p => p.theme.text.cardTitle};
+
   color: ${p => p.theme.headingColor};
   align-items: center;
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 // Header element for charts within panels

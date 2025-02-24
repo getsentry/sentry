@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -8,11 +7,11 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
+import {Alert} from 'sentry/components/core/alert';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
@@ -22,12 +21,13 @@ import {
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
-import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -55,8 +55,6 @@ import {
   getMeasurements,
   type MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -118,8 +116,8 @@ type Props = {
   disableProjectSelector?: boolean;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
-  isForLlmMetric?: boolean;
   isLowConfidenceChartData?: boolean;
+  isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
 };
@@ -157,7 +155,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const {measurements} = this.state;
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         measurement_tags[key] = {
           ...measurements[key],
           kind: FieldKind.MEASUREMENT,
@@ -254,12 +252,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
-    const {alertType} = this.props;
-
-    if (alertType === 'custom_metrics') {
-      // Do not show ONE MINUTE interval as an option for custom_metrics alert
-      options = omit(options, TimeWindow.ONE_MINUTE.toString());
-    }
 
     if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
@@ -351,7 +343,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (
       organization.features.includes('performance-view') &&
-      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+      alertType === 'custom_transactions'
     ) {
       dataSourceOptions.push({
         label: t('Transactions'),
@@ -403,7 +395,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
-                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
 
                 model.setValue('dataset', datasetFromDataSource);
@@ -491,15 +483,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {
-      organization,
-      timeWindow,
-      disabled,
-      alertType,
-      project,
-      isForLlmMetric,
-      onTimeWindowChange,
-    } = this.props;
+    const {organization, timeWindow, disabled, alertType, project, onTimeWindowChange} =
+      this.props;
 
     return (
       <Fragment>
@@ -509,24 +494,22 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {isForLlmMetric ? null : (
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              project={project}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            project={project}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+          />
           <SelectControl
             name="timeWindow"
             styles={this.selectControlStyles}
@@ -553,14 +536,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isExtrapolatedChartData,
       isTransactionMigration,
       isErrorMigration,
-      aggregate,
       project,
       comparisonType,
       isLowConfidenceChartData,
+      isOnDemandLimitReached,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
-    const environmentOptions: SelectValue<string | null>[] = [
+    const environmentOptions: Array<SelectValue<string | null>> = [
       {
         value: null,
         label: t('All Environments'),
@@ -599,11 +582,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 />
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert showIcon type="warning">
-                  {t(
-                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
-                  )}
-                </Alert>
+                <Alert.Container>
+                  <Alert showIcon type="warning">
+                    {t(
+                      'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                    )}
+                  </Alert>
+                </Alert.Container>
               )}
               {!isErrorMigration && this.renderInterval()}
               <StyledListItem>{t('Filter events')}</StyledListItem>
@@ -646,22 +631,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
-                    return hasCustomMetrics(organization) &&
-                      alertType === 'custom_metrics' ? (
-                      <MetricSearchBar
-                        mri={getMRI(aggregate)}
-                        projectIds={[project.id]}
-                        placeholder={this.searchPlaceholder}
-                        query={initialData.query}
-                        defaultQuery={initialData?.query ?? ''}
-                        useFormWrapper={false}
-                        searchSource="alert_builder"
-                        onChange={query => {
-                          onFilterSearch(query, true);
-                          onChange(query, {});
-                        }}
-                      />
-                    ) : alertType === 'eap_metrics' ? (
+                    return alertType === 'eap_metrics' ? (
                       <SpanTagsContext.Consumer>
                         {tags => (
                           <EAPSpanSearchQueryBuilder
@@ -713,24 +683,46 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               : dataset === Dataset.GENERIC_METRICS
                           }
                         />
-                        {isExtrapolatedChartData && isOnDemandQueryString(value) && (
-                          <OnDemandWarningIcon
-                            color="gray500"
-                            msg={tct(
-                              `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
-                              {
-                                fields: (
-                                  <strong>
-                                    {getOnDemandKeys(value)
-                                      .map(key => `"${key}"`)
-                                      .join(', ')}
-                                  </strong>
-                                ),
-                                strong: <strong />,
-                              }
-                            )}
-                          />
-                        )}
+                        {isExtrapolatedChartData &&
+                          isOnDemandQueryString(value) &&
+                          (isOnDemandLimitReached ? (
+                            <OnDemandWarningIcon
+                              color="red400"
+                              msg={tct(
+                                'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
+                                {
+                                  fields: (
+                                    <strong>
+                                      {getOnDemandKeys(value)
+                                        .map(key => `"${key}"`)
+                                        .join(', ')}
+                                    </strong>
+                                  ),
+                                  docLink: (
+                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
+                                  ),
+                                }
+                              )}
+                              isHoverable
+                            />
+                          ) : (
+                            <OnDemandWarningIcon
+                              color="gray500"
+                              msg={tct(
+                                'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
+                                {
+                                  fields: (
+                                    <strong>
+                                      {getOnDemandKeys(value)
+                                        .map(key => `"${key}"`)
+                                        .join(', ')}
+                                    </strong>
+                                  ),
+                                  strong: <strong />,
+                                }
+                              )}
+                            />
+                          ))}
                       </SearchContainer>
                     );
                   }}

@@ -36,7 +36,12 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
 
@@ -55,6 +60,7 @@ const MAX_ROWS = 10;
 export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const location = useLocation();
   const organization = useOrganization();
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
     location.query[SpanIndexedField.USER_GEO_SUBREGION]
@@ -96,11 +102,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     return data
       .map(row => ({
         ...row,
-        opportunity:
-          Math.round(
-            (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
-              sumWeights
-          ) / 100,
+        opportunity: Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -207,7 +209,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
           <Link
             to={{
               ...location,
-              pathname: `${location.pathname}overview/`,
+              pathname: `${moduleUrl}/overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
@@ -223,15 +225,15 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     }
     if (key === 'count') {
       const count =
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
       return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
     | number

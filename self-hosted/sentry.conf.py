@@ -38,7 +38,6 @@ import os.path
 from sentry.conf.server import *
 from sentry.utils.types import Bool
 
-CONF_ROOT = os.path.dirname(__file__)
 env = os.environ.get
 
 postgres = env("SENTRY_POSTGRES_HOST") or (env("POSTGRES_PORT_5432_TCP_ADDR") and "postgres")

@@ -9,7 +9,6 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
-from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.db import router
 from django.utils import timezone
@@ -37,7 +36,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.snuba.metrics import TransactionMRI
+from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -85,7 +85,11 @@ class MockAccess:
 
 
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
-class OrganizationDetailsTest(OrganizationDetailsTestBase):
+class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
+    @property
+    def now(self):
+        return datetime.now().replace(microsecond=0)
+
     def test_simple(self):
         response = self.get_success_response(
             self.organization.slug, qs_params={"include_feature_flags": 1}
@@ -271,10 +275,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             assert response_data[i]["name"] == trusted_relays[i]["name"]
             assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = parse_date(response_data[i]["lastModified"])
+            last_modified = datetime.fromisoformat(response_data[i]["lastModified"])
             assert start_time < last_modified < end_time
             # check that created is in the correct range
-            created = parse_date(response_data[i]["created"])
+            created = datetime.fromisoformat(response_data[i]["created"])
             assert start_time < created < end_time
 
     def test_has_auth_provider(self):
@@ -559,6 +563,54 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         assert response.status_code == 403
 
+    @django_db_all
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_sampling_mode_change_with_deleted_projects_that_had_metrics(self):
+        project_1 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(organization=self.organization)
+
+        # Create a team member for project_1 only
+        team_1 = self.create_team(organization=self.organization)
+        project_1.add_team(team_1)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="owner", teams=[team_1]
+        )
+        self.login_as(user=member_user)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=60 * 24 * 12,
+            value=1,
+            project_id=project_1.id,
+            org_id=self.organization.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=60 * 24 * 12,
+            value=1,
+            project_id=project_2.id,
+            org_id=self.organization.id,
+        )
+
+        project_2.delete()
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.PROJECT.value,
+            )
+
+        assert ProjectOption.objects.filter(
+            project_id=project_1.id, key="sentry:target_sample_rate"
+        )
+        assert not ProjectOption.objects.filter(
+            project_id=project_2.id, key="sentry:target_sample_rate"
+        )
+
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
@@ -684,7 +736,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
@@ -727,8 +779,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "metricsActivatePercentiles": False,
-            "metricsActivateLastForGauges": True,
             "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "organization",
@@ -769,8 +819,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:metrics_activate_percentiles") is False
-        assert options.get("sentry:metrics_activate_last_for_gauges") is True
+
         assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "organization"
@@ -810,19 +859,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
-        assert (
-            "to {}".format(data["metricsActivatePercentiles"])
-            in log.data["metricsActivatePercentiles"]
-        )
-        assert (
-            "to {}".format(data["metricsActivateLastForGauges"])
-            in log.data["metricsActivateLastForGauges"]
-        )
         assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -927,11 +968,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert response_data[i]["name"] == trusted_relays[i]["name"]
             assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = parse_date(actual[i]["last_modified"])
+            last_modified = datetime.fromisoformat(actual[i]["last_modified"])
             assert start_time < last_modified < end_time
             assert response_data[i]["lastModified"] == actual[i]["last_modified"]
             # check that created is in the correct range
-            created = parse_date(actual[i]["created"])
+            created = datetime.fromisoformat(actual[i]["created"])
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
@@ -1008,8 +1049,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert actual[i]["name"] == modified_trusted_relays[i]["name"]
             assert actual[i]["description"] == modified_trusted_relays[i]["description"]
 
-            last_modified = parse_date(actual[i]["last_modified"])
-            created = parse_date(actual[i]["created"])
+            last_modified = datetime.fromisoformat(actual[i]["last_modified"])
+            created = datetime.fromisoformat(actual[i]["created"])
             key = modified_trusted_relays[i]["publicKey"]
 
             if key == _VALID_RELAY_KEYS[1]:

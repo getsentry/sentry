@@ -151,7 +151,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     }
 
     const flamegraphTarget = generateProfileFlamechartRoute({
-      orgSlug: props.baggage.organization.slug,
+      organization: props.baggage.organization,
       projectSlug: project.slug,
       profileId: value,
     });
@@ -238,7 +238,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     if (defined(project)) {
       const linkToSummary = profilesRouteWithQuery({
         query: props.baggage.location.query,
-        orgSlug: props.baggage.organization.slug,
+        organization: props.baggage.organization,
         projectID: project.id,
         transaction: props.dataRow.transaction,
       });
@@ -298,14 +298,15 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
           <Count value={value} />
         </NumberContainer>
       );
-    case 'duration':
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    case 'duration': {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const multiplier = columnUnit ? DURATION_UNITS[columnUnit as string] ?? 1 : 1;
       return (
         <NumberContainer>
           <PerformanceDuration milliseconds={value * multiplier} abbreviation />
         </NumberContainer>
       );
+    }
     case 'date':
       return (
         <Container>
@@ -552,9 +553,9 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
 };
 
 function getColumnOrder<F extends FieldType>(field: F): GridColumnOrder<F> {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (COLUMN_ORDERS[field as string]) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return COLUMN_ORDERS[field as string] as GridColumnOrder<F>;
   }
 

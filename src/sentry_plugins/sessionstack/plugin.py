@@ -10,6 +10,7 @@ from sentry.models.project import Project
 from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.utils.settings import is_self_hosted
 from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from .client import InvalidApiUrlError, InvalidWebsiteIdError, SessionStackClient, UnauthorizedError
 
@@ -84,7 +85,6 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         account_email = self.get_option("account_email", project)
-        api_token = self.get_option("api_token", project)
         website_id = self.get_option("website_id", project)
         api_url = self.get_option("api_url", project)
         player_url = self.get_option("player_url", project)
@@ -98,14 +98,13 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
                 "placeholder": 'e.g. "user@example.com"',
                 "required": True,
             },
-            {
-                "name": "api_token",
-                "label": "API Token",
-                "default": api_token,
-                "type": "text",
-                "help": "SessionStack generated API token.",
-                "required": True,
-            },
+            get_secret_field_config(
+                name="api_token",
+                label="API Token",
+                secret=self.get_option("api_token", project),
+                help="SessionStack generated API token.",
+                required=True,
+            ),
             {
                 "name": "website_id",
                 "label": "Website ID",

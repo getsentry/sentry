@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
+from urllib.parse import quote as urlquote
+from urllib.parse import urlparse, urlunparse
 
 import sentry_sdk
 
@@ -14,17 +16,13 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
-
-REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{result}"
-REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{result}"
 
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -39,6 +37,8 @@ class BaseRepositoryIntegration(ABC):
         The shape of the `identifier` should match the data
         returned by the integration's
         IntegrationRepositoryProvider.repository_external_slug()
+
+        You can use the `query` argument to filter repositories.
         """
         raise NotImplementedError
 
@@ -97,7 +97,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         """
         return []
 
-    def record_event(self, event: SCMIntegrationInteractionType):
+    def record_event(self, event: SCMIntegrationInteractionType) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.integration_name,
@@ -118,7 +118,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
-        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture():
+        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture() as lifecycle:
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
@@ -132,11 +132,12 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             except IdentityNotValid:
                 return None
             except ApiError as e:
-                if e.code != 404:
+                if e.code in (404, 400):
+                    lifecycle.record_halt(e)
+                    return None
+                else:
                     sentry_sdk.capture_exception()
                     raise
-
-                return None
 
             return self.format_source_url(repo, filepath, branch)
 
@@ -160,22 +161,29 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 {
                     "filepath": filepath,
                     "default": default,
-                    "version": version,
+                    "version": version or "",
                     "organization_id": repo.organization_id,
                 }
             )
             scope = sentry_sdk.Scope.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
+
+            def encode_url(url: str) -> str:
+                parsed = urlparse(url)
+                # Encode elements of the filepath like square brackets
+                # Preserve path separators and query params etc.
+                return urlunparse(parsed._replace(path=urlquote(parsed.path, safe="/")))
+
             if version:
                 scope.set_tag("stacktrace_link.tried_version", True)
                 source_url = self.check_file(repo, filepath, version)
                 if source_url:
                     scope.set_tag("stacktrace_link.used_version", True)
-                    return source_url
+                    return encode_url(source_url)
+
             scope.set_tag("stacktrace_link.used_version", False)
             source_url = self.check_file(repo, filepath, default)
-
-            return source_url
+            return encode_url(source_url) if source_url else None
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None
@@ -197,7 +205,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
-                    "ref": ref,
+                    "ref": ref or "",
                     "organization_id": repo.organization_id,
                 }
             )
@@ -217,7 +225,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
 
 class RepositoryClient(ABC):
     @abstractmethod
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """Check if the file exists. Currently used for stacktrace linking and CODEOWNERS."""
         raise NotImplementedError
 

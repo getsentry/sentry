@@ -26,7 +26,7 @@ import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQue
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
@@ -107,7 +107,7 @@ function DestinationSummaryPage() {
                         value={data[0]?.['sum(span.duration)']}
                         unit={DurationUnit.MILLISECOND}
                         tooltip={getTimeSpentExplanation(
-                          data[0]!?.['time_spent_percentage(app,span.duration)']
+                          data[0]?.['time_spent_percentage(app,span.duration)']!
                         )}
                         isLoading={isPending}
                       />
@@ -117,7 +117,10 @@ function DestinationSummaryPage() {
               </ModuleLayout.Full>
 
               {onboardingProject && (
-                <Onboarding organization={organization} project={onboardingProject} />
+                <LegacyOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                />
               )}
 
               {!onboardingProject && (

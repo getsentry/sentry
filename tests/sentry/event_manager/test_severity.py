@@ -67,7 +67,7 @@ class TestGetEventSeverity(TestCase):
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/v0/issues/severity-score?",
+            "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=0.2,
@@ -83,11 +83,11 @@ class TestGetEventSeverity(TestCase):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score?",
+                "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={
                     "content-type": "application/json;charset=utf-8",
-                    "Authorization": "Rpcsignature rpc0:8d982376e4e49ffe845ed39853f6f2cb9bf38564d2a8a325dcd88abba8c58564",
+                    "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
                 },
                 timeout=0.2,
             )
@@ -119,7 +119,7 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score?",
+                "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
                 timeout=0.2,
@@ -143,9 +143,7 @@ class TestGetEventSeverity(TestCase):
             )
         )
         event = manager.save(self.project.id)
-        # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
-        # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
-        event.get_event_metadata()["title"] = "Dogs are great!"  # type: ignore[index]
+        event.data["metadata"]["title"] = "Dogs are great!"
 
         _get_severity_score(event)
 

@@ -4,61 +4,65 @@ import styled from '@emotion/styled';
 
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
+import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
-type StoryFunction = (storyName: string, storyRender: StoryRenderFunction) => void;
-type SetupFunction = (story: StoryFunction) => void;
+type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
+type SetupFunction = (
+  story: StoryContext,
+  apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
+) => void;
 
 export default function storyBook(
-  bookContext: string | React.ComponentType<any>,
+  title: string,
   setup: SetupFunction
 ): StoryRenderFunction {
-  const contexts: {name: string; render: StoryRenderFunction}[] = [];
+  const stories: Array<{
+    name: string;
+    render: StoryRenderFunction;
+  }> = [];
+  const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
 
-  const storyFn: StoryFunction = (name: string, render: StoryRenderFunction) => {
-    contexts.push({name, render});
+  const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
+    stories.push({name, render});
   };
 
-  setup(storyFn);
+  const apiReferenceFn: (
+    documentation: TypeLoader.ComponentDocWithFilename | undefined
+  ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
+    APIDocumentation.push(documentation);
+  };
 
-  // @TODO (JonasBadalic): we can props or use a context to communciate with the storyFile component
+  setup(storyFn, apiReferenceFn);
+
   return function RenderStory() {
-    const title =
-      typeof bookContext === 'string'
-        ? bookContext
-        : bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name;
-
     return (
       <Fragment>
-        {typeof bookContext === 'string' ? (
-          <BookTitle>{title}</BookTitle>
-        ) : (
-          <BookTitle>
-            <code>{`<${title}/>`}</code>
-          </BookTitle>
-        )}
-        {contexts.map(({name, render}, i) => {
-          const children = render();
-          const isOneChild = Children.count(children) === 1;
-          const key = `${i}_${name}`;
-
-          return (
-            <Story key={key}>
-              <StoryTitle id={key}>{name}</StoryTitle>
-              {isOneChild ? children : <SideBySide>{children}</SideBySide>}
-            </Story>
-          );
-        })}
+        <StoryTitle>{title}</StoryTitle>
+        {stories.map(({name, render}, i) => (
+          <Story key={i} name={name} render={render} />
+        ))}
+        {APIDocumentation.map((documentation, i) => (
+          <StoryTypes key={i} types={documentation} />
+        ))}
       </Fragment>
     );
   };
 }
 
-const BookTitle = styled('h3')`
-  margin: 0;
-`;
+function Story(props: {name: string; render: StoryRenderFunction}) {
+  const children = props.render();
+  const isOneChild = Children.count(children) === 1;
 
-const Story = styled('section')`
+  return (
+    <StorySection>
+      <StoryTitle>{props.name}</StoryTitle>
+      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+    </StorySection>
+  );
+}
+
+export const StorySection = styled('section')`
   margin-top: ${space(4)};
 
   & > p {
@@ -66,6 +70,7 @@ const Story = styled('section')`
   }
 `;
 
-const StoryTitle = styled('h4')`
+export const StoryTitle = styled('h3')`
   border-bottom: 1px solid ${p => p.theme.border};
+  scroll-margin-top: ${space(2)};
 `;

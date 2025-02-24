@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {FeatureFlag} from 'sentry/types/event';
 
-export const MOCK_FLAGS: Required<FeatureFlag>[] = [
+export const MOCK_FLAGS: Array<Required<FeatureFlag>> = [
   {
     flag: 'mobile-replay-ui',
     result: false,
@@ -23,10 +23,123 @@ export const MOCK_FLAGS: Required<FeatureFlag>[] = [
   },
 ];
 
+export const MOCK_FLAGS_MANY: Array<Required<FeatureFlag>> = [
+  {
+    flag: 'mobile-replay-ui',
+    result: false,
+  },
+  {
+    flag: 'web-vitals-ui',
+    result: true,
+  },
+  {
+    flag: 'enable-replay',
+    result: true,
+  },
+  {
+    flag: 'secret-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+  {
+    flag: 'test-feature',
+    result: false,
+  },
+];
+
 export const MOCK_DATA_SECTION_PROPS = {
   event: EventFixture({
     id: 'abc123def456ghi789jkl',
     contexts: {flags: {values: MOCK_FLAGS}},
+  }),
+  project: ProjectFixture(),
+  group: GroupFixture(),
+};
+
+export const MOCK_DATA_SECTION_PROPS_MANY_FLAGS = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {flags: {values: MOCK_FLAGS_MANY}},
+  }),
+  project: ProjectFixture(),
+  group: GroupFixture(),
+};
+
+export const MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {flags: {values: MOCK_FLAGS_MANY.slice(0, 21)}},
   }),
   project: ProjectFixture(),
   group: GroupFixture(),

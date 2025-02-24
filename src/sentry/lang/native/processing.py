@@ -10,7 +10,6 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
-from sentry.features.rollout import in_random_rollout
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -25,6 +24,7 @@ from sentry.lang.native.utils import (
     signal_from_data,
 )
 from sentry.models.eventerror import EventError
+from sentry.options.rollout import in_random_rollout
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
@@ -134,6 +134,8 @@ def _handle_image_status(status, image, os, data):
         error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
     elif status == "fetching_failed":
         error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
+    elif status == "timeout":
+        error = SymbolicationFailed(type=EventError.FETCH_TIMEOUT)
     elif status == "other":
         error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
     else:

@@ -1,3 +1,6 @@
+import pytest
+from jsonschema import ValidationError
+
 from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
@@ -6,7 +9,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueOccurrencesCondition(ConditionTestCase):
     condition = Condition.ISSUE_OCCURRENCES
-    rule_cls = IssueOccurrencesFilter
     payload = {
         "id": IssueOccurrencesFilter.id,
         "value": "10",
@@ -23,7 +25,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "value": "10",
+                "value": 10,
             },
             condition_result=True,
         )
@@ -34,10 +36,26 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "value": "10",
+            "value": 10,
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        self.dc.comparison.update({"value": 2000})
+        self.dc.save()
+
+        self.dc.comparison.update({"value": -1})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"value": "2000"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"hello": "there"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
     def test_compares_correctly(self):
         self.group.update(times_seen=11)

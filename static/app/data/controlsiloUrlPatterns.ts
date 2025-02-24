@@ -98,6 +98,7 @@ const patterns: readonly RegExp[] = [
   new RegExp('^api/0/sentry-apps/[^/]+/rotate-secret/$'),
   new RegExp('^api/0/sentry-apps/[^/]+/stats/$'),
   new RegExp('^api/0/sentry-apps/[^/]+/publish-request/$'),
+  new RegExp('^api/0/sentry-apps/[^/]+/webhook-requests/$'),
   new RegExp('^api/0/sentry-app-installations/[^/]+/$'),
   new RegExp('^api/0/sentry-app-installations/[^/]+/authorizations/$'),
   new RegExp('^api/0/auth/$'),

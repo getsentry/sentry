@@ -54,7 +54,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'onSelectionChange'
       | 'autoFocus'
     > {
-  items: SelectOptionOrSectionWithKey<Value>[];
+  items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
    * This list's index number inside composite select menus.
    */
@@ -116,9 +116,9 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected options and returns whether to close the menu.
    */
-  closeOnSelect?: boolean | ((selectedOptions: SelectOption<Value>[]) => boolean);
+  closeOnSelect?: boolean | ((selectedOptions: Array<SelectOption<Value>>) => boolean);
   defaultValue?: Value[];
-  onChange?: (selectedOptions: SelectOption<Value>[]) => void;
+  onChange?: (selectedOptions: Array<SelectOption<Value>>) => void;
   value?: Value[];
 }
 

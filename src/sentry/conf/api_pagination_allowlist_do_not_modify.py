@@ -5,6 +5,8 @@
 """
 
 SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
+    "ProjectUptimeAlertCheckIndexEndpoint",
+    "OrganizationUptimeStatsEndpoint",
     "ApiTokensEndpoint",
     "AssistantEndpoint",
     "AuthenticatorIndexEndpoint",
@@ -26,11 +28,11 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "JiraSearchEndpoint",
     "JiraServerSearchEndpoint",
     "KeyTransactionEndpoint",
-    "OrgAuthTokensEndpoint",
     "OrganizationAccessRequestDetailsEndpoint",
     "OrganizationAlertRuleAvailableActionIndexEndpoint",
     "OrganizationApiKeyIndexEndpoint",
     "OrganizationAuthProvidersEndpoint",
+    "OrganizationAuthTokensEndpoint",
     "OrganizationDeriveCodeMappingsEndpoint",
     "OrganizationEnvironmentsEndpoint",
     "OrganizationEventsFacetsEndpoint",
@@ -79,7 +81,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectIssuesResolvedInReleaseEndpoint",
     "ProjectMemberIndexEndpoint",
     "ProjectMonitorStatsEndpoint",
-    "ProjectPlatformsEndpoint",
     "ProjectPluginsEndpoint",
     "ProjectReleaseSetupCompletionEndpoint",
     "ProjectRuleStatsIndexEndpoint",
@@ -91,6 +92,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectUsersEndpoint",
     "ReleaseThresholdEndpoint",
     "SentryAppRequestsEndpoint",
+    "SentryAppWebhookRequestsEndpoint",
     "SentryAppsStatsEndpoint",
     "SentryInternalAppTokensEndpoint",
     "TeamGroupsOldEndpoint",

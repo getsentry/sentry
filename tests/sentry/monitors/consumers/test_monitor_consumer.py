@@ -1,7 +1,7 @@
 import contextlib
 import uuid
 from collections.abc import Generator, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
 
@@ -74,6 +74,7 @@ class MonitorConsumerTest(TestCase):
         monitor_slug: str,
         guid: str | None = None,
         ts: datetime | None = None,
+        item_ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
         expected_error: ProcessingErrorsException | ExpectNoProcessingError | None = None,
         expected_monitor_slug: str | None = None,
@@ -81,6 +82,8 @@ class MonitorConsumerTest(TestCase):
     ) -> None:
         if ts is None:
             ts = datetime.now()
+        if item_ts is None:
+            item_ts = ts
         if consumer is None:
             consumer = self.create_consumer()
 
@@ -90,7 +93,6 @@ class MonitorConsumerTest(TestCase):
         payload = {
             "monitor_slug": monitor_slug,
             "status": "ok",
-            "duration": None,
             "check_in_id": self.guid,
             "environment": "production",
             "contexts": {"trace": {"trace_id": self.trace_id}},
@@ -101,7 +103,7 @@ class MonitorConsumerTest(TestCase):
             "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
-            "payload": json.dumps(payload),
+            "payload": json.dumps(payload).encode(),
             "sdk": "test/1.0",
             "retention_days": 90,
         }
@@ -113,7 +115,7 @@ class MonitorConsumerTest(TestCase):
                         KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
                         self.partition,
                         1,
-                        ts,
+                        item_ts,
                     )
                 )
             )
@@ -146,7 +148,7 @@ class MonitorConsumerTest(TestCase):
                 datetime.fromtimestamp(expected_checkin["start_time"]),
                 self.partition.index,
                 expected_checkin,
-                json.loads(expected_checkin["payload"]),  # type: ignore[arg-type]
+                json.loads(expected_checkin["payload"]),
             )
             if expected_monitor_slug:
                 expected_error.monitor = Monitor.objects.get(
@@ -188,7 +190,6 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.monitor_config == monitor.config
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
@@ -212,7 +213,7 @@ class MonitorConsumerTest(TestCase):
         into groups by their monitor slug / environment
         """
         factory = StoreMonitorCheckInStrategyFactory(
-            mode="parallel",
+            mode="batched-parallel",
             max_batch_size=4,
             max_workers=1,
         )
@@ -258,7 +259,6 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.monitor_config == monitor.config
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
@@ -282,7 +282,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
@@ -300,7 +299,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
         # The created monitor environment is in line with the check-in, but the
@@ -313,6 +311,17 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
             checkin.date_added
         )
+
+    def test_check_in_date_clock(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        item_ts = now
+        ts = now + timedelta(seconds=5)
+
+        self.send_checkin(monitor.slug, ts=ts, item_ts=item_ts)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.date_added == ts.replace(tzinfo=UTC)
+        assert checkin.date_clock == item_ts.replace(tzinfo=UTC)
 
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -448,7 +457,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.get_environment().name == "jungle"
@@ -469,7 +477,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.monitor.name == "my-new-monitor"
@@ -496,7 +503,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         monitor = monitor_environment.monitor
@@ -517,7 +523,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = checkin.monitor_environment
         assert monitor_environment.status == MonitorStatus.OK
         monitor = monitor_environment.monitor
@@ -538,7 +543,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         monitor.refresh_from_db()
@@ -558,7 +562,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         monitor.refresh_from_db()
@@ -581,7 +584,6 @@ class MonitorConsumerTest(TestCase):
         # The monitor config is merged, so checkin_margin is not overwritten
         assert monitor.config["checkin_margin"] == 5
 
-        assert checkin.monitor_environment is not None
         monitor_environment = checkin.monitor_environment
         assert checkin.monitor_environment.status == MonitorStatus.OK
         assert checkin.monitor_environment.last_checkin == checkin.date_added
@@ -667,7 +669,6 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.monitor_environment is not None
         assert checkin.monitor_environment.get_environment().name == "production"
 
         self.send_checkin(
@@ -688,7 +689,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
-        assert checkin.monitor_environment is not None
         assert checkin.monitor_environment.get_environment().name != "test"
 
     def test_invalid_duration(self):
@@ -787,7 +787,7 @@ class MonitorConsumerTest(TestCase):
         # Test invalid implicit duration
         old_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
-            monitor_environment=MonitorEnvironment.objects.filter(monitor=monitor).first(),
+            monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
             project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),
@@ -1049,7 +1049,7 @@ class MonitorConsumerTest(TestCase):
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
     def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
@@ -1077,7 +1077,7 @@ class MonitorConsumerTest(TestCase):
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
     def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 

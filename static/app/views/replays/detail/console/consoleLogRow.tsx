@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import {useCallback} from 'react';
+import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -28,19 +28,22 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   expandPaths?: string[];
 }
 
-export default function ConsoleLogRow({
-  currentHoverTime,
-  currentTime,
-  expandPaths,
-  frame,
-  onMouseEnter,
-  onMouseLeave,
-  index,
-  onClickTimestamp,
-  onDimensionChange,
-  startTimestampMs,
-  style,
-}: Props) {
+const ConsoleLogRow = forwardRef<HTMLDivElement, Props>(function ConsoleLogRow(
+  {
+    currentHoverTime,
+    currentTime,
+    expandPaths,
+    frame,
+    onMouseEnter,
+    onMouseLeave,
+    index,
+    onClickTimestamp,
+    onDimensionChange,
+    startTimestampMs,
+    style,
+  },
+  ref
+) {
   const handleDimensionChange = useCallback(
     (path: any, expandedState: any) => onDimensionChange?.(index, path, expandedState),
     [onDimensionChange, index]
@@ -52,6 +55,7 @@ export default function ConsoleLogRow({
 
   return (
     <ConsoleLog
+      ref={ref}
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -84,7 +88,9 @@ export default function ConsoleLogRow({
       />
     </ConsoleLog>
   );
-}
+});
+
+export default ConsoleLogRow;
 
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
@@ -99,7 +105,7 @@ const ConsoleLog = styled('div')<{
 
   background-color: ${p =>
     ['warning', 'error'].includes(String(p.level))
-      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
@@ -139,7 +145,7 @@ const MediumFontSize = styled('span')`
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
   return level && level in ICONS ? (
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     <MediumFontSize>{ICONS[level]}</MediumFontSize>
   ) : (
     <i />

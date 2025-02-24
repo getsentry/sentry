@@ -43,16 +43,14 @@ BASE64_ENCODED_PREFIXES = [
     "javascript;base64",
 ]
 
+IGNORED_FILENAMES = ["<compiler-generated>"]
+
 
 class ReferrerOptions(StrEnum):
     INGEST = "ingest"
     BACKFILL = "backfill"
     DELETION = "deletion"
     SIMILAR_ISSUES_TAB = "similar_issues_tab"
-
-
-class TooManyOnlySystemFramesException(Exception):
-    pass
 
 
 def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
@@ -63,11 +61,10 @@ class FramesMetrics(TypedDict):
     frame_count: int
     html_frame_count: int  # for a temporary metric
     has_no_filename: bool  # for a temporary metric
-    is_frames_truncated: bool
     found_non_snipped_context_line: bool
 
 
-def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
+def get_stacktrace_string(data: dict[str, Any]) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -93,7 +90,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         "frame_count": 0,
         "html_frame_count": 0,  # for a temporary metric
         "has_no_filename": False,  # for a temporary metric
-        "is_frames_truncated": False,
         "found_non_snipped_context_line": False,
     }
 
@@ -114,11 +110,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         exc_type, exc_value, frame_strings, frame_metrics = process_exception_frames(
             exception, frame_metrics
         )
-        if (
-            platform not in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK
-            and frame_metrics["is_frames_truncated"]
-        ):
-            raise TooManyOnlySystemFramesException
 
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
@@ -204,8 +195,6 @@ def _process_frames(
     contributing_frames = [
         frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
     ]
-    if len(contributing_frames) + frame_metrics["frame_count"] > MAX_FRAME_COUNT:
-        frame_metrics["is_frames_truncated"] = True
     contributing_frames = _discard_excess_frames(
         contributing_frames, MAX_FRAME_COUNT, frame_metrics["frame_count"]
     )
@@ -252,6 +241,8 @@ def extract_filename(frame_dict: Mapping[str, Any]) -> str:
     Extract the filename from the frame dictionary. Fallback to module if filename is not present.
     """
     filename = frame_dict["filename"]
+    if filename in IGNORED_FILENAMES:
+        filename = ""
     if filename == "" and frame_dict["module"] != "":
         filename = frame_dict["module"]
     return filename
@@ -268,37 +259,6 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
     return base64_encoded
 
 
-def get_stacktrace_string_with_metrics(
-    data: dict[str, Any],
-    platform: str | None,
-    referrer: ReferrerOptions,
-    logger_extra: dict[str, Any] | None = None,
-) -> str | None:
-    stacktrace_string = None
-    sample_rate = options.get("seer.similarity.metrics_sample_rate")
-    try:
-        stacktrace_string = get_stacktrace_string(data, platform)
-    except TooManyOnlySystemFramesException:
-        platform = platform if platform else "unknown"
-        metrics.incr(
-            "grouping.similarity.over_threshold_only_system_frames",
-            sample_rate=sample_rate,
-            tags={"platform": platform, "referrer": referrer},
-        )
-        if referrer == ReferrerOptions.INGEST:
-            # Temporary log to debug how we're still landing here, which we shouldn't be anymore
-            logger.info(
-                "record_did_call_seer_metric.over-threshold-frames",
-                extra=logger_extra,
-            )
-
-            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
-    except Exception:
-        logger.exception("Unexpected exception in stacktrace string formatting")
-
-    return stacktrace_string
-
-
 def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
@@ -309,11 +269,11 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
+def record_did_call_seer_metric(event: Event, *, call_made: bool, blocker: str) -> None:
     metrics.incr(
         "grouping.similarity.did_call_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"call_made": call_made, "blocker": blocker},
+        tags={"call_made": call_made, "blocker": blocker, "platform": event.platform},
     )
 
 
@@ -321,7 +281,6 @@ def has_too_many_contributing_frames(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
-    record_metrics: bool = True,
 ) -> bool:
     platform = event.platform
     shared_tags = {"referrer": referrer.value, "platform": platform}
@@ -349,12 +308,11 @@ def has_too_many_contributing_frames(
     # with the existing data, we turn off the filter for them (instead their stacktraces will be
     # truncated)
     if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
-        if record_metrics:
-            metrics.incr(
-                "grouping.similarity.frame_count_filter",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={**shared_tags, "outcome": "bypass"},
-            )
+        metrics.incr(
+            "grouping.similarity.frame_count_filter",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={**shared_tags, "outcome": "bypass"},
+        )
         return False
 
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
@@ -362,27 +320,25 @@ def has_too_many_contributing_frames(
     shared_tags["stacktrace_type"] = stacktrace_type
 
     if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
-        if record_metrics:
-            metrics.incr(
-                "grouping.similarity.frame_count_filter",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={**shared_tags, "outcome": "block"},
-            )
-        return True
-
-    if record_metrics:
         metrics.incr(
             "grouping.similarity.frame_count_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "pass"},
+            tags={**shared_tags, "outcome": "block"},
         )
+        return True
+
+    metrics.incr(
+        "grouping.similarity.frame_count_filter",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={**shared_tags, "outcome": "pass"},
+    )
     return False
 
 
 def killswitch_enabled(
     project_id: int | None,
     referrer: ReferrerOptions,
-    event: GroupEvent | Event | None = None,
+    event: Event | None = None,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
@@ -396,8 +352,9 @@ def killswitch_enabled(
             f"{logger_prefix}.seer_global_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        if is_ingest:
-            record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+        # When it's ingest, `event` will always be defined - the second check is purely for mypy
+        if is_ingest and event:
+            record_did_call_seer_metric(event, call_made=False, blocker="global-killswitch")
 
         return True
 
@@ -406,8 +363,8 @@ def killswitch_enabled(
             f"{logger_prefix}.seer_similarity_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        if is_ingest:
-            record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+        if is_ingest and event:
+            record_did_call_seer_metric(event, call_made=False, blocker="similarity-killswitch")
 
         return True
 
@@ -418,8 +375,8 @@ def killswitch_enabled(
             f"{logger_prefix}.seer_similarity_project_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        if is_ingest:
-            record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+        if is_ingest and event:
+            record_did_call_seer_metric(event, call_made=False, blocker="project-killswitch")
 
         return True
 

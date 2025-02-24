@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
@@ -43,7 +43,6 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type WidgetAsQueryParams = Query<{
@@ -187,7 +186,7 @@ function AddToDashboardModal({
     const title =
       // Metric widgets have their default title derived from the query
       widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('All Events')
+        ? t('Custom Widget')
         : widget.title;
 
     const newWidget = {
@@ -240,7 +239,7 @@ function AddToDashboardModal({
           }),
         tooltipOptions: {position: 'right'},
       })),
-    ].filter(Boolean) as SelectValue<string>[];
+    ].filter(Boolean) as Array<SelectValue<string>>;
   }, [allowCreateNewDashboard, dashboards]);
 
   const widgetLegendState = new WidgetLegendSelectionState({
@@ -256,7 +255,7 @@ function AddToDashboardModal({
   };
 
   return (
-    <OrganizationContext.Provider value={organization}>
+    <Fragment>
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
@@ -360,7 +359,7 @@ function AddToDashboardModal({
           )}
         </StyledButtonBar>
       </Footer>
-    </OrganizationContext.Provider>
+    </Fragment>
   );
 }
 

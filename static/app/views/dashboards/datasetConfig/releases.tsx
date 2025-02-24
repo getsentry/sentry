@@ -6,12 +6,9 @@ import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {SessionsMeta} from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
-import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {
@@ -27,9 +24,14 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {getWidgetInterval} from '../utils';
+import {transformSessionsResponseToSeries} from '../utils/transformSessionsResponseToSeries';
+import {
+  changeObjectValuesToTypes,
+  getDerivedMetrics,
+  mapDerivedMetricsToFields,
+} from '../utils/transformSessionsResponseToTable';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
-  DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
   DISABLED_SORT,
   FIELD_TO_METRICS_EXPRESSION,
@@ -39,16 +41,9 @@ import {
   TAG_SORT_DENY_LIST,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
-  derivedMetricsToField,
   requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
 } from '../widgetCard/releaseWidgetQueries';
-import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
-import {
-  changeObjectValuesToTypes,
-  getDerivedMetrics,
-  mapDerivedMetricsToFields,
-} from '../widgetCard/transformSessionsResponseToTable';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -75,10 +70,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 
 const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
-export const ReleasesConfig: DatasetConfig<
-  SessionApiResponse | MetricsApiResponse,
-  SessionApiResponse | MetricsApiResponse
-> = {
+export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiResponse> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -149,7 +141,7 @@ function disableSortOptions(widgetQuery: WidgetQuery) {
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
   const {columns, aggregates} = widgetQuery;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   [...aggregates, ...columns]
     .filter(field => !!field)
     .filter(field => !DISABLED_SORT.includes(field))
@@ -217,8 +209,8 @@ function getReleasesSeriesRequest(
     displayType,
     {start, end, period},
     '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
+    // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'medium' : undefined
   );
 
   return getReleasesRequest(
@@ -278,7 +270,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
 }
 
 export function transformSessionsResponseToTable(
-  data: SessionApiResponse | MetricsApiResponse,
+  data: SessionApiResponse,
   widgetQuery: WidgetQuery
 ): TableData {
   const useSessionAPI = widgetQuery.columns.includes('session.status');
@@ -289,7 +281,7 @@ export function transformSessionsResponseToTable(
   );
   const rows = data.groups.map((group, index) => ({
     id: String(index),
-    // @ts-ignore TS(2345): Argument of type 'Record<string, string | number> ... Remove this comment to see the full error message
+    // @ts-expect-error TS(2345): Argument of type 'Record<string, string | number> ... Remove this comment to see the full error message
     ...mapDerivedMetricsToFields(group.by),
     // if `sum(session)` or `count_unique(user)` are not
     // requested as a part of the payload for
@@ -311,89 +303,8 @@ export function transformSessionsResponseToTable(
   return {meta, data: rows};
 }
 
-export function transformSessionsResponseToSeries(
-  data: SessionApiResponse | MetricsApiResponse,
-  widgetQuery: WidgetQuery
-) {
-  if (data === null) {
-    return [];
-  }
-
-  const queryAlias = widgetQuery.name;
-
-  const useSessionAPI = widgetQuery.columns.includes('session.status');
-  const {derivedStatusFields: requestedStatusMetrics, injectedFields} =
-    resolveDerivedStatusFields(
-      widgetQuery.aggregates,
-      widgetQuery.orderby,
-      useSessionAPI
-    );
-
-  const results: Series[] = [];
-
-  if (!data.groups.length) {
-    return [
-      {
-        seriesName: `(${t('no results')})`,
-        data: data.intervals.map(interval => ({
-          name: interval,
-          value: 0,
-        })),
-      },
-    ];
-  }
-
-  data.groups.forEach(group => {
-    Object.keys(group.series).forEach(field => {
-      // if `sum(session)` or `count_unique(user)` are not
-      // requested as a part of the payload for
-      // derived status metrics through the Sessions API,
-      // they are injected into the payload and need to be
-      // stripped.
-      if (!injectedFields.includes(derivedMetricsToField(field))) {
-        results.push({
-          // @ts-ignore TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
-          seriesName: getSeriesName(field, group, queryAlias),
-          data: data.intervals.map((interval, index) => ({
-            name: interval,
-            value: group.series[field]?.[index] ?? 0,
-          })),
-        });
-      }
-    });
-    // if session.status is a groupby, some post processing
-    // is needed to calculate the status derived metrics
-    // from grouped results of `sum(session)` or `count_unique(user)`
-    if (requestedStatusMetrics.length && defined(group.by['session.status'])) {
-      requestedStatusMetrics.forEach(status => {
-        const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
-        if (result) {
-          let metricField: string | undefined = undefined;
-          if (group.by['session.status'] === result[1]) {
-            if (result[2] === 'session') {
-              metricField = 'sum(session)';
-            } else if (result[2] === 'user') {
-              metricField = 'count_unique(user)';
-            }
-          }
-          results.push({
-            // @ts-ignore TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
-            seriesName: getSeriesName(status, group, queryAlias),
-            data: data.intervals.map((interval, index) => ({
-              name: interval,
-              value: metricField ? group.series[metricField]?.[index] ?? 0 : 0,
-            })),
-          });
-        }
-      });
-    }
-  });
-
-  return results;
-}
-
 function fieldsToDerivedMetrics(field: string): string {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 
@@ -411,7 +322,7 @@ function getReleasesRequest(
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
 
-  let showIncompleteDataAlert: boolean = false;
+  let showIncompleteDataAlert = false;
 
   if (start) {
     let startDate: Date | undefined = undefined;

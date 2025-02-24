@@ -10,19 +10,19 @@ import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 
 /** Given an array of indexed spans, create a `Series` for each one, and set the correct styling based on how it compares to the average value. This is a hack, in which our `Chart` component doesn't work otherwise. The right solution would be to create a single series of `type: "scatter"` but that doesn' work with the current implementation */
 export function useSampleScatterPlotSeries(
-  spans: Partial<SpanIndexedResponse>[],
+  spans: Array<Partial<SpanIndexedResponse>>,
   average?: number,
   highlightedSpanId?: string,
-  key: string = 'span.self_time'
+  key = 'span.self_time'
 ): Series[] {
   const theme = useTheme();
 
   return spans.map(span => {
     let symbol, color;
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (span[key] && defined(average)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       ({symbol, color} = getSampleChartSymbol(span[key], average, theme));
     } else {
       symbol = 'circle';
@@ -33,7 +33,7 @@ export function useSampleScatterPlotSeries(
       data: [
         {
           name: span?.timestamp ?? span.span_id ?? t('Span'),
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value: span?.[key] ?? 0,
         },
       ],

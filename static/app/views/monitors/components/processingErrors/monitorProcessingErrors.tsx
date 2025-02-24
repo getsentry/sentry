@@ -2,11 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
-import Alert from 'sentry/components/alert';
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -151,19 +151,21 @@ export function MonitorProcessingErrors({
   );
 
   return (
-    <ScrollableAlert
-      type="error"
-      showIcon
-      expand={
-        showingMultipleProjects ? (
-          <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
-        ) : (
-          <ErrorsList>{accordionErrors}</ErrorsList>
-        )
-      }
-    >
-      {children}
-    </ScrollableAlert>
+    <Alert.Container>
+      <ScrollableAlert
+        type="error"
+        showIcon
+        expand={
+          showingMultipleProjects ? (
+            <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
+          ) : (
+            <ErrorsList>{accordionErrors}</ErrorsList>
+          )
+        }
+      >
+        {children}
+      </ScrollableAlert>
+    </Alert.Container>
   );
 }
 

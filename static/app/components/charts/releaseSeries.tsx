@@ -7,8 +7,7 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
-import type {ApiResult} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -32,8 +31,8 @@ type ReleaseMetaBasic = {
 
 type ReleaseConditions = {
   end: DateString;
-  environment: Readonly<string[]>;
-  project: Readonly<number[]>;
+  environment: readonly string[];
+  project: readonly number[];
   start: DateString;
   cursor?: string;
   query?: string;
@@ -77,9 +76,9 @@ export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
   children: (s: State) => React.ReactNode;
   end: DateString;
-  environments: Readonly<string[]>;
+  environments: readonly string[];
   organization: Organization;
-  projects: Readonly<number[]>;
+  projects: readonly number[];
   start: DateString;
   theme: Theme;
   emphasizeReleases?: string[];
@@ -144,7 +143,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     this.props.api.clear();
   }
 
-  _isMounted: boolean = false;
+  _isMounted = false;
 
   async fetchData() {
     const {
@@ -317,11 +316,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   };
 
   render() {
-    const {children} = this.props;
+    const {children, enabled = true} = this.props;
 
     return children({
-      releases: this.state.releases,
-      releaseSeries: this.state.releaseSeries,
+      releases: enabled ? this.state.releases : [],
+      releaseSeries: enabled ? this.state.releaseSeries : [],
     });
   }
 }

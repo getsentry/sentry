@@ -33,7 +33,6 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -52,12 +51,11 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
-type PairOfMetricSeries = [MetricSeries[], MetricSeries[]];
+type PairOfSeries = [Series[], Series[]];
 
 export enum ChartType {
   BAR = 0,
@@ -77,7 +75,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[] | ReadonlyArray<string>;
+  chartColors?: string[] | readonly string[];
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;
@@ -108,7 +106,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 
@@ -143,11 +141,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendOptions,
-  /**
-   * Setting a default formatter for some reason causes `>` to
-   * render correctly instead of rendering as `&gt;` in the legend.
-   */
-  legendFormatter = name => name,
+  legendFormatter,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -231,10 +225,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]!?.data[1]!?.name).getTime() -
-    new Date(series[0]!?.data[0]!?.name).getTime();
+    new Date(series[0]?.data[1]?.name!).getTime() -
+    new Date(series[0]?.data[0]?.name!).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name!
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
@@ -245,14 +239,8 @@ function Chart({
 
   // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
-    const metricChartType =
-      type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
     const seriesToShow = series.map(serie => {
-      const ingestionSeries = createIngestionSeries(
-        serie as MetricSeries,
-        ingestionBuckets,
-        metricChartType
-      );
+      const ingestionSeries = createIngestionSeries(serie, ingestionBuckets, type);
       // this helper causes all the incomplete series to stack, here we remove the stacking
       if (!stacked) {
         for (const s of ingestionSeries) {
@@ -262,8 +250,8 @@ function Chart({
       return ingestionSeries;
     });
 
-    [series, incompleteSeries] = seriesToShow.reduce<PairOfMetricSeries>(
-      (acc: PairOfMetricSeries, serie: MetricSeries[], index: number) => {
+    [series, incompleteSeries] = seriesToShow.reduce<PairOfSeries>(
+      (acc: PairOfSeries, serie: Series[], index: number) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
 
@@ -273,9 +261,9 @@ function Chart({
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
           ],
-        ] as PairOfMetricSeries;
+        ] as PairOfSeries;
       },
-      [[], []] as PairOfMetricSeries
+      [[], []] as PairOfSeries
     );
   }
 
@@ -324,16 +312,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -355,7 +343,13 @@ function Chart({
   };
 
   const legend = isLegendVisible
-    ? {top: 0, right: 10, formatter: legendFormatter, ...legendOptions}
+    ? {
+        top: 0,
+        right: 10,
+        truncate: true,
+        formatter: legendFormatter,
+        ...legendOptions,
+      }
     : undefined;
 
   const areaChartProps = {
@@ -594,8 +588,8 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
-    for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i]!.data.map(point => point.value)) as number;
+    for (const serie of data) {
+      maxValue += max(serie.data.map(point => point.value)) as number;
     }
   } else {
     maxValue = computeMax(data);

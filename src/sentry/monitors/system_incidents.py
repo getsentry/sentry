@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import statistics
 from collections import Counter
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -64,7 +64,7 @@ BACKFILL_CUTOFF = 1440
 BACKFILL_CHUNKS = 10
 
 
-def update_check_in_volume(ts_list: Sequence[datetime]):
+def update_check_in_volume(ts_iter: Iterable[datetime]) -> None:
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
     trimmed to the minute and grouped appropriately
@@ -72,7 +72,7 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     # Group timestamps down to the minute
-    for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_list).items():
+    for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_iter).items():
         key = MONITOR_VOLUME_HISTORY.format(ts=reference_ts)
 
         pipeline = redis_client.pipeline()
@@ -665,7 +665,7 @@ def _backfill_decisions(
     return None
 
 
-def _make_reference_ts(ts: datetime):
+def _make_reference_ts(ts: datetime) -> int:
     """
     Produce a timestamp number with the seconds and microsecond removed
     """

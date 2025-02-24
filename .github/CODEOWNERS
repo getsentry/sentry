@@ -7,10 +7,6 @@
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal
 
-## Migrations
-/src/sentry/migrations/                                  @getsentry/owners-migrations
-/src/sentry/*/migrations/                                @getsentry/owners-migrations
-
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
 /src/sentry/consumers/                                   @getsentry/ops @getsentry/owners-snuba
@@ -382,6 +378,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications
+/src/sentry/notifications/models/                                    @getsentry/ecosystem
+/src/sentry/notifications/notifications/                             @getsentry/ecosystem
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
@@ -478,7 +476,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience
@@ -492,20 +489,15 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
-/src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 
-/static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
 /static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
-/static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
-/static/app/utils/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/metrics/                                                       @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
@@ -513,7 +505,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 /static/app/components/metrics/                                                  @getsentry/telemetry-experience
 /static/app/components/modals/metricWidgetViewerModal*                           @getsentry/telemetry-experience
-/static/app/views/dashboards/metrics/                                            @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
@@ -650,3 +641,13 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/views/automations/                             @getsentry/alerts-create-issues
 /static/app/views/detectors/                               @getsentry/alerts-create-issues
 # End of Workflow Engine (ACI)
+
+## Migrations
+/src/sentry/migrations/                                  @getsentry/owners-migrations
+/src/sentry/*/migrations/                                @getsentry/owners-migrations
+
+
+## Frontend Platform (keep last as we want highest specificity)
+/static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/components/core/                          @getsentry/design-engineering
+## End of Frontend Platform

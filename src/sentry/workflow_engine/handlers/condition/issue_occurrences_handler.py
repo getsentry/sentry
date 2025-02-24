@@ -3,12 +3,21 @@ from typing import Any
 from sentry.models.group import Group
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.ISSUE_OCCURRENCES)
 class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandlerType.ACTION_FILTER
+    type = [DataConditionHandler.Type.ACTION_FILTER]
+
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "value": {"type": "integer", "minimum": 0},
+        },
+        "required": ["value"],
+        "additionalProperties": False,
+    }
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:

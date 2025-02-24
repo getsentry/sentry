@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
@@ -36,6 +37,7 @@ from sentry.utils.security.orgauthtoken_token import (
     hash_token,
 )
 from sentry.utils.urls import add_params_to_url
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -64,7 +66,11 @@ class SetupWizardView(BaseView):
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
         """
-        context = {"hash": wizard_hash, "enableProjectSelection": False}
+        context = {
+            "hash": wizard_hash,
+            "enableProjectSelection": False,
+            "react_config": get_client_config(request, self.active_organization),
+        }
         cache_key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
         org_slug = request.GET.get("org_slug")
@@ -83,7 +89,7 @@ class SetupWizardView(BaseView):
         ).order_by("-date_created")
 
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
-        region_data_map = defaultdict(lambda: defaultdict(list))
+        region_data_map: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
 
         org_mappings_map = {}
         for mapping in org_mappings:
@@ -184,7 +190,9 @@ def serialize_project(project: RpcProject, organization: dict, keys: list[dict])
     }
 
 
-def get_cache_data(mapping: OrganizationMapping, project: RpcProject, user: RpcUser):
+def get_cache_data(
+    mapping: OrganizationMapping, project: RpcProject, user: User | AnonymousUser | RpcUser
+):
     project_key = project_key_service.get_project_key(
         organization_id=mapping.organization_id,
         project_id=project.id,
@@ -226,7 +234,7 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
     return serialize(token)
 
 
-def get_org_token(mapping: OrganizationMapping, user: User | RpcUser):
+def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser):
     try:
         token_str = generate_token(
             mapping.slug, generate_region_url(region_name=mapping.region_name)

@@ -1,24 +1,25 @@
 import type {Query} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export function aggregateWaterfallRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
-  const pathname = `${getTransactionSummaryBaseUrl(orgSlug, view)}/aggregateWaterfall/`;
+  const pathname = `${getTransactionSummaryBaseUrl(organization, view)}/aggregateWaterfall/`;
 
   const filter = decodeScalar(query.query);
   let httpMethod: string | undefined = undefined;

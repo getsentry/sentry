@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from collections.abc import Mapping
 from typing import Any, overload
 
@@ -159,3 +160,32 @@ def is_applecrashreport_event(data):
     """
     exceptions = get_path(data, "exception", "values", filter=True)
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
+
+
+class Backoff:
+    """
+    Creates a new exponential backoff.
+    """
+
+    def __init__(self, initial, max):
+        """
+        :param initial: The initial backoff time in seconds.
+        :param max: The maximum backoff time in seconds.
+        """
+        self.initial = initial
+        self.max = max
+        self._current = 0
+
+    def reset(self):
+        """
+        Resets the backoff time zero.
+        """
+        self._current = 0
+
+    def sleep_failure(self):
+        """
+        Sleeps until the next retry attempt and increases the backoff time for the next failure.
+        """
+        if self._current > 0:
+            time.sleep(self._current)
+        self._current = min(max(self._current * 2, self.initial), self.max)

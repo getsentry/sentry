@@ -21,6 +21,7 @@ import type {
   SubregionCode,
 } from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -57,7 +58,6 @@ function SampleTable({
   additionalFields,
   additionalFilters,
   subregions,
-  referrer,
 }: Props) {
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -73,7 +73,7 @@ function SampleTable({
   }
 
   if (subregions) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
@@ -174,15 +174,15 @@ function SampleTable({
           data={spans.map(sample => {
             return {
               ...sample,
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               op: spanMetrics[SPAN_OP]!,
               transaction: transactionsById[sample['transaction.id']]!,
             };
           })}
           isLoading={isLoading}
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-          source={referrer}
+          source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
         />
       </VisuallyCompleteWithData>
       <Button

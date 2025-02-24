@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -18,7 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {generateOrgSlugUrl} from 'sentry/utils';
+import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -30,7 +29,7 @@ import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abs
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
-type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
+type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   installationData?: GitHubIntegrationInstallation;
@@ -274,17 +273,19 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" showIcon>
-            <p>
-              {tct(
-                `You do not have permission to install integrations in
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              <p>
+                {tct(
+                  `You do not have permission to install integrations in
                 [organization]. Ask an organization owner or manager to
                 visit this page to finish installing this integration.`,
-                {organization: <strong>{organization.slug}</strong>}
-              )}
-            </p>
-            <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
-          </Alert>
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider && organization && this.hasAccess() && FeatureList && (
@@ -321,11 +322,13 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
       }
 
       return (
-        <Alert type="warning" showIcon>
-          {t(
-            'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {t(
+              'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -355,9 +358,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     );
 
     return (
-      <Alert type="info" showIcon>
-        {alertText}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          {alertText}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -393,7 +398,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
-            // @ts-ignore TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
+            // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
             onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}

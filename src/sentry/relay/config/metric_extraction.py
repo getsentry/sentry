@@ -14,7 +14,6 @@ from sentry_relay.processing import validate_sampling_condition
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
-from sentry.features.rollout import in_random_rollout
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
@@ -29,6 +28,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.relay.config.experimental import TimeChecker, build_safe_config
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
@@ -155,8 +155,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     return enabled_features
 
 
-@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
-def _get_alert_metric_specs(
+def get_all_alert_metric_specs(
     project: Project, enabled_features: set[str], prefilling: bool
 ) -> list[HashedMetricSpec]:
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
@@ -185,8 +184,6 @@ def _get_alert_metric_specs(
     with metrics.timer("on_demand_metrics.alert_spec_convert"):
         for alert in alert_rules:
             alert_snuba_query = alert.snuba_query
-            if alert_snuba_query is None:
-                continue
             metrics.incr(
                 "on_demand_metrics.before_alert_spec_generation",
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
@@ -199,6 +196,23 @@ def _get_alert_metric_specs(
                         tags={"prefilling": prefilling},
                     )
                     specs.append(spec)
+    return specs
+
+
+def get_default_version_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs_per_version = get_specs_per_version(specs)
+    default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    return specs_per_version.get(default_extraction_version, [])
+
+
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
+def _get_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
 
     max_alert_specs = options.get("on_demand.max_alert_specs")
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")

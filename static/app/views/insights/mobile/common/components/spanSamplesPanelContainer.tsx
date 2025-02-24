@@ -25,6 +25,7 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   type ModuleName,
   SpanMetricsField,
@@ -59,6 +60,7 @@ export function SpanSamplesContainer({
 }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
+  const {view} = useDomainViewFilters();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
@@ -157,14 +159,14 @@ export function SpanSamplesContainer({
       <StyledReadoutRibbon>
         <MetricReadout
           title={DataTitles.avg}
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
           isLoading={isPending}
         />
         <MetricReadout
           title={DataTitles.count}
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
           isLoading={isPending}
@@ -187,6 +189,7 @@ export function SpanSamplesContainer({
               organization,
               traceSlug: span.trace,
               timestamp: span.timestamp,
+              view,
               source: TraceViewSources.APP_STARTS_MODULE,
             })
           );
@@ -247,7 +250,10 @@ const StyledReadoutRibbon = styled(ReadoutRibbon)`
 `;
 
 const SectionTitle = styled('div')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const PaddedTitle = styled('div')`

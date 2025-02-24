@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -76,17 +76,21 @@ function RecoveryOptionsModal({
 
         {displaySmsPrompt ? (
           // set up backup phone number
-          <Alert type="warning">
-            {t('We recommend adding a phone number as a backup 2FA method.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="warning">
+              {t('We recommend adding a phone number as a backup 2FA method.')}
+            </Alert>
+          </Alert.Container>
         ) : (
           // get recovery codes
-          <Alert type="warning">
-            {t(
-              `Recovery codes are the only way to access your account if you lose
+          <Alert.Container>
+            <Alert type="warning">
+              {t(
+                `Recovery codes are the only way to access your account if you lose
                   your device and cannot receive two-factor authentication codes.`
-            )}
-          </Alert>
+              )}
+            </Alert>
+          </Alert.Container>
         )}
       </Body>
 

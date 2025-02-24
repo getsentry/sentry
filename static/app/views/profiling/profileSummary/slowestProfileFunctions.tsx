@@ -162,6 +162,7 @@ interface SlowestFunctionEntryProps {
   project: Project | null;
 }
 function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
+  const organization = useOrganization();
   const frame = useMemo(() => {
     return new Frame(
       {
@@ -178,13 +179,13 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   }, [props.func, props.project]);
 
   let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const example = props.func['all_examples()']?.[0];
   if (defined(example)) {
     const target = generateProfileRouteFromProfileReference({
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.project?.slug ?? '',
-      frameName: frame.name as string,
+      frameName: frame.name,
       framePackage: frame.package as string,
       reference: example,
     });
@@ -296,7 +297,7 @@ const SlowestFunctionMetricsRow = styled('div')`
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
-const SLOWEST_FUNCTION_OPTIONS: SelectOption<'application' | 'system' | 'all'>[] = [
+const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [
   {
     label: t('Slowest Application Functions'),
     value: 'application' as const,

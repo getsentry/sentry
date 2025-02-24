@@ -4,10 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import OptionValue, RpcModel
@@ -19,6 +18,13 @@ def _project_status_visible() -> int:
 
 class ProjectFilterArgs(TypedDict, total=False):
     project_ids: list[int]
+
+
+class ProjectUpdateArgs(TypedDict, total=False):
+    name: str
+    slug: str
+    platform: str | None
+    external_id: str | None
 
 
 class RpcProjectFlags(RpcModel):
@@ -59,6 +65,12 @@ class RpcProject(RpcModel):
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
     platform: str | None = None
+    external_id: str | None = None
+
+    def __hash__(self) -> int:
+        # Mimic the behavior of hashing a Django ORM entity, for compatibility with
+        # serializers, as this project object is often used for that.
+        return hash((self.id, self.organization_id, self.slug))
 
     def get_option(
         self,

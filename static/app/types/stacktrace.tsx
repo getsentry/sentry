@@ -15,7 +15,7 @@ export type StacktraceType = {
   framesOmitted: any;
   hasSystemFrames: boolean;
   registers: Record<string, any> | null;
-  frames?: Array<Frame>;
+  frames?: Frame[];
 };
 
 export type RawStacktrace = StacktraceType | null;
@@ -42,7 +42,7 @@ type MechanismMeta = {
 export type StackTraceMechanism = {
   handled: boolean;
   type: string;
-  data?: object;
+  data?: Record<PropertyKey, string | unknown[] | Record<PropertyKey, unknown> | Date>;
   description?: string;
   exception_id?: number;
   help_link?: string;

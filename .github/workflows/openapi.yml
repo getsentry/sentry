@@ -31,6 +31,8 @@ jobs:
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Checkout getsentry/sentry-api-schema

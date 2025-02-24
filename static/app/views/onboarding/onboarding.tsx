@@ -30,6 +30,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
@@ -41,7 +42,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getOrganizationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -92,6 +93,8 @@ function Onboarding(props: Props) {
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
+  const {activateSidebar} = useOnboardingSidebar();
+
   useEffect(() => {
     return () => {
       window.clearTimeout(cornerVariantTimeoutRed.current);
@@ -105,11 +108,11 @@ function Onboarding(props: Props) {
       onboardingContext.data.selectedSDK === undefined
     ) {
       const platformKey = Object.keys(platforms).find(
-        // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         key => platforms[key].id === props.location.query.platform
       );
 
-      // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       const platform = platformKey ? platforms[platformKey] : undefined;
 
       // if no platform found, we redirect the user to the platform select page
@@ -222,7 +225,7 @@ function Onboarding(props: Props) {
           onboardingContext.data.projects[key]!.slug !==
           onboardingContext.data.selectedSDK?.key
         ) {
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           acc[key] = onboardingContext.data.projects[key];
         }
         return acc;
@@ -326,6 +329,7 @@ function Onboarding(props: Props) {
             source,
           });
           onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+          activateSidebar();
         }}
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
@@ -390,14 +394,14 @@ function Onboarding(props: Props) {
               if ((i as number) < stepIndex && shallProjectBeDeleted) {
                 openConfirmModal({
                   ...goBackDeletionAlertModalProps,
-                  // @ts-ignore TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
+                  // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
                   onConfirm: () => handleGoBack(i),
                 });
                 return;
               }
 
-              // @ts-ignore TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]!);
+              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
+              goToStep(onboardingSteps[i]);
             }}
           />
         )}

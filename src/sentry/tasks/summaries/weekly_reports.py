@@ -677,9 +677,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
-    def key_replays():
-        return []
-
     def issue_summary():
         new_substatus_count = 0
         escalating_substatus_count = 0

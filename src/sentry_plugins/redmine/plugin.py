@@ -8,6 +8,7 @@ from sentry.plugins.bases.issue import IssuePlugin
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from .client import RedmineClient
 from .forms import RedmineNewIssueForm
@@ -66,13 +67,13 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
     def get_initial_form_data(self, request: Request, group, event, **kwargs):
         return {
-            "description": self._get_group_description(request, group, event),
-            "title": self._get_group_title(request, group, event),
+            "description": self._get_group_description(group, event),
+            "title": self._get_group_title(group, event),
         }
 
-    def _get_group_description(self, request: Request, group, event):
+    def _get_group_description(self, group, event):
         output = [absolute_uri(group.get_absolute_url())]
-        body = self._get_group_body(request, group, event)
+        body = self._get_group_body(group, event)
         if body:
             output.extend(["", "<pre>", body, "</pre>"])
         return "\n".join(output)
@@ -113,7 +114,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         host = self.get_option("host", group.project)
         return "{}/issues/{}".format(host.rstrip("/"), issue_id)
 
-    def build_config(self):
+    def build_config(self, project):
         host = {
             "name": "host",
             "label": "Host",
@@ -121,13 +122,13 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
             "help": "e.g. http://bugs.redmine.org",
             "required": True,
         }
-        key = {
-            "name": "key",
-            "label": "Key",
-            "type": "text",
-            "help": "Your API key is available on your account page after enabling the Rest API (Administration -> Settings -> Authentication)",
-            "required": True,
-        }
+        key = get_secret_field_config(
+            name="key",
+            label="Key",
+            secret=self.get_option("key", project),
+            help="Your API key is available on your account page after enabling the Rest API (Administration -> Settings -> Authentication)",
+            required=True,
+        )
         project_id = {
             "name": "project_id",
             "label": "Project*",
@@ -182,7 +183,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         self.client_errors = []
-        self.fields = self.build_config()
+        self.fields = self.build_config(project)
         initial_args = initial or {}
         initial = self.build_initial(initial_args, project)
 

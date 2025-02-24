@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useState} from 'react';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import FeatureBadge, {type FeatureBadgeType} from 'sentry/components/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -12,6 +12,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreenSummaryContentPage as AppStartPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -30,8 +31,8 @@ type Tab = {
   content: () => React.ReactNode;
   key: string;
   label: string;
-  alpha?: boolean | undefined;
-  feature?: string | undefined;
+  feature?: string;
+  featureBadge?: FeatureBadgeType;
 };
 
 export function ScreenDetailsPage() {
@@ -41,7 +42,7 @@ export function ScreenDetailsPage() {
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const {transaction: transactionName} = location.query;
-  const moduleName = ModuleName.MOBILE_SCREENS;
+  const moduleName = ModuleName.MOBILE_VITALS;
 
   const tabs: Tab[] = [
     {
@@ -61,8 +62,7 @@ export function ScreenDetailsPage() {
     {
       key: 'screen_rendering',
       label: t('Screen Rendering'),
-      feature: 'starfish-mobile-ui-module',
-      alpha: true,
+      featureBadge: 'experimental',
       content: () => {
         return <UiPage key={'screen_rendering'} />;
       },
@@ -76,6 +76,7 @@ export function ScreenDetailsPage() {
   };
 
   const [selectedTabKey, setSelectedTabKey] = useState(getTabKeyFromQuery());
+  const moduleURL = useModuleURL(moduleName);
 
   function handleTabChange(tabKey: string) {
     setSelectedTabKey(tabKey);
@@ -96,7 +97,9 @@ export function ScreenDetailsPage() {
         return (
           <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
             {tab.label}
-            {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
+            {tab.featureBadge && (
+              <FeatureBadge type={tab.featureBadge} variant={'badge'} />
+            )}
           </TabList.Item>
         );
       })}
@@ -105,7 +108,7 @@ export function ScreenDetailsPage() {
 
   return (
     <PageFiltersContainer>
-      <SentryDocumentTitle title={t('Mobile Screens')} orgSlug={organization.slug} />
+      <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
       <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
@@ -116,6 +119,10 @@ export function ScreenDetailsPage() {
               headerActions={isProjectCrossPlatform && <PlatformSelector />}
               headerTitle={transactionName}
               breadcrumbs={[
+                {
+                  label: t('Mobile Vitals'),
+                  to: moduleURL,
+                },
                 {
                   label: t('Screen Summary'),
                 },

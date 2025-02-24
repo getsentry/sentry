@@ -3,13 +3,11 @@ import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
-import {IconWarning} from 'sentry/icons';
+import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,7 +18,6 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -82,8 +79,6 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
 
     const hasEventError = actionableItems?.errors && actionableItems.errors.length > 0;
 
-    const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
-
     const grayText = css`
       color: ${theme.subText};
       font-weight: ${theme.fontWeightNormal};
@@ -91,27 +86,6 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
 
     const host = organization.links.regionUrl;
     const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
-
-    const downloadJson = () => {
-      window.open(jsonUrl);
-      trackAnalytics('issue_details.event_json_clicked', {
-        organization,
-        group_id: parseInt(`${event.groupID}`, 10),
-        streamline: true,
-      });
-    };
-
-    const {onClick: copyLink} = useCopyToClipboard({
-      successMessage: t('Event URL copied to clipboard'),
-      text: window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`),
-      onCopy: () =>
-        trackAnalytics('issue_details.copy_event_link_clicked', {
-          organization,
-          ...getAnalyticsDataForGroup(group),
-          ...getAnalyticsDataForEvent(event),
-          streamline: true,
-        }),
-    });
 
     const {onClick: copyEventId} = useCopyToClipboard({
       successMessage: t('Event ID copied to clipboard'),
@@ -129,42 +103,20 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       <div {...props} ref={ref}>
         <EventInfoJumpToWrapper>
           <EventInfo>
-            <DropdownMenu
-              trigger={(triggerProps, isOpen) => (
-                <EventIdDropdownButton
-                  {...triggerProps}
-                  aria-label={t('Event actions')}
-                  size="sm"
-                  borderless
-                  isOpen={isOpen}
-                >
-                  {getShortEventId(event.id)}
-                </EventIdDropdownButton>
-              )}
-              position="bottom"
-              size="xs"
-              items={[
-                {
-                  key: 'copy-event-id',
-                  label: t('Copy Event ID'),
-                  onAction: copyEventId,
-                },
-                {
-                  key: 'copy-event-link',
-                  label: t('Copy Event Link'),
-                  onAction: copyLink,
-                },
-                {
-                  key: 'view-json',
-                  label: t('View JSON'),
-                  onAction: downloadJson,
-                  className: 'hidden-sm hidden-md hidden-lg',
-                },
-              ]}
-            />
+            <EventIdWrapper>
+              <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
+              <Button
+                aria-label={t('Copy Event ID')}
+                title={t('Copy Event ID')}
+                onClick={copyEventId}
+                size="zero"
+                borderless
+                icon={<IconCopy size="xs" color="subText" />}
+              />
+            </EventIdWrapper>
             <StyledTimeSince
               tooltipBody={<EventCreatedTooltip event={event} />}
-              tooltipProps={{maxWidth: 300}}
+              tooltipProps={{maxWidth: 300, isHoverable: true}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
               aria-label={t('Event timestamp')}
@@ -283,13 +235,9 @@ const EventInfoJumpToWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
 `;
 
-const EventIdDropdownButton = styled(DropdownButton)`
-  padding-right: ${space(0.5)};
-`;
-
 const EventInfo = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${space(0.75)};
   flex-direction: row;
   align-items: center;
   line-height: 1.2;
@@ -330,5 +278,21 @@ const JsonLink = styled(ExternalLink)`
 
   :hover {
     color: ${p => p.theme.gray300};
+  }
+`;
+
+const EventIdWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.25)};
+  align-items: center;
+  margin-left: ${space(1.5)};
+  font-weight: ${p => p.theme.fontWeightBold};
+
+  button {
+    visibility: hidden;
+  }
+
+  &:hover button {
+    visibility: visible;
   }
 `;

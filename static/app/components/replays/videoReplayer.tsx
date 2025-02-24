@@ -45,8 +45,8 @@ export class VideoReplayer {
   private _currentIndex: number | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
-  private _trackList: [ts: number, index: number][];
-  private _isPlaying: boolean = false;
+  private _trackList: Array<[ts: number, index: number]>;
+  private _isPlaying = false;
   private _listeners: RemoveListener[] = [];
   /**
    * Maps attachment index to the video element.
@@ -546,9 +546,7 @@ export class VideoReplayer {
    * segment's timestamp and duration. Displays the closest prior segment if
    * offset exists in a gap where there is no recorded segment.
    */
-  protected async loadSegmentAtTime(
-    videoOffsetMs: number = 0
-  ): Promise<number | undefined> {
+  protected async loadSegmentAtTime(videoOffsetMs = 0): Promise<number | undefined> {
     if (!this._trackList.length) {
       return undefined;
     }
@@ -690,7 +688,7 @@ export class VideoReplayer {
     Object.entries(config)
       .filter(([, value]) => value !== undefined)
       .forEach(([key, value]) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         this.config[key] = value;
       });
 

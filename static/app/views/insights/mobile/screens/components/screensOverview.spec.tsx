@@ -23,7 +23,7 @@ describe('ScreensOverview', () => {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
     query: {
       project: project.id,
     },

@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -17,7 +19,11 @@ export default function DynamicSamplingSettings() {
   const hasWriteAccess = useHasDynamicSamplingWriteAccess();
 
   if (!hasDynamicSamplingCustomFeature(organization)) {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
+    );
   }
 
   return (
@@ -27,30 +33,32 @@ export default function DynamicSamplingSettings() {
         title={
           <Fragment>
             {t('Dynamic Sampling')}
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="new" />
           </Fragment>
         }
         action={
           <LinkButton
             external
-            href="https://docs.sentry.io/product/performance/retention-priorities/"
+            href="https://docs.sentry.io/organization/dynamic-sampling/"
           >
             {t('Read the docs')}
           </LinkButton>
         }
       />
       {!hasWriteAccess && (
-        <Alert type="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning">
+            {t(
+              'These settings can only be edited by users with the organization owner or manager role.'
+            )}
+          </Alert>
+        </Alert.Container>
       )}
-      <p>
+      <Paragraph>
         {t(
           'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
         )}
-      </p>
+      </Paragraph>
       {organization.samplingMode === 'organization' ? (
         <OrganizationSampling />
       ) : (
@@ -59,3 +67,7 @@ export default function DynamicSamplingSettings() {
     </Fragment>
   );
 }
+
+const Paragraph = styled('p')`
+  margin-bottom: ${space(1.5)};
+`;

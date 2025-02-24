@@ -7,46 +7,10 @@ inputs:
     description: 'Directory where the sentry source is located'
     required: false
     default: '.'
-  snuba:
-    description: 'Is snuba required?'
-    required: false
-    default: 'false'
-  clickhouse:
-    description: 'Is clickhouse required?'
-    required: false
-    default: 'false'
-  kafka:
-    description: 'Is kafka required?'
-    required: false
-    default: 'false'
-  chartcuterie:
-    description: 'Is chartcuterie required?'
-    required: false
-    default: 'false'
-  bigtable:
-    description: 'Is bigtable required?'
-    required: false
-    default: 'false'
-  redis_cluster:
-    description: 'Is redis cluster required?'
-    required: false
-    default: 'false'
-  symbolicator:
-    description: 'Is symbolicator required?'
-    required: false
-    default: 'false'
   python-version:
     description: 'python version to install'
     required: false
     default: '3.13.1'
-  pg-version:
-    description: 'PostgreSQL version to use'
-    default: '14'
-    required: false
-  use-new-devservices:
-    description: 'Use new devservices'
-    required: false
-    default: 'false'
   mode:
     description: 'Mode to bring up by new devservices'
     required: false
@@ -118,7 +82,7 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+    - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
@@ -145,68 +109,7 @@ runs:
         # We need to install editable otherwise things like check migration will fail.
         python3 -m tools.fast_editable --path .
 
-    - name: Start devservices
-      shell: bash --noprofile --norc -eo pipefail -ux {0}
-      if: ${{ inputs.use-new-devservices != 'true' }}
-      env:
-        NEED_KAFKA: ${{ inputs.kafka }}
-        NEED_SNUBA: ${{ inputs.snuba }}
-        NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
-        NEED_BIGTABLE: ${{ inputs.bigtable }}
-        NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
-        NEED_REDIS_CLUSTER: ${{ inputs.redis_cluster }}
-        NEED_SYMBOLICATOR: ${{ inputs.symbolicator }}
-        WORKDIR: ${{ inputs.workdir }}
-        PG_VERSION: ${{ inputs.pg-version }}
-        ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
-      run: |
-        sentry init
-
-        # redis, postgres are needed for almost every code path.
-        services=(redis postgres)
-
-        if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
-          services+=(clickhouse)
-        fi
-
-        if [ "$NEED_SNUBA" = "true" ]; then
-          services+=(snuba)
-        fi
-
-        if [ "$NEED_BIGTABLE" = "true" ]; then
-          echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
-          services+=(bigtable)
-        fi
-
-        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          services+=(chartcuterie)
-        fi
-
-        if [ "$NEED_REDIS_CLUSTER" = "true" ]; then
-          services+=(redis-cluster)
-        fi
-
-        if [ "$NEED_SYMBOLICATOR" = "true" ]; then
-          services+=(symbolicator)
-        fi
-
-        if [ "$NEED_KAFKA" = "true" ]; then
-          services+=(kafka)
-        fi
-
-        sentry devservices up "${services[@]}"
-
-        # have tests listen on the docker gateway ip so loopback can occur
-        echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
-
-        docker ps -a
-
-        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
-        # without needing to fork it. The path needed is the one where tools are located
-        cd "$WORKDIR"
-
     - name: Start new devservices
-      if: ${{ inputs.use-new-devservices == 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         WORKDIR: ${{ inputs.workdir }}

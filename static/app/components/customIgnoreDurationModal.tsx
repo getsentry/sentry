@@ -1,12 +1,12 @@
 import {Fragment, useRef, useState} from 'react';
 import moment from 'moment-timezone';
-// @ts-ignore TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
 
@@ -96,9 +96,11 @@ export default function CustomIgnoreDurationModal(props: Props) {
         </form>
       </Body>
       {dateWarning && (
-        <Alert type="error" showIcon>
-          {t('Please enter a valid date in the future')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('Please enter a valid date in the future')}
+          </Alert>
+        </Alert.Container>
       )}
       <Footer>
         <ButtonBar gap={1}>

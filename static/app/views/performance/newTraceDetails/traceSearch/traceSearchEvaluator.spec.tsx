@@ -258,8 +258,7 @@ describe('TraceSearchEvaluator', () => {
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
-    // For consistency between spans and txns, should should be implemented
-    // it('transaction.self_time', () => {});
+    // For consistency between spans and txns, `transaction.self_time` should be implemented
   });
 
   describe('span', () => {

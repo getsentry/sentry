@@ -171,7 +171,7 @@ export function ProjectPageFilter({
       if (!val.length) {
         return allowMultiple
           ? memberProjects.map(p => parseInt(p.id, 10))
-          : [parseInt(memberProjects[0]!?.id, 10)];
+          : [parseInt(memberProjects[0]?.id!, 10)];
       }
 
       return allowMultiple ? val : [val[0]!];
@@ -251,7 +251,7 @@ export function ProjectPageFilter({
     });
   }, [onReset, routes, organization]);
 
-  const options = useMemo<SelectOptionOrSection<number>[]>(() => {
+  const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
     if (!hasProjects) {
       return [];
@@ -332,7 +332,7 @@ export function ProjectPageFilter({
 
   const desynced = desyncedFilters.has('projects');
   const defaultMenuWidth = useMemo(() => {
-    const flatOptions: SelectOption<number>[] = options.flatMap(item =>
+    const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
       'options' in item ? item.options : [item]
     );
 

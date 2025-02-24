@@ -2,19 +2,21 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
+import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
+
+export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
 
 const trackTraceMetadata = (
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
-  hasExceededPerformanceUsageLimit: boolean | null
+  hasExceededPerformanceUsageLimit: boolean | null,
+  source: TraceWaterFallSource
 ) => {
-  Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
-
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
   const projectSlugs = [
@@ -39,13 +41,9 @@ const trackTraceMetadata = (
     num_nodes: tree.list.length,
     project_platforms: projectPlatforms,
     organization,
+    source,
   });
 };
-
-const trackFailedToFetchTraceState = () =>
-  Sentry.metrics.increment('trace.failed_to_fetch_trace');
-
-const trackEmptyTraceState = () => Sentry.metrics.increment('trace.empty_trace');
 
 const trackLayoutChange = (layout: string, organization: Organization) =>
   trackAnalytics('trace.trace_layout.change', {
@@ -58,9 +56,49 @@ const trackDrawerMinimize = (organization: Organization) =>
     organization,
   });
 
+const trackExploreSearch = (
+  organization: Organization,
+  key: string,
+  value: string | number,
+  kind: TraceDrawerActionKind,
+  source: 'drawer' | 'toolbar_menu'
+) =>
+  trackAnalytics('trace.trace_drawer_explore_search', {
+    organization,
+    key,
+    value,
+    kind,
+    source,
+  });
+
 const trackShowInView = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.show_in_view', {
     organization,
+  });
+
+const trackTracingOnboarding = (
+  organization: Organization,
+  platform: PlatformKey,
+  supports_performance: boolean,
+  supports_onboarding_checklist: boolean
+) =>
+  trackAnalytics('trace.tracing_onboarding', {
+    organization,
+    platform,
+    supports_performance,
+    supports_onboarding_checklist,
+  });
+
+const trackPlatformDocsViewed = (organization: Organization, platform: string) =>
+  trackAnalytics('trace.tracing_onboarding_platform_docs_viewed', {
+    organization,
+    platform,
+  });
+
+const trackPerformanceSetupDocsViewed = (organization: Organization, platform: string) =>
+  trackAnalytics('trace.tracing_onboarding_performance_docs_viewed', {
+    organization,
+    platform,
   });
 
 const trackViewEventJSON = (organization: Organization) =>
@@ -119,6 +157,18 @@ const trackQuotaExceededIncreaseBudgetClicked = (
 const trackMissingSpansDocLinkClicked = (organization: Organization) =>
   trackAnalytics('trace.quality.missing_spans.doc_link_clicked', {
     organization,
+  });
+
+const trackTraceEmptyState = (organization: Organization, source: TraceWaterFallSource) =>
+  trackAnalytics('trace.load.empty_state', {
+    organization,
+    source,
+  });
+
+const trackTraceErrorState = (organization: Organization, source: TraceWaterFallSource) =>
+  trackAnalytics('trace.load.error_state', {
+    organization,
+    source,
   });
 
 const trackQuotaExceededLearnMoreClicked = (
@@ -180,7 +230,8 @@ function trackTraceShape(
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
-  hasExceededPerformanceUsageLimit: boolean | null
+  hasExceededPerformanceUsageLimit: boolean | null,
+  source: TraceWaterFallSource
 ) {
   switch (tree.shape) {
     case TraceShape.BROKEN_SUBTRACES:
@@ -194,7 +245,8 @@ function trackTraceShape(
         tree,
         projects,
         organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        source
       );
       break;
     default: {
@@ -204,12 +256,17 @@ function trackTraceShape(
 }
 
 const traceAnalytics = {
+  // Trace Onboarding
+  trackTracingOnboarding,
+  trackPlatformDocsViewed,
+  trackPerformanceSetupDocsViewed,
   // Trace shape
   trackTraceMetadata,
   trackTraceShape,
-  trackEmptyTraceState,
-  trackFailedToFetchTraceState,
+  trackTraceEmptyState,
+  trackTraceErrorState,
   // Drawer actions
+  trackExploreSearch,
   trackShowInView,
   trackViewEventJSON,
   trackViewContinuousProfile,

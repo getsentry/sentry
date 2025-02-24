@@ -3,7 +3,7 @@ import time
 from multiprocessing import Event
 from unittest import mock
 
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
@@ -62,7 +62,7 @@ class TestTaskWorker(TestCase):
         assert example_tasks.at_most_once_task
 
     def test_fetch_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
 
@@ -73,7 +73,7 @@ class TestTaskWorker(TestCase):
         assert task.id == SIMPLE_TASK.id
 
     def test_fetch_no_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
             task = taskworker.fetch_task()
@@ -83,7 +83,7 @@ class TestTaskWorker(TestCase):
 
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
             # No next_task returned
@@ -108,7 +108,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where update_task returns the next task which should
         # be processed.
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):

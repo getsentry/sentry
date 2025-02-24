@@ -594,7 +594,9 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self, is_new_account: bool) -> tuple[User | None, str]:
+    def _dispatch_to_confirmation(
+        self, is_new_account: bool
+    ) -> tuple[User | AnonymousUser | None, str]:
         if self._logged_in_user:
             return self._logged_in_user, "auth-confirm-link"
 
@@ -751,9 +753,6 @@ class AuthHelper(Pipeline):
         state = dict(super().get_initial_state())
         state.update({"flow": self.flow, "referrer": self.referrer})
         return state
-
-    def get_redirect_url(self) -> str:
-        return absolute_uri(reverse("sentry-auth-sso"))
 
     def dispatch_to(self, step: View) -> HttpResponseBase:
         return step.dispatch(request=self.request, helper=self)

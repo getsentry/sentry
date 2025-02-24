@@ -8,6 +8,7 @@ import {type AnimationProps, motion} from 'framer-motion';
 import {space} from 'sentry/styles/space';
 
 const PANEL_WIDTH = '50vw';
+const LEFT_SIDE_PANEL_WIDTH = '40vw';
 const PANEL_HEIGHT = '50vh';
 
 const OPEN_STYLES = {
@@ -138,8 +139,8 @@ const _SlideOverPanel = styled(motion.div, {
           : css`
               position: relative;
 
-              width: ${PANEL_WIDTH};
-              min-width: 500px;
+              width: ${LEFT_SIDE_PANEL_WIDTH};
+              min-width: 450px;
               height: 100%;
 
               top: 0;

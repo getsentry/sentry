@@ -1,14 +1,12 @@
 import {useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
+import isEqual from 'lodash/isEqual';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  DraggableTabList,
-  TEMPORARY_TAB_KEY,
-} from 'sentry/components/draggableTabs/draggableTabList';
+import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -25,13 +23,16 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {
+  DEFAULT_ENVIRONMENTS,
+  DEFAULT_TIME_FILTERS,
   generateTempViewId,
   type IssueView,
+  type IssueViewParams,
   IssueViews,
   IssueViewsContext,
+  TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
@@ -134,7 +135,16 @@ function IssueViewsIssueListHeader({
           router={router}
           initialViews={groupSearchViews.map(
             (
-              {id, name, query: viewQuery, querySort: viewQuerySort},
+              {
+                id,
+                name,
+                query: viewQuery,
+                querySort: viewQuerySort,
+                environments: viewEnvironments,
+                projects: viewProjects,
+                timeFilters: viewTimeFilters,
+                isAllProjects,
+              },
               index
             ): IssueView => {
               const tabId = id ?? `default${index.toString()}`;
@@ -145,6 +155,9 @@ function IssueViewsIssueListHeader({
                 label: name,
                 query: viewQuery,
                 querySort: viewQuerySort,
+                environments: viewEnvironments,
+                projects: isAllProjects ? [-1] : viewProjects,
+                timeFilters: viewTimeFilters,
                 isCommitted: true,
               };
             }
@@ -165,103 +178,167 @@ function IssueViewsIssueListHeaderTabsContent({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const pageFilters = usePageFilters();
 
   const {newViewActive, setNewViewActive} = useContext(NewTabContext);
-  const {tabListState, state, dispatch} = useContext(IssueViewsContext);
+  const {tabListState, state, dispatch, defaultProject} = useContext(IssueViewsContext);
   const {views, tempView} = state;
 
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
-  const {query, sort, viewId, project, environment} = queryParams;
-  const queryParamsWithPageFilters = useMemo(() => {
-    return {
-      ...queryParams,
-      project: project ?? pageFilters.selection.projects,
-      environment: environment ?? pageFilters.selection.environments,
-      ...normalizeDateTimeParams(pageFilters.selection.datetime),
-    };
-  }, [
-    environment,
-    pageFilters.selection.datetime,
-    pageFilters.selection.environments,
-    pageFilters.selection.projects,
-    project,
-    queryParams,
-  ]);
+  const {query, sort, viewId} = router.location.query;
 
   // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
-    // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
-    if (!query && !sort && !viewId) {
-      navigate(
-        normalizeUrl({
-          ...location,
-          query: {
-            ...queryParamsWithPageFilters,
-            query: views[0]!.query,
-            sort: views[0]!.querySort,
-            viewId: views[0]!.id,
-          },
-        }),
-        {replace: true}
-      );
-      tabListState?.setSelectedKey(views[0]!.key);
-      return;
+    const {
+      project,
+      environment: env,
+      start,
+      end,
+      statsPeriod,
+      utc,
+    } = router.location.query;
+    const {queryEnvs, queryProjects} = normalizeProjectsEnvironments(project, env);
+    const queryTimeFilters =
+      start || end || statsPeriod || utc
+        ? {
+            start: statsPeriod ? null : start,
+            end: statsPeriod ? null : end,
+            period: statsPeriod,
+            utc: statsPeriod ? null : utc,
+          }
+        : undefined;
+    if (!viewId) {
+      const {
+        id,
+        query: viewQuery,
+        querySort,
+        projects,
+        environments,
+        timeFilters,
+      } = views[0]!;
+      if (queryProjects || queryTimeFilters) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...router.location.query,
+              viewId: id,
+              query: query ?? viewQuery,
+              sort: sort ?? querySort,
+              project: queryProjects ?? projects,
+              environment: queryEnvs ?? environments,
+              ...normalizeDateTimeParams(queryTimeFilters ?? timeFilters),
+            },
+          }),
+          {replace: true}
+        );
+        tabListState?.setSelectedKey(views[0]!.key);
+        return;
+      }
+      if (!query && !sort) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...router.location.query,
+              viewId: id,
+              query: viewQuery,
+              sort: querySort,
+              project: projects,
+              environment: environments,
+              ...normalizeDateTimeParams(timeFilters),
+            },
+          }),
+          {replace: true}
+        );
+        tabListState?.setSelectedKey(views[0]!.key);
+        return;
+      }
     }
-    // if a viewId is present, check if it exists in the existing views.
+    // if a viewId is present, check the frontend is aware of a view with that id.
     if (viewId) {
-      const selectedTab = views.find(tab => tab.id === viewId);
-      if (selectedTab) {
-        const issueSortOption = Object.values(IssueSortOptions).includes(sort)
-          ? sort
-          : IssueSortOptions.DATE;
+      const selectedView = views.find(tab => tab.id === viewId);
+      if (selectedView) {
+        // If the frontend is aware of a view with that id, check if the query/sort is different
+        // from the view's original query/sort.
+        const {
+          query: originalQuery,
+          querySort: originalSort,
+          projects: originalProjects,
+          environments: originalEnvironments,
+          timeFilters: originalTimeFilters,
+        } = selectedView;
 
-        const newUnsavedChanges: [string, IssueSortOptions] | undefined =
-          query === selectedTab.query && sort === selectedTab.querySort
+        const issueSortOption = Object.values(IssueSortOptions).includes(sort)
+          ? (sort as IssueSortOptions)
+          : undefined;
+
+        const newUnsavedChanges: Partial<IssueViewParams> = {
+          query: query === originalQuery ? undefined : query,
+          querySort: sort === originalSort ? undefined : issueSortOption,
+          projects: isEqual(queryProjects?.sort(), originalProjects.sort())
             ? undefined
-            : [query ?? selectedTab.query, issueSortOption];
-        if (
-          (newUnsavedChanges && !selectedTab.unsavedChanges) ||
-          selectedTab.unsavedChanges?.[0] !== newUnsavedChanges?.[0] ||
-          selectedTab.unsavedChanges?.[1] !== newUnsavedChanges?.[1]
-        ) {
+            : queryProjects,
+          environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
+            ? undefined
+            : queryEnvs,
+          timeFilters:
+            queryTimeFilters &&
+            isEqual(
+              normalizeDateTimeParams(originalTimeFilters),
+              normalizeDateTimeParams(queryTimeFilters)
+            )
+              ? undefined
+              : queryTimeFilters,
+        };
+        const hasNoChanges = Object.values(newUnsavedChanges).every(
+          value => value === undefined
+        );
+
+        if (!hasNoChanges && !isEqual(selectedView.unsavedChanges, newUnsavedChanges)) {
           // If there were no unsaved changes before, or the existing unsaved changes
           // don't match the new query and/or sort, update the unsaved changes
           dispatch({
             type: 'UPDATE_UNSAVED_CHANGES',
             unsavedChanges: newUnsavedChanges,
           });
-        } else if (!newUnsavedChanges && selectedTab.unsavedChanges) {
-          // If there are no longer unsaved changes but there were before, remove them
+        } else if (hasNoChanges && selectedView.unsavedChanges) {
+          // If all view params are the same as the original view params, remove any unsaved changes
           dispatch({type: 'UPDATE_UNSAVED_CHANGES', unsavedChanges: undefined});
         }
-        if (!tabListState?.selectionManager.isSelected(selectedTab.key)) {
+        if (!tabListState?.selectionManager.isSelected(selectedView.key)) {
           navigate(
             normalizeUrl({
               ...location,
               query: {
-                ...queryParamsWithPageFilters,
-                query: newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query,
-                sort: newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort,
-                viewId: selectedTab.id,
+                ...router.location.query,
+                viewId: selectedView.id,
+                query: newUnsavedChanges.query ?? selectedView.query,
+                sort: newUnsavedChanges.querySort ?? selectedView.querySort,
+                project: newUnsavedChanges.projects ?? selectedView.projects,
+                environment: newUnsavedChanges.environments ?? selectedView.environments,
+                ...normalizeDateTimeParams(
+                  newUnsavedChanges.timeFilters ?? selectedView.timeFilters
+                ),
               },
             }),
             {replace: true}
           );
-          tabListState?.setSelectedKey(selectedTab.key);
+          tabListState?.setSelectedKey(selectedView.key);
         }
       } else {
-        // if a viewId does not exist, remove it from the query
+        // if the viewId isn't found in this user's views, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         navigate(
           normalizeUrl({
             ...location,
             query: {
-              ...queryParamsWithPageFilters,
+              ...router.location.query,
               viewId: undefined,
+              project: project ?? defaultProject,
+              environment: env ?? DEFAULT_ENVIRONMENTS,
+              ...normalizeDateTimeParams(queryTimeFilters ?? DEFAULT_TIME_FILTERS),
             },
           }),
           {replace: true}
@@ -280,7 +357,7 @@ function IssueViewsIssueListHeaderTabsContent({
           normalizeUrl({
             ...location,
             query: {
-              ...queryParamsWithPageFilters,
+              ...router.location.query,
               viewId: undefined,
             },
           }),
@@ -291,17 +368,17 @@ function IssueViewsIssueListHeaderTabsContent({
       }
     }
   }, [
-    navigate,
-    organization.slug,
-    query,
-    sort,
-    viewId,
-    tabListState,
-    location,
-    queryParamsWithPageFilters,
-    views,
-    organization,
+    defaultProject,
     dispatch,
+    location,
+    navigate,
+    organization,
+    query,
+    router.location.query,
+    sort,
+    tabListState,
+    viewId,
+    views,
   ]);
 
   // This useEffect ensures the "new view" page is displayed/hidden correctly
@@ -317,7 +394,7 @@ function IssueViewsIssueListHeaderTabsContent({
         setNewViewActive(false);
         dispatch({
           type: 'UPDATE_UNSAVED_CHANGES',
-          unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+          unsavedChanges: {query, querySort: sort ?? IssueSortOptions.DATE},
           isCommitted: true,
           syncViews: true,
         });
@@ -334,8 +411,8 @@ function IssueViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewId, query]);
 
-  useHotkeys(
-    [
+  const issuesViewSaveHotkeys = useMemo(() => {
+    return [
       {
         match: ['command+s', 'ctrl+s'],
         includeInputs: true,
@@ -346,9 +423,10 @@ function IssueViewsIssueListHeaderTabsContent({
           }
         },
       },
-    ],
-    [dispatch, tabListState?.selectedKey, views]
-  );
+    ];
+  }, [dispatch, tabListState?.selectedKey, views]);
+
+  useHotkeys(issuesViewSaveHotkeys);
 
   const handleCreateNewView = () => {
     const tempId = generateTempViewId();
@@ -357,9 +435,12 @@ function IssueViewsIssueListHeaderTabsContent({
     navigate({
       ...location,
       query: {
-        ...queryParams,
+        ...router.location.query,
         query: '',
         viewId: tempId,
+        project: defaultProject,
+        environment: DEFAULT_ENVIRONMENTS,
+        ...normalizeDateTimeParams(DEFAULT_TIME_FILTERS),
       },
     });
   };
@@ -375,7 +456,7 @@ function IssueViewsIssueListHeaderTabsContent({
 
   return (
     <DraggableTabList
-      onReorder={(newOrder: Node<DraggableTabListItemProps>[]) =>
+      onReorder={(newOrder: Array<Node<DraggableTabListItemProps>>) =>
         dispatch({
           type: 'REORDER_TABS',
           newKeyOrder: newOrder.map(node => node.key.toString()),
@@ -394,10 +475,17 @@ function IssueViewsIssueListHeaderTabsContent({
           key={view.key}
           to={normalizeUrl({
             query: {
-              ...queryParams,
-              query: view.unsavedChanges?.[0] ?? view.query,
-              sort: view.unsavedChanges?.[1] ?? view.querySort,
+              ...router.location.query,
+              query: view.unsavedChanges?.query ?? view.query,
+              sort: view.unsavedChanges?.querySort ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+              project: view.unsavedChanges?.projects ?? view.projects,
+              environment: view.unsavedChanges?.environments ?? view.environments,
+              ...normalizeDateTimeParams(
+                view.unsavedChanges?.timeFilters ?? view.timeFilters
+              ),
+              cursor: undefined,
+              page: undefined,
             },
             pathname: `/organizations/${organization.slug}/issues/`,
           })}
@@ -418,6 +506,35 @@ function IssueViewsIssueListHeaderTabsContent({
 }
 
 export default IssueViewsIssueListHeader;
+
+/**
+ * Normalizes the project and environment query params to arrays of strings and numbers.
+ * If project/environemnts is undefined, it equates to an empty array. If it is a single value,
+ * it is converted to single element array.
+ */
+export const normalizeProjectsEnvironments = (
+  project: string[] | string | undefined,
+  env: string[] | string | undefined
+): {queryEnvs: string[] | undefined; queryProjects: number[] | undefined} => {
+  let queryProjects: number[] | undefined = undefined;
+  if (Array.isArray(project)) {
+    queryProjects = project.map(p => parseInt(p, 10)).filter(p => !isNaN(p));
+  } else if (project) {
+    const parsed = parseInt(project, 10);
+    if (!isNaN(parsed)) {
+      queryProjects = [parsed];
+    }
+  }
+
+  let queryEnvs: string[] | undefined = undefined;
+  if (Array.isArray(env)) {
+    queryEnvs = env;
+  } else if (env) {
+    queryEnvs = [env];
+  }
+
+  return {queryEnvs, queryProjects};
+};
 
 const StyledIssueViews = styled(IssueViews)`
   grid-column: 1 / -1;

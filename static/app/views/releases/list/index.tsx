@@ -5,8 +5,8 @@ import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -64,7 +64,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   api: Client;
   organization: Organization;
   projects: Project[];
@@ -86,7 +86,7 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
       name: 'release',
     },
   ].reduce((acc, tag) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[tag.key] = tag;
     return acc;
   }, {});
@@ -435,21 +435,23 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
           }
 
           return (
-            <Alert type="info" showIcon>
-              <AlertText>
-                <div>
-                  {t(
-                    'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
-                  )}
-                </div>
-                <ExternalLink
-                  href="https://docs.sentry.io/product/releases/setup/#release-health"
-                  onClick={this.trackAddReleaseHealth}
-                >
-                  {t('Add Release Health')}
-                </ExternalLink>
-              </AlertText>
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon>
+                <AlertText>
+                  <div>
+                    {t(
+                      'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
+                    )}
+                  </div>
+                  <ExternalLink
+                    href="https://docs.sentry.io/product/releases/setup/#release-health"
+                    onClick={this.trackAddReleaseHealth}
+                  >
+                    {t('Add Release Health')}
+                  </ExternalLink>
+                </AlertText>
+              </Alert>
+            </Alert.Container>
           );
         }}
       </Projects>

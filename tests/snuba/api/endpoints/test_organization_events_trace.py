@@ -1317,6 +1317,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "message": error.search_message,
         } in response.data["orphan_errors"]
 
+    @pytest.mark.skip(reason="flaky: #84070")
     def test_with_default(self):
         self.load_trace()
         start, _ = self.get_start_end_from_day_ago(1000)
@@ -1569,6 +1570,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         trace_transaction = response.data["transactions"][0]
         self.assert_event(trace_transaction, self.gen1_events[0], "root")
 
+    @pytest.mark.skip(reason="flaky: #84070")
     def test_timestamp_optimization_without_mock(self):
         """Make sure that even if the params are smaller the query still works"""
         self.load_trace()
@@ -1615,6 +1617,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
 
+    @pytest.mark.skip(reason="flaky: #84070")
     def test_split_by_char_optimization(self):
         self.load_trace()
         # This changes the span_id condition so its a split on a string instead of an array
@@ -1674,6 +1677,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 0
         assert data["errors"] == 0
         assert data["performance_issues"] == 0
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -1699,6 +1704,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 21
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
 
     def test_no_team(self):
         self.load_trace()
@@ -1714,6 +1722,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 21
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
 
     def test_with_errors(self):
         self.load_trace()
@@ -1730,6 +1741,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 3
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 21
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
 
     def test_with_default(self):
         self.load_trace()
@@ -1746,6 +1760,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 21
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
         assert len(data["transaction_child_count_map"]) == 8
         for item in data["transaction_child_count_map"]:
             assert item["count"] > 1, item

@@ -231,7 +231,7 @@ describe('GroupActivity', function () {
   it('does not render undefined when integration is not recognized', async function () {
     createWrapper({
       activity: [
-        // @ts-ignore-next-line -> committing type crimes on `integration`
+        // @ts-expect-error-next-line -> committing type crimes on `integration`
         {
           data: {
             assignee: '123',

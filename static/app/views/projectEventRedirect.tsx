@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useParams} from 'sentry/utils/useParams';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 /**
  * This component performs a client-side redirect to Event Details given only

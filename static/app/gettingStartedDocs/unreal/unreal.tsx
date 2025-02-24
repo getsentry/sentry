@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   DocsParams,
@@ -146,9 +146,9 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </p>
-              <AlertWithoutMarginBottom type="info">
+              <Alert type="info">
                 engine-dir\Engine\Programs\CrashReportClient\Config\DefaultEngine.ini
-              </AlertWithoutMarginBottom>
+              </Alert>
             </Fragment>
           ),
           configurations: [
@@ -210,6 +210,15 @@ const onboarding: OnboardingConfig = {
         </Fragment>
       ),
     },
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.projectSlug}
+        />
+      ),
+    },
   ],
 };
 
@@ -259,7 +268,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

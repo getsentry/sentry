@@ -6,7 +6,7 @@ from time import time
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
@@ -98,7 +98,7 @@ class OAuth2Provider(Provider):
     def get_refresh_token_headers(self):
         return None
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [
             OAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
@@ -274,7 +274,7 @@ class OAuth2LoginView(PipelineView):
             if request.subdomain:
                 pipeline.bind_state("subdomain", request.subdomain)
 
-            return self.redirect(redirect_uri)
+            return HttpResponseRedirect(redirect_uri)
 
 
 class OAuth2CallbackView(PipelineView):

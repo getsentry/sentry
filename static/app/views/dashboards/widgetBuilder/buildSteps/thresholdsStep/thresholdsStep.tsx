@@ -1,14 +1,14 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 
 import {BuildStep} from '../buildStep';
@@ -30,7 +30,7 @@ type ThresholdRowProp = {
   color: string;
   maxInputProps: NumberFieldProps;
   minInputProps: NumberFieldProps;
-  unitOptions: {label: string; value: string}[];
+  unitOptions: Array<{label: string; value: string}>;
   unitSelectProps: SelectFieldProps<any>;
   maxKey?: ThresholdMaxKeys;
   onThresholdChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
@@ -95,6 +95,7 @@ export function Thresholds({
   dataType = '',
   dataUnit = '',
 }: ThresholdsStepProps) {
+  const theme = useTheme();
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;

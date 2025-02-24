@@ -1,6 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/react';
-import {type Event, _browserPerformanceTimeOriginMode} from '@sentry/core';
+import type {Event} from '@sentry/core';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
@@ -65,6 +65,9 @@ function getSentryIntegrations() {
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
+      _experiments: {
+        enableStandaloneClsSpans: true,
+      },
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
@@ -88,7 +91,7 @@ export function initializeSdk(config: Config) {
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
-    : [...sentryConfig?.tracePropagationTargets];
+    : [...sentryConfig.tracePropagationTargets];
 
   Sentry.init({
     ...sentryConfig,
@@ -234,7 +237,6 @@ export function initializeSdk(config: Config) {
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   Sentry.addEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
     event.tags = event.tags || {};
-    event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
     return event;
   });
 

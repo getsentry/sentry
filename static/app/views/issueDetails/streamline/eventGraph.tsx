@@ -3,13 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
@@ -25,7 +25,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
+import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
@@ -34,6 +34,8 @@ import {
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const enum EventGraphSeries {
   EVENT = 'event',
@@ -76,6 +78,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const eventView = useIssueDetailsEventView({group});
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
+  const {currentTab} = useGroupDetailsRoute();
 
   const {
     data: groupStats = {},
@@ -130,7 +133,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       staleTime: 60_000,
     }
   );
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 
   const {series: eventSeries, count: eventCount} = useMemo(() => {
@@ -187,6 +190,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
     const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
+    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -195,7 +199,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: translucentGray300,
+            color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -221,7 +225,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: translucentGray300,
+            color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -241,7 +245,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       });
     }
 
-    if (currentEventSeries.markLine) {
+    // Only display the current event mark line if on the issue details tab
+    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
@@ -265,6 +270,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     isUnfilteredStatsEnabled,
     unfilteredEventSeries,
     unfilteredUserSeries,
+    currentTab,
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
@@ -437,7 +443,7 @@ const SummaryContainer = styled('div')`
   gap: ${space(0.5)};
   flex-direction: column;
   margin: ${space(1)} ${space(1)} ${space(1)} 0;
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;
 
 const Callout = styled(Button)<{isActive: boolean}>`

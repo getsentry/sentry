@@ -100,7 +100,7 @@ export interface DeprecatedLineProps {
 }
 
 interface Props extends DeprecatedLineProps {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
 }
 
 type State = {

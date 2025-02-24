@@ -28,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  getWidgetMetricsUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
@@ -171,7 +170,7 @@ function WidgetCardContextMenu({
               size="xs"
               icon={<IconExpand />}
               onClick={() => {
-                (seriesData || tableData) &&
+                if (seriesData || tableData) {
                   setData({
                     seriesData,
                     tableData,
@@ -179,6 +178,7 @@ function WidgetCardContextMenu({
                     totalIssuesCount,
                     seriesResultsType,
                   });
+                }
                 openWidgetViewerPath(index);
               }}
             />
@@ -271,7 +271,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
-  hasEditAccess: boolean = true,
+  hasEditAccess = true,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -347,16 +347,6 @@ export function getMenuOptions(
       key: 'open-in-issues',
       label: t('Open in Issues'),
       to: issuesLocation,
-    });
-  }
-
-  if (widget.widgetType === WidgetType.METRICS) {
-    const metricsLocation = getWidgetMetricsUrl(widget, selection, organization);
-
-    menuOptions.push({
-      key: 'open-in-metrics',
-      label: t('Open in Metrics'),
-      to: metricsLocation,
     });
   }
 

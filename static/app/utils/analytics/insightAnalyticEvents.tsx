@@ -7,7 +7,7 @@ export type InsightEventParameters = {
   'insight.app_start.spans.toggle_sample_type': {type: string};
   'insight.asset.filter_by_blocking': {filter: string};
   // Don't specify filter because page filter are arbitrary values
-  'insight.asset.filter_by_page': {};
+  'insight.asset.filter_by_page': Record<string, unknown>;
   'insight.asset.filter_by_type': {filter: string};
   'insight.general.chart_zoom': {chart_name: string; source: string};
   'insight.general.create_alert': {
@@ -35,11 +35,12 @@ export type InsightEventParameters = {
   'insight.page_loads.queue': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_load': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_rendering': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.sessions': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.vital': {has_ever_sent_data: boolean; view: DomainView};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
-  'insight.vital.overview.open_full_waterfall': {};
-  'insight.vital.overview.open_transaction_summary': {};
+  'insight.vital.overview.open_full_waterfall': Record<string, unknown>;
+  'insight.vital.overview.open_transaction_summary': Record<string, unknown>;
   'insight.vital.overview.toggle_data_type': {type: string};
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
@@ -54,6 +55,7 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
   'insight.page_loads.db': 'Insights: DB Page Load',
+  'insight.page_loads.sessions': 'Insights: Sessions Page Load',
   'insight.page_loads.http': 'Insights: HTTP Page Load',
   'insight.page_loads.queue': 'Insights: Queue Page Load',
   'insight.page_loads.screen_load': 'Insights: Screen Load Page Load',

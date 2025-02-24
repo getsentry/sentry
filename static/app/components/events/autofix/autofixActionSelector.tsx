@@ -18,7 +18,7 @@ interface Props<T extends string> {
   children: (selectedOption: Option<T>) => React.ReactNode;
   onBack: () => void;
   onSelect: (value: T) => void;
-  options: Option<T>[];
+  options: Array<Option<T>>;
   selected: T | null;
 }
 

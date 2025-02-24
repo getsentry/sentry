@@ -148,7 +148,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        'issue_details'
       );
     }
 
@@ -207,7 +208,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     const index = node ? props.tree.list.indexOf(node) : -1;
 
     if (node) {
-      const preserveNodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+      const preserveNodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
 
       let start = index;
       while (--start > 0) {
@@ -258,7 +259,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         }
         viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
         if (viewManager.isOutsideOfView(node)) {
-          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         }
       }
       viewManager.scrollToRow(index, 'center');
@@ -319,6 +320,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       >
         <IssuesPointerDisabled>
           <Trace
+            metaQueryResults={props.meta}
             trace={props.tree}
             rerender={rerender}
             trace_id={props.traceSlug}
@@ -353,7 +355,7 @@ const IssuesPointerDisabled = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-const HEADER_HEIGHT = 28;
+const HEADER_HEIGHT = 38;
 const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 

@@ -49,7 +49,7 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
 
   get: (id: string) => Readonly<Item> | undefined;
   getAllItemIds: () => string[];
-  getAllItems: () => Readonly<Item[]>;
+  getAllItems: () => readonly Item[];
 
   hasStatus: (id: string, status: string) => boolean;
   init: () => void;
@@ -65,7 +65,7 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
 
   onDelete: (changeId: string, itemIds: ItemIds) => void;
-  onDeleteError: (changeId: string, itemIds: ItemIds) => void;
+  onDeleteError: (changeId: string, itemIds: ItemIds, response: RequestError) => void;
   onDeleteSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
 
   onDiscard: (changeId: string, itemId: string) => void;
@@ -88,9 +88,9 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
 }
 
 function mergePendingChanges(
-  items: Readonly<Item[]>,
+  items: readonly Item[],
   pendingChanges: Map<ChangeId, Change>
-): Readonly<Item[]> {
+): readonly Item[] {
   // Merge pending changes into the existing group items. This gives the
   // apperance of optimistic updates
   const pendingById: Record<string, Change[]> = {};
@@ -154,14 +154,14 @@ const storeConfig: GroupStoreDefinition = {
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (itemsById[item.id]) {
         this.items[itemIndex] = {
           ...item,
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           ...itemsById[item.id],
         };
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         delete itemsById[item.id];
       }
     });
@@ -190,7 +190,7 @@ const storeConfig: GroupStoreDefinition = {
     items = toArray(items);
     const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
     this.updateItems(items.map(item => item.id));
@@ -347,8 +347,12 @@ const storeConfig: GroupStoreDefinition = {
     this.updateItems(ids);
   },
 
-  onDeleteError(_changeId, itemIds) {
-    showAlert(t('Unable to delete events. Please try again.'), 'error');
+  onDeleteError(_changeId, itemIds, response) {
+    if (response.status === 403) {
+      showAlert(t('You do not have permission to delete issues'), 'error');
+    } else {
+      showAlert(t('Unable to delete events. Please try again.'), 'error');
+    }
 
     if (!itemIds) {
       return;

@@ -46,8 +46,9 @@ const ALLOWED_ANON_PAGES = [
 /**
  * Return true if we should skip calling the normal error handler
  */
-const globalErrorHandlers: ((resp: ResponseMeta, options: RequestOptions) => boolean)[] =
-  [];
+const globalErrorHandlers: Array<
+  (resp: ResponseMeta, options: RequestOptions) => boolean
+> = [];
 
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {

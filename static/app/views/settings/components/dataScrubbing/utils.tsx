@@ -65,7 +65,7 @@ function getMethodLabel(type: MethodType) {
   }
 }
 
-const binarySuggestions: Array<SourceSuggestion> = [
+const binarySuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.BINARY,
     value: '&&',
@@ -76,14 +76,14 @@ const binarySuggestions: Array<SourceSuggestion> = [
   },
 ];
 
-const unarySuggestions: Array<SourceSuggestion> = [
+const unarySuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.UNARY,
     value: '!',
   },
 ];
 
-const valueSuggestions: Array<SourceSuggestion> = [
+const valueSuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.VALUE,
     value: '**',
@@ -184,7 +184,7 @@ export function getRuleDescription(rule: Rule) {
   const methodLabel = getMethodLabel(method);
   const typeLabel = getRuleLabel(type);
 
-  const descriptionDetails: Array<string> = [];
+  const descriptionDetails: string[] = [];
 
   descriptionDetails.push(`[${methodLabel.label}]`);
 

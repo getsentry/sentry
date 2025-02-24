@@ -7,7 +7,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
@@ -195,7 +195,7 @@ class OAuthLoginView(PipelineView):
 
             authorize_url = client.get_authorize_url(request_token)
 
-            return self.redirect(authorize_url)
+            return HttpResponseRedirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -264,7 +264,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         if not query:
             resp = self.get_client().get_repos()
 
@@ -334,7 +334,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.COMMITS])
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def post_install(

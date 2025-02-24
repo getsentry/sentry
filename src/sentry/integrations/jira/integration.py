@@ -29,12 +29,14 @@ from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.services.user import RpcUser
@@ -129,8 +131,8 @@ class JiraIntegration(IssueSyncIntegration):
     def use_email_scope(cls):
         return settings.JIRA_USE_EMAIL_SCOPE
 
-    def get_organization_config(self) -> dict[str, Any]:
-        configuration = [
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        configuration: list[dict[str, Any]] = [
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",
@@ -845,7 +847,9 @@ class JiraIntegration(IssueSyncIntegration):
 
         meta = client.get_create_meta_for_project(jira_project)
         if not meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+            raise IntegrationInstallationConfigurationError(
+                "Could not fetch issue create configuration from Jira."
+            )
 
         issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
         cleaned_data = self._clean_and_transform_issue_data(
@@ -984,7 +988,9 @@ class JiraIntegration(IssueSyncIntegration):
             }
         )
 
-    def parse_jira_issue_metadata(self, meta: dict[str, Any]) -> list[JiraIssueTypeMetadata] | None:
+    def parse_jira_issue_metadata(
+        self, meta: dict[str, Any]
+    ) -> dict[str, JiraIssueTypeMetadata] | None:
         try:
             return JiraIssueTypeMetadata.from_jira_meta_config(meta)
         except Exception as e:
@@ -1013,7 +1019,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return []
 
     def build_integration(self, state):

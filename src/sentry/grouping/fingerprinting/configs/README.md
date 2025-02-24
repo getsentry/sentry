@@ -48,14 +48,14 @@ To add one or more of these rule configs
 
 ```python
 register_strategy_config(
-    id="newstyle:2024-01-11",
-    base="newstyle:2023-01-11,
+    id="newstyle:YYYY-MM-DD",
+    base="newstyle:YYYY-MM-DD", # Some other existing config
     risk=RISK_LEVEL_MEDIUM,
     changelog="""
         * Added built-in fingerprinting for Foo
         * Added built-in fingerprinting for Bar
     """,
-    fingerprinting_bases=["foo@2024-01-11", "bar@2024-01-11"],
+    fingerprinting_bases=["foo@YYYY-MM-DD", "bar@YYYY-MM-DD"],
 )
 ```
 

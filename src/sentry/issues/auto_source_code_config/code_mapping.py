@@ -1,27 +1,35 @@
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple
 
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.integrations.source_code_management.repo_trees import (
+    RepoAndBranch,
+    RepoTree,
+    RepoTreesIntegration,
+    get_extension,
+)
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from .integration_utils import InstallationNotFoundError, get_installation
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+logger = logging.getLogger(__name__)
+
+
+class CodeMapping(NamedTuple):
+    repo: RepoAndBranch
+    stacktrace_root: str
+    source_path: str
+
 
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
-
-# Read this to learn about file extensions for different languages
-# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
-# We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
 
 # List of file paths prefixes that should become stack trace roots
 FILE_PATH_PREFIX_LENGTH = {
@@ -29,26 +37,6 @@ FILE_PATH_PREFIX_LENGTH = {
     "../": 3,
     "./": 2,
 }
-
-# We want tasks which hit the GH API multiple times to give up if they hit too many
-# "can't reach GitHub"-type errors.
-MAX_CONNECTION_ERRORS = 10
-
-
-class Repo(NamedTuple):
-    name: str
-    branch: str
-
-
-class RepoTree(NamedTuple):
-    repo: Repo
-    files: list[str]
-
-
-class CodeMapping(NamedTuple):
-    repo: Repo
-    stacktrace_root: str
-    source_path: str
 
 
 class UnexpectedPathException(Exception):
@@ -59,9 +47,24 @@ class UnsupportedFrameFilename(Exception):
     pass
 
 
+def derive_code_mappings(
+    organization: Organization,
+    frame: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    installation = get_installation(organization)
+    if not isinstance(installation, RepoTreesIntegration):
+        return []
+    trees = installation.get_trees_for_org()
+    trees_helper = CodeMappingTreesHelper(trees)
+    frame_filename = FrameFilename(frame)
+    return trees_helper.list_file_matches(frame_filename)
+
+
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
-    def __init__(self, frame_file_path: str) -> None:
+    def __init__(self, frame: Mapping[str, Any]) -> None:
+        # XXX: In the next PR, we will use more than just the filename
+        frame_file_path = frame["filename"]
         self.raw_path = frame_file_path
         is_windows_path = False
         if "\\" in frame_file_path:
@@ -119,16 +122,16 @@ class FrameFilename:
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
-    def __init__(self, trees: dict[str, RepoTree]):
+    def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 
-    def generate_code_mappings(self, stacktraces: list[str]) -> list[CodeMapping]:
+    def generate_code_mappings(self, frames: Sequence[Mapping[str, Any]]) -> list[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: dict[str, list[FrameFilename]] = self._stacktrace_buckets(stacktraces)
+        buckets: dict[str, list[FrameFilename]] = self._stacktrace_buckets(frames)
 
         # We reprocess stackframes until we are told that no code mappings were produced
         # This is order to reprocess past stackframes in light of newly discovered code mappings
@@ -187,27 +190,24 @@ class CodeMappingTreesHelper:
                     )
         return file_matches
 
-    def _stacktrace_buckets(self, stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
+    def _stacktrace_buckets(
+        self, frames: Sequence[Mapping[str, Any]]
+    ) -> dict[str, list[FrameFilename]]:
         """Groups stacktraces into buckets based on the root of the stacktrace path"""
-        buckets: dict[str, list[FrameFilename]] = {}
-        for stacktrace_frame_file_path in stacktraces:
+        buckets: defaultdict[str, list[FrameFilename]] = defaultdict(list)
+        for frame in frames:
             try:
-                frame_filename = FrameFilename(stacktrace_frame_file_path)
+                frame_filename = FrameFilename(frame)
                 # Any files without a top directory will be grouped together
-                bucket_key = frame_filename.root
-
-                if not buckets.get(bucket_key):
-                    buckets[bucket_key] = []
-                buckets[bucket_key].append(frame_filename)
-
+                buckets[frame_filename.root].append(frame_filename)
             except UnsupportedFrameFilename:
-                logger.info("Frame's filepath not supported: %s", stacktrace_frame_file_path)
+                logger.info("Frame's filepath not supported: %s", frame.get("filename"))
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
         return buckets
 
-    def _process_stackframes(self, buckets: dict[str, list[FrameFilename]]) -> bool:
+    def _process_stackframes(self, buckets: Mapping[str, Sequence[FrameFilename]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
@@ -305,7 +305,7 @@ class CodeMappingTreesHelper:
         source code. Use existing code mappings to exclude some source files
         """
 
-        def _list_endswith(l1: list[str], l2: list[str]) -> bool:
+        def _list_endswith(l1: Sequence[str], l2: Sequence[str]) -> bool:
             if len(l2) > len(l1):
                 l1, l2 = l2, l1
             l1_idx = len(l1) - 1
@@ -339,43 +339,6 @@ class CodeMappingTreesHelper:
             for code_mapping in self.code_mappings.values()
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
-
-
-def get_extension(file_path: str) -> str:
-    extension = ""
-    if file_path:
-        ext_period = file_path.rfind(".")
-        if ext_period >= 1:  # e.g. f.py
-            extension = file_path.rsplit(".")[-1]
-
-    return extension
-
-
-def should_include(file_path: str) -> bool:
-    include = True
-    if file_path.endswith("spec.jsx") or file_path.startswith("tests/"):
-        include = False
-    return include
-
-
-def filter_source_code_files(files: list[str]) -> list[str]:
-    """
-    This takes the list of files of a repo and returns
-    the file paths for supported source code files
-    """
-    supported_files = []
-    # XXX: If we want to make the data structure faster to traverse, we could
-    # use a tree where each leaf represents a file while non-leaves would
-    # represent a directory in the path
-    for file_path in files:
-        try:
-            extension = get_extension(file_path)
-            if extension in EXTENSIONS and should_include(file_path):
-                supported_files.append(file_path)
-        except Exception:
-            logger.exception("We've failed to store the file path.")
-
-    return supported_files
 
 
 def convert_stacktrace_frame_path_to_source_path(
@@ -421,44 +384,36 @@ def convert_stacktrace_frame_path_to_source_path(
 
 
 def create_code_mapping(
-    organization_integration: OrganizationIntegration | RpcOrganizationIntegration,
+    organization: Organization,
     project: Project,
-    code_mapping: CodeMapping,
+    stacktrace_root: str,
+    source_path: str,
+    repo_name: str,
+    branch: str,
 ) -> RepositoryProjectPathConfig:
-    repository, _ = Repository.objects.get_or_create(
-        name=code_mapping.repo.name,
-        organization_id=organization_integration.organization_id,
-        defaults={
-            "integration_id": organization_integration.integration_id,
-        },
-    )
+    installation = get_installation(organization)
+    # It helps with typing since org_integration can be None
+    if not installation.org_integration:
+        raise InstallationNotFoundError
 
-    new_code_mapping, created = RepositoryProjectPathConfig.objects.update_or_create(
+    repository, _ = Repository.objects.get_or_create(
+        name=repo_name,
+        organization_id=organization.id,
+        defaults={"integration_id": installation.model.id},
+    )
+    new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=code_mapping.stacktrace_root,
+        stack_root=stacktrace_root,
         defaults={
             "repository": repository,
-            "organization_id": organization_integration.organization_id,
-            "integration_id": organization_integration.integration_id,
-            "organization_integration_id": organization_integration.id,
-            "source_root": code_mapping.source_path,
-            "default_branch": code_mapping.repo.branch,
+            "organization_id": organization.id,
+            "integration_id": installation.model.id,
+            "organization_integration_id": installation.org_integration.id,
+            "source_root": source_path,
+            "default_branch": branch,
             "automatically_generated": True,
         },
     )
-
-    if created:
-        logger.info(
-            "Created a code mapping for project.slug=%s, stack root: %s",
-            project.slug,
-            code_mapping.stacktrace_root,
-        )
-    else:
-        logger.info(
-            "Updated existing code mapping for project.slug=%s, stack root: %s",
-            project.slug,
-            code_mapping.stacktrace_root,
-        )
 
     return new_code_mapping
 

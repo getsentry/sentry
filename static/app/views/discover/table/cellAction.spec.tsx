@@ -16,11 +16,9 @@ const defaultData: TableDataRow = {
   release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
   'measurements.fcp': 1234,
   'percentile(measurements.fcp, 0.5)': 1234,
-  // TODO: Fix this type
-  // @ts-ignore
+  // @ts-expect-error TODO: Fix this type
   'error.handled': [null],
-  // TODO: Fix this type
-  // @ts-ignore
+  // @ts-expect-error TODO: Fix this type
   'error.type': [
     'ServerException',
     'ClickhouseError',
@@ -221,8 +219,7 @@ describe('Discover -> CellAction', function () {
         columnIndex: 7,
         data: {
           ...defaultData,
-          // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error TODO: Fix this type
           'error.handled': ['0'],
         },
       });
@@ -312,8 +309,7 @@ describe('Discover -> CellAction', function () {
         eventView: view,
         handleCellAction,
         columnIndex: 3,
-        // TODO: Fix this type
-        // @ts-ignore
+        // @ts-expect-error TODO: Fix this type
         data: {...defaultData, release: null},
       });
       await openMenu();
@@ -348,8 +344,7 @@ describe('Discover -> CellAction', function () {
         columnIndex: 5,
         data: {
           ...defaultData,
-          // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error TODO: Fix this type
           'measurements.fcp': null,
         },
       });
@@ -388,8 +383,7 @@ describe('Discover -> CellAction', function () {
         columnIndex: 6,
         data: {
           ...defaultData,
-          // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error TODO: Fix this type
           'percentile(measurements.fcp, 0.5)': null,
         },
       });
@@ -425,22 +419,18 @@ describe('updateQuery()', function () {
 
   it('modifies the query with has/!has', function () {
     let results = new MutableSearch([]);
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toBe('!has:a');
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.EXCLUDE, columnA, null);
     expect(results.formatString()).toBe('has:a');
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toBe('!has:a');
 
     results = new MutableSearch([]);
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, [null]);
     expect(results.formatString()).toBe('!has:a');
   });
@@ -476,17 +466,17 @@ describe('updateQuery()', function () {
     updateQuery(results, Actions.ADD, columnB, '2');
     expect(results.formatString()).toBe('a:1 b:2');
     updateQuery(results, Actions.EXCLUDE, columnA, '3');
-    expect(results.formatString()).toBe('b:2 !a:3');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3');
     updateQuery(results, Actions.EXCLUDE, columnB, '4');
-    expect(results.formatString()).toBe('!a:3 !b:4');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4');
     results.addFilterValues('!a', ['*dontescapeme*'], false);
-    expect(results.formatString()).toBe('!a:3 !b:4 !a:*dontescapeme*');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4 !a:*dontescapeme*');
     updateQuery(results, Actions.EXCLUDE, columnA, '*escapeme*');
     expect(results.formatString()).toBe(
-      '!b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
+      'a:1 b:2 !b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
     );
     updateQuery(results, Actions.ADD, columnA, '5');
-    expect(results.formatString()).toBe('!b:4 a:5');
+    expect(results.formatString()).toBe('b:2 !b:4 a:5');
     updateQuery(results, Actions.ADD, columnB, '6');
     expect(results.formatString()).toBe('a:5 b:6');
   });
@@ -528,8 +518,7 @@ describe('updateQuery()', function () {
 
   it('errors for unknown actions', function () {
     const results = new MutableSearch([]);
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });
 });

@@ -52,7 +52,7 @@ type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 
 type Props = Pick<ExceptionProps, 'groupingCurrentLevel'> & {
   data: {
-    values?: Array<Thread>;
+    values?: Thread[];
   };
   event: Event;
   group: Group | undefined;

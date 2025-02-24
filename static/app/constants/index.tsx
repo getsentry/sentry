@@ -377,6 +377,16 @@ export const DATA_CATEGORY_INFO = {
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
+  [DataCategoryExact.UPTIME]: {
+    name: DataCategoryExact.UPTIME,
+    apiName: 'uptime',
+    plural: 'uptime',
+    displayName: 'uptime monitor',
+    titleName: t('Uptime Monitors'),
+    productName: t('Uptime Monitoring'),
+    uid: 21,
+    isBilledCategory: true,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
@@ -424,6 +434,8 @@ export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
+export const LOGS_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/logs/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;

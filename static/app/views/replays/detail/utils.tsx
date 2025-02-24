@@ -1,4 +1,4 @@
-export function filterItems<I extends object, K extends string>({
+export function filterItems<I extends Record<PropertyKey, unknown>, K extends string>({
   filterFns,
   filterVals,
   items,

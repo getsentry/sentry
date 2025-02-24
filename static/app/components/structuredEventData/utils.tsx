@@ -36,7 +36,7 @@ export function getDefaultExpanded(
   value: any,
   autoCollapseLimit = MAX_ITEMS_BEFORE_AUTOCOLLAPSE
 ) {
-  function recurse(prefix: string, levels: number, val: any): Array<any> {
+  function recurse(prefix: string, levels: number, val: any): any[] {
     if (!levels) {
       return [];
     }

@@ -1,9 +1,8 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
-import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {truncate} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import {truncate} from '@sentry/utils';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -13,9 +12,10 @@ import moment from 'moment-timezone';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
@@ -29,7 +29,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -72,7 +72,6 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
@@ -95,7 +94,6 @@ import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widge
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
@@ -110,6 +108,7 @@ export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
+  confidence?: Confidence;
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
@@ -195,6 +194,7 @@ function WidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    confidence,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -852,6 +852,8 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
+                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+                confidence={confidence}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -870,16 +872,19 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
+                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
               />
             )}
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <Alert type="info" showIcon>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+              )}
+            </Alert>
+          </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>
@@ -977,87 +982,85 @@ function WidgetViewerModal(props: Props) {
 
   return (
     <Fragment>
-      <OrganizationContext.Provider value={organization}>
-        <DashboardsMEPProvider>
-          <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher
-              organization={organization}
-              eventView={eventView}
-              location={location}
-              hideLoadingIndicator
-            >
-              {metricsDataSide => (
-                <MEPSettingProvider
-                  location={location}
-                  forceTransactions={metricsDataSide.forceTransactionsOnly}
-                >
-                  <Header closeButton>
-                    <WidgetHeader>
-                      <WidgetTitleRow>
-                        <h3>{widget.title}</h3>
-                        <DiscoverSplitAlert widget={widget} />
-                      </WidgetTitleRow>
-                      {widget.description && (
-                        <Tooltip
-                          title={widget.description}
-                          containerDisplayMode="grid"
-                          showOnlyOnOverflow
-                          isHoverable
-                          position="bottom"
+      <DashboardsMEPProvider>
+        <MetricsCardinalityProvider organization={organization} location={location}>
+          <MetricsDataSwitcher
+            organization={organization}
+            eventView={eventView}
+            location={location}
+            hideLoadingIndicator
+          >
+            {metricsDataSide => (
+              <MEPSettingProvider
+                location={location}
+                forceTransactions={metricsDataSide.forceTransactionsOnly}
+              >
+                <Header closeButton>
+                  <WidgetHeader>
+                    <WidgetTitleRow>
+                      <h3>{widget.title}</h3>
+                      <DiscoverSplitAlert widget={widget} />
+                    </WidgetTitleRow>
+                    {widget.description && (
+                      <Tooltip
+                        title={widget.description}
+                        containerDisplayMode="grid"
+                        showOnlyOnOverflow
+                        isHoverable
+                        position="bottom"
+                      >
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      </Tooltip>
+                    )}
+                  </WidgetHeader>
+                </Header>
+                <Body>{renderWidgetViewer()}</Body>
+                <Footer>
+                  <ResultsContainer>
+                    {renderTotalResults(totalResults, widget.widgetType)}
+                    <ButtonBar gap={1}>
+                      {onEdit && widget.id && (
+                        <Button
+                          onClick={() => {
+                            closeModal();
+                            onEdit();
+                            trackAnalytics('dashboards_views.widget_viewer.edit', {
+                              organization,
+                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              display_type: widget.displayType,
+                            });
+                          }}
+                          disabled={!hasEditAccess}
+                          title={
+                            !hasEditAccess &&
+                            t('You do not have permission to edit this widget')
+                          }
                         >
-                          <WidgetDescription>{widget.description}</WidgetDescription>
-                        </Tooltip>
+                          {t('Edit Widget')}
+                        </Button>
                       )}
-                    </WidgetHeader>
-                  </Header>
-                  <Body>{renderWidgetViewer()}</Body>
-                  <Footer>
-                    <ResultsContainer>
-                      {renderTotalResults(totalResults, widget.widgetType)}
-                      <ButtonBar gap={1}>
-                        {onEdit && widget.id && (
-                          <Button
-                            onClick={() => {
-                              closeModal();
-                              onEdit();
-                              trackAnalytics('dashboards_views.widget_viewer.edit', {
-                                organization,
-                                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                                display_type: widget.displayType,
-                              });
-                            }}
-                            disabled={!hasEditAccess}
-                            title={
-                              !hasEditAccess &&
-                              t('You do not have permission to edit this widget')
-                            }
-                          >
-                            {t('Edit Widget')}
-                          </Button>
-                        )}
-                        {widget.widgetType && (
-                          <OpenButton
-                            widget={primaryWidget}
-                            organization={organization}
-                            selection={modalSelection}
-                            selectedQueryIndex={selectedQueryIndex}
-                            disabled={isUsingPerformanceScore(widget)}
-                            disabledTooltip={
-                              isUsingPerformanceScore(widget)
-                                ? performanceScoreTooltip
-                                : undefined
-                            }
-                          />
-                        )}
-                      </ButtonBar>
-                    </ResultsContainer>
-                  </Footer>
-                </MEPSettingProvider>
-              )}
-            </MetricsDataSwitcher>
-          </MetricsCardinalityProvider>
-        </DashboardsMEPProvider>
-      </OrganizationContext.Provider>
+                      {widget.widgetType && (
+                        <OpenButton
+                          widget={primaryWidget}
+                          organization={organization}
+                          selection={modalSelection}
+                          selectedQueryIndex={selectedQueryIndex}
+                          disabled={isUsingPerformanceScore(widget)}
+                          disabledTooltip={
+                            isUsingPerformanceScore(widget)
+                              ? performanceScoreTooltip
+                              : undefined
+                          }
+                        />
+                      )}
+                    </ButtonBar>
+                  </ResultsContainer>
+                </Footer>
+              </MEPSettingProvider>
+            )}
+          </MetricsDataSwitcher>
+        </MetricsCardinalityProvider>
+      </DashboardsMEPProvider>
     </Fragment>
   );
 }
@@ -1091,10 +1094,6 @@ function OpenButton({
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
-      break;
-    case WidgetType.METRICS:
-      openLabel = t('Open in Metrics');
-      path = getWidgetMetricsUrl(widget, selection, organization);
       break;
     case WidgetType.SPANS:
       openLabel = t('Open in Explore');

@@ -22,7 +22,7 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -33,12 +33,18 @@ logger = logging.getLogger(__name__)
 from rest_framework.request import Request
 
 
+class SummarizeIssueScores(BaseModel):
+    possible_cause_confidence: float
+    possible_cause_novelty: float
+
+
 class SummarizeIssueResponse(BaseModel):
     group_id: str
     headline: str
     whats_wrong: str | None = None
     trace: str | None = None
     possible_cause: str | None = None
+    scores: SummarizeIssueScores | None = None
 
 
 @region_silo_endpoint
@@ -129,16 +135,12 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            url,
+            f"{settings.SEER_AUTOFIX_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(
-                    salt,
-                    body=body,
-                ),
+                **sign_with_seer_secret(body),
             },
         )
 

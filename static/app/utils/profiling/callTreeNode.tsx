@@ -4,15 +4,15 @@ export class CallTreeNode {
   readonly frame: Frame;
 
   private locked = false;
-  count: number = 0;
+  count = 0;
   isRoot: boolean;
 
   parent: CallTreeNode | null = null;
   recursive: CallTreeNode | null = null;
   children: CallTreeNode[] = [];
 
-  totalWeight: number = 0;
-  selfWeight: number = 0;
+  totalWeight = 0;
+  selfWeight = 0;
 
   aggregate_duration_ns = 0;
 

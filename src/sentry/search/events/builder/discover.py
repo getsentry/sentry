@@ -23,7 +23,7 @@ from snuba_sdk import (
 from sentry.api import event_search
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.features.rollout import in_rollout_group
+from sentry.options.rollout import in_rollout_group
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig

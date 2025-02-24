@@ -9,6 +9,7 @@ from django.urls import re_path, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -21,7 +22,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
-from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -101,7 +101,7 @@ class IssueTrackingPlugin2(Plugin):
     def has_project_conf(self):
         return True
 
-    def get_group_body(self, request: Request, group, event, **kwargs):
+    def get_group_body(self, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event)
@@ -109,15 +109,15 @@ class IssueTrackingPlugin2(Plugin):
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_group_description(self, request: Request, group, event):
+    def get_group_description(self, group, event):
         referrer = self.get_conf_key() + "_plugin"
         output = [absolute_uri(group.get_absolute_url(params={"referrer": referrer}))]
-        body = self.get_group_body(request, group, event)
+        body = self.get_group_body(group, event)
         if body:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_group_title(self, request: Request, group, event):
+    def get_group_title(self, group, event):
         return event.title
 
     def is_configured(self, project) -> bool:
@@ -172,13 +172,13 @@ class IssueTrackingPlugin2(Plugin):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.get_group_title(request, group, event),
+                "default": self.get_group_title(group, event),
                 "type": "text",
             },
             {
                 "name": "description",
                 "label": "Description",
-                "default": self.get_group_description(request, group, event),
+                "default": self.get_group_description(group, event),
                 "type": "textarea",
             },
         ]
@@ -313,9 +313,15 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        issue_tracker_used.send_robust(
-            plugin=self, project=group.project, user=request.user, sender=type(self)
+        analytics.record(
+            "issue_tracker.used",
+            user_id=request.user.id,
+            default_user_id=group.project.organization.get_default_owner().id,
+            organization_id=group.project.organization_id,
+            project_id=group.project.id,
+            issue_tracker=self.slug,
         )
+
         return Response(
             {
                 "issue_url": self.get_issue_url(group, issue["id"]),

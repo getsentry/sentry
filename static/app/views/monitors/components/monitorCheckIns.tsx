@@ -19,20 +19,19 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
+import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
+import {useMonitorCheckIns} from 'sentry/views/monitors/utils/useMonitorCheckIns';
 
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgSlug: string;
 };
 
 export const checkStatusToIndicatorStatus: Record<
@@ -47,28 +46,27 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-export function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+const PER_PAGE = 10;
+
+export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
-  const queryKey = [
-    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
-    {
-      query: {
-        per_page: '10',
-        environment: monitorEnvs.map(e => e.name),
-        expand: 'groups',
-        ...location.query,
-      },
-    },
-  ] as const;
 
   const {
     data: checkInList,
     getResponseHeader,
     isPending,
     isError,
-  } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
+  } = useMonitorCheckIns({
+    orgSlug: organization.slug,
+    projectSlug: monitor.project.slug,
+    monitorIdOrSlug: monitor.slug,
+    limit: PER_PAGE,
+    expand: 'groups',
+    environment: monitorEnvs.map(e => e.name),
+    queryParams: {...location.query},
+  });
 
   if (isError) {
     return <LoadingError />;
@@ -93,9 +91,13 @@ export function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
-      <PanelTable headers={headers}>
+      <PanelTable
+        headers={headers}
+        isEmpty={!isPending && checkInList.length === 0}
+        emptyMessage={t('No check-ins have been recorded for this time period.')}
+      >
         {isPending
-          ? [...new Array(headers.length)].map((_, i) => (
+          ? [...new Array(PER_PAGE)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
               </RowPlaceholder>

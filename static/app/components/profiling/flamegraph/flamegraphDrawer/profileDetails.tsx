@@ -28,6 +28,7 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
@@ -193,11 +194,11 @@ function TransactionDeviceDetails({
     const deviceContext = transaction.contexts.device;
     const osContext = transaction.contexts.os;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'model',
         label: t('Model'),
@@ -276,11 +277,11 @@ function TransactionEventDetails({
           })
         : null;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'transaction',
         label: t('Transaction'),
@@ -353,7 +354,7 @@ function ProfileEnvironmentDetails({profileGroup}: {profileGroup: ProfileGroup})
   return (
     <DetailsContainer>
       {Object.entries(ENVIRONMENT_DETAILS_KEY).map(([label, key]) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
         return (
           <DetailsRow key={key}>
@@ -382,7 +383,7 @@ function ProfileEventDetails({
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
 
         if (key === 'organizationID') {
@@ -456,9 +457,10 @@ function ProfileEventDetails({
               <strong>{label}:</strong>
               <Link
                 to={{
-                  pathname: `/organizations/${
-                    organization.slug
-                  }/releases/${encodeURIComponent(release.version)}/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: `/${encodeURIComponent(release.version)}/`,
+                  }),
                   query: {
                     project: profileGroup.metadata.projectID,
                   },

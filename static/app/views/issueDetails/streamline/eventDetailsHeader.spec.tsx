@@ -11,6 +11,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -56,6 +57,10 @@ describe('EventDetailsHeader', () => {
       new Set(['environments'])
     );
     ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
@@ -115,5 +120,40 @@ describe('EventDetailsHeader', () => {
     expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
       replace: true,
     });
+  });
+
+  it('does not render timeline summary if disabled', async function () {
+    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    expect(screen.queryByText('Duration')).not.toBeInTheDocument();
+  });
+
+  it('renders occurrence summary if enabled', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: {data: event},
+    });
+    render(
+      <EventDetailsHeader
+        {...defaultProps}
+        group={GroupFixture({
+          issueCategory: IssueCategory.UPTIME,
+          issueType: IssueType.UPTIME_DOMAIN_FAILURE,
+        })}
+        event={EventFixture({
+          occurrence: {
+            evidenceDisplay: [
+              {name: 'Status Code', value: '500'},
+              {name: 'Failure reason', value: 'bad things'},
+            ],
+          },
+        })}
+      />,
+      {organization, router}
+    );
+    expect(await screen.findByText('Status Code')).toBeInTheDocument();
+    expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('Reason')).toBeInTheDocument();
+    expect(screen.getByText('bad things')).toBeInTheDocument();
   });
 });

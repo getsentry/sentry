@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -129,11 +129,13 @@ export function UIScreens() {
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
-      <Alert type="warning" showIcon>
-        {t(
-          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

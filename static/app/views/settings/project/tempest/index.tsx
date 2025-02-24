@@ -1,11 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -19,6 +21,7 @@ import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
+import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
@@ -38,7 +41,7 @@ export default function TempestSettings({organization, project}: Props) {
 
   const api = useApi();
   const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    {},
+    unknown,
     RequestError,
     {id: number}
   >({
@@ -60,8 +63,18 @@ export default function TempestSettings({organization, project}: Props) {
     },
   });
 
+  const credentialErrors = useMemo(() => {
+    return tempestCredentials?.filter(
+      credential => credential.messageType === MessageType.ERROR && credential.message
+    );
+  }, [tempestCredentials]);
+
   if (!hasTempestAccess(organization)) {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
+    );
   }
 
   return (
@@ -72,11 +85,27 @@ export default function TempestSettings({organization, project}: Props) {
         action={addNewCredentials(hasWriteAccess, organization, project)}
       />
 
+      {credentialErrors && credentialErrors?.length > 0 && (
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('There was a problem with following credentials:')}
+            <List symbol="bullet">
+              {credentialErrors.map(credential => (
+                <ListItem key={credential.id}>
+                  {credential.clientId} - {credential.message}
+                </ListItem>
+              ))}
+            </List>
+          </Alert>
+        </Alert.Container>
+      )}
+
       <Form
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         initialData={{
           tempestFetchScreenshots: project?.tempestFetchScreenshots,
+          tempestFetchDumps: project?.tempestFetchDumps,
         }}
         saveOnBlur
         hideFooter
@@ -89,8 +118,14 @@ export default function TempestSettings({organization, project}: Props) {
                 {
                   name: 'tempestFetchScreenshots',
                   type: 'boolean',
-                  label: t('Fetch Screenshots'),
-                  help: t('Allow Tempest to fetch screenshots for the project.'),
+                  label: t('Attach Screenshots'),
+                  help: t('Attach screenshots to issues.'),
+                },
+                {
+                  name: 'tempestFetchDumps',
+                  type: 'boolean',
+                  label: t('Attach Dumps'),
+                  help: t('Attach dumps to issues.'),
                 },
               ],
             },

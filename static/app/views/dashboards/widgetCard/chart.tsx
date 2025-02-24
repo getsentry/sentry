@@ -37,7 +37,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -51,8 +51,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -87,6 +87,7 @@ type WidgetCardChartProps = Pick<
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -131,26 +132,24 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return !isEqual(currentProps, nextProps);
   }
 
-  tableResultComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    const {location, widget, selection} = this.props;
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
+  tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
+    const {location, widget, selection, minTableColumnWidth} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
 
     const datasetConfig = getDatasetConfig(widget.widgetType);
+
+    const getCustomFieldRenderer = (
+      field: string,
+      meta: MetaType,
+      organization?: Organization
+    ) => {
+      return (
+        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
+      );
+    };
 
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
@@ -171,26 +170,15 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             data={result.data}
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+            getCustomFieldRenderer={getCustomFieldRenderer}
+            minColumnWidth={minTableColumnWidth}
           />
         </TableWrapper>
       );
     });
   }
 
-  bigNumberComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
+  bigNumberComponent({loading, tableResults}: TableResultProps): React.ReactNode {
     if (typeof tableResults === 'undefined' || loading) {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
@@ -260,7 +248,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
   chartComponent(chartProps: any): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]!?.columns.length > 0;
+    const stacked = widget.queries[0]?.columns.length! > 0;
 
     switch (widget.displayType) {
       case 'bar':
@@ -291,12 +279,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       showConfidenceWarning,
     } = this.props;
 
+    if (errorMessage) {
+      return (
+        <StyledErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </StyledErrorPanel>
+      );
+    }
+
     if (widget.displayType === 'table') {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
             <LoadingScreen loading={loading} />
-            {this.tableResultComponent({tableResults, loading, errorMessage})}
+            {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -308,23 +304,48 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper>
-            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+            {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
         </TransitionChart>
       );
     }
-
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
     const {location, selection, onLegendSelectChanged, widgetLegendState} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
+
+    const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
+    const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
+      seriesName?.match(otherRegex)
+    );
+    const colors = timeseriesResults
+      ? (theme.charts
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          ?.slice() as string[])
+      : [];
+    // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+    if (shouldColorOther) {
+      colors[colors.length] = theme.chartOther;
+    }
+
+    // Create a list of series based on the order of the fields,
+    const series = timeseriesResults
+      ? timeseriesResults
+          .map((values, i: number) => {
+            let seriesName = '';
+            if (values.seriesName !== undefined) {
+              seriesName = isEquation(values.seriesName)
+                ? getEquation(values.seriesName)
+                : values.seriesName;
+            }
+            return {
+              ...values,
+              seriesName,
+              fieldName: seriesName,
+              color: colors[i],
+            };
+          })
+          .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
+      : [];
 
     const legend = {
       left: 0,
@@ -461,53 +482,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       },
     };
 
+    const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+
     return (
       <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
-          if (errorMessage) {
-            return (
-              <StyledErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </StyledErrorPanel>
-            );
-          }
-
-          const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
-          const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
-            seriesName?.match(otherRegex)
-          );
-          const colors = timeseriesResults
-            ? (theme.charts
-                .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
-                ?.slice() as string[])
-            : [];
-          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
-          if (shouldColorOther) {
-            colors[colors.length] = theme.chartOther;
-          }
-
-          // Create a list of series based on the order of the fields,
-          const series = timeseriesResults
-            ? timeseriesResults
-                .map((values, i: number) => {
-                  let seriesName = '';
-                  if (values.seriesName !== undefined) {
-                    seriesName = isEquation(values.seriesName)
-                      ? getEquation(values.seriesName)
-                      : values.seriesName;
-                  }
-                  return {
-                    ...values,
-                    seriesName,
-                    color: colors[i],
-                  };
-                })
-                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
-            : [];
-
-          const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
-
-          return widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
+          return (
             <ReleaseSeries
               end={end}
               start={start}
@@ -515,6 +495,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               environments={environments}
               projects={projects}
               memoized
+              enabled={widgetLegendState.widgetRequiresLegendUnselection(widget)}
             >
               {({releaseSeries}) => {
                 // make series name into seriesName:widgetId form for individual widget legend control
@@ -559,33 +540,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 );
               }}
             </ReleaseSeries>
-          ) : (
-            <TransitionChart loading={loading} reloading={loading}>
-              <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
-                <RenderedChartContainer>
-                  {getDynamicText({
-                    value: this.chartComponent({
-                      ...zoomRenderProps,
-                      ...chartOptions,
-                      // Override default datazoom behaviour for updating Global Selection Header
-                      ...(onZoom ? {onDataZoom: onZoom} : {}),
-                      legend,
-                      series,
-                      onLegendSelectChanged,
-                      forwardedRef,
-                    }),
-                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                  })}
-                </RenderedChartContainer>
-                {showConfidenceWarning && confidence && (
-                  <ConfidenceWarning
-                    query={widget.queries[0]?.conditions ?? ''}
-                    confidence={confidence}
-                  />
-                )}
-              </ChartWrapper>
-            </TransitionChart>
           );
         }}
       </ChartZoom>

@@ -111,14 +111,14 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     total: [],
   };
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   result?.data?.['performance_score(measurements.score.lcp)']?.data.forEach(
     (interval: any, index: any) => {
       ['lcp', 'fcp', 'cls', 'ttfb', 'inp'].forEach(webVital => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[webVital].push({
           value:
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             result?.data?.[`performance_score(measurements.score.${webVital})`]?.data[
               index
             ][1][0].count * 100,

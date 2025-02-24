@@ -42,7 +42,6 @@ describe('Onboarding', function () {
     );
 
     expect(screen.getByLabelText('Start')).toBeInTheDocument();
-    expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
   });
 
   it('renders the select platform step', async function () {

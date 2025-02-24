@@ -28,6 +28,7 @@ import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
@@ -301,7 +302,7 @@ export interface BaseChartProps {
    * Pass `true` to have 2 x-axes with default properties.  Can pass an array
    * of multiple objects to customize xAxis properties
    */
-  xAxes?: true | BaseChartProps['xAxis'][];
+  xAxes?: true | Array<BaseChartProps['xAxis']>;
   /**
    * Must be explicitly `null` to disable xAxis
    *
@@ -313,7 +314,7 @@ export interface BaseChartProps {
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
    */
-  yAxes?: true | BaseChartProps['yAxis'][];
+  yAxes?: true | Array<BaseChartProps['yAxis']>;
 
   /**
    * Must be explicitly `null` to disable yAxis
@@ -394,7 +395,9 @@ function BaseChartUnwrapped({
 
   const color =
     resolveColors ||
-    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+    (series.length
+      ? theme.charts.getColorPalette(series.length)
+      : CHART_PALETTE[CHART_PALETTE.length - 1]);
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -728,7 +731,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};
