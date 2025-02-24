@@ -9,17 +9,7 @@ import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 interface BaseAlertLinkProps
-  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems'> {
-  /**
-   * @deprecated use trailingItems instead
-   */
-  icon?: React.ReactNode;
-  /**
-   * @deprecated Use `type` instead.
-   */
-  priority?: AlertProps['type'];
-  type?: AlertProps['type'];
-}
+  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'type'> {}
 
 interface ExternalAlertLinkProps extends BaseAlertLinkProps {
   href: string;
@@ -54,9 +44,9 @@ export type AlertLinkProps =
 
 export function AlertLink(props: AlertLinkProps): React.ReactNode {
   const alertProps: AlertProps = {
-    type: props.priority ?? props.type ?? 'info',
+    type: props.type ?? 'info',
     system: props.system,
-    trailingItems: props.icon ?? props.trailingItems ?? <IconChevron direction="right" />,
+    trailingItems: props.trailingItems ?? <IconChevron direction="right" />,
   };
 
   // @TODO(jonasbadalic): we should check for empty href and report to sentry
