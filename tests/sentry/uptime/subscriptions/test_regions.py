@@ -4,7 +4,11 @@ from django.test import TestCase, override_settings
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.testutils.helpers import override_options
 from sentry.uptime.models import UptimeSubscriptionRegion
-from sentry.uptime.subscriptions.regions import get_active_region_configs, get_region_config
+from sentry.uptime.subscriptions.regions import (
+    UptimeRegionWithMode,
+    get_active_regions,
+    get_region_config,
+)
 
 
 class TestBase(TestCase):
@@ -31,7 +35,7 @@ class TestBase(TestCase):
         ]
 
 
-class GetActiveRegionConfigsTest(TestBase):
+class GetActiveRegionsTest(TestBase):
     def test_returns_only_enabled_regions(self):
         with (
             override_settings(UPTIME_REGIONS=self.test_regions),
@@ -43,9 +47,11 @@ class GetActiveRegionConfigsTest(TestBase):
                 }
             ),
         ):
-            active_regions = get_active_region_configs()
-            assert len(active_regions) == 2
-            assert {region.slug for region in active_regions} == {"us", "ap"}
+            active_regions = get_active_regions()
+            assert set(active_regions) == {
+                UptimeRegionWithMode("us", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                UptimeRegionWithMode("ap", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+            }
 
         with (
             override_settings(UPTIME_REGIONS=self.test_regions),
@@ -54,13 +60,16 @@ class GetActiveRegionConfigsTest(TestBase):
                     "uptime.checker-regions-mode-override": {
                         "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE.value,
                         "us": UptimeSubscriptionRegion.RegionMode.ACTIVE.value,
+                        "ap": UptimeSubscriptionRegion.RegionMode.SHADOW.value,
                     }
                 }
             ),
         ):
-            active_regions = get_active_region_configs()
-            assert len(active_regions) == 2
-            assert {region.slug for region in active_regions} == {"us", "ap"}
+            active_regions = get_active_regions()
+            assert set(active_regions) == {
+                UptimeRegionWithMode("us", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                UptimeRegionWithMode("ap", UptimeSubscriptionRegion.RegionMode.SHADOW),
+            }
 
 
 class GetRegionConfigTest(TestBase):
