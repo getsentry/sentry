@@ -7,18 +7,20 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {IconEllipsis, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 
 interface IssueViewNavEllipsisMenuProps {
   baseUrl: string;
   deleteView: () => void;
   duplicateView: () => void;
   setIsEditing: (isEditing: boolean) => void;
-  updateView: (view: IssueViewPF) => void;
-  view: IssueViewPF;
+  updateView: (view: IssueView) => void;
+  view: IssueView;
   sectionRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -32,6 +34,7 @@ export function IssueViewNavEllipsisMenu({
   baseUrl,
 }: IssueViewNavEllipsisMenuProps) {
   const navigate = useNavigate();
+  const organization = useOrganization();
 
   const handleSaveChanges = () => {
     const updatedView = {
@@ -45,6 +48,11 @@ export function IssueViewNavEllipsisMenu({
     };
     updateView(updatedView);
     navigate(constructViewLink(baseUrl, updatedView));
+
+    trackAnalytics('issue_views.saved_changes', {
+      leftNav: true,
+      organization: organization.slug,
+    });
   };
 
   const handleDiscardChanges = () => {
@@ -54,6 +62,11 @@ export function IssueViewNavEllipsisMenu({
     };
     updateView(updatedView);
     navigate(constructViewLink(baseUrl, updatedView));
+
+    trackAnalytics('issue_views.discarded_changes', {
+      leftNav: true,
+      organization: organization.slug,
+    });
   };
 
   return (
@@ -153,7 +166,7 @@ function FeedbackFooter() {
   );
 }
 
-const constructViewLink = (baseUrl: string, view: IssueViewPF) => {
+const constructViewLink = (baseUrl: string, view: IssueView) => {
   return normalizeUrl({
     pathname: `${baseUrl}/views/${view.id}/`,
     query: {

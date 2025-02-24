@@ -66,14 +66,7 @@ export function UptimeChecksTable({uptimeRule}: Props) {
     return <LoadingError />;
   }
 
-  const headers = [
-    t('Status'),
-    t('Checked At'),
-    t('Duration'),
-    t('Region'),
-    t('Trace'),
-    t('Check ID'),
-  ];
+  const headers = [t('Status'), t('Checked At'), t('Duration'), t('Region'), t('Trace')];
 
   return (
     <Fragment>
@@ -115,13 +108,12 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                 <div>
                   <Duration seconds={check.durationMs / 1000} abbreviation exact />
                 </div>
-                <div>{check.region}</div>
+                <div>{check.regionName}</div>
                 <div>
                   <Link to={`/performance/trace/${check.traceId}/`}>
                     {getShortEventId(check.traceId)}
                   </Link>
                 </div>
-                <div>{check.uptimeCheckId}</div>
               </Fragment>
             ))}
       </PanelTable>

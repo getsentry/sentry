@@ -320,6 +320,9 @@ from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
 from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_webhook_requests import (
+    SentryAppWebhookRequestsEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.sentry_apps import SentryAppsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
@@ -2893,6 +2896,11 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_id_or_slug>[^\/]+)/publish-request/$",
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
+    ),
+    re_path(
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/webhook-requests/$",
+        SentryAppWebhookRequestsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-webhook-requests",
     ),
     # The following a region endpoints as interactions and request logs
     # are per-region.

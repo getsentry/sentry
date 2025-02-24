@@ -6,7 +6,7 @@ import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 
 interface IssuesWrapperProps extends RouteComponentProps {
@@ -64,7 +64,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
                       isAllProjects,
                     },
                     index
-                  ): IssueViewPF => {
+                  ): IssueView => {
                     const tabId = id ?? `default${index.toString()}`;
 
                     return {
