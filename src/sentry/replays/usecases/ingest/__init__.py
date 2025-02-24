@@ -26,6 +26,7 @@ from sentry.replays.lib.storage import (
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
+    log_canvas_size,
     parse_replay_actions,
 )
 from sentry.replays.usecases.pack import pack
@@ -255,6 +256,26 @@ def recording_post_processor(
         actions_event = try_get_replay_actions(message, segment, replay_event)
         if actions_event:
             emit_replay_actions(actions_event)
+
+        # Log canvas mutations to bigquery.
+        log_canvas_size(
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            segment,
+        )
+
+        # Log # of rrweb events to bigquery.
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "rrweb_event_count",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(segment),
+            },
+        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
