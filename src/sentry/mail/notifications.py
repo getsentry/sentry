@@ -41,7 +41,7 @@ def get_headers(notification: BaseNotification, context: Mapping[str, Any]) -> M
                 "X-Sentry-Reply-To": group_id_to_email(group.id, group.project.organization_id),
             }
         )
-    if context.get("reply_to", None):
+    if context.get("reply_to"):
         headers["X-Sentry-Reply-To"] = context["reply_to"]
 
     return headers
