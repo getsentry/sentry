@@ -1,6 +1,7 @@
 import {Fragment, useRef} from 'react';
 
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -15,7 +16,6 @@ interface IssuesWrapperProps extends RouteComponentProps {
 
 export function IssueNavigation({children}: IssuesWrapperProps) {
   const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
   const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -29,7 +29,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
     }
   );
 
-  if (!hasNavigationV2) {
+  if (!prefersStackedNav()) {
     return children;
   }
 

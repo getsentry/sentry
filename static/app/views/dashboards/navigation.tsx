@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -60,10 +61,7 @@ function DashboardsSecondaryNav({children}: DashboardsNavigationProps) {
 }
 
 export default function DashboardsNavigation({children}: DashboardsNavigationProps) {
-  const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
-  if (!hasNavigationV2) {
+  if (!prefersStackedNav()) {
     return children;
   }
 
