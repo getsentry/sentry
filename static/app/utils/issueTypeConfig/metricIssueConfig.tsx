@@ -24,7 +24,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       ctaText: t('View detector details'),
     },
     header: {
-      filterBar: {enabled: true, fixedEnvironment: false},
+      filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'detector-history'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
