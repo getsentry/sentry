@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import Enum, StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
@@ -288,7 +288,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.

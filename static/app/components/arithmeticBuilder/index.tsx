@@ -6,11 +6,17 @@ import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/ac
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
+import type {
+  AggregateFunction,
+  FunctionArgument,
+} from 'sentry/components/arithmeticBuilder/types';
 import {inputStyles} from 'sentry/components/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface ArithmeticBuilderProps {
+  aggregateFunctions: AggregateFunction[];
   expression: string;
+  functionArguments: FunctionArgument[];
   className?: string;
   disabled?: boolean;
   setExpression?: (expression: Expression) => void;
@@ -19,6 +25,8 @@ export interface ArithmeticBuilderProps {
 export function ArithmeticBuilder({
   expression,
   setExpression,
+  aggregateFunctions,
+  functionArguments,
   className,
   disabled,
 }: ArithmeticBuilderProps) {
@@ -31,8 +39,10 @@ export function ArithmeticBuilder({
     return {
       dispatch,
       focusOverride: state.focusOverride,
+      aggregateFunctions,
+      functionArguments,
     };
-  }, [state, dispatch]);
+  }, [state, dispatch, aggregateFunctions, functionArguments]);
 
   return (
     <PanelProvider>
@@ -41,7 +51,7 @@ export function ArithmeticBuilder({
           className={className}
           aria-disabled={disabled}
           data-test-id="arithmetic-builder"
-          state={state.expression.valid}
+          state={state.expression.isValid ? 'valid' : 'invalid'}
         >
           <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>

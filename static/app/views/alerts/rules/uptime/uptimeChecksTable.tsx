@@ -33,7 +33,8 @@ export const checkStatusToIndicatorStatus: Record<
   StatusIndicatorProps['status']
 > = {
   [CheckStatus.SUCCESS]: 'success',
-  [CheckStatus.FAILURE]: 'error',
+  [CheckStatus.FAILURE]: 'warning',
+  [CheckStatus.FAILURE_INCIDENT]: 'error',
   [CheckStatus.MISSED_WINDOW]: 'muted',
 };
 
@@ -67,11 +68,11 @@ export function UptimeChecksTable({uptimeRule}: Props) {
 
   const headers = [
     t('Status'),
+    t('HTTP Status'),
     t('Checked At'),
     t('Duration'),
     t('Region'),
     t('Trace'),
-    t('Check ID'),
   ];
 
   return (
@@ -108,19 +109,19 @@ export function UptimeChecksTable({uptimeRule}: Props) {
                     )}
                   </Text>
                 </Status>
+                <div>{check.httpStatusCode ?? t('None')}</div>
                 <div>
                   <DateTime date={check.timestamp} timeZone />
                 </div>
                 <div>
                   <Duration seconds={check.durationMs / 1000} abbreviation exact />
                 </div>
-                <div>{check.region}</div>
+                <div>{check.regionName}</div>
                 <div>
                   <Link to={`/performance/trace/${check.traceId}/`}>
                     {getShortEventId(check.traceId)}
                   </Link>
                 </div>
-                <div>{check.uptimeCheckId}</div>
               </Fragment>
             ))}
       </PanelTable>

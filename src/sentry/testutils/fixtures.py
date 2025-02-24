@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
+from psycopg2.errors import UniqueViolation
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
@@ -49,6 +50,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
@@ -69,12 +71,15 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user(
-            "admin@localhost",
-            is_superuser=True,
-            is_staff=True,
-            is_sentry_app=False,
-        )
+        try:
+            return self.create_user(
+                "admin@localhost",
+                is_superuser=True,
+                is_staff=True,
+                is_sentry_app=False,
+            )
+        except UniqueViolation:
+            return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
@@ -712,9 +717,17 @@ class Fixtures:
             trace_sampling=trace_sampling,
         )
         for region_slug in region_slugs:
-            Factories.create_uptime_subscription_region(subscription, region_slug)
+            self.create_uptime_subscription_region(subscription, region_slug)
 
         return subscription
+
+    def create_uptime_subscription_region(
+        self,
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode = UptimeSubscriptionRegion.RegionMode.ACTIVE,
+    ):
+        Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
     def create_project_uptime_subscription(
         self,

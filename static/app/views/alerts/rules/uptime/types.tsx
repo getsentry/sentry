@@ -34,11 +34,11 @@ export interface UptimeCheck {
   checkStatusReason: string;
   durationMs: number;
   environment: string;
+  httpStatusCode: number | null;
   projectUptimeSubscriptionId: number;
   region: string;
+  regionName: string;
   scheduledCheckTime: string;
-  // TODO(epurkhiser): This hasn't been implemented on the backend yet
-  statusCode: string;
   timestamp: string;
   traceId: string;
   uptimeCheckId: string;
@@ -48,12 +48,14 @@ export interface UptimeCheck {
 export enum CheckStatus {
   SUCCESS = 'success',
   FAILURE = 'failure',
+  FAILURE_INCIDENT = 'failure_incident',
   MISSED_WINDOW = 'missed_window',
 }
 
 type StatsBucket = {
   [CheckStatus.SUCCESS]: number;
   [CheckStatus.FAILURE]: number;
+  [CheckStatus.FAILURE_INCIDENT]: number;
   [CheckStatus.MISSED_WINDOW]: number;
 };
 

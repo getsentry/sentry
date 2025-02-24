@@ -141,6 +141,7 @@ export type IssueEventParameters = {
   'issue_details.issue_tags_click': Record<string, unknown>;
   'issue_details.performance.autogrouped_siblings_toggle': Record<string, unknown>;
   'issue_details.performance.hidden_spans_expanded': Record<string, unknown>;
+  'issue_details.publish_issue_modal_opened': StreamlineGroupParams;
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -403,6 +404,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
+  'issue_details.publish_issue_modal_opened': 'Issue Details: Publish Issue Modal Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':

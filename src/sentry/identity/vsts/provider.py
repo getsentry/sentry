@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from sentry import http, options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider, record_event
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
+from sentry.pipeline.views.base import PipelineView
 from sentry.utils.http import absolute_uri
 
 
@@ -51,10 +52,10 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vsts.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [
             OAuth2LoginView(
                 authorize_url=self.oauth_authorize_url,
@@ -162,7 +163,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vsts_new.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
     def get_pipeline_views(self):

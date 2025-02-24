@@ -13,9 +13,11 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {
+  transformComparisonTimeseriesData,
+  transformTimeseriesData,
+} from 'sentry/components/charts/eventsRequest';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
-import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
   ChartControls,
   HeaderTitleLegend,
@@ -46,28 +48,27 @@ import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/feat
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import {getViableDateRange} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
+import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
 
 import type {Anomaly, Incident} from '../../../types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
   isSessionAggregate,
-  SESSION_AGGREGATE_TO_FIELD,
 } from '../../../utils';
-import {getMetricDatasetQueryExtras} from '../utils/getMetricDatasetQueryExtras';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import type {TimePeriodType} from './constants';
@@ -139,10 +140,6 @@ function getRuleChangeSeries(
   ];
 }
 
-function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
-  return dataset === Dataset.ERRORS && /\bis:unresolved\b/.test(query);
-}
-
 export default function MetricChart({
   rule,
   project,
@@ -158,8 +155,8 @@ export default function MetricChart({
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const api = useApi();
   const organization = useOrganization();
+  const shouldUseSessionsStats = isCrashFreeAlert(rule.dataset);
 
   const handleZoom = useCallback(
     (start: DateString, end: DateString) => {
@@ -212,7 +209,7 @@ export default function MetricChart({
       waitingForDataDuration: number
     ) => {
       let dataset: DiscoverDatasets | undefined = undefined;
-      if (shouldUseErrorsDataset(rule.dataset, query)) {
+      if (shouldUseErrorsDiscoverDataset(query, rule.dataset, organization)) {
         dataset = DiscoverDatasets.ERRORS;
       }
 
@@ -537,76 +534,49 @@ export default function MetricChart({
     ]
   );
 
-  const {aggregate, environment, dataset} = rule;
-  const {start: viableStartDate, end: viableEndDate} = getViableDateRange({
-    rule,
-    interval,
-    timePeriod,
-  });
+  const {data: eventStats, isLoading: isLoadingEventStats} = useMetricEventStats(
+    {
+      project,
+      rule,
+      timePeriod,
+      referrer: 'api.alerts.alert-rule-chart',
+    },
+    {enabled: !shouldUseSessionsStats}
+  );
+  const {data: sessionStats, isLoading: isLoadingSessionStats} = useMetricSessionStats(
+    {
+      project,
+      rule,
+      timePeriod,
+    },
+    {
+      enabled: shouldUseSessionsStats,
+    }
+  );
 
-  const queryExtras: Record<string, string> = {
-    ...getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery: false,
-      useOnDemandMetrics: isOnDemandAlert,
-    }),
-  };
+  const isLoading = isLoadingEventStats || isLoadingSessionStats;
+  const timeSeriesData = shouldUseSessionsStats
+    ? transformSessionResponseToSeries(sessionStats ?? null, rule)
+    : transformTimeseriesData(eventStats?.data ?? [], eventStats?.meta, rule.aggregate);
+  const minutesThresholdToDisplaySeconds = shouldUseSessionsStats
+    ? MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
+    : undefined;
+  const comparisonTimeseriesData = rule.comparisonDelta
+    ? transformComparisonTimeseriesData(eventStats?.data ?? [])
+    : [];
 
-  if (shouldUseErrorsDataset(dataset, query)) {
-    queryExtras.dataset = 'errors';
-  }
-
-  return isCrashFreeAlert(dataset) ? (
-    <SessionsRequest
-      api={api}
-      organization={organization}
-      project={project.id ? [Number(project.id)] : []}
-      environment={environment ? [environment] : undefined}
-      start={viableStartDate}
-      end={viableEndDate}
-      query={query}
-      interval={interval}
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
-      groupBy={['session.status']}
-    >
-      {({loading, response}) =>
-        renderChart(
-          loading,
-          transformSessionResponseToSeries(response, rule),
-          MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
-        )
-      }
-    </SessionsRequest>
-  ) : (
-    <EventsRequest
-      api={api}
-      organization={organization}
-      query={query}
-      environment={environment ? [environment] : undefined}
-      project={project.id ? [Number(project.id)] : []}
-      interval={interval}
-      comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
-      start={viableStartDate}
-      end={viableEndDate}
-      yAxis={aggregate}
-      includePrevious={false}
-      currentSeriesNames={[aggregate]}
-      partial={false}
-      queryExtras={queryExtras}
-      referrer="api.alerts.alert-rule-chart"
-      useRpc={dataset === Dataset.EVENTS_ANALYTICS_PLATFORM}
-      useOnDemandMetrics
-    >
-      {({loading, timeseriesData, comparisonTimeseriesData}) => (
-        <Fragment>
-          {renderEmptyOnDemandAlert(organization, timeseriesData, loading)}
-          {renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)}
-        </Fragment>
+  return (
+    <Fragment>
+      {shouldUseSessionsStats
+        ? null
+        : renderEmptyOnDemandAlert(organization, timeSeriesData, isLoading)}
+      {renderChart(
+        isLoading,
+        timeSeriesData,
+        minutesThresholdToDisplaySeconds,
+        comparisonTimeseriesData
       )}
-    </EventsRequest>
+    </Fragment>
   );
 }
 

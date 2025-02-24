@@ -256,25 +256,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert_alert_rule_trigger_action_migrated(actions[0], Action.Type.EMAIL)
         assert_alert_rule_trigger_action_migrated(actions[1], Action.Type.EMAIL)
 
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        data = {
-            **self.alert_rule_dict,
-            "description": "yeehaw",
-        }
-
-        with outbox_runner():
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.description == resp.data.get("description")
-
     @with_feature("organizations:incidents")
     def test_invalid_threshold_type(self):
         """

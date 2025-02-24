@@ -8,13 +8,20 @@ from urllib.parse import parse_qsl, urlencode
 
 import orjson
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseRedirect
+from django.urls import reverse
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.utils.http import absolute_uri
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
+
+
+def _get_redirect_url() -> str:
+    return absolute_uri(reverse("sentry-auth-sso"))
 
 
 class OAuth2Login(AuthView):
@@ -52,14 +59,14 @@ class OAuth2Login(AuthView):
 
         state = secrets.token_hex()
 
-        params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
+        params = self.get_authorize_params(state=state, redirect_uri=_get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         helper.bind_state("state", state)
         if request.subdomain:
             helper.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(authorization_url)
+        return HttpResponseRedirect(authorization_url)
 
 
 class OAuth2Callback(AuthView):
@@ -87,7 +94,7 @@ class OAuth2Callback(AuthView):
 
     def exchange_token(self, request: HttpRequest, helper, code):
         # TODO: this needs the auth yet
-        data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
+        data = self.get_token_params(code=code, redirect_uri=_get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):

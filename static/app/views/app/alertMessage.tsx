@@ -15,14 +15,11 @@ type Props = {
 function AlertMessage({alert, system}: Props) {
   const handleClose = () => AlertStore.closeAlert(alert);
 
-  const {url, message, type, opaque} = alert;
-
   return (
     <Alert
-      type={type}
+      type={alert.type}
       showIcon
       system={system}
-      opaque={opaque}
       trailingItems={
         <StyledCloseButton
           icon={<IconClose size="sm" />}
@@ -33,7 +30,11 @@ function AlertMessage({alert, system}: Props) {
         />
       }
     >
-      {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
+      {alert.url ? (
+        <ExternalLink href={alert.url}>{alert.message}</ExternalLink>
+      ) : (
+        alert.message
+      )}
     </Alert>
   );
 }

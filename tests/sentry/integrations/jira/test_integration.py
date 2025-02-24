@@ -23,6 +23,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -911,9 +912,111 @@ class JiraIntegrationTest(APITestCase):
             "issues_ignored_fields": "",
         }
 
+    @responses.activate
+    @with_feature("organizations:jira-per-project-statuses")
+    def test_get_config_data_per_project_statuses_feature(self):
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "12345", "name": "Example Project"}],
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
+        # Create a valid project mapping
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        # Create a project mapping that is missing from the projects list response.
+        # We expect this to be "healed" by the config query, and removed as the
+        # project is no longer visible in our integration.
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="67890",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        assert installation.get_config_data() == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "issues_ignored_fields": "",
+        }
+
     def test_get_config_data_issues_keys(self):
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
+
+        installation = integration.get_installation(self.organization.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        # If config has not be configured yet, uses empty string fallback
+        assert "issues_ignored_fields" not in org_integration.config
+        assert installation.get_config_data().get("issues_ignored_fields") == ""
+
+        # List is serialized as comma-separated list
+        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
+        org_integration.save()
+        installation = integration.get_installation(self.organization.id)
+        assert (
+            installation.get_config_data().get("issues_ignored_fields")
+            == "hello world, goodnight, moon"
+        )
+
+    @responses.activate
+    @with_feature("organizations:jira-per-project-statuses")
+    def test_get_config_data_issue_keys_per_project_statuses_feature(self):
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "12345", "name": "Example Project"}],
+        )
 
         installation = integration.get_installation(self.organization.id)
         org_integration = OrganizationIntegration.objects.get(

@@ -19,6 +19,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
     name = "GitHub"
+    key = "github"
 
     def get_client_id(self):
         return CLIENT_ID
@@ -54,7 +55,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         pipeline.append(SelectOrganization())
         return pipeline
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):
