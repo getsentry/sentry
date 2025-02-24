@@ -218,6 +218,25 @@ Success: no issues found in 1 source file
     assert out == expected_plugins
 
 
+def test_csp_response_attribute() -> None:
+    # technically undocumented -- django-csp's decorators usually do this
+    src = """\
+from django.http import HttpResponse
+x: HttpResponse
+x._csp_replace = {"inline-src": ["self"]}
+"""
+    expected = """\
+<string>:3: error: "HttpResponse" has no attribute "_csp_replace"  [attr-defined]
+Found 1 error in 1 file (checked 1 source file)
+"""
+    ret, out = call_mypy(src, plugins=[])
+    assert ret == 1
+    assert out == expected
+
+    ret, out = call_mypy(src)
+    assert ret == 0, (ret, out)
+
+
 def test_lazy_service_wrapper() -> None:
     src = """\
 from typing import assert_type, Literal
