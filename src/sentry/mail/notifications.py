@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 
-def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
+def get_headers(notification: BaseNotification, context: Mapping[str, Any]) -> Mapping[str, Any]:
     headers = {"X-SMTPAPI": orjson.dumps({"category": notification.metrics_key}).decode()}
     if isinstance(notification, ProjectNotification) and notification.project.slug:
         headers["X-Sentry-Project"] = notification.project.slug
@@ -41,6 +41,8 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
                 "X-Sentry-Reply-To": group_id_to_email(group.id, group.project.organization_id),
             }
         )
+    if context.get("reply_to", None):
+        headers["X-Sentry-Reply-To"] = context["reply_to"]
 
     return headers
 
@@ -162,7 +164,7 @@ def get_builder_args_from_context(
         "context": context,
         "template": f"{notification.template_path}.txt",
         "html_template": f"{notification.template_path}.html",
-        "headers": get_headers(notification),
+        "headers": get_headers(notification, context),
         "reference": notification.reference,
         "type": notification.metrics_key,
     }
