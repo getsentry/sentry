@@ -373,9 +373,10 @@ def commit_uploads(upload_events: list[UploadEvent]) -> None:
 
 def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -> None:
     for segment in initial_segment_events:
+        project = Project.objects.get_from_cache(id=segment["project_id"])
         track_initial_segment_event(
             segment["org_id"],
-            segment["project_id"],
+            project,
             segment["replay_id"],
             segment["key_id"],
             segment["received"],
