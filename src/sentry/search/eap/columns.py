@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from dateutil.tz import tz
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -98,10 +99,10 @@ class VirtualColumnDefinition:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedFormula(ResolvedAttribute):
-    formula: Any
+    formula: Column.BinaryFormula
 
     @property
-    def proto_definition(self) -> Any:
+    def proto_definition(self) -> Column.BinaryFormula:
         """The definition of this function as needed by the RPC"""
         return self.formula
 
