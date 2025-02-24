@@ -174,7 +174,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
 
   const palette =
-    numberOfSeriesNeedingColor > 1
+    numberOfSeriesNeedingColor > 0
       ? theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
