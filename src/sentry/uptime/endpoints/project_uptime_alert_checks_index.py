@@ -1,9 +1,13 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
+    CheckStatus,
+    CheckStatusReasonType,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
     TraceItemTableRequest,
@@ -210,8 +214,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             scheduled_check_time=datetime.fromtimestamp(
                 row_dict["scheduled_check_time"].val_double
             ),
-            check_status=row_dict["check_status"].val_str,
-            check_status_reason=row_dict["check_status_reason"].val_str,
+            check_status=cast(CheckStatus, row_dict["check_status"].val_str),
+            check_status_reason=(
+                None
+                if row_dict["check_status_reason"].val_str == ""
+                else cast(CheckStatusReasonType, row_dict["check_status_reason"].val_str)
+            ),
             http_status_code=(
                 None
                 if row_dict["http_status_code"].is_null
