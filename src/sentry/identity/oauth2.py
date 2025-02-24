@@ -7,6 +7,7 @@ from urllib.parse import parse_qsl, urlencode
 
 import orjson
 from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
@@ -19,7 +20,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
@@ -30,6 +31,19 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+
+def _redirect_url(pipeline: Pipeline) -> str:
+    associate_url = reverse(
+        "sentry-extension-setup",
+        kwargs={
+            # TODO(adhiraj): Remove provider_id from the callback URL, it's unused.
+            "provider_id": "default"
+        },
+    )
+
+    # Use configured redirect_url if specified for the pipeline if available
+    return pipeline.config.get("redirect_url", associate_url)
 
 
 class OAuth2Provider(Provider):
@@ -266,7 +280,7 @@ class OAuth2LoginView(PipelineView):
             state = secrets.token_hex()
 
             params = self.get_authorize_params(
-                state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
+                state=state, redirect_uri=absolute_uri(_redirect_url(pipeline))
             )
             redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
@@ -306,7 +320,7 @@ class OAuth2CallbackView(PipelineView):
         ).capture() as lifecycle:
             # TODO: this needs the auth yet
             data = self.get_token_params(
-                code=code, redirect_uri=absolute_uri(pipeline.redirect_url())
+                code=code, redirect_uri=absolute_uri(_redirect_url(pipeline))
             )
             verify_ssl = pipeline.config.get("verify_ssl", True)
             try:
