@@ -41,8 +41,8 @@ class FileChange(BaseModel):
 class CodebaseState(BaseModel):
     repo_external_id: str | None = None
     file_changes: list[FileChange] = []
-    is_readable: bool = False
-    is_writeable: bool = False
+    is_readable: bool | None = None
+    is_writeable: bool | None = None
 
 
 class AutofixState(BaseModel):
