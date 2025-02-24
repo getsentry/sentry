@@ -71,6 +71,7 @@ export function IssueViewNavItemContent({
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const {projects} = useProjects();
 
@@ -115,9 +116,11 @@ export function IssueViewNavItemContent({
         cursor: 'grabbing',
       }}
       onDragStart={() => {
+        setIsDragging(true);
         startInteraction();
       }}
       onDragEnd={() => {
+        setIsDragging(false);
         endInteraction();
       }}
     >
@@ -160,6 +163,7 @@ export function IssueViewNavItemContent({
             updateView({...view, label: value});
           }}
           setIsEditing={setIsEditing}
+          isDragging={isDragging}
         />
         {view.unsavedChanges && (
           <Tooltip
