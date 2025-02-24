@@ -4,9 +4,37 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './react-native';
+import docs, {InstallationMode} from './react-native';
 
 describe('getting started with react-native', function () {
+  it('renders wizard docs correctly', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        installationMode: InstallationMode.AUTO,
+      },
+    });
+
+    // Renders wizard command with org and project info
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/npx @sentry\/wizard@latest -s -i reactNative/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders manual installation docs correctly', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+  });
+
   it('renders errors onboarding docs correctly', function () {
     renderWithOnboardingLayout(docs);
 
