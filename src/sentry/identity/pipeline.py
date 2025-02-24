@@ -1,5 +1,3 @@
-import logging
-
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -21,12 +19,8 @@ from . import default_manager
 
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
-logger = logging.getLogger("sentry.identity")
-
 
 class IdentityProviderPipeline(Pipeline):
-    logger = logger
-
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
