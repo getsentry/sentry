@@ -94,7 +94,7 @@ def ingest_recording(message: bytes) -> None:
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        transaction = sentry_sdk.start_transaction(
+        with sentry_sdk.start_transaction(
             name="replays.consumer.process_recording",
             op="replays.consumer",
             custom_sampling_context={
@@ -102,16 +102,13 @@ def ingest_recording(message: bytes) -> None:
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
             },
-        )
-
-        try:
-            _ingest_recording(message)
-        except DropSilently:
-            # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
-            # so we ignore it.
-            pass
-        finally:
-            transaction.finish()
+        ):
+            try:
+                _ingest_recording(message)
+            except DropSilently:
+                # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
+                # so we ignore it.
+                pass
 
 
 @sentry_sdk.trace
