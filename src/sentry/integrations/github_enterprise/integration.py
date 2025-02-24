@@ -257,6 +257,7 @@ class InstallationForm(forms.Form):
         help_text=_('The "public link" for your GitHub enterprise app (optional)'),
         widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
         required=False,
+        assume_scheme="https",
     )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
@@ -309,6 +310,8 @@ class InstallationConfigView(PipelineView):
             if form.is_valid():
                 form_data = form.cleaned_data
                 form_data["url"] = urlparse(form_data["url"]).netloc
+                if not form_data["public_link"]:
+                    form_data["public_link"] = None
 
                 pipeline.bind_state("installation_data", form_data)
 

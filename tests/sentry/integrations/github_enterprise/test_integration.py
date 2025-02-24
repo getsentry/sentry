@@ -185,6 +185,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 "id": "2",
                 "name": "test-app",
                 "private_key": "private_key",
+                "public_link": None,
                 "url": "github.example.org",
                 "webhook_secret": "webhook_secret",
                 "verify_ssl": True,
