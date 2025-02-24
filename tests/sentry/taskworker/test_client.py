@@ -1,3 +1,4 @@
+import dataclasses
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
@@ -5,6 +6,7 @@ from unittest.mock import patch
 
 import grpc
 import pytest
+from django.test import override_settings
 from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_RETRY,
@@ -16,6 +18,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 
 from sentry.taskworker.client import TaskworkerClient
 from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@dataclasses.dataclass
+class MockServiceCall:
+    response: Any
+    metadata: tuple[tuple[str, str | bytes], ...] | None = None
 
 
 class MockServiceMethod:
@@ -40,9 +48,17 @@ class MockServiceMethod:
         tail = self.responses[1:]
         self.responses = tail + [res]
 
-        if isinstance(res, Exception):
-            raise res
-        return res
+        if isinstance(res.response, Exception):
+            raise res.response
+        return res.response
+
+    def with_call(self, *args, **kwargs):
+        res = self.responses[0]
+        if res.metadata:
+            assert res.metadata == kwargs.get("metadata"), "Metadata mismatch"
+        if isinstance(res.response, Exception):
+            raise res.response
+        return (res.response, None)
 
 
 class MockChannel:
@@ -50,14 +66,24 @@ class MockChannel:
         self._responses = defaultdict(list)
 
     def unary_unary(
-        self, path: str, request_serializer: Callable, response_deserializer: Callable, **kwargs
+        self,
+        path: str,
+        request_serializer: Callable,
+        response_deserializer: Callable,
+        *args,
+        **kwargs,
     ):
         return MockServiceMethod(
             path, self._responses.get(path, []), request_serializer, response_deserializer
         )
 
-    def add_response(self, path: str, resp: Message | Exception):
-        self._responses[path].append(resp)
+    def add_response(
+        self,
+        path: str,
+        resp: Message | Exception,
+        metadata: tuple[tuple[str, str | bytes], ...] | None = None,
+    ):
+        self._responses[path].append(MockServiceCall(response=resp, metadata=metadata))
 
 
 class MockGrpcError(grpc.RpcError):
@@ -72,6 +98,9 @@ class MockGrpcError(grpc.RpcError):
 
     def details(self) -> str:
         return self._message
+
+    def result(self):
+        raise self
 
 
 @django_db_all
@@ -88,6 +117,39 @@ def test_get_task_ok():
                 headers={},
                 processing_deadline_duration=10,
             )
+        ),
+    )
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient("localhost:50051", 1)
+        result = client.get_task()
+
+        assert result
+        assert result.id
+        assert result.namespace == "testing"
+
+
+@django_db_all
+@override_settings(TASKWORKER_SHARED_SECRET="a long secret value")
+def test_get_task_with_interceptor():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+        metadata=(
+            (
+                "sentry-signature",
+                "3202702605c1b65055c28e7c78a5835e760830cff3e9f995eb7ad5f837130b1f",
+            ),
         ),
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
