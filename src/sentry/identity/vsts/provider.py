@@ -52,7 +52,7 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vsts.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
     def get_pipeline_views(self) -> list[PipelineView]:
@@ -163,7 +163,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vsts_new.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
     def get_pipeline_views(self):

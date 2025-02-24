@@ -120,6 +120,9 @@ class OAuth2Provider(Provider):
             "refresh_token": refresh_token,
         }
 
+    def get_refresh_token_url(self) -> str:
+        raise NotImplementedError
+
     def get_oauth_data(self, payload):
         data = {"access_token": payload["access_token"]}
         if "expires_in" in payload:

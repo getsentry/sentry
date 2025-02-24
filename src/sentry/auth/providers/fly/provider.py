@@ -50,7 +50,7 @@ class FlyOAuth2Provider(OAuth2Provider):
             FetchUser(org=self.org),
         ]
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     @classmethod
