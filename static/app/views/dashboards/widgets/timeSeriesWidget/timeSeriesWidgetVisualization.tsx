@@ -2,7 +2,6 @@ import {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -33,21 +32,17 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
-import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
-import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
-import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
-import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
-import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
+import {Area} from './plottables/area';
+import {Bars} from './plottables/bars';
+import {Line} from './plottables/line';
 import {formatSeriesName} from './formatSeriesName';
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {isTimeSeriesOther} from './isTimeSeriesOther';
-import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
-import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 type VisualizationType = 'area' | 'line' | 'bar';
 
@@ -175,12 +170,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return scaleTimeSeriesData(timeserie, yAxisUnit);
   });
 
-  // If the provided timeseries have a `color` property, preserve that color.
-  // For any timeseries in need of a color, pull from the chart palette. It's
-  // important to do this before splitting into complete and incomplete, since
-  // automatic color assignment in `BaseChart` relies on the count of series.
-  // This code can be safely removed once we can render dotted incomplete lines
-  // using a single series
+  // Construct plottable items
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
 
   const palette =
@@ -188,69 +178,42 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       ? theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
-  let seriesColorIndex = -1;
-  const colorizedSeries = scaledSeries.map(timeSeries => {
-    if (isTimeSeriesOther(timeSeries)) {
-      return {
-        ...timeSeries,
-        color: theme.chartOther,
-      };
-    }
+  let seriesColorIndex = 0;
+  const plottables = scaledSeries.map(timeSeries => {
+    let color: string;
 
-    if (needsColor(timeSeries)) {
+    if (timeSeries.color) {
+      // If the provided timeseries have a `color` property, preserve that color.
+      color = timeSeries.color;
+    } else if (isTimeSeriesOther(timeSeries)) {
+      // "Other" series, unless otherwise specified, have a predefined color
+      color = theme.chartOther;
+    } else {
+      // For any timeseries in need of a color, pull from the chart palette
+      color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of series exceeds the number of colors in the palette
       seriesColorIndex += 1;
-
-      return {
-        ...timeSeries,
-        color: palette[seriesColorIndex % palette.length], // Mod the index in case the number of series exceeds the number of colors in the palette
-      };
     }
 
-    return timeSeries;
+    if (props.visualizationType === 'area') {
+      return new Area(timeSeries, {
+        dataCompletenessDelay,
+        color,
+      });
+    }
+
+    if (props.visualizationType === 'bar') {
+      return new Bars(timeSeries, {
+        dataCompletenessDelay,
+        color,
+        stack: props.stacked ? GLOBAL_STACK_NAME : undefined,
+      });
+    }
+
+    return new Line(timeSeries, {
+      dataCompletenessDelay,
+      color,
+    });
   });
-
-  // Mark which points in the series are incomplete according to delay
-  const markedSeries = colorizedSeries.map(timeSeries =>
-    markDelayedData(timeSeries, dataCompletenessDelay)
-  );
-
-  // Convert time series into plottable ECharts series
-  const plottableSeries: Array<LineSeriesOption | BarSeriesOption> = [];
-
-  // TODO: This is a little heavy, and probably worth memoizing
-  if (props.visualizationType === 'bar') {
-    // For bar charts, convert straight from time series to series, which will
-    // automatically mark "delayed" bars
-    markedSeries.forEach(timeSeries => {
-      plottableSeries.push(
-        BarChartWidgetSeries(timeSeries, props.stacked ? GLOBAL_STACK_NAME : undefined)
-      );
-    });
-  } else {
-    // For line and area charts, split each time series into two series, each
-    // with corresponding styling. In an upcoming version of ECharts it'll be
-    // possible to avoid this, and construct a single series
-    markedSeries.forEach(timeSeries => {
-      const [completeTimeSeries, incompleteTimeSeries] =
-        splitSeriesIntoCompleteAndIncomplete(timeSeries, dataCompletenessDelay);
-
-      if (completeTimeSeries) {
-        plottableSeries.push(
-          (props.visualizationType === 'area'
-            ? CompleteAreaChartWidgetSeries
-            : CompleteLineChartWidgetSeries)(completeTimeSeries)
-        );
-      }
-
-      if (incompleteTimeSeries) {
-        plottableSeries.push(
-          (props.visualizationType === 'area'
-            ? IncompleteAreaChartWidgetSeries
-            : IncompleteLineChartWidgetSeries)(incompleteTimeSeries)
-        );
-      }
-    });
-  }
 
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
@@ -320,6 +283,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const showLegend = visibleSeriesCount > 1;
 
+  const actuallyPlottable = plottables.flatMap(series => series.toSeries());
+
   return (
     <BaseChart
       ref={e => {
@@ -331,7 +296,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       autoHeightResize
       series={[
-        ...plottableSeries,
+        ...actuallyPlottable,
         releaseSeries &&
           LineSeries({
             ...releaseSeries,

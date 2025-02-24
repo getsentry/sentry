@@ -1,3 +1,5 @@
+import type {SeriesOption} from 'echarts';
+
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
@@ -26,6 +28,10 @@ export type TimeSeries = {
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
+
+export interface Plottable {
+  toSeries(): SeriesOption[];
+}
 
 export type ErrorProp = Error | string;
 
