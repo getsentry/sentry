@@ -3,9 +3,11 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry import audit_log
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
@@ -128,4 +130,12 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             self.update_data_source(instance, data_source)
 
         instance.save()
+
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=instance.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=instance.get_audit_log_data(),
+        )
         return instance
