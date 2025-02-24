@@ -51,13 +51,13 @@ PRIORITY_MAP = {
 }
 
 TYPE_TO_PROVIDER = {
-    0: "email",
-    1: "pagerduty",
-    2: "slack",
-    3: "msteams",
-    4: "sentry_app",
-    6: "opsgenie",
-    7: "discord",
+    0: Action.Type.EMAIL,
+    1: Action.Type.PAGERDUTY,
+    2: Action.Type.SLACK,
+    3: Action.Type.MSTEAMS,
+    4: Action.Type.SENTRY_APP,
+    6: Action.Type.OPSGENIE,
+    7: Action.Type.DISCORD,
 }
 
 # XXX: "target_identifier" is not here because there is special logic to handle it
@@ -76,7 +76,7 @@ class CouldNotCreateDataSource(Exception):
     pass
 
 
-def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
+def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> Action.Type | None:
     return TYPE_TO_PROVIDER.get(alert_rule_trigger_action.type, None)
 
 
