@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0834_add_index_on_authidentity_last_synced
+sentry: 0835_add_schema_version_to_grouphash_metadata
 
 social_auth: 0002_default_auto_field
 

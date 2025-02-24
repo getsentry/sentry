@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import HashBasis
+from sentry.models.grouphashmetadata import GROUPHASH_METADATA_SCHEMA_VERSION, HashBasis
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
@@ -99,6 +99,7 @@ class GroupHashMetadataTest(TestCase):
         self.assert_metadata_values(
             grouphash,
             {
+                "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
                 "latest_grouping_config": DEFAULT_GROUPING_CONFIG,
                 "hash_basis": HashBasis.MESSAGE,
                 "hashing_metadata": ANY,  # Tested extensively with snapshots
