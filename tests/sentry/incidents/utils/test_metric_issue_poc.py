@@ -65,6 +65,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.HIGH
         assignee = group.get_assignee()
+        assert assignee is not None
         assert Actor.from_identifier(assignee.id) == self.alert_rule.owner
 
     @django_db_all
