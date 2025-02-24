@@ -1,23 +1,30 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import usePrevious from 'sentry/utils/usePrevious';
+import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
+import {
+  DEFAULT_TOP_EVENTS,
+  useMultiQueryTimeseries,
+} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
   type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const CHART_HEIGHT = 260;
@@ -29,12 +36,22 @@ export interface MultiQueryChartProps {
 
 export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
 
-export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartProps) {
+export function MultiQueryModeChart({
+  index,
+  query: queryParts,
+  mode,
+}: MultiQueryChartProps) {
   const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
   const yAxes = queryParts.yAxes;
+  const isTopN = mode === Mode.AGGREGATE;
+
+  const confidence = useMemo(() => {
+    const series = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis]).filter(defined);
+    return combineConfidenceForSeries(series);
+  }, [timeseriesResult.data, yAxes]);
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -94,6 +111,7 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
   ]);
 
   const {data, error, loading} = getSeries();
+  const sampleCount = determineSeriesSampleCount(data, isTopN);
 
   const visualizationType =
     queryParts.chartType === ChartType.LINE
@@ -190,6 +208,13 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
           dataCompletenessDelay={INGESTION_DELAY}
           visualizationType={visualizationType}
           timeSeries={chartInfo.data}
+        />
+      }
+      Footer={
+        <ConfidenceFooter
+          sampleCount={sampleCount}
+          confidence={confidence}
+          topEvents={isTopN ? DEFAULT_TOP_EVENTS : undefined}
         />
       }
     />
