@@ -1,5 +1,6 @@
 import {useLocation} from 'react-router-dom';
 
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -38,10 +39,10 @@ export function useRedirectNavV2Routes({
 }: Props): string | null {
   const location = useLocation();
   const organization = useOrganization();
-  const hasNavigationV2 = organization.features.includes('navigation-sidebar-v2');
+  const prefersStackedNav = usePrefersStackedNav();
   const shouldRedirect = useShouldRedirect(oldPathPrefix);
 
-  if (!hasNavigationV2 || !shouldRedirect) {
+  if (!prefersStackedNav || !shouldRedirect) {
     return null;
   }
 
