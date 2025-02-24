@@ -27,9 +27,7 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 
-def get_headers(
-    notification: BaseNotification, context: MutableMapping[str, Any]
-) -> Mapping[str, Any]:
+def get_headers(notification: BaseNotification, context: Mapping[str, Any]) -> Mapping[str, Any]:
     headers = {"X-SMTPAPI": orjson.dumps({"category": notification.metrics_key}).decode()}
     if isinstance(notification, ProjectNotification) and notification.project.slug:
         headers["X-Sentry-Project"] = notification.project.slug
