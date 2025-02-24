@@ -286,7 +286,9 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   return null;
 }
 
-// Spaces items within the container evenly.
+/**
+ * Manages margins of Alert components
+ */
 const Container = styled('div')`
   > div {
     margin-bottom: ${space(2)};
