@@ -1,11 +1,13 @@
 from datetime import timedelta
-from typing import Any, TypedDict
+from typing import Any
 
 from rest_framework import serializers
 
+from sentry import audit_log
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
@@ -13,26 +15,11 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.types import DetectorPriorityLevel
-
-
-class DataConditionType(TypedDict):
-    id: int | None
-    comparison: int
-    type: Condition
-    condition_result: DetectorPriorityLevel
-    condition_group_id: int
-
-
-class DataSourceType(TypedDict):
-    query_type: int
-    dataset: str
-    query: str
-    aggregate: str
-    time_window: float
-    resolution: float
-    environment: str
-    event_types: list[SnubaQueryEventType]
+from sentry.workflow_engine.types import (
+    DataConditionType,
+    DetectorPriorityLevel,
+    SnubaQueryDataSourceType,
+)
 
 
 class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidator):
@@ -100,7 +87,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
                 )
         return data_condition_group
 
-    def update_data_source(self, instance: Detector, data_source: DataSourceType):
+    def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -138,9 +125,17 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         if data_conditions:
             self.update_data_conditions(instance, data_conditions)
 
-        data_source: DataSourceType = validated_data.pop("data_source")
+        data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
         if data_source:
             self.update_data_source(instance, data_source)
 
         instance.save()
+
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=instance.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=instance.get_audit_log_data(),
+        )
         return instance

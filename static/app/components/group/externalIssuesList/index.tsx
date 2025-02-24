@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import AlertLink from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 import type {
@@ -76,13 +76,14 @@ export default function ExternalIssueList({group, event, project}: Props) {
             <Fragment key={key}>{renderers[type](props)}</Fragment>
           ))
         ) : (
-          <AlertLink
-            priority="muted"
-            size="small"
-            to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-          >
-            {t('Track this issue in Jira, GitHub, etc.')}
-          </AlertLink>
+          <AlertLink.Container>
+            <AlertLink
+              type="muted"
+              to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
+            >
+              {t('Track this issue in Jira, GitHub, etc.')}
+            </AlertLink>
+          </AlertLink.Container>
         )}
       </SidebarSection.Content>
     </SidebarSection.Wrap>

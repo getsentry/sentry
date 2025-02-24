@@ -55,7 +55,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         pipeline.append(SelectOrganization())
         return pipeline
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):
