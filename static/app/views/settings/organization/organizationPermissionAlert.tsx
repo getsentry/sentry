@@ -31,5 +31,3 @@ export function OrganizationPermissionAlert({
     </Access>
   );
 }
-
-export default OrganizationPermissionAlert;
