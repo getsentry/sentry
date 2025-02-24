@@ -283,7 +283,7 @@ def get_project_subscriptions_for_uptime_subscription(
     [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
     recalculate=False,
 )
-def get_regions_for_uptime_subscription(
+def load_regions_for_uptime_subscription(
     uptime_subscription_id: int,
 ) -> list[UptimeSubscriptionRegion]:
     return list(
