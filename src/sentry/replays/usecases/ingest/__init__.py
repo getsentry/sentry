@@ -263,10 +263,7 @@ def recording_post_processor(
         # Conditionally use the new separated event parsing and logging logic. This way we can
         # feature flag access and fix any issues we find.
         if message.org_id in options.get("replay.consumer.separate-compute-and-io"):
-            event_meta = parse_replay_events(segment)
-            if not event_meta:
-                return None
-
+            event_meta = parse_events(segment)
             project = Project.objects.get_from_cache(id=message.project_id)
             emit_replay_events(
                 event_meta,
@@ -385,10 +382,6 @@ def try_get_replay_actions(
         replay_event=parsed_replay_event,
         org_id=message.org_id,
     )
-
-
-def parse_replay_events(events: list[dict[str, Any]]) -> ParsedEventMeta | None:
-    return parse_events(events)
 
 
 @sentry_sdk.trace
