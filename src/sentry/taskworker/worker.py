@@ -248,7 +248,7 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        queuesize = concurrency * prefetch_multiplier
+        queuesize = concurrency
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=queuesize
         )
