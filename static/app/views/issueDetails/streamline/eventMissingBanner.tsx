@@ -6,6 +6,7 @@ import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,6 +22,12 @@ export function EventMissingBanner() {
     eventId: string;
     groupId: string;
   }>();
+
+  const useGetMaxRetentionDays =
+    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
+    (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
 
@@ -56,7 +63,7 @@ export function EventMissingBanner() {
           to={{
             pathname: `${baseUrl}/${eventId}/`,
             query: {
-              statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+              statsPeriod: `${maxRetentionDays}d`,
               ...(location.query.project ? {project: location.query.project} : {}),
             },
           }}

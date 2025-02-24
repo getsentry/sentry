@@ -12,8 +12,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -31,6 +33,7 @@ import {
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
+import getDaysSinceDate, {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -625,6 +628,31 @@ function GroupDetailsContentError({
   }
 }
 
+function useGetStatsPeriod(group: Group) {
+  const hasHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
+  const useGetMaxRetentionDays =
+    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
+    (() => MAX_PICKABLE_DAYS);
+
+  const maxRetentionDays = useGetMaxRetentionDays();
+
+  if (!hasHook) {
+    return `${MAX_PICKABLE_DAYS}d`;
+  }
+  const daysSinceFirstSeen = getDaysSinceDate(group.firstSeen);
+
+  if (daysSinceFirstSeen === 0) {
+    const precise = Math.ceil(getDaysSinceDatePrecise(group.firstSeen) * 24);
+    return `${precise}h`;
+  }
+
+  if (!maxRetentionDays) {
+    return `30d`;
+  }
+
+  return `${Math.min(maxRetentionDays, daysSinceFirstSeen)}d`;
+}
+
 function GroupDetailsContent({
   children,
   group,
@@ -637,10 +665,30 @@ function GroupDetailsContent({
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
 
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const statsPeriod = useGetStatsPeriod(group);
+
+  useEffect(() => {
+    if (hasStreamlinedUI) {
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            statsPeriod,
+          },
+        },
+        {replace: true}
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!hasStreamlinedUI || isDrawerOpen) {
