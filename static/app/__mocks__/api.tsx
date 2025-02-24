@@ -6,11 +6,13 @@ const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 
-const respond = (
+type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
+
+function respond(
   asyncDelay: AsyncDelay,
   fn: FunctionCallback | undefined,
   ...args: any[]
-): void => {
+): void {
   if (!fn) {
     return;
   }
@@ -21,7 +23,7 @@ const respond = (
   }
 
   fn(...args);
-};
+}
 
 /**
  * Callables for matching requests based on arbitrary conditions.
