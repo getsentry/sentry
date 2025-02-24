@@ -1,6 +1,8 @@
-import React from 'react';
+import React, {useState} from 'react';
+import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -15,6 +17,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -25,6 +28,7 @@ export function SessionsOverview() {
   };
 
   const {view} = useDomainViewFilters();
+  const [filters, setFilters] = useState<string[]>(['']);
 
   return (
     <React.Fragment>
@@ -39,6 +43,9 @@ export function SessionsOverview() {
                 <ModulePageFilterBar
                   moduleName={ModuleName.SESSIONS}
                   extraFilters={<SubregionSelector />}
+                  onProjectChange={() => {
+                    setFilters(['']);
+                  }}
                 />
               </ToolRibbon>
             </ModuleLayout.Full>
@@ -52,8 +59,11 @@ export function SessionsOverview() {
               </ModuleLayout.Third>
             )}
             <ModuleLayout.Full>
-              <ReleaseAdoption />
-              <ReleaseHealth />
+              <FilterWrapper>
+                <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+              </FilterWrapper>
+              <ReleaseAdoption filters={filters} />
+              <ReleaseHealth filters={filters} />
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -74,3 +84,8 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
+
+const FilterWrapper = styled('div')`
+  display: flex;
+  margin: ${space(2)} 0;
+`;
