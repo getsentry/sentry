@@ -225,7 +225,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
                   isHoverable
                   size="sm"
                   title={tct(
-                    'A check status is marked as flakiness when it fails but has not yet met the threshold to be considered downtime. [link:Learn more].',
+                    'A check status is marked as intermittent when it fails but has not yet met the threshold to be considered downtime. [link:Learn more].',
                     {
                       link: (
                         <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
