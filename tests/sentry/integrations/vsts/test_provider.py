@@ -21,18 +21,15 @@ from sentry.users.models.identity import Identity
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
-        def redirect_url():
-            return "https://app.vssps.visualstudio.com/oauth2/authorize"
-
         view = VSTSOAuth2CallbackView(
             access_token_url="https://app.vssps.visualstudio.com/oauth2/token",
             client_id="vsts-client-id",
             client_secret="vsts-client-secret",
         )
         request = Mock()
-        pipeline = Mock()
-
-        pipeline.redirect_url = redirect_url
+        pipeline = Mock(
+            config={"redirect_url": "https://app.vssps.visualstudio.com/oauth2/authorize"}
+        )
 
         responses.add(
             responses.POST,
