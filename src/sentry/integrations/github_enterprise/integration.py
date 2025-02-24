@@ -253,8 +253,8 @@ class InstallationForm(forms.Form):
         widget=forms.TextInput(attrs={"placeholder": "our-sentry-app"}),
     )
     public_link = forms.URLField(
-        label="Public Link",
-        help_text=_('The "public link" for your GitHub enterprise app (optional)'),
+        label="Public Link (GitHub Enterprise Server only)",
+        help_text=_("The publicly available link for your GitHub App in GitHub Enterprise Server"),
         widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
         required=False,
         assume_scheme="https",
