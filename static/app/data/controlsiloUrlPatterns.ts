@@ -1,6 +1,6 @@
 // This is generated code.
 // To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
-const patterns: readonly RegExp[] = [
+export const patterns: readonly RegExp[] = [
   new RegExp('^remote/heroku/resources(?:/[^/]+)?$'),
   new RegExp('^remote/beacon/$'),
   new RegExp('^remote/newsletter/unsubscribe/$'),
@@ -196,17 +196,3 @@ const patterns: readonly RegExp[] = [
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
   new RegExp('^share/(?:group|issue)/[^/]+/$'),
 ];
-
-export function isControlSiloPath(path: string): boolean {
-  // We sometimes include querystrings in paths.
-  // Using URL() to avoid handrolling URL parsing
-  const url = new URL(path, 'https://sentry.io');
-  path = url.pathname;
-  path = path.startsWith('/') ? path.substring(1) : path;
-  for (const pattern of patterns) {
-    if (pattern.test(path)) {
-      return true;
-    }
-  }
-  return false;
-}

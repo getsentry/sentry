@@ -18,7 +18,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
-import {isControlSiloPath} from './data/controlsiloUrlPatterns';
+import {isControlSiloPath} from './data/isControlSiloUrlPattern';
 
 /**
  * Check if the requested method does not require CSRF tokens
