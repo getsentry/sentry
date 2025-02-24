@@ -7,6 +7,7 @@ import {GrowingInput} from 'sentry/components/growingInput';
 import {Tooltip} from 'sentry/components/tooltip';
 
 interface IssueViewNavEditableTitleProps {
+  isDragging: boolean;
   isEditing: boolean;
   isSelected: boolean;
   label: string;
@@ -20,6 +21,7 @@ function IssueViewNavEditableTitle({
   isEditing,
   isSelected,
   setIsEditing,
+  isDragging,
 }: IssueViewNavEditableTitleProps) {
   const [inputValue, setInputValue] = useState(label);
 
@@ -84,7 +86,12 @@ function IssueViewNavEditableTitle({
   };
 
   return (
-    <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
+    <Tooltip
+      title={label}
+      disabled={isEditing || isDragging}
+      showOnlyOnOverflow
+      skipWrapper
+    >
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isEditing ? (
           <StyledGrowingInput
