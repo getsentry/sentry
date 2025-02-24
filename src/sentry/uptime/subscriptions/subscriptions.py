@@ -278,10 +278,10 @@ def create_uptime_subscription(
     )
 
     # Associate active regions with this subscription
-    for region_config in get_active_region_configs():
-        UptimeSubscriptionRegion.objects.get_or_create(
+    for region_config in get_active_regions():
+        UptimeSubscriptionRegion.objects.create(
             uptime_subscription=subscription, region_slug=region_config.slug
-        )[1]
+        )
 
     create_remote_uptime_subscription.delay(subscription.id)
     fetch_subscription_rdap_info.delay(subscription.id)
@@ -324,7 +324,8 @@ def update_uptime_subscription(
     )
 
     # Associate active regions with this subscription
-    for region_config in get_active_region_configs():
+    # TODO: This should use core code from `check_and_update_regions`
+    for region_config in get_active_regions():
         UptimeSubscriptionRegion.objects.get_or_create(
             uptime_subscription=subscription, region_slug=region_config.slug
         )
