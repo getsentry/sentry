@@ -6,7 +6,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -130,7 +129,7 @@ function WidgetBuilderV2({
   }, [isPreviewDraggable]);
 
   const preferences = useLegacyStore(PreferencesStore);
-  const sidebarCollapsed = prefersStackedNav() ? true : !!preferences.collapsed;
+  const sidebarCollapsed = !!preferences.collapsed;
 
   return (
     <Fragment>

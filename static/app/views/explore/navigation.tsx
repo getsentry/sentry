@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -14,8 +14,9 @@ type Props = {
 
 export default function ExploreNavigation({children}: Props) {
   const organization = useOrganization();
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!prefersStackedNav()) {
+  if (!prefersStackedNav) {
     return children;
   }
 

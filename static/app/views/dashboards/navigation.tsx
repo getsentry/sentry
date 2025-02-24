@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -61,7 +61,9 @@ function DashboardsSecondaryNav({children}: DashboardsNavigationProps) {
 }
 
 export default function DashboardsNavigation({children}: DashboardsNavigationProps) {
-  if (!prefersStackedNav()) {
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (!prefersStackedNav) {
     return children;
   }
 

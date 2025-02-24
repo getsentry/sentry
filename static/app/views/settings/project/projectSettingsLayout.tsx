@@ -1,6 +1,6 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -31,7 +31,9 @@ function InnerProjectSettingsLayout({
     project_platform: project.platform,
   });
 
-  if (prefersStackedNav()) {
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (prefersStackedNav) {
     return (
       <Fragment>
         <ProjectSettingsNavigation organization={organization} />

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
@@ -10,7 +10,9 @@ type Props = RouteComponentProps & {
 };
 
 function OrganizationSettingsLayout(props: Props) {
-  if (prefersStackedNav()) {
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (prefersStackedNav) {
     return (
       <Fragment>
         <OrganizationSettingsNavigation />

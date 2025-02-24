@@ -14,7 +14,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -177,6 +177,7 @@ function IssueListOverview({router}: Props) {
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
     useSavedSearches();
@@ -816,7 +817,7 @@ function IssueListOverview({router}: Props) {
         queryData.sort = newSavedSearch.sort;
       }
     } else {
-      if (prefersStackedNav()) {
+      if (prefersStackedNav) {
         path = location.pathname;
       } else {
         path = `/organizations/${organization.slug}/issues/`;
@@ -1077,7 +1078,7 @@ function IssueListOverview({router}: Props) {
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {hasLeftNavIssueViews && prefersStackedNav() && (
+        {hasLeftNavIssueViews && prefersStackedNav && (
           <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
         {!hasLeftNavIssueViews &&
