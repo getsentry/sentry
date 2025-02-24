@@ -455,25 +455,26 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         repo_code_mappings[mapping.repository.external_id] = mapping
 
             for repo_external_id, repo_state in autofix_codebase_state.items():
-                mapping = repo_code_mappings.get(repo_external_id, None)
+                if repo_external_id:
+                    mapping = repo_code_mappings.get(repo_external_id, None)
 
-                if not mapping:
-                    continue
+                    if not mapping:
+                        continue
 
-                mapping_repo: Repository = mapping.repository
+                    mapping_repo: Repository = mapping.repository
 
-                repositories.append(
-                    {
-                        "integration_id": mapping_repo.integration_id,
-                        "url": mapping_repo.url,
-                        "external_id": repo_external_id,
-                        "name": mapping_repo.name,
-                        "provider": mapping_repo.provider,
-                        "default_branch": mapping.default_branch,
-                        "is_readable": repo_state.get("is_readable", False),
-                        "is_writeable": repo_state.get("is_writeable", False),
-                    }
-                )
+                    repositories.append(
+                        {
+                            "integration_id": mapping_repo.integration_id,
+                            "url": mapping_repo.url,
+                            "external_id": repo_external_id,
+                            "name": mapping_repo.name,
+                            "provider": mapping_repo.provider,
+                            "default_branch": mapping.default_branch,
+                            "is_readable": repo_state.get("is_readable", False),
+                            "is_writeable": repo_state.get("is_writeable", False),
+                        }
+                    )
 
             response_state["repositories"] = repositories
 
