@@ -17,8 +17,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
 
-# from sentry.snuba.rpc_dataset_common import Column
-
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedAttribute:
