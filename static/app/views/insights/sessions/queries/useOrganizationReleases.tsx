@@ -9,7 +9,11 @@ export default function useOrganizationReleases() {
 
   const locationWithoutWidth = {
     ...location,
-    query: {...location.query, width: undefined},
+    query: {
+      ...location.query,
+      width_health_table: undefined,
+      width_adoption_table: undefined,
+    },
   };
 
   const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
@@ -20,7 +24,7 @@ export default function useOrganizationReleases() {
           ...locationWithoutWidth.query,
           adoptionStages: 1,
           health: 1,
-          per_page: 25,
+          per_page: 10,
         },
       },
     ],

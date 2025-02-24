@@ -56,6 +56,7 @@ export default function ReleaseAdoptionTable({
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
     location,
+    paramName: 'width_adoption_table',
   });
 
   const organization = useOrganization();
@@ -77,7 +78,7 @@ export default function ReleaseAdoptionTable({
       const value = dataRow[column.key];
 
       if (column.key === 'lifespan') {
-        return value ? (
+        return value !== undefined ? (
           <CellWrapper>
             <Duration
               precision="hours"
@@ -86,6 +87,7 @@ export default function ReleaseAdoptionTable({
             />
           </CellWrapper>
         ) : (
+          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
           '--'
         );
       }
