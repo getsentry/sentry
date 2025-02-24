@@ -484,7 +484,7 @@ def send_resource_change_webhook(
             lifecycle.record_failure(failure_reason=e)
             return
         except (ApiHostError, ApiTimeoutError, RequestException) as e:
-            lifecycle.record_halt(failure_reason=e)
+            lifecycle.record_halt(halt_reason=e)
             # we retry on these exceptions
             raise
 
