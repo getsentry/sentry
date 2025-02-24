@@ -266,6 +266,7 @@ function App({children, params}: Props) {
     </Profiler>
   );
 }
+
 export default App;
 
 const MainContainer = styled('div')`

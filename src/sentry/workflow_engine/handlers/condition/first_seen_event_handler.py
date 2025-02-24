@@ -2,7 +2,7 @@ from typing import Any
 
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 def is_new_event(job: WorkflowJob) -> bool:
@@ -19,7 +19,7 @@ def is_new_event(job: WorkflowJob) -> bool:
 
 @condition_handler_registry.register(Condition.FIRST_SEEN_EVENT)
 class FirstSeenEventConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandlerType.WORKFLOW_TRIGGER
+    type = [DataConditionHandler.Type.WORKFLOW_TRIGGER]
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod

@@ -129,8 +129,7 @@ function WidgetBuilderV2({
   }, [isPreviewDraggable]);
 
   const preferences = useLegacyStore(PreferencesStore);
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
-  const sidebarCollapsed = hasNewNav ? true : !!preferences.collapsed;
+  const sidebarCollapsed = !!preferences.collapsed;
 
   return (
     <Fragment>

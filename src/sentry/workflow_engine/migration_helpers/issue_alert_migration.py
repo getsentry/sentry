@@ -54,14 +54,16 @@ class IssueAlertMigrator:
     def run(self) -> None:
         error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
+        action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
-            action_match=self.data.get("action_match", Rule.DEFAULT_CONDITION_MATCH),
+            action_match=action_match,
             detector=error_detector,
         )
+        filter_match = self.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         if_dcg = self._create_if_dcg(
-            filter_match=self.data.get("filter_match", Rule.DEFAULT_FILTER_MATCH),
+            filter_match=filter_match,
             workflow=workflow,
             conditions=conditions,
             filters=filters,

@@ -220,7 +220,7 @@ def create_issue_occurrences_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
     comparison = {
-        "value": data["value"],
+        "value": int(data["value"]),
     }
 
     return DataCondition(
@@ -263,10 +263,12 @@ def create_latest_adopted_release_data_condition(
 def create_base_event_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup, count_type: Condition, percent_type: Condition
 ) -> DataCondition:
-    comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
+    comparison_type = data.get(
+        "comparisonType", ComparisonType.COUNT
+    )  # this is camelCase, age comparison is snake_case
     comparison = {
         "interval": data["interval"],
-        "value": data["value"],
+        "value": int(data["value"]),
     }
 
     if comparison_type == ComparisonType.COUNT:
@@ -326,7 +328,7 @@ def create_event_unique_user_frequency_condition_with_conditions(
 
     comparison = {
         "interval": data["interval"],
-        "value": data["value"],
+        "value": int(data["value"]),
     }
 
     if comparison_type == ComparisonType.COUNT:

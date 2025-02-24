@@ -171,8 +171,8 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def create_org_and_auth_provider(self, provider_name="dummy"):
         if provider_name == "fly":
-            auth.register("fly", FlyOAuth2Provider)
-            self.addCleanup(auth.unregister, "fly", FlyOAuth2Provider)
+            auth.register(FlyOAuth2Provider)
+            self.addCleanup(auth.unregister, FlyOAuth2Provider)
 
         self.user.update(is_managed=True)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -725,6 +725,7 @@ dummy_generic_provider_config = {
 
 class DummyGenericSAML2Provider(GenericSAML2Provider):
     name = "saml2_generic_dummy"
+    key = "saml2_generic_dummy"
 
 
 @control_silo_test

@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -47,6 +49,16 @@ function FilterBar({
             triggerProps={{
               prefix: t('Alert Type'),
             }}
+            menuFooter={
+              <ButtonBar gap={1}>
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/backend/crons/">
+                  {t('Crons Overview')}
+                </LinkButton>
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/backend/uptime/">
+                  {t('Uptime Overview')}
+                </LinkButton>
+              </ButtonBar>
+            }
             options={[
               {
                 value: CombinedAlertType.ISSUE,
