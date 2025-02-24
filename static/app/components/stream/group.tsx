@@ -39,7 +39,7 @@ import type {
   PriorityLevel,
 } from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -55,7 +55,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -71,7 +70,6 @@ export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
 type Props = {
   id: string;
-  organization: Organization;
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
@@ -147,9 +145,8 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
   );
 }
 
-function BaseGroupRow({
+function StreamGroup({
   id,
-  organization,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -168,6 +165,7 @@ function BaseGroupRow({
   showLastTriggered = false,
   onPriorityChange,
 }: Props) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const groups = useLegacyStore(GroupStore);
@@ -722,8 +720,6 @@ function BaseGroupRow({
     </Wrapper>
   );
 }
-
-const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
 
