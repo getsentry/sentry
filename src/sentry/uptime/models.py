@@ -263,6 +263,7 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
         )
     )
 
+
 @cache_func_for_models(
     [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
     recalculate=False,
