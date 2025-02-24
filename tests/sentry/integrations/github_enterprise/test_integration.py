@@ -27,22 +27,31 @@ from sentry.users.models.identity import Identity, IdentityProvider, IdentitySta
 @control_silo_test
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
-    config = {
-        "url": "https://github.example.org",
-        "id": 2,
-        "name": "test-app",
-        "client_id": "client_id",
-        "client_secret": "client_secret",
-        "webhook_secret": "webhook_secret",
-        "private_key": "private_key",
-        "verify_ssl": True,
-    }
-    base_url = "https://github.example.org/api/v3"
+
+    def setUp(self):
+        super().setUp()
+        self.config = {
+            "url": "https://github.example.org",
+            "id": 2,
+            "name": "test-app",
+            "client_id": "client_id",
+            "client_secret": "client_secret",
+            "webhook_secret": "webhook_secret",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+        self.base_url = "https://github.example.org/api/v3"
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def assert_setup_flow(
-        self, get_jwt, _, installation_id="install_id_1", app_id="app_1", user_id="user_id_1"
+        self,
+        get_jwt,
+        _,
+        installation_id="install_id_1",
+        app_id="app_1",
+        user_id="user_id_1",
+        public_link=None,
     ):
         responses.reset()
         resp = self.client.get(self.init_path)
@@ -51,8 +60,11 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
         assert redirect.scheme == "https"
-        assert redirect.netloc == "github.example.org"
-        assert redirect.path == "/github-apps/test-app"
+        if public_link:
+            assert resp["Location"] == public_link
+        else:
+            assert redirect.netloc == "github.example.org"
+            assert redirect.path == "/github-apps/test-app"
 
         # App installation ID is provided, mveo thr
         resp = self.client.get(
@@ -173,6 +185,46 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 "id": "2",
                 "name": "test-app",
                 "private_key": "private_key",
+                "public_link": None,
+                "url": "github.example.org",
+                "webhook_secret": "webhook_secret",
+                "verify_ssl": True,
+            },
+        }
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        assert oi.config == {}
+
+        idp = IdentityProvider.objects.get(type="github_enterprise")
+        identity = Identity.objects.get(idp=idp, user=self.user, external_id="user_id_1")
+        assert identity.status == IdentityStatus.VALID
+        assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
+
+    @responses.activate
+    def test_basic_flow__public_link(self):
+        public_link = "https://github.example.org/github/apps/test-app"
+        self.config["public_link"] = public_link
+        self.assert_setup_flow(public_link=public_link)
+
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        assert integration.external_id == "github.example.org:install_id_1"
+        assert integration.name == "Test Organization"
+        assert integration.metadata == {
+            "access_token": None,
+            "expires_at": None,
+            "icon": "https://github.example.org/avatar.png",
+            "domain_name": "github.example.org/Test-Organization",
+            "account_type": "Organization",
+            "installation_id": "install_id_1",
+            "installation": {
+                "client_id": "client_id",
+                "client_secret": "client_secret",
+                "id": "2",
+                "name": "test-app",
+                "private_key": "private_key",
+                "public_link": public_link,
                 "url": "github.example.org",
                 "webhook_secret": "webhook_secret",
                 "verify_ssl": True,
