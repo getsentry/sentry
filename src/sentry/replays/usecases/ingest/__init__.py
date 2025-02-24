@@ -250,6 +250,7 @@ def _report_size_metrics(
         )
 
 
+@sentry_sdk.trace
 def recording_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
