@@ -7,7 +7,7 @@ import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
 import {NavContextProvider} from 'sentry/components/nav/context';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
@@ -46,7 +46,8 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const App = prefersStackedNav() ? AppLayout : LegacyAppLayout;
+  const prefersStackedNav = usePrefersStackedNav();
+  const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
