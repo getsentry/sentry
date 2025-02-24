@@ -406,11 +406,29 @@ def maybe_check_seer_for_matching_grouphash(
                 gh_metadata.id
             )  # Even mypy knows this should never happen, hence the need for the Any
             if metadata_id is None:
+                logger.info(
+                    "grouphash_metadata.none_id",
+                    extra={
+                        "event_id": event.event_id,
+                        "grouphash": str(event_grouphash),
+                        "grouphash_metadata": str(gh_metadata),
+                        "project": str(event.project),
+                    },
+                )
                 gh_metadata.save()
 
                 # If that didn't work, log it and bail
                 metadata_id = gh_metadata.id
                 if metadata_id is None:
+                    logger.error(
+                        "grouphash_metadata.none_id_fix_failed",
+                        extra={
+                            "event_id": event.event_id,
+                            "grouphash": str(event_grouphash),
+                            "grouphash_metadata": str(gh_metadata),
+                            "project": str(event.project),
+                        },
+                    )
                     return seer_matched_grouphash
 
             gh_metadata.update(
