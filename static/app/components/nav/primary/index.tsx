@@ -164,7 +164,7 @@ export function PrimaryNavigationItems() {
               children: [
                 {
                   key: 'new-ui',
-                  label: t('Go back to the old navigation UI'),
+                  label: t('Switch to old navigation'),
                   onAction() {
                     mutateUserOptions({prefersStackedNavigation: false});
                   },

@@ -59,7 +59,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                 <SidebarMenuItem
                   onClick={() => mutateUserOptions({prefersStackedNavigation: true})}
                 >
-                  {t('Try the new navigation UI')}
+                  {t('Try new navigation')}
                 </SidebarMenuItem>
               )}
             </HelpMenu>
