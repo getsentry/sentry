@@ -25,7 +25,7 @@ def test_parse_events_mutation_events():
     ]
     result = _parse_events(events, sampled=True)
     assert len(result.mutation_events) == 1
-    assert result.mutation_events[0].payload == events[0]["data"]["payload"]
+    assert result.mutation_events[0].payload == events[0]["data"]["payload"]  # type: ignore[index]
 
     # Not sampled.
     result = _parse_events(events, sampled=False)
@@ -80,8 +80,8 @@ def test_parse_events_hydration_errors():
     ]
     result = _parse_events(events, sampled=False)
     assert len(result.hydration_errors) == 1
-    assert result.hydration_errors[0].url == events[0]["data"]["payload"]["data"]["url"]
-    assert result.hydration_errors[0].timestamp == events[0]["data"]["payload"]["timestamp"]
+    assert result.hydration_errors[0].url == events[0]["data"]["payload"]["data"]["url"]  # type: ignore[index]
+    assert result.hydration_errors[0].timestamp == events[0]["data"]["payload"]["timestamp"]  # type: ignore[index]
 
 
 def test_parse_events_hydration_errors_missing_data_key():
@@ -97,7 +97,7 @@ def test_parse_events_hydration_errors_missing_data_key():
     result = _parse_events(events, sampled=False)
     assert len(result.hydration_errors) == 1
     assert result.hydration_errors[0].url is None
-    assert result.hydration_errors[0].timestamp == events[0]["data"]["payload"]["timestamp"]
+    assert result.hydration_errors[0].timestamp == events[0]["data"]["payload"]["timestamp"]  # type: ignore[index]
 
 
 # Request response body sizes parsing.
