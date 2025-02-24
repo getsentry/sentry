@@ -27,6 +27,14 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
 )
 
 
+def is_number(aggregation_value: int | float) -> bool:
+    return (
+        True
+        if isinstance(aggregation_value, int) or isinstance(aggregation_value, float)
+        else False
+    )
+
+
 def get_anomaly_data_from_seer(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
@@ -40,7 +48,7 @@ def get_anomaly_data_from_seer(
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
     }
-    if not snuba_query or not isinstance(aggregation_value, float):
+    if not snuba_query or not is_number(aggregation_value):
         extra_data["aggregation_value"] = aggregation_value
         logger.info("Aggregation value not integer or snuba query is empty", extra=extra_data)
         return None
