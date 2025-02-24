@@ -712,7 +712,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         }
         assert result is None
         mock_logger.info.assert_called_with(
-            "Aggregation value or snuba query is empty",
+            "Aggregation value not integer or snuba query is empty",
             extra=logger_extra,
         )
 
