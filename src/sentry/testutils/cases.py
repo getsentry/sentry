@@ -15,7 +15,7 @@ from io import BytesIO
 from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zlib import compress
 
 import pytest
@@ -145,6 +145,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -212,9 +213,9 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
-        auth.register("dummy", DummyProvider)
+        auth.register(DummyProvider)
         yield
-        auth.unregister("dummy", DummyProvider)
+        auth.unregister(DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -845,14 +846,13 @@ class TwoFactorAPITestCase(APITestCase):
 
 class AuthProviderTestCase(TestCase):
     provider: type[Provider] = DummyProvider
-    provider_name = "dummy"
 
     def setUp(self):
         super().setUp()
         # TestCase automatically sets up dummy provider
-        if self.provider_name != "dummy" or self.provider != DummyProvider:
-            auth.register(self.provider_name, self.provider)
-            self.addCleanup(auth.unregister, self.provider_name, self.provider)
+        if self.provider != DummyProvider:
+            auth.register(self.provider)
+            self.addCleanup(auth.unregister, self.provider)
 
 
 class RuleTestCase(TestCase):
@@ -1245,6 +1245,15 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
                 data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+
+    def store_ourlogs(self, ourlogs):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                data=json.dumps(ourlogs),
             ).status_code
             == 200
         )
@@ -2361,27 +2370,34 @@ class UptimeCheckSnubaTestCase(TestCase):
         self,
         subscription_id: str | None,
         check_status: str,
+        check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
+        http_status: int | None | NotSet = NOT_SET,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
         if incident_status is None:
             incident_status = IncidentStatus.NO_INCIDENT
+        if check_id is None:
+            check_id = uuid.uuid4()
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
-        http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
+        http_status = default_if_not_set(
+            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            http_status,
+        )
 
         self.store_uptime_check(
             {
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "retention_days": 30,
-                "region": f"region_{random.randint(1, 3)}",
+                "region": "default",
                 "environment": "production",
                 "subscription_id": subscription_id,
-                "guid": str(uuid.uuid4()),
+                "guid": str(check_id),
                 "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
@@ -2746,7 +2762,7 @@ class SCIMAzureTestCase(SCIMTestCase):
 
     @pytest.fixture(autouse=True)
     def _use_dummy_provider_for_ad_provider(self) -> Generator[None]:
-        with mock.patch.object(auth.manager, "get", return_value=DummyProvider("dummy")):
+        with mock.patch.object(auth.manager, "get", return_value=DummyProvider()):
             yield
 
 
@@ -3304,6 +3320,66 @@ class SpanTestCase(BaseTestCase):
         if measurements:
             span["measurements"] = measurements
         return span
+
+
+class _OptionalOurLogData(TypedDict, total=False):
+    body: str
+    trace_id: str
+    span_id: str
+    severity_text: str
+    severity_number: int
+    trace_flags: int
+
+
+class OurLogTestCase(BaseTestCase):
+    base_log: dict[str, Any] = {
+        "retention_days": 90,
+        "attributes": {},
+    }
+
+    def create_ourlog(
+        self,
+        extra_data: _OptionalOurLogData | None = None,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+        if attributes is None:
+            attributes = {}
+        if extra_data is None:
+            extra_data = {}
+
+        # Set defaults for required fields if not in extra_data
+        if "body" not in extra_data:
+            extra_data["body"] = "hello world!"
+        if "trace_id" not in extra_data:
+            extra_data["trace_id"] = uuid4().hex
+
+        log = self.base_log.copy()
+        # Required fields
+        log.update(
+            {
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "observed_timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "received": int(timestamp.timestamp()),
+                "attributes": attributes,
+            }
+        )
+
+        # Add all extra data fields
+        log.update(extra_data)
+
+        return log
 
 
 class TraceTestCase(SpanTestCase):

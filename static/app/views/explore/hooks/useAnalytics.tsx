@@ -45,6 +45,15 @@ export function useAnalytics({
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
+  const tableError =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.error?.message ?? ''
+      : queryType === 'traces'
+        ? tracesTableResult.result.error?.message ?? ''
+        : spansTableResult.result.error?.message ?? '';
+  const chartError = timeseriesResult.error?.message ?? '';
+  const query_status = tableError || chartError ? 'error' : 'success';
+
   useEffect(() => {
     if (
       queryType !== 'aggregate' ||
@@ -63,7 +72,7 @@ export function useAnalytics({
       result_mode: 'aggregates',
       columns,
       columns_count: columns.length,
-      query_status: aggregatesTableResult.result.status,
+      query_status,
       result_length: aggregatesTableResult.result.data?.length || 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
@@ -93,6 +102,7 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
+    query_status,
   ]);
 
   useEffect(() => {
@@ -112,7 +122,7 @@ export function useAnalytics({
       result_mode: 'span samples',
       columns: fields,
       columns_count: fields.length,
-      query_status: spansTableResult.result.status,
+      query_status,
       result_length: spansTableResult.result.data?.length || 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
@@ -138,6 +148,7 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
+    query_status,
   ]);
 
   useEffect(() => {
@@ -169,7 +180,7 @@ export function useAnalytics({
       result_mode: 'trace samples',
       columns,
       columns_count: columns.length,
-      query_status: tracesTableResult.result.status,
+      query_status,
       result_length: tracesTableResult.result.data?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
@@ -195,6 +206,7 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
+    query_status,
   ]);
 }
 

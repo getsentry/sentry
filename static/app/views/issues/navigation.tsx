@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
@@ -6,7 +6,7 @@ import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueViewPF} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 
 interface IssuesWrapperProps extends RouteComponentProps {
@@ -19,7 +19,6 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
   const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [views, setViews] = useState<IssueViewPF[] | null>(null);
 
   const {data: groupSearchViews} = useFetchGroupSearchViews(
     {
@@ -29,42 +28,6 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
       enabled: hasIssueViewsInLeftNav,
     }
   );
-
-  useEffect(() => {
-    if (groupSearchViews) {
-      setViews(
-        groupSearchViews?.map(
-          (
-            {
-              id,
-              name,
-              query: viewQuery,
-              querySort: viewQuerySort,
-              environments: viewEnvironments,
-              projects: viewProjects,
-              timeFilters: viewTimeFilters,
-              isAllProjects,
-            },
-            index
-          ): IssueViewPF => {
-            const tabId = id ?? `default${index.toString()}`;
-
-            return {
-              id: tabId,
-              key: tabId,
-              label: name,
-              query: viewQuery,
-              querySort: viewQuerySort,
-              environments: viewEnvironments,
-              projects: isAllProjects ? [-1] : viewProjects,
-              timeFilters: viewTimeFilters,
-              isCommitted: true,
-            };
-          }
-        )
-      );
-    }
-  }, [groupSearchViews]);
 
   if (!hasNavigationV2) {
     return children;
@@ -85,11 +48,38 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          {hasIssueViewsInLeftNav && views && (
+          {hasIssueViewsInLeftNav && groupSearchViews && (
             <SecondaryNav.Section title={t('Views')}>
               <IssueViewNavItems
-                views={views}
-                setViews={setViews}
+                loadedViews={groupSearchViews.map(
+                  (
+                    {
+                      id,
+                      name,
+                      query: viewQuery,
+                      querySort: viewQuerySort,
+                      environments: viewEnvironments,
+                      projects: viewProjects,
+                      timeFilters: viewTimeFilters,
+                      isAllProjects,
+                    },
+                    index
+                  ): IssueView => {
+                    const tabId = id ?? `default${index.toString()}`;
+
+                    return {
+                      id: tabId,
+                      key: tabId,
+                      label: name,
+                      query: viewQuery,
+                      querySort: viewQuerySort,
+                      environments: viewEnvironments,
+                      projects: isAllProjects ? [-1] : viewProjects,
+                      timeFilters: viewTimeFilters,
+                      isCommitted: true,
+                    };
+                  }
+                )}
                 sectionRef={sectionRef}
                 baseUrl={baseUrl}
               />
