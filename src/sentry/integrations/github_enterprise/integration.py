@@ -252,6 +252,12 @@ class InstallationForm(forms.Form):
         ),
         widget=forms.TextInput(attrs={"placeholder": "our-sentry-app"}),
     )
+    public_link = forms.URLField(
+        label="Public Link",
+        help_text=_('The "public link" for your GitHub enterprise app (optional)'),
+        widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
+        required=False,
+    )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_(
@@ -478,6 +484,9 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
 class GitHubEnterpriseInstallationRedirect(PipelineView):
     def get_app_url(self, installation_data):
+        if installation_data.get("public_link"):
+            return installation_data["public_link"]
+
         url = installation_data.get("url")
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
