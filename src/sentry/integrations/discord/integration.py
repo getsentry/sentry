@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -143,7 +144,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
@@ -296,7 +297,7 @@ class DiscordInstallPipeline(PipelineView):
                 }
             )
             redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return self.redirect(redirect_uri)
+            return HttpResponseRedirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])

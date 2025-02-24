@@ -9,7 +9,7 @@ export function useCanvasScroll(
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null,
   canvasPoolManager: CanvasPoolManager,
-  disablePanX: boolean = false
+  disablePanX = false
 ) {
   const onCanvasScroll = useCallback(
     (evt: WheelEvent) => {

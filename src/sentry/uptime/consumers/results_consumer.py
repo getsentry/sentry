@@ -32,6 +32,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_top_hosting_provider_names,
 )
 from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.uptime.subscriptions.subscriptions import (
@@ -43,6 +44,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
+from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -59,13 +61,11 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
-# When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
-# successes in a row do we need to mark it up
-ACTIVE_FAILURE_THRESHOLD = 3
-ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
+# We want to limit cardinality for provider tags. This controls how many tags we should include
+TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 
 def _get_snuba_uptime_checks_producer() -> KafkaProducer:
@@ -93,11 +93,46 @@ def build_active_consecutive_status_key(
     return f"project-sub-active:{status}:{project_subscription.id}"
 
 
+def get_active_failure_threshold():
+    # When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
+    return options.get("uptime.active-failure-threshold")
+
+
+def get_active_recovery_threshold():
+    # When in active monitoring mode, how many successes in a row do we need to mark it as up
+    return options.get("uptime.active-recovery-threshold")
+
+
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
+
+    def should_run_region_checks(
+        self, subscription: UptimeSubscription, result: CheckResult
+    ) -> bool:
+        if not subscription.subscription_id:
+            # Edge case where we can have no subscription_id here
+            return False
+
+        # XXX: Randomly check for updates once an hour - this is a hack to fix a bug where we're seeing some checks
+        # not update correctly.
+        chance_to_run = subscription.interval_seconds / timedelta(hours=1).total_seconds()
+        if random.random() < chance_to_run:
+            return True
+
+        # Run region checks and updates once an hour
+        runs_per_hour = UptimeSubscription.IntervalSeconds.ONE_HOUR / subscription.interval_seconds
+        subscription_run = UUID(subscription.subscription_id).int % runs_per_hour
+        current_run = (
+            datetime.fromtimestamp(result["scheduled_check_time_ms"] / 1000, timezone.utc).minute
+            * 60
+        ) // subscription.interval_seconds
+        if subscription_run == current_run:
+            return True
+
+        return False
 
     def check_and_update_regions(self, subscription: UptimeSubscription, result: CheckResult):
         """
@@ -106,17 +141,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         done probabilistically, so that the check is performed roughly once an hour for each uptime
         monitor.
         """
-        if not subscription.subscription_id:
-            # Edge case where we can have no subscription_id here
-            return
-        # Run region checks and updates once an hour
-        runs_per_hour = UptimeSubscription.IntervalSeconds.ONE_HOUR / subscription.interval_seconds
-        subscription_run = UUID(subscription.subscription_id).int % runs_per_hour
-        current_run = (
-            datetime.fromtimestamp(result["scheduled_check_time_ms"] / 1000, timezone.utc).minute
-            * 60
-        ) // subscription.interval_seconds
-        if subscription_run != current_run:
+        if not self.should_run_region_checks(subscription, result):
             return
 
         subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
@@ -151,6 +176,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         update_remote_uptime_subscription.delay(subscription.id)
 
     def get_host_provider_if_valid(self, subscription: UptimeSubscription) -> str:
+        if subscription.host_provider_name in get_top_hosting_provider_names(
+            TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS
+        ):
+            return subscription.host_provider_name
         return "other"
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
@@ -160,10 +189,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if subscription is None:
             # If no subscription in the Postgres, this subscription has been orphaned. Remove
             # from the checker
-            # TODO: Send to region specifically from this check result once we update the schema
-            send_uptime_config_deletion(
-                get_active_region_configs()[0].slug, result["subscription_id"]
-            )
+            send_uptime_config_deletion(result["region"], result["subscription_id"])
             metrics.incr(
                 "uptime.result_processor.subscription_not_found",
                 sample_rate=1.0,
@@ -491,9 +517,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         pipeline.incr(key)
         pipeline.expire(key, ACTIVE_THRESHOLD_REDIS_TTL)
         status_count = int(pipeline.execute()[0])
-        result = (status == CHECKSTATUS_FAILURE and status_count >= ACTIVE_FAILURE_THRESHOLD) or (
-            status == CHECKSTATUS_SUCCESS and status_count >= ACTIVE_RECOVERY_THRESHOLD
-        )
+        result = (
+            status == CHECKSTATUS_FAILURE and status_count >= get_active_failure_threshold()
+        ) or (status == CHECKSTATUS_SUCCESS and status_count >= get_active_recovery_threshold())
         if not result:
             metrics.incr(
                 "uptime.result_processor.active.under_threshold",
@@ -521,6 +547,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 quotas.backend.get_event_retention(organization=project.organization) or 90
             )
 
+            if project_subscription.uptime_status == UptimeStatus.FAILED:
+                incident_status = IncidentStatus.IN_INCIDENT
+            else:
+                incident_status = IncidentStatus.NO_INCIDENT
+
             snuba_message: SnubaUptimeResult = {
                 # Copy over fields from original result
                 "guid": result["guid"],
@@ -537,6 +568,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organization_id": project.organization_id,
                 "project_id": project.id,
                 "retention_days": retention_days,
+                "incident_status": incident_status.value,
                 "region": result["region"],
             }
 

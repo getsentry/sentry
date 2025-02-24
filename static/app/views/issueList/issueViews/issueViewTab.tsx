@@ -2,8 +2,8 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,6 +14,7 @@ import {
   generateTempViewId,
   type IssueView,
   IssueViewsContext,
+  TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
 
 interface IssueViewTabProps {
@@ -51,6 +52,9 @@ export function IssueViewTab({
         query: duplicatedTab.query,
         sort: duplicatedTab.querySort,
         viewId: newViewId,
+        project: duplicatedTab.projects,
+        environment: duplicatedTab.environments,
+        ...normalizeDateTimeParams(duplicatedTab.timeFilters),
       },
     });
     tabListState?.setSelectedKey(newViewId);
@@ -67,6 +71,9 @@ export function IssueViewTab({
           query: originalTab.query,
           sort: originalTab.querySort,
           viewId: originalTab.id,
+          project: originalTab.projects,
+          environment: originalTab.environments,
+          ...normalizeDateTimeParams(originalTab.timeFilters),
         },
       });
     }
@@ -82,10 +89,22 @@ export function IssueViewTab({
     }
   };
 
+  const handleSaveTempView = () => {
+    const newViewId = generateTempViewId();
+    dispatch({type: 'SAVE_TEMP_VIEW', newViewId, syncViews: true});
+    navigate({
+      ...location,
+      query: {
+        ...queryParams,
+        viewId: newViewId,
+      },
+    });
+  };
+
   const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
-        onSaveTempView: () => dispatch({type: 'SAVE_TEMP_VIEW', syncViews: true}),
+        onSaveTempView: handleSaveTempView,
         onDiscardTempView: () => dispatch({type: 'DISCARD_TEMP_VIEW'}),
       });
     }
@@ -118,6 +137,7 @@ export function IssueViewTab({
           (tabListState && tabListState?.selectedKey === view.key) ||
           (!tabListState && view.key === initialTabKey)
         }
+        disableEditing={view.key === TEMPORARY_TAB_KEY}
       />
       <IssueViewQueryCount view={view} />
       {/* If tablistState isn't initialized, we want to load the elipsis menu

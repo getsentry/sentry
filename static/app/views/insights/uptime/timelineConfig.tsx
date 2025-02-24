@@ -4,14 +4,16 @@ import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 
 // Orders the status in terms of ascending precedence for showing to the user
 export const checkStatusPrecedent: CheckStatus[] = [
+  CheckStatus.FAILURE_INCIDENT,
   CheckStatus.FAILURE,
   CheckStatus.MISSED_WINDOW,
   CheckStatus.SUCCESS,
 ];
 
 export const statusToText: Record<CheckStatus, string> = {
-  [CheckStatus.SUCCESS]: t('Success'),
-  [CheckStatus.FAILURE]: t('Failed'),
+  [CheckStatus.SUCCESS]: t('Uptime'),
+  [CheckStatus.FAILURE]: t('Flakiness'),
+  [CheckStatus.FAILURE_INCIDENT]: t('Downtime'),
   [CheckStatus.MISSED_WINDOW]: t('Unknown'),
 };
 
@@ -21,6 +23,10 @@ export const tickStyle: Record<CheckStatus, TickStyle> = {
     tickColor: 'green300',
   },
   [CheckStatus.FAILURE]: {
+    labelColor: 'green300',
+    tickColor: 'green200',
+  },
+  [CheckStatus.FAILURE_INCIDENT]: {
     labelColor: 'red400',
     tickColor: 'red300',
   },

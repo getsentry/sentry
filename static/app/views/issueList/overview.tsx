@@ -50,7 +50,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
-import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
+import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -140,7 +140,7 @@ function useSavedSearches() {
   };
 }
 
-const parsePageQueryParam = (location: Location, defaultPage: number = 0) => {
+const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   const page = location.query.page;
   const pageInt = Array.isArray(page)
     ? parseInt(page[0] ?? '', 10)
@@ -815,7 +815,11 @@ function IssueListOverview({router}: Props) {
         queryData.sort = newSavedSearch.sort;
       }
     } else {
-      path = `/organizations/${organization.slug}/issues/`;
+      if (organization.features.includes('navigation-sidebar-v2')) {
+        path = location.pathname;
+      } else {
+        path = `/organizations/${organization.slug}/issues/`;
+      }
     }
 
     if (
@@ -1065,22 +1069,19 @@ function IssueListOverview({router}: Props) {
   const showReprocessingTab = !!queryCounts?.[Query.REPROCESSING]?.count;
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
+  const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
+  const hasNavigationSidebarV2 = organization.features.includes('navigation-sidebar-v2');
+
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {organization.features.includes('issue-stream-custom-views') ? (
-          organization.features.includes('issue-views-page-filter') ? (
-            <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <IssueViewsPFIssueListHeader
-                router={router}
-                selectedProjectIds={selection.projects}
-                realtimeActive={realtimeActive}
-                onRealtimeChange={onRealtimeChange}
-              />
-            </ErrorBoundary>
-          ) : (
+        {hasLeftNavIssueViews && hasNavigationSidebarV2 && (
+          <LeftNavViewsHeader selectedProjectIds={selection.projects} />
+        )}
+        {!hasLeftNavIssueViews &&
+          (organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}
@@ -1089,22 +1090,20 @@ function IssueListOverview({router}: Props) {
                 onRealtimeChange={onRealtimeChange}
               />
             </ErrorBoundary>
-          )
-        ) : (
-          <IssueListHeader
-            organization={organization}
-            query={query}
-            sort={sort}
-            queryCount={queryCount}
-            queryCounts={queryCounts}
-            realtimeActive={realtimeActive}
-            router={router}
-            displayReprocessingTab={showReprocessingTab}
-            selectedProjectIds={selection.projects}
-            onRealtimeChange={onRealtimeChange}
-          />
-        )}
-
+          ) : (
+            <IssueListHeader
+              organization={organization}
+              query={query}
+              sort={sort}
+              queryCount={queryCount}
+              queryCounts={queryCounts}
+              realtimeActive={realtimeActive}
+              router={router}
+              displayReprocessingTab={showReprocessingTab}
+              selectedProjectIds={selection.projects}
+              onRealtimeChange={onRealtimeChange}
+            />
+          ))}
         <StyledBody>
           <StyledMain>
             <IssuesDataConsentBanner source="issues" />

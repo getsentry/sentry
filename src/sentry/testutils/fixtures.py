@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
+from psycopg2.errors import UniqueViolation
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
@@ -69,12 +70,15 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user(
-            "admin@localhost",
-            is_superuser=True,
-            is_staff=True,
-            is_sentry_app=False,
-        )
+        try:
+            return self.create_user(
+                "admin@localhost",
+                is_superuser=True,
+                is_staff=True,
+                is_sentry_app=False,
+            )
+        except UniqueViolation:
+            return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
@@ -675,6 +679,7 @@ class Fixtures:
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
         url: str | None = None,
         host_provider_id="TEST",
+        host_provider_name="TEST",
         url_domain="sentry",
         url_domain_suffix="io",
         interval_seconds=60,
@@ -701,6 +706,7 @@ class Fixtures:
             url_domain=url_domain,
             url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
+            host_provider_name=host_provider_name,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,

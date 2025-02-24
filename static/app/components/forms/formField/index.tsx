@@ -9,8 +9,8 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react';
 
-import type {AlertProps} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import type {AlertProps} from 'sentry/components/core/alert';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -109,7 +109,7 @@ interface BaseProps {
   // TODO(ts): These are actually props that are needed for some lower
   // component. We should let the rendering component pass these in instead
   defaultValue?: FieldValue;
-  formatMessageValue?: boolean | Function;
+  formatMessageValue?: boolean | ((value: any, props: any) => React.ReactNode);
   /**
    * Transform data when saving on blur.
    */
@@ -159,7 +159,7 @@ interface BaseProps {
    */
   transformInput?: (value: any) => any;
   // used in prettyFormString
-  validate?: Function;
+  validate?: (props: any) => Array<[string, string]>;
 }
 
 export interface FormFieldProps

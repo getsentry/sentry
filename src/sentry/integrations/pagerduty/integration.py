@@ -5,7 +5,7 @@ from typing import Any
 
 import orjson
 from django.db import router, transaction
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
@@ -172,7 +172,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [PagerDutyInstallationRedirect()]
 
     def post_install(
@@ -230,4 +230,4 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         account_name = request.GET.get("account", None)
 
-        return self.redirect(self.get_app_url(account_name))
+        return HttpResponseRedirect(self.get_app_url(account_name))

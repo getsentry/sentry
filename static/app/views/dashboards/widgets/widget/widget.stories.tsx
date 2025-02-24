@@ -7,7 +7,7 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
-import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
+import {sampleDurationTimeSeries} from '../timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {Widget} from './widget';
@@ -19,8 +19,8 @@ export default storyBook('Widget', (story, APIReference) => {
   APIReference(types.exported);
 
   story('Getting Started', () => {
-    const isLoading: boolean = false;
-    const hasError: boolean = false;
+    const isLoading = false;
+    const hasError = false;
 
     return (
       <Fragment>

@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,6 +34,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import type {ReleaseBounds} from '../utils';
 import {getReleaseBounds, searchReleaseVersion} from '../utils';
@@ -370,7 +371,10 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
               params.release
             )}/`,
           }}
-          noProjectRedirectPath={`/organizations/${organization.slug}/releases/`}
+          noProjectRedirectPath={makeReleasesPathname({
+            organization,
+            path: '/',
+          })}
         />
       );
     }

@@ -5,7 +5,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
-import ConfigStore from 'sentry/stores/configStore';
 
 function renderDropdown(props: any = {}) {
   const user = UserFixture();
@@ -40,13 +39,5 @@ describe('SidebarDropdown', function () {
     renderDropdown({collapsed: false, config});
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
-  });
-
-  it('sandbox/demo mode render open sidebar', async function () {
-    ConfigStore.set('demoMode', true);
-    const config = ConfigFixture({singleOrganization: false});
-    renderDropdown({collapsed: false, config});
-    await userEvent.click(screen.getByTestId('sidebar-dropdown'));
-    expect(screen.queryByText('Switch organization')).not.toBeInTheDocument();
   });
 });

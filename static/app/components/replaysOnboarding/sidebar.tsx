@@ -238,7 +238,7 @@ function OnboardingContent({
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const defaultTab: string = 'jsLoader';
+  const defaultTab = 'jsLoader';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab
@@ -415,7 +415,6 @@ function OnboardingContent({
         projectSlug={currentProject.slug}
         configType={
           setupMode() === 'npm' || // switched to NPM option
-          (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
           npmOnlyFramework ||
           mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
             ? 'replayOnboarding'

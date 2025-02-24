@@ -22,6 +22,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.base import PipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.sentry_apps.logic import SentryAppCreator
@@ -62,7 +63,7 @@ INSTALL_NOTICE_TEXT = _(
 external_install = {
     "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
     "buttonText": _("Vercel Marketplace"),
-    "noticeText": _(INSTALL_NOTICE_TEXT),
+    "noticeText": INSTALL_NOTICE_TEXT,
 }
 
 
@@ -346,8 +347,10 @@ class VercelIntegrationProvider(IntegrationProvider):
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
     oauth_redirect_url = "/extensions/vercel/configure/"
+    # feature flag handler is in getsentry
+    requires_feature_flag = True
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}
 
         identity_pipeline_view = NestedPipelineView(

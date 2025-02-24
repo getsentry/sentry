@@ -31,6 +31,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface EventTagTreeRowConfig {
@@ -204,7 +205,8 @@ function EventTagsTreeRowDropdown({
           organization,
           originalTag.key,
           originalTag.value,
-          TraceDrawerActionKind.INCLUDE
+          TraceDrawerActionKind.INCLUDE,
+          'drawer'
         );
       },
     });
@@ -232,7 +234,10 @@ function EventTagsTreeRowDropdown({
       hidden: originalTag.key !== 'release',
       to:
         originalTag.key === 'release'
-          ? `/organizations/${organization.slug}/releases/${encodeURIComponent(content.value)}/`
+          ? makeReleasesPathname({
+              organization,
+              path: `/${encodeURIComponent(content.value)}/`,
+            })
           : undefined,
     },
     {

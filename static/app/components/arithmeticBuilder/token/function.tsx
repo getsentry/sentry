@@ -14,12 +14,16 @@ import type {
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 interface ArithmeticTokenFunctionProps {
@@ -47,6 +51,8 @@ export function ArithmeticTokenFunction({
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
+  const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
+
   return (
     <FunctionWrapper
       {...rowProps}
@@ -62,30 +68,33 @@ export function ArithmeticTokenFunction({
         <InternalInput
           item={item}
           state={state}
-          functionToken={token}
-          token={attribute}
+          token={token}
+          attribute={attribute}
           rowRef={ref}
         />
-        {!isFocused && (
+        {showUnfocusedState && (
           // Inject a floating span with the attribute name so when it's
           // not focused, it doesn't look like the placeholder text
-          <FunctionArgument>{attribute.attribute}</FunctionArgument>
+          <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
         )}
       </BaseGridCell>
       {')'}
+      <BaseGridCell {...gridCellProps}>
+        <DeleteFunction token={token} />
+      </BaseGridCell>
     </FunctionWrapper>
   );
 }
 
 interface InternalInputProps {
-  functionToken: TokenFunction;
+  attribute: TokenAttribute;
   item: Node<Token>;
   rowRef: RefObject<HTMLDivElement>;
   state: ListState<Token>;
-  token: TokenAttribute;
+  token: TokenFunction;
 }
 
-function InternalInput({functionToken, item, state, token, rowRef}: InternalInputProps) {
+function InternalInput({token, item, state, attribute, rowRef}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
@@ -102,14 +111,10 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch} = useArithmeticBuilder();
-
-  const allowedAttributes: string[] = useMemo(() => {
-    return ['span.duration', 'span.self_time'];
-  }, []);
+  const {dispatch, functionArguments} = useArithmeticBuilder();
 
   const items = useAttributeItems({
-    allowedAttributes,
+    allowedAttributes: functionArguments,
     filterValue,
   });
 
@@ -135,17 +140,17 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
   );
 
   const onInputCommit = useCallback(() => {
-    const value = inputValue.trim() || token.attribute;
+    const value = inputValue.trim() || attribute.attribute;
     dispatch({
-      text: `${functionToken.function}(${value})`,
+      text: `${token.function}(${value})`,
       type: 'REPLACE_TOKEN',
-      token: functionToken,
+      token,
       focusOverride: {
-        itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
+        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
       },
     });
     resetInputValue();
-  }, [dispatch, state, functionToken, token, inputValue, resetInputValue]);
+  }, [dispatch, state, token, attribute, inputValue, resetInputValue]);
 
   const onInputEscape = useCallback(() => {
     resetInputValue();
@@ -196,7 +201,7 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         const itemKey = state.collection.getKeyBefore(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
-          token: functionToken,
+          token,
           focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
@@ -210,27 +215,27 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         const itemKey = state.collection.getKeyBefore(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
-          token: functionToken,
+          token,
           focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
     },
-    [dispatch, functionToken, state, item]
+    [dispatch, token, state, item]
   );
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
       dispatch({
-        text: `${functionToken.function}(${option.value})`,
+        text: `${token.function}(${option.value})`,
         type: 'REPLACE_TOKEN',
-        token: functionToken,
+        token,
         focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
+          itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
         },
       });
       resetInputValue();
     },
-    [dispatch, state, functionToken, resetInputValue]
+    [dispatch, state, token, resetInputValue]
   );
 
   const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
@@ -242,7 +247,7 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
       <ComboBox
         ref={inputRef}
         items={items}
-        placeholder={token.attribute}
+        placeholder={attribute.attribute}
         inputLabel={t('Select an attribute')}
         inputValue={inputValue}
         filterValue={filterValue}
@@ -285,28 +290,51 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
   );
 }
 
+interface DeleteFunctionProps {
+  token: TokenFunction;
+}
+
+function DeleteFunction({token}: DeleteFunctionProps) {
+  const {dispatch} = useArithmeticBuilder();
+
+  const onClick = useCallback(() => {
+    dispatch({
+      type: 'DELETE_TOKEN',
+      token,
+    });
+  }, [dispatch, token]);
+
+  return (
+    <DeleteButton aria-label={t('Remove function %s', token.format())} onClick={onClick}>
+      <InteractionStateLayer />
+      <IconClose legacySize="8px" />
+    </DeleteButton>
+  );
+}
+
 function useAttributeItems({
   allowedAttributes,
   filterValue,
 }: {
-  allowedAttributes: string[];
+  allowedAttributes: FunctionArgument[];
   filterValue: string;
 }): Array<SelectOptionWithKey<string>> {
   // TODO: use a config
-  const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
+  const attributes: Array<SelectOptionWithKey<string>> = useMemo(() => {
     const items = filterValue
-      ? allowedAttributes.filter(agg => agg.includes(filterValue))
+      ? allowedAttributes.filter(attr => attr.name.includes(filterValue))
       : allowedAttributes;
 
     return items.map(item => ({
-      key: item,
-      label: item,
-      value: item,
+      key: item.name,
+      label: item.label ?? item.name,
+      value: item.name,
+      textValue: item.name,
       hideCheck: true,
     }));
   }, [allowedAttributes, filterValue]);
 
-  return functions;
+  return attributes;
 }
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
@@ -344,15 +372,32 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
 const BaseGridCell = styled('div')`
   display: flex;
-  align-items: stretch;
+  align-items: center;
   position: relative;
+  height: 100%;
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
+  padding-left: ${space(0.5)};
 `;
 
-const FunctionArgument = styled('div')`
+const FunctionArgumentOverlay = styled('div')`
   position: absolute;
   pointer-events: none;
+`;
+
+const DeleteButton = styled('button')`
+  background: none;
+  border: none;
+  color: ${p => p.theme.subText};
+  outline: none;
+  user-select: none;
+  padding-right: ${space(0.5)};
+
+  :focus {
+    background-color: ${p => p.theme.translucentGray100};
+    border-left: 1px solid ${p => p.theme.innerBorder};
+    outline: none;
+  }
 `;

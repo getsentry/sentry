@@ -1,10 +1,12 @@
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Mobile Vitals');
-// TBD, existing screen load modules uses 'screens' already
+
 export const BASE_URL = 'mobile-vitals';
 
-export const MODULE_DESCRIPTION = t("Improve your application's responsiveness.");
+export const MODULE_DESCRIPTION = t(
+  'Get insights into key performance metrics of your mobile app.'
+);
 
 export const MODULE_FEATURE = t('insights-mobile-screens-module');
 

@@ -14,7 +14,7 @@ const DEFAULT_SORT: Sort[] = [{field: 'timestamp', kind: 'desc'}];
 export function useFullSpanFromTrace(
   group?: string,
   sorts?: Sort[],
-  enabled: boolean = true,
+  enabled = true,
   extraFilters: Record<string, string> = {}
 ) {
   const filters = {...extraFilters};

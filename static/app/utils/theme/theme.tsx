@@ -345,26 +345,12 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
 });
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
-  muted: {
-    background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
-    color: 'inherit',
-  },
   info: {
-    background: colors.blue300,
-    backgroundLight: colors.blue100,
     border: colors.blue200,
-    borderHover: colors.blue300,
+    background: colors.blue300,
     color: colors.blue400,
-  },
-  warning: {
-    background: colors.yellow300,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
+    backgroundLight: colors.blue100,
+    borderHover: colors.blue300,
   },
   success: {
     background: colors.green300,
@@ -372,6 +358,20 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
     border: colors.green200,
     borderHover: colors.green300,
     color: colors.green400,
+  },
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    borderHover: alias.border,
+    color: 'inherit',
+  },
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
+    borderHover: colors.yellow300,
+    color: colors.yellow400,
   },
   error: {
     background: colors.red300,
@@ -394,49 +394,6 @@ export const generateLevelTheme = (colors: Colors): LevelColors => ({
   fatal: colors.red300,
   default: colors.gray300,
   unknown: colors.gray200,
-});
-
-export const generateBadgeTheme = (colors: Colors): BadgeColors => ({
-  default: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  alpha: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.pink300,
-    color: colors.white,
-  },
-  beta: {
-    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
-    indicatorColor: colors.purple300,
-    color: colors.white,
-  },
-  new: {
-    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
-    indicatorColor: colors.green300,
-    color: colors.white,
-  },
-  experimental: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  internal: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  warning: {
-    background: colors.yellow300,
-    indicatorColor: colors.yellow300,
-    color: colors.gray500,
-  },
-  gray: {
-    background: `rgba(43, 34, 51, 0.08)`,
-    indicatorColor: `rgba(43, 34, 51, 0.08)`,
-    color: colors.gray500,
-  },
 });
 
 export const generateTagTheme = (colors: Colors): TagColors => ({
@@ -567,7 +524,7 @@ const lightColors: Colors = {
   lightModeWhite: '#FFFFFF',
 
   surface100: '#F5F3F7',
-  surface200: '#FAF9FB',
+  surface200: '#F7F6F9',
   surface300: '#FFFFFF',
   surface400: '#FFFFFF',
 
@@ -583,7 +540,7 @@ const lightColors: Colors = {
 
   gray500: '#2B2233',
   gray400: '#3E3446',
-  gray300: '#80708F',
+  gray300: '#71637E',
   gray200: '#E0DCE5',
   gray100: '#F0ECF3',
 
@@ -735,25 +692,6 @@ const darkShadows = {
   dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
-
-type Badge =
-  | 'default'
-  | 'alpha'
-  | 'beta'
-  | 'warning'
-  | 'new'
-  | 'experimental'
-  // @TODO(jonasbadalic): What is gray a tag type?
-  | 'gray'
-  | 'internal';
-
-type BadgeColors = {
-  [key in Badge]: {
-    background: string;
-    color: string;
-    indicatorColor: string;
-  };
 };
 
 type Tag =
@@ -1107,7 +1045,6 @@ export const lightTheme = {
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
@@ -1144,7 +1081,6 @@ export const darkTheme: typeof lightTheme = {
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
@@ -1179,12 +1115,3 @@ export type ColorOrAlias = keyof Aliases | Color;
  */
 const commonThemeExport = {...commonTheme};
 export default commonThemeExport;
-
-/**
- * Configure Emotion to use our theme
- */
-declare module '@emotion/react' {
-  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  type SentryTheme = typeof lightTheme;
-  export interface Theme extends SentryTheme {}
-}

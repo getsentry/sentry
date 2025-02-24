@@ -20,6 +20,7 @@ import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
+  IconLink,
   IconSubscribed,
   IconUnsubscribed,
 } from 'sentry/icons';
@@ -47,11 +48,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
+import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
+import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import ShareIssueModal from './shareModal';
-import SubscribeAction from './subscribeAction';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -342,6 +343,22 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       <ShareIssueModal
         {...modalProps}
         organization={organization}
+        groupId={group.id}
+        event={event}
+      />
+    ));
+  };
+
+  const openPublishModal = () => {
+    trackAnalytics('issue_details.publish_issue_modal_opened', {
+      organization,
+      streamline: hasStreamlinedUI,
+      ...getAnalyticsDataForGroup(group),
+    });
+    openModal(modalProps => (
+      <PublishIssueModal
+        {...modalProps}
+        organization={organization}
         projectSlug={group.project.slug}
         groupId={group.id}
         onToggle={onToggleShare}
@@ -448,6 +465,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             />
           </Fragment>
         ))}
+      {hasStreamlinedUI && (
+        <Button
+          size="sm"
+          onClick={openShareModal}
+          icon={<IconLink />}
+          aria-label={t('Share')}
+          title={t('Share Issue')}
+          analyticsEventKey="issue_details.share_action_clicked"
+          analyticsEventName="Issue Details: Share Action Clicked"
+        />
+      )}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -499,11 +527,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             onAction: () => onUpdate({inbox: false}),
           },
           {
-            key: 'share',
-            label: t('Share'),
+            key: 'publish',
+            label: t('Publish'),
             disabled: disabled || !shareCap.enabled,
             hidden: !organization.features.includes('shared-issues'),
-            onAction: openShareModal,
+            onAction: openPublishModal,
           },
           {
             key: bookmarkKey,
