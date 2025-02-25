@@ -13,14 +13,23 @@ export default function FilterReleaseDropdown({
     selection: {environments},
   } = usePageFilters();
 
-  const finalized = ['Not Finalized', 'Finalized'];
-  const status = ['Active', 'Archived'];
-  const stage = ['Adopted', 'Replaced', 'Low Adoption'];
+  const finalizedOptions = ['Not Finalized', 'Finalized'];
+  const statusOptions = ['Active', 'Archived'];
+  const stageOptions = ['Adopted', 'Replaced', 'Low Adoption'];
 
-  const arrayToOptions = (array: string[]) =>
+  const arrayToOptions = ({
+    array,
+    showTooltip,
+    tooltip,
+  }: {
+    array: string[];
+    showTooltip?: boolean;
+    tooltip?: string;
+  }) =>
     array.map(item => ({
       value: item,
       label: item,
+      tooltip: showTooltip ? tooltip : undefined,
     }));
 
   const handleValueChange = (newValues: any) => {
@@ -33,22 +42,22 @@ export default function FilterReleaseDropdown({
     {
       key: 'finalized',
       label: t('Finalized'),
-      options: arrayToOptions(finalized),
+      options: arrayToOptions({array: finalizedOptions}),
     },
     {
       key: 'status',
       label: t('Status'),
-      options: arrayToOptions(status),
+      options: arrayToOptions({array: statusOptions}),
     },
     {
       key: 'stage',
       label: t('Stage'),
-      options: arrayToOptions(stage),
+      options: arrayToOptions({
+        array: stageOptions,
+        showTooltip: isDisabled,
+        tooltip: t('Please select a single environment to filter by stage'),
+      }),
       disabled: isDisabled,
-      tooltipOptions: {position: 'left'},
-      tooltip: isDisabled
-        ? t('Please select a single environment to filter by stage')
-        : undefined,
     },
   ];
 
