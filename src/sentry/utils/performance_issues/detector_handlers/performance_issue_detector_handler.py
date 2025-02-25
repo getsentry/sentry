@@ -1,8 +1,11 @@
 from abc import abstractmethod
+from typing import TYPE_CHECKING
 
-from sentry.models.project import Project
-from sentry.utils.performance_issues.types import Span
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.utils.performance_issues.types import Span
 
 
 class PerformanceIssueDetectorHandler(StatefulDetectorHandler):

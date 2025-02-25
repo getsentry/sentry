@@ -6,15 +6,13 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.types.group import PriorityLevel
 from sentry.utils.performance_issues.base import (
     fingerprint_http_spans,
@@ -28,11 +26,15 @@ from sentry.utils.performance_issues.detector_handlers.performance_issue_detecto
 )
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
-from .types import PerformanceProblemsMap, Span
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
+    from sentry.workflow_engine.models import Detector
+    from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+
+    from .types import PerformanceProblemsMap, Span
 
 
 class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
