@@ -5,7 +5,7 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
-import JSXProperty from '../stories/jsxProperty';
+import JSXProperty from '../../stories/jsxProperty';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge';
