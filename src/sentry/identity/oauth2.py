@@ -363,7 +363,7 @@ class OAuth2CallbackView(PipelineView):
         ).capture() as lifecycle:
             error = request.GET.get("error")
             state = request.GET.get("state")
-            code = request.GET["code"]
+            code = request.GET.get("code")
 
             if error:
                 logger.info("identity.token-exchange-error", extra={"error": error})
