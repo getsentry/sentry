@@ -237,6 +237,17 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             self.create_data_condition(
                 type=self.condition,
                 comparison={
+                    "interval": "30m",
+                    "value": "100",
+                    "comparison_interval": "1d",
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
                     "interval": "1d",
                     "value": 100,
                     "comparison_interval": "asdf",
@@ -276,7 +287,7 @@ class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_COUNT
         self.payload: dict[str, int | str] = {
-            "interval": "1h",
+            "interval": "30m",  # only percent sessions allows 30m
             "id": EventFrequencyPercentCondition.id,
             "value": 17,
             "comparisonType": ComparisonType.COUNT,
@@ -288,7 +299,7 @@ class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_PERCENT
         self.payload: dict[str, int | str] = {
-            "interval": "1h",
+            "interval": "30m",  # only percent sessions allows 30m
             "id": EventFrequencyPercentCondition.id,
             "value": 17,
             "comparisonType": ComparisonType.PERCENT,
