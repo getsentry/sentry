@@ -25,6 +25,7 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -273,11 +274,8 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? colors?.slice(0, series.length) ?? [
-          ...(theme.charts.getColorPalette(
-            timeseriesData.length - 2 - (hasOther ? 1 : 0)
-          ) ?? []),
-        ]
+      ? colors?.slice(0, series.length) ??
+        getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice()
       : undefined;
     if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);

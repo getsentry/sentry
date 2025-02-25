@@ -12,6 +12,7 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
@@ -146,7 +147,7 @@ class ReleaseSessionsChart extends Component<Props> {
 
   getColors() {
     const {theme, chartType} = this.props;
-    const colors = theme.charts.getColorPalette(14) ?? [];
+    const colors = getChartColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
         return [colors[0]!];
