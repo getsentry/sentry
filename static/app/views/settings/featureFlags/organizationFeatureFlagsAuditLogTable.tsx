@@ -1,12 +1,14 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
 import GridEditable from 'sentry/components/gridEditable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PAGE_SIZE = 20;
 
@@ -23,61 +25,99 @@ type AuditLogResponse = {
 
 export function OrganizationFeatureFlagsAuditLogTable() {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
-  const [page, setPage] = useState(0);
+  const _query = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+      end: decodeScalar,
+      flag: decodeScalar,
+      sort: (value: any) => decodeScalar(value, '-created_at'),
+      start: decodeScalar,
+      statsPeriod: decodeScalar,
+      utc: decodeScalar,
+    },
+  });
+  const query = useMemo(() => {
+    const filteredFields = Object.fromEntries(
+      Object.entries(_query).filter(([_key, val]) => val !== '')
+    );
+    return {
+      ...filteredFields,
+      per_page: PAGE_SIZE,
+      queryReferrer: 'featureFlagsSettings',
+    };
+  }, [_query]);
 
   const {
     data: responseData,
     isLoading,
-    isError,
+    error,
+    getResponseHeader,
   } = useApiQuery<AuditLogResponse>(
     [
       `/organizations/${organization.slug}/flags/logs/`,
       {
-        query: {
-          sort: '-createdAt',
-          per_page: PAGE_SIZE,
-          cursor: `${PAGE_SIZE}:${page}:0`,
-        },
+        query,
       },
     ],
     {
-      // TODO:
       refetchInterval: 10_000,
       staleTime: 0,
-      enabled: true,
     }
   );
+  const pageLinks = getResponseHeader?.('Link') ?? null;
+
+  const data = useMemo(() => {
+    return (
+      responseData?.data?.map(log => ({
+        ...log,
+        provider: log.provider ?? 'unknown', // TODO: camel case?
+        createdAt: new Date(log.createdAt).toLocaleString(),
+      })) ?? []
+    );
+  }, [responseData]);
+
+  const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
 
   return (
     <Fragment>
-      <TextBlock>{t('Audit Logs (make this a header)')}</TextBlock>
-      <TextBlock>
-        {tct('Blah blah heres a [link:link].', {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/#change-tracking" />
-          ),
-        })}
-      </TextBlock>
-
       <GridEditable
-        error={isError}
+        error={error}
         isLoading={isLoading}
-        data={responseData?.data ?? []}
+        data={data}
         columnOrder={[
-          {key: 'provider', name: t('Provider'), width: 150},
-          {key: 'flag', name: t('Feature Flag'), width: 400},
-          {key: 'action', name: t('Action'), width: 100},
-          {key: 'createdAt', name: t('Created'), width: 400},
+          {key: 'provider', name: t('Provider')},
+          {key: 'flag', name: t('Feature Flag'), width: 600},
+          {key: 'action', name: t('Action')},
+          {key: 'createdAt', name: t('Created')},
         ]}
         columnSortBy={[]}
-        grid={{}}
+        grid={{}} // renderHeadCell, renderBodyCell
+        onRowMouseOver={(_dataRow, key) => {
+          setActiveRowKey(key);
+        }}
+        onRowMouseOut={() => {
+          setActiveRowKey(undefined);
+        }}
+        highlightedRowKey={activeRowKey}
       />
+      {/* TODO: filter by flag/provider on row click (needs to reset cursor) */}
 
-      <Button onClick={() => setPage(page - 1)} disabled={page <= 0}>
-        Prev
-      </Button>
-      <Button onClick={() => setPage(page + 1)}>Next</Button>
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={(cursor, path, searchQuery) => {
+          trackAnalytics('flags.logs-paginated', {
+            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+            organization,
+            surface: 'settings',
+          });
+          navigate({
+            pathname: path,
+            query: {...searchQuery, cursor},
+          });
+        }}
+      />
     </Fragment>
   );
 }

@@ -165,6 +165,7 @@ export function OrganizationFeatureFlagsIndex() {
         )}
       </TextBlock>
 
+      <h5>Providers</h5>
       <ResponsivePanelTable
         isLoading={isPending || isError}
         isEmpty={!isPending && !secretList?.data?.length}
@@ -188,6 +189,7 @@ export function OrganizationFeatureFlagsIndex() {
         )}
       </ResponsivePanelTable>
 
+      <h5>Audit Logs</h5>
       {hasAccess ? <OrganizationFeatureFlagsAuditLogTable /> : null}
     </Fragment>
   );
