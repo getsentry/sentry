@@ -11,10 +11,10 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {InputProps} from 'sentry/components/core/input';
+import {Input as _Input} from 'sentry/components/core/input';
 import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _TextArea from 'sentry/components/forms/controls/textarea';
-import type {InputProps} from 'sentry/components/input';
-import _Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 

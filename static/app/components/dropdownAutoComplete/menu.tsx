@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
+import {Input} from 'sentry/components/core/input';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -1,4 +1,4 @@
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import type {Action} from 'sentry/views/alerts/rules/metric/types';
 import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';

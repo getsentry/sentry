@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
