@@ -63,7 +63,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         if "latest_id" in result:
             credentials.latest_fetched_item_id = result["latest_id"]
             credentials.message = ""
-            credentials.save(update_fields=["message", "latest_fetched_item_id"])
+            credentials.message_type = MessageType.SUCCESS
+            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
             return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
