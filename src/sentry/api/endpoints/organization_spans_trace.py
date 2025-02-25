@@ -1,4 +1,5 @@
-from typing import TypedDict
+from datetime import datetime
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.http import HttpResponse
@@ -12,20 +13,24 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
-from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
+from sentry.snuba.spans_rpc import run_trace_query
 
 
-class SnubaTrace(TypedDict):
-    span_op: str
-    span_description: str
-    id: str
+class SerializedEvent(TypedDict):
+    children: list["SerializedEvent"]
+    event_id: str
+    parent_span_id: str | None
+    project_id: int
+    project_slug: str
+    start_timestamp: datetime | None
+    end_timestamp: datetime | None
+    transaction: str
+    description: str
+    duration: float
     is_transaction: bool
-    start_ts: float
-    finish_ts: float
 
 
 @region_silo_endpoint
@@ -34,46 +39,35 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    def serialize_rpc_span(self, span: dict[str, Any]) -> SerializedEvent:
+        return SerializedEvent(
+            children=[self.serialize_rpc_span(child) for child in span["children"]],
+            event_id=span["id"],
+            project_id=span["project.id"],
+            project_slug=span["project.slug"],
+            parent_span_id=None if span["parent_span"] == "0" * 16 else span["parent_span"],
+            start_timestamp=span["precise.start_ts"],
+            end_timestamp=span["precise.finish_ts"],
+            duration=span["span.duration"],
+            transaction=span["transaction"],
+            is_transaction=span["is_transaction"],
+            description=span["description"],
+        )
+
     @sentry_sdk.tracing.trace
-    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SnubaTrace]:
-        builder = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            params={},
-            snuba_params=snuba_params,
-            query=f"trace:{trace_id}",
-            selected_columns=[
-                "span.op",
-                "span.description",
-                "id",
-                "is_transaction",
-                "precise.start_ts",
-                "precise.finish_ts",
-            ],
-            orderby="precise.start_ts",
-            limit=10_000,
+    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
+        trace_data = run_trace_query(
+            trace_id, snuba_params, Referrer.API_TRACE_VIEW_GET_EVENTS.value, SearchResolverConfig()
         )
-        query_result = builder.run_query(referrer=Referrer.API_SPANS_TRACE_VIEW.value)
-        result: list[SnubaTrace] = []
-        measurement_transaction_count = 0
-        for row in query_result["data"]:
-            result.append(
-                {
-                    "span_op": row["span.op"],
-                    "span_description": row["span.description"],
-                    "id": row["id"],
-                    "is_transaction": row["is_transaction"] == 1,
-                    "start_ts": row["precise.start_ts"],
-                    "finish_ts": row["precise.finish_ts"],
-                }
-            )
-            if row["is_transaction"] == 1:
-                measurement_transaction_count += 1
-        sentry_sdk.set_measurement("spans_trace.count.transactions", measurement_transaction_count)
-        sentry_sdk.set_measurement("spans_trace.count.spans", len(result))
-        sentry_sdk.set_measurement(
-            "spans_trace.count.non_transactions", len(result) - measurement_transaction_count
-        )
-        return result
+        result = []
+        id_to_event = {event["id"]: event for event in trace_data}
+        for span in trace_data:
+            if span["parent_span"] in id_to_event:
+                parent = id_to_event[span["parent_span"]]
+                parent["children"].append(span)
+            else:
+                result.append(span)
+        return [self.serialize_rpc_span(root) for root in result]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return bool(
@@ -92,16 +86,8 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
-        # Bias the results to include any given event_id - note because this loads spans without taking trace topology
-        # into account, the descendents of this event might not be in the response
-        event_id = request.GET.get("event_id") or request.GET.get("eventId")
-
-        # Only need to validate event_id as trace_id is validated in the URL
-        if event_id and not is_event_id(event_id):
-            return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
-
-        def data_fn(offset: int, limit: int) -> list[SnubaTrace]:
-            """API requires pagination even though it doesn't really work yet... ignoring limit and offset for now"""
+        def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
+            """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
                 spans = self.query_trace_data(snuba_params, trace_id)
             return spans
