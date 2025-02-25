@@ -117,7 +117,8 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
 def incident_attachment_info(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float,
+    # WIP(iamrajjoshi): This should shouldn't be None, but it sometimes is. Working on figuring out why.
+    metric_value: float | None,
     notification_uuid=None,
     referrer="metric_alert",
 ) -> AttachmentInfo:
@@ -127,8 +128,8 @@ def incident_attachment_info(
         sentry_sdk.capture_message(
             "Metric value is None when building incident attachment info",
             level="warning",
-            extra={"incident_id": incident.id, "alert_rule_id": alert_rule.id},
         )
+        metric_value = get_metric_count_from_incident(incident)
 
     status = INCIDENT_STATUS[new_status]
 
