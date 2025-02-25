@@ -51,9 +51,9 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
         },
       },
       background: {
-        primary: colorScheme.dynamic.surface400,
-        secondary: colorScheme.dynamic.surface300,
-        tertiary: colorScheme.dynamic.surface200,
+        primary: colorScheme.dynamic.surface500,
+        secondary: colorScheme.dynamic.surface400,
+        tertiary: colorScheme.dynamic.surface300,
       },
       border: {
         primary: colorScheme.dynamic.surface100,
@@ -83,18 +83,18 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           chonk: colorScheme.dynamic.surface100,
           children: colorScheme.dynamic.grayTransparent500,
           background: {
-            default: colorScheme.dynamic.surface400,
-            hover: colorScheme.dynamic.surface300,
-            active: colorScheme.dynamic.surface200,
+            default: colorScheme.dynamic.surface500,
+            hover: colorScheme.dynamic.surface400,
+            active: colorScheme.dynamic.surface300,
           },
         },
         transparent: {
           chonk: colorScheme.dynamic.surface100,
           children: colorScheme.dynamic.grayTransparent500,
           background: {
-            default: colorScheme.dynamic.surface400,
-            hover: colorScheme.dynamic.surface300,
-            active: colorScheme.dynamic.surface200,
+            default: colorScheme.dynamic.surface500,
+            hover: colorScheme.dynamic.surface400,
+            active: colorScheme.dynamic.surface300,
           },
         },
         accent: {
@@ -606,10 +606,10 @@ const chonkLightColorMapping: ColorMapping = {
   lightModeBlack: lightColors.static.black,
   lightModeWhite: lightColors.static.white,
 
-  surface100: lightColors.dynamic.surface100,
-  surface200: lightColors.dynamic.surface200,
-  surface300: lightColors.dynamic.surface300,
-  surface400: lightColors.dynamic.surface400,
+  surface100: lightColors.dynamic.surface200,
+  surface200: lightColors.dynamic.surface300,
+  surface300: lightColors.dynamic.surface400,
+  surface400: lightColors.dynamic.surface500,
 
   translucentSurface100: lightColors.dynamic.surface100,
   translucentSurface200: lightColors.dynamic.surface200,
@@ -664,10 +664,10 @@ const chonkDarkColorMapping: ColorMapping = {
   lightModeBlack: darkColors.static.black,
   lightModeWhite: darkColors.static.white,
 
-  surface100: darkColors.dynamic.surface100,
-  surface200: darkColors.dynamic.surface200,
-  surface300: darkColors.dynamic.surface300,
-  surface400: darkColors.dynamic.surface400,
+  surface100: darkColors.dynamic.surface200,
+  surface200: darkColors.dynamic.surface300,
+  surface300: darkColors.dynamic.surface400,
+  surface400: darkColors.dynamic.surface500,
 
   translucentSurface100: darkColors.dynamic.surface100,
   translucentSurface200: darkColors.dynamic.surface200,
