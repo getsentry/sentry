@@ -59,8 +59,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {
     emphasis: <em />,
   }),
   value: NONE,
