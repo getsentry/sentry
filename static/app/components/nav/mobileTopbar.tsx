@@ -122,7 +122,9 @@ const Topbar = styled('header')`
   z-index: ${p => p.theme.zIndex.sidebar};
 `;
 
-const HomeLink = styled(Link)<{showSuperuserWarning: boolean}>`
+const HomeLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'showSuperuserWarning',
+})<{showSuperuserWarning: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
