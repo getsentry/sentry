@@ -22,6 +22,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {OrganizationFeatureFlagsAuditLogTable} from 'sentry/views/settings/featureFlags/organizationFeatureFlagsAuditLogTable';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/organizationFeatureFlagsProviderRow';
 
 export type Secret = {
@@ -186,6 +187,8 @@ export function OrganizationFeatureFlagsIndex() {
           />
         )}
       </ResponsivePanelTable>
+
+      {hasAccess ? <OrganizationFeatureFlagsAuditLogTable /> : null}
     </Fragment>
   );
 }
