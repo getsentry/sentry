@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import GridEditable from 'sentry/components/gridEditable';
+import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -57,12 +57,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
     error,
     getResponseHeader,
   } = useApiQuery<AuditLogResponse>(
-    [
-      `/organizations/${organization.slug}/flags/logs/`,
-      {
-        query,
-      },
-    ],
+    [`/organizations/${organization.slug}/flags/logs/`, {query}],
     {
       refetchInterval: 10_000,
       staleTime: 0,
@@ -81,6 +76,13 @@ export function OrganizationFeatureFlagsAuditLogTable({
   }, [responseData]);
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+
+  const renderBodyCell = (
+    column: GridColumnOrder<keyof AuditLog>,
+    dataRow: AuditLog,
+    _rowIndex: number,
+    _columnIndex: number
+  ) => (column.key !== 'flag' ? dataRow[column.key!] : <code>{dataRow.flag}</code>);
 
   return (
     <Fragment>
@@ -103,7 +105,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
           setActiveRowKey(undefined);
         }}
         highlightedRowKey={activeRowKey}
-        grid={{}}
+        grid={{renderBodyCell}}
       />
 
       <Pagination
