@@ -1252,7 +1252,7 @@ class SnubaTestCase(BaseTestCase):
     def store_ourlogs(self, ourlogs):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
                 data=json.dumps(ourlogs),
             ).status_code
             == 200
