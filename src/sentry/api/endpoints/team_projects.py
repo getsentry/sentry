@@ -187,14 +187,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        requester_admin_teams = set(
-            OrganizationMemberTeam.objects.filter(
-                organizationmember__user_id=request.user.id,
-                organizationmember__organization=team.organization,
-                role="admin",
-            ).values_list("team__id", flat=True)
-        )
-
         if team.organization.flags.disable_member_project_creation and not (
             request.access.has_scope("org:write")
         ):
