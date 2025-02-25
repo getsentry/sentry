@@ -14,10 +14,10 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import Badge from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Badge} from 'sentry/components/core/badge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -632,7 +632,7 @@ class GSBanner extends Component<Props, State> {
       // Refresh organization and subscription state
       // do not mark the trial since we have this modal
       SubscriptionStore.loadData(organization.slug, null);
-      fetchOrganizationDetails(api, organization.slug, true, true);
+      fetchOrganizationDetails(api, organization.slug);
 
       openForcedTrialModal({organization});
     } catch (error) {
@@ -1349,7 +1349,7 @@ class GSBanner extends Component<Props, State> {
             system
             data-test-id="banner-alert-past-due"
             type="muted"
-            trailingItems={<Badge text="Action Required" type="warning" />}
+            trailingItems={<Badge type="warning">{t('Action Required')}</Badge>}
           >
             {billingPermissions
               ? tct(

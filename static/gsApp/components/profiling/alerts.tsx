@@ -110,7 +110,6 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
   return (
     <Alert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
-      opaque={false}
       showIcon
       system
       trailingItems={trailingItems}

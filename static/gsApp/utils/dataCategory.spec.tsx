@@ -8,6 +8,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {
   getPlanCategoryName,
+  getReservedBudgetDisplayName,
   hasCategoryFeature,
   listDisplayNames,
   sortCategories,
@@ -203,6 +204,79 @@ describe('getPlanCategoryName', function () {
     expect(
       getPlanCategoryName({plan, category: 'spans', hadCustomDynamicSampling: true})
     ).toBe('Accepted spans');
+  });
+});
+
+describe('getReservedBudgetDisplayName', function () {
+  const am1Plan = PlanDetailsLookupFixture('am1_team');
+  const am2Plan = PlanDetailsLookupFixture('am2_business');
+  const am3Plan = PlanDetailsLookupFixture('am3_business');
+  const am3DsPlan = PlanDetailsLookupFixture('am3_business_ent_ds_auf');
+
+  it('should oxfordize categories alphabetically for am1', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am1Plan,
+        categories: am1Plan?.categories ?? [],
+        hadCustomDynamicSampling: false,
+      })
+    ).toBe(
+      'attachments, cron monitors, errors, replays, transactions, and uptime monitors'
+    );
+  });
+
+  it('should oxfordize categories alphabetically for am2', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am2Plan,
+        categories: am2Plan?.categories ?? [],
+        hadCustomDynamicSampling: false,
+      })
+    ).toBe(
+      'attachments, cron monitors, errors, performance units, profile hours, replays, and uptime monitors'
+    );
+  });
+
+  it('should oxfordize categories alphabetically for am3', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3Plan,
+        categories: am3Plan?.categories ?? [],
+        hadCustomDynamicSampling: false,
+      })
+    ).toBe(
+      'attachments, cron monitors, errors, profile hours, replays, spans, and uptime monitors'
+    );
+  });
+
+  it('should use accepted spans for DS', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        categories: ['spans', 'spansIndexed'],
+        hadCustomDynamicSampling: true,
+      })
+    ).toBe('accepted spans and stored spans');
+
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        categories: ['spans', 'spansIndexed'],
+        hadCustomDynamicSampling: false,
+      })
+    ).toBe('spans and stored spans');
+  });
+
+  it('should title case categories only', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3Plan,
+        categories: am3Plan?.categories ?? [],
+        shouldTitleCase: true,
+      })
+    ).toBe(
+      'Attachments, Cron Monitors, Errors, Profile Hours, Replays, Spans, and Uptime Monitors'
+    );
   });
 });
 

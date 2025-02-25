@@ -134,6 +134,8 @@ type PendingChanges = {
   // TODO:categories remove reserved{Categories}
   reserved: {[categoryKey in DataCategories]?: number | null};
   reservedAttachments: number | null;
+  reservedBudgets: PendingReservedBudget[];
+  reservedCpe: {[categoryKey in DataCategories]?: number | null};
   reservedErrors: number | null;
   reservedEvents: number;
   reservedTransactions: number | null;
@@ -369,10 +371,7 @@ export type Subscription = {
   contactInfo?: string | null;
   countryCode?: string | null;
 
-  domain?: string;
-
   // Refetch usage data if Subscription is updated
-  employees?: number;
   isDeleted?: boolean;
 
   isTrialStarted?: boolean;
@@ -399,8 +398,6 @@ export type Subscription = {
   stripeCustomerID?: string;
 
   trueForward?: {attachment: boolean; error: boolean; transaction: boolean};
-
-  url?: string;
 
   /**
    * Optional without access, and possibly null with access
@@ -863,6 +860,11 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
+export type PendingReservedBudget = {
+  categories: {[categoryKey in DataCategories]?: boolean | null};
+  reservedBudget: number;
+};
+
 export type ReservedBudget = {
   categories: {
     [categoryKey in DataCategories]?: ReservedBudgetMetricHistory;
@@ -875,14 +877,14 @@ export type ReservedBudget = {
 };
 
 export type ReservedBudgetMetricHistory = {
-  reservedCpe: number;
+  reservedCpe: number; // in cents
   reservedSpend: number;
 };
 
 export type ReservedBudgetForCategory = {
   freeBudget: number;
   prepaidBudget: number;
-  reservedCpe: number;
+  reservedCpe: number; // in cents
   reservedSpend: number;
   totalReservedBudget: number;
 };

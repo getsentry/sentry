@@ -6,15 +6,22 @@ import {Alert} from 'sentry/components/core/alert';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {type PendingOnDemandBudgets, PlanTier, type Subscription} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   getAmPlanTier,
   hasPerformance,
+  isAm3DsPlan,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  getReservedBudgetDisplayName,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
@@ -153,6 +160,10 @@ class PendingChanges extends Component<Props> {
         })
       );
 
+    if (isAm3DsPlan(subscription.pendingChanges?.plan)) {
+      results.push(...this.getReservedBudgetChanges());
+    }
+
     return results;
   }
 
@@ -170,7 +181,10 @@ class PendingChanges extends Component<Props> {
       .filter(categoryInfo => categoryInfo.isBilledCategory)
       .forEach(categoryInfo => {
         const plural = categoryInfo.plural;
-        if (this.hasChange(`reserved.${plural}`, `categories.${plural}.reserved`)) {
+        if (
+          this.hasChange(`reserved.${plural}`, `categories.${plural}.reserved`) &&
+          pendingChanges.reserved[plural] !== RESERVED_BUDGET_QUOTA
+        ) {
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
               displayName: getPlanCategoryName({
@@ -186,6 +200,97 @@ class PendingChanges extends Component<Props> {
           );
         }
       });
+
+    return results;
+  }
+
+  hasReservedBudgetChange() {
+    const {subscription} = this.props;
+    const {pendingChanges} = subscription;
+
+    if (!pendingChanges) {
+      return false;
+    }
+
+    const pendingChange = pendingChanges.reservedBudgets;
+    const currentValue = subscription.reservedBudgets ?? [];
+
+    if (pendingChange.length !== currentValue.length) {
+      return true;
+    }
+
+    const sortedPendingBudgets = pendingChange.sort((a, b) => {
+      return a.reservedBudget - b.reservedBudget;
+    });
+
+    const sortedCurrentBudgets = currentValue.sort((a, b) => {
+      return a.reservedBudget - b.reservedBudget;
+    });
+
+    for (let i = 0; i < sortedPendingBudgets.length; i++) {
+      if (
+        sortedPendingBudgets[i]?.reservedBudget !==
+        sortedCurrentBudgets[i]?.reservedBudget
+      ) {
+        return true;
+      }
+
+      const pendingBudgetCategories = Object.keys(
+        sortedPendingBudgets[i]?.categories ?? {}
+      ).sort();
+      const currentBudgetCategories = Object.keys(
+        sortedCurrentBudgets[i]?.categories ?? {}
+      ).sort();
+
+      if (pendingBudgetCategories.length !== currentBudgetCategories.length) {
+        return true;
+      }
+
+      for (let j = 0; j < pendingBudgetCategories.length; j++) {
+        if (pendingBudgetCategories[j] !== currentBudgetCategories[j]) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  getReservedBudgetChanges() {
+    const {subscription} = this.props;
+    const {pendingChanges} = subscription;
+    const results: React.ReactNode[] = [];
+
+    if (!pendingChanges) {
+      return results;
+    }
+
+    if (this.hasReservedBudgetChange()) {
+      const reservedBudgetChanges = pendingChanges.reservedBudgets.map(budget => {
+        const budgetCategories = Object.keys(budget.categories);
+        const isSpansBudget =
+          budgetCategories.length === 2 &&
+          budgetCategories.includes(DataCategory.SPANS) &&
+          budgetCategories.includes(DataCategory.SPANS_INDEXED);
+        const adjustedCategories =
+          isSpansBudget && !subscription.hadCustomDynamicSampling
+            ? [DataCategory.SPANS]
+            : budgetCategories;
+        const newAmount = formatCurrency(budget.reservedBudget);
+        const budgetName = getReservedBudgetDisplayName({
+          plan: pendingChanges.planDetails,
+          categories: adjustedCategories,
+          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+        });
+        return `${newAmount} for ${budgetName}`;
+      });
+      results.push(
+        tct('Reserved [budgetWord] updated to [reservedBudgets]', {
+          budgetWord: reservedBudgetChanges.length === 1 ? 'budget' : 'budgets',
+          reservedBudgets: oxfordizeArray(reservedBudgetChanges),
+        })
+      );
+    }
 
     return results;
   }

@@ -71,7 +71,7 @@ function RedeemPromoCode({organization, api, subscription}: Props) {
                 SubscriptionStore.loadData(organization.slug, null, {
                   markStartedTrial: true,
                 });
-                fetchOrganizationDetails(api, organization.slug, true, true);
+                fetchOrganizationDetails(api, organization.slug);
                 addSuccessMessage(msg);
               }}
             >

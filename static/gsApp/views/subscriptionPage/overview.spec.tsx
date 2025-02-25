@@ -122,7 +122,7 @@ describe('Subscription > Overview', () => {
       expect(
         screen.queryByText('Stored spans usage this period')
       ).not.toBeInTheDocument();
-    } else if (isAm3DsPlan(subscription.plan)) {
+    } else if (isAm3DsPlan(subscription.plan) && !subscription.isEnterpriseTrial) {
       if (subscription.hadCustomDynamicSampling) {
         expect(screen.getByText('Accepted spans spend this period')).toBeInTheDocument();
         expect(screen.getByText('Stored spans spend this period')).toBeInTheDocument();
@@ -156,6 +156,23 @@ describe('Subscription > Overview', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
       hadCustomDynamicSampling: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(await screen.findByText('Overview')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    assertUsageCards(subscription);
+  });
+
+  it('renders for am3 DS enterprise trial', async function () {
+    const subscription = SubscriptionFixture({
+      organization,
+      isEnterpriseTrial: true,
+      plan: 'am3_t_ent_ds',
+      planTier: PlanTier.AM3,
     });
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -391,7 +408,7 @@ describe('Subscription > Overview', () => {
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',
-        // @ts-expect-error
+        // @ts-expect-error: idk idk idk
         planDetails: {
           name: 'Business',
           contractInterval: 'monthly',

@@ -173,7 +173,11 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
-    if (!subscription.hadCustomDynamicSampling && isAm3DsPlan(subscription.plan)) {
+    if (
+      !subscription.hadCustomDynamicSampling &&
+      isAm3DsPlan(subscription.plan) &&
+      !subscription.isEnterpriseTrial
+    ) {
       // if the customer has not yet used custom DS in the current period, just show
       // one spans card
       reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=

@@ -11,6 +11,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {CreditType} from 'getsentry/types';
+import titleCase from 'getsentry/utils/titleCase';
 
 export const GIFT_CATEGORIES: string[] = [
   DataCategory.ERRORS,
@@ -113,6 +114,32 @@ export function getSingularCategoryName({
   return capitalize ? upperFirst(categoryName) : categoryName;
 }
 
+/**
+ * Convert a list of reserved budget categories to a display name for the budget
+ */
+export function getReservedBudgetDisplayName({
+  plan,
+  categories,
+  hadCustomDynamicSampling = false,
+  shouldTitleCase = false,
+}: Omit<CategoryNameProps, 'category' | 'capitalize'> & {
+  categories: string[];
+  shouldTitleCase?: boolean;
+}) {
+  return oxfordizeArray(
+    categories
+      .map(category => {
+        const name = getPlanCategoryName({
+          plan,
+          category,
+          hadCustomDynamicSampling,
+          capitalize: false,
+        });
+        return shouldTitleCase ? titleCase(name) : name;
+      })
+      .sort()
+  );
+}
 /**
  * Get a string of display names.
  *

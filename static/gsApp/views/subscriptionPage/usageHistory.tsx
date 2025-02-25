@@ -62,11 +62,20 @@ function usagePercentage(usage: number, prepaid: number | null): string {
 
 type DisplayProps = {
   metricHistory: BillingMetricHistory;
+  hadCustomDynamicSampling?: boolean;
   plan?: Plan;
 };
 
-function getCategoryDisplay({plan, metricHistory}: DisplayProps): React.ReactNode {
-  const displayName = getPlanCategoryName({plan, category: metricHistory.category});
+function getCategoryDisplay({
+  plan,
+  metricHistory,
+  hadCustomDynamicSampling,
+}: DisplayProps): React.ReactNode {
+  const displayName = getPlanCategoryName({
+    plan,
+    category: metricHistory.category,
+    hadCustomDynamicSampling,
+  });
   const softCapName = getSoftCapType(metricHistory);
   return softCapName
     ? tct('[displayName] ([softCapName])', {displayName, softCapName})
@@ -286,41 +295,53 @@ function UsageHistoryRow({history, subscription}: RowProps) {
               </tr>
             </thead>
             <tbody>
-              {sortedCategories.map(metricHistory => (
-                <tr key={metricHistory.category}>
-                  <td>
-                    {getCategoryDisplay({plan: history.planDetails, metricHistory})}
-                  </td>
-                  <td>
-                    {formatUsageWithUnits(metricHistory.usage, metricHistory.category, {
-                      useUnitScaling: metricHistory.category === DataCategory.ATTACHMENTS,
-                    })}
-                  </td>
-                  <td>
-                    {formatReservedWithUnits(
-                      metricHistory.reserved,
-                      metricHistory.category
-                    )}
-                  </td>
-                  {hasGifts && (
+              {sortedCategories
+                .filter(
+                  metricHistory =>
+                    metricHistory.category !== DataCategory.SPANS_INDEXED ||
+                    (metricHistory.category === DataCategory.SPANS_INDEXED &&
+                      subscription.hadCustomDynamicSampling)
+                )
+                .map(metricHistory => (
+                  <tr key={metricHistory.category}>
+                    <td>
+                      {getCategoryDisplay({
+                        plan: history.planDetails,
+                        metricHistory,
+                        hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                      })}
+                    </td>
+                    <td>
+                      {formatUsageWithUnits(metricHistory.usage, metricHistory.category, {
+                        useUnitScaling:
+                          metricHistory.category === DataCategory.ATTACHMENTS,
+                      })}
+                    </td>
                     <td>
                       {formatReservedWithUnits(
-                        metricHistory.free,
-                        metricHistory.category,
-                        {isGifted: true}
+                        metricHistory.reserved,
+                        metricHistory.category
                       )}
                     </td>
-                  )}
-                  <td>
-                    {usagePercentage(
-                      metricHistory.category === DataCategory.ATTACHMENTS
-                        ? metricHistory.usage / GIGABYTE
-                        : metricHistory.usage,
-                      metricHistory.prepaid
+                    {hasGifts && (
+                      <td>
+                        {formatReservedWithUnits(
+                          metricHistory.free,
+                          metricHistory.category,
+                          {isGifted: true}
+                        )}
+                      </td>
                     )}
-                  </td>
-                </tr>
-              ))}
+                    <td>
+                      {usagePercentage(
+                        metricHistory.category === DataCategory.ATTACHMENTS
+                          ? metricHistory.usage / GIGABYTE
+                          : metricHistory.usage,
+                        metricHistory.prepaid
+                      )}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </HistoryTable>
           {renderOnDemandUsage({sortedCategories})}

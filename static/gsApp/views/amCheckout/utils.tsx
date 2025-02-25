@@ -550,7 +550,7 @@ export async function submitCheckout(
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
     // request doesn't get cancelled
-    fetchOrganizationDetails(new Client(), organization.slug, true);
+    fetchOrganizationDetails(new Client(), organization.slug);
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(

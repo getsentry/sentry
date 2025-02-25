@@ -217,6 +217,7 @@ describe('OnDemandBudgets AM Checkout', function () {
             transactionsBudget: 2000,
             attachmentsBudget: 3000,
             monitorSeatsBudget: 4000,
+            uptimeBudget: 0,
             replaysBudget: 0,
             budgets: {
               errors: 1000,
@@ -224,6 +225,7 @@ describe('OnDemandBudgets AM Checkout', function () {
               attachments: 3000,
               replays: 0,
               monitorSeats: 4000,
+              uptime: 0,
             },
           },
           onDemandMaxSpend: 1000 + 2000 + 3000 + 4000,

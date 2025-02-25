@@ -1287,7 +1287,7 @@ const AM3_PLANS: Record<string, Plan> = {
   },
   am3_business_ent_auf: {
     id: 'am3_business_ent_auf',
-    name: 'Business Enterprise',
+    name: 'Business',
     description: '',
     price: 10_000_00,
     basePrice: 0,
@@ -1371,7 +1371,7 @@ const AM3_PLANS: Record<string, Plan> = {
   },
   am3_business_ent_ds_auf: {
     id: 'am3_business_ent_ds_auf',
-    name: 'Business Enterprise',
+    name: 'Business',
     description: '',
     price: 10_000_00,
     basePrice: 0,

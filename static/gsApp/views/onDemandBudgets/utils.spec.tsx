@@ -159,6 +159,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           attachments: 300,
           replays: 0,
           monitorSeats: 400,
+          uptime: 500,
         },
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -169,6 +170,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           attachments: 0,
           replays: 0,
           monitorSeats: 0,
+          uptime: 0,
         },
       },
     });
@@ -184,6 +186,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       transactionsBudget: 200,
       attachmentsBudget: 300,
       monitorSeatsBudget: 400,
+      uptimeBudget: 500,
       replaysBudget: 0,
       budgets: {
         errors: 100,
@@ -191,6 +194,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
         attachments: 300,
         replays: 0,
         monitorSeats: 400,
+        uptime: 500,
       },
     });
   });
@@ -351,7 +355,7 @@ describe('getTotalBudget', function () {
         transactionsBudget: 200,
         attachmentsBudget: 300,
         replaysBudget: 0,
-        budgets: {errors: 100, transactions: 200, attachments: 300},
+        budgets: {errors: 100, transactions: 200, attachments: 300, uptime: 400},
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
         transactionSpendUsed: 0,
@@ -365,7 +369,7 @@ describe('getTotalBudget', function () {
     const actualTotalBudget = getTotalBudget(
       parseOnDemandBudgetsFromSubscription(subscription)
     );
-    expect(actualTotalBudget).toEqual(100 + 200 + 300);
+    expect(actualTotalBudget).toEqual(100 + 200 + 300 + 400);
   });
 
   it('returns total on-demand budget if onDemandBudgets is missing', function () {

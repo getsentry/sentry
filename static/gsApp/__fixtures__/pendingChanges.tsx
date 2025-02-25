@@ -29,6 +29,8 @@ export function PendingChangesFixture(
     reservedErrors: null,
     reservedEvents: 0,
     reservedTransactions: null,
+    reservedBudgets: [],
+    reservedCpe: {},
     ...fields,
   };
 }

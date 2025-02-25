@@ -11,6 +11,7 @@ export const BILLION = 1_000_000_000;
 export const UNLIMITED = '∞';
 export const UNLIMITED_RESERVED = -1;
 export const RESERVED_BUDGET_QUOTA = -2;
+export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 
 export const GIGABYTE = 10 ** 9;
 

@@ -45,12 +45,14 @@ export function parseOnDemandBudgets(
       attachmentsBudget: onDemandBudgets.budgets.attachments ?? 0,
       replaysBudget: onDemandBudgets.budgets.replays ?? 0,
       monitorSeatsBudget: onDemandBudgets.budgets.monitorSeats ?? 0,
+      uptimeBudget: onDemandBudgets.budgets.uptime ?? 0,
       budgets: {
         errors: onDemandBudgets.budgets.errors,
         transactions: onDemandBudgets.budgets.transactions,
         attachments: onDemandBudgets.budgets.attachments,
         replays: onDemandBudgets.budgets.replays,
         monitorSeats: onDemandBudgets.budgets.monitorSeats,
+        uptime: onDemandBudgets.budgets.uptime,
       },
     };
   }
@@ -67,12 +69,14 @@ export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
     const attachmentsBudget = onDemandBudgets.budgets.attachments ?? 0;
     const replaysBudget = onDemandBudgets.budgets.replays ?? 0;
     const monitorSeatsBudget = onDemandBudgets.budgets.monitorSeats ?? 0;
+    const uptimeBudget = onDemandBudgets.budgets.uptime ?? 0;
     return (
       errorsBudget +
       transactionsBudget +
       attachmentsBudget +
       replaysBudget +
-      monitorSeatsBudget
+      monitorSeatsBudget +
+      uptimeBudget
     );
   }
 
@@ -112,6 +116,7 @@ export function formatOnDemandBudget(
     'attachments',
     'replays',
     'monitorSeats',
+    'uptime',
   ]
 ): React.ReactNode {
   const budgetType = planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand';
@@ -157,6 +162,9 @@ export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCat
       }
       case DataCategory.MONITOR_SEATS: {
         return budget.budgets.monitorSeats ?? 0;
+      }
+      case DataCategory.UPTIME: {
+        return budget.budgets.uptime ?? 0;
       }
       default:
         return getTotalBudget(budget);
@@ -257,12 +265,14 @@ export function convertOnDemandBudget(
     let attachmentsBudget = 0;
     let replaysBudget = 0;
     let monitorSeatsBudget = 0;
+    let uptimeBudget = 0;
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       errorsBudget = currentOnDemandBudget.budgets.errors ?? 0;
       transactionsBudget = currentOnDemandBudget.budgets.transactions ?? 0;
       attachmentsBudget = currentOnDemandBudget.budgets.attachments ?? 0;
       replaysBudget = currentOnDemandBudget.budgets.replays ?? 0;
       monitorSeatsBudget = currentOnDemandBudget.budgets.monitorSeats ?? 0;
+      uptimeBudget = currentOnDemandBudget.budgets.uptime ?? 0;
     } else {
       // should split 50:50 between transactions and errors (whole dollars, remainder added to errors)
       const total = getTotalBudget(currentOnDemandBudget);
@@ -277,12 +287,14 @@ export function convertOnDemandBudget(
       attachmentsBudget,
       replaysBudget,
       monitorSeatsBudget,
+      uptimeBudget,
       budgets: {
         errors: errorsBudget,
         transactions: transactionsBudget,
         attachments: attachmentsBudget,
         replays: replaysBudget,
         monitorSeats: monitorSeatsBudget,
+        uptime: uptimeBudget,
       },
     };
   }

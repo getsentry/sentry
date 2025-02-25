@@ -8,7 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
-import {inputStyles} from 'sentry/components/input';
+import {Input} from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
@@ -292,9 +292,7 @@ function CreditCardForm({
   );
 }
 
-const FormControl = styled('div')`
-  ${inputStyles};
-`;
+const FormControl = Input.withComponent('div');
 
 const fieldCss = css`
   padding-right: 0;

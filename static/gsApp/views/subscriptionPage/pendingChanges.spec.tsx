@@ -1,12 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {
+  Am3DsEnterpriseSubscriptionFixture,
+  SubscriptionFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {ANNUAL, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import PendingChanges from 'getsentry/views/subscriptionPage/pendingChanges';
 
@@ -423,5 +427,173 @@ describe('Subscription > PendingChanges', function () {
 
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
+  });
+
+  it('renders reserved budgets with existing budgets without dynamic sampling', function () {
+    const sub = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
+        plan: 'am3_business_ent_ds_auf',
+        planName: 'Business',
+        reserved: {
+          spans: RESERVED_BUDGET_QUOTA,
+          spansIndexed: RESERVED_BUDGET_QUOTA,
+        },
+        reservedCpe: {
+          spans: 12.345678,
+          spansIndexed: 87.654321,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 50_000_00,
+            categories: {spans: true, spansIndexed: true},
+          },
+        ],
+      }),
+    });
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Reserved budget updated to $50,000 for spans')
+    ).toBeInTheDocument();
+  });
+
+  it('renders reserved budgets with existing budgets and dynamic sampling', function () {
+    const sub = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
+        plan: 'am3_business_ent_ds_auf',
+        planName: 'Business',
+        reserved: {
+          spans: RESERVED_BUDGET_QUOTA,
+          spansIndexed: RESERVED_BUDGET_QUOTA,
+        },
+        reservedCpe: {
+          spans: 12.345678,
+          spansIndexed: 87.654321,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 50_000_00,
+            categories: {spans: true, spansIndexed: true},
+          },
+        ],
+      }),
+      hadCustomDynamicSampling: true,
+    });
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Reserved budget updated to $50,000 for accepted spans and stored spans'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders multiple reserved budgets', function () {
+    const sub = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
+        plan: 'am3_business_ent_ds_auf',
+        planName: 'Business',
+        reserved: {
+          errors: RESERVED_BUDGET_QUOTA,
+          spans: RESERVED_BUDGET_QUOTA,
+          spansIndexed: RESERVED_BUDGET_QUOTA,
+        },
+        reservedCpe: {
+          errors: 0.123456,
+          spans: 12.345678,
+          spansIndexed: 87.654321,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 50_000_00,
+            categories: {spans: true, spansIndexed: true},
+          },
+          {
+            reservedBudget: 10_000_00,
+            categories: {errors: true},
+          },
+        ],
+      }),
+      hadCustomDynamicSampling: true,
+    });
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Reserved budgets updated to $50,000 for accepted spans and stored spans and $10,000 for errors'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders reserved budgets without existing budgets', function () {
+    const sub = SubscriptionFixture({
+      organization: OrganizationFixture(),
+      plan: 'am3_business',
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
+        plan: 'am3_business_ent_ds_auf',
+        planName: 'Business',
+        reserved: {
+          spans: RESERVED_BUDGET_QUOTA,
+          spansIndexed: RESERVED_BUDGET_QUOTA,
+        },
+        reservedCpe: {
+          spans: 12.345678,
+          spansIndexed: 87.654321,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 50_000_00,
+            categories: {spans: true, spansIndexed: true},
+          },
+        ],
+      }),
+    });
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Reserved budget updated to $50,000 for spans')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Plan change to Business')).toBeInTheDocument();
+  });
+
+  it('renders reserved budgets to reserved volume', function () {
+    const sub = Am3DsEnterpriseSubscriptionFixture({
+      organization: OrganizationFixture(),
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent_auf'),
+        plan: 'am3_business_ent_auf',
+        planName: 'Business',
+        reserved: {
+          spans: 10_000_000,
+        },
+      }),
+    });
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved budget')).not.toBeInTheDocument();
+    expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
+    expect(screen.getByText('Plan change to Business')).toBeInTheDocument();
   });
 });

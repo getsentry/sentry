@@ -77,7 +77,7 @@ class TrialStarter extends Component<Props, State> {
 
     // Refresh organization and subscription state
     SubscriptionStore.loadData(organization.slug, null, {markStartedTrial: true});
-    fetchOrganizationDetails(this.props.api, organization.slug, true);
+    fetchOrganizationDetails(this.props.api, organization.slug);
 
     // we showed the "new" icon for the upsell that wasn't the actual dashboard
     // we should clear this so folks can see "new" for the actual dashboard

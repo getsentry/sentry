@@ -7,9 +7,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -230,8 +230,8 @@ function SubscriptionNotifications({
       </Panel>
       <AlertLink
         to="/settings/account/notifications/quota/"
-        priority="info"
-        icon={<IconInfo />}
+        type="info"
+        trailingItems={<IconInfo />}
       >
         {t(
           'To adjust your personal billing notification settings, please go to Fine Tune Alerts in your account settings.'

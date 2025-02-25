@@ -1,9 +1,11 @@
 import {Fragment, useEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
+import {Badge} from 'sentry/components/core/badge';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {Tooltip} from 'sentry/components/tooltip';
 import AlertStore from 'sentry/stores/alertStore';
 import {space} from 'sentry/styles/space';
@@ -85,7 +87,7 @@ function SuperuserWarning({organization}: Props) {
   }
 
   return (
-    <SuperuserBadge type="warning">
+    <SuperuserBadge type="warning" stackedNav={prefersStackedNav()}>
       <Tooltip
         isHoverable
         title={
@@ -105,10 +107,20 @@ function SuperuserWarning({organization}: Props) {
 
 export default SuperuserWarning;
 
-const SuperuserBadge = styled(Badge)`
+const SuperuserBadge = styled(Badge)<{stackedNav: boolean}>`
   position: absolute;
   top: -5px;
   right: 5px;
+
+  ${p =>
+    p.stackedNav &&
+    css`
+      top: -12px;
+      left: 2px;
+      right: 2px;
+      font-size: 10px;
+      margin: 0;
+    `}
 
   /* Hiding on smaller screens because it looks misplaced */
   @media (max-width: ${p => p.theme.breakpoints.small}) {

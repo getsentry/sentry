@@ -112,7 +112,7 @@ type UsageProps = {
    */
   reservedBudget?: number;
   /**
-   * The reserved cpe if any
+   * The reserved cpe, in cents, if any
    */
   reservedCpe?: number;
   /**
@@ -150,7 +150,7 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
  * @param subscription - The subscription object containing plan and usage details
  * @param totals - Object containing the accepted event count for this category
  * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
- * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories)
+ * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
  * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
  *
  * @returns Object containing:
