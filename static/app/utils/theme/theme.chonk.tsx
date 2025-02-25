@@ -187,8 +187,8 @@ const lightColors = {
     surface500: '#FFFFFF',
     surface400: '#FDFCFF',
     surface300: '#F9F7FC',
-    surface200: '#ECEBF0',
-    surface100: '#E2E1E5',
+    surface200: '#ECEBF0', // Currently used for borderSecondary
+    surface100: '#E2E1E5', // Currently used for button chonk & borderPrimary
 
     // @TODO(jonasbadalic): Why does gray opaque have 500?
     grayOpaque500: '#181423',
@@ -265,8 +265,8 @@ const darkColors: typeof lightColors = {
     surface500: '#292536',
     surface400: '#252130',
     surface300: '#211E2B',
-    surface200: '#191721',
-    surface100: '#0B0A0F',
+    surface200: '#191721', // Currently used for borderSecondary
+    surface100: '#0B0A0F', // Currently used for button chonk & borderPrimary
 
     // @TODO(jonasbadalic): why 500 range?
     grayOpaque500: '#F6F5FA',
