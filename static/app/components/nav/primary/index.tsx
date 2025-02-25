@@ -26,6 +26,7 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
@@ -52,6 +53,8 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
+
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
 
   return (
     <Fragment>
@@ -153,6 +156,18 @@ export function PrimaryNavigationItems() {
                   key: 'discord',
                   label: t('Join our Discord'),
                   to: 'https://discord.com/invite/sentry',
+                },
+              ],
+            },
+            {
+              key: 'new-ui',
+              children: [
+                {
+                  key: 'new-ui',
+                  label: t('Switch to old navigation'),
+                  onAction() {
+                    mutateUserOptions({prefersStackedNavigation: false});
+                  },
                 },
               ],
             },

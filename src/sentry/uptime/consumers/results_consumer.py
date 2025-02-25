@@ -33,14 +33,13 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_project_subscriptions_for_uptime_subscription,
-    get_regions_for_uptime_subscription,
     get_top_hosting_provider_names,
+    load_regions_for_uptime_subscription,
 )
-from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
 from sentry.uptime.subscriptions.subscriptions import (
+    check_and_update_regions,
     delete_uptime_subscriptions_for_project,
-    get_or_create_uptime_subscription,
-    remove_uptime_subscription_if_unused,
+    update_project_uptime_subscription,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
@@ -151,43 +150,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if not self.should_run_region_checks(subscription, result):
             return
 
-        subscription_region_modes = {
-            UptimeRegionWithMode(r.region_slug, UptimeSubscriptionRegion.RegionMode(r.mode))
-            for r in regions
-        }
-        active_regions = set(get_active_regions())
-        if subscription_region_modes == active_regions:
-            # Regions haven't changed, exit early.
+        if not check_and_update_regions(subscription, regions):
             return
-
-        new_or_updated_regions = active_regions - subscription_region_modes
-        removed_regions = {srm.slug for srm in subscription_region_modes} - {
-            ar.slug for ar in active_regions
-        }
-        if new_or_updated_regions:
-            new_or_updated_region_objs = [
-                UptimeSubscriptionRegion(
-                    uptime_subscription=subscription, region_slug=r.slug, mode=r.mode
-                )
-                for r in new_or_updated_regions
-            ]
-            UptimeSubscriptionRegion.objects.bulk_create(
-                new_or_updated_region_objs,
-                update_conflicts=True,
-                update_fields=["mode"],
-                unique_fields=["uptime_subscription", "region_slug"],
-            )
-
-        if removed_regions:
-            for deleted_region in UptimeSubscriptionRegion.objects.filter(
-                uptime_subscription=subscription, region_slug__in=removed_regions
-            ):
-                if subscription.subscription_id:
-                    # We need to explicitly send deletes here before we remove the region
-                    send_uptime_config_deletion(
-                        deleted_region.region_slug, subscription.subscription_id
-                    )
-                deleted_region.delete()
 
         # Regardless of whether we added or removed regions, we need to send an updated config to all active
         # regions for this subscription so that they all get an update set of currently active regions.
@@ -231,7 +195,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             "status": result["status"],
             "uptime_region": result["region"],
         }
-        subscription_regions = get_regions_for_uptime_subscription(subscription.id)
+        subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
         if self.is_shadow_region_result(result, subscription_regions):
             metrics.incr(
@@ -425,17 +389,13 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > project_subscription.date_added:
                 # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
                 # to active.
-                onboarding_subscription = project_subscription.uptime_subscription
-                active_subscription = get_or_create_uptime_subscription(
-                    onboarding_subscription.url,
-                    int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
-                    onboarding_subscription.timeout_ms,
-                )
-                project_subscription.update(
-                    uptime_subscription=active_subscription,
+                update_project_uptime_subscription(
+                    project_subscription,
+                    interval_seconds=int(
+                        AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
+                    ),
                     mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
                 )
-                remove_uptime_subscription_if_unused(onboarding_subscription)
                 metrics.incr(
                     "uptime.result_processor.autodetection.graduated_onboarding",
                     sample_rate=1.0,

@@ -4,7 +4,7 @@ import {CheckStatus, type UptimeCheck} from 'sentry/views/alerts/rules/uptime/ty
 export function UptimeCheckFixture(params: Partial<UptimeCheck> = {}): UptimeCheck {
   return {
     checkStatus: CheckStatus.SUCCESS,
-    checkStatusReason: 'success',
+    checkStatusReason: null,
     durationMs: 767,
     environment: 'production',
     projectUptimeSubscriptionId: 40123,

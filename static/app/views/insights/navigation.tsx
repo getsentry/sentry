@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -29,9 +30,9 @@ type InsightsNavigationProps = {
 
 export default function InsightsNavigation({children}: InsightsNavigationProps) {
   const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!hasNavigationV2) {
+  if (!prefersStackedNav) {
     return children;
   }
 

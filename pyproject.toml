@@ -162,7 +162,6 @@ module = [
     "sentry.integrations.gitlab.issues",
     "sentry.integrations.jira.client",
     "sentry.integrations.jira.integration",
-    "sentry.integrations.jira.views.base",
     "sentry.integrations.jira.webhooks.base",
     "sentry.integrations.jira.webhooks.issue_updated",
     "sentry.integrations.jira_server.integration",
