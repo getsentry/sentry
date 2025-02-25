@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
 
@@ -171,6 +171,144 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             )
             assert response.status_code == 200
             assert len(response.json()["data"]) == 1
+
+    def test_get_sort(self):
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        ).save()
+
+        FlagAuditLogModel(
+            action=1,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="goodbye",
+            organization_id=self.organization.id,
+            tags={},
+        ).save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?sort=created_at")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+            assert response.json()["data"][0]["flag"] == "hello"
+            assert response.json()["data"][1]["flag"] == "goodbye"
+
+            response = self.client.get(self.url + "?sort=-created_at")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+            assert response.json()["data"][0]["flag"] == "goodbye"
+            assert response.json()["data"][1]["flag"] == "hello"
+
+            response = self.client.get(self.url + "?sort=flag")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+            assert response.json()["data"][0]["flag"] == "goodbye"
+            assert response.json()["data"][1]["flag"] == "hello"
+
+    def test_get_sort_default(self):
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        ).save()
+
+        FlagAuditLogModel(
+            action=1,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={},
+        ).save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+            assert response.json()["data"][0]["tags"].get("commit_sha") == "123"
+            assert response.json()["data"][1]["tags"].get("commit_sha") is None
+
+    def test_get_sort_camel_case(self):
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        ).save()
+
+        FlagAuditLogModel(
+            action=1,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="goodbye",
+            organization_id=self.organization.id,
+            tags={},
+        ).save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?sort=created_at")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+            assert response.json()["data"][0]["flag"] == "hello"
+            assert response.json()["data"][1]["flag"] == "goodbye"
+
+            response = self.client.get(self.url + "?sort=-created_at")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+            assert response.json()["data"][0]["flag"] == "goodbye"
+            assert response.json()["data"][1]["flag"] == "hello"
+
+    def test_get_paginate(self):
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        ).save()
+
+        FlagAuditLogModel(
+            action=1,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="goodbye",
+            organization_id=self.organization.id,
+            tags={},
+        ).save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?per_page=1")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
+            assert response.json()["data"][0]["flag"] == "hello"
+
+            response = self.client.get(self.url + "?per_page=1&cursor=1:1:0")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
+            assert response.json()["data"][0]["flag"] == "goodbye"
+
+            response = self.client.get(self.url + "?per_page=1&cursor=1:2:0")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0
 
 
 class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):

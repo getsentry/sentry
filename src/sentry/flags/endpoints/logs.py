@@ -12,6 +12,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.utils import get_date_range_from_params
 from sentry.flags.models import ActionEnum, CreatedByTypeEnum, FlagAuditLogModel, ProviderEnum
 from sentry.models.organization import Organization
@@ -67,12 +68,18 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
         if flags:
             queryset = queryset.filter(flag__in=flags)
 
+        sort = request.GET.get("sort")
+        sort = camel_to_snake_case(sort) if isinstance(sort, str) else "created_at"
+        if sort:
+            queryset = queryset.order_by(sort)
+
         return self.paginate(
             request=request,
             queryset=queryset,
             on_results=lambda x: {
-                "data": serialize(x, request.user, FlagAuditLogModelSerializer())
+                "data": serialize(x, request.user, FlagAuditLogModelSerializer()),
             },
+            # order_by=sort,
             paginator_cls=OffsetPaginator,
         )
 
