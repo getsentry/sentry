@@ -3,8 +3,8 @@ import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autos
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import type {InputStylesProps} from 'sentry/components/input';
-import {inputStyles} from 'sentry/components/input';
+import type {InputStylesProps} from 'sentry/components/core/input';
+import {inputStyles} from 'sentry/components/core/input';
 
 export interface TextAreaProps
   extends Omit<

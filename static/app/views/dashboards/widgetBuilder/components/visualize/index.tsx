@@ -9,9 +9,9 @@ import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
+import {Input} from 'sentry/components/core/input';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -59,8 +59,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {
     emphasis: <em />,
   }),
   value: NONE,

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -15,6 +14,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Sparklines} from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import {Tooltip} from 'sentry/components/tooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -305,11 +305,10 @@ type SparklineChartProps = {
 };
 
 function SparklineChart(props: SparklineChartProps) {
-  const theme = useTheme();
   const {data} = props;
   const width = 150;
   const height = 24;
-  const lineColor = theme.charts.getColorPalette(1)?.[0];
+  const lineColor = getChartColorPalette(1)[0];
   return (
     <SparklineContainer data-test-id="sparkline" width={width} height={height}>
       <Sparklines data={data} width={width} height={height}>

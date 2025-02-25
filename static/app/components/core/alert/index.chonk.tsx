@@ -19,19 +19,13 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 
 const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   ${p => makeChonkAlertTheme(p.type, p.theme)}
+  display: grid;
+  grid-template-columns: ${p => getAlertGridLayout(p)};
 
   border-width: ${p => (p.system ? '0px 0px 2px 0px' : '2px')};
   border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
 
   cursor: ${p => (p.expand ? 'pointer' : 'default')};
-
-  display: grid;
-  grid-template-columns:
-    ${p => (p.showIcon ? `minmax(0, max-content)` : '0fr')}
-    minmax(0, 1fr)
-    ${p => (p.trailingItems ? `max-content` : '0fr')}
-    ${p => (p.expand ? `max-content` : '0fr')};
-
   gap: ${p => p.theme.space.md};
 
   a,
@@ -58,35 +52,35 @@ function makeChonkAlertTheme(
       return css`
         color: ${theme.colors.static.white};
         background: ${theme.colors.static.blue400};
-        border: 2px solid ${theme.colors.static.blue400};
+        border: 1px solid ${theme.colors.static.blue400};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'success':
       return css`
         color: ${theme.colors.static.black};
         background: ${theme.colors.static.green400};
-        border: 2px solid ${theme.colors.dynamic.green100};
+        border: 1px solid ${theme.colors.dynamic.green100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'warning':
       return css`
         color: ${theme.colors.static.black};
         background: ${theme.colors.static.yellow400};
-        border: 2px solid ${theme.colors.dynamic.yellow100};
+        border: 1px solid ${theme.colors.dynamic.yellow100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'danger':
       return css`
         color: ${theme.colors.static.white};
         background: ${theme.colors.static.red400};
-        border: 2px solid ${theme.colors.dynamic.red100};
+        border: 1px solid ${theme.colors.dynamic.red100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'subtle':
       return css`
         color: ${theme.textColor};
-        background: ${theme.colors.dynamic.surface400};
-        border: 2px solid ${theme.colors.dynamic.surface100};
+        background: ${theme.colors.dynamic.surface500};
+        border: 1px solid ${theme.colors.dynamic.surface100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
 
@@ -95,6 +89,16 @@ function makeChonkAlertTheme(
   }
 
   throw new TypeError(`Invalid alert type, got ${type}`);
+}
+
+function getAlertGridLayout(p: ChonkAlertProps) {
+  if (p.showIcon) {
+    return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
+      p.expand ? 'min-content' : ''
+    };`;
+  }
+
+  return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''};`;
 }
 
 export {AlertPanel, chonkAlertPropMapping};

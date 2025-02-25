@@ -4,8 +4,8 @@ import type {Location} from 'history';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -258,6 +258,11 @@ export function WidgetOnDemandQueryWarning(props: {
         'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
         {strong: <strong />}
       )}
+      color={
+        organization.features.includes('dashboards-widget-builder-redesign')
+          ? 'yellow300'
+          : undefined
+      }
     />
   );
 }

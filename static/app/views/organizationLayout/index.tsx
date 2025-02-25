@@ -7,6 +7,7 @@ import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
 import {NavContextProvider} from 'sentry/components/nav/context';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
@@ -14,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useDevToolbar from 'sentry/utils/useDevToolbar';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,8 +47,12 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-  const App = hasNavigationV2 ? AppLayout : LegacyAppLayout;
+  const prefersStackedNav = usePrefersStackedNav();
+  const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
+
+  useRouteAnalyticsParams({
+    prefers_stacked_navigation: prefersStackedNav,
+  });
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
