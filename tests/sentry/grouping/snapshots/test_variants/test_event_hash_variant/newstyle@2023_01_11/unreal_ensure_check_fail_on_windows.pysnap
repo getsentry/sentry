@@ -1,10 +1,10 @@
 ---
-created: '2025-02-20T15:17:59.479604+00:00'
+created: '2025-02-25T18:23:34.874871+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "a27e168f67ce2d3f12bba36eba67d076"
+  hash: "4717aeb08ff642726ef6ea8f1ce55cdf"
   contributing component: exception
   component:
     app*
@@ -44,10 +44,10 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "FWindowsPlatformApplicationMisc::PumpMessages"
-          frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "UserCallWinProcCheckWow"
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
@@ -224,7 +224,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
             function*
               "FWindowsPlatformApplicationMisc::PumpMessages"
-          frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
           frame (ignored by stack trace rule (category:internals -group))

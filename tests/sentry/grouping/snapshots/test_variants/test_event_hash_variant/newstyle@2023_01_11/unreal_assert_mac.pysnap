@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T15:34:53.545940+00:00'
+created: '2025-02-25T18:23:34.633056+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (non app frame)
             function*
               "__NSThread__start__"
           frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))

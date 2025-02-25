@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:17.193233+00:00'
+created: '2025-02-25T18:23:32.074562+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "CUseCountedObject<T>::UCDestroy"
           frame (non app frame)
@@ -36,7 +36,7 @@ system:
     system*
       exception*
         stacktrace*
-          frame*
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "CUseCountedObject<T>::UCDestroy"
           frame (ignored by stack trace rule (category:internals -group))

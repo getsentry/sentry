@@ -1,10 +1,10 @@
 ---
-created: '2025-02-25T14:49:14.216385+00:00'
+created: '2025-02-25T18:23:34.789572+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "21f12614b98d6dd2c5d5303e452b4c6b"
+  hash: "c246c95d4a435b3d601044aebae72a38"
   contributing component: exception
   component:
     app*
@@ -44,10 +44,10 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "FWindowsPlatformApplicationMisc::PumpMessages"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "UserCallWinProcCheckWow"
           frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
@@ -195,7 +195,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "FWindowsPlatformApplicationMisc::PumpMessages"
-          frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
           frame (ignored by stack trace rule (category:internals -group))
