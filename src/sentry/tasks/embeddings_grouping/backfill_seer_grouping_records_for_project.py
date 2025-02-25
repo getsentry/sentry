@@ -374,10 +374,7 @@ def call_next_backfill(
             if worker_number is None:
                 logger.info(
                     "backfill_seer_grouping_records.project_list_backfill_finished",
-                    extra={
-                        "cohort": cohort,
-                        "last_processed_project_index": next_project_index_in_cohort,
-                    },
+                    extra={"cohort": cohort},
                 )
                 # we're at the end of the project list
                 return
