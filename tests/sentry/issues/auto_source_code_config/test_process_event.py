@@ -50,11 +50,19 @@ class BaseDeriveCodeMappings(TestCase):
     def _process_and_assert_code_mapping(
         self, files: Sequence[str], stack_root: str, source_root: str
     ) -> None:
-        with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
+        with (
+            patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)),
+            patch("sentry.utils.metrics.incr") as mock_incr,
+        ):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
-            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            code_mappings = RepositoryProjectPathConfig.objects.all()
+            assert len(code_mappings) == 1
+            code_mapping = code_mappings[0]
             assert code_mapping.stack_root == stack_root
             assert code_mapping.source_root == source_root
+            mock_incr.assert_called_with(
+                "code_mappings.created", tags={"platform": self.event.platform}
+            )
 
     def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> list[CodeMapping]:
         with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
@@ -103,10 +111,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
     def test_skips_not_supported_platforms(self) -> None:
-        event = self.create_event([{}], platform="elixir")
-        assert event.group_id is not None
-        process_event(self.project.id, event.group_id, event.event_id)
-        assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
+        self._process_and_assert_no_code_mapping([])
 
     def test_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -137,16 +142,19 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         assert all_cm[0].automatically_generated is False
 
     def test_dry_run_platform(self) -> None:
+        frame_filename = "foo/bar.py"
+        file_in_repo = "src/foo/bar.py"
         with (
             patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
             patch(f"{CODE_ROOT}.task.DRY_RUN_PLATFORMS", ["other"]),
         ):
-            self.event = self.create_event([{"filename": "foo/bar.py", "in_app": True}], "other")
+            self.event = self.create_event([{"filename": frame_filename, "in_app": True}], "other")
             # No code mapping will be stored, however, we get what would have been created
-            code_mappings = self._process_and_assert_no_code_mapping(["src/foo/bar.py"])
+            code_mappings = self._process_and_assert_no_code_mapping([file_in_repo])
             assert len(code_mappings) == 1
             assert code_mappings[0].stacktrace_root == "foo/"
             assert code_mappings[0].source_path == "src/foo/"
+            assert not RepositoryProjectPathConfig.objects.exists()
 
 
 class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):

@@ -9,7 +9,11 @@ export default function useErrorFreeSessions() {
 
   const locationWithoutWidth = {
     ...location,
-    query: {...location.query, width: undefined},
+    query: {
+      ...location.query,
+      width_health_table: undefined,
+      width_adoption_table: undefined,
+    },
   };
 
   const {
