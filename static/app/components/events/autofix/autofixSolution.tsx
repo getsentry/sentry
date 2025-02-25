@@ -9,7 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,

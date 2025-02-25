@@ -6,7 +6,7 @@ import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';

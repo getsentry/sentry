@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';

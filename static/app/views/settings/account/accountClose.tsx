@@ -8,7 +8,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {LinkButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';

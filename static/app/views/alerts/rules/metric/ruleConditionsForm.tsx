@@ -11,7 +11,7 @@ import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,

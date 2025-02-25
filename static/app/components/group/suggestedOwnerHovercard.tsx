@@ -7,7 +7,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';

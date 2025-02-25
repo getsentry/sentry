@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Badge from 'sentry/components/core/badge';
+import Badge from 'sentry/components/core/badge/badge';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';

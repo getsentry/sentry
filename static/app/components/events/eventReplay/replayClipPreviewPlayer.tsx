@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {LinkButtonProps} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {
   REPLAY_LOADING_HEIGHT,
   REPLAY_LOADING_HEIGHT_LARGE,

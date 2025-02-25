@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import type {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

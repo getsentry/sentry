@@ -14,7 +14,7 @@ import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';

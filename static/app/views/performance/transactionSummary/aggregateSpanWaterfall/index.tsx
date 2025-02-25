@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';

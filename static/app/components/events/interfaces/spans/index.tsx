@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';

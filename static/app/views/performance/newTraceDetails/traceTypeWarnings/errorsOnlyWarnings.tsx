@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';

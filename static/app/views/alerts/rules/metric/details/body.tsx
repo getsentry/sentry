@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';

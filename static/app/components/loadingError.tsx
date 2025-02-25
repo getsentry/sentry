@@ -1,5 +1,5 @@
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {t} from 'sentry/locale';
 
 type Props = {

@@ -4,7 +4,7 @@ import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';

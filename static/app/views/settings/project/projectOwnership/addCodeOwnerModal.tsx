@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import Link from 'sentry/components/links/link';

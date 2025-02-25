@@ -4,7 +4,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';

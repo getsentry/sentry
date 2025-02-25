@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';

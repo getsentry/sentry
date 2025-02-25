@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

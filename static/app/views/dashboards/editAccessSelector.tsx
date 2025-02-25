@@ -12,7 +12,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
-import Badge from 'sentry/components/core/badge';
+import Badge from 'sentry/components/core/badge/badge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';

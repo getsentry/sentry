@@ -2,7 +2,7 @@ import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';

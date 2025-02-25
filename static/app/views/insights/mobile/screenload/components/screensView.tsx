@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';

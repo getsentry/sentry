@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';

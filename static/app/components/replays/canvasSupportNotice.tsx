@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconClose} from 'sentry/icons';

@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';

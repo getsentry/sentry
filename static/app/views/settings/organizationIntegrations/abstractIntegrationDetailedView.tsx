@@ -4,8 +4,8 @@ import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
 import Tag from 'sentry/components/badge/tag';
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Alert} from 'sentry/components/core/alert';
+import type {AlertProps} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

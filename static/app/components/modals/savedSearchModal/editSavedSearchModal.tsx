@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';

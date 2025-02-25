@@ -9,7 +9,7 @@ import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';

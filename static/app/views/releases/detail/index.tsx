@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

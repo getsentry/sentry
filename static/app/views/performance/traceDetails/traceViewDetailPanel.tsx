@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {

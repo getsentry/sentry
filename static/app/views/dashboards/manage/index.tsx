@@ -11,7 +11,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';

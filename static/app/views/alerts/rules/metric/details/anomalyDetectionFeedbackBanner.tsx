@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {useDismissable} from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

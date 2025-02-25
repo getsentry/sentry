@@ -1,4 +1,4 @@
-import type {AlertProps} from 'sentry/components/core/alert';
+import type {AlertProps} from 'sentry/components/core/alert/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {
   DISABLED as DISABLED_STATUS,

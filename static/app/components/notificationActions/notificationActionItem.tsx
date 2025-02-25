@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import Badge from 'sentry/components/core/badge';
+import Badge from 'sentry/components/core/badge/badge';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';

@@ -6,7 +6,7 @@ import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

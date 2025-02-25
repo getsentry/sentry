@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import {LinkButton} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';

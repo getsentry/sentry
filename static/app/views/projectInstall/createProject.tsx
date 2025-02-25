@@ -9,7 +9,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';

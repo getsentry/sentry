@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alertLink';
+import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alert/alertLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconMail} from 'sentry/icons';

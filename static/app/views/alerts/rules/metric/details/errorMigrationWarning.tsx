@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/prompts';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

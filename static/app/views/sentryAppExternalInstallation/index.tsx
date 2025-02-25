@@ -5,7 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -16,7 +16,7 @@ import {
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';

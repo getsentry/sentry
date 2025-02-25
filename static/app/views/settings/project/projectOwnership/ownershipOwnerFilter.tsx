@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Badge from 'sentry/components/core/badge';
+import Badge from 'sentry/components/core/badge/badge';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';

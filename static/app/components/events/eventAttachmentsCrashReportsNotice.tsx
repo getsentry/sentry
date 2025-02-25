@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';

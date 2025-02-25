@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';

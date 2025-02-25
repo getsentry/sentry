@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {
   type AutofixRepository,
   type AutofixRootCauseData,

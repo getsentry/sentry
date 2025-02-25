@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';

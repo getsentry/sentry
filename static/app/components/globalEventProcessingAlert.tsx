@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

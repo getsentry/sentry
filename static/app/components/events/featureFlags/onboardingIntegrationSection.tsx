@@ -9,7 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,

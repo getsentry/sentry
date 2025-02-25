@@ -12,7 +12,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';

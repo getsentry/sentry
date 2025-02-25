@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert/alert';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
