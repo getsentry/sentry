@@ -122,8 +122,13 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     class RegionMode(enum.StrEnum):
+        # Region is running as usual
         ACTIVE = "active"
+        # Region is disabled and not running
         INACTIVE = "inactive"
+        # Region is running in shadow mode. This means it is performing checks, but results are
+        # ignored.
+        SHADOW = "shadow"
 
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     region_slug = models.CharField(max_length=255, db_index=True, db_default="")
@@ -256,6 +261,33 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
             .order_by("-total")
             .values_list("host_provider_name", flat=True)[:limit],
         )
+    )
+
+
+@cache_func_for_models(
+    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
+    recalculate=False,
+    cache_ttl=timedelta(hours=4),
+)
+def get_project_subscriptions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[ProjectUptimeSubscription]:
+    return list(
+        ProjectUptimeSubscription.objects.filter(
+            uptime_subscription_id=uptime_subscription_id
+        ).select_related("project", "project__organization")
+    )
+
+
+@cache_func_for_models(
+    [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
+    recalculate=False,
+)
+def load_regions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[UptimeSubscriptionRegion]:
+    return list(
+        UptimeSubscriptionRegion.objects.filter(uptime_subscription_id=uptime_subscription_id)
     )
 
 

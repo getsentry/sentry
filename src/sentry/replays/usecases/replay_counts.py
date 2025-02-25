@@ -23,7 +23,9 @@ MAX_VALS_PROVIDED = {
 FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
 
 
-def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
+def get_replay_counts(
+    snuba_params: SnubaParams, query: str, return_ids: bool, data_source: str | Dataset
+) -> dict[str, Any]:
     """
     Queries snuba/clickhouse for replay count of each identifier (usually an issue or transaction).
     - Identifier is parsed from 'query' (select column), and 'snuba_params' is used to filter on time range + project_id
@@ -33,6 +35,9 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
+
+    if isinstance(data_source, Dataset):
+        data_source = data_source.value
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
@@ -56,30 +61,29 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 
 
 def _get_replay_id_mappings(
-    query, snuba_params, data_source=Dataset.Discover
+    query: str, snuba_params: SnubaParams, data_source: str = Dataset.Discover.value
 ) -> dict[str, list[str]]:
     """
     Parses select_column ("identifier") from a query, then queries data_source to map replay_id -> [identifier].
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].
     The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
     """
-
-    if data_source == Dataset.Discover:
+    if data_source == Dataset.Discover.value:
         search_query_func = discover.query
-    elif data_source == Dataset.IssuePlatform:
+    elif data_source == Dataset.IssuePlatform.value:
         search_query_func = issue_platform.query  # type: ignore[assignment]
+    else:
+        raise ValueError("Invalid data source")
 
     select_column, column_value = _get_select_column(query)
     query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover.
-        # parses, validates, and formats the user-provided UUID's in a query/request.
         identity_map = {}
         for replay_id in column_value:
-            replay_id = uuid.UUID(
-                hex=replay_id, version=4
-            ).hex  # raises ValueError if invalid. Strips '-'
+            # raises ValueError if invalid. Strips '-'
+            replay_id = uuid.UUID(hex=replay_id, version=4).hex
             identity_map[replay_id] = [replay_id]
         return identity_map
 
@@ -94,7 +98,7 @@ def _get_replay_id_mappings(
     # provide every project_id manually.
     if select_column == "issue.id":
         groups = Group.objects.select_related("project").filter(
-            project__organization_id=snuba_params.organization.id,
+            project__organization_id=snuba_params.organization.id,  # type: ignore[union-attr]
             id__in=column_value,
         )
         snuba_params = dataclasses.replace(
