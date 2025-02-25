@@ -4,7 +4,7 @@ import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import type {BadgeProps} from 'sentry/components/core/badge/badge';
+import type {BadgeProps} from 'sentry/components/core/badge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';

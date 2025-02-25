@@ -6,7 +6,7 @@ import Access from 'sentry/components/acl/access';
 import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -4,7 +4,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';

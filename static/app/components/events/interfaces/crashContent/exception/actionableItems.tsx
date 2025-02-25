@@ -5,7 +5,7 @@ import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import type {EventErrorData} from 'sentry/components/events/errorItem';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';

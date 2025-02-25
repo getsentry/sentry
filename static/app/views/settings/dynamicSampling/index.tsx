@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {LinkButton} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

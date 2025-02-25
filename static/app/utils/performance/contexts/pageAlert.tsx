@@ -2,7 +2,7 @@ import type React from 'react';
 import {createContext, Fragment, useCallback, useContext, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {IconClose} from 'sentry/icons';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 

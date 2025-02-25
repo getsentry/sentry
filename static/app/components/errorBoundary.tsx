@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

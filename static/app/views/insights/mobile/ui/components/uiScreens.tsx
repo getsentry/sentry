@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';

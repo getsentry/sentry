@@ -5,7 +5,7 @@ import {Observer} from 'mobx-react';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';

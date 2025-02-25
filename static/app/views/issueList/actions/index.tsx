@@ -10,7 +10,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import Checkbox from 'sentry/components/checkbox';
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';

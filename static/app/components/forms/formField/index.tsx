@@ -10,7 +10,7 @@ import {
 import {Observer} from 'mobx-react';
 
 import {Button} from 'sentry/components/button';
-import type {AlertProps} from 'sentry/components/core/alert/alert';
+import type {AlertProps} from 'sentry/components/core/alert';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';

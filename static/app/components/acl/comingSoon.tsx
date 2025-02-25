@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 function ComingSoon() {

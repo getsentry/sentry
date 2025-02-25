@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';

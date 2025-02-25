@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
-import {Alert, type AlertProps} from 'sentry/components/core/alert/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconClose, IconSentry, IconStar} from 'sentry/icons';
