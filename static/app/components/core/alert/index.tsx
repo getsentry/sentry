@@ -5,14 +5,16 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
+import {Button} from 'sentry/components/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
-import * as ChonkAlert from './alert.chonk';
+import * as ChonkAlert from './index.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
@@ -91,7 +93,13 @@ export function Alert({
         )}
         {showExpand && (
           <ExpandIconWrap>
-            <IconChevron direction={isExpanded ? 'up' : 'down'} />
+            <Button
+              size="zero"
+              borderless
+              icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
+              aria-label={isExpanded ? t('Collapse') : t('Expand')}
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
           </ExpandIconWrap>
         )}
         {isExpanded && (
@@ -158,15 +166,21 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   throw new Error(`Invalid alert type, got ${type}`);
 }
 
+function getAlertGridLayout(p: AlertProps) {
+  if (p.showIcon) {
+    return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
+      p.expand ? 'min-content' : ''
+    }`;
+  }
+
+  return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''}`;
+}
+
 const AlertPanel = styled('div')<
   AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
 >`
   display: grid;
-  grid-template-columns:
-    ${p => p.showIcon && `minmax(0, max-content)`}
-    minmax(0, 1fr)
-    ${p => defined(p.trailingItems) && 'max-content'}
-    ${p => defined(p.expand) && 'max-content'};
+  grid-template-columns: ${p => getAlertGridLayout(p)};
   gap: ${space(1)};
   color: ${p => p.alertColors.color};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -286,7 +300,9 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   return null;
 }
 
-// Spaces items within the container evenly.
+/**
+ * Manages margins of Alert components
+ */
 const Container = styled('div')`
   > div {
     margin-bottom: ${space(2)};

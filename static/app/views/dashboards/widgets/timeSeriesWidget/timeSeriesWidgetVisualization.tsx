@@ -15,6 +15,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -175,7 +176,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const palette =
     numberOfSeriesNeedingColor > 0
-      ? theme.charts.getColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      ? getChartColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
   let seriesColorIndex = 0;

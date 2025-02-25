@@ -5,6 +5,8 @@ from typing import Any
 from urllib.parse import urlencode
 
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -20,6 +22,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -282,7 +285,7 @@ class DiscordInstallPipeline(PipelineView):
         self.params = params
         super().__init__()
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
             state = pipeline.fetch_state(key="discord") or {}
             redirect_uri = (

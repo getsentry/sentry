@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import AlertLink from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -124,9 +124,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
           </Form>
         )}
       </BottomFormWrapper>
-      <AlertLink to="/settings/account/emails" icon={<IconMail />}>
-        {t('Looking to add or remove an email address? Use the emails panel.')}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink type="info" to="/settings/account/emails" trailingItems={<IconMail />}>
+          {t('Looking to add or remove an email address? Use the emails panel.')}
+        </AlertLink>
+      </AlertLink.Container>
     </Fragment>
   );
 }

@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import type {SeverityLevel} from '@sentry/core';
 import {captureException, withScope} from '@sentry/react';
 
-import Badge, {type BadgeType} from 'sentry/components/badge/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import Badge, {type BadgeType} from 'sentry/components/core/badge';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
