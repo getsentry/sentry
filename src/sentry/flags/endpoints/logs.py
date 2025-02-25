@@ -77,9 +77,8 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             on_results=lambda x: {
-                "data": serialize(x, request.user, FlagAuditLogModelSerializer()),
+                "data": serialize(x, request.user, FlagAuditLogModelSerializer())
             },
-            # order_by=sort,
             paginator_cls=OffsetPaginator,
         )
 
