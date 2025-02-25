@@ -58,35 +58,35 @@ function makeChonkAlertTheme(
       return css`
         color: ${theme.colors.static.white};
         background: ${theme.colors.static.blue400};
-        border: 2px solid ${theme.colors.static.blue400};
+        border: 1px solid ${theme.colors.static.blue400};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'success':
       return css`
         color: ${theme.colors.static.black};
         background: ${theme.colors.static.green400};
-        border: 2px solid ${theme.colors.dynamic.green100};
+        border: 1px solid ${theme.colors.dynamic.green100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'warning':
       return css`
         color: ${theme.colors.static.black};
         background: ${theme.colors.static.yellow400};
-        border: 2px solid ${theme.colors.dynamic.yellow100};
+        border: 1px solid ${theme.colors.dynamic.yellow100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'danger':
       return css`
         color: ${theme.colors.static.white};
         background: ${theme.colors.static.red400};
-        border: 2px solid ${theme.colors.dynamic.red100};
+        border: 1px solid ${theme.colors.dynamic.red100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
     case 'subtle':
       return css`
         color: ${theme.textColor};
-        background: ${theme.colors.dynamic.surface400};
-        border: 2px solid ${theme.colors.dynamic.surface100};
+        background: ${theme.colors.dynamic.surface500};
+        border: 1px solid ${theme.colors.dynamic.surface100};
         padding: ${theme.space.md} ${theme.space.lg};
       `;
 
