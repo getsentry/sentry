@@ -64,6 +64,7 @@ def logo_url() -> str:
 
 def get_metric_count_from_incident(incident: Incident) -> float | None:
     """Returns the current or last count of an incident aggregate."""
+    # TODO(iamrajjoshi): Hoist FK lookup up
     incident_trigger = (
         IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
     )
@@ -252,6 +253,7 @@ def metric_alert_unfurl_attachment_info(
             incident_info = selected_incident
 
         if incident_info:
+            # TODO(iamrajjoshi): Hoist FK lookup up
             metric_value = get_metric_count_from_incident(incident_info)
 
     text = ""
