@@ -1,4 +1,3 @@
-import sentry_sdk
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
+from sentry.models.organizationonboardingtask import OnboardingTaskStatus
 
 
 class OnboardingTaskPermission(OrganizationPermission):
@@ -62,14 +61,6 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
             user=request.user,
             values=values,
         )
-
-        if created and task_id == OnboardingTask.FIRST_PROJECT:
-            scope = sentry_sdk.get_current_scope()
-            scope.set_extra("org", organization.id)
-            sentry_sdk.capture_message(
-                f"Onboarding task {task_id} was created unexpectedly. It should have been updated instead.",
-                level="warning",
-            )
 
         if rows_affected or created:
             onboarding_tasks.try_mark_onboarding_complete(organization.id)
