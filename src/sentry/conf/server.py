@@ -2739,7 +2739,11 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:nuget",
         "name": "NuGet.org",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["portablepdb"]},
+        # We mark this source as "requires checksum" so that downloads of
+        # portable PDB fies that don't have a debug checksum won't even be
+        # attempted. Such downloads always fail with a 403 error. See
+        # https://github.com/getsentry/team-ingest/issues/643.
+        "filters": {"filetypes": ["portablepdb"], "requires_checksum": True},
         "url": "https://symbols.nuget.org/download/symbols/",
         "is_public": True,
     },
