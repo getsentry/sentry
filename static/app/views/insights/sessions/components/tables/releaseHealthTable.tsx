@@ -87,7 +87,7 @@ export default function ReleaseHealthTable({
       }
 
       if (column.key === 'error_count') {
-        return (
+        return (value as number) > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -99,6 +99,8 @@ export default function ReleaseHealthTable({
               <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {
