@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
@@ -8,6 +9,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 import type {TempestCredentials} from './types';
 
@@ -22,9 +24,13 @@ export function CredentialRow({
 }) {
   return (
     <Fragment>
-      <Flex align="center">{credential.clientId}</Flex>
+      <Flex align="center" gap={space(1)}>
+        {credential.clientId}
+      </Flex>
 
-      <Flex align="center">{credential.clientSecret}</Flex>
+      <Flex align="center">
+        <StatusTag type={getStatusType(credential)} message={credential.message} />
+      </Flex>
 
       <Flex align="center">
         <TimeSince date={credential.dateAdded} />
@@ -65,4 +71,33 @@ export function CredentialRow({
       </Flex>
     </Fragment>
   );
+}
+
+type StatusTagProps = {
+  type: 'error' | 'success' | 'info';
+  message?: string;
+};
+
+const STATUS_CONFIG = {
+  error: {label: 'Error', type: 'error'},
+  success: {label: 'Success', type: 'default'},
+  info: {label: 'Pending', type: 'info'},
+} as const;
+
+export function StatusTag({type, message}: StatusTagProps) {
+  const config = STATUS_CONFIG[type];
+  return (
+    <Tag type={config.type} tooltipText={message}>
+      {config.label}
+    </Tag>
+  );
+}
+
+export function getStatusType(credential: {message?: string; messageType?: string}) {
+  if (!credential.message) {
+    // If there is no message, it is pending
+    return 'info';
+  }
+
+  return credential.messageType === 'ERROR' ? 'error' : 'success';
 }
