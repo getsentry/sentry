@@ -284,7 +284,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const showLegend = visibleSeriesCount > 1;
 
-  const actuallyPlottable = plottables.flatMap(series => series.toSeries());
+  const dataSeries = plottables.flatMap(plottable => plottable.series);
 
   return (
     <BaseChart
@@ -297,7 +297,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       autoHeightResize
       series={[
-        ...actuallyPlottable,
+        ...dataSeries,
         releaseSeries &&
           LineSeries({
             ...releaseSeries,

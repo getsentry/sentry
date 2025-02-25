@@ -2,6 +2,7 @@ import Color from 'color';
 
 import BarSeries from 'sentry/components/charts/series/barSeries';
 
+import type {TimeSeries} from '../../common/types';
 import {markDelayedData} from '../markDelayedData';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
@@ -14,9 +15,7 @@ interface BarsOptions {
 }
 
 export class Bars extends Plottable<BarsOptions> {
-  toSeries() {
-    const {timeSeries, options} = this;
-
+  toSeries(timeSeries: TimeSeries, options: BarsOptions) {
     const markedSeries = markDelayedData(timeSeries, options.dataCompletenessDelay ?? 0);
 
     return [

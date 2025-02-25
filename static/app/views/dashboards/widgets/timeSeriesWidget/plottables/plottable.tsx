@@ -3,13 +3,11 @@ import type {SeriesOption} from 'echarts';
 import type {TimeSeries} from '../../common/types';
 
 export abstract class Plottable<TOptions> {
+  series: SeriesOption[];
+
   constructor(timeSeries: TimeSeries, options: TOptions) {
-    this.timeSeries = timeSeries;
-    this.options = options;
+    this.series = this.toSeries(timeSeries, options);
   }
 
-  timeSeries: TimeSeries;
-  options: TOptions;
-
-  abstract toSeries(): SeriesOption[];
+  abstract toSeries(timeSeries: TimeSeries, options: TOptions): SeriesOption[];
 }
