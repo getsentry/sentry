@@ -13,14 +13,14 @@ import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 export async function updateUptimeRule(
   api: Client,
   orgId: string,
-  uptimeMonitor: UptimeRule,
+  uptimeRule: UptimeRule,
   data: Partial<UptimeRule>
 ): Promise<UptimeRule | null> {
   addLoadingMessage();
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${orgId}/${uptimeMonitor.projectSlug}/uptime/${uptimeMonitor.id}/`,
+      `/projects/${orgId}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
       {method: 'PUT', data}
     );
     clearIndicators();
