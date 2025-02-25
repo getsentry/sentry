@@ -45,7 +45,11 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               id="help"
             />
             {shouldShowHelpMenuDot && (
-              <IndicatorDot orientation={orientation} collapsed={collapsed} />
+              <IndicatorDot
+                orientation={orientation}
+                collapsed={collapsed}
+                data-test-id="help-menu-dot"
+              />
             )}
           </HelpActor>
 
