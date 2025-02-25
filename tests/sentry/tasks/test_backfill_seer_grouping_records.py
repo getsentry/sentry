@@ -738,6 +738,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                         "group_id": group.id,
                         "parent_hash": "00000000000000000000000000000000",
                         "worker_number": None,
+                        "project_index_in_cohort": 0,
                     },
                 )
                 mock_seer_deletion_request.delay.assert_called_with(
@@ -793,6 +794,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 },
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records.single_project_backfill_finished",
                 extra={"project_id": self.project.id},
             ),
@@ -807,11 +816,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "batch_len": 10,
                     "last_processed_group_id": project_group_ids[batch_size - 1],
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.bulk_update",
-                extra={"project_id": self.project.id, "num_updated": 10, "worker_number": None},
+                extra={
+                    "project_id": self.project.id,
+                    "num_updated": 10,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
             ),
             call(
                 "backfill_seer_grouping_records.batch",
@@ -820,11 +835,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "batch_len": 5,
                     "last_processed_group_id": project_group_ids[-1],
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.bulk_update",
-                extra={"project_id": self.project.id, "num_updated": 5, "worker_number": None},
+                extra={
+                    "project_id": self.project.id,
+                    "num_updated": 5,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
             ),
             call(
                 "backfill_seer_grouping_records.batch",
@@ -833,11 +854,16 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "batch_len": 0,
                     "last_processed_group_id": None,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.no_more_groups",
-                extra={"project_id": self.project.id, "worker_number": None},
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
             ),
         ]
         assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
@@ -1039,6 +1065,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": self.project.id,
                     "group_id": group_no_events.id,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             )
             in mock_logger.info.call_args_list
@@ -1101,6 +1128,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "project_id": self.project.id,
                 "group_id_batch": json.dumps(group_ids_sorted),
                 "worker_number": None,
+                "project_index_in_cohort": 0,
             },
         )
         mock_call_next_backfill.assert_called_with(
@@ -1189,6 +1217,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "project_id": self.project.id,
                 "last_processed_group_id": None,
                 "worker_number": None,
+                "project_index_in_cohort": None,
             },
         )
 
@@ -1213,7 +1242,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         mock_logger.info.assert_called_with(
             "backfill_seer_grouping_records.enable_ingestion",
-            extra={"project_id": self.project.id, "worker_number": None},
+            extra={
+                "project_id": self.project.id,
+                "worker_number": None,
+                "project_index_in_cohort": 0,
+            },
         )
         assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
@@ -1258,12 +1291,21 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 },
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records.project_skipped",
                 extra={
                     "project_id": self.project.id,
                     "project_already_processed": True,
                     "project_manually_skipped": None,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1316,6 +1358,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 extra={"cohort": cohort, "worker_number": 0},
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": 0,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={"project_id": project3.id, "worker_number": 0, "project_index_in_cohort": 1},
+            ),
+            call(
                 "backfill_seer_grouping_records.cohort_finished",
                 extra={"cohort": cohort, "worker_number": 0},
             ),
@@ -1348,12 +1402,21 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 },
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records.project_skipped",
                 extra={
                     "project_id": self.project.id,
                     "project_already_processed": False,
                     "project_manually_skipped": True,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1432,6 +1495,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "batch_len": 0,
                     "last_processed_group_id": group_ids_invalid[0],
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1441,6 +1505,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "batch_len": batch_size,
                     "last_processed_group_id": group_ids[0],
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1449,6 +1514,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": project_invalid_batch.id,
                     "num_updated": batch_size,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1458,11 +1524,16 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "batch_len": 0,
                     "last_processed_group_id": None,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.no_more_groups",
-                extra={"project_id": project_invalid_batch.id, "worker_number": None},
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
             ),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
@@ -1523,6 +1594,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 },
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records.seer_failed",
                 extra={
                     "reason": "Gateway Timeout",
@@ -1563,6 +1642,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1649,6 +1736,22 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 extra={"cohort": expected_cohort, "worker_number": worker_number},
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": project_same_cohort.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": 1,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records.cohort_finished",
                 extra={"cohort": expected_cohort, "worker_number": worker_number},
             ),
@@ -1731,12 +1834,28 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 extra={"cohort": [self.project.id], "worker_number": worker_number},
             ),
             call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": 0,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records.cohort_finished",
                 extra={"cohort": [self.project.id], "worker_number": worker_number},
             ),
             call(
                 "backfill_seer_grouping_records.cohort_created",
                 extra={"cohort": [project_same_worker.id], "worker_number": worker_number},
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": project_same_worker.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": 0,
+                },
             ),
             call(
                 "backfill_seer_grouping_records.cohort_finished",
