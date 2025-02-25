@@ -304,6 +304,7 @@ export type SentryAppWebhookRequest = {
   organization?: {
     name: string;
     slug: string;
+    id?: string;
   };
 };
 
