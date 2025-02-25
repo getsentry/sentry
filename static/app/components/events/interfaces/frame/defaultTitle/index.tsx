@@ -24,6 +24,11 @@ type Props = {
   frame: Frame;
   platform: PlatformKey;
   /**
+   * The origin URL of the event that contains this frame. Used to determine if the frame
+   * comes from a different origin than the application code.
+   */
+  eventOrigin?: string;
+  /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
@@ -39,6 +44,7 @@ function DefaultTitle({
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
+  eventOrigin,
 }: Props) {
   const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
@@ -101,6 +107,11 @@ function DefaultTitle({
     const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
       defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
+    const isExternalUrl =
+      eventOrigin &&
+      frame.absPath &&
+      isUrl(frame.absPath) &&
+      !frame.absPath.startsWith(eventOrigin);
 
     if (pathNameOrModule) {
       title.push(
@@ -111,7 +122,9 @@ function DefaultTitle({
           delay={tooltipDelay}
         >
           <code key="filename" className="filename" data-test-id="filename">
-            {!!pathNameOrModule.meta && !pathNameOrModule.value ? (
+            {isExternalUrl && frame.absPath ? (
+              <Truncate value={frame.absPath} maxLength={100} leftTrim />
+            ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}
                 meta={pathNameOrModule.meta}
