@@ -117,6 +117,17 @@ def backfill_seer_grouping_records_for_project(
         return
 
     current_project_index_in_cohort = current_project_index_in_cohort or 0
+
+    if last_processed_group_id is None:
+        logger.info(
+            "backfill_seer_grouping_records.project_start",
+            extra={
+                "project_id": current_project_id,
+                "worker_number": worker_number,
+                "project_index_in_cohort": current_project_index_in_cohort,
+            },
+        )
+
     try:
         project = Project.objects.get_from_cache(id=current_project_id)
     except Project.DoesNotExist:
