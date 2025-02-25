@@ -5,14 +5,13 @@ import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTim
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('ReplayCurrentTime', story => {
-  story('Default', () => {
+export default StoryBook('ReplayCurrentTime', Story => {
+  Story('Default', () => {
     function Example() {
       return (
-        <SideBySide>
+        <Story.SideBySide>
           <ReplayPlayPauseButton />
           <ReplayCurrentTime />
           <NegativeSpaceContainer style={{height: 300}}>
@@ -20,7 +19,7 @@ export default storyBook('ReplayCurrentTime', story => {
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
-        </SideBySide>
+        </Story.SideBySide>
       );
     }
     return (
@@ -30,10 +29,10 @@ export default storyBook('ReplayCurrentTime', story => {
     );
   });
 
-  story('Jumping to different times', () => {
+  Story('Jumping to different times', () => {
     function Example() {
       return (
-        <SideBySide>
+        <Story.SideBySide>
           <ReplayPlayPauseButton />
           <ReplayCurrentTime />
           <JumpToOffsetButtonBar intervals={['0m', '1m', '12m']} />
@@ -43,7 +42,7 @@ export default storyBook('ReplayCurrentTime', story => {
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
-        </SideBySide>
+        </Story.SideBySide>
       );
     }
     return (

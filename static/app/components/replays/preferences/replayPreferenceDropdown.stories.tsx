@@ -7,7 +7,6 @@ import {
   StaticReplayPreferences,
 } from 'sentry/components/replays/preferences/replayPreferences';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 import {
@@ -15,8 +14,8 @@ import {
   useReplayPrefs,
 } from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
-export default storyBook('ReplayPreferenceDropdown', story => {
-  story('Default - LocalStorageReplayPreferences', () => {
+export default storyBook('ReplayPreferenceDropdown', Story => {
+  Story('Default - LocalStorageReplayPreferences', () => {
     return (
       <Fragment>
         <p>
@@ -29,31 +28,31 @@ export default storyBook('ReplayPreferenceDropdown', story => {
           Whatever instance sets the value last is the winner.
         </p>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
-          <SideBySide>
+          <Story.SideBySide>
             <DebugReplayPrefsState />
             <ReplayPreferenceDropdown speedOptions={[1, 2, 3]} />
-          </SideBySide>
+          </Story.SideBySide>
         </ReplayPreferencesContextProvider>
       </Fragment>
     );
   });
 
-  story('No provider', () => {
+  Story('No provider', () => {
     return (
       <Fragment>
         <p>
           A parent <JSXNode name="ReplayPreferencesContextProvider" /> is what allows
           values to be changed. Without that in the tree changes will not be reflected.
         </p>
-        <SideBySide>
+        <Story.SideBySide>
           <DebugReplayPrefsState />
           <ReplayPreferenceDropdown speedOptions={[1, 2, 3]} />
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('StaticReplayPreferences', () => {
+  Story('StaticReplayPreferences', () => {
     return (
       <Fragment>
         <p>
@@ -62,23 +61,23 @@ export default storyBook('ReplayPreferenceDropdown', story => {
         </p>
         <h4>StaticReplayPreferences</h4>
         <ReplayPreferencesContextProvider prefsStrategy={StaticReplayPreferences}>
-          <SideBySide>
+          <Story.SideBySide>
             <DebugReplayPrefsState />
             <ReplayPreferenceDropdown speedOptions={[1, 2, 3]} />
-          </SideBySide>
+          </Story.SideBySide>
         </ReplayPreferencesContextProvider>
         <h4>StaticNoSkipReplayPreferences</h4>
         <ReplayPreferencesContextProvider prefsStrategy={StaticNoSkipReplayPreferences}>
-          <SideBySide>
+          <Story.SideBySide>
             <DebugReplayPrefsState />
             <ReplayPreferenceDropdown speedOptions={[1, 2, 3]} />
-          </SideBySide>
+          </Story.SideBySide>
         </ReplayPreferencesContextProvider>
       </Fragment>
     );
   });
 
-  story('hideFastForward', () => {
+  Story('hideFastForward', () => {
     return (
       <Fragment>
         <p>
@@ -86,10 +85,10 @@ export default storyBook('ReplayPreferenceDropdown', story => {
           desirable.
         </p>
         <ReplayPreferencesContextProvider prefsStrategy={StaticReplayPreferences}>
-          <SideBySide>
+          <Story.SideBySide>
             <DebugReplayPrefsState />
             <ReplayPreferenceDropdown hideFastForward speedOptions={[1, 2, 3]} />
-          </SideBySide>
+          </Story.SideBySide>
         </ReplayPreferencesContextProvider>
       </Fragment>
     );

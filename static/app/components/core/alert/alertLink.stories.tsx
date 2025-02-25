@@ -4,7 +4,7 @@ import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alert/alert
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconMail} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/alert/alertLink';
@@ -19,9 +19,9 @@ const ALERT_LINK_VARIANTS: Array<AlertLinkProps['type']> = [
   'muted',
 ];
 
-export default storyBook('AlertLink', (story, APIReference) => {
-  APIReference(types.AlertLink);
-  story('Default', () => {
+export default StoryBook('AlertLink', Story => {
+  Story.APIReference(types.AlertLink);
+  Story('Default', () => {
     return (
       <Fragment>
         <p>
@@ -42,7 +42,7 @@ export default storyBook('AlertLink', (story, APIReference) => {
     );
   });
 
-  story('Internal, External, and Manual Links', () => {
+  Story('Internal, External, and Manual Links', () => {
     return (
       <Fragment>
         <p>
@@ -80,7 +80,7 @@ export default storyBook('AlertLink', (story, APIReference) => {
       </Fragment>
     );
   });
-  story('With Custom Icon', () => {
+  Story('With Custom Icon', () => {
     return (
       <Fragment>
         <p>
@@ -95,7 +95,7 @@ export default storyBook('AlertLink', (story, APIReference) => {
     );
   });
 
-  story('AlertLink.Container', () => {
+  Story('AlertLink.Container', () => {
     return (
       <Fragment>
         <p>

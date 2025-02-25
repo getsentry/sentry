@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
@@ -41,10 +40,10 @@ const sampleDurationTimeSeries2 = {
   },
 };
 
-export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
+export default storyBook('TimeSeriesWidgetVisualization', Story => {
   APIReference(types.TimeSeriesWidgetVisualization);
 
-  story('Getting Started', () => {
+  Story('Getting Started', () => {
     return (
       <Fragment>
         <p>
@@ -69,7 +68,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           needs. If it doesn't, reach out to the Dashboards team.
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
               visualizationType="line"
@@ -88,12 +87,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               timeSeries={[sampleDurationTimeSeries]}
             />
           </SmallWidget>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Data Format', () => {
+  Story('Data Format', () => {
     return (
       <Fragment>
         <p>
@@ -132,7 +131,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Choosing The Visualization Type', () => {
+  Story('Choosing The Visualization Type', () => {
     return (
       <Fragment>
         <p>Here are a few guidelines on how to choose the right visualization:</p>
@@ -156,7 +155,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Basic Plotting', () => {
+  Story('Basic Plotting', () => {
     return (
       <Fragment>
         <p>
@@ -181,7 +180,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Loading Placeholder', () => {
+  Story('Loading Placeholder', () => {
     return (
       <Fragment>
         <p>
@@ -197,7 +196,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Stacking', () => {
+  Story('Stacking', () => {
     return (
       <Fragment>
         <p>
@@ -206,7 +205,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           stacked.
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               visualizationType="bar"
@@ -221,12 +220,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </MediumWidget>
           <SmallWidget />
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Incomplete Data', () => {
+  Story('Incomplete Data', () => {
     const props = {
       dataCompletenessDelay: 60 * 60 * 3,
       timeSeries: [
@@ -242,7 +241,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           seconds. By default the delay is <code>0</code>.
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization {...props} visualizationType="line" />
           </MediumWidget>
@@ -252,12 +251,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization {...props} stacked visualizationType="bar" />
           </MediumWidget>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Drag to Select', () => {
+  Story('Drag to Select', () => {
     const {start, end} = useLocationQuery({
       fields: {
         start: decodeScalar,
@@ -296,7 +295,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Legends', () => {
+  Story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
       'p99(span.duration)': false,
     });
@@ -338,7 +337,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Colors', () => {
+  Story('Colors', () => {
     const theme = useTheme();
 
     return (
@@ -372,7 +371,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Releases', () => {
+  Story('Releases', () => {
     const releases = [
       {
         version: 'ui@0.1.2',

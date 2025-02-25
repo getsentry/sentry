@@ -5,19 +5,19 @@ import {Button} from 'sentry/components/button';
 import type {PropMatrix} from 'sentry/components/stories/matrix';
 import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/button';
 
-export default storyBook('Button', (story, APIReference) => {
-  APIReference(types.Button);
+export default StoryBook('Button', Story => {
+  Story.APIReference(types.Button);
 
-  story('Default', () => {
+  Story('Default', () => {
     return <Button>Default Button</Button>;
   });
 
-  story('onClick', () => {
+  Story('onClick', () => {
     const [clickCount, setClickCount] = useState(0);
     return (
       <Fragment>
@@ -39,7 +39,7 @@ export default storyBook('Button', (story, APIReference) => {
     title: [undefined, 'Delete this'],
     translucentBorder: [false, true],
   };
-  story('Props', () => (
+  Story('Props', () => (
     <div>
       <Matrix<ButtonProps>
         render={Button}

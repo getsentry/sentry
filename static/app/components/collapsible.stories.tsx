@@ -4,12 +4,11 @@ import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('Collapsible', story => {
-  story('Default', () => (
+export default StoryBook('Collapsible', Story => {
+  Story('Default', () => (
     <Fragment>
       <p>
         After passing in a list of children, <JSXNode name="Collapsible" /> will truncate
@@ -28,13 +27,13 @@ export default storyBook('Collapsible', story => {
     </Fragment>
   ));
 
-  story('Bugs', () => (
+  Story('Bugs', () => (
     <Fragment>
       <p>
         It's possible to use <JSXNode name="ul" /> or <JSXNode name="ol" />, but beware
         that the button will appear inside the list as well.
       </p>
-      <SideBySide>
+      <Story.SideBySide>
         <ol>
           <Collapsible maxVisibleItems={2}>
             <li>Item 1</li>
@@ -49,11 +48,11 @@ export default storyBook('Collapsible', story => {
             <li>Item 3</li>
           </Collapsible>
         </ul>
-      </SideBySide>
+      </Story.SideBySide>
     </Fragment>
   ));
 
-  story('maxVisibleItems', () => {
+  Story('maxVisibleItems', () => {
     const allItems = ['one', 'two', 'three', 'four', 'five'].map(i => (
       <div key={i}>Item {i}</div>
     ));
@@ -64,7 +63,7 @@ export default storyBook('Collapsible', story => {
           <JSXProperty name="maxVisibleItems" value={Number} /> will show/hide and
           pluralize the button label as needed.
         </p>
-        <SideBySide>
+        <Story.SideBySide>
           {[3, 4, 5, 6].map(maxVisibleItems => (
             <div key={maxVisibleItems}>
               <p>
@@ -75,12 +74,12 @@ export default storyBook('Collapsible', story => {
               </SizingWindow>
             </div>
           ))}
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Custom Buttons', () => (
+  Story('Custom Buttons', () => (
     <Fragment>
       <p>
         You can set custom <JSXProperty name="collapseButton" value={Function} /> &{' '}

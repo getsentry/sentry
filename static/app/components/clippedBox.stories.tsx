@@ -7,13 +7,12 @@ import ClippedBox from 'sentry/components/clippedBox';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook('ClippedBox', story => {
-  story('Default', () => (
+export default StoryBook('ClippedBox', Story => {
+  Story('Default', () => (
     <Fragment>
       <p>
         By default <JSXNode name="ClippedBox" /> is just a container. Add{' '}
@@ -45,7 +44,7 @@ export default storyBook('ClippedBox', story => {
     pointer-events: none;
   `;
 
-  story('Title', () => (
+  Story('Title', () => (
     <SizingWindow>
       <ClippedBox title="This is the title">
         <img src={onboardingFrameworkSelectionJavascript} height={300} />
@@ -53,7 +52,7 @@ export default storyBook('ClippedBox', story => {
     </SizingWindow>
   ));
 
-  story('Custom Button & Fade', () => (
+  Story('Custom Button & Fade', () => (
     <Matrix
       render={ClippedBox}
       propMatrix={{
@@ -72,7 +71,7 @@ export default storyBook('ClippedBox', story => {
     />
   ));
 
-  story('Callbacks', () => {
+  Story('Callbacks', () => {
     return (
       <Fragment>
         <p>
@@ -80,7 +79,7 @@ export default storyBook('ClippedBox', story => {
           <JSXProperty name="onSetRenderedHeight" value={Function} />&{' '}
           <JSXProperty name="onReveal" value={Function} />.
         </p>
-        <SideBySide>
+        <Story.SideBySide>
           {[50, 100, 150].map(imgHeight => {
             const [isRevealed, setIsRevealed] = useState(false);
             const [renderedHeight, setRenderedHeight] = useState<number | undefined>(
@@ -110,7 +109,7 @@ export default storyBook('ClippedBox', story => {
               </div>
             );
           })}
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });

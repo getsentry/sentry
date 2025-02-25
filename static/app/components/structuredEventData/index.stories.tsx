@@ -5,12 +5,11 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('StructuredEventData', story => {
-  story('Default', () => {
+export default StoryBook('StructuredEventData', Story => {
+  Story('Default', () => {
     return (
       <Fragment>
         <p>
@@ -28,7 +27,7 @@ export default storyBook('StructuredEventData', story => {
     );
   });
 
-  story('Auto-Expanded items', () => (
+  Story('Auto-Expanded items', () => (
     <Matrix
       propMatrix={{
         data: [
@@ -53,7 +52,7 @@ export default storyBook('StructuredEventData', story => {
     />
   ));
 
-  story('Manually expanded items', () => {
+  Story('Manually expanded items', () => {
     const data = {
       foo: 'bar',
       'the_real_world?': {
@@ -67,7 +66,7 @@ export default storyBook('StructuredEventData', story => {
       arr6: [1, 2, 3, 4, 5, 6],
     };
     return (
-      <SideBySide>
+      <Story.SideBySide>
         <div>
           <p>Nothing</p>
           <StructuredEventData data={data} initialExpandedPaths={[]} />
@@ -96,11 +95,11 @@ export default storyBook('StructuredEventData', story => {
             ]}
           />
         </div>
-      </SideBySide>
+      </Story.SideBySide>
     );
   });
 
-  story('onToggleExpand', () => {
+  Story('onToggleExpand', () => {
     const [state, setState] = useState<string[]>();
     return (
       <Fragment>
@@ -122,7 +121,7 @@ export default storyBook('StructuredEventData', story => {
     );
   });
 
-  story('Annotations', () => {
+  Story('Annotations', () => {
     return (
       <Fragment>
         <p>
@@ -139,7 +138,7 @@ export default storyBook('StructuredEventData', story => {
     );
   });
 
-  story('Custom rendering of value types', () => {
+  Story('Custom rendering of value types', () => {
     return (
       <Fragment>
         <p>
@@ -180,7 +179,7 @@ export default storyBook('StructuredEventData', story => {
     );
   });
 
-  story('Allow copy to clipboard', () => {
+  Story('Allow copy to clipboard', () => {
     return (
       <Fragment>
         <p>

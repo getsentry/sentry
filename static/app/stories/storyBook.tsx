@@ -2,18 +2,26 @@ import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
-type StoryRenderFunction = () => ReactNode | ReactNode[];
-type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
-type SetupFunction = (
-  story: StoryContext,
-  apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
-) => void;
+const SideBySide = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+  flex-wrap: wrap;
+  align-items: flex-start;
+`;
 
-export default function storyBook(
+type StoryRenderFunction = () => ReactNode | ReactNode[];
+interface StoryContext {
+  (storyName: string, story: StoryRenderFunction): void;
+  APIReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void;
+  SideBySide: typeof SideBySide;
+}
+
+type SetupFunction = (story: StoryContext) => void;
+
+export default function StoryBook(
   title: string,
   setup: SetupFunction
 ): StoryRenderFunction {
@@ -22,18 +30,22 @@ export default function storyBook(
     render: StoryRenderFunction;
   }> = [];
   const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
-
-  const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
-    stories.push({name, render});
-  };
-
-  const apiReferenceFn: (
+  const APIReference: (
     documentation: TypeLoader.ComponentDocWithFilename | undefined
   ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
     APIDocumentation.push(documentation);
   };
 
-  setup(storyFn, apiReferenceFn);
+  function storyFn(name: string, render: StoryRenderFunction) {
+    stories.push({name, render});
+  }
+
+  Object.assign(storyFn, {
+    SideBySide,
+    APIReference,
+  });
+
+  setup(storyFn as StoryContext);
 
   return function RenderStory() {
     return (

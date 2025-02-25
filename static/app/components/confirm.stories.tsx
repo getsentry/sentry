@@ -7,12 +7,11 @@ import Link from 'sentry/components/links/link';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook('Confirm', story => {
-  story('Triggers', () => {
+export default StoryBook('Confirm', Story => {
+  Story('Triggers', () => {
     const [state, setState] = useState('empty');
 
     return (
@@ -25,7 +24,7 @@ export default storyBook('Confirm', story => {
           It's recommended to call <code>openConfirmModal()</code>.
         </p>
         <p>Current state is: {state}.</p>
-        <SideBySide>
+        <Story.SideBySide>
           <Button
             onClick={() =>
               openConfirmModal({
@@ -48,19 +47,19 @@ export default storyBook('Confirm', story => {
               Button is wrapped with <JSXNode name="Confirm" />
             </Button>
           </Confirm>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Labels', () => (
+  Story('Labels', () => (
     <Fragment>
       <p>
         You must implement at least <JSXProperty name="message" value={String} />, but
         have the option of implementing{' '}
         <JSXProperty name="renderMessage" value={Function} /> instead.
       </p>
-      <SideBySide>
+      <Story.SideBySide>
         <Button
           onClick={() =>
             openConfirmModal({
@@ -101,11 +100,11 @@ export default storyBook('Confirm', story => {
         >
           With ReactNode Labels
         </Button>
-      </SideBySide>
+      </Story.SideBySide>
     </Fragment>
   ));
 
-  story('Callbacks & bypass={true}', () => {
+  Story('Callbacks & bypass={true}', () => {
     const [callbacks, setCallbacks] = useState<string[]>([]);
     return (
       <Fragment>
@@ -115,7 +114,7 @@ export default storyBook('Confirm', story => {
           selected in a bulk-change operation, and directly run the{' '}
           <JSXProperty name="onConfirm" value={Function} /> callback.
         </p>
-        <SideBySide>
+        <Story.SideBySide>
           <Button
             onClick={() =>
               openConfirmModal({
@@ -144,7 +143,7 @@ export default storyBook('Confirm', story => {
           >
             With callbacks (bypass = true)
           </Button>
-        </SideBySide>
+        </Story.SideBySide>
         <p>
           <label>
             Callback debugger:
@@ -158,7 +157,7 @@ export default storyBook('Confirm', story => {
     );
   });
 
-  story('<Confirm> child render func', () => (
+  Story('<Confirm> child render func', () => (
     <Fragment>
       <p>
         Here's an example where <JSXProperty name="children" value={Function} /> is a
@@ -168,7 +167,7 @@ export default storyBook('Confirm', story => {
     </Fragment>
   ));
 
-  story('<Confirm> specific props', () => {
+  Story('<Confirm> specific props', () => {
     const [clicks, setClicks] = useState(0);
 
     return (
