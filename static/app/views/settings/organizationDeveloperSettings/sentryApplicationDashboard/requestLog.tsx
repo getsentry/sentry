@@ -23,8 +23,10 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -114,11 +116,15 @@ interface RequestLogProps {
   app: SentryApp;
 }
 
-function makeRequestLogQueryKey(slug: string): ApiQueryKey {
+function makeRequestLogQueryKey(slug: string, organization: Organization): ApiQueryKey {
+  if (organization.features.includes('sentry-app-webhook-requests')) {
+    return [`/sentry-apps/${slug}/webhook-requests/`];
+  }
   return [`/sentry-apps/${slug}/requests/`];
 }
 
 export default function RequestLog({app}: RequestLogProps) {
+  const organization = useOrganization();
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
@@ -137,7 +143,10 @@ export default function RequestLog({app}: RequestLogProps) {
     data: requests = [],
     isLoading,
     refetch,
-  } = useApiQuery<SentryAppWebhookRequest[]>(makeRequestLogQueryKey(slug), query);
+  } = useApiQuery<SentryAppWebhookRequest[]>(
+    makeRequestLogQueryKey(slug, organization),
+    query
+  );
 
   const currentRequests = useMemo(
     () => requests.slice(currentPage * MAX_PER_PAGE, (currentPage + 1) * MAX_PER_PAGE),
