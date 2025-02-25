@@ -225,7 +225,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert response.json()["data"][0]["flag"] == "goodbye"
             assert response.json()["data"][1]["flag"] == "hello"
 
-    def test_get_sort_default(self):
+    def test_get_sort_default_created_at(self):
         FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc) - timedelta(days=1),
