@@ -8,6 +8,10 @@ family:native package:/private/var/containers/Bundle/Application/**  +app
 family:native package:**/Developer/CoreSimulator/Devices/**          +app
 family:native package:**/Containers/Bundle/Application/**            +app
 
+# well known path components for mac paths
+family:native package:**.app/Contents/**                             +app
+family:native package:/Users/**                                      +app
+
 # Unreal Engine
 
 ## UE internal assertion handling
@@ -29,10 +33,6 @@ family:native package:/usr/lib/**                                    -app
 family:native path:/usr/local/lib/**                                 -app
 family:native path:/usr/local/Cellar/**                              -app
 family:native package:linux-gate.so*                                 -app
-
-# well known path components for mac paths
-family:native package:**.app/Contents/**                             +app
-family:native package:/Users/**                                      +app
 
 # rust common modules
 family:native function:std::*                                     -app
