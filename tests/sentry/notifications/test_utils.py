@@ -1,7 +1,6 @@
 import types
 
 from sentry.issues.grouptype import (
-    PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
@@ -11,6 +10,9 @@ from sentry.notifications.utils import (
     RenderBlockingAssetProblemContext,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 

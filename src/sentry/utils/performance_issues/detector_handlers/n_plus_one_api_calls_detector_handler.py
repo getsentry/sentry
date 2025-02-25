@@ -4,18 +4,18 @@ import hashlib
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-
-# from sentry.types.group import PriorityLevel
+from sentry.types.group import PriorityLevel
 from sentry.utils.performance_issues.base import (
     fingerprint_http_spans,
     get_notification_attachment_body,
@@ -255,3 +255,14 @@ def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None
 
 def without_query_params(url: str) -> str:
     return urlparse(url)._replace(query="").geturl()
+
+
+@dataclass(frozen=True)
+class PerformanceNPlusOneAPICallsGroupType(GroupType):
+    type_id = 1010
+    slug = "performance_n_plus_one_api_calls"
+    description = "N+1 API Call"
+    category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
+    released = True
+    detector_handler = NPlusOneAPICallsDetectorHandler

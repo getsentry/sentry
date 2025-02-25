@@ -18,9 +18,6 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
-    NPlusOneAPICallsDetectorHandler,
-)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -326,17 +323,6 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     noise_config = NoiseConfig(ignore_limit=5)
     default_priority = PriorityLevel.LOW
     released = True
-
-
-@dataclass(frozen=True)
-class PerformanceNPlusOneAPICallsGroupType(GroupType):
-    type_id = 1010
-    slug = "performance_n_plus_one_api_calls"
-    description = "N+1 API Call"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-    released = True
-    detector_handler = NPlusOneAPICallsDetectorHandler
 
 
 @dataclass(frozen=True)

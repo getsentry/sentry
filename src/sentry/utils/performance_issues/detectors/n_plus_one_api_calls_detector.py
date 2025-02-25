@@ -10,10 +10,12 @@ from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 
 from ..base import (

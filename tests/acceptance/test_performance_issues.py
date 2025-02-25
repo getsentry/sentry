@@ -6,17 +6,16 @@ from unittest.mock import patch
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
-from sentry.issues.grouptype import (
-    NoiseConfig,
-    PerformanceNPlusOneAPICallsGroupType,
-    PerformanceNPlusOneGroupType,
-)
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models.group import Group
 from sentry.testutils.cases import AcceptanceTestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
+)
 
 
 @no_silo_test

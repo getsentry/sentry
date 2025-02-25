@@ -18,13 +18,15 @@ from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
     PerformanceHTTPOverheadGroupType,
     PerformanceLargeHTTPPayloadGroupType,
-    PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceP95EndpointRegressionGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
     ProfileFunctionRegressionType,
+)
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
 )
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 

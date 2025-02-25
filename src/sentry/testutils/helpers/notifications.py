@@ -8,7 +8,6 @@ from typing import Any
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (
     FeedbackGroup,
-    PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -19,6 +18,9 @@ from sentry.models.group import Group
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
+)
 
 
 class DummyNotification(BaseNotification):

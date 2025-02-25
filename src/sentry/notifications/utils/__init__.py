@@ -21,7 +21,6 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
-    PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
 from sentry.models.activity import Activity
@@ -40,6 +39,9 @@ from sentry.silo.base import region_silo_function
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 

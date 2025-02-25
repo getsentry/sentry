@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -14,6 +13,9 @@ from sentry.testutils.performance_issues.event_generators import (
     get_event,
 )
 from sentry.utils.performance_issues.base import DetectorType, parameterize_url
+from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsDetector,
     without_query_params,
