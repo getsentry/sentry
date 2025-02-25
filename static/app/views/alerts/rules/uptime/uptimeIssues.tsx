@@ -33,10 +33,13 @@ export function UptimeIssues({project, ruleId}: Props) {
   return (
     <GroupList
       orgSlug={organization.slug}
+      withChart={false}
+      withPagination={false}
+      withColumns={['assignee']}
       queryParams={{
         query,
         project: project.id,
-        limit: 20,
+        limit: 1,
       }}
       renderEmptyMessage={emptyMessage}
     />
