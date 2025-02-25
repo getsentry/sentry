@@ -196,9 +196,18 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         )
 
         if team.organization.flags.disable_member_project_creation and not (
-            request.access.has_scope("org:write") or team.id in requester_admin_teams
+            request.access.has_scope("org:write")
         ):
-            return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
+            requester_admin_teams = set(
+                OrganizationMemberTeam.objects.filter(
+                    organizationmember__user_id=request.user.id,
+                    organizationmember__organization=team.organization,
+                    role="admin",
+                ).values_list("team__id", flat=True)
+            )
+            # Only allow project creation if the user is an admin of the team
+            if not (request.access.has_scope("project:admin") and team.id in requester_admin_teams):
+                return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
         with transaction.atomic(router.db_for_write(Project)):
