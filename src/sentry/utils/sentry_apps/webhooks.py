@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
 
+import sentry_sdk
 from requests import RequestException, Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
@@ -112,6 +113,7 @@ def record_response_for_disabling_integration(
         check_broken(sentryapp, org_id)
 
 
+@sentry_sdk.trace
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,
@@ -152,9 +154,10 @@ def send_and_save_webhook_request(
             )
         except (Timeout, ConnectionError) as e:
             error_type = e.__class__.__name__.lower()
-            logger.info(
-                "send_and_save_webhook_request.timeout",
-                extra={
+            sentry_sdk.capture_exception(e)
+            lifecycle.add_extras(
+                {
+                    "event": "send_and_save_webhook_request.timeout",
                     "error_type": error_type,
                     "organization_id": org_id,
                     "integration_slug": sentry_app.slug,

@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import sentry_sdk
 from celery import Task, current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
@@ -33,6 +34,7 @@ from sentry.sentry_apps.services.app.service import (
     get_installation,
     get_installations_for_organization,
 )
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -207,6 +209,7 @@ def send_alert_webhook(
         )
 
 
+@sentry_sdk.trace
 def _process_resource_change(
     *,
     action: str,
@@ -304,9 +307,10 @@ def _process_resource_change(
 def process_resource_change_bound(
     self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
-    _process_resource_change(
-        action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
-    )
+    with sentry_sdk.start_transaction(op="task", name="process_resource_change_bound"):
+        _process_resource_change(
+            action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
+        )
 
 
 @instrumented_task(
@@ -455,6 +459,7 @@ def get_webhook_data(
     return (install, issue, user)
 
 
+@sentry_sdk.trace
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook", **TASK_OPTIONS
 )
@@ -472,6 +477,8 @@ def send_resource_change_webhook(
                 failure_reason="send_resource_change_webhook.missing_installation",
                 extra={"installation_id": installation_id, "event": event},
             )
+            # assuming we're able to capture the stack trace here
+            sentry_sdk.capture_message("send_resource_change_webhook.missing_installation")
             return
 
         send_webhooks(installation, event, data=data)
@@ -508,6 +515,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         )
 
 
+@sentry_sdk.trace
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, sentry_app_installation=installation
@@ -522,12 +530,18 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 failure_reason="send_webhooks.missing_servicehook",
                 extra={"installation_id": installation.id, "event": event},
             )
+            # assuming we capture stack trace here
+            sentry_sdk.capture_message("send_webhooks.missing_servicehook")
             return None
 
         if event not in servicehook.events:
             lifecycle.record_failure(
                 failure_reason="send_webhooks.event-not-in-servicehook",
                 extra={"installation_id": installation.id, "event": event},
+            )
+            # alternative, if we can't capture stacktrace via capture_message (does this even work ???????????)
+            sentry_sdk.capture_exception(
+                SentryAppSentryError(message="send_webhooks.event-not-in-servicehook")
             )
             return None
 
