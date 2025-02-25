@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import {AlertLink} from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 import type {

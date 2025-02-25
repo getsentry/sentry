@@ -20,7 +20,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {AlertLink} from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Input} from 'sentry/components/core/input';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';

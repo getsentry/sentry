@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from 'sentry/components/button';
-import {AlertLink} from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';

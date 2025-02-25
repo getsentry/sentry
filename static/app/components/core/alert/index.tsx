@@ -14,7 +14,7 @@ import PanelProvider from 'sentry/utils/panelProvider';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
-import * as ChonkAlert from './alert.chonk';
+import * as ChonkAlert from './index.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
