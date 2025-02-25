@@ -213,3 +213,14 @@ class Test(ApiTestCase):
         "t.py:19:27: S011 Use override_options(...) instead to ensure proper cleanup",
     ]
     assert _run(src, filename="tests/test_example.py") == expected
+
+
+def test_S012():
+    src = """\
+from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_METHODS
+"""
+
+    expected = [
+        "t.py:1:0: S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
+    ]
+    assert _run(src, filename="tests/test_example.py") == expected
