@@ -1,17 +1,18 @@
 from typing import Any
 
 from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.identity.base import Provider
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.users.models.identity import Identity
 
 __all__ = ("DummyProvider",)
 
 
 class AskEmail(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "email" in request.POST:
             pipeline.bind_state("email", request.POST.get("email"))
             return pipeline.next_step()

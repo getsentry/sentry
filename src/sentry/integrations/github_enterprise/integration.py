@@ -5,9 +5,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -26,7 +27,7 @@ from sentry.integrations.source_code_management.commit_context import CommitCont
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt
@@ -304,7 +305,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -494,7 +495,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         installation_data = pipeline.fetch_state(key="installation_data")
 
         if "installation_id" in request.GET:

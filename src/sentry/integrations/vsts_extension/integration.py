@@ -3,8 +3,8 @@ from typing import Any
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from rest_framework.request import Request
 
 from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
 from sentry.pipeline import Pipeline, PipelineView
@@ -35,7 +35,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
 
 
 class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         response = pipeline.finish_pipeline()
 
         integration = getattr(pipeline, "integration", None)
