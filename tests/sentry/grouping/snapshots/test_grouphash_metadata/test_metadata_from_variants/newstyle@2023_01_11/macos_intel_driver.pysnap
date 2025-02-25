@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:41.224165+00:00'
+created: '2025-02-25T18:30:57.622977+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -33,13 +33,13 @@ contributing variants:
             frame*
               function*
                 "code"
-            frame*
+            frame* (marked out of app by stack trace rule (category:system -app))
               function*
                 "-[NSApplication run]"
             frame*
               function*
                 "code"
-            frame*
+            frame* (marked out of app by stack trace rule (category:system -app))
               function*
                 "-[NSView displayIfNeeded]"
             frame*
