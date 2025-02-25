@@ -7,6 +7,7 @@ from django.http.request import HttpRequest
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 
@@ -19,6 +20,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
     name = "GitHub"
+    key = "github"
 
     def get_client_id(self):
         return CLIENT_ID
@@ -54,7 +56,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         pipeline.append(SelectOrganization())
         return pipeline
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):
@@ -75,7 +77,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
             "data": self.get_oauth_data(data),
         }
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         with GitHubClient(auth_identity.data["access_token"]) as client:
             try:
                 if not client.is_org_member(self.org["id"]):

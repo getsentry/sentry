@@ -1,11 +1,15 @@
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
+import styled, {
+  type CreateStyledComponent,
+  type FilteringStyledOptions,
+} from '@emotion/styled';
+import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
 import commonTheme, {
   type ColorMapping,
   darkTheme,
   generateAlertTheme,
-  generateBadgeTheme,
   generateButtonTheme,
   generateLevelTheme,
   generateTagTheme,
@@ -21,9 +25,9 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       text: {
         primary: colorScheme.dynamic.grayTransparent500,
         secondary: colorScheme.dynamic.grayTransparent400,
-        accent: colorScheme.dynamic.blurple400,
+        accent: colorScheme.dynamic.blue400,
         success: colorScheme.dynamic.green400,
-        warning: colorScheme.dynamic.gold400,
+        warning: colorScheme.dynamic.yellow400,
         danger: colorScheme.dynamic.red400,
       },
       graphic: {
@@ -32,9 +36,9 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           secondary: colorScheme.dynamic.grayTransparent400,
           tertiary: colorScheme.dynamic.grayTransparent300,
           quaternary: colorScheme.dynamic.grayTransparent200,
-          accent: colorScheme.static.blurple400,
+          accent: colorScheme.static.blue400,
           success: colorScheme.static.green100,
-          warning: colorScheme.static.gold100,
+          warning: colorScheme.static.yellow100,
           danger: colorScheme.static.red400,
         },
         chart: {
@@ -59,7 +63,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
     interactive: {
       outline: {
         default: {
-          color: colorScheme.static.blurple400,
+          color: colorScheme.static.blue400,
         },
         danger: {
           color: colorScheme.static.red400,
@@ -68,9 +72,9 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       link: {
         accent: {
           color: {
-            default: colorScheme.dynamic.blurple400,
-            hover: colorScheme.dynamic.blurple400,
-            active: colorScheme.dynamic.blurple400,
+            default: colorScheme.dynamic.blue400,
+            hover: colorScheme.dynamic.blue400,
+            active: colorScheme.dynamic.blue400,
           },
         },
       },
@@ -94,21 +98,21 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           },
         },
         accent: {
-          chonk: colorScheme.dynamic.blurple100,
+          chonk: colorScheme.dynamic.blue100,
           children: colorScheme.static.white,
           background: {
-            default: colorScheme.static.blurple400,
-            hover: colorScheme.static.blurple300,
-            active: colorScheme.static.blurple200,
+            default: colorScheme.static.blue400,
+            hover: colorScheme.static.blue300,
+            active: colorScheme.static.blue200,
           },
         },
         warning: {
-          chonk: colorScheme.dynamic.gold100,
+          chonk: colorScheme.dynamic.yellow100,
           children: colorScheme.static.black,
           background: {
-            default: colorScheme.static.gold400,
-            hover: colorScheme.static.gold300,
-            active: colorScheme.static.gold200,
+            default: colorScheme.static.yellow400,
+            hover: colorScheme.static.yellow300,
+            active: colorScheme.static.yellow200,
           },
         },
         danger: {
@@ -153,10 +157,10 @@ const lightColors = {
     black: '#181423',
     white: '#F6F5FA',
 
-    blurple400: '#7553FF',
-    blurple300: '#6C4DEB',
-    blurple200: '#6246D4',
-    blurple100: '#553DB8',
+    blue400: '#7553FF',
+    blue300: '#6C4DEB',
+    blue200: '#6246D4',
+    blue100: '#553DB8',
 
     pink400: '#FF70BC',
     pink300: '#ED69AF',
@@ -168,10 +172,10 @@ const lightColors = {
     red200: '#C2003B',
     red100: '#A80033',
 
-    gold400: '#FFD00E',
-    gold300: '#F0C40D',
-    gold200: '#E0B70C',
-    gold100: '#C9A30A',
+    yellow400: '#FFD00E',
+    yellow300: '#F0C40D',
+    yellow200: '#E0B70C',
+    yellow100: '#C9A30A',
 
     green400: '#00F261',
     green300: '#00E35B',
@@ -198,10 +202,10 @@ const lightColors = {
     grayTransparent200: 'rgba(24, 20, 35, 0.14)',
     grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
-    blurple400: '#6C4DEB',
-    blurple300: '#5E42CC',
-    blurple200: '#523AB2',
-    blurple100: '#553DB8',
+    blue400: '#6C4DEB',
+    blue300: '#5E42CC',
+    blue200: '#523AB2',
+    blue100: '#553DB8',
 
     pink400: '#BD337C',
     pink300: '#A32C6C',
@@ -213,10 +217,10 @@ const lightColors = {
     red200: '#99002E',
     red100: '#A80033',
 
-    gold400: '#9D5710',
-    gold300: '#8A4D0F',
-    gold200: '#7B450F',
-    gold100: '#C9A30A',
+    yellow400: '#9D5710',
+    yellow300: '#8A4D0F',
+    yellow200: '#7B450F',
+    yellow100: '#C9A30A',
 
     green400: '#17753D',
     green300: '#146635',
@@ -230,10 +234,10 @@ const darkColors: typeof lightColors = {
     black: '#181423',
     white: '#F6F5FA',
 
-    blurple400: '#7553FF',
-    blurple300: '#6C4DEB',
-    blurple200: '#6246D4',
-    blurple100: '#553DB8',
+    blue400: '#7553FF',
+    blue300: '#6C4DEB',
+    blue200: '#6246D4',
+    blue100: '#553DB8',
 
     pink400: '#FF70BC',
     pink300: '#ED69AF',
@@ -245,10 +249,10 @@ const darkColors: typeof lightColors = {
     red200: '#C2003B',
     red100: '#A80033',
 
-    gold400: '#FFD00E',
-    gold300: '#F0C40D',
-    gold200: '#E0B70C',
-    gold100: '#C9A30A',
+    yellow400: '#FFD00E',
+    yellow300: '#F0C40D',
+    yellow200: '#E0B70C',
+    yellow100: '#C9A30A',
 
     green400: '#00F261',
     green300: '#00E35B',
@@ -276,10 +280,10 @@ const darkColors: typeof lightColors = {
     grayTransparent200: 'rgba(246, 245, 250, 0.18)',
     grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
-    blurple400: '#A791FF',
-    blurple300: '#B7A6FF',
-    blurple200: '#C6B8FF',
-    blurple100: '#07050F',
+    blue400: '#A791FF',
+    blue300: '#B7A6FF',
+    blue200: '#C6B8FF',
+    blue100: '#07050F',
 
     pink400: '#FF70BC',
     pink300: '#FF82C4',
@@ -291,10 +295,10 @@ const darkColors: typeof lightColors = {
     red200: '#FFA8C2',
     red100: '#1A0007',
 
-    gold400: '#FFE166',
-    gold300: '#FFE680',
-    gold200: '#FFEB99',
-    gold100: '#0A0800',
+    yellow400: '#FFE166',
+    yellow300: '#FFE680',
+    yellow200: '#FFEB99',
+    yellow100: '#0A0800',
 
     green400: '#55F294',
     green300: '#6DF2A2',
@@ -454,7 +458,7 @@ const generateAliases = (
   warning: tokens.static.graphic.icon.warning,
   warningText: tokens.static.text.warning,
   // @TODO(jonasbadalic): should this reference a static color?
-  warningFocus: colors.static.gold200, // Not being used
+  warningFocus: colors.static.yellow200, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -475,9 +479,9 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: colors.static.blurple200,
-  activeHover: colors.static.blurple300,
-  activeText: colors.static.blurple400,
+  active: colors.static.blue200,
+  activeHover: colors.static.blue300,
+  activeText: colors.static.blue400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -534,7 +538,7 @@ const generateAliases = (
   /**
    * Default Progressbar color
    */
-  progressBar: colors.static.blurple400,
+  progressBar: colors.static.blue400,
 
   /**
    * Default Progressbar color
@@ -549,17 +553,17 @@ const generateAliases = (
   /**
    * Tag progress bars
    */
-  tagBarHover: colors.static.blurple300,
+  tagBarHover: colors.static.blue300,
   tagBar: colors.dynamic.grayTransparent200,
 
   // @todo(jonasbadalic) should these reference static colors?
   searchTokenBackground: {
-    valid: colors.static.blurple100,
-    validActive: color(colors.static.blurple100).opaquer(1.0).string(),
+    valid: colors.static.blue100,
+    validActive: color(colors.static.blue100).opaquer(1.0).string(),
     invalid: colors.static.red100,
     invalidActive: color(colors.static.red100).opaquer(0.8).string(),
-    warning: colors.static.gold100,
-    warningActive: color(colors.static.gold100).opaquer(0.8).string(),
+    warning: colors.static.yellow100,
+    warningActive: color(colors.static.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -567,12 +571,12 @@ const generateAliases = (
    * NOTE: Not being used anymore in the new Search UI
    */
   searchTokenBorder: {
-    valid: colors.static.blurple200,
-    validActive: color(colors.static.blurple200).opaquer(1).string(),
+    valid: colors.static.blue200,
+    validActive: color(colors.static.blue200).opaquer(1).string(),
     invalid: colors.static.red200,
     invalidActive: color(colors.static.red200).opaquer(1).string(),
-    warning: colors.static.gold200,
-    warningActive: color(colors.static.gold200).opaquer(1).string(),
+    warning: colors.static.yellow200,
+    warningActive: color(colors.static.yellow200).opaquer(1).string(),
   },
 
   /**
@@ -619,25 +623,25 @@ const chonkLightColorMapping: ColorMapping = {
   translucentGray200: lightColors.dynamic.grayTransparent200,
   translucentGray100: lightColors.dynamic.grayTransparent100,
 
-  purple400: lightColors.dynamic.blurple400,
-  purple300: lightColors.dynamic.blurple300,
-  purple200: lightColors.dynamic.blurple200,
-  purple100: lightColors.dynamic.blurple100,
+  purple400: lightColors.dynamic.blue400,
+  purple300: lightColors.dynamic.blue300,
+  purple200: lightColors.dynamic.blue200,
+  purple100: lightColors.dynamic.blue100,
 
-  blue400: lightColors.dynamic.blurple400,
-  blue300: lightColors.dynamic.blurple300,
-  blue200: lightColors.dynamic.blurple200,
-  blue100: lightColors.dynamic.blurple100,
+  blue400: lightColors.dynamic.blue400,
+  blue300: lightColors.dynamic.blue300,
+  blue200: lightColors.dynamic.blue200,
+  blue100: lightColors.dynamic.blue100,
 
   green400: lightColors.dynamic.green400,
   green300: lightColors.dynamic.green300,
   green200: lightColors.dynamic.green200,
   green100: lightColors.dynamic.green100,
 
-  yellow400: lightColors.dynamic.gold400,
-  yellow300: lightColors.dynamic.gold300,
-  yellow200: lightColors.dynamic.gold200,
-  yellow100: lightColors.dynamic.gold100,
+  yellow400: lightColors.dynamic.yellow400,
+  yellow300: lightColors.dynamic.yellow300,
+  yellow200: lightColors.dynamic.yellow200,
+  yellow100: lightColors.dynamic.yellow100,
 
   red400: lightColors.dynamic.red400,
   red300: lightColors.dynamic.red300,
@@ -677,25 +681,25 @@ const chonkDarkColorMapping: ColorMapping = {
   translucentGray200: darkColors.dynamic.grayTransparent200,
   translucentGray100: darkColors.dynamic.grayTransparent100,
 
-  purple400: darkColors.dynamic.blurple400,
-  purple300: darkColors.dynamic.blurple300,
-  purple200: darkColors.dynamic.blurple200,
-  purple100: darkColors.dynamic.blurple100,
+  purple400: darkColors.dynamic.blue400,
+  purple300: darkColors.dynamic.blue300,
+  purple200: darkColors.dynamic.blue200,
+  purple100: darkColors.dynamic.blue100,
 
-  blue400: darkColors.dynamic.blurple400,
-  blue300: darkColors.dynamic.blurple300,
-  blue200: darkColors.dynamic.blurple200,
-  blue100: darkColors.dynamic.blurple100,
+  blue400: darkColors.dynamic.blue400,
+  blue300: darkColors.dynamic.blue300,
+  blue200: darkColors.dynamic.blue200,
+  blue100: darkColors.dynamic.blue100,
 
   green400: darkColors.dynamic.green400,
   green300: darkColors.dynamic.green300,
   green200: darkColors.dynamic.green200,
   green100: darkColors.dynamic.green100,
 
-  yellow400: darkColors.dynamic.gold400,
-  yellow300: darkColors.dynamic.gold300,
-  yellow200: darkColors.dynamic.gold200,
-  yellow100: darkColors.dynamic.gold100,
+  yellow400: darkColors.dynamic.yellow400,
+  yellow300: darkColors.dynamic.yellow300,
+  yellow200: darkColors.dynamic.yellow200,
+  yellow100: darkColors.dynamic.yellow100,
 
   red400: darkColors.dynamic.red400,
   red300: darkColors.dynamic.red300,
@@ -712,8 +716,8 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-interface ChonkTheme extends Omit<Theme, 'isChonk'> {
-  colors: {dark: typeof lightColors; light: typeof lightColors};
+interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
+  colors: typeof lightColors;
   isChonk: true;
   space: typeof space;
 }
@@ -737,7 +741,6 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
   alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
-  badge: generateBadgeTheme(chonkLightColorMapping),
   button: generateButtonTheme(chonkLightColorMapping, lightAliases),
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
@@ -754,10 +757,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
   stacktraceActiveText: lightTheme.stacktraceActiveText,
 
-  colors: {
-    light: lightColors,
-    dark: darkColors,
-  },
+  colors: lightColors,
 
   sidebar: {
     // @TODO: these colors need to be ported
@@ -782,7 +782,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
   alert: generateAlertTheme(chonkDarkColorMapping, darkAliases),
-  badge: generateBadgeTheme(chonkDarkColorMapping),
   button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
@@ -796,10 +795,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
   stacktraceActiveText: darkTheme.stacktraceActiveText,
 
-  colors: {
-    light: lightColors,
-    dark: darkColors,
-  },
+  colors: darkColors,
 
   space,
 
@@ -822,5 +818,121 @@ declare module '@emotion/react' {
   type SentryTheme = typeof lightTheme;
   export interface Theme extends SentryTheme {
     isChonk: boolean;
+  }
+}
+
+/**
+ * Chonk utilities and overrrides to assert correct theme type
+ * inside chonk components without having to check for theme.isChonk everywhere
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention
+interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
+  isChonk: true;
+}
+
+// Emotion has no override available for styled, so we create our own,
+// which allows us to use chonkStyled and access the chonk theme and write
+// our components with a future type API.
+interface ChonkCreateStyled {
+  <
+    C extends React.ComponentClass<React.ComponentProps<C>>,
+    ForwardedProps extends keyof React.ComponentProps<C> &
+      string = keyof React.ComponentProps<C> & string,
+  >(
+    component: C,
+    options: FilteringStyledOptions<React.ComponentProps<C>, ForwardedProps>
+  ): CreateStyledComponent<
+    Pick<React.ComponentProps<C>, ForwardedProps> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    Record<string, unknown>,
+    {
+      ref?: React.Ref<InstanceType<C>>;
+    }
+  >;
+  <C extends React.ComponentClass<React.ComponentProps<C>>>(
+    component: C,
+    options?: StyledOptions<React.ComponentProps<C>>
+  ): CreateStyledComponent<
+    React.ComponentProps<C> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    Record<string, unknown>,
+    {
+      ref?: React.Ref<InstanceType<C>>;
+    }
+  >;
+  <
+    C extends React.ComponentType<React.ComponentProps<C>>,
+    ForwardedProps extends keyof React.ComponentProps<C> &
+      string = keyof React.ComponentProps<C> & string,
+  >(
+    component: C,
+    options: FilteringStyledOptions<React.ComponentProps<C>, ForwardedProps>
+  ): CreateStyledComponent<
+    Pick<React.ComponentProps<C>, ForwardedProps> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    }
+  >;
+  <C extends React.ComponentType<React.ComponentProps<C>>>(
+    component: C,
+    options?: StyledOptions<React.ComponentProps<C>>
+  ): CreateStyledComponent<
+    React.ComponentProps<C> & {
+      theme?: DO_NOT_USE_ChonkTheme;
+    }
+  >;
+  <
+    Tag extends keyof React.JSX.IntrinsicElements,
+    ForwardedProps extends keyof React.JSX.IntrinsicElements[Tag] &
+      string = keyof React.JSX.IntrinsicElements[Tag] & string,
+  >(
+    tag: Tag,
+    options: FilteringStyledOptions<React.JSX.IntrinsicElements[Tag], ForwardedProps>
+  ): CreateStyledComponent<
+    {
+      as?: React.ElementType;
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    Pick<React.JSX.IntrinsicElements[Tag], ForwardedProps>
+  >;
+  <Tag extends keyof React.JSX.IntrinsicElements>(
+    tag: Tag,
+    options?: StyledOptions<React.JSX.IntrinsicElements[Tag]>
+  ): CreateStyledComponent<
+    {
+      as?: React.ElementType;
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    React.JSX.IntrinsicElements[Tag]
+  >;
+}
+
+type ChonkStyled = {
+  [Tag in keyof React.JSX.IntrinsicElements]: CreateStyledComponent<
+    {
+      as?: React.ElementType;
+      theme?: DO_NOT_USE_ChonkTheme;
+    },
+    React.JSX.IntrinsicElements[Tag]
+  >;
+};
+
+// Emotion has no override available for styled, so we create our own,
+// which allows us to use chonkStyled and access the chonk theme and write
+// our components with a future type API.
+interface ChonkStyle extends ChonkCreateStyled, ChonkStyled {}
+export const chonkStyled = styled as ChonkStyle;
+
+export function useChonkTheme(): ChonkTheme {
+  const theme = useTheme() as Theme | ChonkTheme;
+
+  assertChonkTheme(theme);
+  return theme;
+}
+
+function assertChonkTheme(theme: Theme): asserts theme is ChonkTheme {
+  if (!theme.isChonk) {
+    throw new Error('A chonk component may only be called inside a chonk theme context');
   }
 }

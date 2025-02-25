@@ -41,6 +41,7 @@ import {
   type CheckStatusBucket,
   type UptimeRule,
 } from 'sentry/views/alerts/rules/uptime/types';
+import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
@@ -201,12 +202,12 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <CheckLegendItem>
               <CheckIndicator status={CheckStatus.SUCCESS} />
               <LegendText>
-                {t('Check succeeded')}
+                {statusToText[CheckStatus.SUCCESS]}
                 <QuestionTooltip
                   isHoverable
                   size="sm"
                   title={tct(
-                    "A check status is successful when it meets uptime's check criteria. [link:Learn more].",
+                    'A check status is considered uptime when it meets the uptime check criteria. [link:Learn more].',
                     {
                       link: (
                         <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-criteria" />
@@ -219,12 +220,30 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <CheckLegendItem>
               <CheckIndicator status={CheckStatus.FAILURE} />
               <LegendText>
-                {t('Check failed')}
+                {statusToText[CheckStatus.FAILURE]}
                 <QuestionTooltip
                   isHoverable
                   size="sm"
                   title={tct(
-                    "A check status is failed when it does't meet uptime's check criteria. A downtime issue is created after three consecutive failures. [link:Learn more].",
+                    'A check status is marked as intermittent when it fails but has not yet met the threshold to be considered downtime. [link:Learn more].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                      ),
+                    }
+                  )}
+                />
+              </LegendText>
+            </CheckLegendItem>
+            <CheckLegendItem>
+              <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} />
+              <LegendText>
+                {statusToText[CheckStatus.FAILURE_INCIDENT]}
+                <QuestionTooltip
+                  isHoverable
+                  size="sm"
+                  title={tct(
+                    'A check status is considered downtime when it fails 3 consecutive times, meeting the downtime threshold. [link:Learn more].',
                     {
                       link: (
                         <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
@@ -238,7 +257,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               <CheckLegendItem>
                 <CheckIndicator status={CheckStatus.MISSED_WINDOW} />
                 <LegendText>
-                  {t('Did not perform check')}
+                  {statusToText[CheckStatus.MISSED_WINDOW]}
                   <QuestionTooltip
                     isHoverable
                     size="sm"

@@ -79,6 +79,8 @@ export function OnboardingStatus({
     if (!demoMode && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization,
+        user_clicked: true,
+        source: 'onboarding_sidebar',
       });
     }
 
@@ -122,7 +124,10 @@ export function OnboardingStatus({
     }
 
     if (quickStartDisplayStatus === 1) {
-      activateSidebar();
+      activateSidebar({
+        userClicked: false,
+        source: 'onboarding_sidebar_user_second_visit',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);

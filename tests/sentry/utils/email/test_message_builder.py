@@ -265,6 +265,21 @@ class MessageBuilderTest(TestCase):
         )
         results = msg.get_built_messages(["foo@example.com"])
         assert len(results) == 1
+        assert results[0].message()["Reply-To"] is None
+
+    def test_get_built_messages_reply_to(self):
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            reference=self.activity,
+        )
+        results = msg.get_built_messages(
+            to=["foo@example.com", "bar@example.com"], reply_to=["abc123@sentry.io"]
+        )
+        assert len(results) == 2
+        assert results[0].message()["Reply-To"] == "abc123@sentry.io"
+        assert results[1].message()["Reply-To"] == "abc123@sentry.io"
 
     def test_bcc_on_send(self):
         msg = MessageBuilder(subject="Test", body="hello world")
@@ -333,3 +348,19 @@ class MessageBuilderTest(TestCase):
 
         json_xsmtpapi_data = json.loads(out.extra_headers["X-SMTPAPI"])
         assert json_xsmtpapi_data["category"] == "test_email.type"
+
+    def test_send_async_reply_to(self):
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            from_email="from@sentry.io",
+        )
+        with self.tasks():
+            msg.send_async(["foo@example.com", "bar@example.com"], reply_to=["reply@sentry.io"])
+
+        outbox = mail.outbox
+        assert len(outbox) == 2
+        for email in outbox:
+            assert email.message()["Reply-To"] == "reply@sentry.io"
+            assert email.from_email == "from@sentry.io"

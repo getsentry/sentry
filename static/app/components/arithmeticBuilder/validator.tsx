@@ -21,22 +21,44 @@ export function validateTokens(tokens: Token[]): boolean {
   return validator.isValid();
 }
 
+/**
+ * Given a list of arithmetic tokens, compute a list of allowed token
+ * kinds at free text token.
+ *
+ * The algorithm is as follows:
+ * - All non free text tokens should not have any suggestions
+ *   as they already have a valid token filled in.
+ * - All free text tokens should consider as many tokens before it
+ *   as possible to determine what tokens are allowed next.
+ */
 export function computeNextAllowedTokenKinds(tokens: Array<Token | null>): TokenKind[][] {
   const validator = new ExpressionValidator();
   const tokenKinds = [];
 
   for (const token of tokens) {
     if (!defined(token)) {
+      // because of how react-stately works, the type here
+      // is nullable so make sure to handle it
       tokenKinds.push([]);
     } else if (isTokenFreeText(token)) {
+      // once we arrive at a free text token, check to see
+      // what tokens are allowed next given the current state
       tokenKinds.push(validator.nextAllowedTokenKinds());
     } else {
-      if (validator.push(token)) {
-        tokenKinds.push([]);
-      } else {
-        tokenKinds.push([]);
+      // if it is any other token type, update the validator
+      // state with it as it'll be used to determine the next
+      // allowed token
+      if (!validator.push(token)) {
+        // if the push operation failed, meaning adding the
+        // current token onto the validator produces an invalid
+        // state, we reset the validator and use the current token
+        // as the state
+        //
+        // this is to ensure that partially valid expressions still
+        // have decent autocomplete suggestions
         validator.force([token]);
       }
+      tokenKinds.push([]);
     }
   }
 
@@ -44,6 +66,12 @@ export function computeNextAllowedTokenKinds(tokens: Array<Token | null>): Token
 }
 
 interface PushOptions {
+  /**
+   * Runs the push operation in a dry run mode. Meaning
+   * the stack should remain unmodified after the attempt
+   * but we will get back the if the operation will be
+   * successful or not.
+   */
   dryRun: boolean;
 }
 
@@ -59,6 +87,8 @@ class ExpressionValidator {
   }
 
   nextAllowedTokenKinds(): TokenKind[] {
+    // attempts to push all potential tokens in dry run mode
+    // and return the ones that produce a valid expression
     const dryRun: PushOptions = {dryRun: true};
     const tokenKinds = [];
 
@@ -182,6 +212,11 @@ class ExpressionValidator {
           const a = this.stack.pop()!;
           const b = this.stack.pop()!;
           const isAllowed = this.pushExpression({dryRun});
+
+          // Because this requires a recursive check, we have
+          // to pop the items off the stack before the recursive
+          // call. So in dry run mode, we have to make sure we
+          // restore the stack to the original state here.
           if (dryRun) {
             this.stack.push(b);
             this.stack.push(a);
