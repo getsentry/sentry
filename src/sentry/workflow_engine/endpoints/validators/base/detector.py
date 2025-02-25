@@ -81,9 +81,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 request=self.context["request"],
                 organization=self.context["organization"],
                 target_object=detector.id,
-                event=audit_log.get_event_id(
-                    "UPTIME_MONITOR_ADD"
-                ),  # TODO this is the wrong event type
+                event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
         return detector

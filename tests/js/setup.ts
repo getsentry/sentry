@@ -246,3 +246,24 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+// Using `:focus-visible` in `querySelector` or `matches` will throw an error in JSDOM.
+// See https://github.com/jsdom/jsdom/issues/3055
+// eslint-disable-next-line testing-library/no-node-access
+const originalQuerySelector = HTMLElement.prototype.querySelector;
+const originalMatches = HTMLElement.prototype.matches;
+// eslint-disable-next-line testing-library/no-node-access
+HTMLElement.prototype.querySelector = function (selectors: string) {
+  if (selectors === ':focus-visible') {
+    return null;
+  }
+
+  return originalQuerySelector.call(this, selectors);
+};
+HTMLElement.prototype.matches = function (selectors: string) {
+  if (selectors === ':focus-visible') {
+    return false;
+  }
+
+  return originalMatches.call(this, selectors);
+};

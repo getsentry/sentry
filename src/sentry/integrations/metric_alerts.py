@@ -1,6 +1,8 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import TypedDict
 from urllib import parse
 
+import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -36,6 +38,15 @@ TEXT_COMPARISON_DELTA = {
     10080: ("same time one week ago"),  # one week
     43200: ("same time one month ago"),  # 30 days
 }
+
+
+class AttachmentInfo(TypedDict):
+    title_link: str
+    title: str
+    text: str
+    status: str
+    logo_url: str
+    date_started: datetime | None
 
 
 def logo_url() -> str:
@@ -106,16 +117,21 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
 def incident_attachment_info(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value=None,
+    # WIP(iamrajjoshi): This should shouldn't be None, but it sometimes is. Working on figuring out why.
+    metric_value: float | None = None,
     notification_uuid=None,
     referrer="metric_alert",
-):
+) -> AttachmentInfo:
     alert_rule = incident.alert_rule
 
-    status = INCIDENT_STATUS[new_status]
-
     if metric_value is None:
+        sentry_sdk.capture_message(
+            "Metric value is None when building incident attachment info",
+            level="warning",
+        )
         metric_value = get_metric_count_from_incident(incident)
+
+    status = INCIDENT_STATUS[new_status]
 
     text = get_incident_status_text(alert_rule, metric_value)
     if features.has(
@@ -144,22 +160,22 @@ def incident_attachment_info(
         query=parse.urlencode(title_link_params),
     )
 
-    return {
-        "title": title,
-        "text": text,
-        "logo_url": logo_url(),
-        "status": status,
-        "ts": incident.date_started,
-        "title_link": title_link,
-    }
+    return AttachmentInfo(
+        title=title,
+        text=text,
+        logo_url=logo_url(),
+        status=status,
+        date_started=incident.date_started,
+        title_link=title_link,
+    )
 
 
-def metric_alert_attachment_info(
+def metric_alert_unfurl_attachment_info(
     alert_rule: AlertRule,
     selected_incident: Incident | None = None,
     new_status: IncidentStatus | None = None,
     metric_value: float | None = None,
-):
+) -> AttachmentInfo:
     latest_incident = None
     if selected_incident is None:
         try:
@@ -225,16 +241,11 @@ def metric_alert_attachment_info(
     if selected_incident:
         date_started = selected_incident.date_started
 
-    last_triggered_date = None
-    if latest_incident:
-        last_triggered_date = latest_incident.date_started
-
-    return {
-        "title": title,
-        "text": text,
-        "logo_url": logo_url(),
-        "status": status,
-        "date_started": date_started,
-        "last_triggered_date": last_triggered_date,
-        "title_link": title_link,
-    }
+    return AttachmentInfo(
+        title_link=title_link,
+        title=title,
+        text=text,
+        status=status,
+        logo_url=logo_url(),
+        date_started=date_started,
+    )

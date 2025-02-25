@@ -18,8 +18,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {isReleaseArchived} from '../../utils';
 
@@ -47,7 +47,12 @@ function ReleaseActions({
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(normalizeUrl(`/organizations/${organization.slug}/releases/`));
+      browserHistory.push(
+        makeReleasesPathname({
+          organization,
+          path: '/',
+        })
+      );
     } catch {
       // do nothing, action creator is already displaying error message
     }

@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -39,7 +40,9 @@ function getBaseTraceUrl(
       ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]
       : 'traces';
 
-  return normalizeUrl(`/organizations/${organization.slug}/${url}`);
+  const routeSuffix = url === 'traces' && prefersStackedNav() ? 'explore/traces' : url;
+
+  return normalizeUrl(`/organizations/${organization.slug}/${routeSuffix}`);
 }
 
 export function getTraceDetailsUrl({

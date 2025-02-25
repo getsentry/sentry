@@ -5,9 +5,9 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django import forms
-from django.http import HttpResponse
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
@@ -24,7 +24,7 @@ from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, On
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -102,7 +102,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type: ignore[explicit-override, override]
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -237,7 +237,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:

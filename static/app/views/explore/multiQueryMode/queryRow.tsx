@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -47,9 +48,16 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
           />
         </DropDownGrid>
       </QueryConstructionSection>
-      <QueryVisualizationSection>
-        <MultiQueryModeChart index={index} mode={mode} query={queryParts} />
-        <MultiQueryTable confidences={[]} mode={mode} query={queryParts} index={index} />
+      <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
+        <LazyRender containerHeight={260} withoutContainer>
+          <MultiQueryModeChart index={index} mode={mode} query={queryParts} />
+          <MultiQueryTable
+            confidences={[]}
+            mode={mode}
+            query={queryParts}
+            index={index}
+          />
+        </LazyRender>
       </QueryVisualizationSection>
     </Fragment>
   );

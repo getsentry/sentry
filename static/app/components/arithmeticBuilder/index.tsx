@@ -4,39 +4,45 @@ import styled from '@emotion/styled';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {validateTokens} from 'sentry/components/arithmeticBuilder/validator';
-import {inputStyles} from 'sentry/components/input';
+import type {
+  AggregateFunction,
+  FunctionArgument,
+} from 'sentry/components/arithmeticBuilder/types';
+import {inputStyles} from 'sentry/components/core/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface ArithmeticBuilderProps {
+  aggregateFunctions: AggregateFunction[];
   expression: string;
+  functionArguments: FunctionArgument[];
   className?: string;
   disabled?: boolean;
+  setExpression?: (expression: Expression) => void;
 }
 
 export function ArithmeticBuilder({
   expression,
+  setExpression,
+  aggregateFunctions,
+  functionArguments,
   className,
   disabled,
 }: ArithmeticBuilderProps) {
   const {state, dispatch} = useArithmeticBuilderAction({
-    initialQuery: expression || '',
+    initialExpression: expression || '',
+    updateExpression: setExpression,
   });
-
-  const tokens = useMemo(() => tokenizeExpression(state.query), [state.query]);
-
-  const validated = useMemo(() => {
-    return validateTokens(tokens) ? ('valid' as const) : ('invalid' as const);
-  }, [tokens]);
 
   const contextValue = useMemo(() => {
     return {
       dispatch,
       focusOverride: state.focusOverride,
+      aggregateFunctions,
+      functionArguments,
     };
-  }, [state, dispatch]);
+  }, [state, dispatch, aggregateFunctions, functionArguments]);
 
   return (
     <PanelProvider>
@@ -45,9 +51,9 @@ export function ArithmeticBuilder({
           className={className}
           aria-disabled={disabled}
           data-test-id="arithmetic-builder"
-          state={validated}
+          state={state.expression.isValid ? 'valid' : 'invalid'}
         >
-          <TokenGrid tokens={tokens} />
+          <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>
       </ArithmeticBuilderContext.Provider>
     </PanelProvider>

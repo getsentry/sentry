@@ -20,13 +20,15 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 
 class TestEventFrequencyCountCondition(ConditionTestCase):
-    condition = Condition.EVENT_FREQUENCY_COUNT
-    payload = {
-        "interval": "1h",
-        "id": EventFrequencyCondition.id,
-        "value": 50,
-        "comparisonType": ComparisonType.COUNT,
-    }
+    def setUp(self):
+        super().setUp()
+        self.condition = Condition.EVENT_FREQUENCY_COUNT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventFrequencyCondition.id,
+            "value": 50,
+            "comparisonType": ComparisonType.COUNT,
+        }
 
     def test_count(self):
         dc = self.create_data_condition(
@@ -35,10 +37,10 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        results = [self.payload["value"] + 1]
+        results = [dc.comparison["value"] + 1]
         self.assert_slow_condition_passes(dc, results)
 
-        results = [self.payload["value"] - 1]
+        results = [dc.comparison["value"] - 1]
         self.assert_slow_condition_does_not_pass(dc, results)
 
     def test_count_with_filters(self):
@@ -55,24 +57,42 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        results = [self.payload["value"] + 1]
+        results = [dc.comparison["value"] + 1]
         self.assert_slow_condition_passes(dc, results)
 
-        results = [self.payload["value"] - 1]
+        results = [dc.comparison["value"] - 1]
         self.assert_slow_condition_does_not_pass(dc, results)
 
-    def test_dual_write_count(self):
+    def _test_dual_write(self, value: int):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
-        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
             "interval": self.payload["interval"],
-            "value": self.payload["value"],
+            "value": value,
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+        # test without comparisonType
+        del self.payload["comparisonType"]
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "interval": self.payload["interval"],
+            "value": value,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_count(self):
+        self._test_dual_write(int(self.payload["value"]))
+
+    def test_dual_write_count__string_value(self):
+        self.payload["value"] = str(self.payload["value"])
+        self._test_dual_write(int(self.payload["value"]))
 
     def test_json_schema(self):
         with pytest.raises(ValidationError):
@@ -111,14 +131,15 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
 
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
-    condition = Condition.EVENT_FREQUENCY_PERCENT
-    payload = {
-        "interval": "1h",
-        "id": EventFrequencyCondition.id,
-        "value": 50,
-        "comparisonType": ComparisonType.PERCENT,
-        "comparisonInterval": "1d",
-    }
+    def setUp(self):
+        self.condition = Condition.EVENT_FREQUENCY_PERCENT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventFrequencyCondition.id,
+            "value": 50,
+            "comparisonType": ComparisonType.PERCENT,
+            "comparisonInterval": "1d",
+        }
 
     def test_percent(self):
         dc = self.create_data_condition(
@@ -158,19 +179,25 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         results = [10, 10]
         self.assert_slow_condition_does_not_pass(dc, results)
 
-    def test_dual_write_percent(self):
+    def _test_dual_write(self, value: int):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
-        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
             "interval": self.payload["interval"],
-            "value": self.payload["value"],
+            "value": value,
             "comparison_interval": self.payload["comparisonInterval"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_dual_write_percent(self):
+        self._test_dual_write(int(self.payload["value"]))
+
+    def test_dual_write_percent__string_value(self):
+        self.payload["value"] = str(self.payload["value"])
+        self._test_dual_write(int(self.payload["value"]))
 
     def test_json_schema(self):
         with pytest.raises(ValidationError):
@@ -178,7 +205,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 type=self.condition,
                 comparison={
                     "interval": "asdf",
-                    "value": 100,
+                    "value": "100",
                     "comparison_interval": "1d",
                 },
                 condition_result=True,
@@ -220,58 +247,66 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
 
 
 class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountCondition):
-    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-    payload = {
-        "interval": "1h",
-        "id": EventUniqueUserFrequencyCondition.id,
-        "value": 50,
-        "comparisonType": ComparisonType.COUNT,
-    }
+    def setUp(self):
+        super().setUp()
+        self.condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventUniqueUserFrequencyCondition.id,
+            "value": 50,
+            "comparisonType": ComparisonType.COUNT,
+        }
 
 
 class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCondition):
-    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
-    payload = {
-        "interval": "1h",
-        "id": EventUniqueUserFrequencyCondition.id,
-        "value": 50,
-        "comparisonType": ComparisonType.PERCENT,
-        "comparisonInterval": "1d",
-    }
+    def setUp(self):
+        super().setUp()
+        self.condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventUniqueUserFrequencyCondition.id,
+            "value": 50,
+            "comparisonType": ComparisonType.PERCENT,
+            "comparisonInterval": "1d",
+        }
 
 
 class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
-    condition = Condition.PERCENT_SESSIONS_COUNT
-    payload = {
-        "interval": "1h",
-        "id": EventFrequencyPercentCondition.id,
-        "value": 17.2,
-        "comparisonType": ComparisonType.COUNT,
-    }
+    def setUp(self):
+        super().setUp()
+        self.condition = Condition.PERCENT_SESSIONS_COUNT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventFrequencyPercentCondition.id,
+            "value": 17,
+            "comparisonType": ComparisonType.COUNT,
+        }
 
 
 class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
-    condition = Condition.PERCENT_SESSIONS_PERCENT
-    payload = {
-        "interval": "1h",
-        "id": EventFrequencyPercentCondition.id,
-        "value": 17.2,
-        "comparisonType": ComparisonType.PERCENT,
-        "comparisonInterval": "1d",
-    }
+    def setUp(self):
+        super().setUp()
+        self.condition = Condition.PERCENT_SESSIONS_PERCENT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventFrequencyPercentCondition.id,
+            "value": 17,
+            "comparisonType": ComparisonType.PERCENT,
+            "comparisonInterval": "1d",
+        }
 
 
 class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
-    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-    payload = {
-        "interval": "1h",
-        "id": EventUniqueUserFrequencyConditionWithConditions.id,
-        "value": 50,
-        "comparisonType": ComparisonType.COUNT,
-    }
-
     def setUp(self):
         super().setUp()
+        self.condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+        self.payload: dict[str, int | str] = {
+            "interval": "1h",
+            "id": EventUniqueUserFrequencyConditionWithConditions.id,
+            "value": 50,
+            "comparisonType": ComparisonType.COUNT,
+        }
+
         self.conditions = [
             {
                 "id": TaggedEventFilter.id,
@@ -306,7 +341,7 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
         ]
         self.dcg = self.create_data_condition_group()
 
-    def test_dual_write_count(self):
+    def _test_dual_write_count(self, value: int):
         dc = create_event_unique_user_frequency_condition_with_conditions(
             self.payload, self.dcg, self.conditions
         )
@@ -314,13 +349,20 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
         assert dc.type == self.condition
         assert dc.comparison == {
             "interval": self.payload["interval"],
-            "value": self.payload["value"],
+            "value": value,
             "filters": self.expected_filters,
         }
         assert dc.condition_result is True
         assert dc.condition_group == self.dcg
 
-    def test_dual_write_percent(self):
+    def test_dual_write_count(self):
+        self._test_dual_write_count(int(self.payload["value"]))
+
+    def test_dual_write_count__string_value(self):
+        self.payload["value"] = str(self.payload["value"])
+        self._test_dual_write_count(int(self.payload["value"]))
+
+    def _test_dual_write_percent(self, value: int):
         self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
         dc = create_event_unique_user_frequency_condition_with_conditions(
             self.payload, self.dcg, self.conditions
@@ -329,12 +371,19 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
         assert dc.type == Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
         assert dc.comparison == {
             "interval": self.payload["interval"],
-            "value": self.payload["value"],
+            "value": value,
             "comparison_interval": self.payload["comparisonInterval"],
             "filters": self.expected_filters,
         }
         assert dc.condition_result is True
         assert dc.condition_group == self.dcg
+
+    def test_dual_write_percent(self):
+        self._test_dual_write_percent(int(self.payload["value"]))
+
+    def test_dual_write_percent__string_value(self):
+        self.payload["value"] = str(self.payload["value"])
+        self._test_dual_write_percent(int(self.payload["value"]))
 
     def test_dual_write__invalid(self):
         with pytest.raises(KeyError):
@@ -367,7 +416,7 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
                 type=self.condition,
                 comparison={
                     "interval": "asdf",
-                    "value": 100,
+                    "value": "100",
                     "filters": "asdf",
                 },
                 condition_result=True,
@@ -378,8 +427,8 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
                 type=self.condition,
                 comparison={
                     "interval": "1d",
-                    "value": 100,
-                    "filters": [{"interval": "1d", "value": 100}],
+                    "value": "100",
+                    "filters": [{"interval": "1d", "value": "100"}],
                 },
                 condition_result=True,
             )

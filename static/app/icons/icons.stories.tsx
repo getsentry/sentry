@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -933,13 +933,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'toggle',
-        groups: ['action'],
-        keywords: ['switch', 'form', 'disable', 'enable'],
-        name: 'Toggle',
-        defaultProps: {},
-      },
-      {
         id: 'fix',
         groups: ['action'],
         keywords: ['wrench', 'resolve'],
@@ -1362,6 +1355,13 @@ function Section({section}: {section: TSection}) {
           const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const Component = Icons[name];
+
+          if (!Component) {
+            // The definition is not type safe, so lets log the icon instead of throwing an error
+            // eslint-disable-next-line no-console
+            console.log('Missing icon', name);
+            return null;
+          }
 
           const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};
           return (

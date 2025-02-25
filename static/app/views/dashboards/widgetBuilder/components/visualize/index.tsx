@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import type {Theme} from '@emotion/react';
@@ -9,9 +9,9 @@ import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
+import {Input} from 'sentry/components/core/input';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -58,9 +58,9 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const NONE = 'none';
 
-const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
+export const NONE_AGGREGATE = {
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {
     emphasis: <em />,
   }),
   value: NONE,
@@ -73,33 +73,56 @@ function formatColumnOptions(
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
-  ) => boolean
+  ) => boolean,
+  field: QueryFieldValue
 ) {
   return options
     .filter(option => {
-      // Don't show any aggregates under the columns, and if
-      // there isn't a filter method, just show the option
-      return (
-        option.value.kind !== FieldValueKind.FUNCTION &&
-        (columnFilterMethod?.(option) ?? true)
-      );
+      // Don't show any aggregates under the columns
+      return option.value.kind !== FieldValueKind.FUNCTION;
     })
-    .map(option => ({
-      value: option.value.meta.name,
-      label:
-        dataset === WidgetType.SPANS
-          ? prettifyTagKey(option.value.meta.name)
-          : option.value.meta.name,
+    .map(option => {
+      const supported = columnFilterMethod ? columnFilterMethod(option, field) : false;
+      return {
+        value: option.value.meta.name,
+        label:
+          dataset === WidgetType.SPANS
+            ? prettifyTagKey(option.value.meta.name)
+            : option.value.meta.name,
 
-      trailingItems: renderTag(
-        option.value.kind,
-        option.value.meta.name,
-        option.value.kind !== FieldValueKind.FUNCTION &&
-          option.value.kind !== FieldValueKind.EQUATION
-          ? option.value.meta.dataType!
-          : undefined
-      ),
-    }));
+        trailingItems: renderTag(
+          option.value.kind,
+          option.value.meta.name,
+          option.value.kind !== FieldValueKind.FUNCTION &&
+            option.value.kind !== FieldValueKind.EQUATION
+            ? option.value.meta.dataType!
+            : undefined
+        ),
+        disabled: !supported,
+        tooltip:
+          !supported && field.kind === FieldValueKind.FUNCTION
+            ? tct('This field is not available for the [aggregate] function', {
+                aggregate: <strong>{field.function[0]}</strong>,
+              })
+            : undefined,
+      };
+    });
+}
+
+function _sortFn(
+  a: SelectValue<string> & {value: string; label?: string | ReactNode},
+  b: SelectValue<string> & {value: string; label?: string | ReactNode}
+) {
+  // The labels should always be strings in this component, but we'll
+  // handle the cases where they are not.
+  if (typeof a.label !== 'string' || typeof b.label !== 'string') {
+    return 0;
+  }
+  if (!defined(a.label) || !defined(b.label)) {
+    return 0;
+  }
+
+  return a.label.localeCompare(b.label);
 }
 
 export function getColumnOptions(
@@ -113,20 +136,25 @@ export function getColumnOptions(
 ) {
   const fieldValues = Object.values(fieldOptions);
   if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+    return formatColumnOptions(
+      dataset,
+      fieldValues,
+      columnFilterMethod,
+      selectedField
+    ).sort(_sortFn);
   }
 
-  const field = fieldValues.find(
+  const fieldData = fieldValues.find(
     option => option.value.meta.name === selectedField.function[0]
   )?.value;
 
   if (
-    field &&
-    field.kind === FieldValueKind.FUNCTION &&
-    field.meta.parameters.length > 0 &&
-    field.meta.parameters[0]
+    fieldData &&
+    fieldData.kind === FieldValueKind.FUNCTION &&
+    fieldData.meta.parameters.length > 0 &&
+    fieldData.meta.parameters[0]
   ) {
-    const parameter = field.meta.parameters[0];
+    const parameter = fieldData.meta.parameters[0];
     if (parameter && parameter.kind === 'dropdown') {
       // Parameters for dropdowns are already formatted in the correct manner
       // for select fields
@@ -134,26 +162,43 @@ export function getColumnOptions(
     }
 
     if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
+      // Release Health widgets are the only widgets that actually have different
+      // columns than the aggregates accept. e.g. project will never be a valid
+      // parameter for any of the aggregates.
+      const allowedColumns =
+        dataset === WidgetType.RELEASE
+          ? fieldValues.filter(
+              option =>
+                option.value.kind === FieldValueKind.METRICS &&
+                validateColumnTypes(
+                  parameter.columnTypes as ValidateColumnTypes,
+                  option.value
+                )
+            )
+          : fieldValues;
       return formatColumnOptions(
         dataset,
-        fieldValues.filter(({value}) =>
-          dataset === WidgetType.RELEASE
-            ? value.kind === FieldValueKind.METRICS &&
-              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
-            : (value.kind === FieldValueKind.FIELD ||
-                value.kind === FieldValueKind.TAG ||
-                value.kind === FieldValueKind.MEASUREMENT ||
-                value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
-                value.kind === FieldValueKind.METRICS ||
-                value.kind === FieldValueKind.BREAKDOWN) &&
-              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
-        ),
-        columnFilterMethod
-      );
+        allowedColumns,
+        (option, field) =>
+          columnFilterMethod(option, field) &&
+          (option.value.kind === FieldValueKind.FIELD ||
+            option.value.kind === FieldValueKind.TAG ||
+            option.value.kind === FieldValueKind.MEASUREMENT ||
+            option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+            option.value.kind === FieldValueKind.METRICS ||
+            option.value.kind === FieldValueKind.BREAKDOWN) &&
+          validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, option.value),
+        selectedField
+      ).sort(_sortFn);
     }
   }
 
-  return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+  return formatColumnOptions(
+    dataset,
+    fieldValues,
+    columnFilterMethod,
+    selectedField
+  ).sort(_sortFn);
 }
 
 function canDeleteField(
@@ -268,17 +313,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    spanColumnOptions.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
+    spanColumnOptions.sort(_sortFn);
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -440,7 +475,8 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.kind,
                             option.value.meta.name
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   } else {
                     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
@@ -463,7 +499,8 @@ function Visualize({error, setError}: VisualizeProps) {
                               ? option.value.meta.dataType!
                               : undefined
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   }
                 }
@@ -810,7 +847,7 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
+export function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
   if (dataType) {
     switch (dataType) {
       case 'boolean':
@@ -907,12 +944,12 @@ export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   width: 100%;
   min-width: 0;
 
-  & > ${ColumnCompactSelect} > button {
+  & ${ColumnCompactSelect} button {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
 
-  & > ${AggregateCompactSelect} > button {
+  & ${AggregateCompactSelect} button {
     ${p =>
       p.hasColumnParameter &&
       `

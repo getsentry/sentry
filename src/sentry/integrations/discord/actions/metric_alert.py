@@ -26,6 +26,7 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: float,
     new_status: IncidentStatus,
+    notification_uuid: str | None = None,
 ) -> bool:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
@@ -55,7 +56,7 @@ def send_incident_alert_notification(
         new_status=new_status,
         metric_value=metric_value,
         chart_url=chart_url,
-    )
+    ).build(notification_uuid=notification_uuid)
 
     client = DiscordClient()
     with MessagingInteractionEvent(

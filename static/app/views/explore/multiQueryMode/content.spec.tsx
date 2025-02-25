@@ -1,3 +1,5 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -13,6 +15,10 @@ import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContex
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
 
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
@@ -370,7 +376,7 @@ describe('MultiQueryModeContent', function () {
           query: expect.objectContaining({
             dataset: 'spans',
             field: [],
-            interval: '30m',
+            interval: '1h',
             orderby: undefined,
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -421,7 +427,7 @@ describe('MultiQueryModeContent', function () {
             dataset: 'spans',
             excludeOther: 0,
             field: ['span.op', 'avg(span.duration)'],
-            interval: '30m',
+            interval: '1h',
             orderby: '-avg_span_duration',
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -532,5 +538,44 @@ describe('MultiQueryModeContent', function () {
         query: 'span.op:POST',
       },
     ]);
+  });
+
+  it('sets interval correctly', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/compare',
+        query: {
+          queries: [
+            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          ],
+        },
+      },
+    });
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-visualization-0');
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('button', {name: '1 hour'}));
+    await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/traces/compare',
+      query: expect.objectContaining({
+        interval: '30m',
+        queries: [
+          '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+        ],
+      }),
+    });
   });
 });
