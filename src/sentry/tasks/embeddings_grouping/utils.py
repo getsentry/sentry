@@ -378,11 +378,8 @@ def get_events_from_nodestore(
             if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
                 continue
-            primary_hash = event.get_primary_hash()
-            if not primary_hash:
-                invalid_event_group_ids.append(group_id)
-                continue
 
+            primary_hash = event.get_primary_hash()
             exception_type = get_path(event.data, "exception", "values", -1, "type")
             group_data.append(
                 CreateGroupingRecordData(
