@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -25,6 +26,7 @@ from sentry.utils.performance_issues.performance_detection import (
     run_detector_on_data,
 )
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.workflow_engine.models.detector import Detector
 
 
 @pytest.mark.django_db
@@ -32,11 +34,25 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self._settings = get_detection_settings()
+        config = {
+            "total_duration": 300,  # ms
+            "concurrency_threshold": 5,  # ms
+            "count": 10,
+            "allowed_span_ops": ["http.client"],
+            "detection_enabled": True,
+        }
+        self.detector = Detector.objects.create(
+            name="hellboy",
+            type="performance_n_plus_one_api_calls",
+            project_id=self.project.id,
+            config=config,
+        )
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = NPlusOneAPICallsDetector(self._settings, event)
-        run_detector_on_data(detector, event)
-        return list(detector.stored_problems.values())
+        # detector = NPlusOneAPICallsDetector(self._settings, event)
+        detector_handler = self.detector.detector_handler
+        run_detector_on_data(self.detector, event)
+        return list(detector_handler.stored_problems.values())
 
     def create_event(self, description_maker: Callable[[int], str]) -> dict[str, Any]:
         total_duration = self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] + 1
@@ -70,6 +86,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         return spans
 
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
 

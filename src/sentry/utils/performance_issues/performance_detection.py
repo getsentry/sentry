@@ -19,7 +19,8 @@ from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
-from sentry.workflow_engine.models import DataPacket
+
+# from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 
 from .base import DetectorType, PerformanceDetector
@@ -343,38 +344,39 @@ def _detect_performance_problems(
         "organizations:workflow-engine-metric-alert-processing",
         project.organization,
     ):  # TODO use a new feature flag for this
-        data_packet = DataPacket(source_id=str(event_id), packet=data)
+        # data_packet = DataPacket(source_id=str(event_id), packet=data)
         detectors = Detector.objects.filter(
-            project=project.id, name__in=[option.value for option in InternalProjectOptions]
+            project=project.id, type__in=[option.value for option in InternalProjectOptions]
         )
         for detector in detectors:
             # detector_handler = handler(detector)
-            detector_handler = detector.detector_handler
-            if not detector_handler.is_event_eligible(data):
-                return
+            # detector_handler = detector.detector_handler
+            # if not detector_handler.is_event_eligible(data):
+            #     return
 
-            spans = data.get("spans", [])
-            for span in spans:
-                detector_handler.visit_span(span, data)
+            # spans = data.get("spans", [])
+            # for span in spans:
+            #     detector_handler.visit_span(span, data)
 
-            detector_handler.evaluate(data_packet)
-
-    with sentry_sdk.start_span(op="function", name="get_detection_settings"):
-        detection_settings = get_detection_settings(project.id)
-
-    with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
-
-        detectors: list[PerformanceDetector] = [
-            detector_class(detection_settings, data)
-            for detector_class in DETECTOR_CLASSES
-            if detector_class.is_detector_enabled()
-        ]
-
-    for detector in detectors:
-        with sentry_sdk.start_span(
-            op="function", name=f"run_detector_on_data.{detector.type.value}"
-        ):
+            # detector_handler.evaluate(data_packet)
             run_detector_on_data(detector, data)
+
+    # with sentry_sdk.start_span(op="function", name="get_detection_settings"):
+    #     detection_settings = get_detection_settings(project.id)
+
+    # with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
+
+    #     detectors: list[PerformanceDetector] = [
+    #         detector_class(detection_settings, data)
+    #         for detector_class in DETECTOR_CLASSES
+    #         if detector_class.is_detector_enabled()
+    #     ]
+
+    # for detector in detectors:
+    #     with sentry_sdk.start_span(
+    #         op="function", name=f"run_detector_on_data.{detector.type.value}"
+    #     ):
+    #         run_detector_on_data(detector, data)
 
     with sentry_sdk.start_span(op="function", name="report_metrics_for_detectors"):
         # Metrics reporting only for detection, not created issues.
@@ -423,14 +425,24 @@ def _detect_performance_problems(
 
 
 def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) -> None:
-    if not detector.is_event_eligible(data):
+    # data_packet = DataPacket(source_id=str(123), packet=data)
+    detector_handler = detector.detector_handler
+    if not detector_handler.is_event_eligible(data):
         return
 
     spans = data.get("spans", [])
     for span in spans:
-        detector.visit_span(span)
+        detector_handler.visit_span(span, data)
 
-    detector.on_complete()
+    detector_handler.evaluate(data)
+    # if not detector.is_event_eligible(data):
+    #     return
+
+    # spans = data.get("spans", [])
+    # for span in spans:
+    #     detector.visit_span(span)
+
+    # detector.on_complete(data)
 
 
 # Reports metrics and creates spans for detection

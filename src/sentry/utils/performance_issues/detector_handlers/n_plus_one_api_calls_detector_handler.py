@@ -6,15 +6,18 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.types.group import PriorityLevel
 from sentry.utils.performance_issues.base import (
+    DetectorType,
     fingerprint_http_spans,
     get_notification_attachment_body,
     get_span_evidence_value,
@@ -26,24 +29,37 @@ from sentry.utils.performance_issues.detector_handlers.performance_issue_detecto
 )
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-
-if TYPE_CHECKING:
-    from sentry.models.organization import Organization
-    from sentry.models.project import Project
-    from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
-    from sentry.workflow_engine.models import Detector
-    from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
-
-    from .types import PerformanceProblemsMap, Span
+from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
+from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
+from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 
 class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
+    __slots__ = ["stored_problems"]
+    type = DetectorType.N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
+
+    HOST_DENYLIST: list[str] = []
+
     def __init__(self, detector: Detector):
         super().__init__(detector)
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
         self.span_hashes: dict[str, str | None] = {}
+
+    def build_occurrence_and_event_data(self):
+        pass
+
+    def counter_names(self):
+        pass
+
+    def get_dedupe_value(self):
+        pass
+
+    def get_group_key_values(self):
+        pass
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return True
@@ -72,6 +88,61 @@ class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
             self.span_hashes[span_a["span_id"]] == self.span_hashes[span_b["span_id"]]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+    @classmethod
+    def is_span_eligible(cls, span: Span) -> bool:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        hash = span.get("hash", None)
+
+        if not span_id or not op or not hash:
+            return False
+
+        description = span.get("description")
+        if not description:
+            return False
+
+        if description.strip()[:3].upper() != "GET":
+            return False
+
+        url = get_url_from_span(span)
+
+        # GraphQL URLs have complicated queries in them. Until we parse those
+        # queries to check for what's duplicated, we can't tell what is being
+        # duplicated. Ignore them for now
+        if "graphql" in url:
+            return False
+
+        # Next.js infixes its data URLs with a build ID. (e.g.,
+        # /_next/data/<uuid>/some-endpoint) This causes a fingerprinting
+        # explosion, since every deploy would change this ID and create new
+        # fingerprints. Since we're not parameterizing URLs yet, we need to
+        # exclude them
+        if "_next/data" in url:
+            return False
+
+        # Next.js error pages cause an N+1 API Call that isn't useful to anyone
+        if "__nextjs_original-stack-frame" in url:
+            return False
+
+        if not url:
+            return False
+
+        # Once most users update their SDKs to use the latest standard, we
+        # won't have to do this, since the URLs will be sent in as `span.data`
+        # in a parsed format
+        parsed_url = urlparse(str(url))
+
+        if parsed_url.netloc in cls.HOST_DENYLIST:
+            return False
+
+        # Ignore anything that looks like an asset. Some frameworks (and apps)
+        # fetch assets via XHR, which is not our concern
+        _pathname, extension = os.path.splitext(parsed_url.path)
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3", ".jpg", ".jpeg"]:
+            return False
+
+        return True
 
     def visit_span(self, span: Span, data: dict[str, Any]) -> None:
         if not self.is_span_eligible(span):
@@ -127,7 +198,7 @@ class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
                 "cause_span_ids": [],
                 "parent_span_ids": [last_span.get("parent_span_id", None)],
                 "offender_span_ids": offender_span_ids,
-                "transaction_name": self.data_packet.get("transaction", ""),
+                "transaction_name": data_packet.get("transaction", ""),
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
