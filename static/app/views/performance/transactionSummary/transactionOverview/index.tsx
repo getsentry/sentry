@@ -10,9 +10,10 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
@@ -31,6 +32,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -402,10 +407,10 @@ function getTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
-  // const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-  //   vs.forEach(vital => keys.push(vital));
-  //   return keys;
-  // }, []);
+  const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
+    vs.forEach(vital => keys.push(vital));
+    return keys;
+  }, []);
 
   const totalsColumns: QueryFieldValue[] = [
     {
@@ -416,41 +421,41 @@ function getTotalsEventView(
       kind: 'function',
       function: ['count_unique', 'user', undefined, undefined],
     },
-    // {
-    //   kind: 'function',
-    //   function: ['failure_rate', '', undefined, undefined],
-    // },
-    // {
-    //   kind: 'function',
-    //   function: ['tpm', '', undefined, undefined],
-    // },
-    // {
-    //   kind: 'function',
-    //   function: ['count_miserable', 'user', undefined, undefined],
-    // },
-    // {
-    //   kind: 'function',
-    //   function: ['user_misery', '', undefined, undefined],
-    // },
-    // {
-    //   kind: 'function',
-    //   function: ['apdex', '', undefined, undefined],
-    // },
-    // {
-    //   kind: 'function',
-    //   function: ['sum', 'transaction.duration', undefined, undefined],
-    // },
+    {
+      kind: 'function',
+      function: ['failure_rate', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['tpm', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['count_miserable', 'user', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['user_misery', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['apdex', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['sum', 'transaction.duration', undefined, undefined],
+    },
   ];
 
   return eventView.withColumns([
     ...totalsColumns,
-    // ...vitals.map(
-    //   vital =>
-    //     ({
-    //       kind: 'function',
-    //       function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
-    //     }) as Column
-    // ),
+    ...vitals.map(
+      vital =>
+        ({
+          kind: 'function',
+          function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
+        }) as Column
+    ),
   ]);
 }
 
