@@ -9,7 +9,12 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import redis
 
-# s:{project_id:trace_id}:span_id
+# This SegmentId is an internal identifier used by the redis buffer that is
+# also directly used as raw redis key. the format is
+# "s:{project_id:trace_id}:span_id", and the type is bytes because our redis
+# client is bytes.
+#
+# The segment ID in the Kafka protocol is actually only the span ID.
 SegmentId = bytes
 
 
