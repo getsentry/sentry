@@ -50,7 +50,7 @@ describe('getting started with react-native', function () {
     expect(screen.getByRole('heading', {name: 'Source Context'})).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
       selectedOptions: {
@@ -63,7 +63,7 @@ describe('getting started with react-native', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders profiling onboarding docs correctly', async function () {
+  it('renders profiling onboarding docs correctly', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
