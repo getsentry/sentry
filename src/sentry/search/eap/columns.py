@@ -160,8 +160,6 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
     # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
     extrapolation: bool = True
-    # For more complex functions, a formula can be specified
-    formula_resolver: Callable[[Any], Any] | None = None
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
@@ -169,28 +167,50 @@ class FunctionDefinition:
 
     def resolve(
         self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
-    ) -> ResolvedFormula | ResolvedFunction:
-        if self.formula_resolver:
-            return ResolvedFormula(
-                public_alias=alias,
-                search_type=search_type,
-                formula=self.formula_resolver(
-                    resolved_argument.name if resolved_argument else None
-                ),
-                argument=resolved_argument,
-                internal_type=self.internal_type,
-                processor=self.processor,
-            )
-        else:
-            return ResolvedFunction(
-                public_alias=alias,
-                internal_name=self.internal_function,
-                search_type=search_type,
-                internal_type=self.internal_type,
-                processor=self.processor,
-                extrapolation=self.extrapolation,
-                argument=resolved_argument,
-            )
+    ) -> ResolvedFunction:
+        return ResolvedFunction(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            extrapolation=self.extrapolation,
+            argument=resolved_argument,
+        )
+
+
+@dataclass
+class FormulaDefinition:
+    # The list of arguments for this function
+    arguments: list[ArgumentDefinition]
+    # A function that takes in the resolved argument and returns a Column.BinaryFormula
+    formula_resolver: Callable[[Any], Any]
+    # The search_type the argument should be the default type for this column
+    default_search_type: constants.SearchType
+    # Try to infer the search type from the function arguments
+    infer_search_type_from_arguments: bool = True
+    # The internal rpc type for this function, optional as it can mostly be inferred from search_type
+    internal_type: AttributeKey.Type.ValueType | None = None
+    # Processor is the function run in the post process step to transform a row into the final result
+    processor: Callable[[Any], Column.BinaryFormula] | None = None
+    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    extrapolation: bool = True
+
+    @property
+    def required_arguments(self) -> list[ArgumentDefinition]:
+        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
+
+    def resolve(
+        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+    ) -> ResolvedFormula:
+        return ResolvedFormula(
+            public_alias=alias,
+            search_type=search_type,
+            formula=self.formula_resolver(resolved_argument.name if resolved_argument else None),
+            argument=resolved_argument,
+            internal_type=self.internal_type,
+            processor=self.processor,
+        )
 
 
 def simple_sentry_field(field) -> ResolvedColumn:
@@ -244,6 +264,7 @@ def project_term_resolver(
 @dataclass(frozen=True)
 class ColumnDefinitions:
     functions: dict[str, FunctionDefinition]
+    formulas: dict[str, FormulaDefinition]
     columns: dict[str, ResolvedColumn]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType

@@ -2591,6 +2591,31 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["http_response_rate(2)"] == 0.25
         assert meta["dataset"] == self.dataset
 
+    def test_http_response_rate_invalid_param(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "500"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(a)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Http_Response_Rate Accepts A Single Digit (1,2,3,4,5)"
+            == response.data["detail"].title()
+        )
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self):
         super().test_replay_id()

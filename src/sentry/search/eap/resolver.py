@@ -36,6 +36,8 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ColumnDefinitions,
+    FormulaDefinition,
+    FunctionDefinition,
     ResolvedColumn,
     ResolvedFormula,
     ResolvedFunction,
@@ -694,9 +696,13 @@ class SearchResolver:
         alias = match.group("alias") or column
 
         # Get the function definition
-        if function not in self.definitions.functions:
+        function_definition: FunctionDefinition | FormulaDefinition
+        if function in self.definitions.functions:
+            function_definition = self.definitions.functions[function]
+        elif function in self.definitions.formulas:
+            function_definition = self.definitions.formulas[function]
+        else:
             raise InvalidSearchQuery(f"Unknown function {function}")
-        function_definition = self.definitions.functions[function]
 
         parsed_columns = []
 
