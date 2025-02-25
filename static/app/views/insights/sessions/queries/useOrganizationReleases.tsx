@@ -102,12 +102,16 @@ export default function useOrganizationReleases({
           })
           .map((release, index, releases) => {
             const projSlug = release.projects[0]?.slug;
+            const projectId = release.projects[0]?.id ?? 0;
 
             const currentDate = new Date(release.dateCreated);
-            const previousDate =
-              index < releases.length - 1
-                ? new Date(releases[index + 1]?.dateCreated ?? 0)
-                : null;
+            // Find the previous release with the same project ID
+            const previousRelease = releases
+              .slice(index + 1)
+              .find(r => r.projects[0]?.id === projectId);
+            const previousDate = previousRelease
+              ? new Date(previousRelease.dateCreated)
+              : null;
 
             const lifespan = previousDate
               ? Math.floor(currentDate.getTime() - previousDate.getTime())

@@ -87,7 +87,7 @@ export default function ReleaseAdoptionTable({
             />
           </CellWrapper>
         ) : (
-          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
+          // the bottom lifespan for each project the table is rendered as '--' since there's nothing previous to compare it to
           '--'
         );
       }
