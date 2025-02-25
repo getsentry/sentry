@@ -226,7 +226,8 @@ export function SelectRow({
                     !selectedAggregateIsApdexOrUserMisery &&
                     Boolean(
                       newColumnOptions.find(
-                        option => option.value === currentField.function[1]
+                        option =>
+                          option.value === currentField.function[1] && !option.disabled
                       )?.value
                     );
                   currentField.function[1] =
@@ -292,11 +293,17 @@ export function SelectRow({
               ) {
                 selectedAggregate?.value.meta.parameters.forEach(
                   (parameter, parameterIndex) => {
-                    const isValidParameter = validateParameter(
-                      newColumnOptions,
-                      parameter,
-                      newFunction[parameterIndex + 1]
-                    );
+                    const isValidParameter =
+                      validateParameter(
+                        newColumnOptions,
+                        parameter,
+                        newFunction[parameterIndex + 1]
+                      ) &&
+                      !newColumnOptions.find(
+                        option =>
+                          option.value === newFunction[parameterIndex + 1] &&
+                          option.disabled
+                      )?.disabled;
                     // Increment by 1 to skip past the aggregate name
                     newFunction[parameterIndex + 1] =
                       (isValidParameter
@@ -309,7 +316,11 @@ export function SelectRow({
                 kind: FieldValueKind.FUNCTION,
                 function: newFunction,
               };
-              openColumnSelect();
+
+              // Only open the column select if there are multiple valid columns
+              if (newColumnOptions.filter(option => !option.disabled).length > 1) {
+                openColumnSelect();
+              }
             }
             trackAnalytics('dashboards_views.widget_builder.change', {
               builder_version: WidgetBuilderVersion.SLIDEOUT,

@@ -11,6 +11,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -46,9 +50,16 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
-const getInstallSnippet = (params: Params) => `
-dependencies:
-  sentry_flutter: ^${getPackageVersion(params, 'sentry.dart.flutter', '7.8.0')}`;
+const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i flutter ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+};
+
+const getManualInstallSnippet = (params: Params) => {
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  return `dependencies:
+  sentry_flutter: ^${version}`;
+};
 
 const getConfigureSnippet = (params: Params) => `
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -128,6 +139,25 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }`;
 
+const getInstallReplaySnippet = () => `
+await SentryFlutter.init(
+  (options) {
+    ...
+    options.experimental.replay.sessionSampleRate = 1.0;
+    options.experimental.replay.onErrorSampleRate = 1.0;
+  },
+  appRunner: () => runApp(
+      SentryWidget(
+        child: MyApp(),
+      ),
+    ),
+);
+`;
+
+const getConfigureReplaySnippet = () => `
+options.experimental.replay.maskAllText = true;
+options.experimental.replay.maskAllImages = true;`;
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
     isAutoInstall(params)
@@ -145,7 +175,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'bash',
-                code: 'brew install getsentry/tools/sentry-wizard && sentry-wizard -i flutter',
+                code: getInstallSnippet(params),
               },
               {
                 description: (
@@ -182,7 +212,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
                   {
                     manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/manual-setup/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/" />
                     ),
                   }
                 ),
@@ -208,7 +238,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     language: 'yaml',
                     filename: 'pubspec.yaml',
                     partialLoading: params.sourcePackageRegistries?.isLoading,
-                    code: getInstallSnippet(params),
+                    code: getManualInstallSnippet(params),
                   },
                 ],
               },
@@ -342,11 +372,81 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Make sure your Sentry Flutter SDK version is at least 8.9.0, which is required for Session Replay. You can update your [code:pubspec.yaml] to the matching version:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'YAML',
+              value: 'yaml',
+              language: 'yaml',
+              code: getInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: getInstallReplaySnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/flutter/session-replay/#privacy',
+      }),
+      configurations: [
+        {
+          description: t(
+            'The following code is the default configuration, which masks and blocks everything.'
+          ),
+          code: [
+            {
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: getConfigureReplaySnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: getReplayVerifyStep({
+    replayOnErrorSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+  }),
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
   platformOptions,
+  replayOnboarding,
 };
 
 export default docs;

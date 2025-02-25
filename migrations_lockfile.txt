@@ -15,12 +15,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0832_make_grouphash_metadata_date_added_nullable
+sentry: 0835_add_schema_version_to_grouphash_metadata
 
 social_auth: 0002_default_auto_field
 
 tempest: 0001_create_tempest_credentials_model
 
-uptime: 0025_uptime_migrate_constraint
+uptime: 0026_region_mode_col
 
-workflow_engine: 0031_make_detector_project_non_nullable
+workflow_engine: 0032_remove_data_source_query_id

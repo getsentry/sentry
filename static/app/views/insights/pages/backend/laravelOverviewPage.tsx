@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -23,10 +23,14 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -38,9 +42,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {BarChartWidget} from 'sentry/views/dashboards/widgets/barChartWidget/barChartWidget';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {LineChartWidget} from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -56,6 +57,10 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {InsightsBarChartWidget} from '../../common/components/insightsBarChartWidget';
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import type {DiscoverSeries} from '../../common/queries/useDiscoverSeries';
 
 function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
@@ -186,10 +191,7 @@ export function LaravelOverviewPage() {
                       />
                     </CachesContainer>
                   </WidgetGrid>
-                  <PanelTable
-                    headers={['Method', 'Route', 'Throughput', 'AVG', 'P95']}
-                    isEmpty
-                  />
+                  <RoutesTable query={derivedQuery} />
                 </PerformanceDisplayProvider>
               )}
               {showOnboarding && (
@@ -244,6 +246,9 @@ const WidgetGrid = styled('div')`
 const RequestsContainer = styled('div')`
   grid-area: requests;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom IssuesWidget
@@ -268,11 +273,17 @@ const IssuesContainer = styled('div')`
 const DurationContainer = styled('div')`
   grid-area: duration;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 const JobsContainer = styled('div')`
   grid-area: jobs;
   min-width: 0;
+  & > * {
+    height: 100%;
+  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom QueryWidget
@@ -392,7 +403,7 @@ function RequestsWidget({query}: {query?: string}) {
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -413,10 +424,11 @@ function RequestsWidget({query}: {query?: string}) {
   );
 
   const getTimeSeries = useCallback(
-    (codePrefix: string, color?: string): TimeSeries | undefined => {
+    (codePrefix: string, color?: string): DiscoverSeries | undefined => {
       if (!data) {
         return undefined;
       }
+
       const filteredSeries = Object.keys(data)
         .filter(key => key.startsWith(codePrefix))
         .map(key => data[key]!);
@@ -426,30 +438,41 @@ function RequestsWidget({query}: {query?: string}) {
         return undefined;
       }
 
+      const field = `${codePrefix}xx`;
+
       return {
         data: firstSeries.data.map(([time], index) => ({
+          name: new Date(time).toISOString(),
           value: filteredSeries.reduce(
             (acc, series) => acc + series.data[index]?.[1][0]?.count!,
             0
           ),
-          timestamp: new Date(time).toISOString(),
         })),
-        field: `${codePrefix}xx`,
-        meta: firstSeries.meta!,
+        seriesName: `${codePrefix}xx`,
+        meta: {
+          fields: {
+            [field]: 'integer',
+          },
+          units: {},
+        },
         color,
-      } satisfies TimeSeries;
+      } satisfies DiscoverSeries;
     },
     [data]
   );
 
+  const timeSeries = useMemo(() => {
+    return [getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
+      series => !!series
+    );
+  }, [getTimeSeries, theme.error, theme.gray200]);
+
   return (
-    <BarChartWidget
+    <InsightsBarChartWidget
       title="Requests"
       isLoading={isLoading}
-      timeSeries={[
-        getTimeSeries('2', theme.gray200),
-        getTimeSeries('5', theme.error),
-      ].filter(series => !!series)}
+      error={error}
+      series={timeSeries}
       stacked
     />
   );
@@ -459,7 +482,7 @@ function DurationWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -478,7 +501,7 @@ function DurationWidget({query}: {query?: string}) {
   );
 
   const getTimeSeries = useCallback(
-    (field: string, color?: string): TimeSeries | undefined => {
+    (field: string, color?: string): DiscoverSeries | undefined => {
       const series = data?.[field];
       if (!series) {
         return undefined;
@@ -487,24 +510,29 @@ function DurationWidget({query}: {query?: string}) {
       return {
         data: series.data.map(([time, [value]]) => ({
           value: value?.count!,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         })),
-        field,
-        meta: series.meta!,
+        seriesName: field,
+        meta: series.meta as EventsMetaType,
         color,
-      } satisfies TimeSeries;
+      } satisfies DiscoverSeries;
     },
     [data]
   );
 
+  const timeSeries = useMemo(() => {
+    return [
+      getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
+      getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
+    ].filter(series => !!series);
+  }, [getTimeSeries]);
+
   return (
-    <LineChartWidget
+    <InsightsLineChartWidget
       title="Duration"
       isLoading={isLoading}
-      timeSeries={[
-        getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
-        getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
-      ].filter(series => !!series)}
+      error={error}
+      series={timeSeries}
     />
   );
 }
@@ -514,7 +542,7 @@ function JobsWidget({query}: {query?: string}) {
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
 
-  const {data, isLoading} = useApiQuery<MultiSeriesEventsStats>(
+  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
       {
@@ -535,7 +563,7 @@ function JobsWidget({query}: {query?: string}) {
 
   const intervalInMinutes = parsePeriodToHours(pageFilterChartParams.interval) * 60;
 
-  const timeSeries = useMemo<TimeSeries[]>(() => {
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
     if (!data) {
       return [];
     }
@@ -552,7 +580,7 @@ function JobsWidget({query}: {query?: string}) {
       return spansPerMinuteValue * intervalInMinutes;
     };
 
-    const [okJobs, failedJobs] = okJobsRate.data.reduce<[TimeSeries, TimeSeries]>(
+    const [okJobs, failedJobs] = okJobsRate.data.reduce<[DiscoverSeries, DiscoverSeries]>(
       (acc, [time, [value]], index) => {
         const spansInTimeBucket = getSpansInTimeBucket(index);
         const okJobsRateValue = value?.count! || 0;
@@ -560,12 +588,12 @@ function JobsWidget({query}: {query?: string}) {
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         });
 
         acc[1].data.push({
           value: failedJobsRateValue * spansInTimeBucket,
-          timestamp: new Date(time).toISOString(),
+          name: new Date(time).toISOString(),
         });
 
         return acc;
@@ -574,14 +602,24 @@ function JobsWidget({query}: {query?: string}) {
         {
           data: [],
           color: theme.gray200,
-          field: 'Processed',
-          meta: okJobsRate.meta!,
+          seriesName: 'Processed',
+          meta: {
+            fields: {
+              Processed: 'integer',
+            },
+            units: {},
+          },
         },
         {
           data: [],
           color: theme.error,
-          field: 'Failed',
-          meta: okJobsRate.meta!,
+          seriesName: 'Failed',
+          meta: {
+            fields: {
+              Failed: 'integer',
+            },
+            units: {},
+          },
         },
       ]
     );
@@ -590,6 +628,140 @@ function JobsWidget({query}: {query?: string}) {
   }, [data, intervalInMinutes, theme.error, theme.gray200]);
 
   return (
-    <BarChartWidget title="Jobs" stacked isLoading={isLoading} timeSeries={timeSeries} />
+    <InsightsBarChartWidget
+      title="Jobs"
+      stacked
+      isLoading={isLoading}
+      error={error}
+      series={timeSeries}
+    />
   );
 }
+
+interface DiscoverQueryResponse {
+  data: Array<{
+    'avg(transaction.duration)': number;
+    'count()': number;
+    'failure_rate()': number;
+    'http.method': string;
+    'p95()': number;
+    transaction: string;
+  }>;
+}
+
+const errorRateColorThreshold = {
+  danger: 0.1,
+  warning: 0.05,
+} as const;
+
+const getP95Threshold = (avg: number) => {
+  return {
+    danger: avg * 3,
+    warning: avg * 2,
+  };
+};
+
+const getCellColor = (value: number, thresholds: Record<string, number>) => {
+  return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
+};
+
+function RoutesTable({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+
+  const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'metrics',
+          field: [
+            'http.method',
+            'transaction',
+            'avg(transaction.duration)',
+            'p95()',
+            'failure_rate()',
+            'count()',
+          ],
+          query: `(transaction.op:http.server) event.type:transaction ${query}`,
+          referrer: 'api.performance.landing-table',
+          orderby: '-count()',
+          per_page: 10,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const tableData = useMemo(() => {
+    return transactionsRequest.data?.data.map(transaction => ({
+      method: transaction['http.method'],
+      path: transaction.transaction,
+      requests: transaction['count()'],
+      avg: transaction['avg(transaction.duration)'],
+      p95: transaction['p95()'],
+      errorRate: transaction['failure_rate()'],
+    }));
+  }, [transactionsRequest.data]);
+
+  return (
+    <PanelTable
+      headers={[
+        'Method',
+        'Path',
+        <Cell key="requests">
+          <IconArrow direction="down" />
+          Requests
+        </Cell>,
+        'Error Rate',
+        'AVG',
+        'P95',
+        'Users',
+      ]}
+      isLoading={transactionsRequest.isLoading}
+      isEmpty={!tableData || tableData.length === 0}
+    >
+      {tableData?.map(transaction => {
+        const p95Color = getCellColor(transaction.p95, getP95Threshold(transaction.avg));
+
+        const errorRateColor = getCellColor(
+          transaction.errorRate,
+          errorRateColorThreshold
+        );
+
+        return (
+          <Fragment key={transaction.method + transaction.path}>
+            <Cell>{transaction.method}</Cell>
+            <Cell>{transaction.path}</Cell>
+            <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
+            <Cell data-color={errorRateColor}>
+              {(transaction.errorRate * 100).toFixed(2)}%
+            </Cell>
+            <Cell>{getDuration(transaction.avg / 1000, 2, true, true)}</Cell>
+            <Cell data-color={p95Color}>
+              {getDuration(transaction.p95 / 1000, 2, true, true)}
+            </Cell>
+            <Cell>–––</Cell>
+          </Fragment>
+        );
+      })}
+    </PanelTable>
+  );
+}
+
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  overflow: hidden;
+  white-space: nowrap;
+
+  &[data-color='danger'] {
+    color: ${p => p.theme.red400};
+  }
+
+  &[data-color='warning'] {
+    color: ${p => p.theme.yellow400};
+  }
+`;

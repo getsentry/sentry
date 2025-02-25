@@ -1,16 +1,18 @@
 from datetime import datetime, timezone
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.userip import UserIP
 
 
 @control_silo_test
-class UserEmailsTest(APITestCase):
+class UserIPsTest(APITestCase):
     endpoint = "sentry-api-0-user-ips"
 
     def setUp(self):
         super().setUp()
+        self.user = self.create_user(id=1)
         self.login_as(self.user)
 
     def test_simple(self):
@@ -34,3 +36,8 @@ class UserEmailsTest(APITestCase):
 
         assert response.data[0]["ipAddress"] == "127.0.0.1"
         assert response.data[1]["ipAddress"] == "127.0.0.2"
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
+    def test_demo_user(self):
+        response = self.get_response("me")
+        assert response.status_code == 403
