@@ -363,11 +363,11 @@ def call_next_backfill(
             return
 
         # call the backfill on next project
-        batch_project_id, last_processed_project_index = get_next_project_from_cohort(
+        next_project_id, last_processed_project_index = get_next_project_from_cohort(
             last_processed_project_index, cohort
         )
 
-        if batch_project_id is None and worker_number is None:
+        if next_project_id is None and worker_number is None:
             logger.info(
                 "backfill_seer_grouping_records.project_list_backfill_finished",
                 extra={
@@ -377,7 +377,7 @@ def call_next_backfill(
             )
             # we're at the end of the project list
             return
-        elif batch_project_id is None:
+        elif next_project_id is None:
             logger.info(
                 "backfill_seer_grouping_records.cohort_finished",
                 extra={
@@ -390,7 +390,7 @@ def call_next_backfill(
 
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
-                batch_project_id,
+                next_project_id,
                 None,
                 cohort,
                 last_processed_project_index,
