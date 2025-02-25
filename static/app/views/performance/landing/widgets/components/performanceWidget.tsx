@@ -178,7 +178,7 @@ function DefaultErrorComponent(props: {height: number}) {
   return (
     <ErrorPanelWithMinHeight
       data-test-id="widget-state-is-errored"
-      height={`${props.height}px`}
+      minHeight={`${props.height}px`}
     >
       <IconWarning color="gray300" size="lg" />
     </ErrorPanelWithMinHeight>
@@ -192,8 +192,8 @@ const defaultGrid = {
   bottom: space(1),
 };
 
-const ErrorPanelWithMinHeight = styled(ErrorPanel)<{height: string}>`
-  min-height: ${p => p.height};
+const ErrorPanelWithMinHeight = styled(ErrorPanel)<{minHeight: string}>`
+  min-height: ${p => p.minHeight};
 `;
 
 const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
