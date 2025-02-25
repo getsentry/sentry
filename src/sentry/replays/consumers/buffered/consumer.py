@@ -73,9 +73,8 @@ def process_message(message: bytes) -> ProcessedRecordingMessage | None:
     have no I/O here. We'll commit the I/O on flush.
     """
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        transaction = sentry_sdk.start_transaction(
+        with sentry_sdk.start_transaction(
             name="replays.consumer.process_recording",
             op="replays.consumer",
             custom_sampling_context={
@@ -83,14 +82,11 @@ def process_message(message: bytes) -> ProcessedRecordingMessage | None:
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
             },
-        )
-
-        try:
-            return process_recording_message(message)
-        except DropSilently:
-            return None
-        finally:
-            transaction.finish()
+        ):
+            try:
+                return process_recording_message(message)
+            except DropSilently:
+                return None
 
 
 def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
