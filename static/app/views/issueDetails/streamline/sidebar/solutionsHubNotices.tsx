@@ -35,7 +35,7 @@ function GithubIntegrationSetupCard() {
             )}
           </span>
         </CardDescription>
-        <LinkButton to="/settings/integrations/github/" size="sm" priority="primary">
+        <LinkButton href="/settings/integrations/github/" size="sm" priority="primary">
           {t('Set Up Now')}
         </LinkButton>
       </CardContent>
@@ -55,7 +55,7 @@ export function SolutionsHubNotices({
     repo.provider.includes('github')
   )?.integration_id;
 
-  if (!hasGithubIntegration || autofixRepositories.length === 0) {
+  if (!hasGithubIntegration) {
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
   }
 
