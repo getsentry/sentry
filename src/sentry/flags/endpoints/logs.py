@@ -57,7 +57,7 @@ class FlagAuditLogModelSerializer(Serializer):
 
 
 class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
-    # start, end handled by get_date_range_from_params
+    # start, end handled separately.
     flag = rest_serializers.ListField(
         child=rest_serializers.CharField(),
         required=False,
