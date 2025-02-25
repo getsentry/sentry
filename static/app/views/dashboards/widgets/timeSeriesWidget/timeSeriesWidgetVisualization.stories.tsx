@@ -12,7 +12,7 @@ import type {DateString} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
-import type {Release, TimeSeries, TimeseriesSelection} from '../common/types';
+import type {LegendSelection, Release, TimeSeries} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -265,11 +265,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       },
     });
 
-    const [timeseriesSelection, setTimeseriesSelection] = useState<TimeseriesSelection>({
-      'p50(span.duration)': true,
-      'p99(span.duration)': true,
-    });
-
     const durationTimeSeries1 = toTimeSeriesSelection(
       sampleDurationTimeSeries,
       start,
@@ -295,10 +290,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <TimeSeriesWidgetVisualization
             visualizationType="line"
             timeSeries={[durationTimeSeries1, durationTimeSeries2]}
-            timeseriesSelection={timeseriesSelection}
-            onTimeseriesSelectionChange={newSelection => {
-              setTimeseriesSelection(newSelection);
-            }}
           />
         </MediumWidget>
       </Fragment>
@@ -306,7 +297,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Legends', () => {
-    const [timeSeriesSelection, setTimeSeriesSelection] = useState<TimeseriesSelection>({
+    const [legendSelection, setLegendSelection] = useState<LegendSelection>({
       'p99(span.duration)': false,
     });
 
@@ -319,11 +310,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the charts.
         </p>
         <p>
-          You can control legend selection with the <code>timeseriesSelection</code> prop.
-          By default, all time series are shown. If any time series is set to{' '}
+          You can control legend selection with the <code>legendSelection</code> prop. By
+          default, all time series are shown. If any time series is set to{' '}
           <code>false</code> it will be hidden. The companion{' '}
-          <code>onTimeseriesSelectionChange</code> prop is a callback, it will tell you
-          when the user changes the legend selection by clicking on legend labels.
+          <code>onLegendSelectionChange</code> prop is a callback, it will tell you when
+          the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
           You can also provide aliases for legends to give them a friendlier name. In this
@@ -339,8 +330,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               'p99(span.duration)': 'p99',
               'p50(span.duration)': 'p50',
             }}
-            timeseriesSelection={timeSeriesSelection}
-            onTimeseriesSelectionChange={setTimeSeriesSelection}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={setLegendSelection}
           />
         </MediumWidget>
       </Fragment>

@@ -238,7 +238,7 @@ class TaskWorker:
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
-        prefetch_multiplier: int = 3,
+        prefetch_multiplier: float = 1.0,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -248,7 +248,7 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        queuesize = concurrency * prefetch_multiplier
+        queuesize = int(concurrency * prefetch_multiplier)
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=queuesize
         )

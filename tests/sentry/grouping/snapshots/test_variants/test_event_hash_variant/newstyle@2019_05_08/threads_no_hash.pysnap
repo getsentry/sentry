@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:56.208300+00:00'
+created: '2025-02-25T04:22:23.168919+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   contributing component: null
   component:
     app
-      threads (ignored because does not contain exactly one crashing, one current or just one thread, instead contains 2 threads)
+      threads (ignored because it contains neither a single thread nor multiple threads with exactly one crashing or current thread; instead contains 0 crashing, 2 current, and 2 total threads)
 --------------------------------------------------------------------------
 fallback:
   hash: "d41d8cd98f00b204e9800998ecf8427e"
