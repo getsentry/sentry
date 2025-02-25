@@ -337,6 +337,67 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._get_profile_for_event")
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_ai_autofix_post_without_code_mappings(
+        self, mock_check_autofix_status, mock_call, mock_get_profile, mock_profiling_service
+    ):
+        # Mock profile data
+        mock_get_profile.return_value = {"profile_data": "test"}
+        mock_profiling_service.return_value.status = 200
+        mock_profiling_service.return_value.data = (
+            b'{"profile": {"frames": [], "stacks": [], "samples": [], "thread_metadata": {}}}'
+        )
+
+        release = self.create_release(project=self.project, version="1.0.0")
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {"values": [{"type": "exception", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        assert group is not None
+        group.save()
+
+        mock_call.return_value = 123  # Mocking the run_id returned by _call_autofix
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "Yes", "event_id": event.event_id},
+            format="json",
+        )
+        mock_call.assert_called_with(
+            ANY,
+            group,
+            [],
+            ANY,
+            {"profile_data": "test"},
+            "Yes",
+            TIMEOUT_SECONDS,
+            None,
+        )
+
+        actual_group_arg = mock_call.call_args[0][1]
+        assert actual_group_arg.id == group.id
+
+        serialized_event_arg = mock_call.call_args[0][3]
+        assert any(
+            [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
+        )
+        assert response.status_code == 202
+
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._get_profile_for_event")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id(
         self,
         mock_check_autofix_status,
@@ -527,47 +588,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             self._get_url(group.id), data={"instruction": "Yes"}, format="json"
         )
         assert response.status_code == 400
-
-    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
-    def test_ai_autofix_without_code_mapping(self, mock_call):
-        release = self.create_release(project=self.project, version="1.0.0")
-
-        self.create_repo(
-            project=self.project,
-            name="invalid-repo",
-            provider="integrations:someotherprovider",
-            external_id="123",
-        )
-
-        data = load_data("python", timestamp=before_now(minutes=1))
-        event = self.store_event(
-            data={
-                **data,
-                "release": release.version,
-                "exception": {"values": [{"type": "exception", "data": {"values": []}}]},
-            },
-            project_id=self.project.id,
-        )
-
-        group = event.group
-
-        assert group is not None
-        group.save()
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"instruction": "Yes", "event_id": event.event_id},
-            format="json",
-        )
-        mock_call.assert_not_called()
-
-        group = Group.objects.get(id=group.id)
-
-        error_msg = "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't"
-
-        assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
-        assert response.data["detail"] == error_msg
 
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_without_stacktrace(self, mock_call):
