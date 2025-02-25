@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
@@ -9,6 +11,6 @@ class AnomalyDetectionHandler(DataConditionHandler[WorkflowJob]):
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
-    def evaluate_value(value, comparison):
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         # this is a placeholder
         return False
