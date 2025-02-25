@@ -57,10 +57,15 @@ export type BadgeType =
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
   type: BadgeType;
+
+  /**
+   * @deprecated Use `children` instead.
+   */
+  text?: string | number;
 }
 
-export function Badge({children, ...props}: BadgeProps) {
-  return <StyledBadge {...props}>{children}</StyledBadge>;
+export function Badge({children, text, ...props}: BadgeProps) {
+  return <StyledBadge {...props}>{text ?? children}</StyledBadge>;
 }
 
 const StyledBadge = styled('span')<BadgeProps>`
