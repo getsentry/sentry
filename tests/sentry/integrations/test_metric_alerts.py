@@ -85,7 +85,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         incident_trigger.update(date_modified=now)
 
         # Test the trigger "firing"
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL)
+        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value=4)
         assert data["title"] == "Critical: {}".format(
             alert_rule.name
         )  # Pulls from trigger, not incident
@@ -102,7 +102,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
         # Test the trigger "resolving"
-        data = incident_attachment_info(incident, IncidentStatus.CLOSED)
+        data = incident_attachment_info(incident, IncidentStatus.CLOSED, metric_value=4)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
@@ -117,7 +117,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
         # No trigger passed, uses incident as fallback
-        data = incident_attachment_info(incident, IncidentStatus.CLOSED)
+        data = incident_attachment_info(incident, IncidentStatus.CLOSED, metric_value=4)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
@@ -202,7 +202,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        metric_value = "123.12"
+        metric_value = 123.12
         data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
         assert (
             data["text"]
@@ -280,7 +280,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_incident_trigger_sessions_resolve(self):
         self.create_incident_and_related_objects()
-        data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
+        data = incident_attachment_info(self.incident, IncidentStatus.CLOSED, metric_value=100.0)
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% sessions crash free rate in the last hour"
@@ -304,7 +304,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_incident_trigger_users_resolve(self):
         self.create_incident_and_related_objects(field="users")
-        data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
+        data = incident_attachment_info(self.incident, IncidentStatus.CLOSED, metric_value=100.0)
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last hour"
@@ -316,7 +316,9 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_daily_incident_trigger_users_resolve(self):
         self.create_daily_incident_and_related_objects(field="users")
-        data = incident_attachment_info(self.daily_incident, IncidentStatus.CLOSED)
+        data = incident_attachment_info(
+            self.daily_incident, IncidentStatus.CLOSED, metric_value=100.0
+        )
         assert data["title"] == f"Resolved: {self.daily_alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last day"
@@ -345,11 +347,11 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL)
+        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, 0)
 
         assert data["title"] == f"Critical: {alert_rule.name}"
         assert data["status"] == "Critical"
-        assert data["text"] == "No sessions crash free rate in the last hour"
+        assert data["text"] == "0% sessions crash free rate in the last hour"
 
 
 @freeze_time(MOCK_NOW)
