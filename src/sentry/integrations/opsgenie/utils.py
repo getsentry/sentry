@@ -20,7 +20,7 @@ OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
+    metric_value: float,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
     data = incident_attachment_info(
