@@ -140,11 +140,22 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
 function Wrapper({children}: any) {
   return (
-    <AutoResizeParent>
-      <AutoSizedText>{children}</AutoSizedText>
-    </AutoResizeParent>
+    <GrowingWrapper>
+      <AutoResizeParent>
+        <AutoSizedText>{children}</AutoSizedText>
+      </AutoResizeParent>
+    </GrowingWrapper>
   );
 }
+
+// Takes up 100% of the parent. If within flex context, grows to fill.
+// Otherwise, takes up 100% horizontally and vertically
+const GrowingWrapper = styled('div')`
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+`;
 
 const AutoResizeParent = styled('div')`
   position: absolute;
