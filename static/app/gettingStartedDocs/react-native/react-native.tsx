@@ -136,7 +136,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'bash',
-                code: `npx @sentry/wizard@latest -s -i reactNative --org ${params.organization.slug} --project ${params.projectSlug}`,
+                code: `npx @sentry/wizard@latest -i reactNative --org ${params.organization.slug} --project ${params.projectSlug}`,
               },
               {
                 description: (
