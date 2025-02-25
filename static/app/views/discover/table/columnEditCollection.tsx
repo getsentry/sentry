@@ -7,7 +7,7 @@ import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';

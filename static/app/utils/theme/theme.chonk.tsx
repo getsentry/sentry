@@ -51,9 +51,9 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
         },
       },
       background: {
-        primary: colorScheme.dynamic.surface400,
-        secondary: colorScheme.dynamic.surface300,
-        tertiary: colorScheme.dynamic.surface200,
+        primary: colorScheme.dynamic.surface500,
+        secondary: colorScheme.dynamic.surface400,
+        tertiary: colorScheme.dynamic.surface300,
       },
       border: {
         primary: colorScheme.dynamic.surface100,
@@ -83,18 +83,18 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           chonk: colorScheme.dynamic.surface100,
           children: colorScheme.dynamic.grayTransparent500,
           background: {
-            default: colorScheme.dynamic.surface400,
-            hover: colorScheme.dynamic.surface300,
-            active: colorScheme.dynamic.surface200,
+            default: colorScheme.dynamic.surface500,
+            hover: colorScheme.dynamic.surface400,
+            active: colorScheme.dynamic.surface300,
           },
         },
         transparent: {
           chonk: colorScheme.dynamic.surface100,
           children: colorScheme.dynamic.grayTransparent500,
           background: {
-            default: colorScheme.dynamic.surface400,
-            hover: colorScheme.dynamic.surface300,
-            active: colorScheme.dynamic.surface200,
+            default: colorScheme.dynamic.surface500,
+            hover: colorScheme.dynamic.surface400,
+            active: colorScheme.dynamic.surface300,
           },
         },
         accent: {
@@ -184,10 +184,11 @@ const lightColors = {
   },
 
   dynamic: {
-    surface400: '#FFFFFF',
-    surface300: '#FDFCFF',
-    surface200: '#ECEBF0',
-    surface100: '#E2E1E5',
+    surface500: '#FFFFFF',
+    surface400: '#FDFCFF',
+    surface300: '#F9F7FC',
+    surface200: '#ECEBF0', // Currently used for borderSecondary
+    surface100: '#E2E1E5', // Currently used for button chonk & borderPrimary
 
     // @TODO(jonasbadalic): Why does gray opaque have 500?
     grayOpaque500: '#181423',
@@ -261,10 +262,11 @@ const darkColors: typeof lightColors = {
   },
 
   dynamic: {
-    surface400: '#292536',
-    surface300: '#252130',
-    surface200: '#191721',
-    surface100: '#0B0A0F',
+    surface500: '#292536',
+    surface400: '#252130',
+    surface300: '#211E2B',
+    surface200: '#191721', // Currently used for borderSecondary
+    surface100: '#0B0A0F', // Currently used for button chonk & borderPrimary
 
     // @TODO(jonasbadalic): why 500 range?
     grayOpaque500: '#F6F5FA',
@@ -604,10 +606,10 @@ const chonkLightColorMapping: ColorMapping = {
   lightModeBlack: lightColors.static.black,
   lightModeWhite: lightColors.static.white,
 
-  surface100: lightColors.dynamic.surface100,
-  surface200: lightColors.dynamic.surface200,
-  surface300: lightColors.dynamic.surface300,
-  surface400: lightColors.dynamic.surface400,
+  surface100: lightColors.dynamic.surface200,
+  surface200: lightColors.dynamic.surface300,
+  surface300: lightColors.dynamic.surface400,
+  surface400: lightColors.dynamic.surface500,
 
   translucentSurface100: lightColors.dynamic.surface100,
   translucentSurface200: lightColors.dynamic.surface200,
@@ -662,10 +664,10 @@ const chonkDarkColorMapping: ColorMapping = {
   lightModeBlack: darkColors.static.black,
   lightModeWhite: darkColors.static.white,
 
-  surface100: darkColors.dynamic.surface100,
-  surface200: darkColors.dynamic.surface200,
-  surface300: darkColors.dynamic.surface300,
-  surface400: darkColors.dynamic.surface400,
+  surface100: darkColors.dynamic.surface200,
+  surface200: darkColors.dynamic.surface300,
+  surface300: darkColors.dynamic.surface400,
+  surface400: darkColors.dynamic.surface500,
 
   translucentSurface100: darkColors.dynamic.surface100,
   translucentSurface200: darkColors.dynamic.surface200,

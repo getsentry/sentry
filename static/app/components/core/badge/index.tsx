@@ -50,7 +50,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   type?: BadgeType;
 }
 
-export default function Badge({children, type = 'default', text, ...props}: BadgeProps) {
+export function Badge({children, type = 'default', text, ...props}: BadgeProps) {
   const badgeColors = useBadgeColors();
 
   return (

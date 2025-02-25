@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.base import (
@@ -17,7 +17,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 
 from .card_builder.installation import (
     build_personal_installation_confirmation_message,
@@ -135,5 +135,5 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
 
 class MsTeamsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         return pipeline.next_step()

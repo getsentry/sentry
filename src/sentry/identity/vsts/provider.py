@@ -5,11 +5,13 @@ from urllib.parse import parse_qsl
 
 import orjson
 from django.core.exceptions import PermissionDenied
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 
 from sentry import http, options
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider, record_event
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
+from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -123,9 +125,7 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(self, request: Request, pipeline, code):
-        from sentry.http import safe_urlopen, safe_urlread
-
+    def exchange_token(self, request: HttpRequest, pipeline: Pipeline, code: str) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture():
@@ -240,11 +240,7 @@ class VSTSOAuth2LoginView(OAuth2LoginView):
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(self, request: Request, pipeline, code):
-        from urllib.parse import parse_qsl
-
-        from sentry.http import safe_urlopen, safe_urlread
-
+    def exchange_token(self, request: HttpRequest, pipeline: Pipeline, code: str) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture():
