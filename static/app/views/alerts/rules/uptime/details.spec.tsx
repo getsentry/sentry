@@ -18,7 +18,7 @@ describe('UptimeAlertDetails', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=20&project=${project.id}&query=issue.category%3Auptime%20tags%5Buptime_rule%5D%3A1`,
+      url: `/organizations/${organization.slug}/issues/?limit=1&project=${project.id}&query=issue.category%3Auptime%20tags%5Buptime_rule%5D%3A1`,
       body: [],
     });
     MockApiClient.addMockResponse({
