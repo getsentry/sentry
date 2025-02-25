@@ -19,6 +19,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 from .constants import DRY_RUN_PLATFORMS
@@ -64,7 +65,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         logger.error("Event not found.", extra=extra)
         return []
 
-    if not supported_platform(event.platform):
+    platform = event.data["platform"]
+    if not supported_platform(platform):
         return []
 
     frames_to_process = get_frames_to_process(event.data, event.platform)
@@ -77,8 +79,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process)
-        if event.platform not in DRY_RUN_PLATFORMS:
-            set_project_codemappings(code_mappings, installation, project)
+        if platform not in DRY_RUN_PLATFORMS:
+            set_project_codemappings(code_mappings, installation, project, platform)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
@@ -159,6 +161,7 @@ def set_project_codemappings(
     code_mappings: list[CodeMapping],
     installation: IntegrationInstallation,
     project: Project,
+    platform: str,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
@@ -183,7 +186,7 @@ def set_project_codemappings(
                 integration_id=organization_integration.integration_id,
             )
 
-        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
+        _, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
             stack_root=code_mapping.stacktrace_root,
             defaults={
@@ -196,13 +199,5 @@ def set_project_codemappings(
                 "automatically_generated": True,
             },
         )
-        if not created:
-            logger.info(
-                "Code mapping already exists",
-                extra={
-                    "project": project,
-                    "stacktrace_root": code_mapping.stacktrace_root,
-                    "new_code_mapping": code_mapping,
-                    "existing_code_mapping": cm,
-                },
-            )
+        if created:
+            metrics.incr("code_mappings.created", tags={"platform": platform})
