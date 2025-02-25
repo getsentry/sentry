@@ -14,9 +14,11 @@ import {
   type AutofixData,
   type AutofixProgressItem,
   type AutofixRepository,
+  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -43,7 +45,6 @@ interface StepProps {
 interface AutofixStepsProps {
   data: AutofixData;
   groupId: string;
-  onRetry: () => void;
   runId: string;
 }
 
@@ -139,6 +140,20 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     return null;
   }
 
+  if (data.status === AutofixStatus.ERROR) {
+    const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
+    const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
+
+    return (
+      <ErrorContainer>
+        <StyledArrow direction="down" size="sm" />
+        <ErrorMessage>
+          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
+        </ErrorMessage>
+      </ErrorContainer>
+    );
+  }
+
   const lastStep = steps[steps.length - 1];
   const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
@@ -147,75 +162,72 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     '';
 
   return (
-    <div>
-      <StepsContainer ref={containerRef}>
-        {steps.map((step, index) => {
-          const previousDefaultStepIndex = steps
-            .slice(0, index)
-            .findLastIndex(s => s.type === AutofixStepType.DEFAULT);
-          const previousDefaultStep =
-            previousDefaultStepIndex >= 0 ? steps[previousDefaultStepIndex] : undefined;
-          const previousInsightCount =
-            previousDefaultStep?.type === AutofixStepType.DEFAULT
-              ? previousDefaultStep.insights.length
-              : undefined;
+    <StepsContainer ref={containerRef}>
+      {steps.map((step, index) => {
+        const previousDefaultStepIndex = steps
+          .slice(0, index)
+          .findLastIndex(s => s.type === AutofixStepType.DEFAULT);
+        const previousDefaultStep =
+          previousDefaultStepIndex >= 0 ? steps[previousDefaultStepIndex] : undefined;
+        const previousInsightCount =
+          previousDefaultStep?.type === AutofixStepType.DEFAULT
+            ? previousDefaultStep.insights.length
+            : undefined;
 
-          const previousStep = index > 0 ? steps[index - 1] : null;
-          const previousStepErrored =
-            previousStep !== null &&
-            previousStep?.type === step.type &&
-            previousStep.status === 'ERROR';
-          const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
-          const twoInsightStepsInARow =
-            nextStep?.type === AutofixStepType.DEFAULT &&
-            step.type === AutofixStepType.DEFAULT &&
-            step.insights.length > 0 &&
-            nextStep.insights.length > 0;
-          const stepBelowProcessingAndEmpty =
-            nextStep?.type === AutofixStepType.DEFAULT &&
-            nextStep?.status === 'PROCESSING' &&
-            nextStep?.insights?.length === 0;
+        const previousStep = index > 0 ? steps[index - 1] : null;
+        const previousStepErrored =
+          previousStep !== null &&
+          previousStep?.type === step.type &&
+          previousStep.status === 'ERROR';
+        const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
+        const twoInsightStepsInARow =
+          nextStep?.type === AutofixStepType.DEFAULT &&
+          step.type === AutofixStepType.DEFAULT &&
+          step.insights.length > 0 &&
+          nextStep.insights.length > 0;
+        const stepBelowProcessingAndEmpty =
+          nextStep?.type === AutofixStepType.DEFAULT &&
+          nextStep?.status === 'PROCESSING' &&
+          nextStep?.insights?.length === 0;
 
-          return (
-            <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
-              <Step
-                step={step}
-                hasStepBelow={
-                  index + 1 < steps.length &&
-                  !twoInsightStepsInARow &&
-                  !stepBelowProcessingAndEmpty
-                }
-                hasStepAbove
-                groupId={groupId}
-                runId={runId}
-                repos={repos}
-                hasErroredStepBefore={previousStepErrored}
-                shouldCollapseByDefault={
-                  step.type === AutofixStepType.DEFAULT &&
-                  nextStep !== null &&
-                  !twoInsightStepsInARow
-                }
-                previousDefaultStepIndex={
-                  previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
-                }
-                previousInsightCount={previousInsightCount}
-              />
-            </div>
-          );
-        })}
-        {((activeLog && lastStep!.status === 'PROCESSING') ||
-          lastStep!.output_stream) && (
-          <AutofixOutputStream
-            stream={lastStep!.output_stream ?? ''}
-            activeLog={activeLog}
-            groupId={groupId}
-            runId={runId}
-            responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-            isProcessing={lastStep!.status === 'PROCESSING'}
-          />
-        )}
-      </StepsContainer>
-    </div>
+        return (
+          <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+            <Step
+              step={step}
+              hasStepBelow={
+                index + 1 < steps.length &&
+                !twoInsightStepsInARow &&
+                !stepBelowProcessingAndEmpty
+              }
+              hasStepAbove
+              groupId={groupId}
+              runId={runId}
+              repos={repos}
+              hasErroredStepBefore={previousStepErrored}
+              shouldCollapseByDefault={
+                step.type === AutofixStepType.DEFAULT &&
+                nextStep !== null &&
+                !twoInsightStepsInARow
+              }
+              previousDefaultStepIndex={
+                previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
+              }
+              previousInsightCount={previousInsightCount}
+            />
+          </div>
+        );
+      })}
+      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
+        <AutofixOutputStream
+          stream={lastStep!.output_stream ?? ''}
+          activeLog={activeLog}
+          groupId={groupId}
+          runId={runId}
+          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          isProcessing={lastStep!.status === 'PROCESSING'}
+        />
+      )}
+    </StepsContainer>
   );
 }
 
@@ -228,7 +240,25 @@ const StepMessage = styled('div')`
   text-align: left;
 `;
 
+const ErrorMessage = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+`;
+
 const StepsContainer = styled('div')``;
+
+const ErrorContainer = styled('div')`
+  margin-top: ${space(1)};
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const StyledArrow = styled(IconArrow)`
+  color: ${p => p.theme.subText};
+  opacity: 0.5;
+`;
 
 const StepCard = styled('div')`
   overflow: hidden;

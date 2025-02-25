@@ -245,7 +245,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
-                    onRetry={reset}
                   />
                 )}
               </Fragment>

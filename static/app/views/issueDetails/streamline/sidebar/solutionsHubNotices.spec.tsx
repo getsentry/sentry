@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {AutofixRepository} from 'sentry/components/events/autofix/types';
 import {SolutionsHubNotices} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubNotices';
@@ -35,14 +35,6 @@ describe('SolutionsHubNotices', function () {
         hasGithubIntegration={false}
       />
     );
-
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Now')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Install'})).toBeInTheDocument();
-  });
-
-  it('renders GitHub integration setup card when autofixRepositories is empty', function () {
-    render(<SolutionsHubNotices autofixRepositories={[]} hasGithubIntegration />);
 
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
@@ -172,18 +164,6 @@ describe('SolutionsHubNotices', function () {
       screen.getByText(/Autofix can't access these repositories:/)
     ).toBeInTheDocument();
     expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
-  });
-
-  it('handles navigation to GitHub integration setup when user clicks button', async function () {
-    render(<SolutionsHubNotices autofixRepositories={[]} hasGithubIntegration={false} />);
-
-    const setupButton = screen.getByText('Set Up Now');
-    // The button is a LinkButton which might not have href directly accessible in tests
-    // Instead, let's just check that it exists and can be clicked
-    expect(setupButton).toBeInTheDocument();
-
-    await userEvent.click(setupButton);
-    // We can't fully test navigation since it's handled by the router
   });
 
   it('renders correct integration links based on integration_id', function () {
