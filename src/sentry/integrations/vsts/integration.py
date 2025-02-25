@@ -8,7 +8,7 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
-from django.http import HttpRequest
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
 

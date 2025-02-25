@@ -82,7 +82,7 @@ An example pipeline view might be a form that asks the user for some input.
 
 ```python
 class GetUserInput(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         # The pipeline supports a generic error method that will render a
         # pipeline error view
         if 'my_data' not in request.POST:
