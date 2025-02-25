@@ -20,7 +20,6 @@ from sentry.models.files.utils import (
     get_storage,
     nooplogger,
 )
-from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
@@ -178,6 +177,9 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     @classmethod
     @sentry_sdk.tracing.trace
     def from_file_with_organization(cls, fileobj, organization=None, logger=nooplogger) -> Self:
+        """
+        Retrieve a single FileBlob instances for the given file and binds it to an organization via the FileBlobOwner.
+        """
         blob = cls.from_file(fileobj, logger=logger)
         blob._ensure_blob_owned(organization)
 
@@ -247,9 +249,13 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         storage = get_storage(self._storage_config())
         return storage.open(self.path)
 
-    def _ensure_blob_owned(self, organization: Organization):
+    def _ensure_blob_owned(self, organization):
+        """
+        Ensures that the FileBlob is owned by the given organization.
+        """
         if organization is None:
             return
+
         try:
             with transaction.atomic(using=router.db_for_write(self.__class__)):
                 self._create_blob_owner(organization_id=organization.id)
