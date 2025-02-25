@@ -64,6 +64,8 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             try:
                 with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
                     self.create(organization_id=organization_id, task=task, **kwargs)
+                    # Store marker to prevent running all the time
+                    cache.set(cache_key, 1, 3600)
                     return True
             except IntegrityError as error:
                 if task == OnboardingTask.FIRST_PROJECT:
@@ -74,14 +76,6 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                         level="warning",
                     )
                 pass
-
-            # Store marker to prevent running all the time
-            cache.set(cache_key, 1, 3600)
-        if task == OnboardingTask.FIRST_PROJECT:
-            sentry_sdk.capture_message(
-                f"First project task not created for org {organization_id}, cache key {cache_key} set",
-                level="warning",
-            )
         return False
 
 
