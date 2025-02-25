@@ -1,5 +1,6 @@
 import dataclasses
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
@@ -12,12 +13,14 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
+from arroyo.processing.strategies.batching import BatchStep, UnbatchStep, ValuesBatch
+from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import (
     FILTERED_PAYLOAD,
+    BaseValue,
     BrokerValue,
     Commit,
     FilteredPayload,
@@ -31,6 +34,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
+from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -275,6 +279,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def __init__(
         self,
+        buffer_v2: bool,
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
@@ -282,6 +287,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int | None,
     ):
         super().__init__()
+        self.buffer_v2 = buffer_v2
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
@@ -301,38 +307,109 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        if self.buffer_v2:
+            produce = Produce(
+                producer=self.producer,
+                topic=self.output_topic,
+                next_step=CommitOffsets(commit),
+            )
 
-        produce_step = Produce(
-            producer=self.producer,
-            topic=self.output_topic,
-            next_step=NoOp(),
-        )
+            unbatch = UnbatchStep(next_step=produce)
 
-        unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
+            run_task = run_task_with_multiprocessing(
+                function=process_batch_v2,
+                next_step=unbatch,
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                pool=self.__pool,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
+            )
 
-        commit_step = CommitSpanOffsets(commit=commit, next_step=unfold_step)
+            batch = BatchStep(
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                next_step=run_task,
+            )
 
-        batch_processor = RunTask(
-            function=batch_write_to_redis,
-            next_step=commit_step,
-        )
+            return batch
+        else:
+            produce_step = Produce(
+                producer=self.producer,
+                topic=self.output_topic,
+                next_step=NoOp(),
+            )
 
-        batch_step = BatchStep(
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            next_step=batch_processor,
-        )
+            unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
 
-        return run_task_with_multiprocessing(
-            function=process_message,
-            next_step=batch_step,
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            pool=self.__pool,
-            input_block_size=self.input_block_size,
-            output_block_size=self.output_block_size,
-        )
+            commit_step = CommitSpanOffsets(commit=commit, next_step=unfold_step)
+
+            batch_processor = RunTask(
+                function=batch_write_to_redis,
+                next_step=commit_step,
+            )
+
+            batch_step = BatchStep(
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                next_step=batch_processor,
+            )
+
+            return run_task_with_multiprocessing(
+                function=process_message,
+                next_step=batch_step,
+                # TODO: do we really need two levels of batching (especially tuning params) like in the indexer?
+                max_batch_size=1,
+                max_batch_time=1,
+                pool=self.__pool,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
+            )
 
     def shutdown(self) -> None:
         self.producer.close()
         self.__pool.close()
+
+
+def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[KafkaPayload]:
+    # TODO config
+    buffer = RedisSpansBufferV2()
+
+    spans = []
+    for value in values.payload:
+        val = rapidjson.loads(value.payload.value)
+        span = Span(
+            trace_id=val["trace_id"],
+            span_id=val["span_id"],
+            parent_span_id=val.get("parent_span_id"),
+            project_id=val["project_id"],
+            payload=value.payload.value,
+            is_segment_span=val.get("parent_span_id") is None,
+        )
+        spans.append(span)
+
+    now = int(time.time())
+    buffer.process_spans(spans, now=now)
+    flushed_segments = buffer.flush_segments(now)
+
+    segment_messages: list[BaseValue[KafkaPayload]] = []
+
+    for segment_id, spans_set in flushed_segments.items():
+        segment_spans = []
+        for payload in spans_set:
+            val = rapidjson.loads(payload)
+            val["segment_id"] = segment_id
+            val["is_segment"] = segment_id == val["span_id"]
+            segment_spans.append(val)
+
+        value = Value(
+            payload=KafkaPayload(
+                None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
+            ),
+            # TODO: wrong commit condition
+            committable=values.committable,
+        )
+
+        segment_messages.append(value)
+
+    return segment_messages
