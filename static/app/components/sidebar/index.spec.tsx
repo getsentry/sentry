@@ -118,20 +118,6 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
-  it('does not render collapse with navigation-sidebar-v2 flag', async function () {
-    renderSidebar({
-      organization: {...organization, features: ['navigation-sidebar-v2']},
-    });
-
-    // await for the page to be rendered
-    expect(await screen.findByText('Issues')).toBeInTheDocument();
-    // Check that the user name is no longer visible
-    expect(screen.queryByText(user.name)).not.toBeInTheDocument();
-    // Check that the organization name is no longer visible
-    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
-    expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
-  });
-
   it('has can logout', async function () {
     renderSidebar({
       organization: OrganizationFixture({access: ['member:read']}),

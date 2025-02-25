@@ -1,4 +1,5 @@
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {Dataset, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
@@ -13,7 +14,7 @@ describe('getExploreUrl', () => {
     rule.environment = 'prod';
     const url = getAlertRuleExploreUrl({
       rule,
-      orgSlug: 'slug',
+      organization: OrganizationFixture({slug: 'slug'}),
       period: '7d',
       projectId: '1',
     });
@@ -30,7 +31,7 @@ describe('getExploreUrl', () => {
     rule.environment = 'prod';
     const url = getAlertRuleExploreUrl({
       rule,
-      orgSlug: 'slug',
+      organization: OrganizationFixture({slug: 'slug'}),
       period: '9998m',
       projectId: '1',
     });

@@ -51,6 +51,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         color: serie.color ?? COMMON_COLORS[timeserie.field],
       };
     }),
+    dataCompletenessDelay: 90,
     aliases: props.aliases,
     stacked: props.stacked,
   };
@@ -58,17 +59,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const Title = <Widget.WidgetTitle title={props.title} />;
 
   // TODO: Instead of using `ChartContainer`, enforce the height from the parent layout
-  if (visualizationProps.timeSeries.length === 0) {
-    return (
-      <ChartContainer>
-        <Widget
-          Title={Title}
-          Visualization={<Widget.WidgetError error={MISSING_DATA_MESSAGE} />}
-        />
-      </ChartContainer>
-    );
-  }
-
   if (props.isLoading) {
     return (
       <ChartContainer>
@@ -86,6 +76,17 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={props.error} />}
+        />
+      </ChartContainer>
+    );
+  }
+
+  if (visualizationProps.timeSeries.length === 0) {
+    return (
+      <ChartContainer>
+        <Widget
+          Title={Title}
+          Visualization={<Widget.WidgetError error={MISSING_DATA_MESSAGE} />}
         />
       </ChartContainer>
     );

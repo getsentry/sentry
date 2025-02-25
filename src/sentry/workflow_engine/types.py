@@ -9,7 +9,9 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.models import Action, Detector, Workflow
+    from sentry.workflow_engine.models.data_condition import Condition
 
 T = TypeVar("T")
 
@@ -19,12 +21,6 @@ class DetectorPriorityLevel(IntEnum):
     LOW = PriorityLevel.LOW
     MEDIUM = PriorityLevel.MEDIUM
     HIGH = PriorityLevel.HIGH
-
-
-class DataConditionHandlerType(StrEnum):
-    DETECTOR_TRIGGER = "detector_trigger"
-    WORKFLOW_TRIGGER = "workflow_trigger"
-    ACTION_FILTER = "action_filter"
 
 
 # The unique key used to identify a group within a DataPacket result.
@@ -66,9 +62,33 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
-    type: ClassVar[DataConditionHandlerType] = DataConditionHandlerType.ACTION_FILTER
+    class Type(StrEnum):
+        DETECTOR_TRIGGER = "detector_trigger"
+        WORKFLOW_TRIGGER = "workflow_trigger"
+        ACTION_FILTER = "action_filter"
+
+    type: ClassVar[list[Type]]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
         raise NotImplementedError
+
+
+class DataConditionType(TypedDict):
+    id: int | None
+    comparison: int
+    type: Condition
+    condition_result: DetectorPriorityLevel
+    condition_group_id: int
+
+
+class SnubaQueryDataSourceType(TypedDict):
+    query_type: int
+    dataset: str
+    query: str
+    aggregate: str
+    time_window: float
+    resolution: float
+    environment: str
+    event_types: list[SnubaQueryEventType]
