@@ -329,7 +329,10 @@ function Onboarding(props: Props) {
             source,
           });
           onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
-          activateSidebar();
+          activateSidebar({
+            userClicked: false,
+            source: `targeted_onboarding_select_platform_skip`,
+          });
         }}
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
