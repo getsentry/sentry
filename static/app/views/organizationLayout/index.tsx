@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useDevToolbar from 'sentry/utils/useDevToolbar';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,6 +49,10 @@ function OrganizationLayout({children}: Props) {
   const organization = useOrganization({allowNull: true});
   const prefersStackedNav = usePrefersStackedNav();
   const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
+
+  useRouteAnalyticsParams({
+    prefers_stacked_navigation: prefersStackedNav,
+  });
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
