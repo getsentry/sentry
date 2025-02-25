@@ -2,6 +2,8 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.rules.conditions.event_frequency import (
+    PERCENT_INTERVALS,
+    STANDARD_INTERVALS,
     ComparisonType,
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
@@ -140,6 +142,8 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "1d",
         }
+        self.intervals = STANDARD_INTERVALS
+        self.other_intervals = PERCENT_INTERVALS
 
     def test_percent(self):
         dc = self.create_data_condition(
@@ -237,21 +241,22 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             self.create_data_condition(
                 type=self.condition,
                 comparison={
-                    "interval": "30m",
-                    "value": "100",
-                    "comparison_interval": "1d",
-                },
-                condition_result=True,
-            )
-
-        with pytest.raises(ValidationError):
-            self.create_data_condition(
-                type=self.condition,
-                comparison={
                     "interval": "1d",
                     "value": 100,
                     "comparison_interval": "asdf",
                     "filters": [{"match": "asdf", "key": "LOGGER", "value": "sentry.example"}],
+                },
+                condition_result=True,
+            )
+
+        invalid_interval = list(set(self.other_intervals.keys()) - set(self.intervals.keys()))[0]
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": invalid_interval,
+                    "value": 100,
+                    "comparison_interval": "1d",
                 },
                 condition_result=True,
             )
@@ -292,6 +297,8 @@ class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
             "value": 17,
             "comparisonType": ComparisonType.COUNT,
         }
+        self.intervals = PERCENT_INTERVALS
+        self.other_intervals = STANDARD_INTERVALS
 
 
 class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
@@ -305,6 +312,8 @@ class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
             "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "1d",
         }
+        self.intervals = PERCENT_INTERVALS
+        self.other_intervals = STANDARD_INTERVALS
 
 
 class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
