@@ -401,7 +401,7 @@ def _process_all_timeseries(
 
 
 def run_trace_query(
-    trace: str,
+    trace_id: str,
     params: SnubaParams,
     referrer: str,
     config: SearchResolverConfig,
@@ -424,7 +424,7 @@ def run_trace_query(
     meta = resolver.resolve_meta(referrer=referrer)
     request = GetTraceRequest(
         meta=meta,
-        trace_id=trace,
+        trace_id=trace_id,
         items=[
             GetTraceRequest.TraceItem(
                 item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
