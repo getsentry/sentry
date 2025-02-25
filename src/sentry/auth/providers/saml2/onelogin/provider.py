@@ -15,6 +15,7 @@ SelectIdP = make_simple_setup(OneLoginURLMetadataForm, "sentry_auth_onelogin/sel
 
 class OneLoginSAML2Provider(SAML2Provider):
     name = "OneLogin"
+    key = "onelogin"
 
     def get_saml_setup_pipeline(self):
         return [SelectIdP()]

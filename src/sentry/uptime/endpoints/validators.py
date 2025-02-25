@@ -21,7 +21,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
     UptimeMonitorNoSeatAvailable,
-    get_or_create_project_uptime_subscription,
+    create_project_uptime_subscription,
     update_project_uptime_subscription,
 )
 from sentry.utils.audit import create_audit_entry
@@ -201,7 +201,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
         try:
-            uptime_monitor, created = get_or_create_project_uptime_subscription(
+            uptime_monitor = create_project_uptime_subscription(
                 project=self.context["project"],
                 environment=environment,
                 url=validated_data["url"],
@@ -217,10 +217,6 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         except MaxManualUptimeSubscriptionsReached:
             raise serializers.ValidationError(
                 f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
-            )
-        if not created:
-            raise serializers.ValidationError(
-                "A monitor with these parameters already exists in this project"
             )
         create_audit_entry(
             request=self.context["request"],
@@ -283,9 +279,9 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             # Nest seat availability errors under status. Since this is the
             # field that will trigger seat availability errors.
             if err.result is None:
-                raise serializers.ValidationError({"status": "Cannot enable uptime monitor"})
+                raise serializers.ValidationError({"status": ["Cannot enable uptime monitor"]})
             else:
-                raise serializers.ValidationError({"status": err.result.reason})
+                raise serializers.ValidationError({"status": [err.result.reason]})
         finally:
             create_audit_entry(
                 request=self.context["request"],

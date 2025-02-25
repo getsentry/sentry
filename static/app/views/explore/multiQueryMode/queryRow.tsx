@@ -47,7 +47,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
           />
         </DropDownGrid>
       </QueryConstructionSection>
-      <QueryVisualizationSection>
+      <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
         <MultiQueryModeChart index={index} mode={mode} query={queryParts} />
         <MultiQueryTable confidences={[]} mode={mode} query={queryParts} index={index} />
       </QueryVisualizationSection>

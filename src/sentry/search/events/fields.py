@@ -670,6 +670,13 @@ def is_function(field: str) -> Match[str] | None:
     return FUNCTION_PATTERN.search(field)
 
 
+def is_typed_numeric_tag(key: str) -> bool:
+    match = TYPED_TAG_KEY_RE.search(key)
+    if match and match.group("type") == "number":
+        return True
+    return False
+
+
 def get_function_alias(field: str) -> str:
     match = FUNCTION_PATTERN.search(field)
     if match is None:

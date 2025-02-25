@@ -6,8 +6,13 @@ import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {CollapseButton} from 'sentry/components/nav/primary/collapse';
-import {SidebarLink, SidebarMenu} from 'sentry/components/nav/primary/components';
+import {
+  SeparatorItem,
+  SidebarLink,
+  SidebarMenu,
+} from 'sentry/components/nav/primary/components';
+import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
+import {PrimaryNavigationServiceIncidents} from 'sentry/components/nav/primary/serviceIncidents';
 import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
@@ -21,6 +26,7 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
@@ -48,6 +54,8 @@ export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
 
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
+
   return (
     <Fragment>
       <SidebarBody>
@@ -55,7 +63,6 @@ export function PrimaryNavigationItems() {
           to={`/${prefix}/issues/`}
           analyticsKey="issues"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
-          forceLabel
         >
           <IconIssues />
         </SidebarLink>
@@ -64,7 +71,6 @@ export function PrimaryNavigationItems() {
           to={`/${prefix}/explore/traces/`}
           analyticsKey="explore"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
-          forceLabel
         >
           <IconSearch />
         </SidebarLink>
@@ -76,9 +82,9 @@ export function PrimaryNavigationItems() {
         >
           <SidebarLink
             to={`/${prefix}/dashboards/`}
+            activeTo={`/${prefix}/dashboard`}
             analyticsKey="customizable-dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
-            forceLabel
           >
             <IconDashboard />
           </SidebarLink>
@@ -89,15 +95,24 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/insights/frontend/`}
             analyticsKey="insights-domains"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
-            forceLabel
           >
             <IconGraph />
           </SidebarLink>
         </Feature>
+
+        <SeparatorItem />
+
+        <SidebarLink
+          to={`/${prefix}/settings/${organization.slug}/`}
+          activeTo={`/${prefix}/settings/`}
+          analyticsKey="settings"
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+        >
+          <IconSettings />
+        </SidebarLink>
       </SidebarBody>
 
       <SidebarFooter>
-        <WhatsNew />
         <SidebarMenu
           items={[
             {
@@ -144,6 +159,18 @@ export function PrimaryNavigationItems() {
                 },
               ],
             },
+            {
+              key: 'new-ui',
+              children: [
+                {
+                  key: 'new-ui',
+                  label: t('Switch to old navigation'),
+                  onAction() {
+                    mutateUserOptions({prefersStackedNavigation: false});
+                  },
+                },
+              ],
+            },
           ]}
           analyticsKey="help"
           label={t('Help')}
@@ -151,16 +178,11 @@ export function PrimaryNavigationItems() {
           <IconQuestion />
         </SidebarMenu>
 
-        <SidebarLink
-          to={`/${prefix}/settings/${organization.slug}/`}
-          activeTo={`/${prefix}/settings/`}
-          analyticsKey="settings"
-          label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
-        >
-          <IconSettings />
-        </SidebarLink>
+        <SeparatorItem />
 
-        <CollapseButton />
+        <WhatsNew />
+        <PrimaryNavigationServiceIncidents />
+        <PrimaryNavigationOnboarding />
       </SidebarFooter>
     </Fragment>
   );
@@ -183,7 +205,7 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
     !p.isMobile &&
     css`
       align-items: center;
-      gap: ${space(1)};
+      gap: ${space(0.5)};
     `}
 
   ${p =>
@@ -195,7 +217,6 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
 
 const SidebarFooterWrapper = styled('div')`
   position: relative;
-  border-top: 1px solid ${p => p.theme.translucentGray200};
   display: flex;
   flex-direction: row;
   align-items: stretch;

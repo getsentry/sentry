@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
+from functools import cached_property
 from typing import Any, Self
 
 from sentry.grouping.utils import hash_from_values
@@ -66,7 +67,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
     def name(self) -> str | None:
         return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
 
-    @property
+    @cached_property
     def description(self) -> str:
         """
         Build the component description by walking its component tree and collecting the names of

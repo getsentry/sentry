@@ -1,5 +1,3 @@
-import logging
-
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -21,27 +19,11 @@ from . import default_manager
 
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
-logger = logging.getLogger("sentry.identity")
-
 
 class IdentityProviderPipeline(Pipeline):
-    logger = logger
-
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
-
-    def redirect_url(self):
-        associate_url = reverse(
-            "sentry-extension-setup",
-            kwargs={
-                # TODO(adhiraj): Remove provider_id from the callback URL, it's unused.
-                "provider_id": "default"
-            },
-        )
-
-        # Use configured redirect_url if specified for the pipeline if available
-        return self.config.get("redirect_url", associate_url)
 
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
     def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:

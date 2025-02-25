@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
-import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
-
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
@@ -360,34 +358,32 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          task.status === 'complete' || task.status === 'skipped'
-            ? undefined
-            : task.requisiteTasks.length === 0 && (
-                <TaskActions>
-                  {task.skippable && (
-                    <Button
-                      borderless
-                      size="zero"
-                      aria-label={t('Skip Task')}
-                      title={t('Skip Task')}
-                      icon={<IconClose color="gray300" isCircled />}
-                      onClick={event => {
-                        event.stopPropagation();
-                        setShowSkipConfirmation(!showSkipConfirmation);
-                      }}
-                      css={css`
-                        /* If the pulsing indicator is active, the close button
+          task.status === 'complete' || task.status === 'skipped' ? undefined : (
+            <TaskActions>
+              {task.skippable && (
+                <Button
+                  borderless
+                  size="zero"
+                  aria-label={t('Skip Task')}
+                  title={t('Skip Task')}
+                  icon={<IconClose color="gray300" isCircled />}
+                  onClick={event => {
+                    event.stopPropagation();
+                    setShowSkipConfirmation(!showSkipConfirmation);
+                  }}
+                  css={css`
+                    /* If the pulsing indicator is active, the close button
                         * should be above it so it's clickable.
                         */
-                        z-index: 1;
-                      `}
-                    />
-                  )}
-                  {task.SupplementComponent && showWaitingIndicator && (
-                    <task.SupplementComponent task={task} />
-                  )}
-                </TaskActions>
-              )
+                    z-index: 1;
+                  `}
+                />
+              )}
+              {task.SupplementComponent && showWaitingIndicator && (
+                <task.SupplementComponent task={task} />
+              )}
+            </TaskActions>
+          )
         }
       />
       {showSkipConfirmation && (
@@ -603,36 +599,33 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
   return (
-    <Fragment>
-      <Content>
+    <Content>
+      <TaskGroup
+        title={t('Getting Started')}
+        tasks={sortedGettingStartedTasks}
+        hidePanel={onClose}
+        expanded={
+          groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
+        }
+        toggleable={sortedBeyondBasicsTasks.length > 0}
+        taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+        group="getting_started"
+      />
+      {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
-          title={t('Getting Started')}
-          tasks={sortedGettingStartedTasks}
+          title={t('Beyond the Basics')}
+          tasks={sortedBeyondBasicsTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length ===
+              0 &&
+            groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
-          toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
-          group="getting_started"
+          group="beyond_basics"
         />
-        {sortedBeyondBasicsTasks.length > 0 && (
-          <TaskGroup
-            title={t('Beyond the Basics')}
-            tasks={sortedBeyondBasicsTasks}
-            hidePanel={onClose}
-            expanded={
-              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
-                .length === 0 &&
-              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
-            }
-            taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
-            group="beyond_basics"
-          />
-        )}
-      </Content>
-      <BottomLeft src={HighlightTopRight} />
-    </Fragment>
+      )}
+    </Content>
   );
 }
 
@@ -652,6 +645,8 @@ const TaskGroupWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
+
+  background-color: ${p => p.theme.background};
 
   hr {
     border-color: ${p => p.theme.translucentBorder};
@@ -674,7 +669,6 @@ const TaskGroupBody = styled('ul')`
 
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
-  background-color: ${p => p.theme.background};
 `;
 
 const TaskActions = styled('div')`
@@ -682,12 +676,6 @@ const TaskActions = styled('div')`
   flex-direction: column;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const BottomLeft = styled('img')`
-  width: 60%;
-  transform: rotate(180deg);
-  margin-top: ${space(3)};
 `;
 
 const TaskCardWrapper = styled('div')`

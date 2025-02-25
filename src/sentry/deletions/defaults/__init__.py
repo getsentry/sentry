@@ -30,3 +30,4 @@ from .sentry_app_installation import *  # noqa: F401,F403
 from .sentry_app_installation_token import *  # noqa: F401,F403
 from .service_hook import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
+from .workflow import *  # noqa: F401,F403

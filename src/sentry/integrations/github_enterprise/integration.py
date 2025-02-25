@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -251,6 +252,13 @@ class InstallationForm(forms.Form):
         ),
         widget=forms.TextInput(attrs={"placeholder": "our-sentry-app"}),
     )
+    public_link = forms.URLField(
+        label="Public Link (GitHub Enterprise Server only)",
+        help_text=_("The publicly available link for your GitHub App in GitHub Enterprise Server"),
+        widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
+        required=False,
+        assume_scheme="https",
+    )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_(
@@ -302,6 +310,8 @@ class InstallationConfigView(PipelineView):
             if form.is_valid():
                 form_data = form.cleaned_data
                 form_data["url"] = urlparse(form_data["url"]).netloc
+                if not form_data["public_link"]:
+                    form_data["public_link"] = None
 
                 pipeline.bind_state("installation_data", form_data)
 
@@ -369,7 +379,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             config=identity_pipeline_config,
         )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [
             InstallationConfigView(),
             GitHubEnterpriseInstallationRedirect(),
@@ -477,6 +487,9 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
 class GitHubEnterpriseInstallationRedirect(PipelineView):
     def get_app_url(self, installation_data):
+        if installation_data.get("public_link"):
+            return installation_data["public_link"]
+
         url = installation_data.get("url")
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"

@@ -1,11 +1,13 @@
 import styled from '@emotion/styled';
 
+import DemoHeader from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
 import {NavContextProvider} from 'sentry/components/nav/context';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
@@ -44,8 +46,8 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-  const App = hasNavigationV2 ? AppLayout : LegacyAppLayout;
+  const prefersStackedNav = usePrefersStackedNav();
+  const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
@@ -88,6 +90,7 @@ function AppLayout({children, organization}: LayoutProps) {
 function LegacyAppLayout({children, organization}: LayoutProps) {
   return (
     <div className="app">
+      <DemoHeader />
       {organization && <OrganizationHeader organization={organization} />}
       {organization && <DevToolInit />}
       <Sidebar />
