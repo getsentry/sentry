@@ -1,5 +1,6 @@
 import logging
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -389,6 +390,8 @@ def get_events_from_nodestore(
     group_data = []
     stacktrace_strings = []
     invalid_event_group_ids = []
+    invalid_event_reasons: Counter[str] = Counter()
+    total_groups = len(nodestore_events)
     bulk_event_ids = set()
     for group_id, event in nodestore_events.items():
         event._project_cache = project
@@ -397,12 +400,17 @@ def get_events_from_nodestore(
         if event and event_content_has_stacktrace(event):
             variants = event.get_grouping_variants(normalize_stacktraces=True)
 
-            if not has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
-                grouping_info = get_grouping_info_from_variants(variants)
-                stacktrace_string = get_stacktrace_string(grouping_info)
+            if has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
+                invalid_event_group_ids.append(group_id)
+                invalid_event_reasons["excess_frames"] += 1
+                continue
+
+            grouping_info = get_grouping_info_from_variants(variants)
+            stacktrace_string = get_stacktrace_string(grouping_info)
 
             if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
+                invalid_event_reasons["no_stacktrace_string"] += 1
                 continue
 
             primary_hash = event.get_primary_hash()
@@ -421,6 +429,7 @@ def get_events_from_nodestore(
             bulk_event_ids.add(event.event_id)
         else:
             invalid_event_group_ids.append(group_id)
+            invalid_event_reasons["no_stacktrace"] += 1
 
     group_hashes_dict = {
         group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
@@ -431,7 +440,9 @@ def get_events_from_nodestore(
             "backfill_seer_grouping_records.invalid_group_ids",
             extra={
                 "project_id": project.id,
-                "invalid_group_ids": invalid_event_group_ids,
+                "num_groups": total_groups,
+                "num_invalid": len(invalid_event_group_ids),
+                "reasons": invalid_event_reasons,
                 "worker_number": worker_number,
                 "project_index_in_cohort": project_index_in_cohort,
             },
