@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
@@ -366,6 +367,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  adoption_stage: SpecialField;
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
@@ -700,6 +702,21 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return <Container>{emptyValue}</Container>;
     },
+  },
+  adoption_stage: {
+    sortField: 'adoption_stage',
+    renderFunc: data =>
+      data.adoption_stage ? (
+        data.adoption_stage === 'low_adoption' ? (
+          <Tag type="error">{t('Low Adoption')}</Tag>
+        ) : data.adoption_stage === 'replaced' ? (
+          <Tag type="warning">{t('Replaced')}</Tag>
+        ) : (
+          <Tag type="success">{t('Adopted')}</Tag>
+        )
+      ) : (
+        <Container>{emptyValue}</Container>
+      ),
   },
   release: {
     sortField: 'release',

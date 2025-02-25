@@ -116,7 +116,9 @@ export default function useOrganizationReleases({
             return {
               release: release.shortVersion ?? release.version,
               date: release.dateCreated,
-              stage: projSlug ? release.adoptionStages?.[projSlug]?.stage ?? '' : '',
+              adoption_stage: projSlug
+                ? release.adoptionStages?.[projSlug]?.stage ?? ''
+                : '',
               crash_free_sessions:
                 release.projects[0]?.healthData?.crashFreeSessions ?? 0,
               sessions: release.projects[0]?.healthData?.totalSessions ?? 0,

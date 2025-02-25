@@ -27,7 +27,7 @@ export default function ReleaseAdoption({filters}: {filters: string[]}) {
           fields: {
             release: 'string',
             date: 'date',
-            stage: 'string',
+            adoption_stage: 'string',
             lifespan: 'duration',
             adoption: 'percentage',
           },

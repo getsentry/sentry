@@ -18,13 +18,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
+  adoption_stage: string;
   crash_free_sessions: number;
   date: string;
   error_count: number;
   project_id: number;
   release: string;
   sessions: number;
-  stage: string;
 };
 
 interface Props {
@@ -40,7 +40,7 @@ type Column = GridColumnHeader<keyof ReleaseHealthItem>;
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'release', name: 'version'},
   {key: 'date', name: 'date created'},
-  {key: 'stage', name: 'stage'},
+  {key: 'adoption_stage', name: 'stage'},
   {key: 'crash_free_sessions', name: 'crash free rate'},
   {key: 'sessions', name: 'total sessions'},
   {key: 'error_count', name: 'new issues'},

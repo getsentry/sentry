@@ -27,7 +27,7 @@ export default function ReleaseHealth({filters}: {filters: string[]}) {
           fields: {
             release: 'string',
             date: 'date',
-            stage: 'string',
+            adoption_stage: 'string',
             crash_free_sessions: 'percentage',
             sessions: 'integer',
             error_count: 'integer',
