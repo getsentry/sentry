@@ -12,6 +12,7 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -121,7 +122,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   top: '40px',
                   bottom: '0px',
                 },
-                colors: theme.charts.getColorPalette(yAxis.length - 2),
+                colors: getChartColorPalette(yAxis.length - 2),
                 seriesOptions: {
                   showSymbol: false,
                 },

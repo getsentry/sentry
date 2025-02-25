@@ -1,6 +1,5 @@
 import type {ReactElement} from 'react';
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -9,6 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
@@ -46,7 +46,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, InteractiveTitle} = props;
-  const theme = useTheme();
 
   const {data: projectScoresData, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
@@ -65,7 +64,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const getAreaChart = () => {
-    const segmentColors = (theme.charts.getColorPalette(3) ?? []).slice(0, 5);
+    const segmentColors = getChartColorPalette(3).slice(0, 5);
     return (
       <Chart
         stacked

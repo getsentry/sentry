@@ -33,6 +33,7 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -161,7 +162,7 @@ function Chart({
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4) ?? [];
+  const colors = chartColors ?? getChartColorPalette(4);
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||

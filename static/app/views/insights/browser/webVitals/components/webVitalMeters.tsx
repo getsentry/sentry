@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -59,8 +59,6 @@ export default function WebVitalMeters({
   projectScore,
   showTooltip = true,
 }: Props) {
-  const theme = useTheme();
-
   if (!projectScore) {
     return null;
   }
@@ -68,7 +66,7 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3) ?? [];
+  const colors = getChartColorPalette(3);
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
