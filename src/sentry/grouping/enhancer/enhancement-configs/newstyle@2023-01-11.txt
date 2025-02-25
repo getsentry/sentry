@@ -319,6 +319,9 @@ category:throw ^-group
 # raise() called by abort() should only group by abort()
 [ category:throw ] | category:throw category=internals
 
+# Frames from the OS should never be considered in-app
+category:system -app
+
 # Thread bases such as `main()` are just noise and are called by noise.
 category:threadbase -group v-group
 
@@ -382,6 +385,7 @@ family:native function:*.cold.1 category=indirection
 [ category:runtime ]    | category:system  category=internals
 [ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals
+
 
 # SDK specific rules
 

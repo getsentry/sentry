@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:14.406993+00:00'
+created: '2025-02-25T18:23:28.724233+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -75,7 +75,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
           frame (non app frame)
@@ -222,7 +222,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
           frame (ignored by stack trace rule (category:internals -group))

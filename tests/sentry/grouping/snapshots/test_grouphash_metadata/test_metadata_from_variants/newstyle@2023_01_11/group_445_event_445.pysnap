@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:37.774733+00:00'
+created: '2025-02-25T18:30:55.282271+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -41,7 +41,7 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame*
+            frame* (marked out of app by stack trace rule (category:system -app))
               function*
                 "DispatchMessageWorker"
             frame*

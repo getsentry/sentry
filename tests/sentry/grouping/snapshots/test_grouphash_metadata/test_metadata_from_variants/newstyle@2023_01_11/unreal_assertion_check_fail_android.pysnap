@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T14:49:11.971747+00:00'
+created: '2025-02-25T18:31:00.963400+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -139,6 +139,6 @@ contributing variants:
             frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
               function*
                 "TMulticastDelegateBase<T>::Broadcast<T>"
-            frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
+            frame* (marked out of app by stack trace rule (category:system -app))
               function*
                 "tgkill"

@@ -1,5 +1,5 @@
 ---
-created: '2025-02-19T20:50:33.309522+00:00'
+created: '2025-02-25T18:31:01.158082+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,7 +24,7 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "a27e168f67ce2d3f12bba36eba67d076"
+    hash: "4717aeb08ff642726ef6ea8f1ce55cdf"
     contributing component: exception
     component:
       app*
@@ -48,9 +48,6 @@ contributing variants:
             frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
               function*
                 "FWindowsPlatformApplicationMisc::PumpMessages"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
-              function*
-                "DispatchMessageWorker"
             frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
               function*
                 "FWindowsApplication::AppWndProc"
@@ -151,7 +148,7 @@ contributing variants:
             frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
               function*
                 "FWindowsPlatformApplicationMisc::PumpMessages"
-            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+            frame* (marked out of app by stack trace rule (category:system -app))
               function*
                 "DispatchMessageWorker"
             frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))

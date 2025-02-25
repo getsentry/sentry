@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:09.242928+00:00'
+created: '2025-02-25T18:23:20.792588+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
           frame*
             function*
               "unicorn"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "UIApplicationMain"
           frame (non app frame)
