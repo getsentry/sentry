@@ -6,9 +6,15 @@ from sentry_redis_tools.clients import StrictRedis
 from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span
 
 
-@pytest.fixture
-def buffer():
-    return RedisSpansBufferV2()
+@pytest.fixture(params=["cluster", "single"])
+def buffer(request):
+    if request.param == "cluster":
+        from sentry.testutils.helpers.redis import use_redis_cluster
+
+        with use_redis_cluster("default"):
+            yield RedisSpansBufferV2()
+    else:
+        yield RedisSpansBufferV2()
 
 
 def assert_ttls(client: StrictRedis[bytes]):
