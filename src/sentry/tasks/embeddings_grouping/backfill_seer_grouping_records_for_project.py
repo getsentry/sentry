@@ -189,7 +189,8 @@ def backfill_seer_grouping_records_for_project(
 
     # Get the next batch of groups from postgres and filter out ineligible ones. Regardless of
     # filtering, also capture the last group id in the raw/unfiltered batch, to be used when
-    # querying for the next batch.
+    # querying for the next batch. If even the unfiltered batch is emtpy, `batch_end_id` will be
+    # None, which we'll pass to `call_next_backfill` so it knows to move on to the next project.
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
         project, last_processed_group_id, batch_size, worker_number, enable_ingestion
     )
@@ -337,8 +338,9 @@ def call_next_backfill(
     last_processed_group_id: int | None = None,
     last_processed_project_id: int | None = None,
 ) -> None:
-    # There might still be more groups to process in this project - call the backfill task to check
-    # and then handle them if necessary.
+    # When the backfill task looks for more groups in the current project and comes up empty, it
+    # will pass `last_processed_group_id = None` when it calls this function. Therefore, if
+    # `last_processed_group_id` has a value, we know we're not yet done with the project.
     if last_processed_group_id is not None:
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
