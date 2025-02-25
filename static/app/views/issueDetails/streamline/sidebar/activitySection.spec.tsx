@@ -258,4 +258,44 @@ describe('StreamlinedActivitySection', function () {
     render(<StreamlinedActivitySection group={{...group, numComments: 2}} />);
     expect(screen.getByLabelText('Number of comments: 2')).toBeInTheDocument();
   });
+
+  it('filters comments correctly', function () {
+    const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
+      type: GroupActivityType.NOTE,
+      id: `note-${index + 1}`,
+      data: {text: `Test Note ${index + 1}`},
+      dateCreated: '2020-01-01T00:00:00',
+      user: UserFixture({id: '2'}),
+      project,
+    }));
+
+    activities.push({
+      type: GroupActivityType.SET_RESOLVED,
+      id: 'resolved-1',
+      data: {text: 'Resolved'},
+      dateCreated: '2020-01-01T00:00:00',
+      user,
+      project,
+    });
+
+    const updatedActivityGroup = GroupFixture({
+      id: '1338',
+      activity: activities,
+      project,
+    });
+
+    render(
+      <StreamlinedActivitySection group={updatedActivityGroup} isDrawer filterComments />
+    );
+
+    for (const activity of activities) {
+      if (activity.type === GroupActivityType.SET_RESOLVED) {
+        expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
+      } else {
+        expect(
+          screen.getByText((activity.data as {text: string}).text)
+        ).toBeInTheDocument();
+      }
+    }
+  });
 });
