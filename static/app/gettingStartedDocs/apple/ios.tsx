@@ -47,8 +47,10 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
 
-const getAutoInstallSnippet = () =>
-  `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ios`;
+const getAutoInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ios ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+};
 
 const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
@@ -221,7 +223,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'bash',
-                code: getAutoInstallSnippet(),
+                code: getAutoInstallSnippet(params),
               },
             ],
           },
