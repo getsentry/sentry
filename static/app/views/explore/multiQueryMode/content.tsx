@@ -9,6 +9,8 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -24,6 +26,7 @@ function Content() {
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
+  const organization = useOrganization();
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -44,7 +47,13 @@ function Content() {
         </WidgetSyncContextProvider>
         <Button
           aria-label={t('Add Query')}
-          onClick={addQuery}
+          onClick={() => {
+            trackAnalytics('compare_queries.add_query', {
+              num_queries: totalQueryRows + 1,
+              organization,
+            });
+            addQuery();
+          }}
           icon={<IconAdd />}
           disabled={queries.length >= MAX_QUERIES_ALLOWED}
         >
