@@ -13,10 +13,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 import type {Release, TimeSeries, TimeseriesSelection} from '../common/types';
-import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {shiftTimeSeriesToNow} from './shiftTimeSeriesToNow';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -230,8 +230,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const props = {
       dataCompletenessDelay: 60 * 60 * 3,
       timeSeries: [
-        shiftTimeserieToNow(sampleDurationTimeSeries),
-        shiftTimeserieToNow(sampleDurationTimeSeries2),
+        shiftTimeSeriesToNow(sampleDurationTimeSeries),
+        shiftTimeSeriesToNow(sampleDurationTimeSeries2),
       ],
     };
     return (
