@@ -95,19 +95,27 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
         assert ApiToken.objects.filter(id=org2_token.id).exists()
 
     def test_delete_authorization_cleans_up_grants(self):
-        # Create an API grant associated with this authorization
-        grant = ApiGrant.objects.create(
+        # Create API grants associated with this authorization
+        grant_1 = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
             expires_at=timezone.now() + timedelta(minutes=10),
         )
 
-        # Create an API token associated with this authorization
-        token = ApiToken.objects.create(
+        grant_2 = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
+            redirect_uri="https://example.com",
+            expires_at=timezone.now() + timedelta(minutes=10),
         )
+
+        # Only exchange one of the grants
+        token = ApiToken.from_grant(grant_1)
+        token.save()
+
+        # grant_2 should still exist at this point
+        assert ApiGrant.objects.filter(id=grant_2.id).exists()
 
         # Make the delete request
         self.get_success_response(
@@ -119,7 +127,8 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
         assert not ApiAuthorization.objects.filter(id=self.authorization.id).exists()
 
         # Verify associated grants are deleted
-        assert not ApiGrant.objects.filter(id=grant.id).exists()
+        assert not ApiGrant.objects.filter(id=grant_1.id).exists()
+        assert not ApiGrant.objects.filter(id=grant_2.id).exists()
 
         # Verify associated tokens are deleted
         assert not ApiToken.objects.filter(id=token.id).exists()
