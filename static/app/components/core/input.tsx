@@ -81,7 +81,7 @@ export interface InputProps
  * To add leading/trailing items (e.g. a search icon on the left side), use
  * InputControl (components/inputControl) instead.
  */
-const Input = styled(
+export const Input = styled(
   forwardRef<HTMLInputElement, InputProps>(
     (
       {
@@ -101,5 +101,3 @@ const Input = styled(
 )`
   ${inputStyles}
 `;
-
-export default Input;
