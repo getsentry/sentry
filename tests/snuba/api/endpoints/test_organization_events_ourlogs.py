@@ -19,6 +19,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         }
 
     @pytest.mark.querybuilder
+    @pytest.mark.skip(reason="Changing rpc / snuba api")
     def test_simple(self):
         logs = [
             self.create_ourlog(
@@ -51,6 +52,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == self.dataset
 
     @pytest.mark.querybuilder
+    @pytest.mark.skip(reason="Changing rpc / snuba api")
     def test_timestamp_order(self):
         logs = [
             self.create_ourlog(
