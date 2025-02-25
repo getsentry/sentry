@@ -391,7 +391,7 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
         query: 'foo:bar',
-        statsPeriod: '14d',
+        statsPeriod: '90d',
       },
       statusCode: 404,
       body: {
@@ -406,7 +406,6 @@ describe('groupDetails', () => {
         location: LocationFixture({
           query: {
             query: 'foo:bar',
-            statsPeriod: '14d',
             streamline: '1',
           },
         }),
@@ -415,7 +414,7 @@ describe('groupDetails', () => {
 
     await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
 
-    await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
