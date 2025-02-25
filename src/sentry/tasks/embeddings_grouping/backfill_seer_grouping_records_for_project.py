@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int | None,
-    last_processed_group_id_input: int | None = None,
+    last_processed_group_id: int | None = None,
     cohort: str | list[int] | None = None,
     current_project_index_in_cohort: int | None = None,
     only_delete: bool = False,
@@ -110,7 +110,7 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.killswitch_enabled",
             extra={
                 "project_id": current_project_id,
-                "last_processed_group_id": last_processed_group_id_input,
+                "last_processed_group_id": last_processed_group_id,
                 "worker_number": worker_number,
             },
         )
@@ -191,7 +191,7 @@ def backfill_seer_grouping_records_for_project(
     # filtering, also capture the last group id in the raw/unfiltered batch, to be used when
     # querying for the next batch.
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id_input, batch_size, worker_number, enable_ingestion
+        project, last_processed_group_id, batch_size, worker_number, enable_ingestion
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:

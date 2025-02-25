@@ -46,7 +46,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=None,
+            last_processed_group_id=None,
             only_delete=False,
             enable_ingestion=False,
             skip_processed_projects=True,
@@ -64,7 +64,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=None,
+            last_processed_group_id=None,
             only_delete=False,
             enable_ingestion=False,
             skip_processed_projects=True,
@@ -85,7 +85,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=8,
+            last_processed_group_id=8,
             only_delete=False,
             enable_ingestion=False,
             skip_processed_projects=True,
@@ -108,7 +108,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=8,
+            last_processed_group_id=8,
             only_delete=True,
             enable_ingestion=False,
             skip_processed_projects=True,
@@ -131,7 +131,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=8,
+            last_processed_group_id=8,
             only_delete=False,
             enable_ingestion=True,
             skip_processed_projects=True,
@@ -154,7 +154,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=8,
+            last_processed_group_id=8,
             only_delete=False,
             enable_ingestion=False,
             # reprocess_backfilled_projects changes the default
@@ -178,7 +178,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
-            last_processed_group_id_input=8,
+            last_processed_group_id=8,
             only_delete=False,
             enable_ingestion=False,
             skip_processed_projects=True,
