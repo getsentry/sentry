@@ -2355,23 +2355,30 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "kafka": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
-            "ports": {"9092/tcp": 9092},
-            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
+            "ports": {"9092/tcp": 9092, "9099/tcp": 9099},
+            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kafka-example
             "environment": {
                 "KAFKA_PROCESS_ROLES": "broker,controller",
                 "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
                 "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
                 "KAFKA_NODE_ID": "1",
                 "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
-                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
-                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093,AUTH://0.0.0.0:9099,AUTH2://0.0.0.0:9098",
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092,AUTH://127.0.0.1:9099,AUTH2://sentry_kafka:9098",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,AUTH:SASL_PLAINTEXT,AUTH2:SASL_PLAINTEXT",
+                "KAFKA_SASL_ENABLED_MECHANISMS": "SCRAM-SHA-256",
+                "KAFKA_LISTENER_NAME_AUTH_SCRAM-SHA-256_SASL_JAAS_CONFIG": 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret" user_admin="admin-secret";',
+                "KAFKA_LISTENER_NAME_AUTH2_SCRAM-SHA-256_SASL_JAAS_CONFIG": 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret" user_admin="admin-secret";',
                 "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
                 "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
                 "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
                 "KAFKA_LOG_RETENTION_HOURS": "24",
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
+                "KAFKA_AUTHORIZER_CLASS_NAME": "org.apache.kafka.metadata.authorizer.StandardAuthorizer",
+                "KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND": "true",
+                "KAFKA_SUPER_USERS": "User:admin",
+                "KAFKA_LOG4J_LOGGERS": "kafka.authorizer.logger=DEBUG",
             },
             "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
@@ -2423,8 +2430,12 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "DEFAULT_BROKERS": (
                     ""
                     if "snuba" in settings.SENTRY_EVENTSTREAM
-                    else "{containers[kafka][name]}:9093"
+                    else "{containers[kafka][name]}:9099"
                 ),
+                "KAFKA_SECURITY_PROTOCOL": "sasl_plaintext",
+                "KAFKA_SASL_MECHANISM": "SCRAM-SHA-256",
+                "KAFKA_SASL_USERNAME": "alice",
+                "KAFKA_SASL_PASSWORD": "alice-secret",
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
@@ -2910,7 +2921,13 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
 KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     "default": {
-        "common": {"bootstrap.servers": "127.0.0.1:9092"},
+        "common": {
+            "bootstrap.servers": "127.0.0.1:9099",
+            "security.protocol": "sasl_plaintext",
+            "sasl.mechanism": "SCRAM-SHA-256",
+            "sasl.username": "alice",
+            "sasl.password": "alice-secret",  # from K8s Secrets / Secret Manager
+        },
         "producers": {
             "compression.type": "lz4",
             "message.max.bytes": 50000000,  # 50MB, default is 1MB
