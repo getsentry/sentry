@@ -3,17 +3,20 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
     DataCondition,
@@ -238,6 +241,12 @@ class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
         assert RegionScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=self.detector.id,
+                event=audit_log.get_event_id("DETECTOR_REMOVE"),
+                actor=self.user,
+            ).exists()
 
     def test_error_group_type(self):
         """
@@ -258,3 +267,9 @@ class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
         assert not RegionScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id
         ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                target_object=error_detector.id,
+                event=audit_log.get_event_id("DETECTOR_REMOVE"),
+                actor=self.user,
+            ).exists()

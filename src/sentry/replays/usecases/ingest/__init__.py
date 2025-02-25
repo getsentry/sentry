@@ -23,12 +23,18 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest.dom_index import (
-    ReplayActionsEvent,
-    emit_replay_actions,
+from sentry.replays.usecases.ingest.dom_index import ReplayActionsEvent, emit_replay_actions
+from sentry.replays.usecases.ingest.dom_index import log_canvas_size as log_canvas_size_old
+from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
+from sentry.replays.usecases.ingest.event_logger import (
+    emit_request_response_metrics,
     log_canvas_size,
-    parse_replay_actions,
+    log_mutation_events,
+    log_option_events,
+    report_hydration_error,
+    report_rage_click,
 )
+from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta, parse_events
 from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -88,7 +94,7 @@ def ingest_recording(message: bytes) -> None:
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        sentry_sdk.start_transaction(
+        with sentry_sdk.start_transaction(
             name="replays.consumer.process_recording",
             op="replays.consumer",
             custom_sampling_context={
@@ -96,14 +102,13 @@ def ingest_recording(message: bytes) -> None:
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
             },
-        )
-
-        try:
-            _ingest_recording(message)
-        except DropSilently:
-            # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
-            # so we ignore it.
-            pass
+        ):
+            try:
+                _ingest_recording(message)
+            except DropSilently:
+                # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
+                # so we ignore it.
+                pass
 
 
 @sentry_sdk.trace
@@ -253,29 +258,43 @@ def recording_post_processor(
 ) -> None:
     try:
         segment, replay_event = parse_segment_and_replay_data(segment_bytes, replay_event_bytes)
-        actions_event = try_get_replay_actions(message, segment, replay_event)
-        if actions_event:
-            emit_replay_actions(actions_event)
 
-        # Log canvas mutations to bigquery.
-        log_canvas_size(
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            segment,
-        )
+        # Conditionally use the new separated event parsing and logging logic. This way we can
+        # feature flag access and fix any issues we find.
+        if message.org_id in options.get("replay.consumer.separate-compute-and-io-org-ids"):
+            event_meta = parse_events(segment)
+            project = Project.objects.get_from_cache(id=message.project_id)
+            emit_replay_events(
+                event_meta,
+                message.org_id,
+                project,
+                message.replay_id,
+                replay_event,
+            )
+        else:
+            actions_event = try_get_replay_actions(message, segment, replay_event)
+            if actions_event:
+                emit_replay_actions(actions_event)
 
-        # Log # of rrweb events to bigquery.
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "rrweb_event_count",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "replay_id": message.replay_id,
-                "size": len(segment),
-            },
-        )
+            # Log canvas mutations to bigquery.
+            log_canvas_size_old(
+                message.org_id,
+                message.project_id,
+                message.replay_id,
+                segment,
+            )
+
+            # Log # of rrweb events to bigquery.
+            logger.info(
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "rrweb_event_count",
+                    "org_id": message.org_id,
+                    "project_id": message.project_id,
+                    "replay_id": message.replay_id,
+                    "size": len(segment),
+                },
+            )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
@@ -362,3 +381,19 @@ def try_get_replay_actions(
         replay_event=parsed_replay_event,
         org_id=message.org_id,
     )
+
+
+@sentry_sdk.trace
+def emit_replay_events(
+    event_meta: ParsedEventMeta,
+    org_id: int,
+    project: Project,
+    replay_id: str,
+    replay_event: dict[str, Any] | None,
+) -> None:
+    emit_request_response_metrics(event_meta)
+    log_canvas_size(event_meta, org_id, project.id, replay_id)
+    log_mutation_events(event_meta, project.id, replay_id)
+    log_option_events(event_meta, project.id, replay_id)
+    report_hydration_error(event_meta, project, replay_id, replay_event)
+    report_rage_click(event_meta, project, replay_id, replay_event)

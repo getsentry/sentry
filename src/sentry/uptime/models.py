@@ -279,5 +279,17 @@ def get_project_subscriptions_for_uptime_subscription(
     )
 
 
+@cache_func_for_models(
+    [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
+    recalculate=False,
+)
+def load_regions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[UptimeSubscriptionRegion]:
+    return list(
+        UptimeSubscriptionRegion.objects.filter(uptime_subscription_id=uptime_subscription_id)
+    )
+
+
 class UptimeRegionScheduleMode(enum.StrEnum):
     ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN

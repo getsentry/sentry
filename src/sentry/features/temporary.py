@@ -157,7 +157,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable additional platforms for issue stream empty state
     manager.add("organizations:issue-stream-empty-state-additional-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable issue stream performance improvements
-    manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable issue stream table layout changes
     manager.add("organizations:issue-stream-table-layout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -496,6 +495,8 @@ def register_temporary_features(manager: FeatureManager):
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=False
     )
+    # Enable per-project selection for Jira integration
+    manager.add("organizations:jira-per-project-statuses", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Relay extracting logs from breadcrumbs for a project.
     manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

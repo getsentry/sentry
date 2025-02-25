@@ -1,8 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
+import ConfigStore from 'sentry/stores/configStore';
 
 const mockUsingCustomerDomain = jest.fn();
 
@@ -35,7 +37,18 @@ describe('useRedirectNavV2Routes', () => {
 
   const organization = OrganizationFixture({
     slug: 'org-slug',
-    features: ['navigation-sidebar-v2'],
+  });
+
+  beforeEach(() => {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          prefersStackedNavigation: true,
+        },
+      })
+    );
   });
 
   describe('customer domain', () => {
@@ -43,7 +56,17 @@ describe('useRedirectNavV2Routes', () => {
       mockUsingCustomerDomain.mockReturnValue(true);
     });
 
-    it('should not redirect if no navigation v2', () => {
+    it('should not redirect if does not prefer stacked navigation', () => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersStackedNavigation: false,
+          },
+        })
+      );
+
       render(
         <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
         {
