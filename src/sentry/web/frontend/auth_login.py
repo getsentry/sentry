@@ -569,6 +569,7 @@ class AuthLoginView(BaseView):
         organization = kwargs.pop("organization", None)
 
         if is_demo_mode_enabled() and is_demo_org(organization):
+            # Performs the auto login of a demo user to a demo org
             user = get_demo_user()
             self._handle_login(request, user, organization)
             return self.redirect(get_login_redirect(request))
