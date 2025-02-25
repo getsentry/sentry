@@ -21,11 +21,11 @@ family:native stack.function:FDebug::CheckVerifyFailedImpl*                v+app
 family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app
 
 ## UE SDK USentrySubsystem event capturing
-family:native stack.function:USentrySubsystem::CaptureMessage*             v+app
-family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app
-family:native stack.function:USentrySubsystem::CaptureEvent*               v+app
-family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app
-family:native stack.function:USentrySubsystem::*execCapture*               v+app
+family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEvent*               v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app -app ^-app
+family:native stack.function:USentrySubsystem::*execCapture*               v+app -app ^-app
 
 # known well locations for unix paths
 family:native package:/lib/**                                        -app
