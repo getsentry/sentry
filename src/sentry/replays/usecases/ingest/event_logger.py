@@ -4,14 +4,67 @@ from typing import Any
 import sentry_sdk
 
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
+from sentry.replays.usecases.ingest.dom_index import (
+    ReplayActionsEvent,
+    ReplayActionsEventPayload,
+    _initialize_publisher,
+)
+from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
 )
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger()
+
+
+def emit_click_events(
+    click_events: list[ClickEvent],
+    project_id: int,
+    replay_id: str,
+    retention_days: int,
+    start_time: float,
+) -> None:
+    clicks = [
+        {
+            "alt": click.alt,
+            "aria_label": click.aria_label,
+            "class": click.classes,
+            "component_name": click.component_name,
+            "id": click.id,
+            "is_dead": click.is_dead,
+            "is_rage": click.is_rage,
+            "node_id": click.node_id,
+            "role": click.role,
+            "selector": click.selector,
+            "tag": click.tag,
+            "testid": click.testid,
+            "text": click.text,
+            "timestamp": click.timestamp,
+            "title": click.title,
+        }
+        for click in click_events
+    ]
+
+    payload: ReplayActionsEventPayload = {
+        "replay_id": replay_id,
+        "type": "replay_actions",
+        "clicks": clicks,
+    }
+
+    action: ReplayActionsEvent = {
+        "project_id": project_id,
+        "replay_id": replay_id,
+        "retention_days": retention_days,
+        "start_time": start_time,
+        "type": "replay_event",
+        "payload": list(json.dumps(payload).encode()),
+    }
+
+    publisher = _initialize_publisher()
+    publisher.publish("ingest-replay-events", json.dumps(action))
+    publisher.flush()
 
 
 @sentry_sdk.trace
