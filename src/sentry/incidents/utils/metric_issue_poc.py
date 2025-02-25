@@ -61,6 +61,7 @@ def _build_occurrence_from_incident(
         # TODO(snigdha): Add more data here as needed
         evidence_data={"metric_value": metric_value, "alert_rule_id": incident.alert_rule.id},
         evidence_display=[],
+        assignee=incident.alert_rule.owner if incident.alert_rule else None,
     )
 
 

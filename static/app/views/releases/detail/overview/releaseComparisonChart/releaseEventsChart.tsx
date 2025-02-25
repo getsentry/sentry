@@ -8,6 +8,7 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
@@ -60,7 +61,7 @@ function ReleaseEventsChart({
   const theme = useTheme();
 
   function getColors() {
-    const colors = theme.charts.getColorPalette(14) ?? [];
+    const colors = getChartColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
         return [colors[12]!];

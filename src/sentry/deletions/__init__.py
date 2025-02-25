@@ -111,7 +111,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
     from sentry.sentry_apps.models.servicehook import ServiceHook
     from sentry.snuba import models as snuba_models
-    from sentry.workflow_engine.models import DataSource, Detector
+    from sentry.workflow_engine.models import DataSource, Detector, Workflow
 
     from . import defaults
 
@@ -182,6 +182,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
     manager.register(models.Rule, defaults.RuleDeletionTask)
     manager.register(RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
+    manager.register(Workflow, defaults.WorkflowDeletionTask)
 
 
 _default_manager = None

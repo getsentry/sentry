@@ -15,7 +15,7 @@ from io import BytesIO
 from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zlib import compress
 
 import pytest
@@ -145,6 +145,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -1251,7 +1252,7 @@ class SnubaTestCase(BaseTestCase):
     def store_ourlogs(self, ourlogs):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
                 data=json.dumps(ourlogs),
             ).status_code
             == 200
@@ -2369,27 +2370,34 @@ class UptimeCheckSnubaTestCase(TestCase):
         self,
         subscription_id: str | None,
         check_status: str,
+        check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
+        http_status: int | None | NotSet = NOT_SET,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
         if incident_status is None:
             incident_status = IncidentStatus.NO_INCIDENT
+        if check_id is None:
+            check_id = uuid.uuid4()
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
-        http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
+        http_status = default_if_not_set(
+            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            http_status,
+        )
 
         self.store_uptime_check(
             {
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "retention_days": 30,
-                "region": f"region_{random.randint(1, 3)}",
+                "region": "default",
                 "environment": "production",
                 "subscription_id": subscription_id,
-                "guid": str(uuid.uuid4()),
+                "guid": str(check_id),
                 "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
@@ -3398,6 +3406,7 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
+        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3460,19 +3469,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
-                spans = []
+                spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"event_id": event.event_id})
-                        spans.append(
+                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
+                        spans_to_store.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                spans.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans)
+                spans_to_store.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans_to_store, is_eap=is_eap)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3488,15 +3497,17 @@ class TraceTestCase(SpanTestCase):
                 "span_id": trace_context["span_id"],
                 "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
-                "segment_id": uuid4().hex[:16],
+                "segment_id": event.event_id[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),
+                "start_timestamp_precise": start_ts,
+                "end_timestamp_precise": end_ts,
                 "received": start_ts,
-                "duration_ms": int(end_ts - start_ts),
+                "duration_ms": int((end_ts - start_ts) * 1000),
             }
         )
         if "parent_span_id" in trace_context:
@@ -3504,10 +3515,11 @@ class TraceTestCase(SpanTestCase):
         else:
             del span_data["parent_span_id"]
 
-        if "sentry_tags" in span_data:
-            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
-        else:
-            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
+        if "sentry_tags" not in span_data:
+            span_data["sentry_tags"] = {}
+
+        span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        span_data["sentry_tags"]["transaction"] = event.data["transaction"]
 
         return span_data
 

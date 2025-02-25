@@ -1,3 +1,4 @@
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
@@ -12,7 +13,7 @@ export function makeReplaysPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    organization.features.includes('navigation-sidebar-v2')
+    prefersStackedNav()
       ? `/organizations/${organization.slug}/${REPLAYS_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_REPLAYS_BASE_PATHNAME}${path}`
   );

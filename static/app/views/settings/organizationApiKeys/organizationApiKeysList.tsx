@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import AlertLink from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
@@ -73,15 +73,16 @@ function OrganizationApiKeysList({
         )}
       </TextBlock>
 
-      <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
-        {tct(
-          'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
-          {
-            tokens: <u />,
-          }
-        )}
-      </AlertLink>
-
+      <AlertLink.Container>
+        <AlertLink to="/settings/account/api/auth-tokens/" type="info">
+          {tct(
+            'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
+            {
+              tokens: <u />,
+            }
+          )}
+        </AlertLink>
+      </AlertLink.Container>
       <PanelTable
         isLoading={loading}
         isEmpty={!hasKeys}

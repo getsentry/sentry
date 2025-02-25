@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import type {Theme} from '@emotion/react';
@@ -9,9 +9,9 @@ import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
+import {Input} from 'sentry/components/core/input';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -59,8 +59,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {
     emphasis: <em />,
   }),
   value: NONE,
@@ -109,6 +109,22 @@ function formatColumnOptions(
     });
 }
 
+function _sortFn(
+  a: SelectValue<string> & {value: string; label?: string | ReactNode},
+  b: SelectValue<string> & {value: string; label?: string | ReactNode}
+) {
+  // The labels should always be strings in this component, but we'll
+  // handle the cases where they are not.
+  if (typeof a.label !== 'string' || typeof b.label !== 'string') {
+    return 0;
+  }
+  if (!defined(a.label) || !defined(b.label)) {
+    return 0;
+  }
+
+  return a.label.localeCompare(b.label);
+}
+
 export function getColumnOptions(
   dataset: WidgetType,
   selectedField: QueryFieldValue,
@@ -120,7 +136,12 @@ export function getColumnOptions(
 ) {
   const fieldValues = Object.values(fieldOptions);
   if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField);
+    return formatColumnOptions(
+      dataset,
+      fieldValues,
+      columnFilterMethod,
+      selectedField
+    ).sort(_sortFn);
   }
 
   const fieldData = fieldValues.find(
@@ -168,11 +189,16 @@ export function getColumnOptions(
             option.value.kind === FieldValueKind.BREAKDOWN) &&
           validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, option.value),
         selectedField
-      );
+      ).sort(_sortFn);
     }
   }
 
-  return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField);
+  return formatColumnOptions(
+    dataset,
+    fieldValues,
+    columnFilterMethod,
+    selectedField
+  ).sort(_sortFn);
 }
 
 function canDeleteField(
@@ -287,17 +313,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    spanColumnOptions.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
+    spanColumnOptions.sort(_sortFn);
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -459,7 +475,8 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.kind,
                             option.value.meta.name
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   } else {
                     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
@@ -482,7 +499,8 @@ function Visualize({error, setError}: VisualizeProps) {
                               ? option.value.meta.dataType!
                               : undefined
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   }
                 }

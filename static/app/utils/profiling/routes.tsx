@@ -1,6 +1,7 @@
 import {dropUndefinedKeys} from '@sentry/core';
 import type {Location, LocationDescriptor, Path} from 'history';
 
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import type {Trace} from 'sentry/types/profiling/core';
 import type {Project} from 'sentry/types/project';
@@ -17,7 +18,7 @@ export function generateProfilingRoute({
 }: {
   organization: Organization;
 }): Path {
-  if (organization.features.includes('navigation-sidebar-v2')) {
+  if (prefersStackedNav()) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
   }
 
@@ -33,7 +34,7 @@ export function generateProfileFlamechartRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  if (organization.features.includes('navigation-sidebar-v2')) {
+  if (prefersStackedNav()) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
   }
 
@@ -47,7 +48,7 @@ export function generateContinuousProfileFlamechartRoute({
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (organization.features.includes('navigation-sidebar-v2')) {
+  if (prefersStackedNav()) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
   }
 
@@ -61,7 +62,7 @@ export function generateProfileDifferentialFlamegraphRoute({
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (organization.features.includes('navigation-sidebar-v2')) {
+  if (prefersStackedNav()) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
   }
 
@@ -107,7 +108,7 @@ export function generateProfileDetailsRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  if (organization.features.includes('navigation-sidebar-v2')) {
+  if (prefersStackedNav()) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/details/`;
   }
 

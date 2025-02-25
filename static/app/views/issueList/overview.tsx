@@ -14,6 +14,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -50,7 +51,6 @@ import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
-import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
 import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
@@ -177,6 +177,7 @@ function IssueListOverview({router}: Props) {
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
     useSavedSearches();
@@ -816,7 +817,7 @@ function IssueListOverview({router}: Props) {
         queryData.sort = newSavedSearch.sort;
       }
     } else {
-      if (organization.features.includes('navigation-sidebar-v2')) {
+      if (prefersStackedNav) {
         path = location.pathname;
       } else {
         path = `/organizations/${organization.slug}/issues/`;
@@ -1070,37 +1071,24 @@ function IssueListOverview({router}: Props) {
   const showReprocessingTab = !!queryCounts?.[Query.REPROCESSING]?.count;
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
-  const hasLeftNavIssueViews = organization.features.includes('left-nav-issue-views');
-
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {hasLeftNavIssueViews && (
+        {prefersStackedNav && (
           <LeftNavViewsHeader selectedProjectIds={selection.projects} />
         )}
-        {!hasLeftNavIssueViews &&
+        {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') ? (
-            organization.features.includes('issue-views-page-filter') ? (
-              <ErrorBoundary message={'Failed to load custom tabs'} mini>
-                <IssueViewsPFIssueListHeader
-                  router={router}
-                  selectedProjectIds={selection.projects}
-                  realtimeActive={realtimeActive}
-                  onRealtimeChange={onRealtimeChange}
-                />
-              </ErrorBoundary>
-            ) : (
-              <ErrorBoundary message={'Failed to load custom tabs'} mini>
-                <IssueViewsIssueListHeader
-                  router={router}
-                  selectedProjectIds={selection.projects}
-                  realtimeActive={realtimeActive}
-                  onRealtimeChange={onRealtimeChange}
-                />
-              </ErrorBoundary>
-            )
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <IssueViewsIssueListHeader
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={onRealtimeChange}
+              />
+            </ErrorBoundary>
           ) : (
             <IssueListHeader
               organization={organization}
@@ -1115,7 +1103,6 @@ function IssueListOverview({router}: Props) {
               onRealtimeChange={onRealtimeChange}
             />
           ))}
-
         <StyledBody>
           <StyledMain>
             <IssuesDataConsentBanner source="issues" />
