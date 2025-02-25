@@ -10,6 +10,7 @@ import {createPortal} from 'react-dom';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
@@ -80,9 +81,7 @@ const getSidebarPortal = () => {
   let portal = document.getElementsByTagName('main')[0];
 
   if (!portal) {
-    portal = document.createElement('div');
-    portal.setAttribute('id', 'sidebar-flyout-portal');
-    document.body.appendChild(portal);
+    portal = document.body;
   }
 
   return portal as HTMLDivElement;
@@ -112,7 +111,7 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navParentRef, layout, isCollapsed} = useNavContext();
+  const {navParentRef} = useNavContext();
   const [sidebarDimensions, setSidebarDimensions] = useState<{
     height: number;
     width: number;
@@ -121,14 +120,17 @@ function WidgetBuilderV2({
     height: 0,
   });
 
-  useEffect(() => {
-    if (navParentRef.current) {
-      setSidebarDimensions({
-        width: navParentRef.current.clientWidth,
-        height: navParentRef.current.clientHeight,
-      });
-    }
-  }, [navParentRef, layout, isCollapsed]);
+  const updateSidebarDimensions = useCallback(() => {
+    setSidebarDimensions({
+      width: navParentRef.current?.clientWidth ?? 0,
+      height: navParentRef.current?.clientHeight ?? 0,
+    });
+  }, [navParentRef]);
+
+  useResizeObserver({
+    ref: navParentRef,
+    onResize: updateSidebarDimensions,
+  });
 
   const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
 
@@ -171,8 +173,8 @@ function WidgetBuilderV2({
   }, [isPreviewDraggable]);
 
   const preferences = useLegacyStore(PreferencesStore);
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
-  const sidebarCollapsed = hasNewNav ? true : !!preferences.collapsed;
+  const hasNewNav = organization.features.includes('navigation-sidebar-v2');
+  const sidebarCollapsed = !!preferences.collapsed;
 
   return (
     <Fragment>
@@ -201,7 +203,7 @@ function WidgetBuilderV2({
                                   top: `${sidebarDimensions.height}px`,
                                 }
                               : {left: `${sidebarDimensions.width}px`, top: 0}
-                            : {}
+                            : undefined
                         }
                       >
                         <WidgetBuilderContainer>
