@@ -243,7 +243,8 @@ def backfill_seer_grouping_records_for_project(
         )
     except EVENT_INFO_EXCEPTIONS:
         metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")
-        nodestore_results, group_hashes_dict = GroupStacktraceData(data=[], stacktrace_list=[]), {}
+        nodestore_results = GroupStacktraceData(data=[], stacktrace_list=[])
+        group_hashes_dict = {}
     except NODESTORE_RETRY_EXCEPTIONS as e:
         extra = {
             "organization_id": project.organization.id,
