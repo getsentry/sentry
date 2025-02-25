@@ -149,7 +149,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     <List symbol="bullet">
                       <ListItem>
                         {t(
-                          'Configure the SDK with your DSN and performance monitoring options'
+                          'Configure the SDK with your DSN'
                         )}
                       </ListItem>
                       <ListItem>
