@@ -19,7 +19,7 @@ sentry: 0835_add_schema_version_to_grouphash_metadata
 
 social_auth: 0002_default_auto_field
 
-tempest: 0001_create_tempest_credentials_model
+tempest: 0002_make_message_type_nullable
 
 uptime: 0026_region_mode_col
 

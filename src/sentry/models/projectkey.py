@@ -74,6 +74,8 @@ class UseCase(enum.Enum):
     ESCALATING_ISSUES = "escalating_issues"
     """ An internal project key for submitting events from tempest."""
     TEMPEST = "tempest"
+    """ An internal project key for demo mode."""
+    DEMO = "demo"
 
 
 @region_silo_model

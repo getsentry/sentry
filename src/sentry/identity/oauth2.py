@@ -7,7 +7,9 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -225,9 +227,6 @@ class OAuth2Provider(Provider):
         identity.update(data=identity.data)
 
 
-from rest_framework.request import Request
-
-
 def record_event(event: IntegrationPipelineViewType, provider: str):
     from sentry.identity import default_manager as identity_manager
 
@@ -271,7 +270,7 @@ class OAuth2LoginView(PipelineView):
         }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
             for param in ("code", "error", "state"):
                 if param in request.GET:
@@ -314,7 +313,7 @@ class OAuth2CallbackView(PipelineView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request: Request, pipeline, code):
+    def exchange_token(self, request: HttpRequest, pipeline: Pipeline, code: str) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture() as lifecycle:
@@ -358,13 +357,13 @@ class OAuth2CallbackView(PipelineView):
                     "error_description": "We were not able to parse a JSON response, please try again.",
                 }
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(
             IntegrationPipelineViewType.OAUTH_CALLBACK, pipeline.provider.key
         ).capture() as lifecycle:
             error = request.GET.get("error")
             state = request.GET.get("state")
-            code = request.GET.get("code")
+            code = request.GET["code"]
 
             if error:
                 logger.info("identity.token-exchange-error", extra={"error": error})

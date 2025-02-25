@@ -20,12 +20,14 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
     headers_json_encoder,
+    load_regions_for_uptime_subscription,
 )
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
-from sentry.uptime.subscriptions.regions import get_active_regions
+from sentry.uptime.subscriptions.regions import UptimeRegionWithMode, get_active_regions
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
+    send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
@@ -324,12 +326,7 @@ def update_uptime_subscription(
     )
 
     # Associate active regions with this subscription
-    # TODO: This should use core code from `check_and_update_regions`
-    for region_config in get_active_regions():
-        UptimeSubscriptionRegion.objects.get_or_create(
-            uptime_subscription=subscription, region_slug=region_config.slug
-        )
-
+    check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
     update_remote_uptime_subscription.delay(subscription.id)
     fetch_subscription_rdap_info.delay(subscription.id)
 
@@ -620,3 +617,44 @@ def get_auto_monitored_subscriptions_for_project(
             ),
         ).select_related("uptime_subscription")
     )
+
+
+def check_and_update_regions(
+    subscription: UptimeSubscription,
+    regions: list[UptimeSubscriptionRegion],
+) -> bool:
+    """
+    This method will check if regions have been added or removed from our region configuration,
+    and updates regions associated with this uptime subscription to reflect the new state.
+    """
+    subscription_region_modes = {
+        UptimeRegionWithMode(r.region_slug, UptimeSubscriptionRegion.RegionMode(r.mode))
+        for r in regions
+    }
+    active_regions = set(get_active_regions())
+    if subscription_region_modes == active_regions:
+        # Regions haven't changed, exit early.
+        return False
+
+    new_or_updated_regions = active_regions - subscription_region_modes
+    removed_regions = {srm.slug for srm in subscription_region_modes} - {
+        ar.slug for ar in active_regions
+    }
+    for region in new_or_updated_regions:
+        UptimeSubscriptionRegion.objects.update_or_create(
+            uptime_subscription=subscription,
+            region_slug=region.slug,
+            defaults={"mode": region.mode},
+        )
+
+    if removed_regions:
+        for deleted_region in UptimeSubscriptionRegion.objects.filter(
+            uptime_subscription=subscription, region_slug__in=removed_regions
+        ):
+            if subscription.subscription_id:
+                # We need to explicitly send deletes here before we remove the region
+                send_uptime_config_deletion(
+                    deleted_region.region_slug, subscription.subscription_id
+                )
+            deleted_region.delete()
+    return True

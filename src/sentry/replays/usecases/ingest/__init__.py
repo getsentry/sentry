@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import time
 import zlib
 from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
@@ -27,6 +28,7 @@ from sentry.replays.usecases.ingest.dom_index import ReplayActionsEvent, emit_re
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size as log_canvas_size_old
 from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
 from sentry.replays.usecases.ingest.event_logger import (
+    emit_click_events,
     emit_request_response_metrics,
     log_canvas_size,
     log_mutation_events,
@@ -94,7 +96,7 @@ def ingest_recording(message: bytes) -> None:
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        transaction = sentry_sdk.start_transaction(
+        with sentry_sdk.start_transaction(
             name="replays.consumer.process_recording",
             op="replays.consumer",
             custom_sampling_context={
@@ -102,16 +104,13 @@ def ingest_recording(message: bytes) -> None:
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
             },
-        )
-
-        try:
-            _ingest_recording(message)
-        except DropSilently:
-            # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
-            # so we ignore it.
-            pass
-        finally:
-            transaction.finish()
+        ):
+            try:
+                _ingest_recording(message)
+            except DropSilently:
+                # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
+                # so we ignore it.
+                pass
 
 
 @sentry_sdk.trace
@@ -272,6 +271,7 @@ def recording_post_processor(
                 message.org_id,
                 project,
                 message.replay_id,
+                message.retention_days,
                 replay_event,
             )
         else:
@@ -392,8 +392,12 @@ def emit_replay_events(
     org_id: int,
     project: Project,
     replay_id: str,
+    retention_days: int,
     replay_event: dict[str, Any] | None,
 ) -> None:
+    emit_click_events(
+        event_meta.click_events, project.id, replay_id, retention_days, start_time=time.time()
+    )
     emit_request_response_metrics(event_meta)
     log_canvas_size(event_meta, org_id, project.id, replay_id)
     log_mutation_events(event_meta, project.id, replay_id)
