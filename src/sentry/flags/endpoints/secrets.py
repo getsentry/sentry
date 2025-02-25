@@ -17,7 +17,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.flags.models import FlagWebHookSigningSecretModel
+from sentry.flags.models import FlagWebHookSigningSecretModel, ProviderEnum
 from sentry.models.organization import Organization
 
 
@@ -42,9 +42,7 @@ class FlagWebhookSigningSecretSerializer(Serializer):
 
 
 class FlagWebhookSigningSecretValidator(serializers.Serializer):
-    provider = serializers.ChoiceField(
-        choices=["launchdarkly", "generic", "unleash", "statsig"], required=True
-    )
+    provider = serializers.ChoiceField(choices=ProviderEnum.get_names(), required=True)
     secret = serializers.CharField(required=True)
 
     def validate_secret(self, value):

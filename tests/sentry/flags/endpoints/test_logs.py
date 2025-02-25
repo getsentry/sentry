@@ -120,10 +120,68 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
         with self.feature(self.features):
             response = self.client.get(self.url + "?flag=world")
             assert response.status_code == 200
-
             result = response.json()
             assert len(result["data"]) == 1
             assert result["data"][0]["flag"] == "world"
+
+            response = self.client.get(self.url + "?flag=world&flag=hello")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 2
+
+            response = self.client.get(self.url + "?flag=blahblah")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0
+
+    def test_get_filter_by_provider(self):
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            provider=PROVIDER_MAP["statsig"],
+            tags={},
+        ).save()
+
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="world",
+            organization_id=self.organization.id,
+            provider=PROVIDER_MAP["launchdarkly"],
+            tags={},
+        ).save()
+
+        FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="goodbye",
+            organization_id=self.organization.id,
+            tags={},
+        ).save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?provider=statsig")
+            assert response.status_code == 200
+            result = response.json()
+            assert len(result["data"]) == 1
+            assert result["data"][0]["flag"] == "hello"
+
+            response = self.client.get(self.url + "?provider=statsig&provider=launchdarkly")
+            assert response.status_code == 200
+            result = response.json()
+            assert len(result["data"]) == 2
+            assert result["data"][0]["flag"] == "hello"
+            assert result["data"][1]["flag"] == "world"
+
+            # Invalid provider
+            response = self.client.get(self.url + "?provider=blahblah")
+            assert response.status_code == 400
 
     def test_get_unauthorized_organization(self):
         org = self.create_organization()
@@ -224,6 +282,10 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert len(response.json()["data"]) == 2
             assert response.json()["data"][0]["flag"] == "goodbye"
             assert response.json()["data"][1]["flag"] == "hello"
+
+            # Invalid sorts
+            response = self.client.get(self.url + "?sort=blahblah")
+            assert response.status_code == 400
 
     def test_get_sort_default_created_at(self):
         FlagAuditLogModel(
