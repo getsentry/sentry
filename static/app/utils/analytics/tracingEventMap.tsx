@@ -4,6 +4,9 @@ import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetail
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
+  'compare_queries.add_query': {
+    num_queries: number;
+  };
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
@@ -116,6 +119,7 @@ export type TracingEventParameters = {
     platform: string;
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
+  'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -151,6 +155,7 @@ export type TracingEventParameters = {
 export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
+  'compare_queries.add_query': 'Compare Queries: Add Query',
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
@@ -205,4 +210,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
+  'trace_explorer.compare_queries': 'Trace Explorer: Compare',
 };
