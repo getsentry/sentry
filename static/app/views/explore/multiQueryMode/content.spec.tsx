@@ -16,6 +16,10 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
