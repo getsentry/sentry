@@ -367,26 +367,29 @@ def call_next_backfill(
             current_project_index_in_cohort, cohort
         )
 
-        if next_project_id is None and worker_number is None:
-            logger.info(
-                "backfill_seer_grouping_records.project_list_backfill_finished",
-                extra={
-                    "cohort": cohort,
-                    "last_processed_project_index": next_project_index_in_cohort,
-                },
-            )
-            # we're at the end of the project list
-            return
-        elif next_project_id is None:
-            logger.info(
-                "backfill_seer_grouping_records.cohort_finished",
-                extra={
-                    "cohort": cohort,
-                    "worker_number": worker_number,
-                },
-            )
-            cohort = None
-            last_processed_project_id = project_id
+        if next_project_id is None:
+            if worker_number is None:
+                logger.info(
+                    "backfill_seer_grouping_records.project_list_backfill_finished",
+                    extra={
+                        "cohort": cohort,
+                        "last_processed_project_index": next_project_index_in_cohort,
+                    },
+                )
+                # we're at the end of the project list
+                return
+
+            else:
+                logger.info(
+                    "backfill_seer_grouping_records.cohort_finished",
+                    extra={
+                        "cohort": cohort,
+                        "worker_number": worker_number,
+                    },
+                )
+                # Set `cohort` to None so the backfill task knows to create the next one
+                cohort = None
+                last_processed_project_id = project_id
 
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
