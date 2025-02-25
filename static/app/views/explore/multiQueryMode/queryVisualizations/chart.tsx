@@ -235,10 +235,6 @@ export function MultiQueryModeChart({
     });
   }
 
-  if (items.length === 0) {
-    return null;
-  }
-
   return (
     <Widget
       key={index}
@@ -281,17 +277,19 @@ export function MultiQueryModeChart({
             options={intervalOptions}
           />
         </Tooltip>,
-        <DropdownMenu
-          key="contextMenu"
-          triggerProps={{
-            size: 'xs',
-            borderless: true,
-            showChevron: false,
-            icon: <IconEllipsis />,
-          }}
-          position="bottom-end"
-          items={items}
-        />,
+        items && (
+          <DropdownMenu
+            key="contextMenu"
+            triggerProps={{
+              size: 'xs',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis />,
+            }}
+            position="bottom-end"
+            items={items}
+          />
+        ),
       ]}
       revealActions="always"
       Visualization={
