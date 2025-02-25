@@ -234,7 +234,11 @@ def backfill_seer_grouping_records_for_project(
         filtered_snuba_results,
         groups_to_backfill_with_no_embedding_has_snuba_row,
     ) = filter_snuba_results(
-        snuba_results, groups_to_backfill_with_no_embedding, project, worker_number
+        snuba_results,
+        groups_to_backfill_with_no_embedding,
+        project,
+        worker_number,
+        current_project_index_in_cohort,
     )
 
     if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:

@@ -68,7 +68,11 @@ class GroupStacktraceData(TypedDict):
 
 
 def filter_snuba_results(
-    snuba_results, groups_to_backfill_with_no_embedding, project, worker_number
+    snuba_results,
+    groups_to_backfill_with_no_embedding,
+    project,
+    worker_number,
+    project_index_in_cohort,
 ):
     """
     Not all of the groups in `groups_to_backfill_with_no_embedding` are guaranteed to have
