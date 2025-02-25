@@ -1,133 +1,124 @@
+import type React from 'react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-type Size = 'small' | 'normal';
-type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
+interface BaseAlertLinkProps
+  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'type'> {}
 
-type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
-
-type OtherProps = {
-  children?: React.ReactNode;
-  ['data-test-id']?: string;
-  icon?: string | React.ReactNode;
-  onClick?: (e: React.MouseEvent) => void;
-};
-
-type DefaultProps = {
+interface ExternalAlertLinkProps extends BaseAlertLinkProps {
+  href: string;
+  // @TODO(jonasbadalic): type definition used ot indicated this prop for all types, but it never actually worked for anything except external links
+  // @TODO(jonasbadalic): this type should not be optional because it has a default initializer inside ExternalLink!!
   openInNewTab: boolean;
-  priority: Priority;
-  size: Size;
-  withoutMarginBottom: boolean;
-  href?: string;
-  system?: boolean;
-};
+  onClick?: never;
+  // Disable other props that are not applicable for this type
+  to?: never;
+}
 
-type Props = OtherProps & Partial<DefaultProps> & Partial<Pick<LinkProps, 'to'>>;
+interface InternalAlertLinkProps extends BaseAlertLinkProps {
+  to: string;
+  // Disable other props that are not applicable for this type
+  href?: never;
+  onClick?: never;
+  openInNewTab?: never;
+}
 
-type StyledLinkProps = DefaultProps &
-  Partial<Pick<LinkProps, 'to'>> &
-  Omit<LinkProps, 'to' | 'size'>;
+interface ManualAlertLinkProps extends BaseAlertLinkProps {
+  onClick: React.MouseEventHandler<HTMLAnchorElement>;
+  // Disable other props that are not applicable for this type
+  href?: never;
+  openInNewTab?: never;
+  to?: never;
+}
 
-export function AlertLink({
-  size = 'normal',
-  priority = 'warning',
-  icon,
-  children,
-  onClick,
-  system = false,
-  withoutMarginBottom = false,
-  openInNewTab = false,
-  to,
-  href,
-  ['data-test-id']: dataTestId,
-}: Props) {
+export type AlertLinkProps =
+  | ExternalAlertLinkProps
+  | InternalAlertLinkProps
+  | ManualAlertLinkProps;
+
+export function AlertLink(props: AlertLinkProps): React.ReactNode {
+  const alertProps: AlertProps = {
+    type: props.type ?? 'info',
+    system: props.system,
+    trailingItems: props.trailingItems ?? <IconChevron direction="right" />,
+  };
+
+  // @TODO(jonasbadalic): we should check for empty href and report to sentry
+  if ('href' in props) {
+    // @TODO(jonasbadalic): Should we validate that the href is a valid URL?
+    return (
+      <ExternalLinkWithTextDecoration
+        type={alertProps.type}
+        href={props.href}
+        openInNewTab={props.openInNewTab}
+      >
+        <Alert {...alertProps}>{props.children}</Alert>
+      </ExternalLinkWithTextDecoration>
+    );
+  }
+
+  if ('onClick' in props) {
+    return (
+      // @TODO(jonasbadalic): fix this hacky way of making the link work. It seems that doing this
+      // causes the link to render a path to / which probably means that even though a manual link is specified,
+      // the user might still be redirected to a path that they dont want to be redirected to?. Should this
+      // be a button in this case?
+      <LinkWithTextDecoration type={alertProps.type} to="" onClick={props.onClick}>
+        <Alert {...alertProps}>{props.children}</Alert>
+      </LinkWithTextDecoration>
+    );
+  }
+
+  // @TODO(jonasbadalic): we should check for empty to value and report to sentry
   return (
-    <StyledLink
-      data-test-id={dataTestId}
-      to={to}
-      href={href}
-      onClick={onClick}
-      size={size}
-      priority={priority}
-      system={system}
-      withoutMarginBottom={withoutMarginBottom}
-      openInNewTab={openInNewTab}
-    >
-      {icon && <IconWrapper>{icon}</IconWrapper>}
-      <AlertLinkText>{children}</AlertLinkText>
-      <IconLink>
-        <IconChevron direction="right" />
-      </IconLink>
-    </StyledLink>
+    <LinkWithTextDecoration type={alertProps.type} to={props.to}>
+      <Alert {...alertProps}>{props.children}</Alert>
+    </LinkWithTextDecoration>
   );
 }
 
-export default AlertLink;
+// @TODO(jonasbadalic): the styles here are duplicated...
+const ExternalLinkWithTextDecoration = styled(ExternalLink)<{
+  type: AlertProps['type'];
+}>`
+  display: block;
+  ${p => textDecorationStyles({type: p.type, theme: p.theme})}
+`;
 
-const StyledLink = styled(
-  ({openInNewTab, to, href, system: _, ...props}: StyledLinkProps) => {
-    const linkProps = omit(props, ['withoutMarginBottom', 'priority', 'size']);
-    if (href) {
-      return <ExternalLink {...linkProps} href={href} openInNewTab={openInNewTab} />;
-    }
+const LinkWithTextDecoration = styled(Link)<{type: AlertProps['type']}>`
+  display: block;
+  ${p => textDecorationStyles({type: p.type, theme: p.theme})}
+`;
 
-    return <Link {...linkProps} to={to || ''} />;
-  }
-)`
-  display: flex;
-  align-items: center;
-  background-color: ${p => p.theme.alert[p.priority].backgroundLight};
-  color: ${p => p.theme.alert[p.priority].color};
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-decoration-color: ${p => p.theme.alert[p.priority].border};
-  text-decoration-style: solid;
-  text-decoration-line: underline;
-  text-decoration-thickness: 0.08em;
-  text-underline-offset: 0.06em;
-  border: 1px solid ${p => p.theme.alert[p.priority].border};
-  padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
-  margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};
-  border-radius: 0.25em;
-  transition: 0.2s border-color;
-
-  &:hover {
-    color: ${p => p.theme.alert[p.priority].color};
-    text-decoration-color: ${p => p.theme.alert[p.priority].color};
+function textDecorationStyles({type, theme}: {theme: Theme; type: AlertProps['type']}) {
+  return css`
+    text-decoration-color: ${theme.alert[type].border};
     text-decoration-style: solid;
     text-decoration-line: underline;
+    /* @TODO(jonasbadalic): can/should we standardize this transition? */
+    transition: 0.2s border-color;
+
+    &:hover {
+      text-decoration-color: ${theme.alert[type].color};
+      text-decoration-style: solid;
+      text-decoration-line: underline;
+    }
+  `;
+}
+
+/**
+ * Manages margins of AlertLink components
+ */
+const Container = styled('div')`
+  > a {
+    margin-bottom: ${space(2)};
   }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: ${p => p.theme.alert[p.priority].border} 0 0 0 2px;
-  }
-
-  ${p =>
-    p.system &&
-    `
-      border-width: 0 0 1px 0;
-      border-radius: 0;
-    `}
 `;
 
-const IconWrapper = styled('span')`
-  display: flex;
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  margin-right: ${space(1)};
-  align-items: center;
-`;
-
-const IconLink = styled(IconWrapper)`
-  margin-right: 0;
-  margin-left: ${space(1)};
-`;
-
-const AlertLinkText = styled('div')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-  flex-grow: 1;
-`;
+AlertLink.Container = Container;

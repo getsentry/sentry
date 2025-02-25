@@ -15,7 +15,7 @@ from io import BytesIO
 from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zlib import compress
 
 import pytest
@@ -145,6 +145,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -2369,27 +2370,34 @@ class UptimeCheckSnubaTestCase(TestCase):
         self,
         subscription_id: str | None,
         check_status: str,
+        check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
+        http_status: int | None | NotSet = NOT_SET,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
         if incident_status is None:
             incident_status = IncidentStatus.NO_INCIDENT
+        if check_id is None:
+            check_id = uuid.uuid4()
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
-        http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
+        http_status = default_if_not_set(
+            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            http_status,
+        )
 
         self.store_uptime_check(
             {
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "retention_days": 30,
-                "region": f"region_{random.randint(1, 3)}",
+                "region": "default",
                 "environment": "production",
                 "subscription_id": subscription_id,
-                "guid": str(uuid.uuid4()),
+                "guid": str(check_id),
                 "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),

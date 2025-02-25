@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -15,6 +15,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -46,15 +47,14 @@ export function SessionsOverview() {
                 <CrashFreeSessionChart />
               </ModuleLayout.Half>
             ) : (
-              <Fragment>
-                <ModuleLayout.Third>
-                  <ErrorFreeSessionsChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Full>
-                  <ReleaseHealth />
-                </ModuleLayout.Full>
-              </Fragment>
+              <ModuleLayout.Third>
+                <ErrorFreeSessionsChart />
+              </ModuleLayout.Third>
             )}
+            <ModuleLayout.Full>
+              <ReleaseAdoption />
+              <ReleaseHealth />
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

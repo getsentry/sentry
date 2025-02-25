@@ -14,9 +14,10 @@ export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
 `;
 
-export const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
+export const HeaderCell = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
+  cursor: pointer;
 `;
 
 export const StyledPanelItem = styled(PanelItem)<{

@@ -1,5 +1,5 @@
 ---
-created: '2025-02-19T15:25:03.445606+00:00'
+created: '2025-02-21T22:01:09.142589+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,10 +10,10 @@ app:
     app*
       threads*
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame (non app frame)
@@ -100,16 +100,16 @@ app:
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "UFunction::Invoke"
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentrySubsystem::execCaptureEventWithScope"
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentrySubsystem::CaptureEventWithScope"
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentrySubsystem::CaptureEventWithScope"
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "SentrySubsystemApple::CaptureEventWithScope"
           frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
@@ -149,10 +149,10 @@ system:
     system*
       threads*
         stacktrace*
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame*
@@ -239,16 +239,16 @@ system:
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "UFunction::Invoke"
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentrySubsystem::execCaptureEventWithScope"
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentrySubsystem::CaptureEventWithScope"
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentrySubsystem::CaptureEventWithScope"
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "SentrySubsystemApple::CaptureEventWithScope"
           frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))

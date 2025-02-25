@@ -61,6 +61,7 @@ export default function ReleaseHealthTable({
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
     location,
+    paramName: 'width_health_table',
   });
 
   const organization = useOrganization();

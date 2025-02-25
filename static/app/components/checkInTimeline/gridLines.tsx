@@ -183,7 +183,8 @@ export function GridLineOverlay({
           start: dateFromPosition(startX).startOf('minute').toDate(),
           end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
-        router
+        router,
+        {keepCursor: true}
       ),
     [dateFromPosition, router]
   );

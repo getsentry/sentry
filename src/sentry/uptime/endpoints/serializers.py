@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
@@ -7,6 +7,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.types.actor import Actor
 from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.subscriptions.regions import get_region_config
+from sentry.uptime.types import EapCheckEntry, IncidentStatus
 
 
 class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
@@ -74,4 +76,58 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "timeoutMs": obj.uptime_subscription.timeout_ms,
             "owner": attrs["owner"],
             "traceSampling": obj.uptime_subscription.trace_sampling,
+        }
+
+
+CheckStatus = Literal["success", "failure", "failure_incident", "missed_window"]
+
+
+class EapCheckEntrySerializerResponse(TypedDict):
+    uptimeCheckId: str
+    uptimeSubscriptionId: int
+    projectUptimeSubscriptionId: int
+    timestamp: str
+    scheduledCheckTime: str
+    checkStatus: CheckStatus
+    checkStatusReason: str
+    httpStatusCode: int | None
+    durationMs: int
+    traceId: str
+    incidentStatus: int
+    environment: str
+    region: str
+    regionName: str
+
+
+@register(EapCheckEntry)
+class EapCheckEntrySerializer(Serializer):
+
+    def serialize(
+        self, obj: EapCheckEntry, attrs, user, **kwargs
+    ) -> EapCheckEntrySerializerResponse:
+        check_status = cast(CheckStatus, obj.check_status)
+
+        # XXX: Translate the status from `failed` to `failed_incident` when the
+        # check is part of an incident.
+        if check_status == "failure" and obj.incident_status == IncidentStatus.IN_INCIDENT:
+            check_status = "failure_incident"
+
+        region_config = get_region_config(obj.region)
+        region_name = region_config.name if region_config else "Unknown"
+
+        return {
+            "uptimeCheckId": obj.uptime_check_id,
+            "uptimeSubscriptionId": obj.uptime_subscription_id,
+            "projectUptimeSubscriptionId": obj.uptime_subscription_id,
+            "timestamp": obj.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "checkStatus": check_status,
+            "checkStatusReason": obj.check_status_reason,
+            "httpStatusCode": obj.http_status_code,
+            "durationMs": obj.duration_ms,
+            "traceId": obj.trace_id,
+            "incidentStatus": obj.incident_status,
+            "environment": obj.environment,
+            "region": obj.region,
+            "regionName": region_name,
         }
