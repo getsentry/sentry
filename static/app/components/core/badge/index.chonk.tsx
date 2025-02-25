@@ -46,11 +46,32 @@ function makeBadgeTheme(
   theme: ReturnType<typeof useChonkTheme>
 ): React.CSSProperties {
   switch (p.type) {
-    // @TODO(jonasbadalic) these should use feature badge
+    // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
+      return {
+        color: theme.colors.static.black,
+        // @TODO(jonasbadalic) should this use theme colors?
+        background: `linear-gradient(103deg, #EE8019 0%, #FAA80A 25%, #FBB20B 50%, #FAA80A 75%, #EE8019 100%);`,
+      };
     case 'beta':
+      return {
+        color: theme.colors.static.white,
+        // @TODO(jonasbadalic) should this use theme colors?
+        background: `linear-gradient(103deg, #FC8B61 0%, #FC5F64 50%, #F32474 100%);`,
+      };
     case 'new':
+      return {
+        color: theme.colors.static.white,
+        // @TODO(jonasbadalic) should this use theme colors?
+        background: `linear-gradient(103deg, #7B51F8 0%, #F644AB 100%);`,
+      };
     case 'experimental':
+      return {
+        color: theme.colors.static.white,
+        // @TODO(jonasbadalic) should this use theme colors?
+        background: `linear-gradient(103deg, #4E2A9A 0%, #7C30A9 25%, #A737B4 50%, #F2306F 75%, #EE8019 100%);`,
+      };
+    // End feature badge variants
     case 'default':
       return {
         background: theme.colors.dynamic.surface300,

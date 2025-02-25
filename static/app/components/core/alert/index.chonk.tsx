@@ -17,7 +17,7 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
 }
 
-const ChonkAlertPanel = chonkStyled('div')<ChonkAlertProps>`
+const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   ${p => makeChonkAlertTheme(p.type, p.theme)}
   display: grid;
   grid-template-columns: ${p => getAlertGridLayout(p)};
@@ -101,4 +101,4 @@ function getAlertGridLayout(p: ChonkAlertProps) {
   return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''};`;
 }
 
-export {ChonkAlertPanel, chonkAlertPropMapping};
+export {AlertPanel, chonkAlertPropMapping};
