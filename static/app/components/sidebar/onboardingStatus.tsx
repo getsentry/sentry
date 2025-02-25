@@ -12,6 +12,7 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -146,8 +147,11 @@ export function OnboardingStatus({
           textCss={() => css`
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
+            color: blue;
           `}
-          text={doneTasks.length}
+          text={
+            doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+          }
           value={(doneTasks.length / allTasks.length) * 100}
           backgroundColor="rgba(255, 255, 255, 0.15)"
           progressEndcaps="round"
