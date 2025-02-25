@@ -1,31 +1,28 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types/user';
-import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
-import {CheckStatus, type UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
-import {statusToText, tickStyle} from 'sentry/views/insights/uptime/timelineConfig';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  reasonToText,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useUptimeIssueAlertId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
@@ -41,7 +38,6 @@ export default function GroupUptimeChecks() {
   const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
-  const user = useUser();
   const {since, until} = usePageFilterDates();
   const uptimeAlertId = useUptimeIssueAlertId({groupId});
 
@@ -97,22 +93,18 @@ export default function GroupUptimeChecks() {
         emptyMessage={t('No matching uptime checks found')}
         data={uptimeData}
         columnOrder={[
-          {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
+          {key: 'timestamp', width: 200, name: t('Timestamp')},
+          {key: 'checkStatus', width: 250, name: t('Status')},
           {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
-          {key: 'checkStatus', width: 115, name: t('Status')},
           {key: 'durationMs', width: 110, name: t('Duration')},
-          {key: 'traceId', width: 100, name: t('Trace')},
           {key: 'regionName', width: 100, name: t('Region')},
+          {key: 'traceId', width: 100, name: t('Trace')},
         ]}
         columnSortBy={[]}
         grid={{
           renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
           renderBodyCell: (column, dataRow) => (
-            <CheckInBodyCell
-              column={column}
-              dataRow={dataRow}
-              userOptions={user.options}
-            />
+            <CheckInBodyCell column={column} check={dataRow} />
           ),
         }}
       />
@@ -121,61 +113,38 @@ export default function GroupUptimeChecks() {
 }
 
 function CheckInBodyCell({
-  dataRow,
+  check,
   column,
-  userOptions,
 }: {
+  check: UptimeCheck;
   column: GridColumnOrder<keyof UptimeCheck>;
-  dataRow: UptimeCheck;
-  userOptions: User['options'];
 }) {
   const theme = useTheme();
 
   const {
+    timestamp,
     scheduledCheckTime,
     durationMs,
     checkStatus,
     httpStatusCode,
     checkStatusReason,
     traceId,
-  } = dataRow;
+  } = check;
 
-  if (dataRow[column.key] === undefined) {
+  if (check[column.key] === undefined) {
     return <Cell />;
   }
 
   switch (column.key) {
     case 'timestamp': {
-      const format = userOptions.clock24Hours
-        ? 'MMM D, YYYY HH:mm:ss z'
-        : 'MMM D, YYYY h:mm:ss A z';
       return (
         <TimeCell>
           <Tooltip
             maxWidth={300}
             isHoverable
-            title={
-              <LabelledTooltip>
-                {scheduledCheckTime && (
-                  <Fragment>
-                    <dt>{t('Scheduled for')}</dt>
-                    <dd>
-                      {moment
-                        .tz(scheduledCheckTime, userOptions?.timezone ?? '')
-                        .format(format)}
-                    </dd>
-                  </Fragment>
-                )}
-                <dt>{t('Checked at')}</dt>
-                <dd>
-                  {moment
-                    .tz(scheduledCheckTime, userOptions?.timezone ?? '')
-                    .format(format)}
-                </dd>
-              </LabelledTooltip>
-            }
+            title={t('Checked at %s', <DateTime date={timestamp} seconds />)}
           >
-            {FIELD_FORMATTERS.date.renderFunc('timestamp', dataRow)}
+            <DateTime date={scheduledCheckTime} timeZone />
           </Tooltip>
         </TimeCell>
       );
@@ -190,42 +159,18 @@ function CheckInBodyCell({
       if (httpStatusCode === null) {
         return <Cell style={{color: theme.subText}}>{t('None')}</Cell>;
       }
-      const statusCodeFirstDigit = String(httpStatusCode)?.[0];
-      switch (statusCodeFirstDigit) {
-        case '2':
-          return <Cell style={{color: theme.successText}}>{httpStatusCode}</Cell>;
-        case '3':
-          return <Cell style={{color: theme.warningText}}>{httpStatusCode}</Cell>;
-        case '4':
-        case '5':
-          return <Cell style={{color: theme.errorText}}>{httpStatusCode}</Cell>;
-        default:
-          return <Cell>{httpStatusCode}</Cell>;
-      }
+      return <Cell>{httpStatusCode}</Cell>;
     }
     case 'checkStatus': {
-      let checkResult = <Cell>{checkStatus}</Cell>;
-      if (Object.values(CheckStatus).includes(checkStatus)) {
-        const colorKey = tickStyle[checkStatus].labelColor ?? 'textColor';
-        checkResult = (
-          <Cell style={{color: theme[colorKey] as string}}>
-            {statusToText[checkStatus]}
-          </Cell>
-        );
-      }
-      return checkStatusReason ? (
-        <Tooltip
-          title={
-            <LabelledTooltip>
-              <dt>{t('Reason')}</dt>
-              <dd>{checkStatusReason}</dd>
-            </LabelledTooltip>
-          }
-        >
-          {checkResult}
-        </Tooltip>
-      ) : (
-        checkResult
+      const colorKey = tickStyle[checkStatus].labelColor ?? 'textColor';
+      return (
+        <Cell style={{color: theme[colorKey] as string}}>
+          {statusToText[checkStatus]}{' '}
+          {checkStatusReason &&
+            tct('([reason])', {
+              reason: reasonToText[checkStatusReason](check),
+            })}
+        </Cell>
       );
     }
     case 'traceId':
@@ -238,7 +183,7 @@ function CheckInBodyCell({
         </LinkCell>
       );
     default:
-      return <Cell>{dataRow[column.key]}</Cell>;
+      return <Cell>{check[column.key]}</Cell>;
   }
 }
 
@@ -260,12 +205,4 @@ const LinkCell = styled(Link)`
   text-decoration-color: ${p => p.theme.subText};
   cursor: pointer;
   text-decoration-style: dotted;
-`;
-
-const LabelledTooltip = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)} ${space(1)};
-  text-align: left;
-  margin: 0;
 `;
