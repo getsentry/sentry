@@ -147,11 +147,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       )}
                     </p>
                     <List symbol="bullet">
-                      <ListItem>
-                        {t(
-                          'Configure the SDK with your DSN'
-                        )}
-                      </ListItem>
+                      <ListItem>{t('Configure the SDK with your DSN')}</ListItem>
                       <ListItem>
                         {t('Add source maps upload to your build process')}
                       </ListItem>
