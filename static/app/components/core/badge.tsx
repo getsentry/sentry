@@ -1,81 +1,80 @@
-import {useTheme} from '@emotion/react';
+import {css, type SerializedStyles, type useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import {unreachable} from 'sentry/utils/unreachable';
 
-const useBadgeColors = () => {
-  const theme = useTheme();
-
-  return {
-    default: {
-      background: theme.gray100,
-      color: theme.gray500,
-    },
-    alpha: {
-      background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
-      color: theme.white,
-    },
-    beta: {
-      background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
-      color: theme.white,
-    },
-    new: {
-      background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
-      color: theme.white,
-    },
-    experimental: {
-      background: theme.gray100,
-      color: theme.gray500,
-    },
-    internal: {
-      background: theme.gray100,
-      color: theme.gray500,
-    },
-    warning: {
-      background: theme.yellow300,
-      color: theme.gray500,
-    },
-    gray: {
-      background: `rgba(43, 34, 51, 0.08)`,
-      color: theme.gray500,
-    },
-  } satisfies Record<string, BadgeColors>;
-};
-
-export type BadgeType = keyof ReturnType<typeof useBadgeColors>;
-type BadgeColors = {background: string; color: string};
-
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  text?: string | number | null;
-  type?: BadgeType;
+function makeBadgeTheme(
+  props: BadgeProps,
+  theme: ReturnType<typeof useTheme>
+): SerializedStyles {
+  switch (props.type) {
+    case 'alpha':
+      return css`
+        background: linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300});
+        color: ${theme.white};
+      `;
+    case 'beta':
+      return css`
+        background: linear-gradient(90deg, ${theme.purple300}, ${theme.pink300});
+        color: ${theme.white};
+      `;
+    case 'default':
+    case 'experimental':
+    case 'internal':
+      return css`
+        background: ${theme.gray100};
+        color: ${theme.gray500};
+      `;
+    case 'new':
+      return css`
+        background: linear-gradient(90deg, ${theme.blue300}, ${theme.green300});
+        color: ${theme.white};
+      `;
+    case 'warning':
+      return css`
+        background: ${theme.yellow300};
+        color: ${theme.gray500};
+      `;
+    default:
+      unreachable(props.type);
+      throw new TypeError(`Unsupported badge type: ${props.type}`);
+  }
 }
 
-function Badge({children, type = 'default', text, ...props}: BadgeProps) {
-  const badgeColors = useBadgeColors();
+export type BadgeType =
+  | 'alpha'
+  | 'beta'
+  | 'new'
+  | 'warning'
+  // @TODO(jonasbadalic) "default" is bad API decision
+  | 'experimental'
+  | 'internal'
+  | 'default';
 
-  return (
-    <StyledBadge badgeColors={badgeColors[type]} {...props}>
-      {children ?? text}
-    </StyledBadge>
-  );
+export interface BadgeProps
+  extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
+  children: React.ReactNode;
+  type: BadgeType;
 }
 
-const StyledBadge = styled('span')<BadgeProps & {badgeColors: BadgeColors}>`
+export const Badge = styled('span')<BadgeProps>`
+  ${p => makeBadgeTheme(p, p.theme)}
+
   display: inline-block;
   height: 20px;
   min-width: 20px;
   line-height: 20px;
   border-radius: 20px;
-  padding: 0 5px;
-  margin-left: ${space(0.5)};
-  font-size: 75%;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
-  color: ${p => p.badgeColors.color};
-  background: ${p => p.badgeColors.background};
+
+  /* @TODO(jonasbadalic) can we standardize this transition? */
   transition: background 100ms linear;
 
+  /* @TODO(jonasbadalic) why are these needed? */
+  font-size: 75%;
+  padding: 0 5px;
+  margin-left: ${space(0.5)};
   position: relative;
 `;
-
-export default Badge;
