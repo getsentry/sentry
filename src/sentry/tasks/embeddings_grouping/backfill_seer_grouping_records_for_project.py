@@ -203,7 +203,12 @@ def backfill_seer_grouping_records_for_project(
     # querying for the next batch. If even the unfiltered batch is emtpy, `batch_end_id` will be
     # None, which we'll pass to `call_next_backfill` so it knows to move on to the next project.
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id, batch_size, worker_number, enable_ingestion
+        project,
+        last_processed_group_id,
+        batch_size,
+        worker_number,
+        current_project_index_in_cohort,
+        enable_ingestion,
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:

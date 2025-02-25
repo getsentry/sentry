@@ -187,7 +187,12 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
 
 @sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(
-    project, last_processed_group_id, batch_size, worker_number, enable_ingestion: bool = False
+    project,
+    last_processed_group_id,
+    batch_size,
+    worker_number,
+    project_index_in_cohort,
+    enable_ingestion: bool = False,
 ):
     group_id_filter = Q()
     if last_processed_group_id is not None:
