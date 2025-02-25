@@ -302,9 +302,9 @@ export type SentryAppWebhookRequest = {
   webhookUrl: string;
   errorUrl?: string;
   organization?: {
-    id: string;
     name: string;
     slug: string;
+    id?: string;
   };
 };
 
