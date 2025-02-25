@@ -63,6 +63,8 @@ export function Badge({children, ...props}: BadgeProps) {
   return <StyledBadge {...props}>{children}</StyledBadge>;
 }
 
+export default Badge;
+
 const StyledBadge = styled('span')<BadgeProps>`
   ${p => ({...makeBadgeTheme(p, p.theme)})};
 
