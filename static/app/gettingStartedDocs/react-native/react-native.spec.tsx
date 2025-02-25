@@ -39,7 +39,11 @@ describe('getting started with react-native', function () {
   });
 
   it('renders errors onboarding docs correctly', function () {
-    renderWithOnboardingLayout(docs);
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
