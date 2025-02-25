@@ -67,7 +67,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
 
         backfill_seer_grouping_records_for_project.delay(
             current_project_id=project.id,
-            last_processed_group_id_input=last_processed_id,
+            last_processed_group_id=last_processed_id,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
