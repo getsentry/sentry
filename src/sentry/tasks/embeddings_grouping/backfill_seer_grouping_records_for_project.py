@@ -50,7 +50,7 @@ def backfill_seer_grouping_records_for_project(
     current_project_id: int | None,
     last_processed_group_id_input: int | None = None,
     cohort: str | list[int] | None = None,
-    last_processed_project_index_input: int | None = None,
+    last_processed_project_index: int | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
     skip_processed_projects: bool = True,
@@ -116,9 +116,7 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
-    last_processed_project_index = (
-        last_processed_project_index_input if last_processed_project_index_input else 0
-    )
+    last_processed_project_index = last_processed_project_index or 0
     try:
         project = Project.objects.get_from_cache(id=current_project_id)
     except Project.DoesNotExist:
@@ -126,10 +124,9 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.project_does_not_exist",
             extra={"project_id": current_project_id, "worker_number": worker_number},
         )
-        assert last_processed_project_index_input is not None
         call_next_backfill(
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index_input,
+            last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,

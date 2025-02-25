@@ -621,7 +621,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=[self.project.id, project2.id],
-                last_processed_project_index_input=0,
+                last_processed_project_index=0,
             )
 
         groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
@@ -641,7 +641,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=99999999999999,
                 cohort=[99999999999999, self.project.id],
-                last_processed_project_index_input=0,
+                last_processed_project_index=0,
             )
 
         groups = Group.objects.filter(project_id__in=[99999999999999, self.project.id])
@@ -775,7 +775,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=None,
-                last_processed_project_index_input=0,
+                last_processed_project_index=0,
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
@@ -914,7 +914,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=projects,
-                last_processed_project_index_input=0,
+                last_processed_project_index=0,
             )
         groups = Group.objects.filter(project_id__in=projects)
         self.assert_groups_metadata_updated(groups)
@@ -925,7 +925,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=projects,
-                last_processed_project_index_input=0,
+                last_processed_project_index=0,
                 only_delete=True,
             )
 
