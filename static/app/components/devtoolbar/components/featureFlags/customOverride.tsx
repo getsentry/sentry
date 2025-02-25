@@ -1,8 +1,8 @@
 import {useContext, useState} from 'react';
 import {css} from '@emotion/react';
 
+import {Input} from 'sentry/components/core/input';
 import {resetButtonCss} from 'sentry/components/devtoolbar/styles/reset';
-import Input from 'sentry/components/input';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 

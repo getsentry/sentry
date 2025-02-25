@@ -19,21 +19,28 @@ import {
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 const MAX_QUERIES_ALLOWED = 5;
 
 function Content() {
+  const organization = useOrganization();
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
-  const organization = useOrganization();
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <StyledPageFilterBar condensed>
           <ProjectPageFilter />
           <EnvironmentPageFilter />
-          <DatePageFilter />
+          <DatePageFilter
+            defaultPeriod={defaultPeriod}
+            maxPickableDays={maxPickableDays}
+            relativeOptions={relativeOptions}
+          />
         </StyledPageFilterBar>
         <WidgetSyncContextProvider>
           {queries.map((query, index) => (
