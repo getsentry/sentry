@@ -11,7 +11,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -28,6 +27,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import {SolutionsHubNotices} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubNotices';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -227,6 +227,10 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
+            <SolutionsHubNotices
+              hasGithubIntegration={aiConfig.hasGithubIntegration}
+              autofixRepositories={autofixData?.repositories ?? []}
+            />
             {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary group={group} event={event} project={project} />
@@ -234,9 +238,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {aiConfig.hasAutofix && (
               <Fragment>
-                {aiConfig.needsAutofixSetup ? (
-                  <AutofixSetupContent groupId={group.id} projectId={project.id} />
-                ) : !autofixData ? (
+                {!autofixData ? (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 ) : (
                   <AutofixSteps

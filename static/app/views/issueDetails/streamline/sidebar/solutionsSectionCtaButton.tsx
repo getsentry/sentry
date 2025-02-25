@@ -21,7 +21,6 @@ interface Props {
     hasResources: boolean;
     hasSummary: boolean;
     isAutofixSetupLoading: boolean;
-    needsAutofixSetup: boolean;
     needsGenAIConsent: boolean;
   };
   event: Event;
@@ -87,11 +86,9 @@ export function SolutionsSectionCtaButton({
     if (aiConfig.needsGenAIConsent) {
       return t('Set Up Sentry AI');
     }
+
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
-    }
-    if (aiConfig.needsAutofixSetup) {
-      return t('Set Up Autofix');
     }
 
     if (!lastStep) {
