@@ -53,7 +53,7 @@ class BufferManager:
         org_ids = set(options.get("replay.consumer.use-file-batching"))
 
         threaded = list(filter(lambda i: i.org_id not in org_ids, model.buffer))
-        threaded_buffer = ThreadedBufferManager()
+        threaded_buffer = ThreadedBufferManager(max_workers=32)
         threaded_buffer.commit(threaded)
 
         # ...But others will be opted in to the batched version of uploading. This will give us a

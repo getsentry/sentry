@@ -136,9 +136,9 @@ class ThreadedBufferManager:
     ourselves that there are no defects in the `BatchedBufferManager`.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, max_workers: int) -> None:
         self.fn = commit_recording_message
-        self.max_workers = 100
+        self.max_workers = max_workers
 
     @sentry_sdk.trace
     def commit(self, messages: list[ProcessedRecordingMessage]) -> None:
