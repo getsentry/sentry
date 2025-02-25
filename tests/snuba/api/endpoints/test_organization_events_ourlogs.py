@@ -5,6 +5,7 @@ import pytest
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
+@pytest.mark.skip("race condition with snuba changes")
 class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "ourlogs"
 
