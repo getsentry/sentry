@@ -271,6 +271,7 @@ def recording_post_processor(
                 message.org_id,
                 project,
                 message.replay_id,
+                message.retention_days,
                 replay_event,
             )
         else:

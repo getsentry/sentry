@@ -7,7 +7,9 @@ from sentry.models.project import Project
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     ReplayActionsEventPayload,
+    ReplayActionsEventPayloadClick,
     _initialize_publisher,
+    encode_as_uuid,
 )
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -26,18 +28,18 @@ def emit_click_events(
     retention_days: int,
     start_time: float,
 ) -> None:
-    clicks = [
+    clicks: list[ReplayActionsEventPayloadClick] = [
         {
             "alt": click.alt,
             "aria_label": click.aria_label,
             "class": click.classes,
             "component_name": click.component_name,
+            "event_hash": encode_as_uuid(f"{replay_id}{click.timestamp}{click.node_id}"),
             "id": click.id,
             "is_dead": click.is_dead,
             "is_rage": click.is_rage,
             "node_id": click.node_id,
             "role": click.role,
-            "selector": click.selector,
             "tag": click.tag,
             "testid": click.testid,
             "text": click.text,
