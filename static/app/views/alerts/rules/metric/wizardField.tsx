@@ -117,9 +117,11 @@ export default function WizardField({
                     {AlertWizardAlertNames.eap_metrics}
                     <FeatureBadge
                       type="beta"
-                      title={t(
-                        'This feature is available for early adopters and the UX may change'
-                      )}
+                      tooltipProps={{
+                        title: t(
+                          'This feature is available for early adopters and the UX may change'
+                        ),
+                      }}
                     />
                   </span>
                 ),

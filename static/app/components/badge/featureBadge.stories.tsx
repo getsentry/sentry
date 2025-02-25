@@ -18,7 +18,10 @@ export default storyBook('FeatureBadge', story => {
 
   story('Custom tooltip props', () => (
     <Fragment>
-      <FeatureBadge type="new" title="The tooltip title can be custom too" />
+      <FeatureBadge
+        type="new"
+        tooltipProps={{title: 'The tooltip title can be custom too'}}
+      />
       <FeatureBadge
         type="new"
         tooltipProps={{

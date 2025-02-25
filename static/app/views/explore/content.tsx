@@ -49,9 +49,11 @@ export function ExploreContent() {
                   linkLabel={t('Read the Discussion')}
                 />
                 <FeatureBadge
-                  title={t(
-                    'This feature is available for early adopters and the UX may change'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'This feature is available for early adopters and the UX may change'
+                    ),
+                  }}
                   type="beta"
                 />
               </Layout.Title>

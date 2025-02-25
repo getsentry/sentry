@@ -108,12 +108,14 @@ export default function SolutionsSection({
       {aiConfig.hasSummary && (
         <FeatureBadge
           type="beta"
-          title={tct(
-            'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-            {
-              email: <a href="mailto:autofix@sentry.io" />,
-            }
-          )}
+          tooltipProps={{
+            title: tct(
+              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+              {
+                email: <a href="mailto:autofix@sentry.io" />,
+              }
+            ),
+          }}
         />
       )}
     </HeaderContainer>

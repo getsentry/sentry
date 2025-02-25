@@ -115,8 +115,12 @@ function TriggerDescription({
             {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
               <FeatureBadge
                 type="alpha"
-                title="Anomaly detection is in alpha and may produce inaccurate results"
-                tooltipProps={{isHoverable: true}}
+                tooltipProps={{
+                  title: t(
+                    'Anomaly detection is in alpha and may produce inaccurate results'
+                  ),
+                  isHoverable: true,
+                }}
               />
             ) : null}
           </TriggerText>

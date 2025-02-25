@@ -42,7 +42,7 @@ const useBadgeColors = () => {
   } satisfies Record<string, BadgeColors>;
 };
 
-export type BadgeType = keyof ReturnType<typeof useBadgeColors>;
+type BadgeType = keyof ReturnType<typeof useBadgeColors>;
 type BadgeColors = {background: string; color: string};
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {

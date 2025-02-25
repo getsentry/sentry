@@ -35,9 +35,11 @@ function SharedGroupHeader({group}: Props) {
             {group.issueCategory === IssueCategory.PERFORMANCE && (
               <FeatureBadge
                 type="beta"
-                title={t(
-                  'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
-                )}
+                tooltipProps={{
+                  title: t(
+                    'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
+                  ),
+                }}
               />
             )}
           </ShortIdWrapper>

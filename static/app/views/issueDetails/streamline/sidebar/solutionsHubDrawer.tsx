@@ -190,11 +190,11 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           {t('Sentry AI')}
           <StyledFeatureBadge
             type="beta"
-            title={tct(
-              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {email: <a href="mailto:autofix@sentry.io" />}
-            )}
             tooltipProps={{
+              title: tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {email: <a href="mailto:autofix@sentry.io" />}
+              ),
               isHoverable: true,
             }}
           />
