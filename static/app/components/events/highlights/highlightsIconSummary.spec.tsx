@@ -97,7 +97,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('3.8.13')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('3.8.13'));
     expect(await screen.findByText('Runtime Version')).toBeInTheDocument();
-    expect(screen.getAllByRole('img')).toHaveLength(2);
+    expect(screen.getAllByRole('img')).toHaveLength(4);
   });
 
   it('hides device for non mobile/native', function () {

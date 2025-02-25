@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
+import {Button} from 'sentry/components/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -91,7 +93,13 @@ export function Alert({
         )}
         {showExpand && (
           <ExpandIconWrap>
-            <IconChevron direction={isExpanded ? 'up' : 'down'} />
+            <Button
+              size="zero"
+              borderless
+              icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
+              aria-label={isExpanded ? t('Collapse') : t('Expand')}
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
           </ExpandIconWrap>
         )}
         {isExpanded && (
