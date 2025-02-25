@@ -112,16 +112,14 @@ export function OnboardingStatus({
   ]);
 
   useEffect(() => {
-    if (skipQuickStart || quickStartDisplayStatus > 1) {
+    if (skipQuickStart || quickStartDisplayStatus > 1 || demoMode) {
       return;
     }
 
     const newQuickStartDisplay = {...quickStartDisplay};
     newQuickStartDisplay[orgId] = quickStartDisplayStatus + 1;
 
-    if (!demoMode) {
-      mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
-    }
+    mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
 
     if (quickStartDisplayStatus === 1) {
       activateSidebar({
