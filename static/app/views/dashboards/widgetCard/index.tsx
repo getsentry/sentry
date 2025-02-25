@@ -194,7 +194,7 @@ function WidgetCard(props: Props) {
     ? t('Indexed')
     : undefined;
 
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(Boolean) as string[];
+  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,
