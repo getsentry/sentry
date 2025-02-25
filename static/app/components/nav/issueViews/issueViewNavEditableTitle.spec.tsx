@@ -11,6 +11,7 @@ describe('IssueViewNavEditableTitle', () => {
     isEditing: false,
     isSelected: false,
     setIsEditing: mockSetIsEditing,
+    isDragging: false,
   };
 
   beforeEach(() => {
