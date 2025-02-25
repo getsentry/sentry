@@ -15,7 +15,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {inputStyles} from 'sentry/components/input';
+import {inputStyles} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';

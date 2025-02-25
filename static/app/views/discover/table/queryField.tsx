@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import Tag from 'sentry/components/badge/tag';
+import type {InputProps} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -15,11 +15,11 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -5,8 +5,8 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

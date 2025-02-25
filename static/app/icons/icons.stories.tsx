@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';

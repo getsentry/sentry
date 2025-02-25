@@ -16,8 +16,8 @@ import {
   getHiddenOptions,
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
+import {Input} from 'sentry/components/core/input';
 import {GrowingInput} from 'sentry/components/growingInput';
-import Input from 'sentry/components/input';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';

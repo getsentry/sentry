@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
