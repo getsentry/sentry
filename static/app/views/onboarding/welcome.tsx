@@ -82,7 +82,7 @@ function TargetedOnboardingWelcome(props: StepProps) {
       source,
     });
 
-    activateSidebar();
+    activateSidebar({userClicked: false, source: 'targeted_onboarding_welcome_skip'});
   }, [organization, source, activateSidebar]);
 
   return (

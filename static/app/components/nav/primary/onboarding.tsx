@@ -43,7 +43,6 @@ function OnboardingItem({
   isActive: boolean;
   refetch: () => void;
 }) {
-  const organization = useOrganization();
   const theme = useTheme();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -63,12 +62,11 @@ function OnboardingItem({
     isOpen: isActive,
     onOpenChange: newIsOpen => {
       if (newIsOpen) {
-        if (!demoMode && !isActive) {
-          trackAnalytics('quick_start.opened', {
-            organization,
-          });
-        }
-        activateSidebar();
+        activateSidebar({
+          recordAnalytics: !demoMode && !isActive,
+          userClicked: true,
+          source: 'onboarding_sidebar',
+        });
       } else {
         SidebarPanelStore.hidePanel();
       }
@@ -188,7 +186,10 @@ export function PrimaryNavigationOnboarding() {
     mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
 
     if (quickStartDisplayStatus === 1) {
-      activateSidebar();
+      activateSidebar({
+        userClicked: false,
+        source: 'onboarding_sidebar_user_second_visit',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
