@@ -159,11 +159,6 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
 }
 
 function getAlertGridLayout(p: AlertProps) {
-  // ${p => p.showIcon && `minmax(0, max-content)`}
-  //   minmax(0, 1fr)
-  //   ${p => defined(p.trailingItems) && 'max-content'}
-  //   ${p => defined(p.expand) && 'max-content'};
-
   if (p.showIcon) {
     return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
       p.expand ? 'min-content' : ''
