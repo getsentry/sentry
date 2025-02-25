@@ -261,6 +261,7 @@ def backfill_seer_grouping_records_for_project(
             filtered_snuba_results,
             groups_to_backfill_with_no_embedding_has_snuba_row,
             worker_number,
+            current_project_index_in_cohort,
         )
     except EVENT_INFO_EXCEPTIONS:
         metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")

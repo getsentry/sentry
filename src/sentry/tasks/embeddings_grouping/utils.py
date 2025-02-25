@@ -351,7 +351,11 @@ def _make_snuba_call(project, snuba_requests, referrer, worker_number):
 
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(
-    project, snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row, worker_number=None
+    project,
+    snuba_results,
+    groups_to_backfill_with_no_embedding_has_snuba_row,
+    worker_number=None,
+    project_index_in_cohort=None,
 ):
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results, worker_number)
     # If nodestore returns no data
