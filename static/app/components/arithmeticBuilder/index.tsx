@@ -10,7 +10,7 @@ import type {
   AggregateFunction,
   FunctionArgument,
 } from 'sentry/components/arithmeticBuilder/types';
-import {inputStyles} from 'sentry/components/input';
+import {inputStyles} from 'sentry/components/core/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface ArithmeticBuilderProps {

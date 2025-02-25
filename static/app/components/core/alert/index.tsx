@@ -5,14 +5,16 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
+import {Button} from 'sentry/components/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
-import * as ChonkAlert from './alert.chonk';
+import * as ChonkAlert from './index.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
@@ -91,7 +93,13 @@ export function Alert({
         )}
         {showExpand && (
           <ExpandIconWrap>
-            <IconChevron direction={isExpanded ? 'up' : 'down'} />
+            <Button
+              size="zero"
+              borderless
+              icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
+              aria-label={isExpanded ? t('Collapse') : t('Expand')}
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
           </ExpandIconWrap>
         )}
         {isExpanded && (

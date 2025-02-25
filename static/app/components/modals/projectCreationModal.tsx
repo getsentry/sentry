@@ -12,7 +12,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {
   type Category,
