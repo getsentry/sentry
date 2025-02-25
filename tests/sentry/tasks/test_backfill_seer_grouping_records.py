@@ -621,7 +621,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=[self.project.id, project2.id],
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
             )
 
         groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
@@ -641,7 +641,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=99999999999999,
                 cohort=[99999999999999, self.project.id],
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
             )
 
         groups = Group.objects.filter(project_id__in=[99999999999999, self.project.id])
@@ -775,7 +775,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=None,
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
@@ -914,7 +914,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=projects,
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
             )
         groups = Group.objects.filter(project_id__in=projects)
         self.assert_groups_metadata_updated(groups)
@@ -925,7 +925,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
                 cohort=projects,
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
                 only_delete=True,
             )
 
@@ -1111,7 +1111,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_call_next_backfill.assert_called_with(
             last_processed_group_id=group_ids_sorted[-1],
             project_id=self.project.id,
-            last_processed_project_index=0,
+            current_project_index_in_cohort=0,
             cohort=None,
             enable_ingestion=False,
             skip_processed_projects=True,
@@ -1140,7 +1140,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             mock_call_next_backfill.assert_called_with(
                 last_processed_group_id=group_ids_sorted[-1],
                 project_id=self.project.id,
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
                 cohort=None,
                 enable_ingestion=False,
                 skip_processed_projects=True,

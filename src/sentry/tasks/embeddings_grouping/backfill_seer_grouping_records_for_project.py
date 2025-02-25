@@ -50,7 +50,7 @@ def backfill_seer_grouping_records_for_project(
     current_project_id: int | None,
     last_processed_group_id_input: int | None = None,
     cohort: str | list[int] | None = None,
-    last_processed_project_index: int | None = None,
+    current_project_index_in_cohort: int | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
     skip_processed_projects: bool = True,
@@ -116,7 +116,7 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
-    last_processed_project_index = last_processed_project_index or 0
+    current_project_index_in_cohort = current_project_index_in_cohort or 0
     try:
         project = Project.objects.get_from_cache(id=current_project_id)
     except Project.DoesNotExist:
@@ -126,7 +126,7 @@ def backfill_seer_grouping_records_for_project(
         )
         call_next_backfill(
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index,
+            current_project_index_in_cohort=current_project_index_in_cohort,
             cohort=cohort,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
@@ -174,7 +174,7 @@ def backfill_seer_grouping_records_for_project(
     if is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible:
         call_next_backfill(
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index,
+            current_project_index_in_cohort=current_project_index_in_cohort,
             cohort=cohort,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
@@ -198,7 +198,7 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=batch_end_id,
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index,
+            current_project_index_in_cohort=current_project_index_in_cohort,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
@@ -224,7 +224,7 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=batch_end_id,
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index,
+            current_project_index_in_cohort=current_project_index_in_cohort,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
@@ -258,7 +258,7 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=batch_end_id,
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index,
+            current_project_index_in_cohort=current_project_index_in_cohort,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
@@ -293,7 +293,7 @@ def backfill_seer_grouping_records_for_project(
             extra={
                 "reason": seer_response.get("reason"),
                 "project_id": current_project_id,
-                "project_index_in_cohort": last_processed_project_index,
+                "project_index_in_cohort": current_project_index_in_cohort,
                 "worker_number": worker_number,
             },
         )
@@ -313,7 +313,7 @@ def backfill_seer_grouping_records_for_project(
     call_next_backfill(
         last_processed_group_id=batch_end_id,
         project_id=current_project_id,
-        last_processed_project_index=last_processed_project_index,
+        current_project_index_in_cohort=current_project_index_in_cohort,
         cohort=cohort,
         enable_ingestion=enable_ingestion,
         skip_processed_projects=skip_processed_projects,
@@ -326,7 +326,7 @@ def backfill_seer_grouping_records_for_project(
 def call_next_backfill(
     *,
     project_id: int,
-    last_processed_project_index: int,
+    current_project_index_in_cohort: int,
     cohort: str | list[int] | None,
     enable_ingestion: bool,
     skip_processed_projects: bool,
@@ -344,7 +344,7 @@ def call_next_backfill(
                 project_id,
                 last_processed_group_id,
                 cohort,
-                last_processed_project_index,
+                current_project_index_in_cohort,
                 only_delete,
                 enable_ingestion,
                 skip_processed_projects,
@@ -364,7 +364,7 @@ def call_next_backfill(
 
         # call the backfill on next project
         next_project_id, next_project_index_in_cohort = get_next_project_from_cohort(
-            last_processed_project_index, cohort
+            current_project_index_in_cohort, cohort
         )
 
         if next_project_id is None and worker_number is None:
