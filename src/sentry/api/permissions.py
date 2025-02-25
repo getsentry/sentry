@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
@@ -328,6 +328,10 @@ class DemoSafePermission(SentryPermission):
 
 
 class SentryIsAuthenticated(IsAuthenticated):
+    """
+    Used to deny access for demo users in both view and object permission checks.
+    """
+
     def has_permission(self, request: Request, view: object) -> bool:
         if demo_mode.is_demo_user(request.user):
             return False
