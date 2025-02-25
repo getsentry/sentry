@@ -1,18 +1,16 @@
 import time
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options
-from sentry.replays.consumers.buffered.buffer_managers import (
-    BatchedBufferManager,
-    ThreadedBufferManager,
-)
 from sentry.replays.consumers.buffered.lib import Model, buffering_runtime
 from sentry.replays.usecases.ingest import (
     DropSilently,
     ProcessedRecordingMessage,
+    commit_recording_message,
     process_recording_message,
+    track_recording_metadata,
 )
 
 
@@ -46,24 +44,37 @@ class BufferManager:
 
     @sentry_sdk.trace
     def do_flush(self, model: Model[ProcessedRecordingMessage]) -> None:
-        # During the transitionary period most organizations will commit following a traditional
-        # commit pattern...
-        #
-        # TODO: Would be nice to cache this value.
-        org_ids = set(options.get("replay.consumer.use-file-batching"))
-
-        threaded = list(filter(lambda i: i.org_id not in org_ids, model.buffer))
-        threaded_buffer = ThreadedBufferManager(max_workers=32)
-        threaded_buffer.commit(threaded)
-
-        # ...But others will be opted in to the batched version of uploading. This will give us a
-        # chance to test the feature with as minimal risk as possible.
-        batched = list(filter(lambda i: i.org_id in org_ids, model.buffer))
-        batched_buffer = BatchedBufferManager()
-        batched_buffer.commit(batched)
-
+        flush_buffer(model, max_workers=32)
         # Update the buffer manager with the new time so we don't continuously commit in a loop!
         self.__last_flushed_at = time.time()
+
+
+def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int = 32) -> None:
+    # Use as many workers as necessary up to a limit. We don't want to start thousands of
+    # worker threads.
+    max_workers = min(len(model.buffer), max_workers)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        # We apply whatever function is defined on the class to each message in the list. This
+        # is useful for testing reasons (dependency injection).
+        futures = [pool.submit(commit_recording_message, message) for message in model.buffer]
+
+        # Tasks can fail. We check the done set for any failures. We will wait for all the
+        # futures to complete before running this step or eagerly run this step if any task
+        # errors.
+        done, _ = wait(futures, return_when=FIRST_EXCEPTION)
+        for future in done:
+            exc = future.exception()
+            if exc is not None:
+                raise exc
+
+    # Recording metadata is not tracked in the threadpool. This is because this function will
+    # log. Logging will acquire a lock and make our threading less useful due to the speed of
+    # the I/O we do in this step.
+    for message in model.buffer:
+        track_recording_metadata(message)
+
+    return None
 
 
 def process_message(message: bytes) -> ProcessedRecordingMessage | None:

@@ -483,7 +483,6 @@ def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecor
 
 @sentry_sdk.trace
 def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
-    # Write to GCS.
     storage_kv.set(recording.filename, recording.filedata)
 
     try:
