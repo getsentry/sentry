@@ -11,10 +11,11 @@ from urllib.parse import parse_qs, urlparse
 from django.utils.encoding import force_bytes
 
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.types.group import PriorityLevel
+
+# from sentry.types.group import PriorityLevel
 from sentry.utils.performance_issues.base import (
     fingerprint_http_spans,
     get_notification_attachment_body,
@@ -27,8 +28,9 @@ from sentry.utils.performance_issues.detector_handlers.performance_issue_detecto
 )
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import DetectorGroupKey
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 from .types import PerformanceProblemsMap, Span
 
@@ -60,7 +62,7 @@ class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
         span_b_start: int = span_b.get("start_timestamp", 0) or 0
 
         return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
-            milliseconds=self.settings["concurrency_threshold"]
+            milliseconds=self.detector.config["concurrency_threshold"]
         )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
@@ -69,13 +71,12 @@ class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
 
-    def visit_span(self, span: Span) -> None:
+    def visit_span(self, span: Span, data: dict[str, Any]) -> None:
         if not self.is_span_eligible(span):
             return
 
         op = span.get("op", None)
-        # self.settings needs to be Detector.config
-        if op not in self.settings.get("allowed_span_ops", []):
+        if op not in self.detector.config.get("allowed_span_ops", []):
             return
 
         self.span_hashes[span["span_id"]] = get_span_hash(span)
@@ -89,16 +90,72 @@ class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
         ):
             self.spans.append(span)
         else:
-            # self._maybe_store_problem() # build_occurrence_and_event_data
+            self.evaluate(data)
             self.spans = [span]
 
-    def evaluate(self, data_packet):
-        # TODO need to set this up the way DetectorHandler expects
-        pass
+    def evaluate(self, data_packet) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+        if len(self.spans) < 1:
+            return
 
-    def on_complete(self) -> None:
-        self.build_occurrence_and_event_data(group_key, value, new_status)
-        # self._maybe_store_problem()
+        if len(self.spans) < self.detector.config["count"]:
+            return
+
+        total_duration = get_total_span_duration(self.spans)
+        if total_duration < self.detector.config["total_duration"]:
+            return
+
+        last_span = self.spans[-1]
+
+        fingerprint = self._fingerprint()
+        if not fingerprint:
+            return
+
+        offender_span_ids = [span["span_id"] for span in self.spans]
+
+        occurrence = self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint=fingerprint,
+            op=last_span["op"],
+            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
+            type=PerformanceNPlusOneAPICallsGroupType,
+            cause_span_ids=[],
+            parent_span_ids=[last_span.get("parent_span_id", None)],
+            offender_span_ids=offender_span_ids,
+            evidence_data={
+                "op": last_span["op"],
+                "cause_span_ids": [],
+                "parent_span_ids": [last_span.get("parent_span_id", None)],
+                "offender_span_ids": offender_span_ids,
+                "transaction_name": self.data_packet.get("transaction", ""),
+                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
+                "repeating_spans": self._get_path_prefix(self.spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
+                "parameters": self._get_parameters(),
+            },
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        last_span["op"],
+                        os.path.commonprefix(
+                            [span.get("description", "") or "" for span in self.spans]
+                        ),
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
+        )
+        # TODO this is just hardcoded
+        return DetectorEvaluationResult(
+            group_key="abc",
+            is_active=True,
+            priority=DetectorPriorityLevel.OK,
+            result=occurrence,
+            event_data=data_packet,
+        )
+
+    def on_complete(self, data) -> None:
+        self.evaluate(data)
         self.spans = []
 
     def _fingerprint(self) -> str | None:
@@ -142,65 +199,6 @@ class NPlusOneAPICallsDetectorHandler(PerformanceIssueDetectorHandler):
         return [
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
-
-    def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
-        # TODO need to set this up the way DetectorHandler expects
-
-        if len(self.spans) < 1:
-            return
-
-        if len(self.spans) < self.settings["count"]:
-            return
-
-        total_duration = get_total_span_duration(self.spans)
-        if total_duration < self.settings["total_duration"]:
-            return
-
-        last_span = self.spans[-1]
-
-        fingerprint = self._fingerprint()
-        if not fingerprint:
-            return
-
-        offender_span_ids = [span["span_id"] for span in self.spans]
-
-        self.stored_problems[fingerprint] = PerformanceProblem(
-            fingerprint=fingerprint,
-            op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=PerformanceNPlusOneAPICallsGroupType,
-            cause_span_ids=[],
-            parent_span_ids=[last_span.get("parent_span_id", None)],
-            offender_span_ids=offender_span_ids,
-            evidence_data={
-                "op": last_span["op"],
-                "cause_span_ids": [],
-                "parent_span_ids": [last_span.get("parent_span_id", None)],
-                "offender_span_ids": offender_span_ids,
-                "transaction_name": self._event.get(
-                    "transaction", ""
-                ),  # how to pass this? we have it in evaluate as that gets passed the data packet
-                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
-                "repeating_spans": self._get_path_prefix(self.spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters(),
-            },
-            evidence_display=[
-                IssueEvidence(
-                    name="Offending Spans",
-                    value=get_notification_attachment_body(
-                        last_span["op"],
-                        os.path.commonprefix(
-                            [span.get("description", "") or "" for span in self.spans]
-                        ),
-                    ),
-                    # Has to be marked important to be displayed in the notifications
-                    important=True,
-                )
-            ],
-        )
 
 
 HTTP_METHODS = {

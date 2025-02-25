@@ -30,7 +30,6 @@ from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainT
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
-from .detectors.n_plus_one_api_calls_detector_handler import NPlusOneAPICallsDetectorHandler
 from .detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
     NPlusOneDBSpanDetectorExtended,
@@ -39,9 +38,6 @@ from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSp
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
-
-# from sentry.workflow_engine.processors.detector import process_detectors
-
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
@@ -337,8 +333,6 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     HTTPOverheadDetector,
 ]
 
-DETECTOR_HANDLERS = [NPlusOneAPICallsDetectorHandler]  # add onto this
-
 
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project, is_standalone_spans: bool = False
@@ -361,11 +355,9 @@ def _detect_performance_problems(
 
             spans = data.get("spans", [])
             for span in spans:
-                detector_handler.visit_span(span)
+                detector_handler.visit_span(span, data)
 
             detector_handler.evaluate(data_packet)
-
-        # process_detectors(data_packet, detectors)
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
