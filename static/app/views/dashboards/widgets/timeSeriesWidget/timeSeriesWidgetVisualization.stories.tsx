@@ -41,7 +41,7 @@ const sampleDurationTimeSeries2 = {
 };
 
 export default storyBook('TimeSeriesWidgetVisualization', Story => {
-  APIReference(types.TimeSeriesWidgetVisualization);
+  Story.APIReference(types.TimeSeriesWidgetVisualization);
 
   Story('Getting Started', () => {
     return (
