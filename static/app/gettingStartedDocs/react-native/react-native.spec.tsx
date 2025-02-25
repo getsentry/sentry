@@ -43,10 +43,13 @@ describe('getting started with react-native', function () {
       selectedOptions: {
         installationMode: InstallationMode.MANUAL,
       },
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
 
     // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Install SDK Package'})
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
