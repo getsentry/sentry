@@ -197,9 +197,9 @@ export function MultiQueryModeChart({
         interval,
       }),
       onAction: () => {
-        trackAnalytics('compare_queries.save_as', {
+        trackAnalytics('trace_explorer.save_as', {
           save_type: 'alert',
-          ui_source: 'chart',
+          ui_source: 'compare chart',
           organization,
         });
       },
@@ -225,9 +225,9 @@ export function MultiQueryModeChart({
         if (disableAddToDashboard) {
           return undefined;
         }
-        trackAnalytics('compare_queries.save_as', {
+        trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',
-          ui_source: 'chart',
+          ui_source: 'compare chart',
           organization,
         });
         return addToDashboard();

@@ -7,10 +7,6 @@ export type TracingEventParameters = {
   'compare_queries.add_query': {
     num_queries: number;
   };
-  'compare_queries.save_as': {
-    save_type: 'alert' | 'dashboard';
-    ui_source: 'chart';
-  };
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
@@ -134,7 +130,7 @@ export type TracingEventParameters = {
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard';
-    ui_source: 'toolbar' | 'chart';
+    ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
     error: string;
@@ -160,7 +156,6 @@ export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'compare_queries.add_query': 'Compare Queries: Add Query',
-  'compare_queries.save_as': 'Compare Queries: Save As',
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
