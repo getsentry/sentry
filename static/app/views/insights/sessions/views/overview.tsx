@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -57,22 +57,25 @@ export function SessionsOverview() {
                 </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
-            {view === MOBILE_LANDING_SUB_PATH ? (
-              <ModuleLayout.Half>
-                <CrashFreeSessionChart />
-              </ModuleLayout.Half>
-            ) : (
+            {view === MOBILE_LANDING_SUB_PATH && (
+              <Fragment>
+                <ModuleLayout.Half>
+                  <CrashFreeSessionChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Full>
+                  <FilterWrapper>
+                    <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+                  </FilterWrapper>
+                  <ReleaseAdoption filters={filters} />
+                  <ReleaseHealth filters={filters} />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+            {view === FRONTEND_LANDING_SUB_PATH && (
               <ModuleLayout.Third>
                 <ErrorFreeSessionsChart />
               </ModuleLayout.Third>
             )}
-            <ModuleLayout.Full>
-              <FilterWrapper>
-                <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
-              </FilterWrapper>
-              <ReleaseAdoption filters={filters} />
-              <ReleaseHealth filters={filters} />
-            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
