@@ -62,11 +62,11 @@ class RedisSpansBufferV2:
                 is_root_span = self._is_root_span(span)
 
                 if not is_root_span:
-                    p.sunionstore(
-                        parent_key,
-                        parent_key,
-                        span_key,
-                    )
+                    # redis-py-cluster thinks that SUNIONSTORE is not safe to
+                    # run, but we know better. we can guarantee that all
+                    # affected keys are hashed into the same slot, as they all
+                    # have the same trace and project id
+                    p.pipeline_execute_command("SUNIONSTORE", parent_key, parent_key, span_key)
                     p.delete(span_key)
                     p.zrem(queue_key, span_key)
 
