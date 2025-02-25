@@ -26,6 +26,7 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -167,6 +168,12 @@ export function PrimaryNavigationItems() {
                   label: t('Switch to old navigation'),
                   onAction() {
                     mutateUserOptions({prefersStackedNavigation: false});
+                    trackAnalytics(
+                      'navigation.help_menu_opt_out_stacked_navigation_clicked',
+                      {
+                        organization,
+                      }
+                    );
                   },
                 },
               ],

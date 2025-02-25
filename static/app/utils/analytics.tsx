@@ -13,6 +13,7 @@ import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -131,6 +132,7 @@ const allEventMap: Record<string, string | null> = {
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,
+  ...navigationAnalyticsEventMap,
 };
 
 /**
