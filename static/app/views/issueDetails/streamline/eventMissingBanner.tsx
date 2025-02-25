@@ -26,7 +26,7 @@ export function EventMissingBanner() {
   const useGetMaxRetentionDays =
     HookStore.get('react-hook:use-get-max-retention-days')[0] ??
     (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays() || MAX_PICKABLE_DAYS;
 
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
