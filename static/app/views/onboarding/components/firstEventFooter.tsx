@@ -86,7 +86,10 @@ export default function FirstEventFooter({
             organization,
             source,
           });
-          activateSidebar();
+          activateSidebar({
+            userClicked: false,
+            source: 'targeted_onboarding_first_event_footer_skip',
+          });
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >

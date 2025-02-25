@@ -57,7 +57,8 @@ const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) =>
 
 const getManualInstallSnippet = (params: Params) => {
   const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
-  return `sentry_flutter: ^${version}`;
+  return `dependencies:
+  sentry_flutter: ^${version}`;
 };
 
 const getConfigureSnippet = (params: Params) => `

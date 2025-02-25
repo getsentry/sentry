@@ -3,10 +3,10 @@ import sortBy from 'lodash/sortBy';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Input} from 'sentry/components/core/input';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import InputControl from 'sentry/components/input';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -166,7 +166,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                   const window = typeof value === 'object' ? value.window : undefined;
                   return (
                     <RateLimitRow>
-                      <InputControl
+                      <Input
                         type="number"
                         name="rateLimit.count"
                         min={0}

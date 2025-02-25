@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
-import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alertLink';
+import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alert/alertLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconMail} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/core/alertLink';
+import types from '!!type-loader!sentry/components/core/alert/alertLink';
 
 const DUMMY_LINK = '/stories';
 
