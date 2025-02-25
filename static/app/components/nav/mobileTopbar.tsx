@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -9,7 +10,10 @@ import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -32,11 +36,19 @@ function MobileTopbar() {
     setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed'));
   }, [activeGroup]);
 
+  // Avoid showing superuser UI on certain organizations
+  const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
+    organization
+  );
+  const showSuperuserWarning =
+    isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
+
   return (
     <Topbar>
       <HomeLink
         to={`/organizations/${organization.slug}/issues/`}
         aria-label={t('Sentry Home')}
+        showSuperuserWarning={showSuperuserWarning}
       >
         <IconSentry />
       </HomeLink>
@@ -97,7 +109,7 @@ function NavigationOverlayPortal({
 const Topbar = styled('header')`
   height: 40px;
   width: 100vw;
-  padding: ${space(0.5)} ${space(1.5)} ${space(0.5)} ${space(1)};
+  padding-right: ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.translucentGray100};
   background: #3e2648;
   background: linear-gradient(180deg, #3e2648 0%, #442c4e 100%);
@@ -110,18 +122,37 @@ const Topbar = styled('header')`
   z-index: ${p => p.theme.zIndex.sidebar};
 `;
 
-const HomeLink = styled(Link)`
+const HomeLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'showSuperuserWarning',
+})<{showSuperuserWarning: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 ${space(2)};
-  margin: -${space(1)};
+  height: 100%;
+  position: relative;
 
   svg {
     color: ${p => p.theme.white};
     width: ${space(3)};
     height: ${space(3)};
   }
+
+  ${p =>
+    p.showSuperuserWarning &&
+    css`
+      &:before {
+        content: '';
+        position: absolute;
+        height: 34px;
+        width: 42px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: ${p.theme.borderRadius};
+        background: ${p.theme.sidebar.superuser};
+      }
+    `}
 `;
 
 const MenuButton = styled(Button)`

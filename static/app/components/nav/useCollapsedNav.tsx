@@ -80,7 +80,16 @@ export function useCollapsedNav() {
       hoverIn();
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = (e: MouseEvent) => {
+      // Ignore mouse leave events on overlay elements like tooltips
+      if (
+        e.relatedTarget instanceof HTMLElement &&
+        (e.relatedTarget.dataset.overlay === 'true' ||
+          e.relatedTarget.closest('[data-overlay="true"]'))
+      ) {
+        return;
+      }
+
       hoverOut();
     };
 
