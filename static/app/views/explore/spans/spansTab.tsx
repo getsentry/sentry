@@ -47,6 +47,7 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {QuotaExceededAlert} from 'sentry/views/explore/spans/quotaExceededAlert';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -145,6 +146,15 @@ export function SpansTabContentImpl({
     timeseriesResult,
   });
 
+  const resultsLength =
+    {
+      aggregate: aggregatesTableResult.result.data?.length,
+      samples: spansTableResult.result.data?.length,
+      traces: tracesTableResult.result.data?.data?.length,
+    }[queryType] ?? 0;
+
+  const hasResults = !!resultsLength;
+
   return (
     <Body withToolbar={expanded}>
       <TopSection>
@@ -199,6 +209,7 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
+        {!hasResults && <QuotaExceededAlert />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
