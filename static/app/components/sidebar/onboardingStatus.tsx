@@ -113,7 +113,7 @@ export function OnboardingStatus({
   ]);
 
   useEffect(() => {
-    if (skipQuickStart || quickStartDisplayStatus > 1) {
+    if (skipQuickStart || quickStartDisplayStatus > 1 || demoMode) {
       return;
     }
 
