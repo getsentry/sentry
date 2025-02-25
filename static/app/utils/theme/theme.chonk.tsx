@@ -184,8 +184,9 @@ const lightColors = {
   },
 
   dynamic: {
-    surface400: '#FFFFFF',
-    surface300: '#FDFCFF',
+    surface500: '#FFFFFF',
+    surface400: '#FDFCFF',
+    surface300: '#F9F7FC',
     surface200: '#ECEBF0',
     surface100: '#E2E1E5',
 
@@ -261,8 +262,9 @@ const darkColors: typeof lightColors = {
   },
 
   dynamic: {
-    surface400: '#292536',
-    surface300: '#252130',
+    surface500: '#292536',
+    surface400: '#252130',
+    surface300: '#211E2B',
     surface200: '#191721',
     surface100: '#0B0A0F',
 
