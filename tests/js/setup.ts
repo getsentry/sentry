@@ -183,9 +183,6 @@ window.scrollTo = jest.fn();
 
 window.ra = {event: jest.fn()};
 
-window.__initialData = {};
-window.__languageCode = 'en';
-
 // We need to re-define `window.location`, otherwise we can't spyOn certain
 // methods as `window.location` is read-only
 Object.defineProperty(window, 'location', {
