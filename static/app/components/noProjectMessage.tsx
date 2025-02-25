@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 type Props = {
   organization: Organization;
@@ -25,9 +26,10 @@ function NoProjectMessage({
 }: Props) {
   const user = useUser();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {teams} = useUserTeams();
 
   const orgSlug = organization.slug;
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = canCreateProject(organization, teams);
   const canJoinTeam = organization.access.includes('team:read');
 
   const orgHasProjects = !!projects?.length;

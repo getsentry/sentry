@@ -35,6 +35,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
@@ -55,6 +56,7 @@ function CreateProject() {
   const location = useLocation();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
   const {teams} = useTeams();
+  const {teams: userTeams} = useUserTeams();
 
   const autoFill =
     location.query.referrer === 'getting-started' &&
@@ -276,7 +278,7 @@ function CreateProject() {
   }
 
   const {shouldCreateRule, shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = canCreateProject(organization, userTeams);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
