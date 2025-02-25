@@ -33,6 +33,7 @@ S010_msg = "S010 Except handler does nothing and should be removed"
 
 S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
 
+# SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
 S012_msg = "S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
 
 
