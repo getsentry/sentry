@@ -22,7 +22,7 @@ type AuditLogResponse = {
 };
 
 export function OrganizationFeatureFlagsAuditLogTable({
-  pageSize = 20,
+  pageSize = 15,
 }: {
   pageSize?: number;
 }) {
