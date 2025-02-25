@@ -1,7 +1,9 @@
 import type React from 'react';
 import {useState} from 'react';
 
-import FeatureBadge, {type FeatureBadgeProps} from 'sentry/components/badge/featureBadge';
+import FeatureBadge, {
+  type FeatureBadgeProps,
+} from 'sentry/components/core/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/core/badge/featureBadge';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

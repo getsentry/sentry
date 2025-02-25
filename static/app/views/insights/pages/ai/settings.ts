@@ -1,4 +1,4 @@
-import type {FeatureBadgeProps} from 'sentry/components/badge/featureBadge';
+import type {FeatureBadgeProps} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import {ModuleName} from 'sentry/views/insights/types';
 

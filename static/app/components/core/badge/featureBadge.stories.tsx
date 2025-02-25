@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import FeatureBadge from 'sentry/components/core/badge/featureBadge';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
