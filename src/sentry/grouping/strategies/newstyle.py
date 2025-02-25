@@ -781,15 +781,13 @@ def chained_exception_variant_processor(
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("crashed")], event, context, meta
-    )
+    crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
+    thread_variants = _filtered_threads(crashed_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("current")], event, context, meta
-    )
+    current_threads = [thread for thread in interface.values if thread.get("current")]
+    thread_variants = _filtered_threads(current_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -801,9 +799,10 @@ def threads(
         "app": ThreadsGroupingComponent(
             contributes=False,
             hint=(
-                "ignored because does not contain exactly one crashing, "
-                "one current or just one thread, instead contains %s threads"
-                % len(interface.values)
+                "ignored because it contains neither a single thread nor multiple threads with "
+                "exactly one crashing or current thread; instead contains %s crashing, %s current, "
+                "and %s total threads"
+                % (len(crashed_threads), len(current_threads), len(interface.values))
             ),
         )
     }
