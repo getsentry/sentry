@@ -51,16 +51,16 @@ export default function useOrganizationReleases({
     status = undefined;
   }
 
-  const stages: string[] = [];
-  if (filters.includes('Adopted')) {
-    stages.push('adopted');
-  }
-  if (filters.includes('Replaced')) {
-    stages.push('replaced');
-  }
-  if (filters.includes('Low Adoption')) {
-    stages.push('low_adoption');
-  }
+  const stageMap = {
+    Adopted: 'adopted',
+    Replaced: 'replaced',
+    'Low Adoption': 'low_adoption',
+  };
+
+  const stages = Object.entries(stageMap)
+    .filter(([filter]) => filters.includes(filter))
+    .map(([, value]) => value);
+
   const stage = stages.length
     ? `${FieldKey.RELEASE_STAGE}:[${stages.join(',')}]`
     : undefined;
