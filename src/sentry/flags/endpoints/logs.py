@@ -69,6 +69,7 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(flag__in=flags)
 
         sort = request.GET.get("sort")
+        # Support camel case since it's used by our response serializer.
         sort = camel_to_snake_case(sort) if isinstance(sort, str) else "created_at"
         if sort:
             queryset = queryset.order_by(sort)
