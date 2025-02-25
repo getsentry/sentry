@@ -118,7 +118,7 @@ def incident_attachment_info(
     incident: Incident,
     new_status: IncidentStatus,
     # WIP(iamrajjoshi): This should shouldn't be None, but it sometimes is. Working on figuring out why.
-    metric_value: float | None,
+    metric_value: float | None = None,
     notification_uuid=None,
     referrer="metric_alert",
 ) -> AttachmentInfo:
