@@ -310,7 +310,7 @@ class GroupList extends Component<Props, State> {
                   ),
                 ].map((_, i) => (
                   <GroupPlaceholder key={i}>
-                    <Placeholder height="3rem" />
+                    <Placeholder height="50px" />
                   </GroupPlaceholder>
                 ))
               : groups.map(({id, project}) => {
