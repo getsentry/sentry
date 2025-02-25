@@ -1,4 +1,5 @@
-import {css, type SerializedStyles, type useTheme} from '@emotion/react';
+import type {CSSProperties} from 'react';
+import type {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -7,35 +8,35 @@ import {unreachable} from 'sentry/utils/unreachable';
 function makeBadgeTheme(
   props: BadgeProps,
   theme: ReturnType<typeof useTheme>
-): SerializedStyles {
+): CSSProperties {
   switch (props.type) {
     case 'alpha':
-      return css`
-        background: linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300});
-        color: ${theme.white};
-      `;
+      return {
+        background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
+        color: theme.white,
+      };
     case 'beta':
-      return css`
-        background: linear-gradient(90deg, ${theme.purple300}, ${theme.pink300});
-        color: ${theme.white};
-      `;
+      return {
+        background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
+        color: theme.white,
+      };
     case 'default':
     case 'experimental':
     case 'internal':
-      return css`
-        background: ${theme.gray100};
-        color: ${theme.gray500};
-      `;
+      return {
+        background: theme.gray100,
+        color: theme.gray500,
+      };
     case 'new':
-      return css`
-        background: linear-gradient(90deg, ${theme.blue300}, ${theme.green300});
-        color: ${theme.white};
-      `;
+      return {
+        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
+        color: theme.white,
+      };
     case 'warning':
-      return css`
-        background: ${theme.yellow300};
-        color: ${theme.gray500};
-      `;
+      return {
+        background: theme.yellow300,
+        color: theme.gray500,
+      };
     default:
       unreachable(props.type);
       throw new TypeError(`Unsupported badge type: ${props.type}`);
@@ -63,7 +64,7 @@ export function Badge({children, ...props}: BadgeProps) {
 }
 
 const StyledBadge = styled('span')<BadgeProps>`
-  ${p => makeBadgeTheme(p, p.theme)}
+  ${p => ({...makeBadgeTheme(p, p.theme)})};
 
   display: inline-block;
   height: 20px;
