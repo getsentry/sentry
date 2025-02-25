@@ -507,6 +507,10 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0032_remove_data_source_query_id"),
+        (
+            "sentry",
+            "0803_delete_unused_metricskeyindexer_pt1_squashed_0834_add_index_on_authidentity_last_synced",
+        ),
     ]
 
     operations = [

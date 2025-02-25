@@ -43,9 +43,6 @@ class MigrateMetricAlertTest(TestMigrations):
     migrate_to = "0033_migrate_metric_alerts"
     app = "workflow_engine"
 
-    def setUp(self):
-        return super().setUp()
-
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @patch(

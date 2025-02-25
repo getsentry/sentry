@@ -25,7 +25,11 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0822_alert_rule_always_organization"),
+        # ("sentry", "0822_alert_rule_always_organization"),
+        (
+            "sentry",
+            "0803_delete_unused_metricskeyindexer_pt1_squashed_0834_add_index_on_authidentity_last_synced",
+        ),
         ("workflow_engine", "0025_drop_trigger_data_condition_p2"),
     ]
 
