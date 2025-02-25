@@ -44,11 +44,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     visualizationType: props.visualizationType,
     timeSeries: (props.series.filter(Boolean) ?? [])?.map(serie => {
-      const timeserie = convertSeriesToTimeseries(serie);
+      const timeSeries = convertSeriesToTimeseries(serie);
 
       return {
-        ...timeserie,
-        color: serie.color ?? COMMON_COLORS[timeserie.field],
+        ...timeSeries,
+        color: serie.color ?? COMMON_COLORS[timeSeries.field],
       };
     }),
     dataCompletenessDelay: 90,

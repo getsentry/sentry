@@ -134,8 +134,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
-    props.timeSeries.map(timeserie => {
-      return timeserie?.meta?.fields?.[timeserie.field];
+    props.timeSeries.map(timeSeries => {
+      return timeSeries?.meta?.fields?.[timeSeries.field];
     })
   ).filter(Boolean) as AggregationOutputType[];
 
@@ -150,8 +150,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
 
   const units = uniq(
-    props.timeSeries.map(timeserie => {
-      return timeserie?.meta?.units?.[timeserie.field];
+    props.timeSeries.map(timeSeries => {
+      return timeSeries?.meta?.units?.[timeSeries.field];
     })
   ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
 
@@ -167,8 +167,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   // Apply unit scaling to all series
-  const scaledSeries = props.timeSeries.map(timeserie => {
-    return scaleTimeSeriesData(timeserie, yAxisUnit);
+  const scaledSeries = props.timeSeries.map(timeSeries => {
+    return scaleTimeSeriesData(timeSeries, yAxisUnit);
   });
 
   // Construct plottable items
@@ -261,12 +261,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeserie = scaledSeries.find(t => t.field === field);
+        const timeSeries = scaledSeries.find(t => t.field === field);
 
         return formatTooltipValue(
           value,
-          timeserie?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeserie?.meta?.units?.[field] ?? undefined
+          timeSeries?.meta?.fields?.[field] ?? FALLBACK_TYPE,
+          timeSeries?.meta?.units?.[field] ?? undefined
         );
       },
       nameFormatter: seriesName => {
