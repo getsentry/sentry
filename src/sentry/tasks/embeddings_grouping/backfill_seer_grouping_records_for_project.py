@@ -112,6 +112,7 @@ def backfill_seer_grouping_records_for_project(
                 "project_id": current_project_id,
                 "last_processed_group_id": last_processed_group_id,
                 "worker_number": worker_number,
+                "project_index_in_cohort": current_project_index_in_cohort,
             },
         )
         return
@@ -133,7 +134,11 @@ def backfill_seer_grouping_records_for_project(
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
-            extra={"project_id": current_project_id, "worker_number": worker_number},
+            extra={
+                "project_id": current_project_id,
+                "worker_number": worker_number,
+                "project_index_in_cohort": current_project_index_in_cohort,
+            },
         )
         call_next_backfill(
             project_id=current_project_id,
@@ -161,6 +166,7 @@ def backfill_seer_grouping_records_for_project(
                 "project_already_processed": is_project_processed,
                 "project_manually_skipped": is_project_skipped,
                 "worker_number": worker_number,
+                "project_index_in_cohort": current_project_index_in_cohort,
             },
         )
 
@@ -179,7 +185,11 @@ def backfill_seer_grouping_records_for_project(
         if not is_project_seer_eligible:
             logger.info(
                 "backfill_seer_grouping_records.project_is_not_seer_eligible",
-                extra={"project_id": project.id, "worker_number": worker_number},
+                extra={
+                    "project_id": project.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": current_project_index_in_cohort,
+                },
             )
 
     if is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible:

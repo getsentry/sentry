@@ -87,6 +87,7 @@ def filter_snuba_results(
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
         return [], []
@@ -111,6 +112,7 @@ def filter_snuba_results(
                     "project_id": project.id,
                     "group_id": group_id,
                     "worker_number": worker_number,
+                    "project_index_in_cohort": project_index_in_cohort,
                 },
             )
     return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
@@ -215,18 +217,27 @@ def get_current_batch_groups_from_postgres(
             "batch_len": len(groups_to_backfill_batch),
             "last_processed_group_id": batch_end_group_id,
             "worker_number": worker_number,
+            "project_index_in_cohort": project_index_in_cohort,
         },
     )
 
     if backfill_batch_raw_length == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
-            extra={"project_id": project.id, "worker_number": worker_number},
+            extra={
+                "project_id": project.id,
+                "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
+            },
         )
         if enable_ingestion:
             logger.info(
                 "backfill_seer_grouping_records.enable_ingestion",
-                extra={"project_id": project.id, "worker_number": worker_number},
+                extra={
+                    "project_id": project.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": project_index_in_cohort,
+                },
             )
             project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
@@ -247,6 +258,7 @@ def get_current_batch_groups_from_postgres(
                     len(groups_to_backfill_batch) - len(groups_to_backfill_with_no_embedding)
                 ),
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
     return (
@@ -366,6 +378,7 @@ def get_events_from_nodestore(
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
         return (
@@ -420,6 +433,7 @@ def get_events_from_nodestore(
                 "project_id": project.id,
                 "invalid_group_ids": invalid_event_group_ids,
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
 
@@ -579,6 +593,7 @@ def update_groups(
                         "group_id": group.id,
                         "parent_hash": parent_hash,
                         "worker_number": worker_number,
+                        "project_index_in_cohort": project_index_in_cohort,
                     },
                 )
                 seer_similarity = {}
@@ -596,6 +611,7 @@ def update_groups(
             "project_id": project.id,
             "num_updated": num_updated,
             "worker_number": worker_number,
+            "project_index_in_cohort": project_index_in_cohort,
         },
     )
 
