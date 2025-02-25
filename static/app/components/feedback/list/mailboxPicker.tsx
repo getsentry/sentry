@@ -45,7 +45,7 @@ export default function MailboxPicker({onChange, value}: Props) {
               <Tooltip disabled={!count} title={title}>
                 <Flex align="center">
                   {c.label}
-                  {display ? <Badge type="gray">{display}</Badge> : null}
+                  {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>
               </Tooltip>
             </SegmentedControl.Item>

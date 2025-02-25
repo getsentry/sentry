@@ -47,18 +47,22 @@ export type BadgeType =
   | 'beta'
   | 'new'
   | 'warning'
-  // @TODO(jonasbadalic) "default" is bad API decision
+  // @TODO(jonasbadalic) "default" is bad API decision.
+  // @TODO(jonasbadalic) default, experimental and internal all look the same...
   | 'experimental'
   | 'internal'
   | 'default';
 
-export interface BadgeProps
-  extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
   type: BadgeType;
 }
 
-export const Badge = styled('span')<BadgeProps>`
+export function Badge({children, ...props}: BadgeProps) {
+  return <StyledBadge {...props}>{children}</StyledBadge>;
+}
+
+const StyledBadge = styled('span')<BadgeProps>`
   ${p => makeBadgeTheme(p, p.theme)}
 
   display: inline-block;
