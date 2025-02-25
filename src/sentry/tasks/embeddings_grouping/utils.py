@@ -527,7 +527,12 @@ def send_group_and_stacktrace_to_seer_multithreaded(
 
 @sentry_sdk.tracing.trace
 def update_groups(
-    project, seer_response, group_id_batch_filtered, group_hashes_dict, worker_number
+    project,
+    seer_response,
+    group_id_batch_filtered,
+    group_hashes_dict,
+    worker_number,
+    project_index_in_cohort,
 ):
     groups_with_neighbor = seer_response["groups_with_neighbor"]
     groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)

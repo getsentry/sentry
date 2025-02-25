@@ -326,6 +326,7 @@ def backfill_seer_grouping_records_for_project(
             groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             group_hashes_dict,
             worker_number,
+            current_project_index_in_cohort,
         )
 
     call_next_backfill(
