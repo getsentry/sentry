@@ -273,42 +273,29 @@ def recording_post_processor(
     try:
         segment, replay_event = parse_segment_and_replay_data(segment_bytes, replay_event_bytes)
 
-        # Conditionally use the new separated event parsing and logging logic. This way we can
-        # feature flag access and fix any issues we find.
-        if message.org_id in options.get("replay.consumer.separate-compute-and-io-org-ids"):
-            event_meta = parse_events(segment)
-            project = Project.objects.get_from_cache(id=message.project_id)
-            emit_replay_events(
-                event_meta,
-                message.org_id,
-                project,
-                message.replay_id,
-                replay_event,
-            )
-        else:
-            actions_event = try_get_replay_actions(message, segment, replay_event)
-            if actions_event:
-                emit_replay_actions(actions_event)
+        actions_event = try_get_replay_actions(message, segment, replay_event)
+        if actions_event:
+            emit_replay_actions(actions_event)
 
-            # Log canvas mutations to bigquery.
-            log_canvas_size_old(
-                message.org_id,
-                message.project_id,
-                message.replay_id,
-                segment,
-            )
+        # Log canvas mutations to bigquery.
+        log_canvas_size_old(
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            segment,
+        )
 
-            # Log # of rrweb events to bigquery.
-            logger.info(
-                "sentry.replays.slow_click",
-                extra={
-                    "event_type": "rrweb_event_count",
-                    "org_id": message.org_id,
-                    "project_id": message.project_id,
-                    "replay_id": message.replay_id,
-                    "size": len(segment),
-                },
-            )
+        # Log # of rrweb events to bigquery.
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "rrweb_event_count",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(segment),
+            },
+        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
