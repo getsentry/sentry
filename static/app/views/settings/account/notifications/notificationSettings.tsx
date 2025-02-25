@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import {AlertLink} from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';

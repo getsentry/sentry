@@ -6,7 +6,7 @@ import type {RequestOptions} from 'sentry/api';
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {AlertLink} from 'sentry/components/core/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
