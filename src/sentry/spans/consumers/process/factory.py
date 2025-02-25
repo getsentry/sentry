@@ -412,4 +412,6 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
 
         segment_messages.append(value)
 
+    # TODO: call done_flush_segments after commit
+
     return segment_messages
