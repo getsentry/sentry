@@ -19,19 +19,13 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 
 const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   ${p => makeChonkAlertTheme(p.type, p.theme)}
+  display: grid;
+  grid-template-columns: ${p => getAlertGridLayout(p)};
 
   border-width: ${p => (p.system ? '0px 0px 2px 0px' : '2px')};
   border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
 
   cursor: ${p => (p.expand ? 'pointer' : 'default')};
-
-  display: grid;
-  grid-template-columns:
-    ${p => (p.showIcon ? `minmax(0, max-content)` : '0fr')}
-    minmax(0, 1fr)
-    ${p => (p.trailingItems ? `max-content` : '0fr')}
-    ${p => (p.expand ? `max-content` : '0fr')};
-
   gap: ${p => p.theme.space.md};
 
   a,
@@ -95,6 +89,16 @@ function makeChonkAlertTheme(
   }
 
   throw new TypeError(`Invalid alert type, got ${type}`);
+}
+
+function getAlertGridLayout(p: ChonkAlertProps) {
+  if (p.showIcon) {
+    return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
+      p.expand ? 'min-content' : ''
+    };`;
+  }
+
+  return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''};`;
 }
 
 export {AlertPanel, chonkAlertPropMapping};

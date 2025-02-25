@@ -88,11 +88,13 @@ const ExternalLinkWithTextDecoration = styled(ExternalLink)<{
   type: AlertProps['type'];
 }>`
   display: block;
+  cursor: pointer;
   ${p => textDecorationStyles({type: p.type, theme: p.theme})}
 `;
 
 const LinkWithTextDecoration = styled(Link)<{type: AlertProps['type']}>`
   display: block;
+  cursor: pointer;
   ${p => textDecorationStyles({type: p.type, theme: p.theme})}
 `;
 
