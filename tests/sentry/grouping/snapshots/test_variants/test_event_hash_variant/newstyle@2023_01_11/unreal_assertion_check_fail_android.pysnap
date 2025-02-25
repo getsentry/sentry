@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T14:49:13.899192+00:00'
+created: '2025-02-25T18:23:34.705180+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "__start_thread"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
@@ -75,7 +75,7 @@ app:
             function*
               "TMulticastDelegateBase<T>::Broadcast<T>"
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "tgkill"
         type (ignored because exception is synthetic)
@@ -155,7 +155,7 @@ system:
             function*
               "TMulticastDelegateBase<T>::Broadcast<T>"
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
-          frame* (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "tgkill"
         type (ignored because exception is synthetic)
