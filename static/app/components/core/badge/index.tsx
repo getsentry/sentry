@@ -3,7 +3,10 @@ import type {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
+
+import * as ChonkBadge from './index.chonk';
 
 function makeBadgeTheme(
   props: BadgeProps,
@@ -20,6 +23,7 @@ function makeBadgeTheme(
         background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
         color: theme.white,
       };
+    // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
     case 'default':
     case 'experimental':
     case 'internal':
@@ -60,7 +64,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export function Badge({children, ...props}: BadgeProps) {
-  return <StyledBadge {...props}>{children}</StyledBadge>;
+  return <BadgeComponent {...props}>{children}</BadgeComponent>;
 }
 
 const StyledBadge = styled('span')<BadgeProps>`
@@ -83,3 +87,9 @@ const StyledBadge = styled('span')<BadgeProps>`
   margin-left: ${space(0.5)};
   position: relative;
 `;
+
+const BadgeComponent = withChonk(
+  StyledBadge,
+  ChonkBadge.ChonkBadge,
+  ChonkBadge.chonkBadgePropMapping
+);

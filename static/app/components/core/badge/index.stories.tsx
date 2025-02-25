@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 
 import {Badge} from 'sentry/components/core/badge';
 import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-
-import JSXProperty from '../../stories/jsxProperty';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge';
@@ -26,7 +25,6 @@ export default storyBook('Badge', (story, APIReference) => {
           <Badge type="beta">Beta</Badge>
           <Badge type="new">New</Badge>
           <Badge type="experimental">Experimental</Badge>
-          <Badge type="internal">Internal</Badge>
           <Badge type="default">Default</Badge>
           <Badge type="warning">Warning</Badge>
         </SideBySide>

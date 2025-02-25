@@ -139,17 +139,15 @@ const space = {
   xl: '16px',
 } as const;
 
-//   borderRadius: {
-//     // @TODO(jonasbadalic): none doesn't need to exist
-//     // none: 0,
-//     nano: 1,
-//     micro: 2,
-//     mini: 3,
-//     small: 4,
-//     medium: 5,
-//     large: 6,
-//   },
-// };
+const radius = {
+  nano: '1px',
+  micro: '2px',
+  mini: '3px',
+  sm: '4px',
+  md: '5px',
+  lg: '6px',
+  // @TODO(jonasbadalic): do we need an xl?
+} as const;
 
 const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
@@ -721,6 +719,7 @@ const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors)
 interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
   colors: typeof lightColors;
   isChonk: true;
+  radius: typeof radius;
   space: typeof space;
 }
 
@@ -739,7 +738,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   space,
-
+  radius,
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
   alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
@@ -800,7 +799,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   colors: darkColors,
 
   space,
-
+  radius,
   sidebar: {
     // @TODO: these colors need to be ported
     ...darkTheme.sidebar,

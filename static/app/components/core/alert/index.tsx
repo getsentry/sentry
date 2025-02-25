@@ -232,7 +232,7 @@ ${p =>
 
 const AlertContainer = withChonk(
   AlertPanel,
-  ChonkAlert.AlertPanel,
+  ChonkAlert.ChonkAlertPanel,
   ChonkAlert.chonkAlertPropMapping
 );
 
