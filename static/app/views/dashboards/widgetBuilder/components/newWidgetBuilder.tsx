@@ -1,4 +1,12 @@
-import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
+import {
+  type CSSProperties,
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {createPortal} from 'react-dom';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,6 +14,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
+import {useNavContext} from 'sentry/components/nav/context';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -67,6 +76,18 @@ type WidgetBuilderV2Props = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
+const getSidebarPortal = () => {
+  let portal = document.getElementsByTagName('main')[0];
+
+  if (!portal) {
+    portal = document.createElement('div');
+    portal.setAttribute('id', 'sidebar-flyout-portal');
+    document.body.appendChild(portal);
+  }
+
+  return portal as HTMLDivElement;
+};
+
 function WidgetBuilderV2({
   isOpen,
   onClose,
@@ -85,10 +106,31 @@ function WidgetBuilderV2({
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   const [translate, setTranslate] = useState<WidgetDragPositioning>(
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
+
+  const {navParentRef, layout, isCollapsed} = useNavContext();
+  const [sidebarDimensions, setSidebarDimensions] = useState<{
+    height: number;
+    width: number;
+  }>({
+    width: 0,
+    height: 0,
+  });
+
+  useEffect(() => {
+    if (navParentRef.current) {
+      setSidebarDimensions({
+        width: navParentRef.current.clientWidth,
+        height: navParentRef.current.clientHeight,
+      });
+    }
+  }, [navParentRef, layout, isCollapsed]);
+
+  const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -134,62 +176,83 @@ function WidgetBuilderV2({
 
   return (
     <Fragment>
-      {isOpen && <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />}
-      <AnimatePresence>
-        {isOpen && (
-          <WidgetBuilderProvider>
-            <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <SpanTagsProvider
-                dataset={DiscoverDatasets.SPANS_EAP}
-                enabled={organization.features.includes('dashboards-eap')}
-              >
-                <ContainerWithoutSidebar sidebarCollapsed={sidebarCollapsed}>
-                  <WidgetBuilderContainer>
-                    <SlideoutContainer>
-                      <WidgetBuilderSlideout
-                        isOpen={isOpen}
-                        onClose={() => {
-                          onClose();
-                          setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                        }}
-                        onSave={onSave}
-                        onQueryConditionChange={setQueryConditionsValid}
-                        dashboard={dashboard}
-                        dashboardFilters={dashboardFilters}
-                        setIsPreviewDraggable={setIsPreviewDraggable}
-                        isWidgetInvalid={!queryConditionsValid}
-                        openWidgetTemplates={openWidgetTemplates}
-                        setOpenWidgetTemplates={setOpenWidgetTemplates}
-                        onDataFetched={handleWidgetDataFetched}
-                        thresholdMetaState={thresholdMetaState}
-                      />
-                    </SlideoutContainer>
-                    {(!isSmallScreen || isPreviewDraggable) && (
-                      <DndContext
-                        onDragEnd={handleDragEnd}
-                        onDragMove={handleDragMove}
-                        collisionDetection={closestCorners}
+      {isOpen &&
+        createPortal(
+          <Fragment>
+            <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
+            <AnimatePresence>
+              {isOpen && (
+                <WidgetBuilderProvider>
+                  <CustomMeasurementsProvider
+                    organization={organization}
+                    selection={selection}
+                  >
+                    <SpanTagsProvider
+                      dataset={DiscoverDatasets.SPANS_EAP}
+                      enabled={organization.features.includes('dashboards-eap')}
+                    >
+                      <ContainerWithoutSidebar
+                        sidebarCollapsed={sidebarCollapsed}
+                        style={
+                          hasNewNav
+                            ? isMediumScreen
+                              ? {
+                                  left: 0,
+                                  top: `${sidebarDimensions.height}px`,
+                                }
+                              : {left: `${sidebarDimensions.width}px`, top: 0}
+                            : {}
+                        }
                       >
-                        <SurroundingWidgetContainer>
-                          <WidgetPreviewContainer
-                            dashboardFilters={dashboardFilters}
-                            dashboard={dashboard}
-                            dragPosition={translate}
-                            isDraggable={isPreviewDraggable}
-                            isWidgetInvalid={!queryConditionsValid}
-                            onDataFetched={handleWidgetDataFetched}
-                            openWidgetTemplates={openWidgetTemplates}
-                          />
-                        </SurroundingWidgetContainer>
-                      </DndContext>
-                    )}
-                  </WidgetBuilderContainer>
-                </ContainerWithoutSidebar>
-              </SpanTagsProvider>
-            </CustomMeasurementsProvider>
-          </WidgetBuilderProvider>
+                        <WidgetBuilderContainer>
+                          <SlideoutContainer>
+                            <WidgetBuilderSlideout
+                              isOpen={isOpen}
+                              onClose={() => {
+                                onClose();
+                                setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                              }}
+                              onSave={onSave}
+                              onQueryConditionChange={setQueryConditionsValid}
+                              dashboard={dashboard}
+                              dashboardFilters={dashboardFilters}
+                              setIsPreviewDraggable={setIsPreviewDraggable}
+                              isWidgetInvalid={!queryConditionsValid}
+                              openWidgetTemplates={openWidgetTemplates}
+                              setOpenWidgetTemplates={setOpenWidgetTemplates}
+                              onDataFetched={handleWidgetDataFetched}
+                              thresholdMetaState={thresholdMetaState}
+                            />
+                          </SlideoutContainer>
+                          {(!isSmallScreen || isPreviewDraggable) && (
+                            <DndContext
+                              onDragEnd={handleDragEnd}
+                              onDragMove={handleDragMove}
+                              collisionDetection={closestCorners}
+                            >
+                              <SurroundingWidgetContainer>
+                                <WidgetPreviewContainer
+                                  dashboardFilters={dashboardFilters}
+                                  dashboard={dashboard}
+                                  dragPosition={translate}
+                                  isDraggable={isPreviewDraggable}
+                                  isWidgetInvalid={!queryConditionsValid}
+                                  onDataFetched={handleWidgetDataFetched}
+                                  openWidgetTemplates={openWidgetTemplates}
+                                />
+                              </SurroundingWidgetContainer>
+                            </DndContext>
+                          )}
+                        </WidgetBuilderContainer>
+                      </ContainerWithoutSidebar>
+                    </SpanTagsProvider>
+                  </CustomMeasurementsProvider>
+                </WidgetBuilderProvider>
+              )}
+            </AnimatePresence>
+          </Fragment>,
+          portalEl.current
         )}
-      </AnimatePresence>
     </Fragment>
   );
 }
@@ -371,7 +434,7 @@ function Droppable({id}: {id: string}) {
 }
 
 const fullPageCss = css`
-  position: fixed;
+  position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
@@ -425,7 +488,9 @@ const DraggableWidgetContainer = styled(`div`)`
   }
 `;
 
-const ContainerWithoutSidebar = styled('div')<{sidebarCollapsed: boolean}>`
+const ContainerWithoutSidebar = styled('div')<{
+  sidebarCollapsed: boolean;
+}>`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   position: fixed;
   top: 0;
