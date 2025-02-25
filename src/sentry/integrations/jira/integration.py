@@ -1005,7 +1005,9 @@ class JiraIntegration(IssueSyncIntegration):
                 },
             )
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """

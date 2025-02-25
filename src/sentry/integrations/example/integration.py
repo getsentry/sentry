@@ -159,7 +159,9 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     ) -> None:
         pass
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         pass
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
