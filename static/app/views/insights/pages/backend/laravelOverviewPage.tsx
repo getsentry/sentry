@@ -31,7 +31,6 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -737,11 +736,11 @@ function RoutesTable({query}: {query?: string}) {
             <Cell>{transaction.path}</Cell>
             <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
             <Cell data-color={errorRateColor}>
-              {formatPercentage(transaction.errorRate)}
+              {(transaction.errorRate * 100).toFixed(2)}%
             </Cell>
-            <Cell>{getDuration(transaction.avg / 1000, 0, true, true)}</Cell>
+            <Cell>{getDuration(transaction.avg / 1000, 2, true, true)}</Cell>
             <Cell data-color={p95Color}>
-              {getDuration(transaction.p95 / 1000, 0, true, true)}
+              {getDuration(transaction.p95 / 1000, 2, true, true)}
             </Cell>
             <Cell>–––</Cell>
           </Fragment>
