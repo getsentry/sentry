@@ -363,7 +363,7 @@ def call_next_backfill(
             return
 
         # call the backfill on next project
-        next_project_id, last_processed_project_index = get_next_project_from_cohort(
+        next_project_id, next_project_index_in_cohort = get_next_project_from_cohort(
             last_processed_project_index, cohort
         )
 
@@ -372,7 +372,7 @@ def call_next_backfill(
                 "backfill_seer_grouping_records.project_list_backfill_finished",
                 extra={
                     "cohort": cohort,
-                    "last_processed_project_index": last_processed_project_index,
+                    "last_processed_project_index": next_project_index_in_cohort,
                 },
             )
             # we're at the end of the project list
@@ -393,7 +393,7 @@ def call_next_backfill(
                 next_project_id,
                 None,
                 cohort,
-                last_processed_project_index,
+                next_project_index_in_cohort,
                 only_delete,
                 enable_ingestion,
                 skip_processed_projects,
