@@ -100,7 +100,6 @@ function OTelSummaryContentInner({
   onChangeFilter,
 }: Props) {
   const navigate = useNavigate();
-  const mepDataContext = useMEPDataContext();
   const domainViewFilters = useDomainViewFilters();
 
   const handleSearch = useCallback(
@@ -138,14 +137,6 @@ function OTelSummaryContentInner({
 
     navigate(target);
   }
-
-  const trailingItems = useMemo(() => {
-    if (!canUseTransactionMetricsData(organization, mepDataContext)) {
-      return <MetricsWarningIcon />;
-    }
-
-    return null;
-  }, [organization, mepDataContext]);
 
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
@@ -246,7 +237,6 @@ function OTelSummaryContentInner({
         searchSource="transaction_summary"
         disableLoadingTags // already loaded by the parent component
         filterKeyMenuWidth={420}
-        trailingItems={trailingItems}
       />
     );
   }
