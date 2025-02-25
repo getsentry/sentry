@@ -10,8 +10,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const PAGE_SIZE = 20;
-
 type AuditLog = {
   action: string;
   createdAt: string;
@@ -23,7 +21,11 @@ type AuditLogResponse = {
   data: AuditLog[];
 };
 
-export function OrganizationFeatureFlagsAuditLogTable() {
+export function OrganizationFeatureFlagsAuditLogTable({
+  pageSize = 20,
+}: {
+  pageSize?: number;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
@@ -44,10 +46,10 @@ export function OrganizationFeatureFlagsAuditLogTable() {
     );
     return {
       ...filteredFields,
-      per_page: PAGE_SIZE,
+      per_page: pageSize,
       queryReferrer: 'featureFlagsSettings',
     };
-  }, [_query]);
+  }, [_query, pageSize]);
 
   const {
     data: responseData,
@@ -72,7 +74,7 @@ export function OrganizationFeatureFlagsAuditLogTable() {
     return (
       responseData?.data?.map(log => ({
         ...log,
-        provider: log.provider ?? 'unknown', // TODO: camel case?
+        provider: log.provider ?? 'unknown',
         createdAt: new Date(log.createdAt).toLocaleString(),
       })) ?? []
     );
@@ -93,7 +95,7 @@ export function OrganizationFeatureFlagsAuditLogTable() {
           {key: 'createdAt', name: t('Created')},
         ]}
         columnSortBy={[]}
-        grid={{}} // renderHeadCell, renderBodyCell
+        scrollable={false}
         onRowMouseOver={(_dataRow, key) => {
           setActiveRowKey(key);
         }}
@@ -101,8 +103,8 @@ export function OrganizationFeatureFlagsAuditLogTable() {
           setActiveRowKey(undefined);
         }}
         highlightedRowKey={activeRowKey}
+        grid={{}}
       />
-      {/* TODO: filter by flag/provider on row click (needs to reset cursor) */}
 
       <Pagination
         pageLinks={pageLinks}
