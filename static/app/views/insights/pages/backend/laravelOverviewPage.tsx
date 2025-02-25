@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -23,11 +23,14 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -188,10 +191,7 @@ export function LaravelOverviewPage() {
                       />
                     </CachesContainer>
                   </WidgetGrid>
-                  <PanelTable
-                    headers={['Method', 'Route', 'Throughput', 'AVG', 'P95']}
-                    isEmpty
-                  />
+                  <RoutesTable query={derivedQuery} />
                 </PerformanceDisplayProvider>
               )}
               {showOnboarding && (
@@ -637,3 +637,131 @@ function JobsWidget({query}: {query?: string}) {
     />
   );
 }
+
+interface DiscoverQueryResponse {
+  data: Array<{
+    'avg(transaction.duration)': number;
+    'count()': number;
+    'failure_rate()': number;
+    'http.method': string;
+    'p95()': number;
+    transaction: string;
+  }>;
+}
+
+const errorRateColorThreshold = {
+  danger: 0.1,
+  warning: 0.05,
+} as const;
+
+const getP95Threshold = (avg: number) => {
+  return {
+    danger: avg * 3,
+    warning: avg * 2,
+  };
+};
+
+const getCellColor = (value: number, thresholds: Record<string, number>) => {
+  return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
+};
+
+function RoutesTable({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+
+  const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'metrics',
+          field: [
+            'http.method',
+            'transaction',
+            'avg(transaction.duration)',
+            'p95()',
+            'failure_rate()',
+            'count()',
+          ],
+          query: `(transaction.op:http.server) event.type:transaction ${query}`,
+          referrer: 'api.performance.landing-table',
+          orderby: '-count()',
+          per_page: 10,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const tableData = useMemo(() => {
+    return transactionsRequest.data?.data.map(transaction => ({
+      method: transaction['http.method'],
+      path: transaction.transaction,
+      requests: transaction['count()'],
+      avg: transaction['avg(transaction.duration)'],
+      p95: transaction['p95()'],
+      errorRate: transaction['failure_rate()'],
+    }));
+  }, [transactionsRequest.data]);
+
+  return (
+    <PanelTable
+      headers={[
+        'Method',
+        'Path',
+        <Cell key="requests">
+          <IconArrow direction="down" />
+          Requests
+        </Cell>,
+        'Error Rate',
+        'AVG',
+        'P95',
+        'Users',
+      ]}
+      isLoading={transactionsRequest.isLoading}
+      isEmpty={!tableData || tableData.length === 0}
+    >
+      {tableData?.map(transaction => {
+        const p95Color = getCellColor(transaction.p95, getP95Threshold(transaction.avg));
+
+        const errorRateColor = getCellColor(
+          transaction.errorRate,
+          errorRateColorThreshold
+        );
+
+        return (
+          <Fragment key={transaction.method + transaction.path}>
+            <Cell>{transaction.method}</Cell>
+            <Cell>{transaction.path}</Cell>
+            <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
+            <Cell data-color={errorRateColor}>
+              {(transaction.errorRate * 100).toFixed(2)}%
+            </Cell>
+            <Cell>{getDuration(transaction.avg / 1000, 2, true, true)}</Cell>
+            <Cell data-color={p95Color}>
+              {getDuration(transaction.p95 / 1000, 2, true, true)}
+            </Cell>
+            <Cell>–––</Cell>
+          </Fragment>
+        );
+      })}
+    </PanelTable>
+  );
+}
+
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  overflow: hidden;
+  white-space: nowrap;
+
+  &[data-color='danger'] {
+    color: ${p => p.theme.red400};
+  }
+
+  &[data-color='warning'] {
+    color: ${p => p.theme.yellow400};
+  }
+`;
