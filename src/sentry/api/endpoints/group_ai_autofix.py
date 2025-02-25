@@ -369,12 +369,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
 
-        if not repos:
-            return self._respond_with_error(
-                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
-                400,
-            )
-
         # find best profile for this event
         try:
             profile = self._get_profile_for_event(event, group.project) if event else None
