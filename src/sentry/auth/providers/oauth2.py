@@ -105,7 +105,7 @@ class OAuth2Callback(AuthView):
     def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
-        code = request.GET.get("code")
+        code = request.GET["code"]
 
         if error:
             return helper.error(error)

@@ -130,7 +130,7 @@ export type TracingEventParameters = {
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard';
-    ui_source: 'toolbar' | 'chart';
+    ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
     error: string;
