@@ -1,0 +1,213 @@
+{
+  "platform": "cocoa",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BAD_ACCESS",
+        "value": "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at 0x3.",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "symbol": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "data": {
+                "category": "threadbase"
+              }
+            },
+            {
+              "function": "__NSThread__start__",
+              "symbol": "__NSThread__start__",
+              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+              "data": {
+                "orig_in_app": 0,
+                "category": "internals"
+              }
+            },
+            {
+              "function": "-[FCocoaGameThread main]",
+              "symbol": "-[FCocoaGameThread main]",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "-[UEAppDelegate runGameThread:]",
+              "symbol": "-[UEAppDelegate runGameThread:]",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "GuardedMain",
+              "raw_function": "GuardedMain(char16_t const*)",
+              "symbol": "_Z11GuardedMainPKDs",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FEngineLoop::Tick",
+              "raw_function": "FEngineLoop::Tick()",
+              "symbol": "_ZN11FEngineLoop4TickEv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FSlateApplication::Tick",
+              "raw_function": "FSlateApplication::Tick(ESlateTickType)",
+              "symbol": "_ZN17FSlateApplication4TickE14ESlateTickType",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FSlateApplication::TickPlatform",
+              "raw_function": "FSlateApplication::TickPlatform(float)",
+              "symbol": "_ZN17FSlateApplication12TickPlatformEf",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FMacApplication::ProcessDeferredEvents",
+              "raw_function": "FMacApplication::ProcessDeferredEvents(float)",
+              "symbol": "_ZN15FMacApplication21ProcessDeferredEventsEf",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FMacApplication::ProcessEvent",
+              "raw_function": "FMacApplication::ProcessEvent(FDeferredMacEvent const&)",
+              "symbol": "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FMacApplication::ProcessMouseUpEvent",
+              "raw_function": "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)",
+              "symbol": "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FSlateApplication::OnMouseUp",
+              "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
+              "symbol": "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FSlateApplication::ProcessMouseButtonUpEvent",
+              "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
+              "symbol": "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FSlateApplication::RoutePointerUpEvent",
+              "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
+              "symbol": "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "SButton::OnMouseButtonUp",
+              "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
+              "symbol": "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "SButton::ExecuteOnClick",
+              "raw_function": "SButton::ExecuteOnClick()",
+              "symbol": "_ZN7SButton14ExecuteOnClickEv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "UButton::SlateHandleClicked",
+              "raw_function": "UButton::SlateHandleClicked()",
+              "symbol": "_ZN7UButton18SlateHandleClickedEv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>",
+              "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
+              "symbol": "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "UObject::ProcessEvent",
+              "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
+              "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "UFunction::Invoke",
+              "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
+              "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "ProcessLocalScriptFunction",
+              "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
+              "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "ProcessLocalFunction",
+              "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)",
+              "symbol": "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "ProcessLocalFunction::lambda::operator()",
+              "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const",
+              "symbol": "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "category": "indirection"
+              }
+            },
+            {
+              "function": "ProcessScriptFunction<T>",
+              "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))",
+              "symbol": "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "ProcessLocalScriptFunction",
+              "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
+              "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "UObject::execCallMathFunction",
+              "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void*)",
+              "symbol": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "USentryPlaygroundUtils::execTerminate",
+              "raw_function": "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void*)",
+              "symbol": "_ZN22USentryPlaygroundUtils13execTerminateEP7UObjectR6FFramePv",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "USentryPlaygroundUtils::Terminate",
+              "raw_function": "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)",
+              "symbol": "_ZN22USentryPlaygroundUtils9TerminateE25ESentryAppTerminationType",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FDebug::CheckVerifyFailedImpl2",
+              "raw_function": "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, char16_t const*, ...)",
+              "symbol": "_ZN6FDebug22CheckVerifyFailedImpl2EPKcS1_iPKDsz",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FOutputDevice::LogfImpl",
+              "raw_function": "FOutputDevice::LogfImpl(char16_t const*, ...)",
+              "symbol": "_ZN13FOutputDevice8LogfImplEPKDsz",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FSentryOutputDeviceError::Serialize",
+              "raw_function": "FSentryOutputDeviceError::Serialize(char16_t const*, ELogVerbosity::Type, FName const&)",
+              "symbol": "_ZN24FSentryOutputDeviceError9SerializeEPKDsN13ELogVerbosity4TypeERK5FName",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            },
+            {
+              "function": "FGenericPlatformMisc::RaiseException",
+              "raw_function": "FGenericPlatformMisc::RaiseException(unsigned int)",
+              "symbol": "_ZN20FGenericPlatformMisc14RaiseExceptionEj",
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

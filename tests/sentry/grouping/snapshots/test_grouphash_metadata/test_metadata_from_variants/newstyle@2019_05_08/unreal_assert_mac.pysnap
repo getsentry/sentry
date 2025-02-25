@@ -1,0 +1,229 @@
+---
+created: '2025-02-25T14:45:37.895921+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "98b5b62f6febdfefd496f0e0cf6a27b2"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "-[FCocoaGameThread main]"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "-[UEAppDelegate runGameThread:]"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "GuardedMain"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FEngineLoop::Tick"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::Tick"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::TickPlatform"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FMacApplication::ProcessDeferredEvents"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FMacApplication::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FMacApplication::ProcessMouseUpEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "SButton::OnMouseButtonUp"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "SButton::ExecuteOnClick"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UButton::SlateHandleClicked"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UObject::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UFunction::Invoke"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalFunction::lambda::operator()"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessScriptFunction<T>"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UObject::execCallMathFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "USentryPlaygroundUtils::execTerminate"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "USentryPlaygroundUtils::Terminate"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FDebug::CheckVerifyFailedImpl2"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FOutputDevice::LogfImpl"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSentryOutputDeviceError::Serialize"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FGenericPlatformMisc::RaiseException"
+          type*
+            "EXC_BAD_ACCESS"
+  system*
+    hash: "3bd89b9ce2c91607b00a855e98327939"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "_pthread_start"
+            frame*
+              function*
+                "__NSThread__start__"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "-[FCocoaGameThread main]"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "-[UEAppDelegate runGameThread:]"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "GuardedMain"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FEngineLoop::Tick"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::Tick"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::TickPlatform"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FMacApplication::ProcessDeferredEvents"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FMacApplication::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FMacApplication::ProcessMouseUpEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "SButton::OnMouseButtonUp"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "SButton::ExecuteOnClick"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UButton::SlateHandleClicked"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UObject::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UFunction::Invoke"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalFunction::lambda::operator()"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessScriptFunction<T>"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UObject::execCallMathFunction"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "USentryPlaygroundUtils::execTerminate"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "USentryPlaygroundUtils::Terminate"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FDebug::CheckVerifyFailedImpl2"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FOutputDevice::LogfImpl"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FSentryOutputDeviceError::Serialize"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FGenericPlatformMisc::RaiseException"
+          type*
+            "EXC_BAD_ACCESS"
