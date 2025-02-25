@@ -282,7 +282,7 @@ export function MultiQueryModeChart({
           />
         </Tooltip>,
         <DropdownMenu
-          key="contextMeny"
+          key="contextMenu"
           triggerProps={{
             size: 'xs',
             borderless: true,
