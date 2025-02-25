@@ -49,6 +49,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     REQUESTTYPE_HEAD,
     CheckResult,
     CheckStatus,
+    CheckStatusReason,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -2369,7 +2370,7 @@ class UptimeCheckSnubaTestCase(TestCase):
     def store_snuba_uptime_check(
         self,
         subscription_id: str | None,
-        check_status: str,
+        check_status: CheckStatus,
         check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
@@ -2381,6 +2382,10 @@ class UptimeCheckSnubaTestCase(TestCase):
             incident_status = IncidentStatus.NO_INCIDENT
         if check_id is None:
             check_id = uuid.uuid4()
+
+        check_status_reason: CheckStatusReason | None = None
+        if check_status == "failure":
+            check_status_reason = {"type": "failure", "description": "Mock failure"}
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
@@ -2402,7 +2407,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
                 "status": check_status,
-                "status_reason": None,
+                "status_reason": check_status_reason,
                 "trace_id": str(uuid.uuid4()),
                 "incident_status": incident_status.value,
                 "request_info": {

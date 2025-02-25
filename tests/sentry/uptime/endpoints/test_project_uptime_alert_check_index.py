@@ -55,7 +55,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         )
         assert response.data is not None
         assert len(response.data) == 6
-        first = response.data[0]
+        most_recent = response.data[0]
         for key in [
             "uptimeSubscriptionId",
             "uptimeCheckId",
@@ -70,11 +70,15 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             "httpStatusCode",
             "incidentStatus",
         ]:
-            assert key in first, f"{key} not in {first}"
-        assert first["uptimeCheckId"]
-        assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
-        assert first["regionName"] == "Default Region"
+            assert key in most_recent, f"{key} not in {most_recent}"
+
+        assert most_recent["uptimeCheckId"]
+        assert most_recent["uptimeSubscriptionId"] == self.project_uptime_subscription.id
+        assert most_recent["regionName"] == "Default Region"
+        assert most_recent["checkStatusReason"] == "failure"
+
         assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
+        assert any(v for v in response.data if v["checkStatusReason"] is None)
         assert any(v for v in response.data if v["httpStatusCode"] is None)
 
     def test_datetime_range(self):
