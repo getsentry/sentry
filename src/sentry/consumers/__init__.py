@@ -446,11 +446,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
     },
-    "detect-performance-issues": {
+    "process_segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
-        "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
+        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
