@@ -734,8 +734,8 @@ def delete_seer_grouping_records(
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
 
 
-def get_next_project_from_cohort(last_processed_project_index, cohort_projects):
-    next_project_index = last_processed_project_index + 1
+def get_next_project_from_cohort(current_project_index, cohort_projects):
+    next_project_index = current_project_index + 1
     if next_project_index >= len(cohort_projects):
         return None, None
 
