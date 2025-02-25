@@ -9,7 +9,6 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineProvider
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -26,9 +25,9 @@ class IdentityProviderPipeline(Pipeline):
     provider_model_cls = IdentityProvider
 
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
-    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
-        if kwargs.get("organization"):
-            organization: Organization | RpcOrganization = kwargs["organization"]
+    def get_provider(
+        self, provider_key: str, *, organization: RpcOrganization | None
+    ) -> PipelineProvider:
         if provider_key == "vsts" and features.has(
             "organizations:migrate-azure-devops-integration", organization
         ):
@@ -37,7 +36,7 @@ class IdentityProviderPipeline(Pipeline):
         if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
             provider_key = "vsts_login_new"
 
-        return super().get_provider(provider_key)
+        return super().get_provider(provider_key, organization=organization)
 
     def finish_pipeline(self):
         with IntegrationPipelineViewEvent(
