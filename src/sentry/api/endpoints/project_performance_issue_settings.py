@@ -28,7 +28,6 @@ from sentry.issues.grouptype import (
 from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
     PerformanceNPlusOneAPICallsGroupType,
 )
-from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds
@@ -198,6 +197,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         :pparam string project_id_or_slug: the id or slug of the project to configure.
         :auth: required
         """
+        from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)

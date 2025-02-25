@@ -39,9 +39,6 @@ from sentry.silo.base import region_silo_function
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
-    PerformanceNPlusOneAPICallsGroupType,
-)
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
@@ -498,6 +495,10 @@ class PerformanceProblemContext:
         spans: list[dict[str, str | float]] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
+        from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
+            PerformanceNPlusOneAPICallsGroupType,
+        )
+
         if problem.type == PerformanceNPlusOneAPICallsGroupType:
             return NPlusOneAPICallProblemContext(problem, spans, event)
         if problem.type == PerformanceConsecutiveDBQueriesGroupType:

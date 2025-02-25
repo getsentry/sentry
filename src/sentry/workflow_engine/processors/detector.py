@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
@@ -14,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_detector_by_event(job: WorkflowJob) -> Detector:
+    from sentry.grouping.grouptype import ErrorGroupType
+
     evt = job["event"]
     issue_occurrence = evt.occurrence
 
