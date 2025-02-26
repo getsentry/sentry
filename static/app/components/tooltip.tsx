@@ -91,6 +91,7 @@ function Tooltip({
         originPoint={arrowData}
         placement={placement}
         overlayStyle={overlayStyle}
+        data-tooltip
       >
         {title}
       </TooltipContent>
