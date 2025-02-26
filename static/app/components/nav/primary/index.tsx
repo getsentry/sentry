@@ -206,7 +206,6 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   align-items: stretch;
   gap: ${space(0.5)};
   width: 100%;
-  color: rgba(255, 255, 255, 0.85);
 
   ${p =>
     !p.isMobile &&
