@@ -89,7 +89,6 @@ class FrameInfo:
         # look like in the source code repository, hence why we remove
         # the straight path prefix and drive letter
         self.normalized_path = frame_file_path[start_at_index:]
-        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         if start_at_index == 0:
             self.stack_root = frame_file_path.split("/")[0]
         else:
@@ -98,16 +97,16 @@ class FrameInfo:
 
     def transformations(self, frame_file_path: str) -> str:
         self.raw_path = frame_file_path
-        self.is_windows_path = False
+        is_windows_path = False
         if "\\" in frame_file_path:
-            self.is_windows_path = True
+            is_windows_path = True
             frame_file_path = frame_file_path.replace("\\", "/")
 
         if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
             frame_file_path = frame_file_path[1:]
 
         # Remove drive letter if it exists
-        if self.is_windows_path and frame_file_path[1] == ":":
+        if is_windows_path and frame_file_path[1] == ":":
             frame_file_path = frame_file_path[2:]
             # windows drive letters can be like C:\ or C:
             # so we need to remove the slash if it exists
