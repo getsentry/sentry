@@ -29,23 +29,12 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const api = useApi();
   const router = useRouter();
 
-  const recentCreatedProject = useRecentCreatedProject({
+  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
 
-  const shallProjectBeDeleted =
-    recentCreatedProject &&
-    // if the project has received a first error, we don't delete it
-    recentCreatedProject.firstError === false &&
-    // if the project has received a first transaction, we don't delete it
-    recentCreatedProject.firstTransaction === false &&
-    // if the project has replays, we don't delete it
-    recentCreatedProject.hasReplays === false &&
-    // if the project has sessions, we don't delete it
-    recentCreatedProject.hasSessions === false &&
-    // if the project is older than one hour, we don't delete it
-    recentCreatedProject.olderThanOneHour === false;
+  const shallProjectBeDeleted = !isProjectActive;
 
   const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {

@@ -4,7 +4,6 @@ import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardi
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
-import type {Group} from './group';
 import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
@@ -141,13 +140,9 @@ export interface OnboardingSelectedSDK
   key: PlatformKey;
 }
 
-export type OnboardingRecentCreatedProject = Project & {
-  firstError: boolean;
-  firstTransaction: boolean;
-  hasReplays: boolean;
-  hasSessions: boolean;
-  olderThanOneHour: boolean;
-  firstIssue?: Group;
+export type OnboardingRecentCreatedProject = {
+  isProjectActive: boolean | undefined;
+  project: Project | undefined;
 };
 
 export type OnboardingPlatformDoc = {html: string; link: string};
