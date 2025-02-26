@@ -63,7 +63,7 @@ class ProviderEnum(Enum):
     STATSIG = 4
 
     @classmethod
-    def to_string(cls, integer):
+    def to_string(cls, integer) -> str:
         if integer == 0:
             return "generic"
         if integer == 1:
@@ -75,6 +75,10 @@ class ProviderEnum(Enum):
         if integer == 4:
             return "statsig"
         raise ValueError
+
+    @classmethod
+    def get_names(cls) -> list[str]:
+        return [cls.to_string(e.value) for e in cls]
 
 
 PROVIDER_MAP = {
