@@ -110,6 +110,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
         },
       },
     },
+    // "static" and "interactive" are now deprecated
     static: {
       text: {
         primary: colorScheme.dynamic.grayTransparent500,
