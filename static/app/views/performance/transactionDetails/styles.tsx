@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {space} from 'sentry/styles/space';
 
