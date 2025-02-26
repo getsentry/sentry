@@ -35,7 +35,7 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
-import {
+import type {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
 } from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
@@ -48,46 +48,34 @@ import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer
 
 const TABLE_HEIGHT = 258;
 
-interface MultiQueryTableProps {
+interface MultiQueryTableBaseProps {
   confidences: Confidence[];
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
 }
 
+interface MultiQueryTableProps extends MultiQueryTableBaseProps {
+  aggregatesTableResult: ReturnType<typeof useMultiQueryTableAggregateMode>;
+  spansTableResult: ReturnType<typeof useMultiQueryTableSampleMode>;
+}
+
 export function MultiQueryTable(props: MultiQueryTableProps) {
-  const {mode, query: queryParts} = props;
-  const {groupBys, query, yAxes, sortBys} = queryParts;
-
-  const aggregatesTableResult = useMultiQueryTableAggregateMode({
-    groupBys,
-    query,
-    yAxes,
-    sortBys,
-    enabled: mode === Mode.AGGREGATE,
-  });
-
-  const spansTableResult = useMultiQueryTableSampleMode({
-    groupBys,
-    query,
-    yAxes,
-    sortBys,
-    enabled: mode === Mode.SAMPLES,
-  });
+  const {spansTableResult, aggregatesTableResult, ...rest} = props;
 
   return (
     <Fragment>
-      {mode === Mode.AGGREGATE && (
-        <AggregatesTable aggregatesTableResult={aggregatesTableResult} {...props} />
+      {props.mode === Mode.AGGREGATE && (
+        <AggregatesTable aggregatesTableResult={aggregatesTableResult} {...rest} />
       )}
-      {mode === Mode.SAMPLES && (
-        <SpansTable spansTableResult={spansTableResult} {...props} />
+      {props.mode === Mode.SAMPLES && (
+        <SpansTable spansTableResult={spansTableResult} {...rest} />
       )}
     </Fragment>
   );
 }
 
-interface AggregateTableProps extends MultiQueryTableProps {
+interface AggregateTableProps extends MultiQueryTableBaseProps {
   aggregatesTableResult: AggregatesTableResult;
 }
 
@@ -220,7 +208,7 @@ function AggregatesTable({
   );
 }
 
-interface SampleTableProps extends MultiQueryTableProps {
+interface SampleTableProps extends MultiQueryTableBaseProps {
   spansTableResult: SpansTableResult;
 }
 

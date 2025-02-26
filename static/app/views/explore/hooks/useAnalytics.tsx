@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -16,29 +17,37 @@ import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/vi
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
-export function useAnalytics({
+export function useTrackAnalytics({
   queryType,
   aggregatesTableResult,
   spansTableResult,
   tracesTableResult,
   timeseriesResult,
+  dataset,
+  title,
+  query,
+  fields,
+  visualizes,
+  page_source,
 }: {
   aggregatesTableResult: AggregatesTableResult;
+  dataset: DiscoverDatasets;
+  fields: string[];
+  page_source: 'explore' | 'compare';
+  query: string;
   queryType: 'aggregate' | 'samples' | 'traces';
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  tracesTableResult: TracesTableResult;
+  visualizes: Visualize[];
+  title?: string;
+  tracesTableResult?: TracesTableResult;
 }) {
   const organization = useOrganization();
-  const dataset = useExploreDataset();
-  const title = useExploreTitle();
-  const query = useExploreQuery();
-  const fields = useExploreFields();
-  const visualizes = useExploreVisualizes();
 
   const {
     data: {hasExceededPerformanceUsageLimit},
@@ -49,7 +58,7 @@ export function useAnalytics({
     queryType === 'aggregate'
       ? aggregatesTableResult.result.error?.message ?? ''
       : queryType === 'traces'
-        ? tracesTableResult.result.error?.message ?? ''
+        ? tracesTableResult?.result.error?.message ?? ''
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
@@ -85,6 +94,7 @@ export function useAnalytics({
       title: title || '',
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
     });
   }, [
     organization,
@@ -103,6 +113,7 @@ export function useAnalytics({
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
     query_status,
+    page_source,
   ]);
 
   useEffect(() => {
@@ -132,6 +143,7 @@ export function useAnalytics({
       title: title || '',
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
     });
   }, [
     organization,
@@ -149,10 +161,14 @@ export function useAnalytics({
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
     query_status,
+    page_source,
   ]);
+
+  const tracesTableResultDefined = defined(tracesTableResult);
 
   useEffect(() => {
     if (
+      !tracesTableResultDefined ||
       queryType !== 'traces' ||
       tracesTableResult.result.isPending ||
       timeseriesResult.isPending ||
@@ -171,7 +187,7 @@ export function useAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult.result?.data?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
 
     trackAnalytics('trace.explorer.metadata', {
@@ -190,6 +206,7 @@ export function useAnalytics({
       title: title || '',
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
     });
   }, [
     organization,
@@ -199,15 +216,90 @@ export function useAnalytics({
     visualizes,
     title,
     queryType,
-    tracesTableResult.result.isPending,
-    tracesTableResult.result.status,
-    tracesTableResult.result.data?.data,
+    tracesTableResult?.result.isPending,
+    tracesTableResult?.result.status,
+    tracesTableResult?.result.data?.data,
     timeseriesResult.isPending,
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
     query_status,
+    page_source,
+    tracesTableResultDefined,
   ]);
+}
+
+export function useAnalytics({
+  queryType,
+  aggregatesTableResult,
+  spansTableResult,
+  tracesTableResult,
+  timeseriesResult,
+}: {
+  aggregatesTableResult: AggregatesTableResult;
+  queryType: 'aggregate' | 'samples' | 'traces';
+  spansTableResult: SpansTableResult;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  tracesTableResult: TracesTableResult;
+}) {
+  const dataset = useExploreDataset();
+  const title = useExploreTitle();
+  const query = useExploreQuery();
+  const fields = useExploreFields();
+  const visualizes = useExploreVisualizes();
+
+  return useTrackAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    tracesTableResult,
+    timeseriesResult,
+    dataset,
+    title,
+    query,
+    fields,
+    visualizes,
+    page_source: 'explore',
+  });
+}
+
+export function useCompareAnalytics({
+  query: queryParts,
+  index,
+  queryType,
+  aggregatesTableResult,
+  spansTableResult,
+  timeseriesResult,
+}: {
+  aggregatesTableResult: AggregatesTableResult;
+  index: number;
+  query: ReadableExploreQueryParts;
+  queryType: 'aggregate' | 'samples' | 'traces';
+  spansTableResult: SpansTableResult;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+}) {
+  const dataset = DiscoverDatasets.SPANS_EAP_RPC;
+  const query = queryParts.query;
+  const fields = queryParts.fields;
+  const visualizes = queryParts.yAxes.map(yAxis => {
+    return {
+      chartType: queryParts.chartType,
+      yAxes: [yAxis],
+      label: String(index),
+    } as Visualize;
+  });
+
+  return useTrackAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    timeseriesResult,
+    dataset,
+    query,
+    fields,
+    visualizes,
+    page_source: 'compare',
+  });
 }
 
 function computeConfidence(

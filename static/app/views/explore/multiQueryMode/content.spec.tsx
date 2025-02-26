@@ -565,7 +565,9 @@ describe('MultiQueryModeContent', function () {
     );
 
     const section = screen.getByTestId('section-visualization-0');
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(
+      await within(section).findByRole('button', {name: '1 hour'})
+    ).toBeInTheDocument();
     await userEvent.click(within(section).getByRole('button', {name: '1 hour'}));
     await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
     expect(router.push).toHaveBeenCalledWith({
