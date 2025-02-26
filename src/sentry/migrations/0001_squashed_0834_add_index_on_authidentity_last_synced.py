@@ -9325,4 +9325,3 @@ class Migration(CheckedMigration):
             index=models.Index(fields=['last_synced'], name='auth_identity_last_synced_idx'),
         ),
     ]
-
