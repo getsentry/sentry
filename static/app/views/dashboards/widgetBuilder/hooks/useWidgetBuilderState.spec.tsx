@@ -772,6 +772,36 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.limit).toBe(3);
     });
+
+    it('does not reset the limit when switching between timeseries charts', () => {
+      // One query and one y-axis is the most permissible setup
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            limit: '3',
+            field: ['project'],
+            yAxis: ['count()'],
+            query: [''],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(3);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.limit).toBe(3);
+    });
   });
 
   describe('dataset', () => {

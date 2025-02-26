@@ -272,9 +272,6 @@ function useWidgetBuilderState(): {
             setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])]);
             setQuery(query?.slice(0, 1));
           } else {
-            // Reset the limit to a valid value, bias towards the default if possible
-            const maxLimit = getResultsLimit(query?.length ?? 1, aggregates.length);
-            setLimit(Math.min(DEFAULT_RESULTS_LIMIT, maxLimit));
             setFields(columnsWithoutAlias);
             const nextAggregates = [
               ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
@@ -287,6 +284,11 @@ function useWidgetBuilderState(): {
               });
             }
             setYAxis(nextAggregates);
+
+            // Reset the limit to a valid value, bias towards the current limit or
+            // default if possible
+            const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);
+            setLimit(Math.min(limit ?? DEFAULT_RESULTS_LIMIT, maxLimit));
 
             if (dataset === WidgetType.RELEASE && sort?.length === 0) {
               setSort(
@@ -521,6 +523,7 @@ function useWidgetBuilderState(): {
       query,
       sort,
       dataset,
+      limit,
     ]
   );
 
