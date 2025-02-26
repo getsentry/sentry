@@ -38,7 +38,6 @@ sentry_files = [
     "src/sentry_plugins/slack/client.py",
 ]
 
-
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     "/gtm.js",  # Top source; starts with backslash
@@ -91,13 +90,14 @@ def test_get_extension() -> None:
     assert get_extension("/gtm.js") == "js"
 
 
-def test_buckets_logic() -> None:
+@pytest.mark.parametrize("unsupported_frames", UNSUPPORTED_FRAME_FILENAMES)
+def test_buckets_logic(unsupported_frames: list[str]) -> None:
     frames = [
         {"filename": "app://foo.js"},
         {"filename": "./app/utils/handleXhrErrorResponse.tsx"},
         {"filename": "getsentry/billing/tax/manager.py"},
         {"filename": "/cronscripts/monitoringsync.php"},
-    ] + [{"filename": f} for f in UNSUPPORTED_FRAME_FILENAMES]
+    ] + [{"filename": f} for f in unsupported_frames]
     helper = CodeMappingTreesHelper({})
     buckets = helper._stacktrace_buckets(frames)
     assert buckets == {
@@ -126,8 +126,9 @@ class TestFrameFilename:
         path = "getsentry/billing/tax/manager.py"
         assert FrameFilename({"filename": path}).__repr__() == f"FrameFilename: {path}"
 
-    def test_raises_unsupported(self) -> None:
-        for filepath in UNSUPPORTED_FRAME_FILENAMES:
+    @pytest.mark.parametrize("unsupported_frames", UNSUPPORTED_FRAME_FILENAMES)
+    def test_raises_unsupported(self, unsupported_frames: list[str]) -> None:
+        for filepath in unsupported_frames:
             with pytest.raises(UnsupportedFrameFilename):
                 FrameFilename({"filename": filepath})
 
@@ -303,52 +304,76 @@ class TestDerivedCodeMappings(TestCase):
         assert matches == expected_matches
 
     def test_find_roots_starts_with_period_slash(self) -> None:
-        stacktrace_root, source_path = find_roots("./app/", "static/app/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
+        )
         assert stacktrace_root == "./"
         assert source_path == "static/"
 
     def test_find_roots_starts_with_period_slash_no_containing_directory(self) -> None:
-        stacktrace_root, source_path = find_roots("./app/", "app/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
+        )
         assert stacktrace_root == "./"
-        assert source_path == ""
+        assert source_path == "static/"
 
     def test_find_roots_not_matching(self) -> None:
-        stacktrace_root, source_path = find_roots("sentry/", "src/sentry/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "sentry/foo.py"}), "src/sentry/foo.py"
+        )
         assert stacktrace_root == "sentry/"
         assert source_path == "src/sentry/"
 
     def test_find_roots_equal(self) -> None:
-        stacktrace_root, source_path = find_roots("source/", "source/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "source/foo.py"}), "source/foo.py"
+        )
         assert stacktrace_root == ""
         assert source_path == ""
 
     def test_find_roots_starts_with_period_slash_two_levels(self) -> None:
-        stacktrace_root, source_path = find_roots("./app/", "app/foo/app/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "./foo/app.tsx"}), "static/app/foo/app.tsx"
+        )
         assert stacktrace_root == "./"
-        assert source_path == "app/foo/"
+        assert source_path == "static/app/"
 
     def test_find_roots_starts_with_app(self) -> None:
-        stacktrace_root, source_path = find_roots("app:///utils/", "utils/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "app:///utils/foo.tsx"}), "utils/foo.tsx"
+        )
         assert stacktrace_root == "app:///"
         assert source_path == ""
 
     def test_find_roots_starts_with_multiple_dot_dot_slash(self) -> None:
-        stacktrace_root, source_path = find_roots("../../../../../../packages/", "packages/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "../../../../../../packages/foo.tsx"}),
+            "packages/foo.tsx",
+        )
         assert stacktrace_root == "../../../../../../"
         assert source_path == ""
 
     def test_find_roots_starts_with_app_dot_dot_slash(self) -> None:
-        stacktrace_root, source_path = find_roots("app:///../services/", "services/")
+        stacktrace_root, source_path = find_roots(
+            FrameFilename({"filename": "app:///../services/foo.tsx"}),
+            "services/foo.tsx",
+        )
         assert stacktrace_root == "app:///../"
         assert source_path == ""
 
     def test_find_roots_bad_stack_path(self) -> None:
         with pytest.raises(UnexpectedPathException):
-            find_roots("https://yrurlsinyourstackpath.com/", "sentry/something.py")
+            find_roots(
+                FrameFilename({"filename": "https://yrurlsinyourstackpath.com/"}),
+                "sentry/something.py",
+            )
 
     def test_find_roots_bad_source_path(self) -> None:
         with pytest.raises(UnexpectedPathException):
-            find_roots("sentry/random.py", "nothing/something.js")
+            find_roots(
+                FrameFilename({"filename": "sentry/random.py"}),
+                "nothing/something.js",
+            )
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):
