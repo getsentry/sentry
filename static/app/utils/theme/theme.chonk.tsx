@@ -38,16 +38,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       primary: colorScheme.dynamic.surface100,
       secondary: colorScheme.dynamic.surface200,
     },
-    components: {
-      link: {
-        accent: {
-          color: {
-            default: colorScheme.dynamic.blue400,
-            hover: colorScheme.dynamic.blue400,
-            active: colorScheme.dynamic.blue400,
-          },
-        },
-      },
+    component: {
       button: {
         default: {
           chonk: colorScheme.dynamic.surface100,
@@ -95,7 +86,24 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           },
         },
       },
-      utils: {
+      chart: {
+        annotation: {
+          axisLabel: colorScheme.dynamic.grayOpaque400,
+        },
+        canvas: {
+          lineGrid: colorScheme.dynamic.grayOpaque100,
+        },
+      },
+      link: {
+        accent: {
+          color: {
+            default: colorScheme.dynamic.blue400,
+            hover: colorScheme.dynamic.blue400,
+            active: colorScheme.dynamic.blue400,
+          },
+        },
+      },
+      util: {
         outline: {
           accent: colorScheme.static.blue400,
           danger: colorScheme.static.red400,
@@ -458,90 +466,90 @@ const generateAliases = (
   /**
    * Heading text color
    */
-  headingColor: tokens.static.text.primary,
+  headingColor: tokens.content.primary,
 
   /**
    * Primary text color
    */
-  textColor: tokens.static.text.primary,
+  textColor: tokens.content.secondary,
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.static.text.secondary,
+  subText: tokens.content.secondary,
 
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: tokens.static.background.secondary,
+  bodyBackground: tokens.background.secondary,
 
   /**
    * Primary background color
    */
-  background: tokens.static.background.primary,
+  background: tokens.background.primary,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: tokens.static.background.primary,
+  backgroundElevated: tokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: tokens.static.background.secondary,
+  backgroundSecondary: tokens.background.secondary,
 
   /**
    * Tertiary background color used as a stronger contrast against primary background
    */
-  backgroundTertiary: tokens.static.background.tertiary,
+  backgroundTertiary: tokens.background.tertiary,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: tokens.static.background.primary,
+  headerBackground: tokens.background.primary,
 
   /**
    * Primary border color
    */
-  border: tokens.static.border.primary,
-  translucentBorder: tokens.static.border.primary,
+  border: tokens.border.primary,
+  translucentBorder: tokens.border.primary,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.static.border.secondary,
-  translucentInnerBorder: tokens.static.border.secondary,
+  innerBorder: tokens.border.secondary,
+  translucentInnerBorder: tokens.border.secondary,
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: tokens.static.graphic.icon.success,
-  successText: tokens.static.text.success,
+  success: tokens.content.success,
+  successText: tokens.content.success,
   // @TODO(jonasbadalic): should this reference a static color?
   successFocus: colors.static.green200, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: tokens.static.graphic.icon.danger,
-  errorText: tokens.static.text.danger,
-  errorFocus: tokens.interactive.outline.danger.color,
+  error: tokens.content.danger,
+  errorText: tokens.content.danger,
+  errorFocus: tokens.component.util.outline.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
-  danger: tokens.static.graphic.icon.danger,
-  dangerText: tokens.static.text.danger,
+  danger: tokens.content.danger,
+  dangerText: tokens.content.danger,
   // @TODO(jonasbadalic): should this reference a static color?
-  dangerFocus: colors.static.red200, // Not being used
+  dangerFocus: tokens.component.util.outline.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
-  warning: tokens.static.graphic.icon.warning,
-  warningText: tokens.static.text.warning,
+  warning: tokens.content.warning,
+  warningText: tokens.content.warning,
   // @TODO(jonasbadalic): should this reference a static color?
-  warningFocus: colors.static.yellow200, // Not being used
+  warningFocus: colors.dynamic.yellow200, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -556,7 +564,7 @@ const generateAliases = (
    * interaction (hover/press) states.
    * @deprecated
    */
-  hover: tokens.interactive.button.default.background.hover,
+  hover: tokens.component.button.default.background.hover,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -570,8 +578,8 @@ const generateAliases = (
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.interactive.outline.default.color,
-  focusBorder: tokens.interactive.outline.default.color,
+  focus: tokens.component.util.outline.accent,
+  focusBorder: tokens.component.util.outline.accent,
 
   /**
    * Inactive
@@ -582,10 +590,10 @@ const generateAliases = (
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.interactive.link.accent.color.default,
-  linkHoverColor: tokens.interactive.link.accent.color.hover,
-  linkUnderline: tokens.interactive.link.accent.color.default,
-  linkFocus: tokens.interactive.outline.default.color,
+  linkColor: tokens.component.link.accent.color.default,
+  linkHoverColor: tokens.component.link.accent.color.hover,
+  linkUnderline: tokens.component.link.accent.color.default,
+  linkFocus: tokens.component.util.outline.accent,
 
   /**
    * Form placeholder text color
@@ -600,18 +608,18 @@ const generateAliases = (
   /**
    *
    */
-  rowBackground: tokens.static.background.primary,
+  rowBackground: tokens.background.primary,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
-  chartLineColor: tokens.static.graphic.chart.annotation.axisLabel,
+  chartLineColor: tokens.component.chart.annotation.axisLabel,
 
   /**
    * Color for chart label text
    */
-  chartLabel: tokens.static.graphic.chart.canvas.lineGrid,
+  chartLabel: tokens.component.chart.canvas.lineGrid,
 
   /**
    * Color for the 'others' series in topEvent charts
