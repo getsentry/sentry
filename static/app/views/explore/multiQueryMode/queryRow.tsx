@@ -95,6 +95,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             canUsePreviousResults={canUsePreviousResults}
           />
           <MultiQueryTable
+            confidences={[]}
             mode={mode}
             query={queryParts}
             index={index}
