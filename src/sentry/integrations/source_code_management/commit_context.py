@@ -57,7 +57,7 @@ PR_COMMENT_WINDOW = 14  # days
 
 @dataclass
 class SourceLineInfo:
-    lineno: int
+    lineno: int | None
     path: str
     ref: str
     repo: Repository
@@ -66,7 +66,7 @@ class SourceLineInfo:
 
 @dataclass
 class CommitInfo:
-    commitId: str | None
+    commitId: str
     committedDate: datetime
     commitMessage: str | None
     commitAuthorName: str | None
