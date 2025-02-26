@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -53,7 +53,10 @@ function ReleaseHeader({
     {
       title: (
         <Fragment>
-          {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
+          {t('Commits')}{' '}
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(commitCount)}
+          </NavTabsBadge>
         </Fragment>
       ),
       to: `commits/`,
@@ -62,7 +65,9 @@ function ReleaseHeader({
       title: (
         <Fragment>
           {t('Files Changed')}
-          <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(commitFilesChanged)}
+          </NavTabsBadge>
         </Fragment>
       ),
       to: `files-changed/`,

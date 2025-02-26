@@ -52,14 +52,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
 
-      rerender(
-        <WidgetFrame
-          title="count()"
-          badgeProps={{
-            text: 'Sampled',
-          }}
-        />
-      );
+      rerender(<WidgetFrame title="count()" badgeProps={'Sampled'} />);
 
       expect(screen.getByText('Sampled')).toBeInTheDocument();
     });
@@ -69,19 +62,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
 
-      rerender(
-        <WidgetFrame
-          title="count()"
-          badgeProps={[
-            {
-              text: 'Sampled',
-            },
-            {
-              text: 'Extracted',
-            },
-          ]}
-        />
-      );
+      rerender(<WidgetFrame title="count()" badgeProps={['Sampled', 'Extracted']} />);
 
       expect(screen.getByText('Sampled')).toBeInTheDocument();
       expect(screen.getByText('Extracted')).toBeInTheDocument();
