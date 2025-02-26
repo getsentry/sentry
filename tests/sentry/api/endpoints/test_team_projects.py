@@ -161,8 +161,15 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)
 
+        # org member cannot create project when they are not a team admin of the team
         test_member = self.create_user(is_superuser=False)
-        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
+        self.create_member(
+            user=test_member,
+            organization=test_org,
+            role="admin",
+            teams=[test_team],
+            team_roles=[(test_team, "contributor")],
+        )
         self.login_as(user=test_member)
         response = self.get_error_response(
             test_org.slug,
@@ -172,14 +179,35 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
 
+        # org member can create project when they are a team admin of the team
+        test_team_admin = self.create_user(is_superuser=False)
+        self.create_member(
+            user=test_team_admin,
+            organization=test_org,
+            role="member",
+            team_roles=[(test_team, "admin")],
+        )
+        self.login_as(user=test_team_admin)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            status_code=201,
+            name="test",
+            slug="test-1",
+            platform="python",
+        )
+
+        # org manager can create project
         test_manager = self.create_user(is_superuser=False)
         self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
         self.login_as(user=test_manager)
         self.get_success_response(
             test_org.slug,
             test_team.slug,
-            **self.data,
             status_code=201,
+            name="test",
+            slug="test-2",
+            platform="python",
         )
 
     def test_default_inbound_filters(self):
