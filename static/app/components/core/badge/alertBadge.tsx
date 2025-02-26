@@ -1,6 +1,8 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {DiamondStatus} from 'sentry/components/diamondStatus';
+import {Flex} from 'sentry/components/container/flex';
 import {
   IconCheckmark,
   IconExclamation,
@@ -11,14 +13,13 @@ import {
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-interface AlertBadgeProps {
-  /**
-   * @deprecated use withText
-   */
-  hideText?: true;
+import {withChonk} from '../../../utils/theme/withChonk';
+
+import {ChonkAlertBadgeDiamondBackground} from './alertBadge.chonk';
+
+export interface AlertBadgeProps {
   /**
    * Displays a "disabled" badge
    */
@@ -41,50 +42,88 @@ interface AlertBadgeProps {
  * This badge is a composition of DiamondStatus specifically used for incident
  * alerts.
  */
-export function AlertBadge({status, withText, isIssue, isDisabled}: AlertBadgeProps) {
-  let statusText = t('Resolved');
-  let Icon: React.ComponentType<SVGIconProps> = IconCheckmark;
-  let color: ColorOrAlias = 'successText';
-
-  if (isDisabled) {
-    statusText = t('Disabled');
-    Icon = IconPause;
-    color = 'disabled';
-  } else if (isIssue) {
-    statusText = t('Issue');
-    Icon = SizedIconIssue;
-    color = 'subText';
-  } else if (status === IncidentStatus.CRITICAL) {
-    statusText = t('Critical');
-    Icon = IconFire;
-    color = 'errorText';
-  } else if (status === IncidentStatus.WARNING) {
-    statusText = t('Warning');
-    Icon = IconExclamation;
-    color = 'warningText';
-  }
+export function AlertBadge(props: AlertBadgeProps) {
+  const theme = useTheme();
+  const {text, icon: Icon} = getDiamondTheme(
+    props.status,
+    props.isIssue,
+    props.isDisabled,
+    theme
+  );
 
   return (
-    <Wrapper data-test-id="alert-badge">
-      <DiamondStatus
-        icon={Icon}
-        color={color}
-        aria-label={!withText ? statusText : undefined}
-      />
-      {withText && <div>{statusText}</div>}
-    </Wrapper>
+    <PaddedContainer data-test-id="alert-badge" align="center" gap={space(1.5)}>
+      <DiamondBackground
+        {...props}
+        role="presentation"
+        aria-label={!props.withText ? text : undefined}
+      >
+        <Icon width={13} height={13} />
+      </DiamondBackground>
+      {props.withText && <div>{text}</div>}
+    </PaddedContainer>
   );
 }
 
-/**
- * The size of the issue icon needs to be marginally adjusted to fit into the diamond well
- */
-const SizedIconIssue = styled(IconIssues)`
-  width: 13px;
+function getDiamondTheme(
+  status: AlertBadgeProps['status'],
+  isIssue: AlertBadgeProps['isIssue'],
+  isDisabled: AlertBadgeProps['isDisabled'],
+  theme: Theme
+): {
+  backgroundColor: string;
+  icon: React.ComponentType<SVGIconProps>;
+  text: string;
+} {
+  if (isDisabled) {
+    return {text: t('Disabled'), backgroundColor: theme.disabled, icon: IconPause};
+  }
+  if (isIssue) {
+    return {
+      text: t('Issue'),
+      backgroundColor: theme.subText,
+      // @TODO(jonasbadalic): why does the issues icon height need to be adjusted?
+      icon: (props: SVGIconProps) => <IconIssues width={13} height={13} {...props} />,
+    };
+  }
+  if (status === IncidentStatus.CRITICAL) {
+    return {text: t('Critical'), backgroundColor: theme.errorText, icon: IconFire};
+  }
+  if (status === IncidentStatus.WARNING) {
+    return {
+      text: t('Warning'),
+      backgroundColor: theme.warningText,
+      icon: IconExclamation,
+    };
+  }
+  return {text: t('Resolved'), backgroundColor: theme.successText, icon: IconCheckmark};
+}
+
+const PaddedContainer = styled(Flex)`
+  /* @TODO(jonasbadalic): This used to be sized by the oversized icon inside it */
+  padding: 5px 4px;
 `;
 
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
+const DiamondBackground = withChonk(
+  styled('div')<AlertBadgeProps>`
+    background-color: ${p =>
+      getDiamondTheme(p.status, p.isIssue, p.isDisabled, p.theme).backgroundColor};
+    width: 26px;
+    height: 26px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transform: rotate(45deg);
+
+    > svg {
+      width: 13px;
+      height: 13px;
+      transform: rotate(-45deg);
+      color: ${p => p.theme.white};
+    }
+  `,
+  ChonkAlertBadgeDiamondBackground,
+  p => p
+);
