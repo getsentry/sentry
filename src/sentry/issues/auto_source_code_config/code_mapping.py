@@ -60,8 +60,13 @@ def derive_code_mappings(
         return []
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
-    frame_filename = FrameInfo(frame)
-    return trees_helper.list_file_matches(frame_filename)
+    try:
+        frame_filename = FrameInfo(frame)
+        return trees_helper.list_file_matches(frame_filename)
+    except NeedsExtension:
+        logger.warning("Needs extension: %s", frame.get("filename"))
+
+    return []
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -200,6 +205,8 @@ class CodeMappingTreesHelper:
                 buckets[frame_filename.stack_root].append(frame_filename)
             except UnsupportedFrameInfo:
                 logger.warning("Frame's filepath not supported: %s", frame.get("filename"))
+            except NeedsExtension:
+                logger.warning("Needs extension: %s", frame.get("filename"))
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
