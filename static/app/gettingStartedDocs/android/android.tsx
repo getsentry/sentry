@@ -17,6 +17,7 @@ import {
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -58,11 +59,6 @@ plugins {
     '3.12.0'
   )}"
 }`;
-
-const getAutoInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '' : '--saas';
-  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i android ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
-};
 
 const getConfigurationSnippet = (params: Params) => `
 <application>
@@ -137,8 +133,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: getAutoInstallSnippet(params),
+                code: getWizardInstallSnippet({
+                  platform: 'android',
+                  params,
+                }),
               },
               {
                 description: (
@@ -178,14 +176,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </ListItem>
                     </List>
                   </Fragment>
-                ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
-                    ),
-                  }
                 ),
               },
             ],

@@ -7,12 +7,12 @@ from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
-from sentry.spans.consumers.detect_performance_issues.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.spans.consumers.process.factory import (
     ProcessSpansStrategyFactory,
     batch_write_to_redis,
     expand_segments,
 )
+from sentry.spans.consumers.process_segments.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
