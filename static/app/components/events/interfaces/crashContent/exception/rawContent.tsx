@@ -33,14 +33,14 @@ export default function RawContent({
 
   const endpointUrl = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${type === 'minified'}`;
 
-  const {data, isPending, isError} = useApiQuery<string>(
-    [endpointUrl, {headers: {Accept: '*/*; charset=utf-8'}}],
-    {enabled: isNative && defined(organization), staleTime: Infinity}
-  );
-
-  if (!values) {
-    return null;
-  }
+  const {
+    data: crashReport,
+    isPending,
+    isError,
+  } = useApiQuery<string>([endpointUrl, {headers: {Accept: '*/*; charset=utf-8'}}], {
+    enabled: isNative && defined(organization),
+    staleTime: Infinity,
+  });
 
   if (isPending) {
     return <Placeholder height="270px" />;
@@ -48,6 +48,10 @@ export default function RawContent({
 
   if (isError) {
     return <LoadingError />;
+  }
+
+  if (!values || !crashReport) {
+    return null;
   }
 
   return (
@@ -71,7 +75,7 @@ export default function RawContent({
         return (
           <div key={excIdx} data-test-id="raw-stack-trace">
             <pre className="traceback plain">
-              <ClippedBox clipHeight={250}>{data}</ClippedBox>
+              <ClippedBox clipHeight={250}>{crashReport}</ClippedBox>
             </pre>
           </div>
         );
