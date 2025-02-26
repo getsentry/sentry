@@ -1,10 +1,12 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -119,28 +121,43 @@ export function OrganizationFeatureFlagsAuditLogTable({
     switch (column.key) {
       case 'flag':
         return (
-          <code
-            onClick={() => {
-              onFlagClick(dataRow.flag);
-            }}
-            style={{cursor: 'pointer'}}
-          >
-            {dataRow.flag}
-          </code>
+          <Tooltip title={t('Click to filter by this flag')}>
+            <code
+              onClick={() => {
+                onFlagClick(dataRow.flag);
+              }}
+              style={{cursor: 'pointer'}}
+            >
+              {dataRow.flag}
+            </code>
+          </Tooltip>
         );
       case 'provider':
         return (
-          <div
-            onClick={() => {
-              onProviderClick(dataRow.provider);
-            }}
-            style={{cursor: 'pointer'}}
-          >
-            {dataRow.provider || t('unknown')}
-          </div>
+          <Tooltip title={t('Click to filter by this provider')}>
+            <div
+              onClick={() => {
+                onProviderClick(dataRow.provider);
+              }}
+              style={{cursor: 'pointer'}}
+            >
+              {dataRow.provider || t('unknown')}
+            </div>
+          </Tooltip>
         );
       case 'createdAt':
         return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
+      case 'action': {
+        const type =
+          dataRow.action === 'created'
+            ? 'info'
+            : dataRow.action === 'deleted'
+              ? 'error'
+              : undefined;
+        const capitalized =
+          dataRow.action.charAt(0).toUpperCase() + dataRow.action.slice(1);
+        return <Tag type={type}>{capitalized}</Tag>;
+      }
       default:
         return dataRow[column.key!];
     }
