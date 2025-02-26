@@ -18,17 +18,34 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
+interface TourContextProviderProps<T extends TourEnumType> {
+  /**
+   * The children of the tour context provider.
+   * All children of this component will be blurred when the tour is active.
+   * Only the active tour element and overlay will be discernible.
+   */
+  children: React.ReactNode;
+  /**
+   * The initial state of the tour.
+   */
+  initialState: Partial<TourState<T>>;
+  /**
+   * The ordered list of Step IDs
+   */
+  orderedStepIds: T[];
+  /**
+   * The React context (from createContext) containing the provider for the tour.
+   * The value for this prop comes from useTourReducer, to avoid extra steps.
+   */
+  tourContext: React.Context<TourContextType<T>>;
+}
+
 export function TourContextProvider<T extends TourEnumType>({
   children,
   initialState,
   orderedStepIds,
   tourContext: TourContext,
-}: {
-  children: React.ReactNode;
-  initialState: Partial<TourState<T>>;
-  orderedStepIds: T[];
-  tourContext: React.Context<TourContextType<T>>;
-}) {
+}: TourContextProviderProps<T>) {
   const tourContext = useTourReducer<T>({initialState, orderedStepIds});
   const isTourActive = tourContext.currentStep !== null;
   return (
@@ -50,14 +67,17 @@ export interface TourElementProps<T extends TourEnumType>
   /**
    * The description of the tour step.
    */
-  description: string;
+  description: React.ReactNode;
+  /**
+   * The unique identifier of the tour step.
+   */
   id: TourStep<T>['id'];
   /**
    * The title of the tour step.
    */
-  title: string;
+  title: React.ReactNode;
   /**
-   * The tour context.
+   * The relevant tour context
    */
   tourContext: TourContextType<T>;
 }
