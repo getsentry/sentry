@@ -65,7 +65,7 @@ export function OrganizationFeatureFlagsNewSecet() {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 export default OrganizationFeatureFlagsNewSecet;

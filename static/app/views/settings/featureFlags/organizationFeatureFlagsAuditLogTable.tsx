@@ -7,6 +7,7 @@ import Pagination from 'sentry/components/pagination';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -67,25 +68,17 @@ export function OrganizationFeatureFlagsAuditLogTable({
   });
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
-  const data: RawFlag[] = useMemo(() => {
-    return (
-      responseData?.data?.map(log => ({
-        ...log,
-        provider: log.provider,
-        createdAt: new Date(log.createdAt).toLocaleString(),
-      })) ?? []
-    );
-  }, [responseData]);
-
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
   const [hasFilters, setHasFilters] = useState<boolean>(false);
 
   const clearQuery = useCallback(() => {
+    const {width} = location.query;
     navigate({
       pathname: location.pathname,
+      query: width ? {width} : {},
     });
     setHasFilters(false);
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, location.query]);
 
   const onFlagClick = useCallback(
     (flag: string) => {
@@ -99,7 +92,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       });
       setHasFilters(true);
     },
-    [navigate, location.pathname, location.query, setHasFilters]
+    [navigate, location.pathname, location.query]
   );
 
   const onProviderClick = useCallback(
@@ -114,7 +107,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       });
       setHasFilters(true);
     },
-    [navigate, location.pathname, location.query, setHasFilters]
+    [navigate, location.pathname, location.query]
   );
 
   const renderBodyCell = (
@@ -122,28 +115,36 @@ export function OrganizationFeatureFlagsAuditLogTable({
     dataRow: RawFlag,
     _rowIndex: number,
     _columnIndex: number
-  ) =>
-    column.key === 'flag' ? (
-      <code
-        onClick={() => {
-          onFlagClick(dataRow.flag);
-        }}
-        style={{cursor: 'pointer'}}
-      >
-        {dataRow.flag}
-      </code>
-    ) : column.key === 'provider' ? (
-      <div
-        onClick={() => {
-          onProviderClick(dataRow.provider);
-        }}
-        style={{cursor: 'pointer'}}
-      >
-        {dataRow.provider || t('unknown')}
-      </div>
-    ) : (
-      dataRow[column.key!]
-    );
+  ) => {
+    switch (column.key) {
+      case 'flag':
+        return (
+          <code
+            onClick={() => {
+              onFlagClick(dataRow.flag);
+            }}
+            style={{cursor: 'pointer'}}
+          >
+            {dataRow.flag}
+          </code>
+        );
+      case 'provider':
+        return (
+          <div
+            onClick={() => {
+              onProviderClick(dataRow.provider);
+            }}
+            style={{cursor: 'pointer'}}
+          >
+            {dataRow.provider || t('unknown')}
+          </div>
+        );
+      case 'createdAt':
+        return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
+      default:
+        return dataRow[column.key!];
+    }
+  };
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
@@ -164,7 +165,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       <GridEditable
         error={error}
         isLoading={isPending}
-        data={data}
+        data={responseData?.data ?? []}
         columnOrder={columns}
         columnSortBy={[]}
         grid={{
