@@ -15,6 +15,8 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 interface ActivityDrawerProps {
@@ -25,6 +27,7 @@ interface ActivityDrawerProps {
 export function ActivityDrawer({group, project}: ActivityDrawerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('filter') ?? 'all';
+  const organization = useOrganization();
 
   return (
     <EventDrawerContainer>
@@ -50,6 +53,10 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
           aria-label={t('Filter activity')}
           value={filter}
           onChange={value => {
+            trackAnalytics('issue_details.activity_drawer.filter_changed', {
+              organization,
+              filter: value,
+            });
             setSearchParams(
               params => {
                 if (value === 'comments') {
