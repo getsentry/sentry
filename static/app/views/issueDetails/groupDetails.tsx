@@ -629,15 +629,13 @@ function GroupDetailsContentError({
 }
 
 function useGetStatsPeriod(group: Group) {
-  const hasHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
-  const useGetMaxRetentionDays =
-    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
-    (() => MAX_PICKABLE_DAYS);
+  const retentionHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
+  const useGetMaxRetentionDays = retentionHook ?? (() => MAX_PICKABLE_DAYS);
 
   const maxRetentionDays = useGetMaxRetentionDays();
 
-  if (!hasHook) {
-    return `${MAX_PICKABLE_DAYS}d`;
+  if (!retentionHook) {
+    return `${maxRetentionDays}d`;
   }
   const daysSinceFirstSeen = getDaysSinceDate(group.firstSeen);
 

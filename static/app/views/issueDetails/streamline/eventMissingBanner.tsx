@@ -23,10 +23,14 @@ export function EventMissingBanner() {
     groupId: string;
   }>();
 
-  const useGetMaxRetentionDays =
-    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
-    (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays() || MAX_PICKABLE_DAYS;
+  const retentionHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
+  const useGetMaxRetentionDays = retentionHook ?? (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+  const statsPeriod = retentionHook
+    ? maxRetentionDays
+      ? `${maxRetentionDays}d`
+      : '30d'
+    : `${MAX_PICKABLE_DAYS}d`;
 
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
@@ -63,7 +67,7 @@ export function EventMissingBanner() {
           to={{
             pathname: `${baseUrl}/${eventId}/`,
             query: {
-              statsPeriod: `${maxRetentionDays}d`,
+              statsPeriod,
               ...(location.query.project ? {project: location.query.project} : {}),
             },
           }}
