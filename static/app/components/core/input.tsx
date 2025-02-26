@@ -14,7 +14,7 @@ export interface InputStylesProps {
   type?: React.HTMLInputTypeAttribute;
 }
 
-export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
+const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
   color: ${p.theme.formText};

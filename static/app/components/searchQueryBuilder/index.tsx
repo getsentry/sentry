@@ -2,7 +2,7 @@ import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {inputStyles} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
 import {
   SearchQueryBuilderContext,
   type SearchQueryBuilderContextData,
@@ -297,7 +297,7 @@ export function SearchQueryBuilder({
         onBlur={() =>
           onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
         }
-        ref={wrapperRef}
+        ref={wrapperRef as React.RefObject<HTMLInputElement>}
         aria-disabled={disabled}
         data-test-id="search-query-builder"
       >
@@ -320,8 +320,7 @@ export function SearchQueryBuilder({
   );
 }
 
-const Wrapper = styled('div')`
-  ${inputStyles}
+const Wrapper = styled(Input.withComponent('div'))`
   min-height: 38px;
   padding: 0;
   height: auto;

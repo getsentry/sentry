@@ -3,8 +3,7 @@ import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autos
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import type {InputStylesProps} from 'sentry/components/core/input';
-import {inputStyles} from 'sentry/components/core/input';
+import {Input, type InputStylesProps} from 'sentry/components/core/input';
 
 export interface TextAreaProps
   extends Omit<
@@ -40,11 +39,10 @@ const TextAreaControl = forwardRef(function TextAreaControl(
 
 TextAreaControl.displayName = 'TextAreaControl';
 
-const TextArea = styled(TextAreaControl, {
+const TextArea = styled(Input.withComponent(TextAreaControl), {
   shouldForwardProp: (p: string) =>
     ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p),
 })`
-  ${inputStyles};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   /** Allow react-textarea-autosize to freely control height based on props. */
@@ -56,4 +54,4 @@ const TextArea = styled(TextAreaControl, {
     `}
 `;
 
-export default TextArea;
+export default TextArea as unknown as typeof TextAreaControl;
