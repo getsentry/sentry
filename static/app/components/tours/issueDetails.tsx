@@ -32,6 +32,7 @@ export const IssueDetailsTourContext = createContext<TourContextType<IssueDetail
   isAvailable: false,
   orderedStepIds: ORDERED_ISSUE_DETAILS_TOUR,
   dispatch: () => {},
+  registerStep: () => {},
 });
 
 export function useIssueDetailsTour(): TourContextType<IssueDetailsTour> {

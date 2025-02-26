@@ -99,7 +99,7 @@ export function TourElement<T extends TourEnumType>({
 }: TourElementProps<T>) {
   const theme = useTheme();
 
-  const {dispatch, currentStep, orderedStepIds} = tourContext;
+  const {currentStep, dispatch, orderedStepIds, registerStep} = tourContext;
   const stepCount = currentStep ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
   const hasPreviousStep = stepCount > 1;
@@ -110,11 +110,8 @@ export function TourElement<T extends TourEnumType>({
   const {current: element} = triggerRef;
 
   useEffect(() => {
-    dispatch({
-      type: 'REGISTER_STEP',
-      step: {id, element},
-    });
-  }, [id, element, dispatch]);
+    registerStep({id, element});
+  }, [id, element, registerStep]);
 
   return (
     <Fragment>
