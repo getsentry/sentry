@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {stringify} from 'query-string';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
@@ -21,9 +20,7 @@ import withApi from 'sentry/utils/withApi';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
-import Banner from './banner';
 import DiscoverBreadcrumb from './breadcrumb';
-import {DEFAULT_EVENT_VIEW} from './data';
 import EventInputName from './eventInputName';
 import SavedQueryButtonGroup from './savedQuery';
 
@@ -129,23 +126,6 @@ class ResultsHeader extends Component<Props, State> {
     );
   }
 
-  renderBanner() {
-    const {location, organization} = this.props;
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization);
-    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
-
-    return (
-      <BannerWrapper>
-        <Banner
-          organization={organization}
-          resultsUrl={resultsUrl}
-          showBuildNewQueryButton={false}
-        />
-      </BannerWrapper>
-    );
-  }
-
   render() {
     const {
       organization,
@@ -235,7 +215,6 @@ class ResultsHeader extends Component<Props, State> {
             homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>
-        {isHomepage && this.renderBanner()}
         <Feature
           organization={organization}
           features="performance-discover-dataset-selector"
@@ -261,10 +240,6 @@ const Subtitle = styled('h4')`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   margin: ${space(0.5)} 0 0 0;
-`;
-
-const BannerWrapper = styled('div')`
-  grid-column: 1 / -1;
 `;
 
 export default withApi(ResultsHeader);
