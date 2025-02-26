@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';

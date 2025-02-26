@@ -4,7 +4,7 @@ import {IconDiamond} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
-interface DiamondStatusProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface DiamondStatusProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Color of the diamond
    */
@@ -18,7 +18,7 @@ interface DiamondStatusProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * A status indicator that renders a icon within a diamond
  */
-function DiamondStatus({color, icon: Icon, ...props}: DiamondStatusProps) {
+export function DiamondStatus({color, icon: Icon, ...props}: DiamondStatusProps) {
   return (
     <StatusWrapper role="presentation" color={color} {...props}>
       <DiamondBackground color={color} />
@@ -26,8 +26,6 @@ function DiamondStatus({color, icon: Icon, ...props}: DiamondStatusProps) {
     </StatusWrapper>
   );
 }
-
-export {DiamondStatus};
 
 const DiamondBackground = styled(IconDiamond)`
   width: 36px;
