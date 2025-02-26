@@ -678,7 +678,7 @@ const PathCell = styled('div')`
   display: flex;
   flex-direction: column;
   padding: ${space(1)} ${space(2)};
-  min-height: ${space(5)};
+  min-height: ${space(4)};
   justify-content: center;
   gap: ${space(0.5)};
 `;
