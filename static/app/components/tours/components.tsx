@@ -1,7 +1,6 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
 
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
@@ -16,6 +15,7 @@ import {
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 interface TourContextProviderProps<T extends TourEnumType> {
@@ -51,7 +51,19 @@ export function TourContextProvider<T extends TourEnumType>({
     orderedStepIds,
     currentStep: null,
   });
-  const isTourActive = tourContextValue.currentStep !== null;
+  const {dispatch, currentStep} = tourContextValue;
+  const isTourActive = currentStep !== null;
+
+  const tourHotkeys = useMemo(() => {
+    return [
+      {match: 'Escape', callback: () => dispatch({type: 'END_TOUR'})},
+      {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
+      {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
+    ];
+  }, [dispatch]);
+
+  useHotkeys(tourHotkeys);
+
   return (
     <tourContext.Provider value={tourContextValue}>
       {isTourActive && <BlurWindow />}
@@ -127,45 +139,40 @@ export function TourElement<T extends TourEnumType>({
         {children}
       </ElementWrapper>
       {isOpen ? (
-        <FocusScope autoFocus restoreFocus>
-          <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
-            <TourOverlay animated>
-              <TopRow>
-                <div>
-                  {stepCount}/{stepTotal}
-                </div>
-                <TourCloseButton
-                  onClick={() => dispatch({type: 'END_TOUR'})}
-                  icon={<IconClose style={{color: theme.inverted.textColor}} />}
-                  aria-label={t('Close')}
-                  borderless
-                  size="sm"
-                />
-              </TopRow>
-              <TitleRow>{title}</TitleRow>
-              <div>{description}</div>
-              <Flex justify="flex-end" gap={space(1)}>
-                {hasPreviousStep && (
-                  <ActionButton
-                    size="xs"
-                    onClick={() => dispatch({type: 'PREVIOUS_STEP'})}
-                  >
-                    {t('Previous')}
-                  </ActionButton>
-                )}
-                {hasNextStep ? (
-                  <ActionButton size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
-                    {t('Next')}
-                  </ActionButton>
-                ) : (
-                  <ActionButton size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
-                    {t('Finish tour')}
-                  </ActionButton>
-                )}
-              </Flex>
-            </TourOverlay>
-          </PositionWrapper>
-        </FocusScope>
+        <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+          <TourOverlay animated>
+            <TopRow>
+              <div>
+                {stepCount}/{stepTotal}
+              </div>
+              <TourCloseButton
+                onClick={() => dispatch({type: 'END_TOUR'})}
+                icon={<IconClose style={{color: theme.inverted.textColor}} />}
+                aria-label={t('Close')}
+                borderless
+                size="sm"
+              />
+            </TopRow>
+            <TitleRow>{title}</TitleRow>
+            <div>{description}</div>
+            <Flex justify="flex-end" gap={space(1)}>
+              {hasPreviousStep && (
+                <ActionButton size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
+                  {t('Previous')}
+                </ActionButton>
+              )}
+              {hasNextStep ? (
+                <ActionButton size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
+                  {t('Next')}
+                </ActionButton>
+              ) : (
+                <ActionButton size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
+                  {t('Finish tour')}
+                </ActionButton>
+              )}
+            </Flex>
+          </TourOverlay>
+        </PositionWrapper>
       ) : null}
     </Fragment>
   );
