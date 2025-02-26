@@ -5,7 +5,7 @@ import type {SeverityLevel} from '@sentry/core';
 import {captureException, withScope} from '@sentry/react';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Badge, {type BadgeType} from 'sentry/components/core/badge';
+import {Badge, type BadgeType} from 'sentry/components/core/badge';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -92,8 +92,10 @@ function BaseFeatureBadge({
     <div {...props}>
       <Tooltip title={title ?? defaultTitles[type]} position="right" {...tooltipProps}>
         <Fragment>
-          {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
-          {variant === 'short' && <StyledBadge type={type} text={shortLabels[type]} />}
+          {variant === 'badge' && <StyledBadge type={type}>{labels[type]}</StyledBadge>}
+          {variant === 'short' && (
+            <StyledBadge type={type}>{shortLabels[type]}</StyledBadge>
+          )}
           {variant === 'indicator' && (
             <CircleIndicator color={indicatorColors[type]} size={8} />
           )}
