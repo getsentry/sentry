@@ -200,6 +200,7 @@ class BaseQueryBuilder:
         array_join: str | None = None,
         entity: Entity | None = None,
     ):
+        sentry_sdk.set_tag("querybuilder.name", type(self).__name__)
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
