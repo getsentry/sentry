@@ -1,16 +1,7 @@
-import {
-  type CSSProperties,
-  Fragment,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import {createPortal} from 'react-dom';
+import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
@@ -31,10 +22,12 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useUser} from 'sentry/utils/useUser';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -77,16 +70,6 @@ type WidgetBuilderV2Props = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
-const getSidebarPortal = () => {
-  let portal = document.getElementsByTagName('main')[0];
-
-  if (!portal) {
-    portal = document.body;
-  }
-
-  return portal as HTMLDivElement;
-};
-
 function WidgetBuilderV2({
   isOpen,
   onClose,
@@ -101,6 +84,7 @@ function WidgetBuilderV2({
 
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
+  const user = useUser();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
@@ -112,27 +96,15 @@ function WidgetBuilderV2({
   );
 
   const {navParentRef} = useNavContext();
-  const [sidebarDimensions, setSidebarDimensions] = useState<{
-    height: number;
-    width: number;
-  }>({
-    width: 0,
-    height: 0,
-  });
+  // Check if we have a valid nav reference
+  const hasValidNav = Boolean(navParentRef?.current);
 
-  const updateSidebarDimensions = useCallback(() => {
-    setSidebarDimensions({
-      width: navParentRef.current?.clientWidth ?? 0,
-      height: navParentRef.current?.clientHeight ?? 0,
-    });
-  }, [navParentRef]);
+  const hasNewNav =
+    hasValidNav &&
+    organization.features.includes('navigation-sidebar-v2') &&
+    user.options.prefersStackedNavigation;
 
-  useResizeObserver({
-    ref: navParentRef,
-    onResize: updateSidebarDimensions,
-  });
-
-  const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
+  const dimensions = useDimensions({elementRef: navParentRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -173,88 +145,90 @@ function WidgetBuilderV2({
   }, [isPreviewDraggable]);
 
   const preferences = useLegacyStore(PreferencesStore);
-  const hasNewNav = organization.features.includes('navigation-sidebar-v2');
   const sidebarCollapsed = !!preferences.collapsed;
 
   return (
     <Fragment>
-      {isOpen &&
-        createPortal(
-          <Fragment>
-            <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
-            <AnimatePresence>
-              {isOpen && (
-                <WidgetBuilderProvider>
-                  <CustomMeasurementsProvider
-                    organization={organization}
-                    selection={selection}
+      {isOpen && (
+        <Fragment>
+          <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
+          <AnimatePresence>
+            {isOpen && (
+              <WidgetBuilderProvider>
+                <CustomMeasurementsProvider
+                  organization={organization}
+                  selection={selection}
+                >
+                  <SpanTagsProvider
+                    dataset={DiscoverDatasets.SPANS_EAP}
+                    enabled={organization.features.includes('dashboards-eap')}
                   >
-                    <SpanTagsProvider
-                      dataset={DiscoverDatasets.SPANS_EAP}
-                      enabled={organization.features.includes('dashboards-eap')}
+                    <ContainerWithoutSidebar
+                      sidebarCollapsed={sidebarCollapsed}
+                      style={
+                        hasNewNav
+                          ? isMediumScreen
+                            ? {
+                                left: 0,
+                                top: `${dimensions.height ?? 0}px`,
+                                willChange: 'top',
+                              }
+                            : {
+                                left: `${dimensions.width ?? 0}px`,
+                                top: 0,
+                                willChange: 'left',
+                              }
+                          : undefined
+                      }
                     >
-                      <ContainerWithoutSidebar
-                        sidebarCollapsed={sidebarCollapsed}
-                        style={
-                          hasNewNav
-                            ? isMediumScreen
-                              ? {
-                                  left: 0,
-                                  top: `${sidebarDimensions.height}px`,
-                                }
-                              : {left: `${sidebarDimensions.width}px`, top: 0}
-                            : undefined
-                        }
-                      >
-                        <WidgetBuilderContainer>
-                          <SlideoutContainer>
-                            <WidgetBuilderSlideout
-                              isOpen={isOpen}
-                              onClose={() => {
-                                onClose();
-                                setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                              }}
-                              onSave={onSave}
-                              onQueryConditionChange={setQueryConditionsValid}
-                              dashboard={dashboard}
-                              dashboardFilters={dashboardFilters}
-                              setIsPreviewDraggable={setIsPreviewDraggable}
-                              isWidgetInvalid={!queryConditionsValid}
-                              openWidgetTemplates={openWidgetTemplates}
-                              setOpenWidgetTemplates={setOpenWidgetTemplates}
-                              onDataFetched={handleWidgetDataFetched}
-                              thresholdMetaState={thresholdMetaState}
-                            />
-                          </SlideoutContainer>
-                          {(!isSmallScreen || isPreviewDraggable) && (
-                            <DndContext
-                              onDragEnd={handleDragEnd}
-                              onDragMove={handleDragMove}
-                              collisionDetection={closestCorners}
-                            >
-                              <SurroundingWidgetContainer>
-                                <WidgetPreviewContainer
-                                  dashboardFilters={dashboardFilters}
-                                  dashboard={dashboard}
-                                  dragPosition={translate}
-                                  isDraggable={isPreviewDraggable}
-                                  isWidgetInvalid={!queryConditionsValid}
-                                  onDataFetched={handleWidgetDataFetched}
-                                  openWidgetTemplates={openWidgetTemplates}
-                                />
-                              </SurroundingWidgetContainer>
-                            </DndContext>
-                          )}
-                        </WidgetBuilderContainer>
-                      </ContainerWithoutSidebar>
-                    </SpanTagsProvider>
-                  </CustomMeasurementsProvider>
-                </WidgetBuilderProvider>
-              )}
-            </AnimatePresence>
-          </Fragment>,
-          portalEl.current
-        )}
+                      <WidgetBuilderContainer>
+                        <SlideoutContainer>
+                          <WidgetBuilderSlideout
+                            isOpen={isOpen}
+                            onClose={() => {
+                              onClose();
+                              setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                            }}
+                            onSave={onSave}
+                            onQueryConditionChange={setQueryConditionsValid}
+                            dashboard={dashboard}
+                            dashboardFilters={dashboardFilters}
+                            setIsPreviewDraggable={setIsPreviewDraggable}
+                            isWidgetInvalid={!queryConditionsValid}
+                            openWidgetTemplates={openWidgetTemplates}
+                            setOpenWidgetTemplates={setOpenWidgetTemplates}
+                            onDataFetched={handleWidgetDataFetched}
+                            thresholdMetaState={thresholdMetaState}
+                          />
+                        </SlideoutContainer>
+                        {(!isSmallScreen || isPreviewDraggable) && (
+                          <DndContext
+                            onDragEnd={handleDragEnd}
+                            onDragMove={handleDragMove}
+                            collisionDetection={closestCorners}
+                          >
+                            <SurroundingWidgetContainer>
+                              <WidgetPreviewContainer
+                                dashboardFilters={dashboardFilters}
+                                dashboard={dashboard}
+                                dragPosition={translate}
+                                isDraggable={isPreviewDraggable}
+                                isWidgetInvalid={!queryConditionsValid}
+                                onDataFetched={handleWidgetDataFetched}
+                                openWidgetTemplates={openWidgetTemplates}
+                              />
+                            </SurroundingWidgetContainer>
+                          </DndContext>
+                        )}
+                      </WidgetBuilderContainer>
+                    </ContainerWithoutSidebar>
+                  </SpanTagsProvider>
+                </CustomMeasurementsProvider>
+              </WidgetBuilderProvider>
+            )}
+          </AnimatePresence>
+        </Fragment>
+      )}
     </Fragment>
   );
 }
