@@ -31,7 +31,7 @@ export function ChonkBadge(props: ChonkBadgeProps) {
 }
 
 const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
-  ${p => ({...makeBadgeTheme(p, p.theme)})};
+  ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
   font-size: ${p => p.theme.fontSizeSmall};
 
@@ -41,7 +41,7 @@ const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   margin-left: ${p => p.theme.space.mini};
 `;
 
-function makeBadgeTheme(
+function makeChonkBadgeTheme(
   p: ChonkBadgeProps,
   theme: ReturnType<typeof useChonkTheme>
 ): React.CSSProperties {
