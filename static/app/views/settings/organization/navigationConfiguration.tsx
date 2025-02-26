@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import FeatureBadge from 'sentry/components/core/badge/featureBadge';
 import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

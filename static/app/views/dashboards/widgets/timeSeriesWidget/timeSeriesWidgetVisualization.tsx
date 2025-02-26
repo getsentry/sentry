@@ -10,13 +10,12 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -111,19 +110,21 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  let releaseSeries: Series | undefined = undefined;
-  if (props.releases) {
-    const onClick = (release: Release) => {
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: `/${encodeURIComponent(release.version)}/`,
-        })
-      );
-    };
-
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
-  }
+  const releaseSeries =
+    props.releases &&
+    ReleaseSeries(
+      theme,
+      props.releases,
+      function onReleaseClick(release: Release) {
+        navigate(
+          makeReleasesPathname({
+            organization,
+            path: `/${encodeURIComponent(release.version)}/`,
+          })
+        );
+      },
+      utc ?? false
+    );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -296,15 +297,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         }
       }}
       autoHeightResize
-      series={[
-        ...dataSeries,
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
-      ].filter(defined)}
+      series={[...dataSeries, releaseSeries].filter(defined)}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
