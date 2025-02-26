@@ -699,6 +699,13 @@ const Cell = styled('div')`
   padding: ${space(1)} ${space(2)};
   min-height: ${space(4)};
 
+  [role='columnheader'] & {
+    color: ${p => p.theme.gray300};
+    font-size: ${p => p.theme.fontSizeSmall};
+    font-weight: 600;
+    min-height: ${space(3)};
+  }
+
   &[data-color='danger'] {
     color: ${p => p.theme.red400};
   }
@@ -741,7 +748,14 @@ function RoutesTable({query}: {query?: string}) {
     {staleTime: 0}
   );
 
-  // Add new request for route controller mappings
+  // Get the list of transactions from the first request
+  const transactionPaths = useMemo(() => {
+    return (
+      transactionsRequest.data?.data.map(transactions => transactions.transaction) ?? []
+    );
+  }, [transactionsRequest.data]);
+
+  // Add transaction filter to route controller request
   const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -755,7 +769,9 @@ function RoutesTable({query}: {query?: string}) {
             'transaction.method',
             'count(span.duration)',
           ],
-          query: `transaction.op:http.server span.op:http.route ${query}`,
+          query: `transaction.op:http.server span.op:http.route transaction:[${
+            transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
+          }] ${query}`,
           referrer: 'api.explore.spans-aggregates-table',
           sort: '-transaction',
           per_page: 25,
@@ -764,8 +780,8 @@ function RoutesTable({query}: {query?: string}) {
     ],
     {
       staleTime: 0,
-      // Only fetch after we have the transactions data
-      enabled: !!transactionsRequest.data?.data,
+      // Only fetch after we have the transactions data and there are transactions to look up
+      enabled: !!transactionsRequest.data?.data && transactionPaths.length > 0,
     }
   );
 
