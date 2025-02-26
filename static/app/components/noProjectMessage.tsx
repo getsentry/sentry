@@ -5,10 +5,10 @@ import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -27,7 +27,7 @@ function NoProjectMessage({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const orgSlug = organization.slug;
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
   const canJoinTeam = organization.access.includes('team:read');
 
   const orgHasProjects = !!projects?.length;

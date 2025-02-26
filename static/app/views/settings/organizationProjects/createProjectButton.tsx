@@ -1,12 +1,12 @@
 import {LinkButton} from 'sentry/components/button';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function CreateProjectButton() {
   const organization = useOrganization();
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
 
   return (
     <LinkButton

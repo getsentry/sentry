@@ -7,7 +7,6 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
@@ -18,6 +17,7 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -47,7 +47,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
 
   const supportedPlatforms = replayPlatforms;
 
