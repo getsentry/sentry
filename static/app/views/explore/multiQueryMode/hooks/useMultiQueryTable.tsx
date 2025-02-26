@@ -7,6 +7,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -24,7 +26,7 @@ export function useMultiQueryTableAggregateMode({
   yAxes,
   sortBys,
   enabled,
-}: Props) {
+}: Props): AggregatesTableResult {
   const {selection} = usePageFilters();
 
   const fields = useMemo(() => {
@@ -73,7 +75,12 @@ export function useMultiQueryTableAggregateMode({
   return {eventView, fields, result};
 }
 
-export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+export function useMultiQueryTableSampleMode({
+  query,
+  yAxes,
+  sortBys,
+  enabled,
+}: Props): SpansTableResult {
   const {selection} = usePageFilters();
 
   const fields = useMemo(() => {
@@ -112,5 +119,5 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
     trackResponseAnalytics: false,
   });
 
-  return {eventView, fields, result};
+  return {eventView, result};
 }

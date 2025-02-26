@@ -6,6 +6,13 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {
+  useMultiQueryTableAggregateMode,
+  useMultiQueryTableSampleMode,
+} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
+import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
   getQueryMode,
   type ReadableExploreQueryParts,
@@ -27,8 +34,38 @@ type Props = {
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const deleteQuery = useDeleteQueryAtIndex();
 
-  const {groupBys} = queryParts;
+  const {groupBys, query, yAxes, sortBys} = queryParts;
   const mode = getQueryMode(groupBys);
+
+  const aggregatesTableResult = useMultiQueryTableAggregateMode({
+    groupBys,
+    query,
+    yAxes,
+    sortBys,
+    enabled: mode === Mode.AGGREGATE,
+  });
+
+  const spansTableResult = useMultiQueryTableSampleMode({
+    groupBys,
+    query,
+    yAxes,
+    sortBys,
+    enabled: mode === Mode.SAMPLES,
+  });
+
+  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+    index,
+    enabled: true,
+  });
+
+  useCompareAnalytics({
+    aggregatesTableResult,
+    index,
+    query: queryParts,
+    spansTableResult,
+    timeseriesResult,
+    queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
+  });
 
   return (
     <Fragment>
@@ -50,12 +87,20 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
       </QueryConstructionSection>
       <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
         <LazyRender containerHeight={260} withoutContainer>
-          <MultiQueryModeChart index={index} mode={mode} query={queryParts} />
+          <MultiQueryModeChart
+            index={index}
+            mode={mode}
+            query={queryParts}
+            timeseriesResult={timeseriesResult}
+            canUsePreviousResults={canUsePreviousResults}
+          />
           <MultiQueryTable
             confidences={[]}
             mode={mode}
             query={queryParts}
             index={index}
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
           />
         </LazyRender>
       </QueryVisualizationSection>
