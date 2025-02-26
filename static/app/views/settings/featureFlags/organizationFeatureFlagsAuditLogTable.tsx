@@ -6,23 +6,13 @@ import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type AuditLog = {
-  action: string;
-  createdAt: string;
-  flag: string;
-  provider: string;
-};
-
-type AuditLogResponse = {
-  data: AuditLog[];
-};
+import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
 
 export function OrganizationFeatureFlagsAuditLogTable({
   pageSize = 15,
@@ -33,7 +23,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const _query = useLocationQuery({
+  const locationQuery = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       end: decodeScalar,
@@ -46,30 +36,27 @@ export function OrganizationFeatureFlagsAuditLogTable({
   });
   const query = useMemo(() => {
     const filteredFields = Object.fromEntries(
-      Object.entries(_query).filter(([_key, val]) => val !== '')
+      Object.entries(locationQuery).filter(([_key, val]) => val !== '')
     );
     return {
       ...filteredFields,
       per_page: pageSize,
       queryReferrer: 'featureFlagsSettings',
     };
-  }, [_query, pageSize]);
+  }, [locationQuery, pageSize]);
 
   const {
     data: responseData,
-    isLoading,
+    isPending,
     error,
     getResponseHeader,
-  } = useApiQuery<AuditLogResponse>(
-    [`/organizations/${organization.slug}/flags/logs/`, {query}],
-    {
-      refetchInterval: 10_000,
-      staleTime: 0,
-    }
-  );
+  } = useOrganizationFlagLog({
+    organization,
+    query,
+  });
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
-  const data = useMemo(() => {
+  const data: RawFlag[] = useMemo(() => {
     return (
       responseData?.data?.map(log => ({
         ...log,
@@ -103,8 +90,8 @@ export function OrganizationFeatureFlagsAuditLogTable({
   );
 
   const renderBodyCell = (
-    column: GridColumnOrder<keyof AuditLog>,
-    dataRow: AuditLog,
+    column: GridColumnOrder<'provider' | 'flag' | 'action' | 'createdAt'>,
+    dataRow: RawFlag,
     _rowIndex: number,
     _columnIndex: number
   ) =>
@@ -124,12 +111,12 @@ export function OrganizationFeatureFlagsAuditLogTable({
   return (
     <Fragment>
       <Flex justify="space-between">
-        <h5>Audit Logs</h5>
-        {hasFilters && <Button onClick={resetFilters}>View All</Button>}
+        <h5>{t('Audit Logs')}</h5>
+        {hasFilters && <Button onClick={resetFilters}>{t('View All')}</Button>}
       </Flex>
       <GridEditable
         error={error}
-        isLoading={isLoading}
+        isLoading={isPending}
         data={data}
         columnOrder={[
           {key: 'provider', name: t('Provider')},
