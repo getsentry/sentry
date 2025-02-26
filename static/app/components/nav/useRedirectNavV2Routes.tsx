@@ -1,8 +1,13 @@
-import {useLocation} from 'react-router-dom';
+import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
 type Props = {
   newPathPrefix: `/${string}`;
@@ -20,6 +25,28 @@ function useShouldRedirect(oldPathPrefix: `/${string}`) {
   return location.pathname.startsWith(
     `/organizations/${organization.slug}${oldPathPrefix}`
   );
+}
+
+/**
+ * All links should use the new paths (e.g. /profiling -> /explore/profiling).
+ * This creates a Sentry issue if we detect any links that haven't been updated.
+ */
+function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: boolean}) {
+  const lastKnownRoute = useLastKnownRoute();
+  const route = useRoutes();
+  const routeString = getRouteStringFromRoutes(route);
+
+  useEffect(() => {
+    if (shouldRedirect && lastKnownRoute !== routeString) {
+      Sentry.captureMessage('Unexpected navigation redirect', {
+        level: 'warning',
+        tags: {
+          last_known_route: lastKnownRoute,
+          route: routeString,
+        },
+      });
+    }
+  }, [lastKnownRoute, shouldRedirect, routeString]);
 }
 
 /**
@@ -41,6 +68,8 @@ export function useRedirectNavV2Routes({
   const organization = useOrganization();
   const prefersStackedNav = usePrefersStackedNav();
   const shouldRedirect = useShouldRedirect(oldPathPrefix);
+
+  useLogUnexpectedNavigationRedirect({shouldRedirect});
 
   if (!prefersStackedNav || !shouldRedirect) {
     return null;
