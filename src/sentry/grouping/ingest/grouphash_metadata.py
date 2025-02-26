@@ -185,7 +185,7 @@ def create_or_update_grouphash_metadata_if_needed(
     if db_hit_metadata:
         metrics.incr("grouping.grouphash_metadata.db_hit", tags=db_hit_metadata)
 
-        if db_hit_metadata["reason"] != "new_grouphash":
+        if db_hit_metadata["reason"] not in ["new_grouphash", "missing_metadata"]:
             # Temporary log to get a sense of how often we're encountering a race condition and
             # backfilling the same grouphash more than once. Note that this data won't be reliable
             # until we increase the sample rate to 100%.
