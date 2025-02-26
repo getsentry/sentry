@@ -1189,6 +1189,12 @@ class OrganizationOnboardingTaskTest(TestCase):
             default_rules=False,
         )
 
+        # Manually update the completionSeen column of existing tasks
+        OrganizationOnboardingTask.objects.filter(organization=self.organization).update(
+            completion_seen=timezone.now()
+        )
+        onboarding_tasks.try_mark_onboarding_complete(self.organization.id)
+
         # Onboarding is NOT yet complete
         assert (
             OrganizationOption.objects.filter(
@@ -1250,6 +1256,12 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_platform=project.platform,
             url=dict(event_with_sourcemap.tags).get("url", None),
         )
+
+        # Manually update the completionSeen column of existing tasks
+        OrganizationOnboardingTask.objects.filter(organization=self.organization).update(
+            completion_seen=timezone.now()
+        )
+        onboarding_tasks.try_mark_onboarding_complete(self.organization.id)
 
         # Onboarding is NOW complete
         assert (
