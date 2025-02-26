@@ -99,9 +99,7 @@ export function ScreenDetailsPage() {
         return (
           <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
             {tab.label}
-            {tab.featureBadge && (
-              <FeatureBadge type={tab.featureBadge} variant={'badge'} />
-            )}
+            {tab.featureBadge && <FeatureBadge type={tab.featureBadge} />}
           </TabList.Item>
         );
       })}
