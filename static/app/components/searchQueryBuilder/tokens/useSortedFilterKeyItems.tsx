@@ -37,6 +37,7 @@ const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
   includeMatches: false,
   minMatchCharLength: 1,
   includeScore: true,
+  distance: 1000,
 };
 
 function isQuoted(inputValue: string) {
