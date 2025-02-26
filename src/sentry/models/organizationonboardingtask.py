@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
@@ -65,14 +64,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                 with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
                     self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
-            except IntegrityError as error:
-                if task == OnboardingTask.FIRST_PROJECT:
-                    scope = sentry_sdk.get_current_scope()
-                    scope.set_extra("error", error)
-                    sentry_sdk.capture_message(
-                        f"Integrity error while creating first project task for org {organization_id}",
-                        level="warning",
-                    )
+            except IntegrityError:
                 pass
 
             # Store marker to prevent running all the time

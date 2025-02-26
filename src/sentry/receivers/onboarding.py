@@ -97,14 +97,15 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         ),
     )
 
-    success = OrganizationOnboardingTask.objects.record(
+    _, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
         user_id=user_id,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
-    if not success:
+    # this means that the "first project" task is already created
+    if not created:
         # Check if the "first project" task already exists and log an error if needed
         first_project_task_exists = OrganizationOnboardingTask.objects.filter(
             organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
@@ -116,20 +117,22 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
                 level="warning",
             )
 
-        OrganizationOnboardingTask.objects.record(
+        _, created = OrganizationOnboardingTask.objects.create_or_update(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             user_id=user_id,
             status=OnboardingTaskStatus.COMPLETE,
             project_id=project.id,
         )
-        analytics.record(
-            "second_platform.added",
-            user_id=default_user_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-        )
-        try_mark_onboarding_complete(project.organization_id)
+
+        if created:
+            # only record the event 1x when the first second platform is created
+            analytics.record(
+                "second_platform.added",
+                user_id=default_user_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
 
 
 @first_event_received.connect(weak=False)
