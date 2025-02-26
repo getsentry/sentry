@@ -2,7 +2,7 @@ import type React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {inputStyles} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
 import {InputGroup} from 'sentry/components/inputGroup';
@@ -80,12 +80,10 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
     );
   };
 }
-const SuffixWrapper = styled('span')<Omit<NumberFieldProps, 'name'>>`
-  ${p => inputStyles(p)};
+const SuffixWrapper = styled(Input.withComponent('span'))<Omit<NumberFieldProps, 'name'>>`
   color: transparent;
   background: transparent;
   border-color: transparent;
-  box-shadow: inset transparent;
   position: absolute;
   top: 0;
   left: 0;
