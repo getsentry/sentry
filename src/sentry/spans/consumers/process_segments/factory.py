@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegme
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.consumers.detect_performance_issues.message import process_segment
+from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_topic_codec(Topic.BUFFERED_SEGMENTS)
@@ -34,14 +34,14 @@ def process_message(message: Message[KafkaPayload]):
 
 
 def _process_message(message: Message[KafkaPayload]):
-    if not options.get("standalone-spans.detect-performance-issues-consumer.enable"):
+    if not options.get("standalone-spans.process-segments-consumer.enable"):
         return
 
     assert isinstance(message.value, BrokerValue)
 
     try:
         with sentry_sdk.start_transaction(
-            op="process", name="spans.detect_performance_issues.process_message"
+            op="process", name="spans.process_segments.process_message"
         ):
             sentry_sdk.set_measurement("message_size.bytes", len(message.payload.value))
             process_message(message)
