@@ -37,7 +37,6 @@ sentry_files = [
     "src/sentry/wsgi.py",
     "src/sentry_plugins/slack/client.py",
 ]
-
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     "/gtm.js",  # Top source; starts with backslash
@@ -90,14 +89,13 @@ def test_get_extension() -> None:
     assert get_extension("/gtm.js") == "js"
 
 
-@pytest.mark.parametrize("unsupported_frames", UNSUPPORTED_FRAME_FILENAMES)
-def test_buckets_logic(unsupported_frames: list[str]) -> None:
+def test_buckets_logic() -> None:
     frames = [
         {"filename": "app://foo.js"},
         {"filename": "./app/utils/handleXhrErrorResponse.tsx"},
         {"filename": "getsentry/billing/tax/manager.py"},
         {"filename": "/cronscripts/monitoringsync.php"},
-    ] + [{"filename": f} for f in unsupported_frames]
+    ] + [{"filename": f} for f in UNSUPPORTED_FRAME_FILENAMES]
     helper = CodeMappingTreesHelper({})
     buckets = helper._stacktrace_buckets(frames)
     assert buckets == {
@@ -126,9 +124,8 @@ class TestFrameFilename:
         path = "getsentry/billing/tax/manager.py"
         assert FrameFilename({"filename": path}).__repr__() == f"FrameFilename: {path}"
 
-    @pytest.mark.parametrize("unsupported_frames", UNSUPPORTED_FRAME_FILENAMES)
-    def test_raises_unsupported(self, unsupported_frames: list[str]) -> None:
-        for filepath in unsupported_frames:
+    def test_raises_unsupported(self) -> None:
+        for filepath in UNSUPPORTED_FRAME_FILENAMES:
             with pytest.raises(UnsupportedFrameFilename):
                 FrameFilename({"filename": filepath})
 
