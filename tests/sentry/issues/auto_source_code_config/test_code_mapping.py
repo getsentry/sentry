@@ -15,6 +15,7 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
+    NeedsExtension,
     UnexpectedPathException,
     UnsupportedFrameFilename,
     convert_stacktrace_frame_path_to_source_path,
@@ -26,7 +27,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.event_frames import EventFrame
 
-sentry_files = [
+SENTRY_FILES = [
     "bin/__init__.py",
     "bin/example1.py",
     "bin/example2.py",
@@ -45,12 +46,14 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/foo/bar/baz",  # no extension
-    "README",  # no extension
     "ssl.py",
     # XXX: The following will need to be supported
     "initialization.dart",
     "backburner.js",
+]
+NO_EXTENSION_FRAME_FILENAMES = [
+    "/foo/bar/baz",  # no extension
+    "README",  # no extension
 ]
 
 
@@ -58,7 +61,7 @@ class TestRepoFiles(TestCase):
     """These evaluate which files should be included as part of a repo."""
 
     def test_filter_source_code_files(self) -> None:
-        source_code_files = filter_source_code_files(sentry_files)
+        source_code_files = filter_source_code_files(SENTRY_FILES)
 
         assert source_code_files.index("bin/__init__.py") == 0
         assert source_code_files.index("docs-ui/.eslintrc.js") == 3
@@ -129,6 +132,11 @@ class TestFrameFilename:
             with pytest.raises(UnsupportedFrameFilename):
                 FrameFilename({"filename": filepath})
 
+    def test_raises_no_extension(self) -> None:
+        for filepath in NO_EXTENSION_FRAME_FILENAMES:
+            with pytest.raises(NeedsExtension):
+                FrameFilename({"filename": filepath})
+
     @pytest.mark.parametrize(
         "frame_filename, prefix",
         [
@@ -165,7 +173,7 @@ class TestDerivedCodeMappings(TestCase):
         self.bar_repo = RepoAndBranch("Test-Organization/bar", "main")
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
-                self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
+                self.foo_repo.name: RepoTree(self.foo_repo, files=SENTRY_FILES),
                 self.bar_repo.name: RepoTree(self.bar_repo, files=["sentry/web/urls.py"]),
             }
         )
@@ -309,10 +317,10 @@ class TestDerivedCodeMappings(TestCase):
 
     def test_find_roots_starts_with_period_slash_no_containing_directory(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameFilename({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
+            FrameFilename({"filename": "./app/foo.tsx"}), "app/foo.tsx"
         )
         assert stacktrace_root == "./"
-        assert source_path == "static/"
+        assert source_path == ""
 
     def test_find_roots_not_matching(self) -> None:
         stacktrace_root, source_path = find_roots(
