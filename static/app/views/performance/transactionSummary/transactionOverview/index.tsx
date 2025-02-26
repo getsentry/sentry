@@ -127,7 +127,7 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   const mepContext = useMEPDataContext();
 
   const queryData = useDiscoverQuery({
-    eventView: getTotalsEventView(organization, eventView),
+    eventView: getEAPTotalsEventView(organization, eventView),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
@@ -457,6 +457,24 @@ function getTotalsEventView(
         }) as Column
     ),
   ]);
+}
+
+function getEAPTotalsEventView(
+  _organization: Organization,
+  eventView: EventView
+): EventView {
+  const totalsColumns: QueryFieldValue[] = [
+    {
+      kind: 'function',
+      function: ['p95', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['count_unique', 'user', undefined, undefined],
+    },
+  ];
+
+  return eventView.withColumns([...totalsColumns]);
 }
 
 export default withPageFilters(withProjects(withOrganization(TransactionOverview)));
