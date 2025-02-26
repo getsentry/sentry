@@ -7,6 +7,7 @@ import {Alert} from 'sentry/components/core/alert';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -328,9 +329,11 @@ function ProfilingOnboardingCTA() {
 }
 
 function ProfilingContentPageHeader() {
+  const prefersStackedNav = usePrefersStackedNav();
+
   return (
-    <StyledLayoutHeader>
-      <StyledHeaderContent>
+    <StyledLayoutHeader unified={prefersStackedNav}>
+      <StyledHeaderContent unified={prefersStackedNav}>
         <Layout.Title>
           {t('Profiling')}
           <PageHeadingQuestionTooltip

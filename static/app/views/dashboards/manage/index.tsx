@@ -15,6 +15,7 @@ import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
@@ -90,6 +91,7 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -428,8 +430,8 @@ function ManageDashboards() {
           ) : (
             <Layout.Page>
               <NoProjectMessage organization={organization}>
-                <Layout.Header>
-                  <Layout.HeaderContent>
+                <Layout.Header unified={prefersStackedNav}>
+                  <Layout.HeaderContent unified={prefersStackedNav}>
                     <Layout.Title>
                       {t('Dashboards')}
                       <PageHeadingQuestionTooltip
