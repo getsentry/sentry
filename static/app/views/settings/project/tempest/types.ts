@@ -13,5 +13,5 @@ export type TempestCredentials = {
   id: number;
   latestFetchedItemId: string;
   message: string;
-  messageType: MessageType;
+  messageType: MessageType | null;
 };

@@ -84,7 +84,7 @@ const STATUS_CONFIG = {
   info: {label: 'Pending', type: 'info'},
 } as const;
 
-export function StatusTag({type, message}: StatusTagProps) {
+function StatusTag({type, message}: StatusTagProps) {
   const config = STATUS_CONFIG[type];
   return (
     <Tag type={config.type} tooltipText={message}>
@@ -93,9 +93,12 @@ export function StatusTag({type, message}: StatusTagProps) {
   );
 }
 
-export function getStatusType(credential: {message?: string; messageType?: string}) {
-  if (!credential.message) {
-    // If there is no message, it is pending
+function getStatusType(credential: {
+  message: TempestCredentials['message'];
+  messageType: TempestCredentials['messageType'];
+}) {
+  if (credential.messageType === null) {
+    // If messageType is null, it is pending and still it wasn't validated
     return 'info';
   }
 
