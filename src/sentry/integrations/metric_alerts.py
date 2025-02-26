@@ -10,11 +10,7 @@ from django.utils.translation import gettext as _
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleThresholdType,
-    ComparisonDeltaChoices,
-)
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
@@ -271,11 +267,7 @@ def metric_alert_unfurl_attachment_info(
                 if alert_rule.threshold_type is not None
                 else None
             ),
-            (
-                ComparisonDeltaChoices(alert_rule.comparison_delta)
-                if alert_rule.comparison_delta is not None
-                else None
-            ),
+            alert_rule.comparison_delta,
             str(metric_value),
         )
 
