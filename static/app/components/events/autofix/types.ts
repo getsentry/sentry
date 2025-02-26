@@ -50,9 +50,12 @@ export type AutofixOptions = {
 export type AutofixRepository = {
   default_branch: string;
   external_id: string;
+  integration_id: string;
   name: string;
   provider: string;
   url: string;
+  is_readable?: boolean;
+  is_writeable?: boolean;
 };
 
 export type AutofixData = {

@@ -106,6 +106,6 @@ describe('StackTracePreview', () => {
 
     expect(await screen.findByTestId(component)).toBeInTheDocument();
     // Hide the platform icon for stack trace previews
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('img')).toHaveLength(1);
   });
 });

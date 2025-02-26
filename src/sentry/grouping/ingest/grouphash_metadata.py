@@ -1,3 +1,10 @@
+"""
+IMPORTANT:
+
+If you make changes here that affect what's stored, increment GROUPHASH_METADATA_SCHEMA_VERSION in
+the `GroupHash` model file, so that existing records will get updated with the new data.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -29,7 +36,11 @@ from sentry.grouping.variants import (
     VariantsByDescriptor,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
+from sentry.models.grouphashmetadata import (
+    GROUPHASH_METADATA_SCHEMA_VERSION,
+    GroupHashMetadata,
+    HashBasis,
+)
 from sentry.models.project import Project
 from sentry.types.grouphash_metadata import (
     ChecksumHashingMetadata,
@@ -123,8 +134,23 @@ def create_or_update_grouphash_metadata_if_needed(
     db_hit_metadata: dict[str, Any] = {}
 
     if not grouphash.metadata:
-        new_data: dict[str, Any] = {"grouphash": grouphash}
-        new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
+        # Use `get_or_create` rather than just `create` (even though the fact that we landed in this
+        # branch implies no record exists) in order to guard against race coditions without the need
+        # for a lock
+        grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+
+        if not created:
+            logger.info(
+                "grouphash_metadata.creation_race_condition.record_exists",
+                extra={
+                    "grouphash_metadata_id": grouphash_metadata.id,
+                    "grouphash_is_new": grouphash_is_new,
+                    "event_id": event.event_id,
+                },
+            )
+            return
+
+        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 
@@ -133,7 +159,7 @@ def create_or_update_grouphash_metadata_if_needed(
             # doesn't default to now
             new_data["date_added"] = None
 
-        GroupHashMetadata.objects.create(**new_data)
+        grouphash_metadata.update(**new_data)
 
     else:
         updated_data: dict[str, Any] = {}
@@ -180,6 +206,7 @@ def get_grouphash_metadata_data(
         "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
         base_data = {
+            "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
             "latest_grouping_config": grouping_config,
             "platform": event.platform or "unknown",
         }

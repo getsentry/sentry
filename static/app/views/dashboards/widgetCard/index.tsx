@@ -4,7 +4,6 @@ import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import type {BadgeProps} from 'sentry/components/badge/badge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -184,26 +183,18 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge: BadgeProps | undefined =
+  const onDemandExtractionBadge: string | undefined =
     extractionStatus === 'extracted'
-      ? {
-          text: t('Extracted'),
-        }
+      ? t('Extracted')
       : extractionStatus === 'not-extracted'
-        ? {
-            text: t('Not Extracted'),
-          }
+        ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge: BadgeProps | undefined = indexedEventsWarning
-    ? {
-        text: t('Indexed'),
-      }
+  const indexedDataBadge: string | undefined = indexedEventsWarning
+    ? t('Indexed')
     : undefined;
 
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(
-    Boolean
-  ) as BadgeProps[];
+  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,

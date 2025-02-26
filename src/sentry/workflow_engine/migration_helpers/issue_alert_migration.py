@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -53,14 +54,16 @@ class IssueAlertMigrator:
     def run(self) -> None:
         error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
+        action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
-            action_match=self.data["action_match"],
+            action_match=action_match,
             detector=error_detector,
         )
+        filter_match = self.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         if_dcg = self._create_if_dcg(
-            filter_match=self.data.get("filter_match", "all"),
+            filter_match=filter_match,
             workflow=workflow,
             conditions=conditions,
             filters=filters,
@@ -161,6 +164,8 @@ class IssueAlertMigrator:
         enabled = True
         rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
         if rule_snooze and rule_snooze.until is None:
+            enabled = False
+        if self.rule.status == ObjectStatus.DISABLED:
             enabled = False
 
         config = {"frequency": self.rule.data.get("frequency") or Workflow.DEFAULT_FREQUENCY}

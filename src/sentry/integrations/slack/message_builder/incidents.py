@@ -11,7 +11,9 @@ from sentry.integrations.slack.message_builder.types import (
 from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
-def get_started_at(timestamp: datetime) -> str:
+def get_started_at(timestamp: datetime | None) -> str:
+    if timestamp is None:
+        return ""
     return "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
         timestamp.timestamp(), "{date_pretty}", "{time}"
     )
@@ -22,7 +24,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self,
         incident: Incident,
         new_status: IncidentStatus,
-        metric_value: float | None = None,
+        metric_value: float,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
@@ -49,7 +51,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             self.notification_uuid,
             referrer="metric_alert_slack",
         )
-        incident_text = f"{data['text']}\n{get_started_at(data['ts'])}"
+        incident_text = f"{data['text']}\n{get_started_at(data['date_started'])}"
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]

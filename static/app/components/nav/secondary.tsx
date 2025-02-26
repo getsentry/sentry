@@ -1,10 +1,8 @@
-import {forwardRef, type ReactNode, useLayoutEffect} from 'react';
+import {type ReactNode, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {DraggableProps} from 'framer-motion';
-import {Reorder} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -80,17 +78,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNo
   );
 };
 
-SecondaryNav.Body = forwardRef<HTMLDivElement, {children: ReactNode}>(
-  ({children}, ref) => {
-    const {layout} = useNavContext();
+SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
+  const {layout} = useNavContext();
 
-    return (
-      <Body layout={layout} ref={ref}>
-        {children}
-      </Body>
-    );
-  }
-);
+  return <Body layout={layout}>{children}</Body>;
+};
 
 SecondaryNav.Section = function SecondaryNavSection({
   title,
@@ -141,56 +133,6 @@ SecondaryNav.Item = function SecondaryNavItem({
   );
 };
 
-interface SecondaryNavReordableItemProps<T> extends SecondaryNavItemProps {
-  value: T;
-  dragConstraints?: DraggableProps['dragConstraints'];
-}
-
-// TODO(msun): Try to remove this and just make <Item/> more generalizable in the future.
-SecondaryNav.ReordableItem = function SecondaryNavReordableItem<T>({
-  children,
-  to,
-  activeTo = to,
-  isActive: incomingIsActive,
-  end = false,
-  trailingItems,
-  dragConstraints,
-  value,
-  leadingItems,
-  className,
-}: SecondaryNavReordableItemProps<T>) {
-  const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
-
-  const {layout: navLayout} = useNavContext();
-
-  return (
-    <ReorderableItem
-      as="div"
-      dragConstraints={dragConstraints}
-      dragElastic={0.03}
-      dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
-      value={value}
-      whileDrag={{
-        cursor: 'grabbing',
-      }}
-      navLayout={navLayout}
-      onMouseDown={e => {
-        // Prevents text highlighting on drag
-        e.preventDefault();
-      }}
-      aria-current={isActive ? 'page' : undefined}
-      aria-selected={isActive}
-      className={className}
-    >
-      <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
-      {leadingItems}
-      <ItemText>{children}</ItemText>
-      {trailingItems}
-    </ReorderableItem>
-  );
-};
-
 SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
 
@@ -204,7 +146,7 @@ const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(1)} 0 ${space(3)};
+  padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 
@@ -235,7 +177,7 @@ const Section = styled('div')`
 const SectionTitle = styled('div')<{layout: NavLayout}>`
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(1.5)};
+  padding: 0 ${space(1)};
   margin: ${space(2)} 0 ${space(0.5)} 0;
 
   ${p =>
@@ -257,7 +199,7 @@ const SectionSeparator = styled('hr')`
 const Item = styled(Link)<{layout: NavLayout}>`
   position: relative;
   display: flex;
-  padding: 4px ${space(1.5)};
+  padding: 4px ${space(1)};
   height: 34px;
   align-items: center;
   color: ${p => p.theme.textColor};
@@ -297,53 +239,12 @@ const Item = styled(Link)<{layout: NavLayout}>`
     `}
 `;
 
-// TODO(msun): These styles are duplicated from <Item/>. Remove these once we figure out a better abstraction for <Item/>
-const ReorderableItem = styled(Reorder.Item)<{navLayout: NavLayout}>`
-  position: relative;
-  display: flex;
-  padding: 4px ${space(1.5)};
-  height: 34px;
-  align-items: center;
-  color: inherit;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  line-height: 177.75%;
-  border-radius: ${p => p.theme.borderRadius};
-  cursor: pointer;
-
-  &[aria-selected='true'] {
-    color: ${p => p.theme.gray500};
-    font-weight: ${p => p.theme.fontWeightBold};
-  }
-
-  &:hover {
-    color: inherit;
-  }
-
-  [data-isl] {
-    transform: translate(0, 0);
-    top: 1px;
-    bottom: 1px;
-    right: 0;
-    left: 0;
-    width: initial;
-    height: initial;
-  }
-
-  ${p =>
-    p.navLayout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-      border-radius: 0;
-    `}
-`;
-
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 
   ${p =>

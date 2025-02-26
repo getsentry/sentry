@@ -34,6 +34,14 @@ interface SidebarItemDropdownProps {
   forceLabel?: boolean;
 }
 
+interface SidebarButtonProps {
+  analyticsKey: string;
+  children: React.ReactNode;
+  label: string;
+  buttonProps?: React.HTMLAttributes<HTMLElement>;
+  onClick?: MouseEventHandler<HTMLElement>;
+}
+
 export function SidebarItem({
   children,
   ...props
@@ -128,6 +136,35 @@ export function SidebarLink({
   );
 }
 
+export function SidebarButton({
+  analyticsKey,
+  children,
+  buttonProps = {},
+  onClick,
+  label,
+}: SidebarButtonProps) {
+  const organization = useOrganization();
+  const {layout} = useNavContext();
+  const showLabel = layout === NavLayout.MOBILE;
+
+  return (
+    <NavButton
+      {...buttonProps}
+      isMobile={layout === NavLayout.MOBILE}
+      aria-label={showLabel ? undefined : label}
+      onClick={(e: React.MouseEvent<HTMLElement>) => {
+        trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization});
+        buttonProps.onClick?.(e);
+        onClick?.(e);
+      }}
+    >
+      <InteractionStateLayer />
+      {children}
+      {showLabel ? label : null}
+    </NavButton>
+  );
+}
+
 export function SeparatorItem() {
   return (
     <SeparatorListItem aria-hidden>
@@ -142,14 +179,14 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   gap: ${space(1.5)};
   align-items: center;
   padding: ${space(1.5)} ${space(3)};
-  color: var(--color, currentColor);
+  color: ${p.theme.textColor};
   font-size: ${p.theme.fontSizeMedium};
   font-weight: ${p.theme.fontWeightNormal};
   line-height: 1;
   width: 100%;
 
   &:hover {
-    color: var(--color, currentColor);
+    color: ${p.theme.textColor};
   }
 
   & > * {
@@ -197,17 +234,18 @@ export const NavButton = styled('button', {
 
 export const SidebarItemUnreadIndicator = styled('span')`
   position: absolute;
-  top: calc(50% - 16px);
-  left: calc(50% + 16px);
+  top: calc(50% - 12px);
+  left: calc(50% + 12px);
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   background: ${p => p.theme.purple400};
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid ${p => p.theme.background};
 `;
 
 const SeparatorListItem = styled('li')`

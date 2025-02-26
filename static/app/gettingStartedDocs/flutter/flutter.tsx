@@ -18,6 +18,7 @@ import {
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -50,9 +51,11 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
-const getInstallSnippet = (params: Params) => `
-dependencies:
-  sentry_flutter: ^${getPackageVersion(params, 'sentry.dart.flutter', '7.8.0')}`;
+const getManualInstallSnippet = (params: Params) => {
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  return `dependencies:
+  sentry_flutter: ^${version}`;
+};
 
 const getConfigureSnippet = (params: Params) => `
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -167,8 +170,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: 'brew install getsentry/tools/sentry-wizard && sentry-wizard -i flutter',
+                code: getWizardInstallSnippet({
+                  platform: 'flutter',
+                  params,
+                }),
               },
               {
                 description: (
@@ -201,14 +206,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     </List>
                   </Fragment>
                 ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/" />
-                    ),
-                  }
-                ),
               },
             ],
           },
@@ -231,7 +228,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     language: 'yaml',
                     filename: 'pubspec.yaml',
                     partialLoading: params.sourcePackageRegistries?.isLoading,
-                    code: getInstallSnippet(params),
+                    code: getManualInstallSnippet(params),
                   },
                 ],
               },
@@ -380,7 +377,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               label: 'YAML',
               value: 'yaml',
               language: 'yaml',
-              code: getInstallSnippet(params),
+              code: getManualInstallSnippet(params),
             },
           ],
         },

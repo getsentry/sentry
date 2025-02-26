@@ -49,17 +49,6 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
-from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
-from sentry.api.endpoints.relocations.artifacts.details import RelocationArtifactDetailsEndpoint
-from sentry.api.endpoints.relocations.artifacts.index import RelocationArtifactIndexEndpoint
-from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
-from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
-from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
-from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
-from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
-from sentry.api.endpoints.relocations.recover import RelocationRecoverEndpoint
-from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
-from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
@@ -259,6 +248,17 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
+from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
+from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
+from sentry.relocation.api.endpoints.cancel import RelocationCancelEndpoint
+from sentry.relocation.api.endpoints.details import RelocationDetailsEndpoint
+from sentry.relocation.api.endpoints.index import RelocationIndexEndpoint
+from sentry.relocation.api.endpoints.pause import RelocationPauseEndpoint
+from sentry.relocation.api.endpoints.public_key import RelocationPublicKeyEndpoint
+from sentry.relocation.api.endpoints.recover import RelocationRecoverEndpoint
+from sentry.relocation.api.endpoints.retry import RelocationRetryEndpoint
+from sentry.relocation.api.endpoints.unpause import RelocationUnpauseEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -320,6 +320,9 @@ from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
 from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_webhook_requests import (
+    SentryAppWebhookRequestsEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.sentry_apps import SentryAppsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
@@ -2893,6 +2896,11 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_id_or_slug>[^\/]+)/publish-request/$",
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
+    ),
+    re_path(
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/webhook-requests/$",
+        SentryAppWebhookRequestsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-webhook-requests",
     ),
     # The following a region endpoints as interactions and request logs
     # are per-region.

@@ -4,7 +4,7 @@ import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 
 describe('scaleTimeSeriesData', () => {
   describe('does not scale unscalable types', () => {
-    const timeserie = {
+    const timeSeries = {
       field: 'user',
       data: [
         {
@@ -25,13 +25,13 @@ describe('scaleTimeSeriesData', () => {
     it.each([RateUnit.PER_MINUTE, DurationUnit.SECOND, SizeUnit.GIBIBYTE, null] as const)(
       'Does not scale strings to %s',
       unit => {
-        expect(scaleTimeSeriesData(timeserie, unit)).toEqual(timeserie);
+        expect(scaleTimeSeriesData(timeSeries, unit)).toEqual(timeSeries);
       }
     );
   });
 
   it('does not scale duration units from second to gigabyte', () => {
-    const timeserie = {
+    const timeSeries = {
       field: 'transaction.duration',
       data: [
         {
@@ -49,11 +49,11 @@ describe('scaleTimeSeriesData', () => {
       },
     };
 
-    expect(scaleTimeSeriesData(timeserie, SizeUnit.GIGABYTE)).toEqual(timeserie);
+    expect(scaleTimeSeriesData(timeSeries, SizeUnit.GIGABYTE)).toEqual(timeSeries);
   });
 
   it('scales duration units from second to millisecond', () => {
-    const timeserie = {
+    const timeSeries = {
       field: 'transaction.duration',
       data: [
         {
@@ -71,7 +71,7 @@ describe('scaleTimeSeriesData', () => {
       },
     };
 
-    expect(scaleTimeSeriesData(timeserie, DurationUnit.MILLISECOND)).toEqual({
+    expect(scaleTimeSeriesData(timeSeries, DurationUnit.MILLISECOND)).toEqual({
       field: 'transaction.duration',
       data: [
         {
@@ -91,7 +91,7 @@ describe('scaleTimeSeriesData', () => {
   });
 
   it('scales size units from mebibyte to byte', () => {
-    const timeserie = {
+    const timeSeries = {
       field: 'file.size',
       data: [
         {
@@ -109,7 +109,7 @@ describe('scaleTimeSeriesData', () => {
       },
     };
 
-    expect(scaleTimeSeriesData(timeserie, SizeUnit.BYTE)).toEqual({
+    expect(scaleTimeSeriesData(timeSeries, SizeUnit.BYTE)).toEqual({
       field: 'file.size',
       data: [
         {

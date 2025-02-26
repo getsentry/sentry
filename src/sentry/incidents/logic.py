@@ -60,7 +60,7 @@ from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
-from sentry.search.events.fields import is_function, resolve_field
+from sentry.search.events.fields import is_function, is_typed_numeric_tag, resolve_field
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
@@ -1813,6 +1813,7 @@ def check_aggregate_column_support(
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
         or (column in EAP_COLUMNS and allow_eap)
+        or (is_typed_numeric_tag(column) and allow_eap)
     )
 
 

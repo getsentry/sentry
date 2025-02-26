@@ -11,6 +11,7 @@ import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
 import localStorage from 'sentry/utils/localStorage';
@@ -116,20 +117,6 @@ describe('Sidebar', function () {
     expect(screen.getByText(user.email)).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
-  });
-
-  it('does not render collapse with navigation-sidebar-v2 flag', async function () {
-    renderSidebar({
-      organization: {...organization, features: ['navigation-sidebar-v2']},
-    });
-
-    // await for the page to be rendered
-    expect(await screen.findByText('Issues')).toBeInTheDocument();
-    // Check that the user name is no longer visible
-    expect(screen.queryByText(user.name)).not.toBeInTheDocument();
-    // Check that the organization name is no longer visible
-    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
-    expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
   });
 
   it('has can logout', async function () {
@@ -422,6 +409,67 @@ describe('Sidebar', function () {
         screen.getByTestId('sidebar-accordion-insights-domains-item')
       );
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
+    });
+  });
+
+  describe('New navigation UI prompts', () => {
+    beforeEach(() => {
+      PreferenceStore.showSidebar();
+    });
+
+    it('should render the sidebar banner with no dismissed prompts and the feature flag enabled', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+
+      expect(await screen.findByText(/Try New Navigation/)).toBeInTheDocument();
+    });
+
+    it('will not render sidebar banner when collapsed', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+
+      await userEvent.click(screen.getByTestId('sidebar-collapse'));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Try New Navigation/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show dot on help menu after dismissing sidebar banner', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      const dismissMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+
+      await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
+
+      expect(await screen.findByTestId('help-menu-dot')).toBeInTheDocument();
+      expect(screen.queryByText(/Try New Navigation/)).not.toBeInTheDocument();
+      expect(dismissMock).toHaveBeenCalled();
+
+      // Opening the help dropdown will remove the dot
+      await userEvent.click(screen.getByRole('link', {name: /Help/}));
+      await waitFor(() => {
+        expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
+      });
+
+      expect(dismissMock).toHaveBeenCalledTimes(2);
     });
   });
 });

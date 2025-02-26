@@ -18,12 +18,18 @@ logger = logging.getLogger(__name__)
 
 
 class Condition(StrEnum):
+    # Base conditions - Most DETECTOR_TRIGGERS will use these
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
+
+    # Anomaly detection
+    ANOMALY_DETECTION = "anomaly_detection"
+
+    # Issue conditions
     AGE_COMPARISON = "age_comparison"
     ASSIGNED_TO = "assigned_to"
     EVENT_ATTRIBUTE = "event_attribute"
@@ -41,7 +47,7 @@ class Condition(StrEnum):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
-    EVERY_EVENT = "every_event"  # skipped
+    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -50,6 +56,9 @@ class Condition(StrEnum):
     EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
     PERCENT_SESSIONS_COUNT = "percent_sessions_count"
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
+
+    # Migration Only
+    EVERY_EVENT = "every_event"
 
 
 CONDITION_OPS = {

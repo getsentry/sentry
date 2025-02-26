@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -35,9 +35,11 @@ function SharedGroupHeader({group}: Props) {
             {group.issueCategory === IssueCategory.PERFORMANCE && (
               <FeatureBadge
                 type="beta"
-                title={t(
-                  'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
-                )}
+                tooltipProps={{
+                  title: t(
+                    'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
+                  ),
+                }}
               />
             )}
           </ShortIdWrapper>

@@ -99,6 +99,12 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': Record<string, unknown>;
   'issue.share_from_icon': Record<string, unknown>;
   'issue.shared_publicly': Record<string, unknown>;
+  'issue_details.activity_comments_link_clicked': {
+    num_comments: number;
+  };
+  'issue_details.activity_drawer.filter_changed': {
+    filter: string;
+  };
   'issue_details.comment_created': {
     org_streamline_only: boolean | undefined;
     streamline: boolean;
@@ -141,6 +147,7 @@ export type IssueEventParameters = {
   'issue_details.issue_tags_click': Record<string, unknown>;
   'issue_details.performance.autogrouped_siblings_toggle': Record<string, unknown>;
   'issue_details.performance.hidden_spans_expanded': Record<string, unknown>;
+  'issue_details.publish_issue_modal_opened': StreamlineGroupParams;
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -392,6 +399,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
   'highlights.project_settings.updated_manually':
     'Highlights: Updated Manually from Settings',
+  'issue_details.activity_comments_link_clicked':
+    'Issue Details: Activity Comments Link Clicked',
+  'issue_details.activity_drawer.filter_changed':
+    'Issue Details: Activity Drawer Filter Changed',
   'issue_details.copy_issue_short_id_clicked': 'Issue Details: Copy Issue Short ID',
   'issue_details.copy_issue_url_clicked': 'Issue Details: Copy Issue URL',
   'issue_details.copy_issue_markdown_link_clicked':
@@ -403,6 +414,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
+  'issue_details.publish_issue_modal_opened': 'Issue Details: Publish Issue Modal Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
