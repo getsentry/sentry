@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.426366+00:00'
+created: '2025-02-26T00:33:46.620319+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -107,10 +107,10 @@ system:
               "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "thread_start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_pthread_start"
           frame*
@@ -173,13 +173,13 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__pthread_kill"
         type*
