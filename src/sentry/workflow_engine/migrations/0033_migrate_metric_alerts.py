@@ -302,7 +302,10 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(
         AlertRule.objects_with_snapshots.all()
     ):
-        if alert_rule.status in [AlertRuleStatus.DISABLED, AlertRuleStatus.SNAPSHOT]:
+        if alert_rule.status in [AlertRuleStatus.DISABLED.value, AlertRuleStatus.SNAPSHOT.value]:
+            logger.info(
+                "Skipping disabled/deleted alert rule", extra={"alert_rule_id": alert_rule.id}
+            )
             continue
         if alert_rule.detection_type == "dynamic":
             logger.info(
@@ -313,6 +316,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
         if AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists():
             # in case we need to restart the migration for some reason, skip rules
             # that have already been migrated
+            logger.info("Alert rule already migrated", extra={"alert_rule_id": alert_rule.id})
             continue
 
         organization_id = alert_rule.organization_id
@@ -481,6 +485,9 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         condition_result=True,
                         type=Condition.ISSUE_PRIORITY_EQUALS,
                         condition_group=data_condition_group,
+                    )
+                    logger.info(
+                        "Successfully migrated alert rule", extra={"alert_rule_id": alert_rule.id}
                     )
         except Exception as e:
             logger.info(
