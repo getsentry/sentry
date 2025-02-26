@@ -11,9 +11,9 @@ from sentry.types.rules import RuleFuture
 class FakeLogAction(IntegrationEventAction):
     id = "sentry.integrations.fake_log_integration.actions.FakeLogAction"
     label = "Log a message"
-    prompt = "Enter a message to log"
+    prompt = "Enter a fake identifier to log alongside issue data"
     provider = "fake-log"
-    integration_key = "wat"
+    integration_key = "fake-log"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -22,11 +22,19 @@ class FakeLogAction(IntegrationEventAction):
         }
 
     def after(self, event: GroupEvent, notification_uuid: str | None = None):
-        # We construct a future for the caller to eventually invoke
+        # Weird pattern as a result of the closure we create below.
+        # We need integration information in both the closure and the future key.
+        integration = self.get_integration()
+        assert integration is not None, "Integration is required for fake log client"
+
+        # We construct a future for the caller to eventually invoke, but for
+        # whatever reason, we also supply a sequence of futures?
         def send_log(event: GroupEvent, futures: Sequence[RuleFuture]):
-            client = FakeIntegrationClient(self.get_integration())
-            # Tight coupling to the `data` object in the rule object.
-            # post_process supplies this information as far as I can tell.
+            client = FakeIntegrationClient(integration)
+            # Unpacking the rule's data object happens here, so there's lots of
+            # coupling to the provider's implementation here.
+            # Also lots of coupling to the client, thereby bypassing the
+            # integration installation class entirely. Doesn't feel great.
             identifier = self.get_option("identifier")
             client.log(
                 event.message,
@@ -35,4 +43,4 @@ class FakeLogAction(IntegrationEventAction):
             )
 
         # Key is used for rudimentary deduping
-        yield self.future(send_log, key=f"fake-log:{self.get_integration().id}")
+        yield self.future(send_log, key=f"fake-log:{integration.id}")

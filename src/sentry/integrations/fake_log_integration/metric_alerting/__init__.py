@@ -24,6 +24,8 @@ def send_incident_alert_notification(
         return False
     identifier = action.target_identifier
 
+    assert identifier is not None, "Identifier is required for fake log integration"
+
     # Tight coupling between the notifier and _client_ is unfortunately really common
     # We don't either don't have enough context to fully instantiate an integration installation class with the data we have
     # or we were too lazy to go through the effort to do so

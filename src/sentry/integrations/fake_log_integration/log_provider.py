@@ -24,14 +24,16 @@ metadata = IntegrationMetadata(
     ],
     author="The Sentry Team",
     noun="Log",
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Fake%20Log%20Integration%20Problem",
+    issue_url="",
+    source_url="",
+    aspects={},
 )
 
 
 class FakeLogIntegration(IntegrationInstallation):
     # Very basic integration, just logs via a fake client
     def get_client(self) -> FakeIntegrationClient:
-        return FakeIntegrationClient(self)
+        return FakeIntegrationClient(self.model)
 
     def logme(
         self,
