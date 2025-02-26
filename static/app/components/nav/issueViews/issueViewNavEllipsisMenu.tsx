@@ -14,7 +14,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 
-interface IssueViewNavEllipsisMenuProps {
+export interface IssueViewNavEllipsisMenuProps {
   baseUrl: string;
   deleteView: () => void;
   duplicateView: () => void;
