@@ -26,7 +26,7 @@ from sentry.options import get
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
-from sentry.relocation.tasks import uploading_start
+from sentry.relocation.tasks.process import uploading_start
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code

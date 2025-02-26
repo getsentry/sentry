@@ -16,7 +16,7 @@ from sentry.relocation.api.endpoints import (
     ERR_UNKNOWN_RELOCATION_STEP,
 )
 from sentry.relocation.models.relocation import Relocation
-from sentry.relocation.tasks import TASK_MAP
+from sentry.relocation.tasks.process import TASK_MAP
 from sentry.relocation.utils import OrderedTask
 
 ERR_NOT_RECOVERABLE_STATUS = Template(
