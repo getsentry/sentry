@@ -43,7 +43,7 @@ export default function RawContent({
   }
 
   if (isPending) {
-    return <Placeholder height="250px" />;
+    return <Placeholder height="270px" />;
   }
 
   if (isError) {
