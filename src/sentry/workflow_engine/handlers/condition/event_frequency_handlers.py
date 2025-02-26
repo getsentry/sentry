@@ -2,6 +2,7 @@ from typing import Any
 
 from sentry.rules.conditions.event_frequency import (
     COMPARISON_INTERVALS,
+    PERCENT_INTERVALS,
     STANDARD_INTERVALS,
     percent_increase,
 )
@@ -68,7 +69,7 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "interval": {"type": "string", "enum": list(PERCENT_INTERVALS.keys())},
             "value": {"type": "number", "minimum": 0, "maximum": 100},
             "filters": {
                 "type": "array",
@@ -85,7 +86,7 @@ class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "interval": {"type": "string", "enum": list(PERCENT_INTERVALS.keys())},
             "value": {"type": "number", "minimum": 0, "maximum": 100},
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
             "filters": {

@@ -2,6 +2,8 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.rules.conditions.event_frequency import (
+    PERCENT_INTERVALS,
+    STANDARD_INTERVALS,
     ComparisonType,
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
@@ -140,6 +142,8 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "1d",
         }
+        self.intervals = STANDARD_INTERVALS
+        self.other_intervals = PERCENT_INTERVALS
 
     def test_percent(self):
         dc = self.create_data_condition(
@@ -245,6 +249,18 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 condition_result=True,
             )
 
+        invalid_interval = list(set(self.other_intervals.keys()) - set(self.intervals.keys()))[0]
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": invalid_interval,
+                    "value": 100,
+                    "comparison_interval": "1d",
+                },
+                condition_result=True,
+            )
+
 
 class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountCondition):
     def setUp(self):
@@ -276,11 +292,13 @@ class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_COUNT
         self.payload: dict[str, int | str] = {
-            "interval": "1h",
+            "interval": "30m",  # only percent sessions allows 30m
             "id": EventFrequencyPercentCondition.id,
             "value": 17,
             "comparisonType": ComparisonType.COUNT,
         }
+        self.intervals = PERCENT_INTERVALS
+        self.other_intervals = STANDARD_INTERVALS
 
 
 class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
@@ -288,12 +306,14 @@ class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_PERCENT
         self.payload: dict[str, int | str] = {
-            "interval": "1h",
+            "interval": "30m",  # only percent sessions allows 30m
             "id": EventFrequencyPercentCondition.id,
             "value": 17,
             "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "1d",
         }
+        self.intervals = PERCENT_INTERVALS
+        self.other_intervals = STANDARD_INTERVALS
 
 
 class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
