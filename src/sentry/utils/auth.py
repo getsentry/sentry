@@ -419,7 +419,7 @@ class EmailAuthBackend(ModelBackend):
             for user in users:
                 try:
                     if is_demo_mode_enabled() and is_demo_user(user):
-                       return user
+                        return user
                     if user.password:
                         # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
                         # password checking as a mechanism to drop old password hashers immediately and
