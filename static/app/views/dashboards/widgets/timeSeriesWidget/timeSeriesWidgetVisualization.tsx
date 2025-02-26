@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,7 +15,7 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -125,6 +125,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       },
       utc ?? false
     );
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (e?.getEchartsInstance) {
+        registerWithWidgetSyncContext(e.getEchartsInstance());
+      }
+    },
+    [registerWithWidgetSyncContext]
+  );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -289,13 +300,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={e => {
-        chartRef.current = e;
-
-        if (e?.getEchartsInstance) {
-          registerWithWidgetSyncContext(e.getEchartsInstance());
-        }
-      }}
+      ref={handleChartRef}
       autoHeightResize
       series={[...dataSeries, releaseSeries].filter(defined)}
       grid={{
