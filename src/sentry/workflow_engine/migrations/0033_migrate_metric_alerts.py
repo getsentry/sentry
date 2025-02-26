@@ -464,31 +464,31 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             )
                         else:
                             resolve_threshold = critical_data_condition.comparison
-                    DataCondition.objects.create(
-                        comparison=resolve_threshold,
-                        condition_result=DetectorPriorityLevel.OK,
-                        type=resolve_threshold_type,
-                        condition_group=detector.workflow_condition_group,
-                    )
+                DataCondition.objects.create(
+                    comparison=resolve_threshold,
+                    condition_result=DetectorPriorityLevel.OK,
+                    type=resolve_threshold_type,
+                    condition_group=detector.workflow_condition_group,
+                )
 
-                    data_condition_group = DataConditionGroup.objects.create(
-                        organization_id=alert_rule.organization_id
-                    )
-                    AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-                    WorkflowDataConditionGroup.objects.create(
-                        condition_group=data_condition_group,
-                        workflow=alert_rule_workflow.workflow,
-                    )
+                data_condition_group = DataConditionGroup.objects.create(
+                    organization_id=alert_rule.organization_id
+                )
+                AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+                WorkflowDataConditionGroup.objects.create(
+                    condition_group=data_condition_group,
+                    workflow=alert_rule_workflow.workflow,
+                )
 
-                    DataCondition.objects.create(
-                        comparison=DetectorPriorityLevel.OK,
-                        condition_result=True,
-                        type=Condition.ISSUE_PRIORITY_EQUALS,
-                        condition_group=data_condition_group,
-                    )
-                    logger.info(
-                        "Successfully migrated alert rule", extra={"alert_rule_id": alert_rule.id}
-                    )
+                DataCondition.objects.create(
+                    comparison=DetectorPriorityLevel.OK,
+                    condition_result=True,
+                    type=Condition.ISSUE_PRIORITY_EQUALS,
+                    condition_group=data_condition_group,
+                )
+                logger.info(
+                    "Successfully migrated alert rule", extra={"alert_rule_id": alert_rule.id}
+                )
         except Exception as e:
             logger.info(
                 "error when migrating alert rule",

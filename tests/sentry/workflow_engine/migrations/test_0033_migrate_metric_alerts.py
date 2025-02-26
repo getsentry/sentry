@@ -7,6 +7,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus
@@ -64,7 +65,12 @@ class MigrateMetricAlertTest(TestMigrations):
 
     def setup_initial_state(self):
         self.valid_rule = self.create_alert_rule(name="hojicha")
-        self.valid_trigger = self.create_alert_rule_trigger(alert_rule=self.valid_rule)
+        self.valid_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.valid_rule, label="critical", alert_threshold=250
+        )
+        self.valid_warning_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.valid_rule, label="warning", alert_threshold=100
+        )
         self.email_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.valid_trigger
         )
@@ -125,6 +131,14 @@ class MigrateMetricAlertTest(TestMigrations):
         self.create_alert_rule_trigger(alert_rule=self.snoozed_rule)
         self.snooze_rule(alert_rule=self.snoozed_rule)
 
+        self.rule_with_resolve = self.create_alert_rule(resolve_threshold=50)
+        self.create_alert_rule_trigger(alert_rule=self.rule_with_resolve)
+
+        self.rule_lt = self.create_alert_rule(
+            threshold_type=AlertRuleThresholdType.BELOW
+        )  # rule with threshold type == less than
+        self.create_alert_rule_trigger(alert_rule=self.rule_lt)
+
         self.skipped_rule = self.create_alert_rule()
         self.skipped_trigger = self.create_alert_rule_trigger(alert_rule=self.skipped_rule)
         self.bad_action = self.create_alert_rule_trigger_action(
@@ -183,6 +197,7 @@ class MigrateMetricAlertTest(TestMigrations):
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
+        # critical trigger
         detector_trigger = DataCondition.objects.get(
             comparison=self.valid_trigger.alert_threshold,
             condition_group=detector.workflow_condition_group,
@@ -206,6 +221,52 @@ class MigrateMetricAlertTest(TestMigrations):
             condition_group=action_filter.condition_group
         ).exists()
 
+        # warning trigger
+        detector_trigger = DataCondition.objects.get(
+            comparison=self.valid_warning_trigger.alert_threshold,
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.MEDIUM,
+        )
+
+        assert detector_trigger.type == Condition.GREATER
+
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.MEDIUM,
+        )
+
+        assert action_filter.condition_result is True
+        assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
+
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=action_filter.condition_group
+        ).exists()
+
+    def test_flipped_trigger(self):
+        """
+        Test that we handle AlertRuleThresholdType.BELOW appropriately
+        """
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_lt)
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        assert detector_trigger.type == Condition.LESS
+
+        resolve_detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        )
+
+        assert resolve_detector_trigger.comparison == detector_trigger.comparison
+        assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
+
     def test_simple_resolve(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
@@ -217,7 +278,36 @@ class MigrateMetricAlertTest(TestMigrations):
             condition_result=DetectorPriorityLevel.OK,
         )
 
-        assert detector_trigger.comparison == self.valid_trigger.alert_threshold
+        assert detector_trigger.comparison == self.valid_warning_trigger.alert_threshold
+        assert detector_trigger.type == Condition.LESS_OR_EQUAL
+
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.OK,
+        )
+
+        assert action_filter.condition_result is True
+        assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
+
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=action_filter.condition_group
+        ).exists()
+
+    def test_explicit_resolve(self):
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.rule_with_resolve)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_with_resolve)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        )
+
+        assert detector_trigger.comparison == self.rule_with_resolve.resolve_threshold
         assert detector_trigger.type == Condition.LESS_OR_EQUAL
 
         workflow_dcgs = DataConditionGroup.objects.filter(
