@@ -206,7 +206,6 @@ export function EventFeatureFlagList({
             }
             return true;
           },
-          transitionProps: {stiffness: 1000},
         }
       );
     },
