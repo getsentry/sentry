@@ -1,7 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
+import AssigneeSelectorDropdown, {
+  AssigneeWrapper,
+} from 'sentry/components/assigneeSelectorDropdown';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import {Grid} from 'sentry/components/gridEditable/styles';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
@@ -32,7 +34,7 @@ function IssuesList() {
       case 'lastSeen':
         return <TimeSince date={dataRow.lastSeen} unitStyle="extraShort" suffix="" />;
       case 'assignedTo':
-        return <StyledAssigneeSelectorDropdown group={dataRow} loading={false} />;
+        return <AssigneeSelectorDropdown group={dataRow} loading={false} />;
       default:
         return null;
     }
@@ -64,10 +66,10 @@ const Wrapper = styled('div')`
   ${Grid} {
     grid-template-columns: 3fr 1fr 1fr !important;
   }
-`;
 
-const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
-  justify-content: flex-start !important;
+  ${AssigneeWrapper} {
+    justify-content: flex-start;
+  }
 `;
 
 export default IssuesList;

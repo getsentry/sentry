@@ -22,29 +22,29 @@ function DetailsPanel() {
   );
 }
 
-const Query = styled('div')`
+const Heading = styled('h4')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
+`;
+
+const Query = styled('dl')`
   display: grid;
   grid-template-columns: auto auto;
   grid-template-rows: repeat(3, 1fr);
   width: fit-content;
   gap: ${space(0.5)} ${space(1)};
-
-  p {
-    margin: 0;
-  }
+  margin: 0;
 `;
 
-const Heading = styled('strong')`
-  width: fit-content;
-`;
-
-const Label = styled('p')`
+const Label = styled('dt')`
   color: ${p => p.theme.subText};
   justify-self: flex-end;
+  margin: 0;
 `;
 
-const Value = styled('p')`
+const Value = styled('dl')`
   ${p => p.theme.overflowEllipsis};
+  margin: 0;
 `;
 
 export default DetailsPanel;

@@ -11,5 +11,8 @@ export const Container = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
-  width: fit-content;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    width: fit-content;
+  }
 `;

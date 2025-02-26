@@ -558,10 +558,11 @@ export default function AssigneeSelectorDropdown({
   );
 
   return (
-    <AssigneeWrapper className={className}>
+    <AssigneeWrapper>
       <CompactSelect
         searchable
         clearable
+        className={className}
         menuWidth={275}
         position="bottom-end"
         disallowEmptySelection={false}
@@ -585,7 +586,7 @@ export default function AssigneeSelectorDropdown({
   );
 }
 
-const AssigneeWrapper = styled('div')`
+export const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
 `;
