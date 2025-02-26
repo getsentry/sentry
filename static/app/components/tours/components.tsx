@@ -139,7 +139,7 @@ export function TourElement<T extends TourEnumType>({
         {children}
       </ElementWrapper>
       {isOpen ? (
-        <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+        <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
           <TourOverlay animated>
             <TopRow>
               <div>
@@ -182,7 +182,7 @@ const BlurWindow = styled('div')`
   content: '';
   position: absolute;
   inset: 0;
-  z-index: ${p => p.theme.zIndex.modal};
+  z-index: ${p => p.theme.zIndex.tour.blur};
   user-select: none;
   pointer-events: none;
   backdrop-filter: blur(3px);
@@ -191,7 +191,7 @@ const BlurWindow = styled('div')`
 const ElementWrapper = styled('div')`
   &[aria-expanded='true'] {
     position: relative;
-    z-index: ${p => p.theme.zIndex.toast};
+    z-index: ${p => p.theme.zIndex.tour.element};
     user-select: none;
     pointer-events: none;
     &:after {
