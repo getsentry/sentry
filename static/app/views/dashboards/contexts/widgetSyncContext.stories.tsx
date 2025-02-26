@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
 import {sampleDurationTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
@@ -12,8 +11,8 @@ import {TimeSeriesWidgetVisualization} from '../widgets/timeSeriesWidget/timeSer
 
 import {WidgetSyncContextProvider} from './widgetSyncContext';
 
-export default storyBook('WidgetSyncContext', story => {
-  story('Getting Started', () => {
+export default StoryBook('WidgetSyncContext', Story => {
+  Story('Getting Started', () => {
     const [visible, setVisible] = useState<boolean>(false);
 
     return (
@@ -30,7 +29,7 @@ export default storyBook('WidgetSyncContext', story => {
         </p>
 
         <WidgetSyncContextProvider>
-          <SideBySide>
+          <Story.SideBySide>
             <MediumWidget>
               <TimeSeriesWidgetVisualization
                 visualizationType="line"
@@ -45,7 +44,7 @@ export default storyBook('WidgetSyncContext', story => {
                 />
               </MediumWidget>
             )}
-          </SideBySide>
+          </Story.SideBySide>
         </WidgetSyncContextProvider>
       </Fragment>
     );

@@ -4,12 +4,11 @@ import CollapsePanel from 'sentry/components/collapsePanel';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('CollapsePanel', story => {
-  story('Basics', () => (
+export default StoryBook('CollapsePanel', Story => {
+  Story('Basics', () => (
     <Fragment>
       <p>
         The <JSXNode name="CollapsePanel" /> expanded state will be set based on whether{' '}
@@ -32,13 +31,13 @@ export default storyBook('CollapsePanel', story => {
     </Fragment>
   ));
 
-  story('Bugs', () => (
+  Story('Bugs', () => (
     <Fragment>
       <p>
         Starting with items less than or equal to the <var>collapseCount</var> will return
         an incorrect <var>isExpanded</var> value.
       </p>
-      <SideBySide>
+      <Story.SideBySide>
         {[6, 5, 4].map(items => (
           <Fragment key={items}>
             <JSXNode name="CollapsePanel" props={{items, collapseCount: 5}} />
@@ -54,11 +53,11 @@ export default storyBook('CollapsePanel', story => {
             </SizingWindow>
           </Fragment>
         ))}
-      </SideBySide>
+      </Story.SideBySide>
     </Fragment>
   ));
 
-  story('Rendering a list', () => {
+  Story('Rendering a list', () => {
     const allItems = ['one', 'two', 'three', 'four', 'five'];
     const collapseCount = 3; // Show 3 items to start
     return (
@@ -88,7 +87,7 @@ export default storyBook('CollapsePanel', story => {
     );
   });
 
-  story('Props', () => (
+  Story('Props', () => (
     <Matrix
       render={CollapsePanel}
       propMatrix={{

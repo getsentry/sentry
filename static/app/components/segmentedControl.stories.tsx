@@ -3,12 +3,11 @@ import {Fragment, useState} from 'react';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import {IconStats} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('SegmentedControl', story => {
-  story('Default', () => (
+export default StoryBook('SegmentedControl', Story => {
+  Story('Default', () => (
     <Fragment>
       <p>
         By default <JSXNode name="SegmentedControl" /> will keep track of what is
@@ -22,7 +21,7 @@ export default storyBook('SegmentedControl', story => {
     </Fragment>
   ));
 
-  story('Controlled Value', () => {
+  Story('Controlled Value', () => {
     const [value, setValue] = useState('two');
     return (
       <Fragment>
@@ -42,7 +41,7 @@ export default storyBook('SegmentedControl', story => {
     );
   });
 
-  story('Props', () => (
+  Story('Props', () => (
     <Matrix
       render={props => (
         <SegmentedControl {...props}>
@@ -59,8 +58,8 @@ export default storyBook('SegmentedControl', story => {
     />
   ));
 
-  story('SegmentedControl.Item', () => (
-    <SideBySide>
+  Story('SegmentedControl.Item', () => (
+    <Story.SideBySide>
       <Matrix
         render={({showChild, ...props}) => (
           <SegmentedControl>
@@ -133,6 +132,6 @@ export default storyBook('SegmentedControl', story => {
           priority: ['default' as const, 'primary' as const],
         }}
       />
-    </SideBySide>
+    </Story.SideBySide>
   ));
 });

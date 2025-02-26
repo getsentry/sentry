@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 import {Input} from './input';
@@ -10,10 +10,10 @@ import {Input} from './input';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/input';
 
-export default storyBook('Input', (story, APIReference) => {
-  APIReference(types.Input);
+export default StoryBook('Input', Story => {
+  Story.APIReference(types.Input);
 
-  story('Sizes', () => {
+  Story('Sizes', () => {
     return (
       <Fragment>
         <p>
@@ -34,7 +34,7 @@ export default storyBook('Input', (story, APIReference) => {
     );
   });
 
-  story('Locked', () => {
+  Story('Locked', () => {
     return (
       <Fragment>
         <p>

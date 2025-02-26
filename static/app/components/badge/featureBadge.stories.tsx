@@ -3,20 +3,19 @@ import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('FeatureBadge', story => {
-  story('Types', () => (
-    <SideBySide>
+export default StoryBook('FeatureBadge', Story => {
+  Story('Types', () => (
+    <Story.SideBySide>
       <FeatureBadge type="alpha" />
       <FeatureBadge type="beta" />
       <FeatureBadge type="new" />
       <FeatureBadge type="experimental" />
-    </SideBySide>
+    </Story.SideBySide>
   ));
 
-  story('Custom tooltip props', () => (
+  Story('Custom tooltip props', () => (
     <Fragment>
       <FeatureBadge type="new" title="The tooltip title can be custom too" />
       <FeatureBadge
@@ -28,7 +27,7 @@ export default storyBook('FeatureBadge', story => {
     </Fragment>
   ));
 
-  story('variant', () => (
+  Story('variant', () => (
     <Fragment>
       <p>
         When using an indicator you might want to position it manually using{' '}

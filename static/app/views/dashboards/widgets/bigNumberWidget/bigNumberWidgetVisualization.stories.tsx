@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 
-export default storyBook('BigNumberWidgetVisualization', story => {
-  story('Getting Started', () => {
+export default StoryBook('BigNumberWidgetVisualization', Story => {
+  Story('Getting Started', () => {
     return (
       <Fragment>
         <p>
@@ -37,7 +36,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     );
   });
 
-  story('Basic Visualization', () => {
+  Story('Basic Visualization', () => {
     return (
       <Fragment>
         <p>
@@ -53,7 +52,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
           most fields defined in our field renderer pipeline
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <SmallSizingWindow>
             <Container>
               <BigNumberWidgetVisualization
@@ -125,12 +124,12 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               />
             </Container>
           </SmallSizingWindow>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Loading Placeholder', () => {
+  Story('Loading Placeholder', () => {
     return (
       <Fragment>
         <p>
@@ -146,7 +145,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     );
   });
 
-  story('Maximum Value', () => {
+  Story('Maximum Value', () => {
     return (
       <Fragment>
         <p>
@@ -157,7 +156,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
           something higher than the max. Setting{' '}
           <JSXProperty name="maximumValue" value={1000000} /> will show &gt;1m.
         </p>
-        <SideBySide>
+        <Story.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               value={1000000}
@@ -171,12 +170,12 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               }}
             />
           </SmallWidget>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Previous Period Data', () => {
+  Story('Previous Period Data', () => {
     return (
       <Fragment>
         <p>
@@ -193,7 +192,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
           colorization.
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               value={17.1087819860850493}
@@ -238,12 +237,12 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               }}
             />
           </SmallWidget>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Thresholds', () => {
+  Story('Thresholds', () => {
     const meta = {
       fields: {
         'eps()': 'rate',
@@ -270,7 +269,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
           to the value.
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               value={7.1}
@@ -300,14 +299,14 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               preferredPolarity="+"
             />
           </SmallWidget>
-        </SideBySide>
+        </Story.SideBySide>
 
         <p>
           The thresholds respect the preferred polarity. By default, the preferred
           polarity is positive (higher numbers are good).
         </p>
 
-        <SideBySide>
+        <Story.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               field="eps()"
@@ -337,7 +336,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               preferredPolarity="-"
             />
           </SmallWidget>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });

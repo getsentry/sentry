@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
 import {sampleDurationTimeSeries} from '../timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -15,10 +15,10 @@ import {Widget} from './widget';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 
-export default storyBook('Widget', (story, APIReference) => {
-  APIReference(types.exported);
+export default StoryBook('Widget', Story => {
+  Story.APIReference(types.exported);
 
-  story('Getting Started', () => {
+  Story('Getting Started', () => {
     const isLoading = false;
     const hasError = false;
 
@@ -62,7 +62,7 @@ export default storyBook('Widget', (story, APIReference) => {
     );
   });
 
-  story('Widget', () => {
+  Story('Widget', () => {
     return (
       <Fragment>
         <p>

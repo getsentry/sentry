@@ -3,20 +3,19 @@ import range from 'lodash/range';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import type {TabListProps, TabsProps} from 'sentry/components/tabs';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 
-export default storyBook('Tabs', story => {
+export default StoryBook('Tabs', Story => {
   const TABS = [
     {key: 'one', label: 'One', content: 'This is the first Panel.'},
     {key: 'two', label: 'Two', content: 'This is the second panel'},
     {key: 'three', label: 'Three', content: 'This is the third panel'},
   ];
 
-  story('Default', () => (
+  Story('Default', () => (
     <Fragment>
       <p>
         You should be using all of <JSXNode name="Tabs" />, <JSXNode name="TabList" />,{' '}
@@ -44,7 +43,7 @@ export default storyBook('Tabs', story => {
     </Fragment>
   ));
 
-  story('Items Overflow', () => {
+  Story('Items Overflow', () => {
     const tabs = range(65, 75).map(i => ({
       key: 'i' + i,
       label: String.fromCharCode(i, i, i, i),
@@ -66,7 +65,7 @@ export default storyBook('Tabs', story => {
     );
   });
 
-  story('Default Value', () => (
+  Story('Default Value', () => (
     <Fragment>
       <p>
         Set <JSXNode name="Tabs" props={{defaultValue: String}} />
@@ -88,7 +87,7 @@ export default storyBook('Tabs', story => {
     </Fragment>
   ));
 
-  story('Controlled Value', () => {
+  Story('Controlled Value', () => {
     const [selected, setSelected] = useState('two');
     return (
       <Fragment>
@@ -120,7 +119,7 @@ export default storyBook('Tabs', story => {
     );
   });
 
-  story('Rendering', () => (
+  Story('Rendering', () => (
     <Matrix<TabsProps<string> & TabListProps>
       render={props => (
         <Tabs orientation={props.orientation}>
@@ -144,8 +143,8 @@ export default storyBook('Tabs', story => {
     />
   ));
 
-  story('Disabled', () => (
-    <SideBySide>
+  Story('Disabled', () => (
+    <Story.SideBySide>
       <div>
         <p>
           Use <JSXNode name="Tabs" props={{disabled: true}} /> to disable everything.
@@ -185,10 +184,10 @@ export default storyBook('Tabs', story => {
           </Tabs>
         </SizingWindow>
       </div>
-    </SideBySide>
+    </Story.SideBySide>
   ));
 
-  story('Variants', () => {
+  Story('Variants', () => {
     const propMatrix: PropMatrix<TabsProps<string> & TabListProps> = {
       hideBorder: [undefined, false, true],
       orientation: [undefined, 'horizontal', 'vertical'],

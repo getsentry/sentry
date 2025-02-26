@@ -7,9 +7,8 @@ import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedCo
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface ExampleDataItem {
@@ -17,7 +16,7 @@ interface ExampleDataItem {
   name: string;
 }
 
-export default storyBook('GridEditable', story => {
+export default StoryBook('GridEditable', Story => {
   const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
@@ -28,7 +27,7 @@ export default storyBook('GridEditable', story => {
     ...backend.slice(0, 3).map(name => ({name, category: 'backend' as const})),
   ];
 
-  story('Minimal', () => {
+  Story('Minimal', () => {
     return <GridEditable data={[]} columnOrder={columns} columnSortBy={[]} grid={{}} />;
   });
 
@@ -53,7 +52,7 @@ export default storyBook('GridEditable', story => {
         dataRow[column.key]
       : JSON.stringify({column, dataRow, rowIndex, columnIndex});
 
-  story('Basic', () => {
+  Story('Basic', () => {
     return (
       <Fragment>
         <p>
@@ -73,8 +72,8 @@ export default storyBook('GridEditable', story => {
     );
   });
 
-  story('Props', () => (
-    <SideBySide>
+  Story('Props', () => (
+    <Story.SideBySide>
       <div>
         <p>
           <JSXNode name="GridEditable" props={{error: String}} />
@@ -99,10 +98,10 @@ export default storyBook('GridEditable', story => {
           grid={{}}
         />
       </div>
-    </SideBySide>
+    </Story.SideBySide>
   ));
 
-  story('Row Mouse Events', () => {
+  Story('Row Mouse Events', () => {
     const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
     const activeRow = activeRowKey !== undefined ? data[activeRowKey] : undefined;
 
@@ -158,7 +157,7 @@ export default storyBook('GridEditable', story => {
     };
   }
 
-  story('Column Resize', () => {
+  Story('Column Resize', () => {
     const statefulColumnResize = useStatefulColumnWidths();
 
     const location = useLocation();
@@ -174,7 +173,7 @@ export default storyBook('GridEditable', story => {
           You can keep track of the column widths by implementing the{' '}
           <JSXProperty name="onResizeColumn" value={Function} /> callback.
         </p>
-        <SideBySide>
+        <Story.SideBySide>
           <div>
             <p>In this example we are saving the column widths to state.</p>
             <GridEditable
@@ -204,12 +203,12 @@ export default storyBook('GridEditable', story => {
               }}
             />
           </div>
-        </SideBySide>
+        </Story.SideBySide>
       </Fragment>
     );
   });
 
-  story('Fixed Height', () => (
+  Story('Fixed Height', () => (
     <GridEditable
       data={data}
       columnOrder={columns}
@@ -223,7 +222,7 @@ export default storyBook('GridEditable', story => {
     />
   ));
 
-  story('Header Augmentations', () => (
+  Story('Header Augmentations', () => (
     <Matrix
       render={GridEditable}
       propMatrix={{

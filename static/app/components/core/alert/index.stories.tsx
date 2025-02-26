@@ -5,7 +5,7 @@ import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconClose, IconSentry, IconStar} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import StoryBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -23,9 +23,9 @@ const RECOMMENDED_USAGE: Partial<AlertProps> = {
   showIcon: true,
 };
 
-export default storyBook('Alert', (story, APIReference) => {
-  APIReference(types.Alert);
-  story('Default', () => {
+export default StoryBook('Alert', Story => {
+  Story.APIReference(types.Alert);
+  Story('Default', () => {
     return (
       <Fragment>
         <p>
@@ -48,7 +48,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('System', () => {
+  Story('System', () => {
     return (
       <Fragment>
         <p>System alerts are used for important messages that are not dismissible.</p>
@@ -63,7 +63,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('Expandable Alerts', () => {
+  Story('Expandable Alerts', () => {
     return (
       <Fragment>
         <p>
@@ -83,7 +83,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('Without icon and custom trailing items', () => {
+  Story('Without icon and custom trailing items', () => {
     return (
       <Fragment>
         <p>
@@ -100,7 +100,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('Dismissible Alerts', () => {
+  Story('Dismissible Alerts', () => {
     const LOCAL_STORAGE_KEY = 'alert-stories-banner-dismissed';
     const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
     const [stateDismissed, setStateDismissed] = useState(false);
@@ -159,7 +159,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('Alert.Container', () => {
+  Story('Alert.Container', () => {
     return (
       <Fragment>
         <p>
