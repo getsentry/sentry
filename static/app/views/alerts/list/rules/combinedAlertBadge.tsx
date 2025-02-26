@@ -1,4 +1,4 @@
-import AlertBadge from 'sentry/components/badge/alertBadge';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {getAggregateEnvStatus} from 'sentry/views/alerts/rules/crons/utils';

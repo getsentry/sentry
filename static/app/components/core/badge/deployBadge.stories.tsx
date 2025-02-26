@@ -1,4 +1,4 @@
-import DeployBadge from 'sentry/components/badge/deployBadge';
+import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 import storyBook from 'sentry/stories/storyBook';
 import type {Deploy} from 'sentry/types/release';
 

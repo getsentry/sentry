@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-type Props = {
+interface AlertBadgeProps {
   /**
    * @deprecated use withText
    */
@@ -35,13 +35,13 @@ type Props = {
    * Includes a label
    */
   withText?: boolean;
-};
+}
 
 /**
  * This badge is a composition of DiamondStatus specifically used for incident
  * alerts.
  */
-function AlertBadge({status, withText, isIssue, isDisabled}: Props) {
+export function AlertBadge({status, withText, isIssue, isDisabled}: AlertBadgeProps) {
   let statusText = t('Resolved');
   let Icon: React.ComponentType<SVGIconProps> = IconCheckmark;
   let color: ColorOrAlias = 'successText';
@@ -75,8 +75,6 @@ function AlertBadge({status, withText, isIssue, isDisabled}: Props) {
     </Wrapper>
   );
 }
-
-export default AlertBadge;
 
 /**
  * The size of the issue icon needs to be marginally adjusted to fit into the diamond well
