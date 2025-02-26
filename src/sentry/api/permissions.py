@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
@@ -274,7 +274,64 @@ class SentryPermission(ScopedPermission):
                 raise MemberDisabledOverLimit(organization)
 
 
+class DemoSafePermission(SentryPermission):
+    """
+    A permission class that extends `SentryPermission` to provide read-only access for users
+    in a demo mode. This class modifies the access control logic to ensure that users identified
+    as read-only can only perform safe operations, such as GET and HEAD requests, on resources.
+    """
+
+    def determine_access(
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization,
+    ) -> None:
+
+        org_context: RpcUserOrganizationContext | None = None
+        if isinstance(organization, RpcUserOrganizationContext):
+            org_context = organization
+        else:
+            org_context = organization_service.get_organization_by_id(
+                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+            )
+
+        if org_context is None:
+            assert False, "Failed to fetch organization in determine_access"
+
+        if demo_mode.is_demo_user(request.user):
+            if org_context.member and demo_mode.is_demo_mode_enabled():
+                readonly_scopes = demo_mode.get_readonly_scopes()
+                org_context.member.scopes = readonly_scopes
+                request.access = access.from_request_org_and_scopes(
+                    request=request,
+                    rpc_user_org_context=org_context,
+                    scopes=readonly_scopes,
+                )
+
+            return
+
+        return super().determine_access(request, org_context)
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+                return False
+
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+                return False
+
+        return super().has_object_permission(request, view, obj)
+
+
 class SentryIsAuthenticated(IsAuthenticated):
+    """
+    Used to deny access for demo users in both view and object permission checks.
+    """
+
     def has_permission(self, request: Request, view: object) -> bool:
         if demo_mode.is_demo_user(request.user):
             return False

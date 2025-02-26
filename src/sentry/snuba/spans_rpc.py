@@ -5,14 +5,16 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFormula, ResolvedFunction
-from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
@@ -396,3 +398,55 @@ def _process_all_timeseries(
             result.sample_count[index][label] = data_point.sample_count
 
     return result
+
+
+def run_trace_query(
+    trace_id: str,
+    params: SnubaParams,
+    referrer: str,
+    config: SearchResolverConfig,
+) -> list[dict[str, Any]]:
+    trace_attributes = [
+        "parent_span",
+        "description",
+        "op",
+        "is_transaction",
+        "transaction.span_id",
+        "transaction",
+        "precise.start_ts",
+        "precise.finish_ts",
+        "project.slug",
+        "project.id",
+        "span.duration",
+    ]
+    resolver = get_resolver(params=params, config=SearchResolverConfig())
+    columns, _ = resolver.resolve_attributes(trace_attributes)
+    meta = resolver.resolve_meta(referrer=referrer)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=trace_id,
+        items=[
+            GetTraceRequest.TraceItem(
+                item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                attributes=[col.proto_definition for col in columns],
+            )
+        ],
+    )
+    response = snuba_rpc.get_trace_rpc(request)
+    spans = []
+    columns_by_name = {col.proto_definition.name: col for col in columns}
+    for item_group in response.item_groups:
+        for span_item in item_group.items:
+            span: dict[str, Any] = {"id": span_item.id, "children": []}
+            for attribute in span_item.attributes:
+                resolved_column = columns_by_name[attribute.key.name]
+                if resolved_column.proto_definition.type == STRING:
+                    span[resolved_column.public_alias] = attribute.value.val_str
+                elif resolved_column.proto_definition.type == DOUBLE:
+                    span[resolved_column.public_alias] = attribute.value.val_double
+                elif resolved_column.search_type == "boolean":
+                    span[resolved_column.public_alias] = attribute.value.val_int == 1
+                elif resolved_column.proto_definition.type == INT:
+                    span[resolved_column.public_alias] = attribute.value.val_int
+            spans.append(span)
+    return spans

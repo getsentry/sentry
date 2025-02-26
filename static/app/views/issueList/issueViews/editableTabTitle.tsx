@@ -12,6 +12,7 @@ interface EditableTabTitleProps {
   label: string;
   onChange: (newLabel: string) => void;
   setIsEditing: (isEditing: boolean) => void;
+  disableEditing?: boolean;
 }
 
 function EditableTabTitle({
@@ -20,6 +21,7 @@ function EditableTabTitle({
   isEditing,
   isSelected,
   setIsEditing,
+  disableEditing,
 }: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
 
@@ -86,7 +88,7 @@ function EditableTabTitle({
   return (
     <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
       <motion.div layout="position" transition={{duration: 0.2}}>
-        {isSelected && isEditing ? (
+        {isSelected && isEditing && !disableEditing ? (
           <StyledGrowingInput
             value={inputValue}
             onChange={handleOnChange}

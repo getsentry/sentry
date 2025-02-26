@@ -8,7 +8,7 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
-from django.http import HttpRequest
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
 
@@ -447,7 +447,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),

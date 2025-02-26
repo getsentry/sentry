@@ -238,7 +238,7 @@ class TaskWorker:
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
-        prefetch_multiplier: int = 3,
+        prefetch_multiplier: float = 1.0,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -248,7 +248,7 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        queuesize = concurrency * prefetch_multiplier
+        queuesize = int(concurrency * prefetch_multiplier)
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=queuesize
         )
@@ -257,6 +257,7 @@ class TaskWorker:
         )
         self._children: list[ForkProcess] = []
         self._shutdown_event = mp_context.Event()
+        self._task_receive_timing: dict[str, float] = {}
         self.backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
@@ -352,6 +353,11 @@ class TaskWorker:
                     status=result.status,
                     fetch_next_task=fetch_next,
                 )
+                task_received = self._task_receive_timing.pop(result.task_id, None)
+                if task_received is not None:
+                    metrics.distribution(
+                        "taskworker.worker.complete_duration", time.time() - task_received
+                    )
             except grpc.RpcError as e:
                 logger.exception(
                     "taskworker.drain_result.update_task_failed",
@@ -360,6 +366,7 @@ class TaskWorker:
                 return True
 
             if next_task:
+                self._task_receive_timing[next_task.id] = time.time()
                 try:
                     self._child_tasks.put(next_task, block=False)
                 except queue.Full:
@@ -412,4 +419,5 @@ class TaskWorker:
             "taskworker.worker.fetch_task",
             tags={"status": "success", "namespace": activation.namespace},
         )
+        self._task_receive_timing[activation.id] = time.time()
         return activation

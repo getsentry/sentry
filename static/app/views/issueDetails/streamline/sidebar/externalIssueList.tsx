@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
 import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -185,10 +185,8 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
         </Fragment>
       ) : (
         <AlertLink
-          priority="muted"
-          size="small"
+          type="muted"
           to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-          withoutMarginBottom
         >
           {t('Track this issue in Jira, GitHub, etc.')}
         </AlertLink>

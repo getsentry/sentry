@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
@@ -30,7 +30,7 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
@@ -186,7 +186,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
         identity_pipeline_view = NestedPipelineView(
             bind_key="identity",
@@ -261,7 +261,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
 
 
 class VerifyInstallation(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.VERIFY_INSTALLATION,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

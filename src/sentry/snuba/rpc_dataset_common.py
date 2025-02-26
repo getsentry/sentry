@@ -113,6 +113,9 @@ def run_table_query(
             assert len(column_value.results) == len(column_value.reliabilities), Exception(
                 "Length of rpc results do not match length of rpc reliabilities"
             )
+        sentry_sdk.set_measurement(
+            f"SearchResolver.result_size.{attribute}", len(column_value.results)
+        )
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
@@ -130,5 +133,6 @@ def run_table_query(
                 final_confidence[index][attribute] = CONFIDENCES.get(
                     column_value.reliabilities[index], None
                 )
+    sentry_sdk.set_measurement("SearchResolver.result_size.final_data", len(final_data))
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}

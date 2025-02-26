@@ -62,6 +62,8 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
+import {traceAnalytics} from './newTraceDetails/traceAnalytics';
+
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
 
@@ -458,7 +460,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
                 <Arcade
-                  src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
+                  src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed"
                   loading="lazy"
                   allowFullScreen
                 />
@@ -488,6 +490,30 @@ export function Onboarding({organization, project}: OnboardingProps) {
     productType: 'performance',
   });
 
+  const doesNotSupportPerformance = project.platform
+    ? withoutPerformanceSupport.has(project.platform)
+    : false;
+
+  useEffect(() => {
+    if (isLoading || !currentPlatform || !dsn || !projectKeyId) {
+      return;
+    }
+
+    traceAnalytics.trackTracingOnboarding(
+      organization,
+      currentPlatform.id,
+      !doesNotSupportPerformance,
+      withPerformanceOnboarding.has(currentPlatform.id)
+    );
+  }, [
+    currentPlatform,
+    isLoading,
+    dsn,
+    projectKeyId,
+    organization,
+    doesNotSupportPerformance,
+  ]);
+
   if (!showNewUi) {
     return <LegacyOnboarding organization={organization} project={project} />;
   }
@@ -497,10 +523,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
   if (isLoading) {
     return <LoadingIndicator />;
   }
-
-  const doesNotSupportPerformance = project.platform
-    ? withoutPerformanceSupport.has(project.platform)
-    : false;
 
   if (doesNotSupportPerformance) {
     return (
@@ -513,8 +535,18 @@ export function Onboarding({organization, project}: OnboardingProps) {
         </div>
         <br />
         <div>
-          <LinkButton size="sm" href="https://docs.sentry.io/platforms/" external>
-            {t('Go to Sentry Documentation')}
+          <LinkButton
+            size="sm"
+            href="https://docs.sentry.io/platforms/"
+            external
+            onClick={() => {
+              traceAnalytics.trackPlatformDocsViewed(
+                organization,
+                currentPlatform?.id ?? project.platform ?? 'unknown'
+              );
+            }}
+          >
+            {t('Go to Documentation')}
           </LinkButton>
         </div>
       </OnboardingPanel>
@@ -536,8 +568,14 @@ export function Onboarding({organization, project}: OnboardingProps) {
             size="sm"
             href="https://docs.sentry.io/product/performance/getting-started/"
             external
+            onClick={() => {
+              traceAnalytics.trackPerformanceSetupDocsViewed(
+                organization,
+                currentPlatform?.id ?? project.platform ?? 'unknown'
+              );
+            }}
           >
-            {t('Go to documentation')}
+            {t('Go to Documentation')}
           </LinkButton>
         </div>
       </OnboardingPanel>

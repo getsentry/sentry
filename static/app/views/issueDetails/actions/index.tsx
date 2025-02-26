@@ -350,6 +350,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const openPublishModal = () => {
+    trackAnalytics('issue_details.publish_issue_modal_opened', {
+      organization,
+      streamline: hasStreamlinedUI,
+      ...getAnalyticsDataForGroup(group),
+    });
     openModal(modalProps => (
       <PublishIssueModal
         {...modalProps}
@@ -458,17 +463,19 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
               size="sm"
             />
-            <Button
-              size="sm"
-              onClick={openShareModal}
-              icon={<IconLink />}
-              aria-label={t('Share')}
-              title={t('Share Issue')}
-              analyticsEventKey="issue_details.share_action_clicked"
-              analyticsEventName="Issue Details: Share Action Clicked"
-            />
           </Fragment>
         ))}
+      {hasStreamlinedUI && (
+        <Button
+          size="sm"
+          onClick={openShareModal}
+          icon={<IconLink />}
+          aria-label={t('Share')}
+          title={t('Share Issue')}
+          analyticsEventKey="issue_details.share_action_clicked"
+          analyticsEventName="Issue Details: Share Action Clicked"
+        />
+      )}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),

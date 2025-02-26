@@ -107,7 +107,7 @@ def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
     )
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REQUEST)
 def process_relocation_request_new_export(payload: Mapping[str, Any], **kwds):
@@ -125,7 +125,7 @@ def process_relocation_request_new_export(payload: Mapping[str, Any], **kwds):
     )
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
 def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):

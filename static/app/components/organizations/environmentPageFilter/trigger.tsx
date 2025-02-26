@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
@@ -47,7 +47,9 @@ function BaseEnvironmentPageFilterTrigger(
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
-      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+      {remainingCount > 0 && (
+        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+      )}
     </DropdownButton>
   );
 }

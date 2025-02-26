@@ -10,12 +10,13 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry import features
 from sentry.integrations.base import (
@@ -33,7 +34,7 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -169,7 +170,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -194,7 +195,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -234,7 +235,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(
             config.get("url"),
@@ -1141,7 +1142,9 @@ class JiraServerIntegration(IssueSyncIntegration):
             )
             raise IntegrationError("Failed to assign user to Jira Server issue")
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
@@ -1230,7 +1233,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def build_integration(self, state):

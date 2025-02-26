@@ -1,5 +1,6 @@
 import logging
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -68,7 +69,11 @@ class GroupStacktraceData(TypedDict):
 
 
 def filter_snuba_results(
-    snuba_results, groups_to_backfill_with_no_embedding, project, worker_number
+    snuba_results,
+    groups_to_backfill_with_no_embedding,
+    project,
+    worker_number,
+    project_index_in_cohort,
 ):
     """
     Not all of the groups in `groups_to_backfill_with_no_embedding` are guaranteed to have
@@ -83,6 +88,7 @@ def filter_snuba_results(
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
         return [], []
@@ -107,6 +113,7 @@ def filter_snuba_results(
                     "project_id": project.id,
                     "group_id": group_id,
                     "worker_number": worker_number,
+                    "project_index_in_cohort": project_index_in_cohort,
                 },
             )
     return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
@@ -187,7 +194,12 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
 
 @sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(
-    project, last_processed_group_id, batch_size, worker_number, enable_ingestion: bool = False
+    project,
+    last_processed_group_id,
+    batch_size,
+    worker_number,
+    project_index_in_cohort,
+    enable_ingestion: bool = False,
 ):
     group_id_filter = Q()
     if last_processed_group_id is not None:
@@ -206,18 +218,27 @@ def get_current_batch_groups_from_postgres(
             "batch_len": len(groups_to_backfill_batch),
             "last_processed_group_id": batch_end_group_id,
             "worker_number": worker_number,
+            "project_index_in_cohort": project_index_in_cohort,
         },
     )
 
     if backfill_batch_raw_length == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
-            extra={"project_id": project.id, "worker_number": worker_number},
+            extra={
+                "project_id": project.id,
+                "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
+            },
         )
         if enable_ingestion:
             logger.info(
                 "backfill_seer_grouping_records.enable_ingestion",
-                extra={"project_id": project.id, "worker_number": worker_number},
+                extra={
+                    "project_id": project.id,
+                    "worker_number": worker_number,
+                    "project_index_in_cohort": project_index_in_cohort,
+                },
             )
             project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
@@ -238,6 +259,7 @@ def get_current_batch_groups_from_postgres(
                     len(groups_to_backfill_batch) - len(groups_to_backfill_with_no_embedding)
                 ),
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
     return (
@@ -342,7 +364,11 @@ def _make_snuba_call(project, snuba_requests, referrer, worker_number):
 
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(
-    project, snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row, worker_number=None
+    project,
+    snuba_results,
+    groups_to_backfill_with_no_embedding_has_snuba_row,
+    worker_number=None,
+    project_index_in_cohort=None,
 ):
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results, worker_number)
     # If nodestore returns no data
@@ -353,6 +379,7 @@ def get_events_from_nodestore(
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
         return (
@@ -363,6 +390,8 @@ def get_events_from_nodestore(
     group_data = []
     stacktrace_strings = []
     invalid_event_group_ids = []
+    invalid_event_reasons: Counter[str] = Counter()
+    total_groups = len(nodestore_events)
     bulk_event_ids = set()
     for group_id, event in nodestore_events.items():
         event._project_cache = project
@@ -371,18 +400,20 @@ def get_events_from_nodestore(
         if event and event_content_has_stacktrace(event):
             variants = event.get_grouping_variants(normalize_stacktraces=True)
 
-            if not has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
-                grouping_info = get_grouping_info_from_variants(variants)
-                stacktrace_string = get_stacktrace_string(grouping_info)
+            if has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
+                invalid_event_group_ids.append(group_id)
+                invalid_event_reasons["excess_frames"] += 1
+                continue
+
+            grouping_info = get_grouping_info_from_variants(variants)
+            stacktrace_string = get_stacktrace_string(grouping_info)
 
             if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
-                continue
-            primary_hash = event.get_primary_hash()
-            if not primary_hash:
-                invalid_event_group_ids.append(group_id)
+                invalid_event_reasons["no_stacktrace_string"] += 1
                 continue
 
+            primary_hash = event.get_primary_hash()
             exception_type = get_path(event.data, "exception", "values", -1, "type")
             group_data.append(
                 CreateGroupingRecordData(
@@ -398,6 +429,7 @@ def get_events_from_nodestore(
             bulk_event_ids.add(event.event_id)
         else:
             invalid_event_group_ids.append(group_id)
+            invalid_event_reasons["no_stacktrace"] += 1
 
     group_hashes_dict = {
         group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
@@ -408,8 +440,11 @@ def get_events_from_nodestore(
             "backfill_seer_grouping_records.invalid_group_ids",
             extra={
                 "project_id": project.id,
-                "invalid_group_ids": invalid_event_group_ids,
+                "num_groups": total_groups,
+                "num_invalid": len(invalid_event_group_ids),
+                "reasons": invalid_event_reasons,
                 "worker_number": worker_number,
+                "project_index_in_cohort": project_index_in_cohort,
             },
         )
 
@@ -525,7 +560,12 @@ def send_group_and_stacktrace_to_seer_multithreaded(
 
 @sentry_sdk.tracing.trace
 def update_groups(
-    project, seer_response, group_id_batch_filtered, group_hashes_dict, worker_number
+    project,
+    seer_response,
+    group_id_batch_filtered,
+    group_hashes_dict,
+    worker_number,
+    project_index_in_cohort,
 ):
     groups_with_neighbor = seer_response["groups_with_neighbor"]
     groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
@@ -564,6 +604,7 @@ def update_groups(
                         "group_id": group.id,
                         "parent_hash": parent_hash,
                         "worker_number": worker_number,
+                        "project_index_in_cohort": project_index_in_cohort,
                     },
                 )
                 seer_similarity = {}
@@ -581,6 +622,7 @@ def update_groups(
             "project_id": project.id,
             "num_updated": num_updated,
             "worker_number": worker_number,
+            "project_index_in_cohort": project_index_in_cohort,
         },
     )
 
@@ -734,8 +776,8 @@ def delete_seer_grouping_records(
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
 
 
-def get_next_project_from_cohort(last_processed_project_index, cohort_projects):
-    next_project_index = last_processed_project_index + 1
+def get_next_project_from_cohort(current_project_index, cohort_projects):
+    next_project_index = current_project_index + 1
     if next_project_index >= len(cohort_projects):
         return None, None
 

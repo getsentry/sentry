@@ -45,7 +45,7 @@ const IconWrap = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.5)};
+  margin-right: ${space(0.75)};
 `;
 
 const IconContainer = styled('div')`
@@ -58,7 +58,7 @@ const IconContainer = styled('div')`
 const BorderOverlay = styled('div')`
   position: absolute;
   inset: 0;
-  border: 1px solid ${p => p.theme.translucentGray200};
+  border: 1px solid ${p => p.theme.translucentGray100};
   border-radius: 3px;
   pointer-events: none;
   z-index: 1;

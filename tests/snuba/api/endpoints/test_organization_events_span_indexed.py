@@ -2623,3 +2623,41 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.skip(reason="user display alias not migrated over")
     def test_user_display(self):
         super().test_user_display()
+
+    def test_unit_aggregate_filtering(self):
+        spans = [
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["avg(span.duration)", "description"],
+                "query": "avg(span.duration):>0.5s",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "avg(span.duration)": 1000.0,
+                "description": "bar",
+            },
+            {
+                "avg(span.duration)": 1000.0,
+                "description": "foo",
+            },
+        ]
+        assert meta["dataset"] == self.dataset
