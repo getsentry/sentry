@@ -409,10 +409,11 @@ def maybe_check_seer_for_matching_grouphash(
                 logger.info(
                     "grouphash_metadata.none_id",
                     extra={
+                        "grouphash_id": event_grouphash.id,
                         "event_id": event.event_id,
-                        "grouphash": str(event_grouphash),
-                        "grouphash_metadata": str(gh_metadata),
-                        "project": str(event.project),
+                        "project_slug": event.project.slug,
+                        "project_id": event.project.id,
+                        "org_id": event.organization.id,
                     },
                 )
                 return seer_matched_grouphash
