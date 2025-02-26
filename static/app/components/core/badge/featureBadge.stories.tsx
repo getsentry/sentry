@@ -16,27 +16,8 @@ export default storyBook('FeatureBadge', story => {
     </SideBySide>
   ));
 
-  story('Custom tooltip props', () => (
+  story('Variants', () => (
     <Fragment>
-      <FeatureBadge
-        type="new"
-        tooltipProps={{title: 'The tooltip title can be custom too'}}
-      />
-      <FeatureBadge
-        type="new"
-        tooltipProps={{
-          title: 'You can use tooltipProps to override the title too',
-        }}
-      />
-    </Fragment>
-  ));
-
-  story('variant', () => (
-    <Fragment>
-      <p>
-        When using an indicator you might want to position it manually using{' '}
-        <kbd>styled(FeatureBadge)</kbd>.
-      </p>
       <Matrix<ComponentProps<typeof FeatureBadge>>
         render={props => (
           <span>
