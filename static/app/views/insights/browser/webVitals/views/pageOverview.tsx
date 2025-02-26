@@ -6,7 +6,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -47,17 +47,6 @@ export enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }
-
-const LANDING_DISPLAYS = [
-  {
-    label: t('Overview'),
-    field: LandingDisplayField.OVERVIEW,
-  },
-  {
-    label: t('Aggregate Spans'),
-    field: LandingDisplayField.SPANS,
-  },
-];
 
 function getCurrentTabSelection(selectedTab: any) {
   const tab = decodeScalar(selectedTab);
@@ -189,18 +178,6 @@ export function PageOverview() {
               </LinkButton>
             )
           }
-          hideDefaultTabs
-          tabs={{
-            value: tab,
-            onTabChange: handleTabChange,
-            tabList: (
-              <TabList hideBorder>
-                {LANDING_DISPLAYS.map(({label, field}) => (
-                  <TabList.Item key={field}>{label}</TabList.Item>
-                ))}
-              </TabList>
-            ),
-          }}
           breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
           module={ModuleName.VITAL}
         />
