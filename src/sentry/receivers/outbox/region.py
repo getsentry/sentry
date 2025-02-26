@@ -81,7 +81,7 @@ def process_disable_auth_provider(object_identifier: int, shard_identifier: int,
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
 
 
-# See the comment on /src/sentry/relocation/tasks.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_region_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
 def process_relocation_reply_with_export(payload: Any, **kwds):

@@ -20,7 +20,7 @@ from sentry.relocation.api.endpoints.index import (
     validate_relocation_uniqueness,
 )
 from sentry.relocation.models.relocation import Relocation
-from sentry.relocation.tasks import uploading_start
+from sentry.relocation.tasks.process import uploading_start
 from sentry.types.region import get_local_region
 from sentry.utils.db import atomic_transaction
 
