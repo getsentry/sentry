@@ -247,7 +247,7 @@ const RequestsContainer = styled('div')`
   grid-area: requests;
   min-width: 0;
   & > * {
-    height: 100%;
+    height: 100% !important;
   }
 `;
 
@@ -274,7 +274,7 @@ const DurationContainer = styled('div')`
   grid-area: duration;
   min-width: 0;
   & > * {
-    height: 100%;
+    height: 100% !important;
   }
 `;
 
@@ -282,7 +282,7 @@ const JobsContainer = styled('div')`
   grid-area: jobs;
   min-width: 0;
   & > * {
-    height: 100%;
+    height: 100% !important;
   }
 `;
 
@@ -414,7 +414,7 @@ function RequestsWidget({query}: {query?: string}) {
           yAxis: 'count(span.duration)',
           orderby: '-count(span.duration)',
           partial: 1,
-          query: `has:http.status_code ${query}`.trim(),
+          query: `span.op:http.server ${query}`.trim(),
           useRpc: 1,
           topEvents: 10,
         },
@@ -493,7 +493,7 @@ function DurationWidget({query}: {query?: string}) {
           orderby: 'avg(span.duration)',
           partial: 1,
           useRpc: 1,
-          query: `has:http.status_code ${query}`.trim(),
+          query: `span.op:http.server ${query}`.trim(),
         },
       },
     ],
