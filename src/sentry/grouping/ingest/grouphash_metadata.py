@@ -139,18 +139,21 @@ def create_or_update_grouphash_metadata_if_needed(
         # for a lock
         grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
 
+        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
+
         if not created:
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={
                     "grouphash_metadata_id": grouphash_metadata.id,
+                    "linked_metadata_id": grouphash.metadata.id if grouphash.metadata else None,
+                    "grouphash_id": grouphash.id,
                     "grouphash_is_new": grouphash_is_new,
                     "event_id": event.event_id,
+                    "hash_basis": new_data["hash_basis"],
                 },
             )
             return
-
-        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 
@@ -182,7 +185,7 @@ def create_or_update_grouphash_metadata_if_needed(
     if db_hit_metadata:
         metrics.incr("grouping.grouphash_metadata.db_hit", tags=db_hit_metadata)
 
-        if db_hit_metadata["reason"] != "new_grouphash":
+        if db_hit_metadata["reason"] not in ["new_grouphash", "missing_metadata"]:
             # Temporary log to get a sense of how often we're encountering a race condition and
             # backfilling the same grouphash more than once. Note that this data won't be reliable
             # until we increase the sample rate to 100%.
