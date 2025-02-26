@@ -802,62 +802,74 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
 
 export type FormSize = 'xs' | 'sm' | 'md';
 
-type FormSizes = {
-  [key in FormSize]: {
-    fontSize: string;
-    height: number;
-    lineHeight: string;
-    minHeight: number;
+export type FormTheme = {
+  form: {
+    [key in FormSize]: {
+      fontSize: string;
+      height: number;
+      lineHeight: string;
+      minHeight: number;
+    };
+  };
+  formPadding: {
+    [key in FormSize]: {
+      paddingBottom: number;
+      paddingLeft: number;
+      paddingRight: number;
+      paddingTop: number;
+    };
   };
 };
 
-const formSizes: FormSizes = {
-  md: {
-    height: 38,
-    minHeight: 38,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: 38,
+      minHeight: 38,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
+      height: 32,
+      minHeight: 32,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xs: {
+      height: 26,
+      minHeight: 26,
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
   },
-  sm: {
-    height: 32,
-    minHeight: 32,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
-  },
-  xs: {
-    height: 26,
-    minHeight: 26,
-    fontSize: '0.75rem',
-    lineHeight: '0.875rem',
-  },
-} as const;
 
-type FormPaddingSizes = {
-  [key in FormSize]: {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  };
-};
-const formPaddingSizes: FormPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 6,
-    paddingTop: 6,
-    paddingBottom: 6,
+  /**
+   * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
   },
 };
 
@@ -1004,22 +1016,10 @@ const commonTheme = {
   },
 
   /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: formSizes,
-
-  /**
    * Padding for buttons
    * @TODO(jonasbadalic) This should exist on button component
    */
   buttonPadding: buttonPaddingSizes,
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: formPaddingSizes,
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
@@ -1036,6 +1036,7 @@ const darkAliases = generateThemeAliases(darkColors);
 export const lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
@@ -1072,6 +1073,7 @@ export const lightTheme = {
 export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
