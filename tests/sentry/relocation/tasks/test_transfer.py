@@ -5,6 +5,8 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.relocation.models.relocation import Relocation, RelocationFile
@@ -17,10 +19,16 @@ from sentry.relocation.tasks.transfer import (
     find_relocation_transfer_control,
     find_relocation_transfer_region,
     process_relocation_transfer_control,
+    process_relocation_transfer_region,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    control_silo_test,
+    create_test_regions,
+    region_silo_test,
+)
 
 TEST_REGIONS = create_test_regions("us", "de")
 
@@ -172,3 +180,50 @@ class ProcessRelocationTransferControlTest(TestCase):
         # the relocation RPC call should create a file on the region
         with assume_test_silo_mode(SiloMode.REGION):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
+
+
+@region_silo_test(regions=TEST_REGIONS)
+class ProcessRelocationTransferRegionTest(TestCase):
+    def test_missing_transfer(self):
+        res = process_relocation_transfer_region(transfer_id=999)
+        assert res is None
+
+    def test_transfer_request_state(self):
+        transfer = create_region_relocation_transfer(
+            organization=self.organization,
+            state=RelocationTransferState.Request,
+        )
+        process_relocation_transfer_region(transfer_id=transfer.id)
+        # Should be removed as something has gone off the rails
+        assert not RegionRelocationTransfer.objects.filter(id=transfer.id).exists()
+
+    def test_transfer_reply_state(self):
+        organization = self.organization
+        relocation = Relocation.objects.create(
+            creator_id=self.user.id,
+            owner_id=self.user.id,
+            want_org_slugs=["acme-org"],
+            step=Relocation.Step.UPLOADING.value,
+        )
+        transfer = create_region_relocation_transfer(
+            organization=organization,
+            relocation_uuid=relocation.uuid,
+            state=RelocationTransferState.Reply,
+        )
+        relocation_storage = get_relocation_storage()
+        relocation_storage.save(
+            f"runs/{relocation.uuid}/saas_to_saas_export/{organization.slug}.tar",
+            BytesIO(b"export data"),
+        )
+
+        process_relocation_transfer_region(transfer_id=transfer.id)
+
+        # Should be removed on completion.
+        assert not RegionRelocationTransfer.objects.filter(id=transfer.id).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # For now the RPC call creates an outbox. This will change in the next step.
+            assert ControlOutbox.objects.filter(
+                shard_scope=OutboxScope.RELOCATION_SCOPE,
+                category=OutboxCategory.RELOCATION_EXPORT_REPLY,
+            ).exists()

@@ -14,9 +14,13 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
-from sentry.relocation.services.relocation_export.service import region_relocation_export_service
+from sentry.relocation.services.relocation_export.service import (
+    control_relocation_export_service,
+    region_relocation_export_service,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.types.region import get_local_region
 
 logger = logging.getLogger("sentry.relocation.tasks")
 
@@ -174,4 +178,48 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
     silo_mode=SiloMode.REGION,
 )
 def process_relocation_transfer_region(transfer_id: int) -> None:
-    pass
+    log_context = {"id": transfer_id, "silo": "region", "region": get_local_region().name}
+
+    try:
+        transfer = RegionRelocationTransfer.objects.get(id=transfer_id)
+    except RegionRelocationTransfer.DoesNotExist:
+        logging.warning("relocation.transfer_missing", extra=log_context)
+        return
+
+    uuid = str(transfer.relocation_uuid)
+    slug = transfer.org_slug
+
+    log_context["state"] = transfer.state
+    log_context["relocation_uuid"] = uuid
+
+    if transfer.state == RelocationTransferState.Reply:
+        relocation_storage = get_relocation_storage()
+        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+        try:
+            encrypted_bytes = relocation_storage.open(path)
+        except Exception as err:
+            logger.warning(
+                "relocation.failed_open.export",
+                extra={
+                    **log_context,
+                    "error": str(err),
+                },
+            )
+            capture_exception(err)
+            return
+
+        with encrypted_bytes:
+            control_relocation_export_service.reply_with_export(
+                relocation_uuid=uuid,
+                requesting_region_name=transfer.requesting_region,
+                replying_region_name=transfer.exporting_region,
+                org_slug=slug,
+                # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+                encrypted_contents=None,
+                encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
+            )
+        # Remove the transfer once the reply is sent.
+        transfer.delete()
+    else:
+        logger.warning("relocation.transfer_invalid_state", extra=log_context)
+        transfer.delete()
