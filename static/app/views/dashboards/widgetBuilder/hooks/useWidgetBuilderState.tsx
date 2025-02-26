@@ -215,6 +215,7 @@ function useWidgetBuilderState(): {
             return {...axis, alias: undefined};
           });
           if (action.payload === DisplayType.TABLE) {
+            setLimit(undefined);
             setYAxis([]);
             setLegendAlias([]);
             const newFields = [
@@ -260,6 +261,7 @@ function useWidgetBuilderState(): {
             }
           } else if (action.payload === DisplayType.BIG_NUMBER) {
             // TODO: Reset the selected aggregate here for widgets with equations
+            setLimit(undefined);
             setSort([]);
             setYAxis([]);
             setLegendAlias([]);
@@ -267,6 +269,7 @@ function useWidgetBuilderState(): {
             setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])]);
             setQuery(query?.slice(0, 1));
           } else {
+            setLimit(DEFAULT_RESULTS_LIMIT);
             setFields(columnsWithoutAlias);
             const nextAggregates = [
               ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),

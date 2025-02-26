@@ -723,6 +723,25 @@ describe('useWidgetBuilderState', () => {
         {field: 'transaction', alias: undefined, kind: 'field'},
       ]);
     });
+
+    it('resets limit when the display type is switched to table', () => {
+      mockedUsedLocation.mockReturnValue(LocationFixture({query: {limit: '3'}}));
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(3);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.limit).toBeUndefined();
+    });
   });
 
   describe('dataset', () => {
