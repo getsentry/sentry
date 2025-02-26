@@ -184,7 +184,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         self.create_member(
             user=test_team_admin,
             organization=test_org,
-            role="admin",
+            role="member",
             team_roles=[(test_team, "admin")],
         )
         self.login_as(user=test_team_admin)
