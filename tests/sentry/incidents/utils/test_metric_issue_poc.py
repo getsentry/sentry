@@ -1,5 +1,6 @@
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
+from sentry.incidents.utils.metric_issue_poc import construct_title, create_or_update_metric_issue
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
@@ -77,3 +78,37 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert group.status == GroupStatus.RESOLVED
         assert group.substatus is None
         assert group.priority == PriorityLevel.MEDIUM
+
+    def test_construct_title(self):
+        title = construct_title(self.alert_rule)
+        assert title == "Number of events in the last 10 minutes above threshold"
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="some rule",
+            query="",
+            aggregate="count_unique(tags[sentry:user])",
+            time_window=10,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            comparison_delta=60,
+        )
+
+        title = construct_title(alert_rule)
+        assert (
+            title
+            == "Number of users affected in the last 10 minutes greater than same time one hour ago"
+        )
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="another rule",
+            query="",
+            aggregate="percentage(sessions_crashed, sessions)",
+            time_window=10,
+            threshold_type=AlertRuleThresholdType.BELOW,
+        )
+
+        title = construct_title(alert_rule)
+        assert title == "Crash free session rate in the last 10 minutes below threshold"
