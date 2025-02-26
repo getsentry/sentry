@@ -25,14 +25,25 @@ export const Page = styled('main')<{withPadding?: boolean}>`
 export const Header = styled('header')<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;
+  /**
+   * Whether to use the unified header variant. Unified headers have the
+   * same background color as the main content area and no border, thus
+   * "unifying" the two areas.
+   */
+  unified?: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
     !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background-color: transparent;
-  border-bottom: 1px ${p => p.borderStyle ?? 'solid'} ${p => p.theme.border};
+  background-color: ${p => (p.unified ? p.theme.background : 'transparent')};
+
+  ${p =>
+    !p.unified &&
+    `
+      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
@@ -44,7 +55,7 @@ export const Header = styled('header')<{
  * Use HeaderContent to create horizontal regions in the header
  * that contain a heading/breadcrumbs and a button group.
  */
-export const HeaderContent = styled('div')`
+export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
@@ -55,6 +66,12 @@ export const HeaderContent = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: ${space(1)};
   }
+
+  ${p =>
+    p.unified &&
+    `
+      margin-bottom: 0;
+    `}
 `;
 
 /**

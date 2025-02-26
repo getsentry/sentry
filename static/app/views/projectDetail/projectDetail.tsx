@@ -16,6 +16,7 @@ import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingA
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
@@ -74,6 +75,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
+  const prefersStackedNav = usePrefersStackedNav();
 
   const visibleCharts = useMemo(() => {
     if (hasTransactions || hasSessions) {
@@ -151,8 +153,8 @@ export default function ProjectDetail({router, location, organization}: Props) {
       >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
+            <Layout.Header unified={prefersStackedNav}>
+              <Layout.HeaderContent unified={prefersStackedNav}>
                 <Breadcrumbs
                   crumbs={[
                     {
