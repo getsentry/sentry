@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.core.exceptions import FieldError
 from django.db.models import Q
 from rest_framework import serializers as rest_serializers
 from rest_framework.exceptions import ParseError
@@ -57,6 +56,9 @@ class FlagAuditLogModelSerializer(Serializer):
         }
 
 
+SORT_FIELDS = ["action", "created_at", "created_by", "created_by_type", "flag", "provider"]
+
+
 class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
     # start, end handled separately.
     flag = rest_serializers.ListField(
@@ -74,7 +76,15 @@ class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
 
     # Support camel case since it's used by our response serializer.
     def validate_sort(self, value: str | None) -> str | None:
-        return camel_to_snake_case(value) if value else None
+        if not value:
+            return None
+
+        value = camel_to_snake_case(value)
+        if not value.startswith("-") and value not in SORT_FIELDS:
+            raise ParseError(detail=f"Invalid sort: {value}")
+        if value.startswith("-") and value[1:] not in SORT_FIELDS:
+            raise ParseError(detail=f"Invalid sort: {value[1:]}")
+        return value
 
 
 @region_silo_endpoint
@@ -114,10 +124,7 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(filter)
 
         if sort := query_params.get("sort"):
-            try:
-                queryset = queryset.order_by(sort)
-            except FieldError:
-                raise ParseError(detail=f"Invalid sort: {sort}")
+            queryset = queryset.order_by(sort)
 
         return self.paginate(
             request=request,
