@@ -106,8 +106,12 @@ export function TourElement<T extends TourEnumType>({
   const hasNextStep = stepCount < stepTotal;
   const isOpen = currentStep?.id === id;
 
-  const {triggerProps, triggerRef, overlayProps} = useOverlay({isOpen, position});
-  const {current: element} = triggerRef;
+  const {triggerProps, triggerRef, overlayProps} = useOverlay({
+    isOpen,
+    position,
+    disableTrigger: true,
+  });
+  const element = triggerRef.current;
 
   useEffect(() => {
     registerStep({id, element});
@@ -115,7 +119,11 @@ export function TourElement<T extends TourEnumType>({
 
   return (
     <Fragment>
-      <ElementWrapper {...triggerProps} className={className}>
+      <ElementWrapper
+        className={className}
+        ref={triggerProps.ref}
+        aria-expanded={triggerProps['aria-expanded']}
+      >
         {children}
       </ElementWrapper>
       {isOpen ? (
