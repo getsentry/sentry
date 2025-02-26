@@ -1,81 +1,95 @@
-import {useTheme} from '@emotion/react';
+import type {CSSProperties} from 'react';
+import type {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+import {unreachable} from 'sentry/utils/unreachable';
 
-const useBadgeColors = () => {
-  const theme = useTheme();
+import * as ChonkBadge from './index.chonk';
 
-  return {
-    default: {
-      background: theme.gray100,
-      color: theme.gray500,
-    },
-    alpha: {
-      background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
-      color: theme.white,
-    },
-    beta: {
-      background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
-      color: theme.white,
-    },
-    new: {
-      background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
-      color: theme.white,
-    },
-    experimental: {
-      background: theme.gray100,
-      color: theme.gray500,
-    },
-    internal: {
-      background: theme.gray100,
-      color: theme.gray500,
-    },
-    warning: {
-      background: theme.yellow300,
-      color: theme.gray500,
-    },
-    gray: {
-      background: `rgba(43, 34, 51, 0.08)`,
-      color: theme.gray500,
-    },
-  } satisfies Record<string, BadgeColors>;
-};
+function makeBadgeTheme(
+  props: BadgeProps,
+  theme: ReturnType<typeof useTheme>
+): CSSProperties {
+  switch (props.type) {
+    case 'alpha':
+      return {
+        background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
+        color: theme.white,
+      };
+    case 'beta':
+      return {
+        background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
+        color: theme.white,
+      };
+    // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
+    case 'default':
+    case 'experimental':
+    case 'internal':
+      return {
+        background: theme.gray100,
+        color: theme.gray500,
+      };
+    case 'new':
+      return {
+        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
+        color: theme.white,
+      };
+    case 'warning':
+      return {
+        background: theme.yellow300,
+        color: theme.gray500,
+      };
+    default:
+      unreachable(props.type);
+      throw new TypeError(`Unsupported badge type: ${props.type}`);
+  }
+}
 
-export type BadgeType = keyof ReturnType<typeof useBadgeColors>;
-type BadgeColors = {background: string; color: string};
+export type BadgeType =
+  | 'alpha'
+  | 'beta'
+  | 'new'
+  | 'warning'
+  // @TODO(jonasbadalic) "default" is bad API decision.
+  // @TODO(jonasbadalic) default, experimental and internal all look the same...
+  | 'experimental'
+  | 'internal'
+  | 'default';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  text?: string | number | null;
-  type?: BadgeType;
+  children: React.ReactNode;
+  type: BadgeType;
 }
 
-export function Badge({children, type = 'default', text, ...props}: BadgeProps) {
-  const badgeColors = useBadgeColors();
-
-  return (
-    <StyledBadge badgeColors={badgeColors[type]} {...props}>
-      {children ?? text}
-    </StyledBadge>
-  );
+export function Badge({children, ...props}: BadgeProps) {
+  return <BadgeComponent {...props}>{children}</BadgeComponent>;
 }
 
-const StyledBadge = styled('span')<BadgeProps & {badgeColors: BadgeColors}>`
+const StyledBadge = styled('span')<BadgeProps>`
+  ${p => ({...makeBadgeTheme(p, p.theme)})};
+
   display: inline-block;
   height: 20px;
   min-width: 20px;
   line-height: 20px;
   border-radius: 20px;
-  padding: 0 5px;
-  margin-left: ${space(0.5)};
-  font-size: 75%;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
-  color: ${p => p.badgeColors.color};
-  background: ${p => p.badgeColors.background};
+
+  /* @TODO(jonasbadalic) can we standardize this transition? */
   transition: background 100ms linear;
 
+  /* @TODO(jonasbadalic) why are these needed? */
+  font-size: 75%;
+  padding: 0 5px;
+  margin-left: ${space(0.5)};
   position: relative;
 `;
 
-export default Badge;
+const BadgeComponent = withChonk(
+  StyledBadge,
+  ChonkBadge.ChonkBadge,
+  ChonkBadge.chonkBadgePropMapping
+);
