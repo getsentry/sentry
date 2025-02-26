@@ -30,6 +30,7 @@ export const reasonToText: Record<
   [CheckStatusReason.DNS_ERROR]: _ => t('DNS Error'),
   [CheckStatusReason.TLS_ERROR]: _ => t('TLS Connection Error'),
   [CheckStatusReason.CONNECTION_ERROR]: _ => t('Connection Error'),
+  [CheckStatusReason.REDIRECT_ERROR]: _ => t('Too Many Redirects'),
 };
 
 export const tickStyle: Record<CheckStatus, TickStyle> = {
