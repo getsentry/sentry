@@ -138,6 +138,18 @@ def create_or_update_grouphash_metadata_if_needed(
         # branch implies no record exists) in order to guard against race coditions without the need
         # for a lock
         grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+
+        if not created:
+            logger.info(
+                "grouphash_metadata.creation_race_condition.record_exists",
+                extra={
+                    "grouphash_metadata_id": grouphash_metadata.id,
+                    "grouphash_is_new": grouphash_is_new,
+                    "event_id": event.event_id,
+                },
+            )
+            return
+
         new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
