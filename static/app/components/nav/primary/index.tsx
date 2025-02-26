@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/nav/primary/components';
 import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/components/nav/primary/serviceIncidents';
-import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
   IconDashboard,
@@ -187,7 +187,7 @@ export function PrimaryNavigationItems() {
 
         <SeparatorItem />
 
-        <WhatsNew />
+        <PrimaryNavigationWhatsNew />
         <PrimaryNavigationServiceIncidents />
         <PrimaryNavigationOnboarding />
       </SidebarFooter>
