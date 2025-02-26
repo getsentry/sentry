@@ -742,6 +742,36 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.limit).toBeUndefined();
     });
+
+    it('resets the limit to a valid option when the display type is switched to a chart', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: [
+              'count()',
+              'count_unique(user)',
+              'count_web_vitals(measurements.lcp, good)',
+              'project',
+              'environment',
+            ],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.limit).toBe(3);
+    });
   });
 
   describe('dataset', () => {

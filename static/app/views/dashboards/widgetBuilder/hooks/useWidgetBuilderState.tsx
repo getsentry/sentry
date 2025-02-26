@@ -25,7 +25,10 @@ import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  DEFAULT_RESULTS_LIMIT,
+  getResultsLimit,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -269,7 +272,9 @@ function useWidgetBuilderState(): {
             setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])]);
             setQuery(query?.slice(0, 1));
           } else {
-            setLimit(DEFAULT_RESULTS_LIMIT);
+            // Reset the limit to a valid value, bias towards the default if possible
+            const maxLimit = getResultsLimit(query?.length ?? 1, aggregates.length);
+            setLimit(Math.min(DEFAULT_RESULTS_LIMIT, maxLimit));
             setFields(columnsWithoutAlias);
             const nextAggregates = [
               ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
