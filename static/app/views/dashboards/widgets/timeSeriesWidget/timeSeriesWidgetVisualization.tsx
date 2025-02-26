@@ -16,8 +16,7 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
   AggregationOutputType,
@@ -41,7 +40,7 @@ import {formatTooltipValue} from './formatTooltipValue';
 import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {isTimeSeriesOther} from './isTimeSeriesOther';
-import {ReleaseSeries} from './releaseSeries';
+import {ReleaseSeries} from './releaseDataSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
@@ -111,19 +110,31 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  let releaseSeries: Series | undefined = undefined;
-  if (props.releases) {
-    const onClick = (release: Release) => {
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: `/${encodeURIComponent(release.version)}/`,
-        })
-      );
-    };
+  const releaseDataSeries =
+    props.releases &&
+    ReleaseSeries(
+      theme,
+      props.releases,
+      function onReleaseClick(release: Release) {
+        navigate(
+          makeReleasesPathname({
+            organization,
+            path: `/${encodeURIComponent(release.version)}/`,
+          })
+        );
+      },
+      utc ?? false
+    );
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
-  }
+  const releaseSeries = releaseDataSeries
+    ? [
+        LineSeries({
+          ...releaseDataSeries,
+          name: releaseDataSeries.seriesName,
+          data: [],
+        }),
+      ]
+    : [];
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -278,7 +289,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   let visibleSeriesCount = scaledSeries.length;
-  if (releaseSeries) {
+  if (releaseDataSeries) {
     visibleSeriesCount += 1;
   }
 
@@ -296,15 +307,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         }
       }}
       autoHeightResize
-      series={[
-        ...dataSeries,
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
-      ].filter(defined)}
+      series={[...dataSeries, ...releaseSeries]}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
