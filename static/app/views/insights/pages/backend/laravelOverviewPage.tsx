@@ -642,6 +642,7 @@ interface DiscoverQueryResponse {
   data: Array<{
     'avg(transaction.duration)': number;
     'count()': number;
+    'count_unique(user)': number;
     'failure_rate()': number;
     'http.method': string;
     'p95()': number;
@@ -683,6 +684,7 @@ function RoutesTable({query}: {query?: string}) {
             'p95()',
             'failure_rate()',
             'count()',
+            'count_unique(user)',
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: 'api.performance.landing-table',
@@ -702,6 +704,7 @@ function RoutesTable({query}: {query?: string}) {
       avg: transaction['avg(transaction.duration)'],
       p95: transaction['p95()'],
       errorRate: transaction['failure_rate()'],
+      users: transaction['count_unique(user)'],
     }));
   }, [transactionsRequest.data]);
 
@@ -742,7 +745,7 @@ function RoutesTable({query}: {query?: string}) {
             <Cell data-color={p95Color}>
               {getDuration(transaction.p95 / 1000, 2, true, true)}
             </Cell>
-            <Cell>–––</Cell>
+            <Cell>{transaction.users}</Cell>
           </Fragment>
         );
       })}
