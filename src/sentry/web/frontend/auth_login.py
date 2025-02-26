@@ -38,6 +38,7 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
+from sentry.utils.demo_mode import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
@@ -566,6 +567,12 @@ class AuthLoginView(BaseView):
         """
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
+
+        if is_demo_mode_enabled() and is_demo_org(organization):
+            # Performs the auto login of a demo user to a demo org
+            user = get_demo_user()
+            self._handle_login(request, user, organization)
+            return self.redirect(get_login_redirect(request))
 
         if request.method == "GET" and request.subdomain and self.org_exists(request):
             urls = [
