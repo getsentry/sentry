@@ -12,7 +12,9 @@ export function canCreateProject(organization: Organization, teams?: Team[]) {
   if (
     organization.features.includes('team-roles') &&
     (organization.allowMemberProjectCreation ||
-      teams?.some(team => team.teamRole === 'admin'))
+      teams?.some(
+        team => team.teamRole === 'admin' && team.access.includes('team:admin')
+      ))
   ) {
     return true;
   }

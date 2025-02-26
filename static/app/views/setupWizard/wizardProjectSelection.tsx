@@ -8,12 +8,12 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
@@ -88,9 +88,11 @@ export function WizardProjectSelection({
     query: debouncedSearch,
   });
 
+  const canUserCreateProject = useCanCreateProject();
+
   const isCreationEnabled =
     orgDetailsRequest.data &&
-    canCreateProject(orgDetailsRequest.data) &&
+    canUserCreateProject &&
     teamsRequest.data &&
     teamsRequest.data.length > 0 &&
     platformParam;
