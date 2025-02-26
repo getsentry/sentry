@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
+import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -14,6 +15,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+
+type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
+
+const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
+  {key: 'provider', name: t('Provider')},
+  {key: 'flag', name: t('Feature Flag'), width: 600},
+  {key: 'action', name: t('Action')},
+  {key: 'createdAt', name: t('Created')},
+];
 
 export function OrganizationFeatureFlagsAuditLogTable({
   pageSize = 15,
@@ -99,7 +109,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
         pathname: location.pathname,
         query: {
           ...queryParams,
-          provider: provider ? provider : 'unknown',
+          provider: provider || 'unknown',
         },
       });
       setHasFilters(true);
@@ -108,7 +118,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   );
 
   const renderBodyCell = (
-    column: GridColumnOrder<'provider' | 'flag' | 'action' | 'createdAt'>,
+    column: GridColumnOrder<ColumnKey>,
     dataRow: RawFlag,
     _rowIndex: number,
     _columnIndex: number
@@ -129,11 +139,16 @@ export function OrganizationFeatureFlagsAuditLogTable({
         }}
         style={{cursor: 'pointer'}}
       >
-        {dataRow.provider ? dataRow.provider : t('unknown')}
+        {dataRow.provider || t('unknown')}
       </div>
     ) : (
       dataRow[column.key!]
     );
+
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: BASE_COLUMNS,
+    location,
+  });
 
   return (
     <Fragment>
@@ -150,14 +165,12 @@ export function OrganizationFeatureFlagsAuditLogTable({
         error={error}
         isLoading={isPending}
         data={data}
-        columnOrder={[
-          {key: 'provider', name: t('Provider')},
-          {key: 'flag', name: t('Feature Flag'), width: 600},
-          {key: 'action', name: t('Action')},
-          {key: 'createdAt', name: t('Created')},
-        ]}
+        columnOrder={columns}
         columnSortBy={[]}
-        scrollable={false}
+        grid={{
+          renderBodyCell,
+          onResizeColumn: handleResizeColumn,
+        }}
         onRowMouseOver={(_dataRow, key) => {
           setActiveRowKey(key);
         }}
@@ -165,7 +178,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
           setActiveRowKey(undefined);
         }}
         highlightedRowKey={activeRowKey}
-        grid={{renderBodyCell}}
+        scrollable={false}
       />
 
       <Pagination

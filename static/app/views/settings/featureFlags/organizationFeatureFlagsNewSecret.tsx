@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -7,6 +8,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,9 +42,9 @@ export function OrganizationFeatureFlagsNewSecet() {
           }
         )}
       </TextBlock>
-      <Alert type="info">
+      <StyledAlert type="info" showIcon>
         {t('Note that each provider can only have one associated signing secret.')}
-      </Alert>
+      </StyledAlert>
 
       <Panel>
         <PanelHeader>{t('Add New Provider')}</PanelHeader>
@@ -61,5 +63,9 @@ export function OrganizationFeatureFlagsNewSecet() {
     </Fragment>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(3)};
+`;
 
 export default OrganizationFeatureFlagsNewSecet;

@@ -10,6 +10,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   setApiQueryData,
@@ -204,4 +205,5 @@ const ResponsivePanelTable = styled(PanelTable)`
       display: none;
     }
   }
+  margin-bottom: ${space(3)};
 `;
