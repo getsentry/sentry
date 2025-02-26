@@ -118,6 +118,10 @@ function TimelineItem({
 interface StreamlinedActivitySectionProps {
   group: Group;
   /**
+   * Whether to filter the activity to only show comments.
+   */
+  filterComments?: boolean;
+  /**
    * Whether the activity section is being rendered in the activity drawer.
    * Disables collapse feature, and hides headers
    */
@@ -127,6 +131,7 @@ interface StreamlinedActivitySectionProps {
 export default function StreamlinedActivitySection({
   group,
   isDrawer,
+  filterComments,
 }: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
@@ -230,6 +235,15 @@ export default function StreamlinedActivitySection({
     },
   };
 
+  const filteredActivityLink = {
+    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+    query: {
+      ...location.query,
+      cursor: undefined,
+      filter: 'comments',
+    },
+  };
+
   return (
     <div>
       {!isDrawer && (
@@ -238,8 +252,14 @@ export default function StreamlinedActivitySection({
             {t('Activity')}
             {group.numComments > 0 ? (
               <CommentsLink
-                to={activityLink}
+                to={filteredActivityLink}
                 aria-label={t('Number of comments: %s', group.numComments)}
+                onClick={() => {
+                  trackAnalytics('issue_details.activity_comments_link_clicked', {
+                    organization,
+                    num_comments: group.numComments,
+                  });
+                }}
               >
                 <IconChat
                   size="xs"
@@ -285,18 +305,20 @@ export default function StreamlinedActivitySection({
           {...noteProps}
         />
         {(group.activity.length < 5 || isDrawer) &&
-          group.activity.map(item => {
-            return (
-              <TimelineItem
-                item={item}
-                handleDelete={handleDelete}
-                handleUpdate={handleUpdate}
-                group={group}
-                teams={teams}
-                key={item.id}
-              />
-            );
-          })}
+          group.activity
+            .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
+            .map(item => {
+              return (
+                <TimelineItem
+                  item={item}
+                  handleDelete={handleDelete}
+                  handleUpdate={handleUpdate}
+                  group={group}
+                  teams={teams}
+                  key={item.id}
+                />
+              );
+            })}
         {!isDrawer && group.activity.length >= 5 && (
           <Fragment>
             {group.activity.slice(0, 3).map(item => {

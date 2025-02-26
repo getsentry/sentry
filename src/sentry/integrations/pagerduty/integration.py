@@ -5,9 +5,10 @@ from typing import Any
 
 import orjson
 from django.db import router, transaction
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.integrations.base import (
@@ -22,7 +23,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -223,7 +224,7 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

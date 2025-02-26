@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/container/flex';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -45,7 +45,7 @@ export default function MailboxPicker({onChange, value}: Props) {
               <Tooltip disabled={!count} title={title}>
                 <Flex align="center">
                   {c.label}
-                  {display ? <Badge type="gray" text={display} /> : null}
+                  {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>
               </Tooltip>
             </SegmentedControl.Item>

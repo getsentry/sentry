@@ -17,6 +17,7 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import ProgressRing from 'sentry/components/progressRing';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -43,7 +44,6 @@ function OnboardingItem({
   isActive: boolean;
   refetch: () => void;
 }) {
-  const organization = useOrganization();
   const theme = useTheme();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -63,12 +63,11 @@ function OnboardingItem({
     isOpen: isActive,
     onOpenChange: newIsOpen => {
       if (newIsOpen) {
-        if (!demoMode && !isActive) {
-          trackAnalytics('quick_start.opened', {
-            organization,
-          });
-        }
-        activateSidebar();
+        activateSidebar({
+          recordAnalytics: !demoMode && !isActive,
+          userClicked: true,
+          source: 'onboarding_sidebar',
+        });
       } else {
         SidebarPanelStore.hidePanel();
       }
@@ -94,7 +93,9 @@ function OnboardingItem({
               font-weight: ${theme.fontWeightBold};
               color: ${theme.purple400};
             `}
-            text={doneTasks.length}
+            text={
+              doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+            }
             value={(doneTasks.length / allTasks.length) * 100}
             backgroundColor="rgba(255, 255, 255, 0.15)"
             progressEndcaps="round"
@@ -188,7 +189,10 @@ export function PrimaryNavigationOnboarding() {
     mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
 
     if (quickStartDisplayStatus === 1) {
-      activateSidebar();
+      activateSidebar({
+        userClicked: false,
+        source: 'onboarding_sidebar_user_second_visit',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);

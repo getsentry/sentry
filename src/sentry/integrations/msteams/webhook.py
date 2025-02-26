@@ -497,8 +497,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 user=user_service.get_user(user_id=identity.user_id),
                 auth=event_write_key,
             )
-            if response.status_code >= 400:
-                lifecycle.record_failure()
+            if response.status_code == 403:
+                lifecycle.record_halt(response)
+            elif response.status_code >= 400:
+                lifecycle.record_failure(response)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:

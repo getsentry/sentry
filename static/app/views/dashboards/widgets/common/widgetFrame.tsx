@@ -2,8 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import type {BadgeProps} from 'sentry/components/core/badge';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
@@ -20,7 +19,7 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
-  badgeProps?: BadgeProps | BadgeProps[];
+  badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
   noVisualizationPadding?: boolean;
@@ -71,7 +70,11 @@ export function WidgetFrame(props: WidgetFrameProps) {
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
-              (currentBadgeProps, i) => <WidgetBadge key={i} {...currentBadgeProps} />
+              (currentBadgeProps, i) => (
+                <WidgetBadge key={i} type="default">
+                  {currentBadgeProps}
+                </WidgetBadge>
+              )
             )}
         </Fragment>
       }

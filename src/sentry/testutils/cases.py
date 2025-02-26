@@ -49,6 +49,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     REQUESTTYPE_HEAD,
     CheckResult,
     CheckStatus,
+    CheckStatusReason,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -1252,7 +1253,7 @@ class SnubaTestCase(BaseTestCase):
     def store_ourlogs(self, ourlogs):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
                 data=json.dumps(ourlogs),
             ).status_code
             == 200
@@ -2369,7 +2370,7 @@ class UptimeCheckSnubaTestCase(TestCase):
     def store_snuba_uptime_check(
         self,
         subscription_id: str | None,
-        check_status: str,
+        check_status: CheckStatus,
         check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
@@ -2381,6 +2382,10 @@ class UptimeCheckSnubaTestCase(TestCase):
             incident_status = IncidentStatus.NO_INCIDENT
         if check_id is None:
             check_id = uuid.uuid4()
+
+        check_status_reason: CheckStatusReason | None = None
+        if check_status == "failure":
+            check_status_reason = {"type": "failure", "description": "Mock failure"}
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
@@ -2402,7 +2407,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
                 "status": check_status,
-                "status_reason": None,
+                "status_reason": check_status_reason,
                 "trace_id": str(uuid.uuid4()),
                 "incident_status": incident_status.value,
                 "request_info": {
@@ -3406,6 +3411,7 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
+        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3468,19 +3474,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
-                spans = []
+                spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"event_id": event.event_id})
-                        spans.append(
+                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
+                        spans_to_store.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                spans.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans)
+                spans_to_store.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans_to_store, is_eap=is_eap)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3496,15 +3502,17 @@ class TraceTestCase(SpanTestCase):
                 "span_id": trace_context["span_id"],
                 "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
-                "segment_id": uuid4().hex[:16],
+                "segment_id": event.event_id[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),
+                "start_timestamp_precise": start_ts,
+                "end_timestamp_precise": end_ts,
                 "received": start_ts,
-                "duration_ms": int(end_ts - start_ts),
+                "duration_ms": int((end_ts - start_ts) * 1000),
             }
         )
         if "parent_span_id" in trace_context:
@@ -3512,10 +3520,11 @@ class TraceTestCase(SpanTestCase):
         else:
             del span_data["parent_span_id"]
 
-        if "sentry_tags" in span_data:
-            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
-        else:
-            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
+        if "sentry_tags" not in span_data:
+            span_data["sentry_tags"] = {}
+
+        span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        span_data["sentry_tags"]["transaction"] = event.data["transaction"]
 
         return span_data
 
