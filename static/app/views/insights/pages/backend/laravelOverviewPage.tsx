@@ -765,4 +765,10 @@ const Cell = styled('div')<{align?: string}>`
   white-space: nowrap;
   text-align: ${p => p.align};
   justify-content: ${p => (p.align === 'flex-end' ? 'flex-end' : 'flex-start')};
+  &[data-color='danger'] {
+    color: ${p => p.theme.red400};
+  }
+  &[data-color='warning'] {
+    color: ${p => p.theme.yellow400};
+  }
 `;
