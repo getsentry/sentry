@@ -59,19 +59,10 @@ type TourRegistry<T extends TourEnumType> = {
   [key in T]: TourStep<T> | null;
 };
 
-export function useTourReducer<T extends TourEnumType>({
-  initialState,
-  orderedStepIds,
-}: {
-  initialState: Partial<TourState<T>>;
-  orderedStepIds: T[];
-}): TourContextType<T> {
-  const initState = {
-    orderedStepIds,
-    currentStep: null,
-    isAvailable: false,
-    ...initialState,
-  };
+export function useTourReducer<T extends TourEnumType>(
+  initialState: TourState<T>
+): TourContextType<T> {
+  const {orderedStepIds} = initialState;
   const [registry, setRegistry] = useState<TourRegistry<T>>(
     orderedStepIds.reduce((reg, stepId) => {
       reg[stepId] = null;
@@ -157,7 +148,7 @@ export function useTourReducer<T extends TourEnumType>({
     [registry, setRegistry, orderedStepIds, isCompletelyRegistered]
   );
 
-  const [tour, dispatch] = useReducer(reducer, initState);
+  const [tour, dispatch] = useReducer(reducer, initialState);
 
   return {...tour, dispatch};
 }

@@ -26,13 +26,13 @@ interface TourContextProviderProps<T extends TourEnumType> {
    */
   children: React.ReactNode;
   /**
-   * The initial state of the tour.
+   * Whether the tour can be accessed by the user
    */
-  initialState: Partial<TourState<T>>;
+  isAvailable: TourState<T>['isAvailable'];
   /**
    * The ordered list of Step IDs
    */
-  orderedStepIds: T[];
+  orderedStepIds: TourState<T>['orderedStepIds'];
   /**
    * The React context (from createContext) containing the provider for the tour.
    * The value for this prop comes from useTourReducer, to avoid extra steps.
@@ -42,11 +42,11 @@ interface TourContextProviderProps<T extends TourEnumType> {
 
 export function TourContextProvider<T extends TourEnumType>({
   children,
-  initialState,
-  orderedStepIds,
+  isAvailable,
   tourContext: TourContext,
+  orderedStepIds,
 }: TourContextProviderProps<T>) {
-  const tourContext = useTourReducer<T>({initialState, orderedStepIds});
+  const tourContext = useTourReducer<T>({isAvailable, orderedStepIds, currentStep: null});
   const isTourActive = tourContext.currentStep !== null;
   return (
     <TourContext.Provider value={tourContext}>
