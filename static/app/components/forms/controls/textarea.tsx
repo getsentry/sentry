@@ -54,4 +54,4 @@ const TextArea = styled(Input.withComponent(TextAreaControl), {
     `}
 `;
 
-export default TextArea;
+export default TextArea as unknown as typeof TextAreaControl;
