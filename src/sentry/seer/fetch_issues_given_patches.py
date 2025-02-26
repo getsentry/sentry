@@ -213,7 +213,14 @@ def _get_issues_for_file(
         tenant_ids={"organization_id": projects[0].organization_id},
         query=query,
     )
-    return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
+    try:
+        return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
+    except Exception:
+        logger.exception(
+            "Seer fetch issues given patches Snuba query error",
+            extra={"query": request.to_dict()["query"]},
+        )
+        return []
 
 
 def _add_event_details(

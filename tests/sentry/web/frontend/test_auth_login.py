@@ -20,6 +20,7 @@ from sentry.newsletter.dummy import DummyNewsletter
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -448,6 +449,101 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             )
         assert resp.status_code == 200
         assert b"The password is too similar to the username." in resp.content
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
+    def test_login_demo_mode(self):
+        demo_user = self.create_user(
+            is_staff=False,
+            email="readonly@example.com",
+            password="foo",
+            id=1,
+        )
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            # login with any password
+            {"username": demo_user.username, "password": "bar", "op": "login"},
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        # successful login redirects to organizations/new
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302), ("/organizations/new/", 302)]
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [1]})
+    def test_login_demo_mode_disabled(self):
+        demo_user = self.create_user(
+            is_staff=False,
+            id=1,
+            email="readonly@example.com",
+            password="foo",
+        )
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            # login with any password
+            {"username": demo_user.username, "password": "bar", "op": "login"},
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == []
+        assert "Please enter a correct username and password" in resp.content.decode()
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": []})
+    def test_login_demo_mode_not_demo_user(self):
+        demo_user = self.create_user(
+            is_staff=False,
+            id=1,
+            email="readonly@example.com",
+            password="foo",
+        )
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            # login with any password
+            {"username": demo_user.username, "password": "bar", "op": "login"},
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == []
+        assert "Please enter a correct username and password" in resp.content.decode()
+
+    @override_options(
+        {
+            "demo-mode.enabled": True,
+            "demo-mode.users": [1],
+            "demo-mode.orgs": [1],
+        }
+    )
+    def test_login_demo_mode_with_org(self):
+        demo_user = self.create_user(
+            is_staff=False,
+            id=1,
+            email="readonly@example.com",
+            password="foo",
+        )
+        demo_org = self.create_organization(owner=demo_user, id=1)
+
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            # login with any password
+            {"username": demo_user.username, "password": "bar", "op": "login"},
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        # successful login redirects to demo orgs issue stream
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{demo_org.slug}/issues/", 302),
+        ]
 
 
 @pytest.mark.skipif(

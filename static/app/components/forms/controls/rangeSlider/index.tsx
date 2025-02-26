@@ -1,6 +1,6 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
 
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';

@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';

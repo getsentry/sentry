@@ -22,6 +22,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     UPTIME_SUBSCRIPTION_TYPE,
     MaxManualUptimeSubscriptionsReached,
     UptimeMonitorNoSeatAvailable,
+    check_and_update_regions,
     create_project_uptime_subscription,
     create_uptime_subscription,
     delete_project_uptime_subscription,
@@ -103,6 +104,30 @@ class CreateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.url_domain_suffix == "io"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
+
+    def test_regions(self):
+        with (
+            override_settings(
+                UPTIME_REGIONS=[
+                    UptimeRegionConfig(slug="active_region", name="active_region"),
+                    UptimeRegionConfig(slug="shadow_region", name="shadow_region"),
+                ]
+            ),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "shadow_region": UptimeSubscriptionRegion.RegionMode.SHADOW
+                    }
+                }
+            ),
+        ):
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+            assert [
+                (r.region_slug, r.mode) for r in uptime_sub.regions.all().order_by("region_slug")
+            ] == [
+                ("active_region", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("shadow_region", UptimeSubscriptionRegion.RegionMode.SHADOW),
+            ]
 
 
 class UpdateUptimeSubscriptionTest(UptimeTestCase):
@@ -1031,3 +1056,79 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
 
         mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
         mock_assign_seat.assert_not_called()
+
+
+class CheckAndUpdateRegionsTest(UptimeTestCase):
+    def run_check_and_update_region_test(
+        self,
+        sub: UptimeSubscription,
+        regions: list[str],
+        region_overrides: dict[str, UptimeSubscriptionRegion.RegionMode],
+        expected_regions_before: dict[str, UptimeSubscriptionRegion.RegionMode],
+        expected_regions_after: dict[str, UptimeSubscriptionRegion.RegionMode],
+    ):
+        region_configs = [
+            UptimeRegionConfig(slug=slug, name=slug, config_redis_key_prefix=slug)
+            for slug in regions
+        ]
+
+        with (
+            override_settings(UPTIME_REGIONS=region_configs),
+            override_options({"uptime.checker-regions-mode-override": region_overrides}),
+        ):
+            assert {
+                r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
+                for r in sub.regions.all()
+            } == expected_regions_before
+            check_and_update_regions(sub, list(sub.regions.all()))
+            sub.refresh_from_db()
+            assert {
+                r.region_slug: UptimeSubscriptionRegion.RegionMode(r.mode)
+                for r in sub.regions.all()
+            } == expected_regions_after
+
+    def test_check_and_update_regions(self):
+        sub = self.create_uptime_subscription(
+            region_slugs=["region1"],
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            {},
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+        )
+
+    def test_check_and_update_regions_active_shadow(self):
+        sub = self.create_uptime_subscription(
+            region_slugs=["region1", "region2"],
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            {"region2": UptimeSubscriptionRegion.RegionMode.SHADOW},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.SHADOW,
+            },
+        )
+
+    def test_check_and_update_regions_removes_disabled(self):
+        sub = self.create_uptime_subscription(region_slugs=["region1", "region2"])
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            {"region2": UptimeSubscriptionRegion.RegionMode.INACTIVE},
+            {
+                "region1": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+                "region2": UptimeSubscriptionRegion.RegionMode.ACTIVE,
+            },
+            {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
+        )

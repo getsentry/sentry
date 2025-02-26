@@ -4,6 +4,9 @@ import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetail
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
+  'compare_queries.add_query': {
+    num_queries: number;
+  };
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
@@ -13,6 +16,7 @@ export type TracingEventParameters = {
     confidences: string[];
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
+    page_source: 'explore' | 'compare';
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
@@ -116,6 +120,7 @@ export type TracingEventParameters = {
     platform: string;
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
+  'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -126,7 +131,7 @@ export type TracingEventParameters = {
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard';
-    ui_source: 'toolbar' | 'chart';
+    ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
     error: string;
@@ -151,6 +156,7 @@ export type TracingEventParameters = {
 export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
+  'compare_queries.add_query': 'Compare Queries: Add Query',
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
@@ -205,4 +211,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
+  'trace_explorer.compare_queries': 'Trace Explorer: Compare',
 };

@@ -18,6 +18,7 @@ import {
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -50,14 +51,10 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
-const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '' : '--saas';
-  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i flutter ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
-};
-
 const getManualInstallSnippet = (params: Params) => {
   const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
-  return `sentry_flutter: ^${version}`;
+  return `dependencies:
+  sentry_flutter: ^${version}`;
 };
 
 const getConfigureSnippet = (params: Params) => `
@@ -173,8 +170,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: getInstallSnippet(params),
+                code: getWizardInstallSnippet({
+                  platform: 'flutter',
+                  params,
+                }),
               },
               {
                 description: (
@@ -206,14 +205,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </ListItem>
                     </List>
                   </Fragment>
-                ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/" />
-                    ),
-                  }
                 ),
               },
             ],
@@ -386,7 +377,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               label: 'YAML',
               value: 'yaml',
               language: 'yaml',
-              code: getInstallSnippet(params),
+              code: getManualInstallSnippet(params),
             },
           ],
         },

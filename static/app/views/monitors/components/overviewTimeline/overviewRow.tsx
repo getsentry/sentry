@@ -270,6 +270,7 @@ const DetailsContainer = styled('div')`
 
 const OwnershipDetails = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};

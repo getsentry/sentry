@@ -115,6 +115,7 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
+  changesDisabled?: boolean;
   customSolution?: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -245,6 +246,7 @@ function AutofixSolutionDisplay({
   previousInsightCount,
   customSolution,
   solutionSelected,
+  changesDisabled,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
@@ -291,27 +293,37 @@ function AutofixSolutionDisplay({
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
               )}
-              <EditButton
-                size="sm"
-                borderless
-                title={isEditing ? t('Cancel') : t('Propose your own solution')}
-                onClick={() => {
-                  if (isEditing) {
-                    setIsEditing(false);
-                    setUserCustomSolution('');
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
-              >
-                {isEditing ? <IconClose size="sm" /> : <IconEdit size="sm" />}
-              </EditButton>
+              {!changesDisabled && (
+                <EditButton
+                  size="sm"
+                  borderless
+                  title={isEditing ? t('Cancel') : t('Propose your own solution')}
+                  onClick={() => {
+                    if (isEditing) {
+                      setIsEditing(false);
+                      setUserCustomSolution('');
+                    } else {
+                      setIsEditing(true);
+                    }
+                  }}
+                >
+                  {isEditing ? <IconClose size="sm" /> : <IconEdit size="sm" />}
+                </EditButton>
+              )}
             </ButtonBar>
             <ButtonBar merged>
               <CodeButton
+                title={
+                  changesDisabled
+                    ? t(
+                        'You need to set up the GitHub integration for Autofix to write code for you.'
+                      )
+                    : undefined
+                }
                 size="sm"
                 priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
+                disabled={changesDisabled}
                 onClick={() => {
                   if (isEditing) {
                     if (userCustomSolution.trim()) {
@@ -330,6 +342,7 @@ function AutofixSolutionDisplay({
                 {t('Code It Up')}
               </CodeButton>
               <DropdownMenu
+                isDisabled={changesDisabled}
                 offset={[-12, 8]}
                 items={[
                   {
@@ -418,10 +431,12 @@ export function AutofixSolution(props: AutofixSolutionProps) {
     );
   }
 
+  const changesDisabled = props.repos.every(repo => repo.is_readable === false);
+
   return (
     <AnimatePresence initial>
       <AnimationWrapper key="card" {...cardAnimationProps}>
-        <AutofixSolutionDisplay {...props} />
+        <AutofixSolutionDisplay {...props} changesDisabled={changesDisabled} />
       </AnimationWrapper>
     </AnimatePresence>
   );

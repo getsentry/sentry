@@ -2,8 +2,8 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {Input} from 'sentry/components/core/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import Input from 'sentry/components/input';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';

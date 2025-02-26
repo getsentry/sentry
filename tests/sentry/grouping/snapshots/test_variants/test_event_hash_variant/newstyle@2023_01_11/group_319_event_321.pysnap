@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:14.170967+00:00'
+created: '2025-02-25T18:23:28.399978+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -31,7 +31,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "-[NSApplication run]"
           frame (non app frame)
@@ -70,7 +70,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "-[NSView displayIfNeeded]"
           frame (non app frame)
@@ -223,7 +223,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "-[NSApplication run]"
           frame (ignored by stack trace rule (category:internals -group))
@@ -262,7 +262,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked out of app by stack trace rule (category:system -app))
             function*
               "-[NSView displayIfNeeded]"
           frame (ignored by stack trace rule (category:internals -group))
