@@ -1,6 +1,6 @@
 import type {TimeSeries} from '../common/types';
 
-export function shiftTimeserieToNow(timeSeries: TimeSeries): TimeSeries {
+export function shiftTimeSeriesToNow(timeSeries: TimeSeries): TimeSeries {
   const currentTimestamp = new Date().getTime();
 
   const lastDatum = timeSeries.data.at(-1);

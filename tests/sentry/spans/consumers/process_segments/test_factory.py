@@ -6,9 +6,7 @@ from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.consumers.detect_performance_issues.factory import (
-    DetectPerformanceIssuesStrategyFactory,
-)
+from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
@@ -25,10 +23,10 @@ def build_mock_message(data, topic=None):
 
 @override_options(
     {
-        "standalone-spans.detect-performance-issues-consumer.enable": True,
+        "standalone-spans.process-segments-consumer.enable": True,
     }
 )
-@mock.patch("sentry.spans.consumers.detect_performance_issues.factory.process_segment")
+@mock.patch("sentry.spans.consumers.process_segments.factory.process_segment")
 def test_segment_deserialized_correctly(mock_process_segment):
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
     partition_1 = Partition(topic, 0)
