@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 
@@ -43,18 +43,22 @@ interface TourContextProviderProps<T extends TourEnumType> {
 export function TourContextProvider<T extends TourEnumType>({
   children,
   isAvailable,
-  tourContext: TourContext,
+  tourContext,
   orderedStepIds,
 }: TourContextProviderProps<T>) {
-  const tourContext = useTourReducer<T>({isAvailable, orderedStepIds, currentStep: null});
-  const isTourActive = tourContext.currentStep !== null;
+  const tourContextValue = useTourReducer<T>({
+    isAvailable,
+    orderedStepIds,
+    currentStep: null,
+  });
+  const isTourActive = tourContextValue.currentStep !== null;
   return (
-    <TourContext.Provider value={tourContext}>
+    <tourContext.Provider value={tourContextValue}>
       <BlurContainer>
-        {children}
         {isTourActive && <BlurWindow />}
+        {children}
       </BlurContainer>
-    </TourContext.Provider>
+    </tourContext.Provider>
   );
 }
 
@@ -80,6 +84,10 @@ export interface TourElementProps<T extends TourEnumType>
    * The relevant tour context
    */
   tourContext: TourContextType<T>;
+  /**
+   * Whether to skip the wrapper element.
+   */
+  skipWrapper?: boolean;
 }
 
 export function TourElement<T extends TourEnumType>({
@@ -109,23 +117,9 @@ export function TourElement<T extends TourEnumType>({
     });
   }, [id, element, dispatch]);
 
-  const focusStyles = css`
-    position: relative;
-    z-index: ${theme.zIndex.toast};
-    &:after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: ${theme.borderRadius};
-      box-shadow: inset 0 0 0 3px ${theme.subText};
-    }
-  `;
-
   return (
     <Fragment>
-      <div css={isOpen ? focusStyles : undefined} {...triggerProps}>
-        {children}
-      </div>
+      <ElementWrapper {...triggerProps}>{children}</ElementWrapper>
       {isOpen ? (
         <FocusScope autoFocus restoreFocus>
           <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
@@ -144,7 +138,7 @@ export function TourElement<T extends TourEnumType>({
               </TopRow>
               <TitleRow>{title}</TitleRow>
               <div>{description}</div>
-              <Flex justify="flex-end" gap={1}>
+              <Flex justify="flex-end" gap={space(1)}>
                 {hasPreviousStep && (
                   <ActionButton
                     size="xs"
@@ -176,13 +170,29 @@ const BlurContainer = styled('div')`
 `;
 
 const BlurWindow = styled('div')`
+  content: '';
   position: absolute;
   inset: 0;
-  content: '';
   z-index: ${p => p.theme.zIndex.modal};
   user-select: none;
+  pointer-events: none;
   backdrop-filter: blur(3px);
-  overscroll-behavior: none;
+`;
+
+const ElementWrapper = styled('div')`
+  &[aria-expanded='true'] {
+    position: relative;
+    z-index: ${p => p.theme.zIndex.toast};
+    user-select: none;
+    pointer-events: none;
+    &:after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: ${p => p.theme.borderRadius};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.subText};
+    }
+  }
 `;
 
 const TourOverlay = styled(Overlay)`

@@ -18,7 +18,7 @@ export const enum IssueDetailsTour {
   ISSUE_DETAILS_SIDEBAR = 'issue-details-sidebar',
 }
 
-export const ORDERED_ISSUE_DETAILS_TOUR_STEP_IDS = [
+export const ORDERED_ISSUE_DETAILS_TOUR = [
   IssueDetailsTour.ISSUE_DETAILS_AGGREGATES,
   IssueDetailsTour.ISSUE_DETAILS_FILTERS,
   IssueDetailsTour.ISSUE_DETAILS_EVENT_DETAILS,
@@ -30,7 +30,7 @@ export const ORDERED_ISSUE_DETAILS_TOUR_STEP_IDS = [
 export const IssueDetailsTourContext = createContext<TourContextType<IssueDetailsTour>>({
   currentStep: null,
   isAvailable: false,
-  orderedStepIds: ORDERED_ISSUE_DETAILS_TOUR_STEP_IDS,
+  orderedStepIds: ORDERED_ISSUE_DETAILS_TOUR,
   dispatch: () => {},
 });
 

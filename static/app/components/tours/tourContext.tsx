@@ -1,4 +1,4 @@
-import {type Dispatch, type Reducer, useCallback, useState} from 'react';
+import {type Dispatch, type Reducer, useCallback, useMemo, useState} from 'react';
 import {useReducer} from 'react';
 
 export type TourEnumType = string | number;
@@ -149,8 +149,15 @@ export function useTourReducer<T extends TourEnumType>(
   );
 
   const [tour, dispatch] = useReducer(reducer, initialState);
-
-  return {...tour, dispatch};
+  return useMemo<TourContextType<T>>(
+    () => ({
+      dispatch,
+      currentStep: tour.currentStep,
+      isAvailable: tour.isAvailable,
+      orderedStepIds: tour.orderedStepIds,
+    }),
+    [tour.currentStep, tour.isAvailable, tour.orderedStepIds, dispatch]
+  );
 }
 
 export interface TourContextType<T extends TourEnumType> extends TourState<T> {
