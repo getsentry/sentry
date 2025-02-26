@@ -94,4 +94,37 @@ describe('shouldDisplayAbsPathInTitle', () => {
     } as Frame;
     expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
   });
+
+  it('returns false when event URL is an IP address', () => {
+    const event = {
+      tags: [{key: 'url', value: 'http://192.168.1.1/page'}],
+      platform: 'javascript',
+    } as Event;
+    const frame = {
+      absPath: 'https://192.168.1.1/script.js',
+    } as Frame;
+    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+  });
+
+  it('returns false when event URL is localhost', () => {
+    const event = {
+      tags: [{key: 'url', value: 'http://localhost:8000/page'}],
+      platform: 'javascript',
+    } as Event;
+    const frame = {
+      absPath: 'http://localhost:8000/script.js',
+    } as Frame;
+    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+  });
+
+  it('returns true when script is from different IP than event', () => {
+    const event = {
+      tags: [{key: 'url', value: 'http://192.168.1.1/page'}],
+      platform: 'javascript',
+    } as Event;
+    const frame = {
+      absPath: 'https://192.168.1.2/script.js',
+    } as Frame;
+    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+  });
 });
