@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
