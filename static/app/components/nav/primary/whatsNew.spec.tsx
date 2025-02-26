@@ -2,7 +2,7 @@ import {BroadcastFixture} from 'sentry-fixture/broadcast';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -23,7 +23,7 @@ describe('WhatsNew', function () {
   });
 
   it('renders empty state', async function () {
-    render(<WhatsNew />);
+    render(<PrimaryNavigationWhatsNew />);
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
 
@@ -62,7 +62,7 @@ describe('WhatsNew', function () {
       ],
     });
 
-    render(<WhatsNew />);
+    render(<PrimaryNavigationWhatsNew />);
 
     expect(await screen.findByTestId('whats-new-unread-indicator')).toBeInTheDocument();
 
@@ -96,7 +96,7 @@ describe('WhatsNew', function () {
       body: [broadcast],
     });
 
-    render(<WhatsNew />);
+    render(<PrimaryNavigationWhatsNew />);
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
 
