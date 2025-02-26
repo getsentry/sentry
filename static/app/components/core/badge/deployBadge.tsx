@@ -4,27 +4,27 @@ import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types/release';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-type Props = {
+interface DeployBadgeProps {
   deploy: Deploy;
   orgSlug: string;
   projectId: number;
   version: string;
-};
+}
 
-export default function DeployBadge({deploy, orgSlug, projectId, version}: Props) {
+export function DeployBadge(props: DeployBadgeProps) {
   return (
     <Link
       to={{
-        pathname: `/organizations/${orgSlug}/issues/`,
+        pathname: `/organizations/${props.orgSlug}/issues/`,
         query: {
-          project: projectId,
-          environment: deploy.environment,
-          query: new MutableSearch([`release:${version}`]).formatString(),
+          project: props.projectId,
+          environment: props.deploy.environment,
+          query: new MutableSearch([`release:${props.version}`]).formatString(),
         },
       }}
     >
       <Tag type="highlight" textMaxWidth={80} tooltipText={t('Open In Issues')}>
-        {deploy.environment}
+        {props.deploy.environment}
       </Tag>
     </Link>
   );
