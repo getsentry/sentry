@@ -15,7 +15,11 @@ describe('NoProjectMessage', function () {
   });
 
   const org = OrganizationFixture();
-  const noAccessOrg = OrganizationFixture({access: [], features: ['team-roles']});
+  const noAccessOrg = OrganizationFixture({
+    access: [],
+    features: ['team-roles'],
+    allowMemberProjectCreation: false,
+  });
 
   it('renders', function () {
     const organization = OrganizationFixture({slug: 'org-slug'});
