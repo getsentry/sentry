@@ -99,6 +99,12 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': Record<string, unknown>;
   'issue.share_from_icon': Record<string, unknown>;
   'issue.shared_publicly': Record<string, unknown>;
+  'issue_details.activity_comments_link_clicked': {
+    num_comments: number;
+  };
+  'issue_details.activity_drawer.filter_changed': {
+    filter: string;
+  };
   'issue_details.comment_created': {
     org_streamline_only: boolean | undefined;
     streamline: boolean;
@@ -393,6 +399,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
   'highlights.project_settings.updated_manually':
     'Highlights: Updated Manually from Settings',
+  'issue_details.activity_comments_link_clicked':
+    'Issue Details: Activity Comments Link Clicked',
+  'issue_details.activity_drawer.filter_changed':
+    'Issue Details: Activity Drawer Filter Changed',
   'issue_details.copy_issue_short_id_clicked': 'Issue Details: Copy Issue Short ID',
   'issue_details.copy_issue_url_clicked': 'Issue Details: Copy Issue URL',
   'issue_details.copy_issue_markdown_link_clicked':
