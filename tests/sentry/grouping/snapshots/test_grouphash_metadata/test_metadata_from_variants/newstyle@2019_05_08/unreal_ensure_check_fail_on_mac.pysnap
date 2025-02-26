@@ -1,33 +1,43 @@
 ---
-created: '2025-02-26T14:07:15.961533+00:00'
+created: '2025-02-26T14:51:41.163685+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
-hash_basis: message
+hash_basis: stacktrace
 hashing_metadata: {
-  "message_parameterized": true,
-  "message_source": "exception"
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
 }
 ---
 metrics with tags: {
   "grouping.grouphashmetadata.event_hash_basis": {
-    "hash_basis": "message",
+    "hash_basis": "stacktrace",
     "is_hybrid_fingerprint": "False"
   },
-  "grouping.grouphashmetadata.event_hashing_metadata.message": {
-    "message_parameterized": "True",
-    "message_source": "exception"
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
   }
 }
 ---
 contributing variants:
-  app*
-    hash: "0d1f689d7d9815391098f2efce56bab1"
+  system*
+    hash: "2fc709d2492335aab674f2b4e8d76094"
     contributing component: exception
     component:
-      app*
+      system*
         exception*
+          stacktrace*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "thread_start"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "_pthread_start"
+            frame*
+              function*
+                "__NSThread__start__"
           type*
             "Ensure failed"
-          value* (stripped event-specific values)
-            "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"

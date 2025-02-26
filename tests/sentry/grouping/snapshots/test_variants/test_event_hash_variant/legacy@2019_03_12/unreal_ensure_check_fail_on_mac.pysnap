@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T14:07:19.701049+00:00'
+created: '2025-02-26T14:51:42.903578+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,6 +9,121 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "thread_start"
+            function (function name is not used if module or filename are available)
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_pthread_start"
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "__NSThread__start__"
+            function (function name is not used if module or filename are available)
+              "__NSThread__start__"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
         type*
           "Ensure failed"
         value*
@@ -21,6 +136,121 @@ system:
   component:
     system*
       exception*
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "thread_start"
+            function (function name is not used if module or filename are available)
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_pthread_start"
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "__NSThread__start__"
+            function (function name is not used if module or filename are available)
+              "__NSThread__start__"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (function name is not used if module or filename are available)
+              "<redacted>"
         type*
           "Ensure failed"
         value*

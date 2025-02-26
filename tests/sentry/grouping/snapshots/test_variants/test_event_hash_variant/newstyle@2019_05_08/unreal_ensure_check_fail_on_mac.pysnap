@@ -1,19 +1,128 @@
 ---
-created: '2025-02-26T14:11:57.907671+00:00'
+created: '2025-02-26T14:51:42.873953+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "0d1f689d7d9815391098f2efce56bab1"
-  contributing component: exception
+  hash: null
+  contributing component: null
   component:
-    app*
-      exception*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no contributing frames)
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame (non app frame)
+            function*
+              "__NSThread__start__"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
         type*
           "Ensure failed"
         value* (stripped event-specific values)
           "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"
-      threads (exception of app takes precedence)
+      threads (exception of system takes precedence)
         stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
@@ -149,11 +258,125 @@ app:
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
 --------------------------------------------------------------------------
 system:
-  hash: null
-  contributing component: null
+  hash: "2fc709d2492335aab674f2b4e8d76094"
+  contributing component: exception
   component:
-    system (exception of app takes precedence)
-      threads (exception of app takes precedence)
+    system*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame*
+            function*
+              "__NSThread__start__"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+            function (ignored unknown function)
+              "<redacted>"
+        type*
+          "Ensure failed"
+        value (ignored because stacktrace takes precedence)
+          "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"
+      threads (exception of system takes precedence)
         stacktrace*
           frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
