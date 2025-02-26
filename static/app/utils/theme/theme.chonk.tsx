@@ -21,6 +21,87 @@ import commonTheme, {
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
 function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
+    content: {
+      primary: colorScheme.dynamic.grayTransparent500,
+      secondary: colorScheme.dynamic.grayTransparent400,
+      accent: colorScheme.dynamic.blue400,
+      success: colorScheme.dynamic.green400,
+      warning: colorScheme.dynamic.yellow400,
+      danger: colorScheme.dynamic.red400,
+    },
+    background: {
+      primary: colorScheme.dynamic.surface500,
+      secondary: colorScheme.dynamic.surface400,
+      tertiary: colorScheme.dynamic.surface300,
+    },
+    border: {
+      primary: colorScheme.dynamic.surface100,
+      secondary: colorScheme.dynamic.surface200,
+    },
+    components: {
+      link: {
+        accent: {
+          color: {
+            default: colorScheme.dynamic.blue400,
+            hover: colorScheme.dynamic.blue400,
+            active: colorScheme.dynamic.blue400,
+          },
+        },
+      },
+      button: {
+        default: {
+          chonk: colorScheme.dynamic.surface100,
+          children: colorScheme.dynamic.grayTransparent500,
+          background: {
+            default: colorScheme.dynamic.surface500,
+            hover: colorScheme.dynamic.surface400,
+            active: colorScheme.dynamic.surface300,
+          },
+        },
+        transparent: {
+          chonk: colorScheme.dynamic.surface100,
+          children: colorScheme.dynamic.grayTransparent500,
+          background: {
+            default: colorScheme.dynamic.surface500,
+            hover: colorScheme.dynamic.surface400,
+            active: colorScheme.dynamic.surface300,
+          },
+        },
+        accent: {
+          chonk: colorScheme.dynamic.blue100,
+          children: colorScheme.static.white,
+          background: {
+            default: colorScheme.static.blue400,
+            hover: colorScheme.static.blue300,
+            active: colorScheme.static.blue200,
+          },
+        },
+        warning: {
+          chonk: colorScheme.dynamic.yellow100,
+          children: colorScheme.static.black,
+          background: {
+            default: colorScheme.static.yellow400,
+            hover: colorScheme.static.yellow300,
+            active: colorScheme.static.yellow200,
+          },
+        },
+        danger: {
+          chonk: colorScheme.dynamic.red100,
+          children: colorScheme.static.white,
+          background: {
+            default: colorScheme.static.red400,
+            hover: colorScheme.static.red300,
+            active: colorScheme.static.red200,
+          },
+        },
+      },
+      utils: {
+        outline: {
+          accent: colorScheme.static.blue400,
+          danger: colorScheme.static.red400,
+        },
+      },
+    },
     static: {
       text: {
         primary: colorScheme.dynamic.grayTransparent500,
