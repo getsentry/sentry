@@ -76,15 +76,15 @@ class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
 
     # Support camel case since it's used by our response serializer.
     def validate_sort(self, value: str | None) -> str | None:
-        if not value:
+        if value is None:
             return None
 
-        value = camel_to_snake_case(value)
-        if not value.startswith("-") and value not in SORT_FIELDS:
+        value_str: str = camel_to_snake_case(value)  # new var for mypy
+        if not value_str.startswith("-") and value_str not in SORT_FIELDS:
             raise ParseError(detail=f"Invalid sort: {value}")
-        if value.startswith("-") and value[1:] not in SORT_FIELDS:
-            raise ParseError(detail=f"Invalid sort: {value[1:]}")
-        return value
+        if value_str.startswith("-") and value_str[1:] not in SORT_FIELDS:
+            raise ParseError(detail=f"Invalid sort: {value_str[1:]}")
+        return value_str
 
 
 @region_silo_endpoint
