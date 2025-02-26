@@ -91,7 +91,7 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
 def get_incident_status_text(
     snuba_query: SnubaQuery,
     threshold_type: AlertRuleThresholdType | None,
-    comparison_delta: ComparisonDeltaChoices | None,
+    comparison_delta: int | None,
     metric_value: str,
 ) -> str:
     """Returns a human readable current status of an incident"""
@@ -118,10 +118,8 @@ def get_incident_status_text(
     # % change alerts have a comparison delta
     if comparison_delta:
         metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
-        higher_or_lower = (
-            "higher" if threshold_type.value == AlertRuleThresholdType.ABOVE.value else "lower"
-        )
-        comparison_delta_minutes = comparison_delta.value // 60
+        higher_or_lower = "higher" if threshold_type == AlertRuleThresholdType.ABOVE else "lower"
+        comparison_delta_minutes = comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
@@ -179,12 +177,12 @@ def incident_attachment_info(
 
     text = get_incident_status_text(
         alert_rule.snuba_query,
-        AlertRuleThresholdType(alert_rule.threshold_type) if alert_rule.threshold_type else None,
         (
-            ComparisonDeltaChoices(alert_rule.comparison_delta)
-            if alert_rule.comparison_delta
+            AlertRuleThresholdType(alert_rule.threshold_type)
+            if alert_rule.threshold_type is not None
             else None
         ),
+        alert_rule.comparison_delta,
         str(metric_value),
     )
     if features.has(
@@ -270,12 +268,12 @@ def metric_alert_unfurl_attachment_info(
             alert_rule.snuba_query,
             (
                 AlertRuleThresholdType(alert_rule.threshold_type)
-                if alert_rule.threshold_type
+                if alert_rule.threshold_type is not None
                 else None
             ),
             (
                 ComparisonDeltaChoices(alert_rule.comparison_delta)
-                if alert_rule.comparison_delta
+                if alert_rule.comparison_delta is not None
                 else None
             ),
             str(metric_value),
