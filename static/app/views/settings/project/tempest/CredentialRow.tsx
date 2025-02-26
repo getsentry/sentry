@@ -11,7 +11,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import type {TempestCredentials} from './types';
+import {MessageType, type TempestCredentials} from './types';
 
 export function CredentialRow({
   credential,
@@ -80,7 +80,7 @@ type StatusTagProps = {
 
 const STATUS_CONFIG = {
   error: {label: 'Error', type: 'error'},
-  success: {label: 'Success', type: 'default'},
+  success: {label: 'Active', type: 'default'},
   info: {label: 'Pending', type: 'info'},
 } as const;
 
@@ -99,5 +99,5 @@ export function getStatusType(credential: {message?: string; messageType?: strin
     return 'info';
   }
 
-  return credential.messageType === 'ERROR' ? 'error' : 'success';
+  return credential.messageType === MessageType.ERROR ? 'error' : 'success';
 }
