@@ -19,7 +19,7 @@
               "function": "thread_start",
               "symbol": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {"category": "threadbase", "symbolicator_status": "symbolicated"},
               "image_addr": "0x197c1d000",
               "instruction_addr": "0x197c1f0f8",
@@ -29,7 +29,7 @@
               "function": "_pthread_start",
               "symbol": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {"category": "threadbase", "symbolicator_status": "symbolicated"},
               "image_addr": "0x197c1d000",
               "instruction_addr": "0x197c242e0",
@@ -38,7 +38,7 @@
             {
               "function": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": false,
+
               "data": {"category": "internals", "symbolicator_status": "missing"},
               "image_addr": "0x198e81000",
               "instruction_addr": "0x198ed5444",
@@ -420,7 +420,7 @@
               "function": "+[SentrySDK captureEvent:]",
               "symbol": "+[SentrySDK captureEvent:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x317992e08",
@@ -430,7 +430,7 @@
               "function": "+[SentrySDK captureEvent:withScope:]",
               "symbol": "+[SentrySDK captureEvent:withScope:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x317992fa8",
@@ -440,7 +440,7 @@
               "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
               "symbol": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x3179676bc",
@@ -450,7 +450,7 @@
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x31793a9fc",
@@ -460,7 +460,7 @@
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x31793c330",
@@ -470,7 +470,7 @@
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "symbol": "-[SentryThreadInspector getCurrentThreads]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x3179498f4",
@@ -480,7 +480,7 @@
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {"symbolicator_status": "symbolicated"},
               "image_addr": "0x317930000",
               "instruction_addr": "0x3179a8cc0",
@@ -493,7 +493,7 @@
             {
               "function": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {"category": "threadbase"},
               "image_addr": "0x197c1d000",
               "instruction_addr": "0x197c1f0fc",
@@ -502,7 +502,7 @@
             {
               "function": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {"category": "threadbase"},
               "image_addr": "0x197c1d000",
               "instruction_addr": "0x197c242e4",
@@ -511,7 +511,7 @@
             {
               "function": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": false,
+
               "data": {"category": "internals"},
               "image_addr": "0x198e81000",
               "instruction_addr": "0x198ed5444",
@@ -786,7 +786,7 @@
             {
               "function": "+[SentrySDK captureEvent:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x317992e0c",
               "symbol_addr": "0x317992db0"
@@ -794,7 +794,7 @@
             {
               "function": "+[SentrySDK captureEvent:withScope:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x317992fac",
               "symbol_addr": "0x317992f54"
@@ -802,7 +802,7 @@
             {
               "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x3179676c0",
               "symbol_addr": "0x3179676a8"
@@ -810,7 +810,7 @@
             {
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x31793aa00",
               "symbol_addr": "0x31793a994"
@@ -818,7 +818,7 @@
             {
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x31793c334",
               "symbol_addr": "0x31793be20"
@@ -826,7 +826,7 @@
             {
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x3179498f8",
               "symbol_addr": "0x3179496c0"
@@ -834,7 +834,7 @@
             {
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x317930000",
               "instruction_addr": "0x3179a8cc0",
               "symbol_addr": "0x3179a8c9c"

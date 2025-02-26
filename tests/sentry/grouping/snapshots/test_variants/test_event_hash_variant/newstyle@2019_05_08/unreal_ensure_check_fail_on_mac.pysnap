@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T14:07:19.549551+00:00'
+created: '2025-02-26T14:11:57.907671+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -155,10 +155,10 @@ system:
     system (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame*
