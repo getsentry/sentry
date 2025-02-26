@@ -1,5 +1,7 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -7,6 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -28,6 +31,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const _query = useLocationQuery({
     fields: {
@@ -76,16 +80,53 @@ export function OrganizationFeatureFlagsAuditLogTable({
   }, [responseData]);
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+  const [hasFilters, setHasFilters] = useState<boolean>(false);
+
+  const resetFilters = useCallback(() => {
+    navigate({
+      pathname: location.pathname,
+    });
+    setHasFilters(false);
+  }, [navigate, location.pathname]);
+
+  const onFlagClick = useCallback(
+    (flag: string) => {
+      navigate({
+        pathname: location.pathname,
+        query: {
+          flag,
+        },
+      });
+      setHasFilters(true);
+    },
+    [navigate, location.pathname, setHasFilters]
+  );
 
   const renderBodyCell = (
     column: GridColumnOrder<keyof AuditLog>,
     dataRow: AuditLog,
     _rowIndex: number,
     _columnIndex: number
-  ) => (column.key !== 'flag' ? dataRow[column.key!] : <code>{dataRow.flag}</code>);
+  ) =>
+    column.key !== 'flag' ? (
+      dataRow[column.key!]
+    ) : (
+      <code
+        onClick={() => {
+          onFlagClick(dataRow.flag);
+        }}
+        style={{cursor: 'pointer'}}
+      >
+        {dataRow.flag}
+      </code>
+    );
 
   return (
     <Fragment>
+      <Flex justify="space-between">
+        <h5>Audit Logs</h5>
+        {hasFilters && <Button onClick={resetFilters}>View All</Button>}
+      </Flex>
       <GridEditable
         error={error}
         isLoading={isLoading}

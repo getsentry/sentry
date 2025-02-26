@@ -189,7 +189,6 @@ export function OrganizationFeatureFlagsIndex() {
         )}
       </ResponsivePanelTable>
 
-      <h5>Audit Logs</h5>
       {hasAccess ? <OrganizationFeatureFlagsAuditLogTable /> : null}
     </Fragment>
   );
