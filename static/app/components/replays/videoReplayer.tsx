@@ -428,6 +428,7 @@ export class VideoReplayer {
       else {
         videoElem.style.display = 'none';
         // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
+        // we don't do this for videos that have a duration of 0 because this will incorrectly cause handleSegmentEnd to fire.
         if (videoElem.ended && videoElem.duration > 0) {
           this.setVideoTime(videoElem, 0);
         }
