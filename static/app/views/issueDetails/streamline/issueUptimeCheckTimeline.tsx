@@ -151,4 +151,5 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
+  width: 100%;
 `;
