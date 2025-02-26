@@ -1,6 +1,14 @@
 {
   "platform": "cocoa",
   "message": "Message for scoped event",
+  "exception": {
+    "values": [
+      {
+        "type": "Ensure failed",
+        "value": "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: 44]"
+      }
+    ]
+  },
   "threads": {
     "values": [
       {
