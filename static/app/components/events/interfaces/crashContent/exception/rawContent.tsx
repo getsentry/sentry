@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ClippedBox from 'sentry/components/clippedBox';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -43,7 +43,7 @@ export default function RawContent({
   }
 
   if (isPending) {
-    return <LoadingIndicator />;
+    return <Placeholder height="250px" />;
   }
 
   if (isError) {
