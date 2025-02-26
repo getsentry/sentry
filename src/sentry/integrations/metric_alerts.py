@@ -119,9 +119,9 @@ def get_incident_status_text(
     if comparison_delta:
         metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
         higher_or_lower = (
-            "higher" if threshold_type == AlertRuleThresholdType.ABOVE.value else "lower"
+            "higher" if threshold_type.value == AlertRuleThresholdType.ABOVE.value else "lower"
         )
-        comparison_delta_minutes = comparison_delta // 60
+        comparison_delta_minutes = comparison_delta.value // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
