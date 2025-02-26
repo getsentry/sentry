@@ -1,0 +1,28 @@
+---
+created: '2025-02-26T14:07:19.701049+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        type*
+          "Ensure failed"
+        value*
+          "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: 44]"
+      threads (ignored because contains 62 threads)
+--------------------------------------------------------------------------
+system:
+  hash: "5f5bf6db7c9f6875ffb45879c60a990e"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        type*
+          "Ensure failed"
+        value*
+          "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: 44]"
+      threads (ignored because contains 62 threads)

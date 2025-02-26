@@ -1,0 +1,33 @@
+---
+created: '2025-02-26T14:07:16.113055+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "5f5bf6db7c9f6875ffb45879c60a990e"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          type*
+            "Ensure failed"
+          value*
+            "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: 44]"
