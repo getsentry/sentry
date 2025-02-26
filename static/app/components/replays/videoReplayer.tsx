@@ -43,6 +43,7 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
+  private _currentVideo: HTMLVideoElement | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: Array<[ts: number, index: number]>;
@@ -427,14 +428,17 @@ export class VideoReplayer {
       // hides all videos because videos have a different z-index depending on their index
       else {
         videoElem.style.display = 'none';
-        // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
-        if (videoElem.ended) {
-          this.setVideoTime(videoElem, 0);
+        // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
+        if (this._currentVideo) {
+          if (this._currentVideo.ended) {
+            this.setVideoTime(this._currentVideo, 0);
+          }
         }
       }
     }
 
     nextVideo.style.display = 'block';
+    this._currentVideo = nextVideo;
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
