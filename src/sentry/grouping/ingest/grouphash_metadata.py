@@ -146,6 +146,7 @@ def create_or_update_grouphash_metadata_if_needed(
 
         GroupHashMetadata.objects.create(**new_data)
 
+    # Update data in existing metadata record if needed
     else:
         updated_data: dict[str, Any] = {}
 
@@ -158,6 +159,29 @@ def create_or_update_grouphash_metadata_if_needed(
                 "current_config": grouphash.metadata.latest_grouping_config,
                 "new_config": grouping_config,
             }
+
+        # If the metadata was gathered under an old schema, get new data and bump the schema version
+        if grouphash.metadata.schema_version != GROUPHASH_METADATA_SCHEMA_VERSION:
+            updated_data.update(
+                # This includes `schema_version`
+                get_grouphash_metadata_data(event, project, variants, grouping_config)
+            )
+
+            db_hit_metadata.update(
+                {
+                    "reason": (
+                        "outdated_schema"
+                        if not db_hit_metadata.get("reason")
+                        else "config_and_schema"
+                    ),
+                    # TODO: Any time during or after May 2025, confirm that all metadata records
+                    # have been backfilled with a schema version (or deleted because their groups
+                    # aged out). If so, we can get rid of the best-guess logic here.
+                    "current_version": grouphash.metadata.schema_version
+                    or grouphash.metadata.get_best_guess_schema_version(),
+                    "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+                }
+            )
 
         # Only hit the DB if there's something to change
         if updated_data:
