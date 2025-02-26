@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import AlertBadge from 'sentry/components/badge/alertBadge';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import Matrix from 'sentry/components/stories/matrix';
 import storyBook from 'sentry/stories/storyBook';
 import {IncidentStatus} from 'sentry/views/alerts/types';

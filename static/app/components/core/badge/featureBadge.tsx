@@ -83,14 +83,12 @@ const StyledBadge = styled(Badge)`
   vertical-align: middle;
 `;
 
+/**
+ * Requires the result of styled(Badge) to be exported as it
+ * is in some cases targeted with a child selector.
+ */
 export const FeatureBadge = styled(InnerFeatureBadge)`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};
 `;
-
-/**
- * Requires the result of styled(Badge) to be exported as it
- * is in some cases targeted with a child selector.
- */
-export default FeatureBadge;
