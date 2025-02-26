@@ -312,21 +312,24 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
 
-  :hover {
+  /* Hide the ellipsis menu if not hovered, or if it's not expanded  */
+  :not(:hover):not(:has([data-ellipsis-menu-trigger][aria-expanded='true'])) {
     [data-ellipsis-menu-trigger] {
-      display: flex;
-    }
-    [data-issue-view-query-count] {
-      display: none;
+      ${p => p.theme.visuallyHidden}
     }
   }
 
-  [data-ellipsis-menu-trigger][aria-expanded='true'] {
-    display: flex;
+  /* Hide the query count if the ellipsis menu is not expanded */
+  :hover {
+    [data-issue-view-query-count] {
+      ${p => p.theme.visuallyHidden}
+    }
   }
+
+  /* Hide the query count if the ellipsis menu is expanded */
   &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
     [data-issue-view-query-count] {
-    display: none;
+    ${p => p.theme.visuallyHidden}
   }
 `;
 
