@@ -784,7 +784,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         configurations: [
           {
             language: 'JavaScript',
-            code: `${makeConfigureCode(dsn.public)}`,
+            code: makeConfigureCode(dsn.public),
           },
         ],
       },
@@ -796,7 +796,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         configurations: [
           {
             language: 'JavaScript',
-            code: `${makeVerifyCode()}`,
+            code: makeVerifyCode(),
           },
         ],
       },
