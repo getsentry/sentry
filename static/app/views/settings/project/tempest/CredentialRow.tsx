@@ -29,7 +29,7 @@ export function CredentialRow({
       </Flex>
 
       <Flex align="center">
-        <StatusTag type={getStatusType(credential)} message={credential.message} />
+        <StatusTag statusType={getStatusType(credential)} message={credential.message} />
       </Flex>
 
       <Flex align="center">
@@ -74,18 +74,18 @@ export function CredentialRow({
 }
 
 type StatusTagProps = {
-  type: 'error' | 'success' | 'info';
+  statusType: 'error' | 'success' | 'pending';
   message?: string;
 };
 
 const STATUS_CONFIG = {
   error: {label: 'Error', type: 'error'},
   success: {label: 'Active', type: 'default'},
-  info: {label: 'Pending', type: 'info'},
+  pending: {label: 'Pending', type: 'info'},
 } as const;
 
-function StatusTag({type, message}: StatusTagProps) {
-  const config = STATUS_CONFIG[type];
+function StatusTag({statusType, message}: StatusTagProps) {
+  const config = STATUS_CONFIG[statusType];
   return (
     <Tag type={config.type} tooltipText={message}>
       {config.label}
@@ -99,7 +99,7 @@ function getStatusType(credential: {
 }) {
   if (credential.messageType === null) {
     // If messageType is null, it is pending and still it wasn't validated
-    return 'info';
+    return 'pending';
   }
 
   return credential.messageType === MessageType.ERROR ? 'error' : 'success';
