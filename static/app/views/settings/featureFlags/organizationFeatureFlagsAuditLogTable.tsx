@@ -176,7 +176,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       </Flex>
       <TextBlock>
         {t(
-          'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags. Clicking a flag or provider will filter results by that flag or provider.'
+          'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags.'
         )}
       </TextBlock>
       <GridEditable
