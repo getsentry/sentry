@@ -105,6 +105,30 @@ class CreateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
+    def test_regions(self):
+        with (
+            override_settings(
+                UPTIME_REGIONS=[
+                    UptimeRegionConfig(slug="active_region", name="active_region"),
+                    UptimeRegionConfig(slug="shadow_region", name="shadow_region"),
+                ]
+            ),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "shadow_region": UptimeSubscriptionRegion.RegionMode.SHADOW
+                    }
+                }
+            ),
+        ):
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+            assert [
+                (r.region_slug, r.mode) for r in uptime_sub.regions.all().order_by("region_slug")
+            ] == [
+                ("active_region", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("shadow_region", UptimeSubscriptionRegion.RegionMode.SHADOW),
+            ]
+
 
 class UpdateUptimeSubscriptionTest(UptimeTestCase):
     def test(self):
