@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {uniqueId} from 'sentry/utils/guid';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type TextProps = {
@@ -99,7 +98,7 @@ function ProgressRing({
 
   let textNode = (
     <TextComponent
-      key={typeof text === 'object' && text !== null ? text.toString() : uniqueId()}
+      key={typeof text === 'object' && text !== null ? 'text-node' : text?.toString()}
       {...(animate ? animatedTextDefaultProps : {})}
       {...{textCss, percent}}
     >
