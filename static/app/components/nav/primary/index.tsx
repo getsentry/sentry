@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import Hook from 'sentry/components/hook';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 import {
@@ -188,6 +189,11 @@ export function PrimaryNavigationItems() {
         <SeparatorItem />
 
         <PrimaryNavigationWhatsNew />
+        <Hook
+          name="sidebar:bottom-items"
+          organization={organization}
+          orientation="left"
+        />
         <PrimaryNavigationServiceIncidents />
         <PrimaryNavigationOnboarding />
       </SidebarFooter>
