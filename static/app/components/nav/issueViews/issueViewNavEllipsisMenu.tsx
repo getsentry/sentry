@@ -18,7 +18,6 @@ interface IssueViewNavEllipsisMenuProps {
   baseUrl: string;
   deleteView: () => void;
   duplicateView: () => void;
-  isLastView: boolean;
   setIsEditing: (isEditing: boolean) => void;
   updateView: (view: IssueView) => void;
   view: IssueView;
@@ -33,7 +32,6 @@ export function IssueViewNavEllipsisMenu({
   duplicateView,
   updateView,
   baseUrl,
-  isLastView,
 }: IssueViewNavEllipsisMenuProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -129,7 +127,6 @@ export function IssueViewNavEllipsisMenu({
               label: t('Delete'),
               priority: 'danger',
               onAction: deleteView,
-              disabled: isLastView,
             },
           ],
         },

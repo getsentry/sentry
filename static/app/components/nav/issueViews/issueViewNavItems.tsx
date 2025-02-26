@@ -228,7 +228,6 @@ export function IssueViewNavItems({
             updateView={updatedView => handleUpdateView(view, updatedView)}
             deleteView={() => handleDeleteView(view)}
             duplicateView={() => handleDuplicateView(view)}
-            isLastView={views.length === 1}
           />
         </AnimatePresence>
       ))}
