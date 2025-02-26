@@ -178,7 +178,7 @@ function TeamRow({
 
 const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px 95px;
+  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px;
   gap: ${space(1)};
 
   > div:last-child {
