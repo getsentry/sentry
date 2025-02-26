@@ -1,33 +1,130 @@
 ---
-created: '2025-02-26T14:07:18.807698+00:00'
+created: '2025-02-26T15:40:50.902130+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
-hash_basis: message
+hash_basis: stacktrace
 hashing_metadata: {
-  "message_parameterized": true,
-  "message_source": "exception"
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
 }
 ---
 metrics with tags: {
   "grouping.grouphashmetadata.event_hash_basis": {
-    "hash_basis": "message",
+    "hash_basis": "stacktrace",
     "is_hybrid_fingerprint": "False"
   },
-  "grouping.grouphashmetadata.event_hashing_metadata.message": {
-    "message_parameterized": "True",
-    "message_source": "exception"
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
   }
 }
 ---
 contributing variants:
   app*
-    hash: "0d1f689d7d9815391098f2efce56bab1"
+    hash: "545121e963cc2b9839e722ed4245585a"
     contributing component: exception
     component:
       app*
         exception*
+          stacktrace*
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "-[FCocoaGameThread main]"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "-[UEAppDelegate runGameThread:]"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "GuardedMain"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FEngineLoop::Tick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FSlateApplication::Tick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FSlateApplication::TickPlatform"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FMacApplication::ProcessDeferredEvents"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FMacApplication::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FMacApplication::ProcessMouseUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "SButton::OnMouseButtonUp"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "SButton::ExecuteOnClick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "UButton::SlateHandleClicked"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "UObject::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "UFunction::Invoke"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "ProcessLocalFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "ProcessScriptFunction<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "UObject::execCallMathFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "USentryPlaygroundUtils::execTerminate"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app))
+              function*
+                "USentryPlaygroundUtils::Terminate"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UE::Assert::Private::ExecCheckImplInternal"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FDebug::EnsureFailed"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "TMulticastDelegateBase<T>::Broadcast<T>"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "TBaseFunctorDelegateInstance<T>::ExecuteIfSafe"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "UE::Core::Private::Tuple::TTupleBase<T>::ApplyAfter<T>"
+            frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
+              function*
+                "FAppleSentrySubsystem::CaptureEnsure"
           type*
             "Ensure failed"
-          value* (stripped event-specific values)
-            "Ensure condition failed: ensurePtr != nullptr [File:/Users/foo/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"
