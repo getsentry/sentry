@@ -7,6 +7,7 @@ from django.forms import ValidationError
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -271,7 +272,11 @@ def migrate_metric_data_conditions(
     detector_trigger = DataCondition.objects.create(
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
-        type=threshold_type,
+        type=(
+            threshold_type
+            if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
+            else Condition.ANOMALY_DETECTION
+        ),
         condition_group=detector_data_condition_group,
     )
 
@@ -360,7 +365,11 @@ def migrate_resolve_threshold_data_conditions(
     detector_trigger = DataCondition.objects.create(
         comparison=resolve_threshold,
         condition_result=DetectorPriorityLevel.OK,
-        type=threshold_type,
+        type=(
+            threshold_type
+            if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
+            else Condition.ANOMALY_DETECTION
+        ),
         condition_group=detector_data_condition_group,
     )
 
