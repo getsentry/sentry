@@ -650,6 +650,13 @@ interface DiscoverQueryResponse {
   }>;
 }
 
+interface RouteControllerMapping {
+  'count(span.duration)': number;
+  'span.description': string;
+  transaction: string;
+  'transaction.method': string;
+}
+
 const errorRateColorThreshold = {
   danger: 0.1,
   warning: 0.05,
@@ -665,6 +672,44 @@ const getP95Threshold = (avg: number) => {
 const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
 };
+
+// Add this styled component near other styled components
+const PathCell = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding: ${space(1)} ${space(2)};
+  min-height: ${space(5)};
+  justify-content: center;
+  gap: ${space(0.5)};
+`;
+
+const ControllerText = styled('div')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  ${p => p.theme.overflowEllipsis};
+  line-height: 1;
+`;
+
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  overflow: hidden;
+  white-space: nowrap;
+  padding: ${space(1)} ${space(2)};
+  min-height: ${space(4)};
+
+  &[data-color='danger'] {
+    color: ${p => p.theme.red400};
+  }
+  &[data-color='warning'] {
+    color: ${p => p.theme.yellow400};
+  }
+  &[data-align='right'] {
+    text-align: right;
+    justify-content: flex-end;
+  }
+`;
 
 function RoutesTable({query}: {query?: string}) {
   const organization = useOrganization();
@@ -696,8 +741,48 @@ function RoutesTable({query}: {query?: string}) {
     {staleTime: 0}
   );
 
+  // Add new request for route controller mappings
+  const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spans',
+          field: [
+            'span.description',
+            'transaction',
+            'transaction.method',
+            'count(span.duration)',
+          ],
+          query: `transaction.op:http.server span.op:http.route ${query}`,
+          referrer: 'api.explore.spans-aggregates-table',
+          sort: '-transaction',
+          per_page: 25,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      // Only fetch after we have the transactions data
+      enabled: !!transactionsRequest.data?.data,
+    }
+  );
+
   const tableData = useMemo(() => {
-    return transactionsRequest.data?.data.map(transaction => ({
+    if (!transactionsRequest.data?.data) {
+      return [];
+    }
+
+    // Create a mapping of transaction path to controller
+    const controllerMap = new Map(
+      routeControllersRequest.data?.data.map(item => [
+        item.transaction,
+        item['span.description'],
+      ])
+    );
+
+    return transactionsRequest.data.data.map(transaction => ({
       method: transaction['http.method'],
       path: transaction.transaction,
       requests: transaction['count()'],
@@ -705,8 +790,9 @@ function RoutesTable({query}: {query?: string}) {
       p95: transaction['p95()'],
       errorRate: transaction['failure_rate()'],
       users: transaction['count_unique(user)'],
+      controller: controllerMap.get(transaction.transaction),
     }));
-  }, [transactionsRequest.data]);
+  }, [transactionsRequest.data, routeControllersRequest.data]);
 
   return (
     <PanelTable
@@ -724,12 +810,11 @@ function RoutesTable({query}: {query?: string}) {
           Users
         </Cell>,
       ]}
-      isLoading={transactionsRequest.isLoading}
+      isLoading={transactionsRequest.isLoading || routeControllersRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
     >
       {tableData?.map(transaction => {
         const p95Color = getCellColor(transaction.p95, getP95Threshold(transaction.avg));
-
         const errorRateColor = getCellColor(
           transaction.errorRate,
           errorRateColorThreshold
@@ -738,7 +823,10 @@ function RoutesTable({query}: {query?: string}) {
         return (
           <Fragment key={transaction.method + transaction.path}>
             <Cell>{transaction.method}</Cell>
-            <Cell>{transaction.path}</Cell>
+            <PathCell>
+              {transaction.path}
+              <ControllerText>{transaction.controller}</ControllerText>
+            </PathCell>
             <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
             <Cell data-color={errorRateColor}>
               {(transaction.errorRate * 100).toFixed(2)}%
@@ -757,20 +845,3 @@ function RoutesTable({query}: {query?: string}) {
     </PanelTable>
   );
 }
-const Cell = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  overflow: hidden;
-  white-space: nowrap;
-  &[data-color='danger'] {
-    color: ${p => p.theme.red400};
-  }
-  &[data-color='warning'] {
-    color: ${p => p.theme.yellow400};
-  }
-  &[data-align='right'] {
-    text-align: right;
-    justify-content: flex-end;
-  }
-`;
