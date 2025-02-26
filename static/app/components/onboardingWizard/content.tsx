@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
-import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
-
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
@@ -600,39 +598,51 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
     )?.task;
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
+  const allTasksCompleted = [...gettingStartedTasks, ...beyondBasicsTasks].every(
+    findCompleteTasks
+  );
+
   return (
-    <Fragment>
-      <Content>
+    <Content>
+      <TaskGroup
+        title={t('Getting Started')}
+        tasks={sortedGettingStartedTasks}
+        hidePanel={onClose}
+        expanded={
+          groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
+        }
+        toggleable={sortedBeyondBasicsTasks.length > 0}
+        taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+        group="getting_started"
+      />
+      {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
-          title={t('Getting Started')}
-          tasks={sortedGettingStartedTasks}
+          title={t('Beyond the Basics')}
+          tasks={sortedBeyondBasicsTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length ===
+              0 &&
+            groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
-          toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
-          group="getting_started"
+          group="beyond_basics"
         />
-        {sortedBeyondBasicsTasks.length > 0 && (
-          <TaskGroup
-            title={t('Beyond the Basics')}
-            tasks={sortedBeyondBasicsTasks}
-            hidePanel={onClose}
-            expanded={
-              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
-                .length === 0 &&
-              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
-            }
-            taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
-            group="beyond_basics"
-          />
-        )}
-      </Content>
-      <BottomLeft src={HighlightTopRight} />
-    </Fragment>
+      )}
+      {allTasksCompleted && (
+        <CompletionCelebrationText>
+          <div>{t('Good job, you’re all done here!')}</div>
+          {t('Now get out of here and write some broken code.')}
+        </CompletionCelebrationText>
+      )}
+    </Content>
   );
 }
+
+const CompletionCelebrationText = styled('div')`
+  margin-top: ${space(1.5)};
+  text-align: center;
+`;
 
 const Content = styled('div')`
   padding: ${space(3)};
@@ -650,6 +660,8 @@ const TaskGroupWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
+
+  background-color: ${p => p.theme.background};
 
   hr {
     border-color: ${p => p.theme.translucentBorder};
@@ -672,7 +684,6 @@ const TaskGroupBody = styled('ul')`
 
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
-  background-color: ${p => p.theme.background};
 `;
 
 const TaskActions = styled('div')`
@@ -680,12 +691,6 @@ const TaskActions = styled('div')`
   flex-direction: column;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const BottomLeft = styled('img')`
-  width: 60%;
-  transform: rotate(180deg);
-  margin-top: ${space(3)};
 `;
 
 const TaskCardWrapper = styled('div')`

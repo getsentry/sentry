@@ -4,12 +4,22 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {GitRepoLink} from 'sentry/components/events/autofix/autofixSetupModal';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+
+function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
+  return (
+    <RepoItem isOk={repo.ok}>
+      <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
+        {repo.owner}/{repo.name}
+      </ExternalLink>
+      {repo.ok && <IconCheckmark color="success" size="sm" />}
+    </RepoItem>
+  );
+}
 
 interface AutofixSetupWriteAccessModalProps extends ModalRenderProps {
   groupId: string;
@@ -140,4 +150,15 @@ const RepoLinkUl = styled('ul')`
   flex-direction: column;
   gap: ${space(0.5)};
   padding: 0;
+`;
+
+const RepoItem = styled('li')<{isOk?: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(2)};
+  padding: ${space(1)};
+  margin-bottom: ${space(0.5)};
+  background-color: ${p => (p.isOk ? p.theme.green100 : 'transparent')};
+  border-radius: ${p => p.theme.borderRadius};
 `;

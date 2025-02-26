@@ -24,7 +24,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self,
         incident: Incident,
         new_status: IncidentStatus,
-        metric_value: float | None = None,
+        metric_value: float,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:

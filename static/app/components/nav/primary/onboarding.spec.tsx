@@ -11,6 +11,11 @@ import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSide
 
 const userMock = UserFixture();
 
+jest.mock('framer-motion', () => ({
+  ...jest.requireActual('framer-motion'),
+  AnimatePresence: jest.fn(({children}) => children),
+}));
+
 function renderMockRequests(organization: Organization) {
   const getOnboardingTasksMock = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/onboarding-tasks/`,
@@ -38,9 +43,24 @@ describe('Onboarding Status', function () {
         options: {...userMock.options, quickStartDisplay: {[organizationId]: 2}},
       })
     );
+
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/onboarding-tasks/',
+      method: 'GET',
+      body: {
+        onboardingTasks: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/onboarding-tasks/',
+      method: 'POST',
+    });
   });
 
-  it('panel is collapsed and has pending tasks to be seen', async function () {
+  it('displays pending tasks', async function () {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],
@@ -55,8 +75,7 @@ describe('Onboarding Status', function () {
       ],
     });
 
-    const {mutateUserOptionsMock, getOnboardingTasksMock} =
-      renderMockRequests(organization);
+    const {mutateUserOptionsMock} = renderMockRequests(organization);
 
     render(<PrimaryNavigationOnboarding />, {
       organization,
@@ -66,16 +85,33 @@ describe('Onboarding Status', function () {
     expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
     expect(mutateUserOptionsMock).not.toHaveBeenCalled();
 
-    // By hovering over the button, we should refetch the data
-    await userEvent.hover(screen.getByRole('button', {name: 'Onboarding'}));
-    await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
+    // Next fetch should return the task as seen
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'GET',
+      body: {
+        onboardingTasks: [
+          {
+            task: OnboardingTaskKey.FIRST_PROJECT,
+            status: 'complete',
+            user: UserFixture(),
+            completionSeen: '2025-01-01T00:00:00Z',
+            dateCompleted: undefined,
+          },
+        ],
+      },
+    });
 
-    // Open the panel
+    // Open the overlay
     await userEvent.click(screen.getByRole('button', {name: 'Onboarding'}));
-    await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
+
+    // Pending indicator should go away
+    await waitFor(() =>
+      expect(screen.queryByTestId('pending-seen-indicator')).not.toBeInTheDocument()
+    );
   });
 
-  it("panel is not automatically expanded because the user option 'quickStartDisplay' is not set", async function () {
+  it("overlay is not automatically opened because the user option 'quickStartDisplay' is not set", async function () {
     ConfigStore.set(
       'user',
       UserFixture({
@@ -114,7 +150,7 @@ describe('Onboarding Status', function () {
     expect(mockActivateSidebar).not.toHaveBeenCalled();
   });
 
-  it("panel is automatically expanded because the user option 'quickStartDisplay' is set to 1", async function () {
+  it("overlay is automatically opened because the user option 'quickStartDisplay' is set to 1", async function () {
     ConfigStore.set(
       'user',
       UserFixture({

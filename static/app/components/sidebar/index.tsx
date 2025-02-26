@@ -9,6 +9,7 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
+import {OptInBanner} from 'sentry/components/nav/optInBanner';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -109,11 +110,10 @@ function Sidebar() {
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const {selection} = usePageFilters();
   const {projects: projectList} = useProjects();
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const collapsed = hasNewNav ? true : !!preferences.collapsed;
+  const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   // Panel determines whether to highlight
   const hasPanel = !!activePanel;
@@ -124,7 +124,6 @@ function Sidebar() {
     collapsed,
     hasPanel,
     organization,
-    hasNewNav,
   };
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
@@ -176,19 +175,6 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  // Add sidebar hasNewNav classname to body
-  useEffect(() => {
-    const bcl = document.body.classList;
-
-    if (hasNewNav) {
-      bcl.add('hasNewNav');
-    } else {
-      bcl.remove('hasNewNav');
-    }
-
-    return () => bcl.remove('hasNewNav');
-  }, [hasNewNav]);
-
   const sidebarAnchor = isDemoModeEnabled() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
@@ -216,7 +202,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
-      hasNewNav={hasNewNav}
     />
   );
 
@@ -276,11 +261,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconLightning />}
-        label={
-          <GuideAnchor target="performance">
-            {hasNewNav ? 'Perf.' : t('Performance')}
-          </GuideAnchor>
-        }
+        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
         active={hasPerfLandingRemovalFlag ? false : undefined}
         to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
         id="performance"
@@ -374,7 +355,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={hasNewNav ? 'Dash.' : t('Dashboards')}
+        label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -485,21 +466,13 @@ function Sidebar() {
   );
 
   return (
-    <SidebarWrapper
-      aria-label={t('Primary Navigation')}
-      collapsed={collapsed}
-      hasNewNav={hasNewNav}
-    >
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
-            hasNewNav={hasNewNav}
           >
-            <SidebarDropdown
-              orientation={orientation}
-              collapsed={hasNewNav || collapsed}
-            />
+            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
               <Hook name="component:superuser-warning" organization={organization} />
@@ -508,19 +481,19 @@ function Sidebar() {
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
-                <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarSection>
                   {issues}
                   {projects}
                 </SidebarSection>
 
                 {!isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {explore}
                       {performanceDomains}
                     </SidebarSection>
 
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {performance}
                       {feedback}
                       {monitors}
@@ -533,7 +506,7 @@ function Sidebar() {
 
                 {isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {alerts}
                       {discover}
                       {dashboards}
@@ -543,7 +516,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarSection>
                   {stats}
                   {settings}
                 </SidebarSection>
@@ -553,7 +526,7 @@ function Sidebar() {
         </SidebarSectionGroupPrimary>
 
         {hasOrganization && (
-          <SidebarSectionGroup hasNewNav={hasNewNav}>
+          <SidebarSectionGroup>
             {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
@@ -586,7 +559,7 @@ function Sidebar() {
               {...sidebarItemProps}
             />
 
-            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
+            <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
@@ -595,7 +568,11 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
+            <SidebarSection centeredItems={horizontal}>
+              <OptInBanner
+                collapsed={collapsed || horizontal}
+                organization={organization}
+              />
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]!({
                   orientation,
@@ -625,8 +602,8 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            {!horizontal && !hasNewNav && (
-              <SidebarSection hasNewNav={hasNewNav}>
+            {!horizontal && (
+              <SidebarSection>
                 <SidebarCollapseItem
                   id="collapse"
                   data-test-id="sidebar-collapse"

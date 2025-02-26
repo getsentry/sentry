@@ -169,6 +169,7 @@ describe('PageOverview', function () {
               'timestamp',
               'span.self_time',
               'transaction',
+              'span.op',
             ],
             query:
               'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
@@ -218,6 +219,7 @@ describe('PageOverview', function () {
               'timestamp',
               'span.self_time',
               'transaction',
+              'span.op',
             ],
             query:
               'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',

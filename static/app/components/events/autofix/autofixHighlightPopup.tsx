@@ -15,11 +15,11 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -222,10 +222,34 @@ function AutofixHighlightPopupContent({
   );
 }
 
+function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect, spacing = 36) {
+  const viewportHeight = window.innerHeight;
+
+  // Try positioning to the left first (default)
+  const left = referenceRect.left - popupRect.width - spacing;
+  let top = referenceRect.top;
+
+  // Ensure the popup stays within the viewport vertically
+  if (top + popupRect.height > viewportHeight) {
+    top = viewportHeight - popupRect.height;
+  }
+  if (top < 0) {
+    top = 0;
+  }
+
+  return {left, top};
+}
+
 function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({left: 0, top: 0});
+  const [position, setPosition] = useState<{
+    left: number;
+    top: number;
+  }>({
+    left: 0,
+    top: 0,
+  });
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
@@ -233,21 +257,23 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
-      const rect = referenceElement.getBoundingClientRect();
+      const referenceRect = referenceElement.getBoundingClientRect();
+      const popupRect = popupRef.current!.getBoundingClientRect();
+
       startTransition(() => {
-        setPosition({
-          left: rect.left - 340,
-          top: rect.top,
-        });
+        setPosition(getOptimalPosition(referenceRect, popupRect));
       });
     };
 
     // Initial position
     updatePosition();
 
-    // Create observer to track reference element changes
-    const resizeObserver = new ResizeObserver(updatePosition);
-    resizeObserver.observe(referenceElement);
+    // Create observers to track both elements
+    const referenceObserver = new ResizeObserver(updatePosition);
+    const popupObserver = new ResizeObserver(updatePosition);
+
+    referenceObserver.observe(referenceElement);
+    popupObserver.observe(popupRef.current);
 
     // Track scroll events
     const scrollElements = [window, ...getScrollParents(referenceElement)];
@@ -255,11 +281,16 @@ function AutofixHighlightPopup(props: Props) {
       element.addEventListener('scroll', updatePosition, {passive: true});
     });
 
+    // Track window resize
+    window.addEventListener('resize', updatePosition, {passive: true});
+
     return () => {
-      resizeObserver.disconnect();
+      referenceObserver.disconnect();
+      popupObserver.disconnect();
       scrollElements.forEach(element => {
         element.removeEventListener('scroll', updatePosition);
       });
+      window.removeEventListener('resize', updatePosition);
     };
   }, [referenceElement]);
 
@@ -268,16 +299,15 @@ function AutofixHighlightPopup(props: Props) {
       ref={popupRef}
       id="autofix-rethink-input"
       data-popup="autofix-highlight"
-      initial={{opacity: 0, x: -10}}
+      initial={{opacity: 0, x: 10}}
       animate={{opacity: 1, x: 0}}
-      exit={{opacity: 0, x: -10}}
+      exit={{opacity: 0, x: 10}}
       transition={testableTransition({
         duration: 0.2,
       })}
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
-        transform: 'none',
       }}
     >
       <Arrow />
@@ -391,7 +421,7 @@ const Arrow = styled('div')`
   position: absolute;
   width: 12px;
   height: 12px;
-  background: ${p => p.theme.active}01;
+  background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.border};
   border-right: none;
   border-bottom: none;
