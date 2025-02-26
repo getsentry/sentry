@@ -43,6 +43,11 @@ export interface IssueViewNavItemContentProps {
    */
   isActive: boolean;
   /**
+   * Whether the item is the last view in the list.
+   * This will be removed once view sharing/starring is implemented.
+   */
+  isLastView: boolean;
+  /**
    * A callback function that updates the view with new params.
    */
   updateView: (updatedView: IssueView) => void;
@@ -65,6 +70,7 @@ export function IssueViewNavItemContent({
   updateView,
   deleteView,
   duplicateView,
+  isLastView,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -137,6 +143,7 @@ export function IssueViewNavItemContent({
           >
             <IssueViewNavQueryCount view={view} />
             <IssueViewNavEllipsisMenu
+              isLastView={isLastView}
               setIsEditing={setIsEditing}
               view={view}
               updateView={updateView}
