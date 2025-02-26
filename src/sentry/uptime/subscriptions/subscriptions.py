@@ -282,7 +282,9 @@ def create_uptime_subscription(
     # Associate active regions with this subscription
     for region_config in get_active_regions():
         UptimeSubscriptionRegion.objects.create(
-            uptime_subscription=subscription, region_slug=region_config.slug
+            uptime_subscription=subscription,
+            region_slug=region_config.slug,
+            mode=region_config.mode,
         )
 
     create_remote_uptime_subscription.delay(subscription.id)
