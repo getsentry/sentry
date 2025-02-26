@@ -26,6 +26,9 @@ class Condition(StrEnum):
     LESS = "lt"
     NOT_EQUAL = "ne"
 
+    # Anomaly detection
+    ANOMALY_DETECTION = "anomaly_detection"
+
     # Issue conditions
     AGE_COMPARISON = "age_comparison"
     ASSIGNED_TO = "assigned_to"
