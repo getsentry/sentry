@@ -46,6 +46,7 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    "README",  # top level file
     "ssl.py",
     # XXX: The following will need to be supported
     "initialization.dart",
@@ -53,7 +54,6 @@ UNSUPPORTED_FRAME_FILENAMES = [
 ]
 NO_EXTENSION_FRAME_FILENAMES = [
     "/foo/bar/baz",  # no extension
-    "README",  # no extension
 ]
 
 
