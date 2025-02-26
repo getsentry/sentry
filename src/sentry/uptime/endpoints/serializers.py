@@ -102,6 +102,7 @@ class EapCheckEntrySerializerResponse(TypedDict):
     httpStatusCode: int | None
     durationMs: int
     traceId: str
+    traceSpansCount: int
     incidentStatus: int
     environment: str
     region: str
@@ -115,6 +116,7 @@ class EapCheckEntrySerializer(Serializer):
         self, obj: EapCheckEntry, attrs, user, **kwargs
     ) -> EapCheckEntrySerializerResponse:
         check_status = cast(SerializedCheckStatus, obj.check_status)
+        trace_spans: dict[str, int] = kwargs.get("trace_spans", {})
 
         # XXX: Translate the status from `failed` to `failed_incident` when the
         # check is part of an incident.
@@ -135,6 +137,7 @@ class EapCheckEntrySerializer(Serializer):
             "httpStatusCode": obj.http_status_code,
             "durationMs": obj.duration_ms,
             "traceId": obj.trace_id,
+            "traceSpansCount": trace_spans.get(obj.trace_id, 0),
             "incidentStatus": obj.incident_status,
             "environment": obj.environment,
             "region": obj.region,

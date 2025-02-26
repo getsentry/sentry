@@ -25,8 +25,10 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
+from sentry.snuba import spans_rpc
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
-from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
 from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.types import EapCheckEntry, IncidentStatus
 from sentry.utils import snuba_rpc
@@ -52,7 +54,39 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             rpc_response = self._make_eap_request(
                 project, uptime_subscription, offset=offset, limit=limit, start=start, end=end
             )
-            return self._serialize_response(rpc_response, uptime_subscription)
+
+            column_values = rpc_response.column_values
+            if not column_values:
+                return []
+
+            column_names = [cv.attribute_name for cv in column_values]
+            entries: list[EapCheckEntry] = [
+                self._transform_row(row_idx, column_values, column_names, uptime_subscription)
+                for row_idx in range(len(column_values[0].results))
+            ]
+
+            snuba_params = SnubaParams(
+                organization=project.organization,
+                projects=[project],
+                user=request.user,
+                start=start,
+                end=end,
+            )
+            span_counts = spans_rpc.run_table_query(
+                params=snuba_params,
+                query_string=" OR ".join([f"trace:{e.trace_id}" for e in entries]),
+                selected_columns=["trace", "count()"],
+                orderby=["-count()"],
+                offset=0,
+                limit=limit,
+                referrer="uptime_alert_checks_index",
+                config=SearchResolverConfig(
+                    use_aggregate_conditions=True,
+                ),
+            )
+            trace_spans = {d["trace"]: int(d["count()"]) for d in span_counts["data"]}
+
+            return serialize(entries, trace_spans=trace_spans)
 
         with handle_query_errors():
             return self.paginate(
@@ -174,26 +208,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
         rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         return rpc_response
-
-    def _serialize_response(
-        self,
-        rpc_response: TraceItemTableResponse,
-        uptime_subscription: ProjectUptimeSubscription,
-    ) -> list[EapCheckEntrySerializerResponse]:
-        """
-        Serialize the response from the EAP into a list of items per each uptime check.
-        """
-        column_values = rpc_response.column_values
-        if not column_values:
-            return []
-
-        column_names = [cv.attribute_name for cv in column_values]
-        entries: list[EapCheckEntry] = [
-            self._transform_row(row_idx, column_values, column_names, uptime_subscription)
-            for row_idx in range(len(column_values[0].results))
-        ]
-
-        return serialize(entries)
 
     def _transform_row(
         self,

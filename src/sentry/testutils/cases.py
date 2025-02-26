@@ -2360,7 +2360,7 @@ class ReplaysSnubaTestCase(TestCase):
 @pytest.mark.snuba
 @requires_snuba
 @pytest.mark.usefixtures("reset_snuba")
-class UptimeCheckSnubaTestCase(TestCase):
+class UptimeCheckSnubaTestCase(SnubaTestCase):
     def store_uptime_check(self, uptime_check):
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
@@ -2375,6 +2375,7 @@ class UptimeCheckSnubaTestCase(TestCase):
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
         http_status: int | None | NotSet = NOT_SET,
+        trace_id: UUID | None = None,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
@@ -2382,6 +2383,8 @@ class UptimeCheckSnubaTestCase(TestCase):
             incident_status = IncidentStatus.NO_INCIDENT
         if check_id is None:
             check_id = uuid.uuid4()
+        if trace_id is None:
+            trace_id = uuid.uuid4()
 
         check_status_reason: CheckStatusReason | None = None
         if check_status == "failure":
@@ -2408,7 +2411,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "duration_ms": random.randint(1, 1000),
                 "status": check_status,
                 "status_reason": check_status_reason,
-                "trace_id": str(uuid.uuid4()),
+                "trace_id": str(trace_id),
                 "incident_status": incident_status.value,
                 "request_info": {
                     "http_status_code": http_status,
@@ -3278,6 +3281,7 @@ class SpanTestCase(BaseTestCase):
 
     def create_span(
         self,
+        trace_id: UUID | None = None,
         extra_data: dict[str, Any] | None = None,
         organization: Organization | None = None,
         project: Project | None = None,
@@ -3294,6 +3298,8 @@ class SpanTestCase(BaseTestCase):
             start_ts = datetime.now() - timedelta(minutes=1)
         if extra_data is None:
             extra_data = {}
+        if trace_id is None:
+            trace_id = uuid4()
         span = self.base_span.copy()
         # Load some defaults
         span.update(
@@ -3301,7 +3307,7 @@ class SpanTestCase(BaseTestCase):
                 "event_id": uuid4().hex,
                 "organization_id": organization.id,
                 "project_id": project.id,
-                "trace_id": uuid4().hex,
+                "trace_id": trace_id.hex,
                 "span_id": uuid4().hex[:16],
                 "parent_span_id": uuid4().hex[:16],
                 "segment_id": uuid4().hex[:16],

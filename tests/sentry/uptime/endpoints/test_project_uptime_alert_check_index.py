@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.cases import SpanTestCase, UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
@@ -17,7 +17,7 @@ MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 @region_silo_test
 @freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpoint(
-    OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase
+    OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase, SpanTestCase
 ):
     endpoint = "sentry-api-0-project-uptime-alert-checks"
 
@@ -30,6 +30,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         )
         self.project_uptime_subscription = self.create_project_uptime_subscription(
             uptime_subscription=self.subscription
+        )
+
+        trace_id = uuid.uuid4()
+        self.store_spans(
+            spans=[self.create_span(trace_id=trace_id), self.create_span(trace_id=trace_id)],
+            is_eap=True,
         )
 
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
@@ -45,6 +51,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             subscription_id=self.subscription_id,
             check_status="failure",
             incident_status=IncidentStatus.IN_INCIDENT,
+            trace_id=trace_id,
         )
 
     def test_get(self):
@@ -67,6 +74,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             "checkStatus",
             "checkStatusReason",
             "traceId",
+            "traceSpansCount",
             "httpStatusCode",
             "incidentStatus",
         ]:
@@ -76,6 +84,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         assert most_recent["uptimeSubscriptionId"] == self.project_uptime_subscription.id
         assert most_recent["regionName"] == "Default Region"
         assert most_recent["checkStatusReason"] == "failure"
+        assert most_recent["traceSpansCount"] == 2
 
         assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
         assert any(v for v in response.data if v["checkStatusReason"] is None)
