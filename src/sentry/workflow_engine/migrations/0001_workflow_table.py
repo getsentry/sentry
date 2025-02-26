@@ -26,7 +26,8 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0758_remove_spanattributeextraction_models"),
+        # ("sentry", "0758_remove_spanattributeextraction_models"),
+        ("sentry", "0001_squashed_0834_add_index_on_authidentity_last_synced"),
     ]
 
     operations = [

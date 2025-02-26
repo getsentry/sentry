@@ -25,7 +25,8 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0759_remove_spanattributeextraction_tables"),
+        # ("sentry", "0759_remove_spanattributeextraction_tables"),
+        ("sentry", "0001_squashed_0834_add_index_on_authidentity_last_synced"),
         ("workflow_engine", "0002_data_source"),
     ]
 

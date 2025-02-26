@@ -24,7 +24,8 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0792_add_unique_index_apiauthorization"),
+        # ("sentry", "0792_add_unique_index_apiauthorization"),
+        ("sentry", "0001_squashed_0834_add_index_on_authidentity_last_synced"),
         ("workflow_engine", "0013_related_name_conditions_on_dcg"),
     ]
 

@@ -24,7 +24,8 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0813_rm_alertruleactivation_models"),
+        # ("sentry", "0813_rm_alertruleactivation_models"),
+        ("sentry", "0001_squashed_0834_add_index_on_authidentity_last_synced"),
         ("workflow_engine", "0022_add_action_group_status_model"),
     ]
 
