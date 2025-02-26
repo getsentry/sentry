@@ -222,7 +222,7 @@ describe('SolutionsHubDrawer', () => {
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
-  it('displays autofix steps and Start Over button when autofixData is available', async () => {
+  it('displays Start Over button with autofix data', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
@@ -234,6 +234,24 @@ describe('SolutionsHubDrawer', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+  });
+
+  it('displays Start Over button even without autofix data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Start Autofix'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Over'})).toBeDisabled();
   });
 
   it('resets autofix on clicking the start over button', async () => {
