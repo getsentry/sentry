@@ -146,7 +146,6 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
           ))}
       </TimelineLegend>
       <IssueGridLineOverlay
-        stickyCursor
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}

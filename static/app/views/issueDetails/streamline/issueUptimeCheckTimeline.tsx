@@ -104,7 +104,6 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
         ))}
       </TimelineLegend>
       <GridLineOverlay
-        stickyCursor
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
