@@ -720,7 +720,7 @@ function RoutesTable({query}: {query?: string}) {
         'Error Rate',
         'AVG',
         'P95',
-        <Cell key="users" align="flex-end">
+        <Cell key="users" data-align="right">
           Users
         </Cell>,
       ]}
@@ -747,7 +747,7 @@ function RoutesTable({query}: {query?: string}) {
             <Cell data-color={p95Color}>
               {getDuration(transaction.p95 / 1000, 2, true, true)}
             </Cell>
-            <Cell align="flex-end">
+            <Cell data-align="right">
               {formatAbbreviatedNumber(transaction.users)}
               <IconUser size="xs" />
             </Cell>
@@ -757,18 +757,20 @@ function RoutesTable({query}: {query?: string}) {
     </PanelTable>
   );
 }
-const Cell = styled('div')<{align?: string}>`
+const Cell = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   overflow: hidden;
   white-space: nowrap;
-  text-align: ${p => p.align};
-  justify-content: ${p => (p.align === 'flex-end' ? 'flex-end' : 'flex-start')};
   &[data-color='danger'] {
     color: ${p => p.theme.red400};
   }
   &[data-color='warning'] {
     color: ${p => p.theme.yellow400};
+  }
+  &[data-align='right'] {
+    text-align: right;
+    justify-content: flex-end;
   }
 `;
