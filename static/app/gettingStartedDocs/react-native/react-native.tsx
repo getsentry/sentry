@@ -135,8 +135,14 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: `npx @sentry/wizard@latest -i reactNative --org ${params.organization.slug} --project ${params.projectSlug}`,
+                code: [
+                  {
+                    label: 'npx',
+                    value: 'npx',
+                    language: 'bash',
+                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.projectSlug}`,
+                  },
+                ],
               },
               {
                 description: (
@@ -155,7 +161,36 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                         {t('Add debug symbols upload to your build process')}
                       </ListItem>
                     </List>
+                    <p />
+                    <p>
+                      <strong>{t('Wrap Your App')}</strong>
+                    </p>
+                    <p>
+                      {tct(
+                        'After the wizard completes, wrap your app with Sentry to enable automatic [touchEventLink:touch event tracking] and [autoInstrumentationLink:automatic instrumentation]:',
+                        {
+                          touchEventLink: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/react-native/configuration/touchevents/" />
+                          ),
+                          autoInstrumentationLink: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/automatic-instrumentation/" />
+                          ),
+                        }
+                      )}
+                    </p>
                   </Fragment>
+                ),
+                code: [
+                  {
+                    label: 'JavaScript',
+                    value: 'javascript',
+                    language: 'javascript',
+                    filename: 'App.js',
+                    code: `export default Sentry.wrap(App);`,
+                  },
+                ],
+                additionalInfo: t(
+                  'This step is not required if your app does not have a single parent "App" component.'
                 ),
               },
             ],
