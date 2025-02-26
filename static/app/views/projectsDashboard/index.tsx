@@ -10,6 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
@@ -83,6 +84,8 @@ function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const prefersStackedNav = usePrefersStackedNav();
+
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
@@ -167,8 +170,8 @@ function Dashboard() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Header>
-        <Layout.HeaderContent>
+      <Layout.Header unified={prefersStackedNav}>
+        <Layout.HeaderContent unified={prefersStackedNav}>
           <Layout.Title>
             {t('Projects')}
             <PageHeadingQuestionTooltip

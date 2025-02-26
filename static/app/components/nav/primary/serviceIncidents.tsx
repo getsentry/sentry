@@ -2,14 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {useNavContext} from 'sentry/components/nav/context';
 import {
-  NavButton,
+  SidebarButton,
   SidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
-import {NavLayout} from 'sentry/components/nav/types';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconWarning} from 'sentry/icons';
@@ -20,8 +17,6 @@ import useOverlay from 'sentry/utils/useOverlay';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
-  const {layout} = useNavContext();
-  const showLabel = layout === NavLayout.MOBILE;
   const theme = useTheme();
   const {
     isOpen,
@@ -35,16 +30,14 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
 
   return (
     <SidebarItem>
-      <NavButton
-        {...overlayTriggerProps}
-        isMobile={false}
-        aria-label={showLabel ? undefined : t('Service status')}
+      <SidebarButton
+        analyticsKey="statusupdate"
+        label={t('Service status')}
+        buttonProps={overlayTriggerProps}
       >
-        <InteractionStateLayer />
         <IconWarning />
-        {showLabel ? t('Service status') : null}
         <WarningUnreadIndicator />
-      </NavButton>
+      </SidebarButton>
       {isOpen && (
         <FocusScope autoFocus restoreFocus>
           <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>

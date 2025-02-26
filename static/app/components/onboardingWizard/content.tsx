@@ -598,6 +598,10 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
     )?.task;
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
+  const allTasksCompleted = [...gettingStartedTasks, ...beyondBasicsTasks].every(
+    findCompleteTasks
+  );
+
   return (
     <Content>
       <TaskGroup
@@ -625,9 +629,20 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
           group="beyond_basics"
         />
       )}
+      {allTasksCompleted && (
+        <CompletionCelebrationText>
+          <div>{t('Good job, you’re all done here!')}</div>
+          {t('Now get out of here and write some broken code.')}
+        </CompletionCelebrationText>
+      )}
     </Content>
   );
 }
+
+const CompletionCelebrationText = styled('div')`
+  margin-top: ${space(1.5)};
+  text-align: center;
+`;
 
 const Content = styled('div')`
   padding: ${space(3)};
