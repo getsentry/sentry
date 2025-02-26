@@ -45,7 +45,10 @@ class RawContent extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.isNative() && this.props.type !== prevProps.type) {
+    if (
+      this.isNative() &&
+      (this.props.type !== prevProps.type || this.props.eventId !== prevProps.eventId)
+    ) {
       this.fetchAppleCrashReport();
     }
   }
