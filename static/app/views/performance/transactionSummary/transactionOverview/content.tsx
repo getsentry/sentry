@@ -39,6 +39,7 @@ import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -84,6 +85,276 @@ type Props = {
   totalValues: Record<string, number> | null;
   transactionName: string;
 };
+
+function OTelSummaryContentInner({
+  eventView,
+  location,
+  totalValues,
+  spanOperationBreakdownFilter,
+  organization,
+  projects,
+  isLoading,
+  error,
+  projectId,
+  transactionName,
+  onChangeFilter,
+}: Props) {
+  const navigate = useNavigate();
+  const domainViewFilters = useDomainViewFilters();
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      const queryParams = normalizeDateTimeParams({
+        ...(location.query || {}),
+        query,
+      });
+
+      // do not propagate pagination when making a new search
+      const searchQueryParams = omit(queryParams, 'cursor');
+
+      navigate({
+        pathname: location.pathname,
+        query: searchQueryParams,
+      });
+    },
+    [location, navigate]
+  );
+
+  function generateTagUrl(key: string, value: string) {
+    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
+
+    return {
+      ...location,
+      query,
+    };
+  }
+
+  function handleTransactionsListSortChange(value: string) {
+    const target = {
+      pathname: location.pathname,
+      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+    };
+
+    navigate(target);
+  }
+
+  const hasPerformanceChartInterpolation = organization.features.includes(
+    'performance-chart-interpolation'
+  );
+
+  const query = useMemo(() => {
+    return decodeScalar(location.query.query, '');
+  }, [location]);
+
+  const totalCount = totalValues === null ? null : totalValues['count()']!;
+
+  // NOTE: This is not a robust check for whether or not a transaction is a front end
+  // transaction, however it will suffice for now.
+  const hasWebVitals =
+    isSummaryViewFrontendPageLoad(eventView, projects) ||
+    (totalValues !== null &&
+      VITAL_GROUPS.some(group =>
+        group.vitals.some(vital => {
+          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
+          const field = functionName;
+          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
+        })
+      ));
+
+  const isFrontendView = isSummaryViewFrontend(eventView, projects);
+
+  const transactionsListTitles = [
+    t('event id'),
+    t('user'),
+    t('total duration'),
+    t('trace id'),
+    t('timestamp'),
+  ];
+
+  const project = projects.find(p => p.id === projectId);
+
+  let transactionsListEventView = eventView.clone();
+  const fields = [...transactionsListEventView.fields];
+
+  if (
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project)
+  ) {
+    transactionsListTitles.push(t('replay'));
+    fields.push({field: 'replayId'});
+  }
+
+  if (
+    // only show for projects that already sent a profile
+    // once we have a more compact design we will show this for
+    // projects that support profiling as well
+    project?.hasProfiles &&
+    (organization.features.includes('profiling') ||
+      organization.features.includes('continuous-profiling'))
+  ) {
+    transactionsListTitles.push(t('profile'));
+
+    if (organization.features.includes('profiling')) {
+      fields.push({field: 'profile.id'});
+    }
+
+    if (organization.features.includes('continuous-profiling')) {
+      fields.push({field: 'profiler.id'});
+      fields.push({field: 'thread.id'});
+      fields.push({field: 'precise.start_ts'});
+      fields.push({field: 'precise.finish_ts'});
+    }
+  }
+
+  // update search conditions
+
+  const spanOperationBreakdownConditions = filterToSearchConditions(
+    spanOperationBreakdownFilter,
+    location
+  );
+
+  if (spanOperationBreakdownConditions) {
+    eventView = eventView.clone();
+    eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+    transactionsListEventView = eventView.clone();
+  }
+
+  transactionsListEventView.fields = fields;
+
+  const hasNewSpansUIFlag =
+    organization.features.includes('performance-spans-new-ui') &&
+    organization.features.includes('insights-initial-modules');
+
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
+
+  function renderSearchBar() {
+    return (
+      <TransactionSearchQueryBuilder
+        projects={projectIds}
+        initialQuery={query}
+        onSearch={handleSearch}
+        searchSource="transaction_summary"
+        disableLoadingTags // already loaded by the parent component
+        filterKeyMenuWidth={420}
+      />
+    );
+  }
+
+  return (
+    <Fragment>
+      <Layout.Main>
+        <FilterActions>
+          <Filter
+            organization={organization}
+            currentFilter={spanOperationBreakdownFilter}
+            onChangeFilter={onChangeFilter}
+          />
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
+          <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
+        </FilterActions>
+        <PerformanceAtScaleContextProvider>
+          <TransactionSummaryCharts
+            organization={organization}
+            location={location}
+            eventView={eventView}
+            totalValue={totalCount}
+            currentFilter={spanOperationBreakdownFilter}
+            withoutZerofill={hasPerformanceChartInterpolation}
+            project={project}
+          />
+          <ServiceEntrySpansTable
+            eventView={transactionsListEventView}
+            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+            handleDropdownChange={handleTransactionsListSortChange}
+            totalValues={totalValues}
+            transactionName={transactionName}
+            supportsInvestigationRule
+            showViewSampledEventsButton
+          />
+        </PerformanceAtScaleContextProvider>
+
+        {!hasNewSpansUIFlag && (
+          <SuspectSpans
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues['count()']}
+                : null
+            }
+            projectId={projectId}
+            transactionName={transactionName}
+          />
+        )}
+
+        <TagExplorer
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          projects={projects}
+          transactionName={transactionName}
+          currentFilter={spanOperationBreakdownFilter}
+          domainViewFilters={domainViewFilters}
+        />
+
+        <SuspectFunctionsTable
+          eventView={eventView}
+          analyticsPageSource="performance_transaction"
+          project={project}
+        />
+        <RelatedIssues
+          organization={organization}
+          location={location}
+          transaction={transactionName}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+        />
+      </Layout.Main>
+      <Layout.Side>
+        <UserStats
+          organization={organization}
+          location={location}
+          isLoading={isLoading}
+          hasWebVitals={hasWebVitals}
+          error={error}
+          totals={totalValues}
+          transactionName={transactionName}
+          eventView={eventView}
+        />
+        {!isFrontendView && (
+          <StatusBreakdown
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+        )}
+        <SidebarSpacer />
+        <SidebarCharts
+          organization={organization}
+          isLoading={isLoading}
+          error={error}
+          totals={totalValues}
+          eventView={eventView}
+          transactionName={transactionName}
+        />
+        <SidebarSpacer />
+        <Tags
+          generateUrl={generateTagUrl}
+          totalValues={totalCount}
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+      </Layout.Side>
+    </Fragment>
+  );
+}
 
 function SummaryContent({
   eventView,
@@ -599,3 +870,5 @@ const StyledIconWarning = styled(IconWarning)`
 `;
 
 export default withProjects(SummaryContent);
+
+export const OTelSummaryContent = withProjects(OTelSummaryContentInner);

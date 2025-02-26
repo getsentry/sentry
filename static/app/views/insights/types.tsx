@@ -63,6 +63,8 @@ export enum SpanMetricsField {
   CLIENT_ADDRESS = 'client.address',
   BROWSER_NAME = 'browser.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  PRECISE_START_TS = 'precise.start_ts',
+  PRECISE_FINISH_TS = 'precise.finish_ts',
 }
 
 export type SpanNumberFields =
@@ -74,7 +76,9 @@ export type SpanNumberFields =
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
   | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
-  | SpanMetricsField.CACHE_ITEM_SIZE;
+  | SpanMetricsField.CACHE_ITEM_SIZE
+  | SpanMetricsField.PRECISE_START_TS
+  | SpanMetricsField.PRECISE_FINISH_TS;
 
 export type SpanStringFields =
   | 'span_id'
@@ -96,7 +100,16 @@ export type SpanStringFields =
   | 'span.ai.pipeline.group'
   | 'project'
   | 'messaging.destination.name'
-  | 'user';
+  | 'user'
+  | 'user.display'
+  | 'user.id'
+  | 'user.email'
+  | 'user.username'
+  | 'user.ip'
+  | 'replayId'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
