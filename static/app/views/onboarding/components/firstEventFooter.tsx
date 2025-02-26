@@ -10,9 +10,11 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
@@ -23,7 +25,7 @@ interface FirstEventFooterProps {
   isLast: boolean;
   onClickSetupLater: () => void;
   organization: Organization;
-  project: OnboardingRecentCreatedProject;
+  project: Project;
 }
 
 export default function FirstEventFooter({
@@ -34,20 +36,33 @@ export default function FirstEventFooter({
 }: FirstEventFooterProps) {
   const {activateSidebar} = useOnboardingSidebar();
 
+  const {data: issues} = useApiQuery<Group[]>(
+    [`/projects/${organization.slug}/${project.slug}/issues/`],
+    {
+      staleTime: Infinity,
+      enabled: !!project.firstEvent,
+    }
+  );
+
+  const firstIssue =
+    !!project.firstEvent && issues
+      ? issues.find((issue: Group) => issue.firstSeen === project.firstEvent)
+      : undefined;
+
   const source = 'targeted_onboarding_first_event_footer';
 
   const getSecondaryCta = useCallback(() => {
     // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
-    if (!project?.firstError && !isLast) {
+    if (!project?.firstEvent && !isLast) {
       return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
     }
     return null;
-  }, [project?.firstError, isLast, onClickSetupLater]);
+  }, [project?.firstEvent, isLast, onClickSetupLater]);
 
   const getPrimaryCta = useCallback(() => {
     // if hasn't sent first event, allow creation of sample error
-    if (!project?.firstError) {
+    if (!project?.firstEvent) {
       return (
         <CreateSampleEventButton
           project={project}
@@ -67,16 +82,14 @@ export default function FirstEventFooter({
           })
         }
         to={`/organizations/${organization.slug}/issues/${
-          project?.firstIssue && 'id' in project.firstIssue
-            ? `${project.firstIssue.id}/`
-            : ''
+          firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
         }?referrer=onboarding-first-event-footer`}
         priority="primary"
       >
         {t('Take me to my error')}
       </LinkButton>
     );
-  }, [project, organization.slug]);
+  }, [project, organization.slug, firstIssue]);
 
   return (
     <GridFooter>
@@ -112,7 +125,7 @@ export default function FirstEventFooter({
           exit: {opacity: 0, y: 10},
         }}
       >
-        {project?.firstError ? (
+        {project?.firstEvent ? (
           <IconCheckmark isCircled color="green400" />
         ) : (
           <WaitingIndicator
@@ -121,11 +134,11 @@ export default function FirstEventFooter({
           />
         )}
         <AnimatedText
-          errorReceived={project?.firstError}
+          errorReceived={!!project?.firstEvent}
           variants={indicatorAnimation}
           transition={testableTransition()}
         >
-          {project?.firstError ? t('Error Received') : t('Waiting for error')}
+          {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
       <OnboardingButtonBar gap={2}>
