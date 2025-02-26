@@ -132,7 +132,7 @@ const StyledBadge = styled(Badge)`
   vertical-align: middle;
 `;
 
-const FeatureBadge = styled(InnerFeatureBadge)`
+export const FeatureBadge = styled(InnerFeatureBadge)`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};
