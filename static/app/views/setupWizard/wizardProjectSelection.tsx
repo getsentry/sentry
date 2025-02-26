@@ -83,6 +83,9 @@ export function WizardProjectSelection({
 
   const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
+  const adminTeams = teamsRequest.data
+    ? teamsRequest.data.filter(team => team.access.includes('team:admin'))
+    : [];
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
     query: debouncedSearch,
@@ -90,7 +93,7 @@ export function WizardProjectSelection({
 
   const isCreationEnabled =
     orgDetailsRequest.data &&
-    canCreateProject(orgDetailsRequest.data) &&
+    canCreateProject(orgDetailsRequest.data, teamsRequest.data) &&
     teamsRequest.data &&
     teamsRequest.data.length > 0 &&
     platformParam;
@@ -334,7 +337,7 @@ export function WizardProjectSelection({
               <StyledCompactSelect
                 value={newProjectTeam as string}
                 options={
-                  teamsRequest.data?.map(team => ({
+                  adminTeams?.map(team => ({
                     value: team.slug,
                     label: `#${team.slug}`,
                     leadingItems: <IdBadge team={team} hideName />,
