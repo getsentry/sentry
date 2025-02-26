@@ -23,7 +23,7 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
@@ -642,6 +642,7 @@ interface DiscoverQueryResponse {
   data: Array<{
     'avg(transaction.duration)': number;
     'count()': number;
+    'count_unique(user)': number;
     'failure_rate()': number;
     'http.method': string;
     'p95()': number;
@@ -683,6 +684,7 @@ function RoutesTable({query}: {query?: string}) {
             'p95()',
             'failure_rate()',
             'count()',
+            'count_unique(user)',
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: 'api.performance.landing-table',
@@ -702,6 +704,7 @@ function RoutesTable({query}: {query?: string}) {
       avg: transaction['avg(transaction.duration)'],
       p95: transaction['p95()'],
       errorRate: transaction['failure_rate()'],
+      users: transaction['count_unique(user)'],
     }));
   }, [transactionsRequest.data]);
 
@@ -717,7 +720,9 @@ function RoutesTable({query}: {query?: string}) {
         'Error Rate',
         'AVG',
         'P95',
-        'Users',
+        <Cell key="users" data-align="right">
+          Users
+        </Cell>,
       ]}
       isLoading={transactionsRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
@@ -742,26 +747,30 @@ function RoutesTable({query}: {query?: string}) {
             <Cell data-color={p95Color}>
               {getDuration(transaction.p95 / 1000, 2, true, true)}
             </Cell>
-            <Cell>–––</Cell>
+            <Cell data-align="right">
+              {formatAbbreviatedNumber(transaction.users)}
+              <IconUser size="xs" />
+            </Cell>
           </Fragment>
         );
       })}
     </PanelTable>
   );
 }
-
 const Cell = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   overflow: hidden;
   white-space: nowrap;
-
   &[data-color='danger'] {
     color: ${p => p.theme.red400};
   }
-
   &[data-color='warning'] {
     color: ${p => p.theme.yellow400};
+  }
+  &[data-align='right'] {
+    text-align: right;
+    justify-content: flex-end;
   }
 `;
