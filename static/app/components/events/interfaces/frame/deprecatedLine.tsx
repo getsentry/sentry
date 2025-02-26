@@ -47,6 +47,7 @@ import {
   hasContextSource,
   hasContextVars,
   isExpandable,
+  shouldDisplayAbsPathInTitle,
 } from './utils';
 
 const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
@@ -118,29 +119,6 @@ function makeFilter(
   }
 
   return addr;
-}
-
-/**
- * Extracts the origin URL from an event
- *
- * TODO: Should consider other sources of origin besides just url tag
- *
- * @param event The event to extract the origin from
- * @returns The origin URL string, or empty string if not found/invalid
- */
-function extractEventOrigin(event: Event): string {
-  const urlTag = event.tags.find(({key}) => key === 'url');
-
-  if (!urlTag?.value) {
-    return '';
-  }
-
-  try {
-    const url = new URL(urlTag.value);
-    return url.origin;
-  } catch {
-    return '';
-  }
 }
 
 export class DeprecatedLine extends Component<Props, State> {
@@ -394,7 +372,7 @@ export class DeprecatedLine extends Component<Props, State> {
                   platform={this.props.platform ?? 'other'}
                   isHoverPreviewed={isHoverPreviewed}
                   meta={this.props.frameMeta}
-                  eventOrigin={extractEventOrigin(event)}
+                  showAbsPath={shouldDisplayAbsPathInTitle(data, event)}
                 />
               </div>
             </LeftLineTitle>

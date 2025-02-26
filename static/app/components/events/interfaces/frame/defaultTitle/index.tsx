@@ -24,16 +24,15 @@ type Props = {
   frame: Frame;
   platform: PlatformKey;
   /**
-   * The origin URL of the event that contains this frame. Used to determine if the frame
-   * comes from a different origin than the application code.
-   */
-  eventOrigin?: string;
-  /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
   isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
+  /**
+   * Whether to show the absolute path in the title instead of the relative path.
+   */
+  showAbsPath?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
@@ -44,7 +43,7 @@ function DefaultTitle({
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
-  eventOrigin,
+  showAbsPath,
 }: Props) {
   const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
@@ -107,11 +106,6 @@ function DefaultTitle({
     const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
       defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
-    const isExternalUrl =
-      eventOrigin &&
-      frame.absPath &&
-      isUrl(frame.absPath) &&
-      !frame.absPath.startsWith(eventOrigin);
 
     if (pathNameOrModule) {
       title.push(
@@ -122,7 +116,7 @@ function DefaultTitle({
           delay={tooltipDelay}
         >
           <code key="filename" className="filename" data-test-id="filename">
-            {isExternalUrl && frame.absPath ? (
+            {showAbsPath && frame.absPath ? (
               <Truncate value={frame.absPath} maxLength={100} leftTrim />
             ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText

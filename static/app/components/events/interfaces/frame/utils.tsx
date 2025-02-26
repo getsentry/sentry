@@ -5,6 +5,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {SymbolicatorStatus} from '../types';
 
@@ -148,4 +149,66 @@ export function hasFileExtension(filepath: string) {
 
   // Check if the filepath matches the pattern
   return fileExtensionPattern.test(filepath);
+}
+
+/**
+ * Extracts the origin URL from an event
+ *
+ * TODO: Should consider other sources of origin besides just url tag
+ *
+ * @param event The event to extract the origin from
+ * @returns The origin URL string, or empty string if not found/invalid
+ */
+function extractEventOrigin(event: Event): string {
+  const urlTag = event.tags.find(({key}) => key === 'url');
+
+  if (!urlTag?.value) {
+    return '';
+  }
+
+  try {
+    const url = new URL(urlTag.value);
+    return url.origin;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Extracts the root domain from a URL string (e.g. "example.com" from "https://sub.example.com/path")
+ *
+ * @param url The URL string to extract the root domain from
+ * @returns The root domain string, or empty string if URL is invalid
+ */
+function getRootDomain(url: string): string {
+  try {
+    const hostname = new URL(url).hostname;
+    // Split hostname into parts and get the last two parts (if they exist)
+    const parts = hostname.split('.');
+    return parts.slice(-2).join('.');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Determines whether to display the absolute path in the frame title
+ *
+ * This helps identify frames from external domains vs the application's domain.
+ *
+ * @param frame The stack frame to check
+ * @param event The event containing the frame
+ * @returns True if the absolute path should be shown in the title
+ */
+export function shouldDisplayAbsPathInTitle(frame: Frame, event: Event): boolean {
+  const eventOrigin = extractEventOrigin(event);
+
+  if (!frame.absPath || !isUrl(eventOrigin) || !isUrl(frame.absPath)) {
+    return false;
+  }
+
+  const eventRootDomain = getRootDomain(eventOrigin);
+  const frameRootDomain = getRootDomain(frame.absPath);
+
+  return eventRootDomain !== frameRootDomain;
 }
