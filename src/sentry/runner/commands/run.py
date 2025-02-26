@@ -284,11 +284,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @click.option("--concurrency", help="Number of child worker processes to create.", default=1)
 @click.option(
-    "--prefetch-multiplier",
-    help="How many tasks to keep in the child worker queue and results queue. Multiplied by --concurrency",
-    default=1.0,
-)
-@click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
 )
 @log_options()
@@ -309,7 +304,6 @@ def run_taskworker(
     max_task_count: int,
     namespace: str | None,
     concurrency: int,
-    prefetch_multiplier: float,
     **options: Any,
 ) -> None:
     """
@@ -324,7 +318,6 @@ def run_taskworker(
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,
-            prefetch_multiplier=prefetch_multiplier,
             **options,
         )
         exitcode = worker.start()
