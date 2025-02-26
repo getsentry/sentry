@@ -38,6 +38,7 @@ export function useMergedIssuesDrawer({
           {replace: true}
         );
       },
+      transitionProps: {stiffness: 1000},
     });
   }, [openDrawer, group, project, baseUrl, navigate, location.query]);
 

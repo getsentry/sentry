@@ -32,6 +32,7 @@ export function useGroupTagsDrawer({group}: {group: Group}) {
       shouldCloseOnLocationChange: newLocation => {
         return !newLocation.pathname.includes('/tags/');
       },
+      transitionProps: {stiffness: 1000},
     });
   }, [location, navigate, drawer, group, baseUrl]);
 
