@@ -1,6 +1,9 @@
+from typing import Any
+
 import pytest
 from jsonschema.exceptions import ValidationError
 
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
@@ -18,8 +21,8 @@ from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
+    IssueAlertUpdater,
     delete_migrated_issue_alert,
-    update_migrated_issue_alert,
 )
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
@@ -108,6 +111,77 @@ class RuleMigrationHelpersTest(TestCase):
             },
         ]
 
+    def assert_workflow_updated(self, issue_alert: Rule):
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=issue_alert)
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+        assert workflow.name == issue_alert.label
+        assert issue_alert.project
+        assert workflow.organization_id == issue_alert.project.organization.id
+        assert workflow.config == {"frequency": 60}
+        assert workflow.owner_user_id == self.user.id
+        assert workflow.owner_team_id is None
+
+        assert workflow.when_condition_group
+        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.NONE
+
+        conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert conditions.count() == 1
+        assert conditions.filter(
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        ).exists()
+
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert if_dcg.logic_type == DataConditionGroup.Type.ALL
+        filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.count() == 1
+        assert filters.filter(
+            type=Condition.LATEST_RELEASE,
+            comparison=True,
+            condition_result=True,
+        ).exists()
+
+    def update_issue_alert(
+        self,
+        issue_alert: Rule,
+        action_match: str | None = "none",
+        filter_match: str | None = "all",
+        conditions: list[dict[str, Any]] | None = None,
+        frequency: int | None = 60,
+    ):
+        if conditions is None:
+            conditions = [
+                {
+                    "id": FirstSeenEventCondition.id,
+                },
+                {
+                    "id": LatestReleaseFilter.id,
+                },
+            ]
+        rule_data = issue_alert.data
+        rule_data.update(
+            {
+                "action_match": action_match,
+                "filter_match": filter_match,
+                "conditions": conditions,
+                "frequency": frequency,
+                "actions": [
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "uuid": "test-uuid",
+                    }
+                ],
+            }
+        )
+
+        issue_alert.update(
+            label="hello world",
+            owner_user_id=self.user.id,
+            environment_id=self.environment.id,
+            data=rule_data,
+        )
+
     def test_rule_snooze_updates_workflow(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         rule_snooze = RuleSnooze.objects.create(rule=self.issue_alert)
@@ -134,105 +208,26 @@ class RuleMigrationHelpersTest(TestCase):
 
     def test_update_issue_alert(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
-        conditions_payload = [
-            {
-                "id": FirstSeenEventCondition.id,
-            },
-            {
-                "id": LatestReleaseFilter.id,
-            },
-        ]
-        rule_data = self.issue_alert.data
-        rule_data.update(
-            {
-                "action_match": "none",
-                "filter_match": "all",
-                "conditions": conditions_payload,
-                "frequency": 60,
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "uuid": "test-uuid",
-                    }
-                ],
-            }
-        )
+        self.update_issue_alert(self.issue_alert)
+        IssueAlertUpdater(self.issue_alert).run()
 
-        self.issue_alert.update(
-            label="hello world",
-            owner_user_id=self.user.id,
-            environment_id=self.environment.id,
-            data=rule_data,
-        )
-        update_migrated_issue_alert(self.issue_alert)
+        self.assert_workflow_updated(self.issue_alert)
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
-        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
-        assert workflow.name == self.issue_alert.label
-        assert self.issue_alert.project
-        assert workflow.organization_id == self.issue_alert.project.organization.id
-        assert workflow.config == {"frequency": 60}
-        assert workflow.owner_user_id == self.user.id
-        assert workflow.owner_team_id is None
-
-        assert workflow.when_condition_group
-        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.NONE
-
-        conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
-        assert conditions.count() == 1
-        assert conditions.filter(
-            type=Condition.FIRST_SEEN_EVENT,
-            comparison=True,
-            condition_result=True,
-        ).exists()
-
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        assert if_dcg.logic_type == DataConditionGroup.Type.ALL
-        filters = DataCondition.objects.filter(condition_group=if_dcg)
-        assert filters.count() == 1
-        assert filters.filter(
-            type=Condition.LATEST_RELEASE,
-            comparison=True,
-            condition_result=True,
-        ).exists()
-
-        dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
+        dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
 
+    def test_update_issue_alert__without_actions(self):
+        IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
+        self.update_issue_alert(self.issue_alert)
+        IssueAlertUpdater(self.issue_alert, should_create_actions=False).run()
+
+        assert not DataConditionGroupAction.objects.all().exists()
+
     def test_update_issue_alert__none_match(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
-        conditions_payload = [
-            {
-                "id": FirstSeenEventCondition.id,
-            },
-            {
-                "id": LatestReleaseFilter.id,
-            },
-        ]
-        rule_data = self.issue_alert.data
-        rule_data.update(
-            {
-                "action_match": None,
-                "filter_match": None,
-                "conditions": conditions_payload,
-                "frequency": 60,
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "uuid": "test-uuid",
-                    }
-                ],
-            }
-        )
-
-        self.issue_alert.update(
-            label="hello world",
-            owner_user_id=self.user.id,
-            environment_id=self.environment.id,
-            data=rule_data,
-        )
-        update_migrated_issue_alert(self.issue_alert)
+        self.update_issue_alert(self.issue_alert, action_match=None, filter_match=None)
+        IssueAlertUpdater(self.issue_alert).run()
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
@@ -244,30 +239,8 @@ class RuleMigrationHelpersTest(TestCase):
 
     def test_update_issue_alert__with_conditions(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
-
-        rule_data = self.issue_alert.data
-        rule_data.update(
-            {
-                "action_match": "none",
-                "filter_match": "all",
-                "conditions": self.conditions,
-                "frequency": 60,
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "uuid": "test-uuid",
-                    }
-                ],
-            }
-        )
-
-        self.issue_alert.update(
-            label="hello world",
-            owner_user_id=self.user.id,
-            environment_id=self.environment.id,
-            data=rule_data,
-        )
-        update_migrated_issue_alert(self.issue_alert)
+        self.update_issue_alert(self.issue_alert, conditions=self.conditions)
+        IssueAlertUpdater(self.issue_alert).run()
 
         assert DataCondition.objects.all().count() == 1
         dc = DataCondition.objects.get(type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
@@ -281,28 +254,15 @@ class RuleMigrationHelpersTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         # None fields are not updated
 
-        rule_data = self.issue_alert.data
-        rule_data.update(
-            {
-                "action_match": "none",
-                "conditions": [],
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "uuid": "test-uuid",
-                    }
-                ],
-            }
+        self.update_issue_alert(
+            self.issue_alert, action_match="none", filter_match="any", conditions=[], frequency=5
         )
-
         self.issue_alert.update(
-            label="hello world",
             owner_user_id=None,
             owner_team_id=None,
             environment_id=None,
-            data=rule_data,
         )
-        update_migrated_issue_alert(self.issue_alert)
+        IssueAlertUpdater(self.issue_alert).run()
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
@@ -327,7 +287,7 @@ class RuleMigrationHelpersTest(TestCase):
         self.issue_alert.data["frequency"] = -1
         self.issue_alert.save()
         with pytest.raises(ValidationError):
-            update_migrated_issue_alert(self.issue_alert)
+            IssueAlertUpdater(self.issue_alert).run()
 
     def test_delete_issue_alert(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()

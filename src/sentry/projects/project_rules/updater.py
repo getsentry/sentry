@@ -8,9 +8,7 @@ from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
-    update_migrated_issue_alert,
-)
+from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import IssueAlertUpdater
 
 
 @dataclass
@@ -43,8 +41,7 @@ class ProjectRuleUpdater:
             if features.has(
                 "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
             ):
-                # TODO(cathy): handle errors from broken actions
-                update_migrated_issue_alert(self.rule)
+                IssueAlertUpdater(self.rule, should_create_actions=False).run()
             return self.rule
 
     def _update_name(self) -> None:

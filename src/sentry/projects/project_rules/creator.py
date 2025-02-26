@@ -33,7 +33,11 @@ class ProjectRuleCreator:
                 "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
             ):
                 # TODO(cathy): handle errors from broken actions
-                IssueAlertMigrator(self.rule, self.request.user.id if self.request else None).run()
+                IssueAlertMigrator(
+                    self.rule,
+                    self.request.user.id if self.request else None,
+                    should_create_actions=False,
+                ).run()
 
             return self.rule
 
