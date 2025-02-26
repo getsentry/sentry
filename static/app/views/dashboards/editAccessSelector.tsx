@@ -12,7 +12,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -220,7 +220,9 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" text={'All'} size={listOnly ? 26 : 20} />
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="default">
+        {t('All')}
+      </StyledBadge>
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList

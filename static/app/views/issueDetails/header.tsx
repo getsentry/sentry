@@ -5,8 +5,8 @@ import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import Badge from 'sentry/components/core/badge';
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -107,7 +107,7 @@ export function GroupHeaderTabs({
         to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
-        <IconBadge>
+        <IconBadge type="default">
           {group.numComments}
           <IconChat size="xs" />
         </IconBadge>
@@ -119,7 +119,7 @@ export function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
-        {t('User Feedback')} <Badge text={group.userReportCount} />
+        {t('User Feedback')} <Badge type="default">{group.userReportCount}</Badge>
       </TabList.Item>
       <TabList.Item
         key={Tab.ATTACHMENTS}

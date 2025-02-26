@@ -3,7 +3,7 @@ from hashlib import md5
 from unittest import mock
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
-from sentry.spans.consumers.detect_performance_issues.message import process_segment
+from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.consumers.process.test_factory import build_mock_span

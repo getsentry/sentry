@@ -6,12 +6,14 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LegacyOnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
+import {useOverdueDoneTasks} from 'sentry/components/onboardingWizard/useOverdueDoneTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -59,13 +61,18 @@ export function OnboardingStatus({
     disabled: !isActive,
   });
 
+  const {overdueTasks} = useOverdueDoneTasks({doneTasks});
+
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
   const allTasksCompleted = allTasks.length === completeTasks.length;
+  const allTasksDone = allTasks.length === doneTasks.length;
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
-    (allTasksCompleted && !isActive);
+    (allTasksCompleted && !isActive) ||
+    // Skip if all tasks are completed and there are overdue tasks
+    (allTasksDone && overdueTasks.length > 0);
 
   const orgId = organization.id;
 
@@ -152,7 +159,9 @@ export function OnboardingStatus({
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
           `}
-          text={doneTasks.length}
+          text={
+            doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+          }
           value={(doneTasks.length / allTasks.length) * 100}
           backgroundColor="rgba(255, 255, 255, 0.15)"
           progressEndcaps="round"

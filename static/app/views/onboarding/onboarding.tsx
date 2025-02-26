@@ -86,9 +86,11 @@ function Onboarding(props: Props) {
   const projectSlug =
     stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
-  const recentCreatedProject = useRecentCreatedProject({
+  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
+    // Wait until the first event is received as we have an UI element that depends on it
+    pollUntilFirstEvent: true,
   });
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
@@ -150,18 +152,7 @@ function Onboarding(props: Props) {
   ]);
 
   const shallProjectBeDeleted =
-    stepObj?.id === 'setup-docs' &&
-    recentCreatedProject &&
-    // if the project has received a first error, we don't delete it
-    recentCreatedProject.firstError === false &&
-    // if the project has received a first transaction, we don't delete it
-    recentCreatedProject.firstTransaction === false &&
-    // if the project has replays, we don't delete it
-    recentCreatedProject.hasReplays === false &&
-    // if the project has sessions, we don't delete it
-    recentCreatedProject.hasSessions === false &&
-    // if the project is older than one hour, we don't delete it
-    recentCreatedProject.olderThanOneHour === false;
+    stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -292,7 +283,11 @@ function Onboarding(props: Props) {
       }
 
       // from setup docs to selected platform
-      if (onboardingSteps[stepIndex]!.id === 'setup-docs' && shallProjectBeDeleted) {
+      if (
+        onboardingSteps[stepIndex]!.id === 'setup-docs' &&
+        shallProjectBeDeleted &&
+        recentCreatedProject
+      ) {
         trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
           organization,
           platform: recentCreatedProject.slug,

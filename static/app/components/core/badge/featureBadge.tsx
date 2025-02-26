@@ -4,7 +4,7 @@ import type {SeverityLevel} from '@sentry/core';
 import {captureException, withScope} from '@sentry/react';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -64,31 +64,19 @@ function InnerFeatureBadge({
   ...props
 }: FeatureBadgeProps) {
   const indicatorColors = useFeatureBadgeIndicatorColor();
+  const title = tooltipProps?.title?.toString() ?? defaultTitles[type] ?? '';
 
-  if (
-    hasFeatureBadgeExpired(
-      expiresAt,
-      tooltipProps?.title?.toString() ?? '<unknown title>',
-      type
-    )
-  ) {
+  if (hasFeatureBadgeExpired(expiresAt, title, type)) {
     return null;
   }
 
-  const {title, ...restTooltipProps} = tooltipProps ?? {};
-
   return (
     <div {...props}>
-      <Tooltip
-        title={title ?? defaultTitles[type]}
-        position="right"
-        {...restTooltipProps}
-      >
+      <Tooltip title={title ?? defaultTitles[type]} position="right" {...tooltipProps}>
         {variant === 'badge' || variant === 'short' ? (
-          <StyledBadge
-            type={type}
-            text={variant === 'short' ? shortLabels[type] : labels[type]}
-          />
+          <StyledBadge type={type}>
+            {variant === 'short' ? shortLabels[type] : labels[type]}
+          </StyledBadge>
         ) : (
           <CircleIndicator color={indicatorColors[type]} size={8} />
         )}

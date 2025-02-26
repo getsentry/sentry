@@ -115,7 +115,7 @@ def get_or_create_commit_from_blame(
     If not, create it.
     """
     try:
-        commit: Commit = Commit.objects.get(
+        commit = Commit.objects.get(
             repository_id=blame.repo.id,
             key=blame.commit.commitId,
         )
@@ -171,13 +171,13 @@ def _generate_integration_to_files_mapping(
     platform: str,
     sdk_name: str | None,
     extra: Mapping[str, Any],
-) -> tuple[dict[str, list[SourceLineInfo]], int]:
+) -> tuple[dict[int, list[SourceLineInfo]], int]:
     """
     Because a single stack trace can be mapped to multiple integrations,
     this function is used to separate files into each integration so that
     we can later call get_commit_context_all_frames on each integration.
     """
-    integration_to_files_mapping: dict[str, list[SourceLineInfo]] = {}
+    integration_to_files_mapping: dict[int, list[SourceLineInfo]] = {}
     num_successfully_mapped_frames = 0
 
     for frame in frames:
@@ -251,18 +251,18 @@ def _generate_integration_to_files_mapping(
 
 
 def _get_blames_from_all_integrations(
-    integration_to_files_mapping: dict[str, list[SourceLineInfo]],
+    integration_to_files_mapping: dict[int, list[SourceLineInfo]],
     organization_id: int,
     project_id: int,
     extra: Mapping[str, Any],
-) -> tuple[list[FileBlameInfo], dict[str, tuple[IntegrationInstallation, str]]]:
+) -> tuple[list[FileBlameInfo], dict[int, tuple[IntegrationInstallation, str]]]:
     """
     Calls get_commit_context_all_frames for each integration, using the file
     list provided for the integration ID, and returns a combined list of
     file blames.
     """
     file_blames: list[FileBlameInfo] = []
-    integration_to_install_mapping: dict[str, tuple[IntegrationInstallation, str]] = {}
+    integration_to_install_mapping: dict[int, tuple[IntegrationInstallation, str]] = {}
 
     for integration_organization_id, files in integration_to_files_mapping.items():
         # find active integrations, otherwise integration proxy will not send request

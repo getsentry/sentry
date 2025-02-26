@@ -17,6 +17,7 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import ProgressRing from 'sentry/components/progressRing';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -92,7 +93,9 @@ function OnboardingItem({
               font-weight: ${theme.fontWeightBold};
               color: ${theme.purple400};
             `}
-            text={doneTasks.length}
+            text={
+              doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+            }
             value={(doneTasks.length / allTasks.length) * 100}
             backgroundColor="rgba(255, 255, 255, 0.15)"
             progressEndcaps="round"

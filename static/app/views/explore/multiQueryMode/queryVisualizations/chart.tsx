@@ -25,10 +25,7 @@ import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
-import {
-  DEFAULT_TOP_EVENTS,
-  useMultiQueryTimeseries,
-} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
+import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
   type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
@@ -36,13 +33,16 @@ import {
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
 export interface MultiQueryChartProps {
+  canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
 export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
@@ -51,11 +51,9 @@ export function MultiQueryModeChart({
   index,
   query: queryParts,
   mode,
+  timeseriesResult,
+  canUsePreviousResults,
 }: MultiQueryChartProps) {
-  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
-    index,
-    enabled: true,
-  });
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
