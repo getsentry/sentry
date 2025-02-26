@@ -5,10 +5,10 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/core/badge/featureBadge';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
@@ -190,11 +190,11 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           {t('Sentry AI')}
           <StyledFeatureBadge
             type="beta"
-            title={tct(
-              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {email: <a href="mailto:autofix@sentry.io" />}
-            )}
             tooltipProps={{
+              title: tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {email: <a href="mailto:autofix@sentry.io" />}
+              ),
               isHoverable: true,
             }}
           />

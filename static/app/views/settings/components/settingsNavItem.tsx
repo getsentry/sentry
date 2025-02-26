@@ -2,7 +2,7 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/badge/featureBadge';
 import {Badge} from 'sentry/components/core/badge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SecondaryNav} from 'sentry/components/nav/secondary';

@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import FeatureBadge from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';

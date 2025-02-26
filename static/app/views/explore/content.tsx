@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/core/badge/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -49,9 +49,11 @@ export function ExploreContent() {
                   linkLabel={t('Read the Discussion')}
                 />
                 <FeatureBadge
-                  title={t(
-                    'This feature is available for early adopters and the UX may change'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'This feature is available for early adopters and the UX may change'
+                    ),
+                  }}
                   type="beta"
                 />
               </Layout.Title>
