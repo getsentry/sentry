@@ -173,7 +173,6 @@ module = [
     "sentry.integrations.slack.notifications",
     "sentry.integrations.slack.webhooks.command",
     "sentry.integrations.slack.webhooks.event",
-    "sentry.integrations.utils.commit_context",
     "sentry.integrations.utils.sync",
     "sentry.integrations.vercel.integration",
     "sentry.integrations.vsts.integration",
