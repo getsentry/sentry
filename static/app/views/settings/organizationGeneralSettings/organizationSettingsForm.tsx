@@ -120,16 +120,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
-      ...(organization.features.includes('sentry-rollback-settings')
-        ? [
-            {
-              name: 'rollbackEnabled',
-              type: 'boolean',
-              label: t('2024 Sentry Rollback'),
-              help: t('Allow organization members to view their year in review'),
-            } as FieldObject,
-          ]
-        : []),
     ];
     return formsConfig;
   }, [access, organization]);
