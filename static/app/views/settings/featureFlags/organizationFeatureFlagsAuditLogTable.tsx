@@ -60,7 +60,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
     return (
       responseData?.data?.map(log => ({
         ...log,
-        provider: log.provider ?? 'unknown',
+        provider: log.provider,
         createdAt: new Date(log.createdAt).toLocaleString(),
       })) ?? []
     );
@@ -89,15 +89,26 @@ export function OrganizationFeatureFlagsAuditLogTable({
     [navigate, location.pathname, setHasFilters]
   );
 
+  const onProviderClick = useCallback(
+    (provider: string | null | undefined) => {
+      navigate({
+        pathname: location.pathname,
+        query: {
+          provider: provider ? provider : 'unknown',
+        },
+      });
+      setHasFilters(true);
+    },
+    [navigate, location.pathname, setHasFilters]
+  );
+
   const renderBodyCell = (
     column: GridColumnOrder<'provider' | 'flag' | 'action' | 'createdAt'>,
     dataRow: RawFlag,
     _rowIndex: number,
     _columnIndex: number
   ) =>
-    column.key !== 'flag' ? (
-      dataRow[column.key!]
-    ) : (
+    column.key === 'flag' ? (
       <code
         onClick={() => {
           onFlagClick(dataRow.flag);
@@ -106,6 +117,17 @@ export function OrganizationFeatureFlagsAuditLogTable({
       >
         {dataRow.flag}
       </code>
+    ) : column.key === 'provider' ? (
+      <div
+        onClick={() => {
+          onProviderClick(dataRow.provider);
+        }}
+        style={{cursor: 'pointer'}}
+      >
+        {dataRow.provider ? dataRow.provider : t('unknown')}
+      </div>
+    ) : (
+      dataRow[column.key!]
     );
 
   return (
