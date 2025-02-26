@@ -146,8 +146,11 @@ def create_or_update_grouphash_metadata_if_needed(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={
                     "grouphash_metadata_id": grouphash_metadata.id,
+                    "linked_metadata_id": grouphash.metadata.id if grouphash.metadata else None,
+                    "grouphash_id": grouphash.id,
                     "grouphash_is_new": grouphash_is_new,
                     "event_id": event.event_id,
+                    "hash_basis": new_data["hash_basis"],
                 },
             )
             return
