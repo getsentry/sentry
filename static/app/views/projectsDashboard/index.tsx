@@ -13,7 +13,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -29,6 +28,7 @@ import {
   setGroupedEntityTag,
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -104,6 +104,7 @@ function Dashboard() {
     []
   );
   const {projects, fetching, fetchError} = useProjects();
+  const canUserCreateProject = useCanCreateProject();
 
   const showNonMemberProjects = useMemo(() => {
     const isOrgAdminOrManager =
@@ -151,7 +152,6 @@ function Dashboard() {
   const showResources = projects.length === 1 && !projects[0]!.firstEvent;
 
   const canJoinTeam = organization.access.includes('team:read');
-  const canUserCreateProject = canCreateProject(organization);
 
   function handleSearch(searchQuery: string) {
     setProjectQuery(searchQuery);
