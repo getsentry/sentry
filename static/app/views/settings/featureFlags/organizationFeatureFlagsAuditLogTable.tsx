@@ -70,7 +70,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
   const [hasFilters, setHasFilters] = useState<boolean>(false);
 
-  const resetFilters = useCallback(() => {
+  const clearQuery = useCallback(() => {
     navigate({
       pathname: location.pathname,
     });
@@ -79,28 +79,32 @@ export function OrganizationFeatureFlagsAuditLogTable({
 
   const onFlagClick = useCallback(
     (flag: string) => {
+      const {cursor: _, ...queryParams} = location.query; // persist the current query but reset cursor.
       navigate({
         pathname: location.pathname,
         query: {
+          ...queryParams,
           flag,
         },
       });
       setHasFilters(true);
     },
-    [navigate, location.pathname, setHasFilters]
+    [navigate, location.pathname, location.query, setHasFilters]
   );
 
   const onProviderClick = useCallback(
     (provider: string | null | undefined) => {
+      const {cursor: _, ...queryParams} = location.query; // persist the current query but reset cursor.
       navigate({
         pathname: location.pathname,
         query: {
+          ...queryParams,
           provider: provider ? provider : 'unknown',
         },
       });
       setHasFilters(true);
     },
-    [navigate, location.pathname, setHasFilters]
+    [navigate, location.pathname, location.query, setHasFilters]
   );
 
   const renderBodyCell = (
@@ -135,7 +139,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
     <Fragment>
       <Flex justify="space-between">
         <h5>{t('Audit Logs')}</h5>
-        {hasFilters && <Button onClick={resetFilters}>{t('View All')}</Button>}
+        {hasFilters && <Button onClick={clearQuery}>{t('View All')}</Button>}
       </Flex>
       <TextBlock>
         {t(
