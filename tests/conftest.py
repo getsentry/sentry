@@ -1,3 +1,5 @@
+import os
+import sys
 from collections.abc import MutableMapping
 
 import psutil
@@ -25,11 +27,31 @@ pytest_plugins = ["sentry.testutils.pytest"]
 # https://github.com/pytest-dev/pytest/blob/master/src/_pytest/terminal.py
 
 
+if sys.platform == "linux":
+
+    def _open_files() -> frozenset[str]:
+        ret = []
+        pid = os.getpid()
+        for fd in os.listdir(f"/proc/{pid}/fd"):
+            try:
+                path = os.readlink(f"/proc/{pid}/fd/{fd}")
+            except FileNotFoundError:
+                continue
+            else:
+                ret.append(path)
+        return frozenset(ret)
+
+else:
+
+    def _open_files() -> frozenset[str]:
+        return frozenset(f.path for f in psutil.Process().open_files())
+
+
 @pytest.fixture(autouse=True)
 def unclosed_files():
-    fds = frozenset(psutil.Process().open_files())
+    fds = _open_files()
     yield
-    assert frozenset(psutil.Process().open_files()) == fds
+    assert _open_files() == fds
 
 
 @pytest.fixture(autouse=True)
