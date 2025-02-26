@@ -189,9 +189,13 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     hasDatasetSelector(organization) &&
     eventView.dataset === DiscoverDatasets.TRANSACTIONS;
 
-  const query = isTransactionsDataset
+  let query = isTransactionsDataset
     ? appendEventTypeCondition(eventView.getQuery())
     : eventView.getQuery();
+
+  if (organization.features.includes('performance-transaction-summary-eap')) {
+    query = query.replace(/\bis_transaction:true\b/i, 'event.type:transaction');
+  }
 
   const isTransactionQueryMissing =
     getQueryDatasource(query)?.source !== Datasource.TRANSACTION &&
