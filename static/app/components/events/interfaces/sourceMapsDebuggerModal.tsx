@@ -381,8 +381,9 @@ export function SourceMapsDebuggerModal({
       </Body>
       <Footer>
         <Link
-          to=""
+          to="#"
           onClick={e => {
+            e.preventDefault();
             e.stopPropagation();
             openModal(modalProps => (
               <FeedbackModal
