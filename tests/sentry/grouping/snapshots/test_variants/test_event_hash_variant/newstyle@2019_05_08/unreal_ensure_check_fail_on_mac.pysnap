@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T15:40:50.934284+00:00'
+created: '2025-02-26T15:46:41.345504+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -97,7 +97,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentryPlaygroundUtils::Terminate"
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentryPlaygroundUtils::Terminate"
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
@@ -375,7 +375,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentryPlaygroundUtils::Terminate"
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "USentryPlaygroundUtils::Terminate"
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
