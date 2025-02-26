@@ -10,13 +10,13 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
   AggregationOutputType,
@@ -40,7 +40,7 @@ import {formatTooltipValue} from './formatTooltipValue';
 import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {isTimeSeriesOther} from './isTimeSeriesOther';
-import {ReleaseSeries} from './releaseDataSeries';
+import {ReleaseSeries} from './releaseSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
@@ -110,7 +110,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const releaseDataSeries =
+  const releaseSeries =
     props.releases &&
     ReleaseSeries(
       theme,
@@ -125,16 +125,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       },
       utc ?? false
     );
-
-  const releaseSeries = releaseDataSeries
-    ? [
-        LineSeries({
-          ...releaseDataSeries,
-          name: releaseDataSeries.seriesName,
-          data: [],
-        }),
-      ]
-    : [];
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -289,7 +279,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   let visibleSeriesCount = scaledSeries.length;
-  if (releaseDataSeries) {
+  if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
@@ -307,7 +297,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         }
       }}
       autoHeightResize
-      series={[...dataSeries, ...releaseSeries]}
+      series={[...dataSeries, releaseSeries].filter(defined)}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
