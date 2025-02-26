@@ -50,7 +50,7 @@ export default function RawContent({
     return <LoadingError />;
   }
 
-  if (!values || !crashReport) {
+  if (!values) {
     return null;
   }
 
