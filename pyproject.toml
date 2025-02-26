@@ -200,7 +200,6 @@ module = [
     "sentry.sentry_metrics.indexer.postgres.postgres_v2",
     "sentry.shared_integrations.client.proxy",
     "sentry.snuba.errors",
-    "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.query_builder",
     "sentry.tasks.auth",
     "sentry.tasks.base",
