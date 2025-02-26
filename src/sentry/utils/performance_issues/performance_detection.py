@@ -8,7 +8,8 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -18,6 +19,7 @@ from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.models import DataPacket, Detector
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
@@ -345,11 +347,21 @@ def _detect_performance_problems(
             for detector_class in DETECTOR_CLASSES
             if detector_class.is_detector_enabled()
         ]
-
+    use_workflow_engine = features.has(
+        "organizations:workflow-engine-metric-alert-processing",
+        project.organization,
+    )  # TDOO make a new feature flag
+    if use_workflow_engine:
+        detectors = Detector.objects.filter(
+            project=project.id, type__in=[option.value for option in InternalProjectOptions]
+        )
     for detector in detectors:
         with sentry_sdk.start_span(
             op="function", name=f"run_detector_on_data.{detector.type.value}"
         ):
+            if use_workflow_engine:
+                detector = detector.detector_handler
+
             run_detector_on_data(detector, data)
 
     with sentry_sdk.start_span(op="function", name="report_metrics_for_detectors"):
@@ -398,7 +410,9 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) -> None:
+def run_detector_on_data(
+    detector: PerformanceDetector, data: dict[str, Any], use_workflow_engine: bool = False
+) -> None:
     if not detector.is_event_eligible(data):
         return
 
@@ -406,7 +420,12 @@ def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) ->
     for span in spans:
         detector.visit_span(span)
 
-    detector.on_complete()
+    if use_workflow_engine:
+        event_id = data.get("event_id", None)
+        data_packet = DataPacket(source_id=str(event_id), packet=data)
+        detector.on_complete(data_packet)
+    else:
+        detector.on_complete()
 
 
 # Reports metrics and creates spans for detection

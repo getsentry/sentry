@@ -285,12 +285,17 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
 
 @dataclass(frozen=True)
 class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
+    from sentry.workflow_engine.handlers.detector.n_plus_one_api_calls_detector_handler import (
+        NPlusOneAPICallsDetectorHandler,
+    )
+
     type_id = 1006
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    detector_handler = NPlusOneAPICallsDetectorHandler
 
 
 @dataclass(frozen=True)

@@ -2647,7 +2647,11 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
-    _send_occurrence_to_platform(jobs, projects)
+    if not features.has(
+        "organizations:workflow-engine-metric-alert-processing",
+        project.organization,
+    ):  # TODO make a new feature flag
+        _send_occurrence_to_platform(jobs, projects)
     _record_transaction_info(jobs, projects)
 
     return jobs
