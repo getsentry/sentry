@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -30,13 +31,8 @@ export function OrganizationFeatureFlagsNewSecet() {
       <SettingsPageHeader title={t('Add New Provider')} />
 
       <TextBlock>
-        {t(
-          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
-        )}
-      </TextBlock>
-      <TextBlock>
         {tct(
-          'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
+          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/#change-tracking" />
@@ -44,6 +40,9 @@ export function OrganizationFeatureFlagsNewSecet() {
           }
         )}
       </TextBlock>
+      <Alert type="info">
+        {t('Note that each provider can only have one associated signing secret.')}
+      </Alert>
 
       <Panel>
         <PanelHeader>{t('Add New Provider')}</PanelHeader>

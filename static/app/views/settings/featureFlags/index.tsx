@@ -148,15 +148,9 @@ export function OrganizationFeatureFlagsIndex() {
     <Fragment>
       <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Feature Flags')} action={addNewProvider(hasAccess)} />
-
-      <TextBlock>
-        {t(
-          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
-        )}
-      </TextBlock>
       <TextBlock>
         {tct(
-          'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
+          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/#change-tracking" />
@@ -166,6 +160,11 @@ export function OrganizationFeatureFlagsIndex() {
       </TextBlock>
 
       <h5>{t('Providers')}</h5>
+      <TextBlock>
+        {t(
+          'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
+        )}
+      </TextBlock>
       <ResponsivePanelTable
         isLoading={isPending || isError}
         isEmpty={!isPending && !secretList?.data?.length}

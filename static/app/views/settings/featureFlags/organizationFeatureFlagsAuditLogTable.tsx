@@ -13,6 +13,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function OrganizationFeatureFlagsAuditLogTable({
   pageSize = 15,
@@ -136,6 +137,11 @@ export function OrganizationFeatureFlagsAuditLogTable({
         <h5>{t('Audit Logs')}</h5>
         {hasFilters && <Button onClick={resetFilters}>{t('View All')}</Button>}
       </Flex>
+      <TextBlock>
+        {t(
+          'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags. Clicking a flag or provider will filter results by that flag or provider.'
+        )}
+      </TextBlock>
       <GridEditable
         error={error}
         isLoading={isPending}
