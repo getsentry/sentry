@@ -23,7 +23,7 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
@@ -720,7 +720,9 @@ function RoutesTable({query}: {query?: string}) {
         'Error Rate',
         'AVG',
         'P95',
-        'Users',
+        <Cell key="users" align="flex-end">
+          Users
+        </Cell>,
       ]}
       isLoading={transactionsRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
@@ -745,26 +747,22 @@ function RoutesTable({query}: {query?: string}) {
             <Cell data-color={p95Color}>
               {getDuration(transaction.p95 / 1000, 2, true, true)}
             </Cell>
-            <Cell>{transaction.users}</Cell>
+            <Cell align="flex-end">
+              {formatAbbreviatedNumber(transaction.users)}
+              <IconUser size="xs" />
+            </Cell>
           </Fragment>
         );
       })}
     </PanelTable>
   );
 }
-
-const Cell = styled('div')`
+const Cell = styled('div')<{align?: string}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   overflow: hidden;
   white-space: nowrap;
-
-  &[data-color='danger'] {
-    color: ${p => p.theme.red400};
-  }
-
-  &[data-color='warning'] {
-    color: ${p => p.theme.yellow400};
-  }
+  text-align: ${p => p.align};
+  justify-content: ${p => (p.align === 'flex-end' ? 'flex-end' : 'flex-start')};
 `;
