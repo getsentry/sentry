@@ -412,7 +412,7 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.create_or_update(
         organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
