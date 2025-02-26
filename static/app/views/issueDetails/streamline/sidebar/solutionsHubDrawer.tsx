@@ -199,23 +199,27 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             }}
           />
         </Header>
-        <ButtonBarWrapper>
-          <ButtonBar gap={1}>
-            <AutofixFeedback />
-            <Button
-              size="xs"
-              onClick={reset}
-              title={
-                autofixData?.created_at
-                  ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                  : null
-              }
-              disabled={!autofixData}
-            >
-              {t('Start Over')}
-            </Button>
-          </ButtonBar>
-        </ButtonBarWrapper>
+        {!aiConfig.needsGenAIConsent && (
+          <ButtonBarWrapper data-test-id="autofix-button-bar">
+            <ButtonBar gap={1}>
+              <AutofixFeedback />
+              {aiConfig.hasAutofix && (
+                <Button
+                  size="xs"
+                  onClick={reset}
+                  title={
+                    autofixData?.created_at
+                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                      : null
+                  }
+                  disabled={!autofixData}
+                >
+                  {t('Start Over')}
+                </Button>
+              )}
+            </ButtonBar>
+          </ButtonBarWrapper>
+        )}
       </SolutionsDrawerNavigator>
       <SolutionsDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
