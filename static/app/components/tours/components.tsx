@@ -54,10 +54,8 @@ export function TourContextProvider<T extends TourEnumType>({
   const isTourActive = tourContextValue.currentStep !== null;
   return (
     <tourContext.Provider value={tourContextValue}>
-      <BlurContainer>
-        {isTourActive && <BlurWindow />}
-        {children}
-      </BlurContainer>
+      {isTourActive && <BlurWindow />}
+      {children}
     </tourContext.Provider>
   );
 }
@@ -85,9 +83,9 @@ export interface TourElementProps<T extends TourEnumType>
    */
   tourContext: TourContextType<T>;
   /**
-   * Whether to skip the wrapper element.
+   * The className of the wrapper element.
    */
-  skipWrapper?: boolean;
+  className?: string;
 }
 
 export function TourElement<T extends TourEnumType>({
@@ -97,6 +95,7 @@ export function TourElement<T extends TourEnumType>({
   description,
   tourContext,
   position,
+  className,
 }: TourElementProps<T>) {
   const theme = useTheme();
 
@@ -119,7 +118,9 @@ export function TourElement<T extends TourEnumType>({
 
   return (
     <Fragment>
-      <ElementWrapper {...triggerProps}>{children}</ElementWrapper>
+      <ElementWrapper {...triggerProps} className={className}>
+        {children}
+      </ElementWrapper>
       {isOpen ? (
         <FocusScope autoFocus restoreFocus>
           <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
@@ -164,10 +165,6 @@ export function TourElement<T extends TourEnumType>({
     </Fragment>
   );
 }
-
-const BlurContainer = styled('div')`
-  position: relative;
-`;
 
 const BlurWindow = styled('div')`
   content: '';

@@ -1,4 +1,4 @@
-import {type Dispatch, type Reducer, useCallback, useMemo, useState} from 'react';
+import {type Dispatch, type Reducer, useCallback, useMemo, useRef} from 'react';
 import {useReducer} from 'react';
 
 export type TourEnumType = string | number;
@@ -63,14 +63,9 @@ export function useTourReducer<T extends TourEnumType>(
   initialState: TourState<T>
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
-  const [registry, setRegistry] = useState<TourRegistry<T>>(
-    orderedStepIds.reduce((reg, stepId) => {
-      reg[stepId] = null;
-      return reg;
-    }, {} as TourRegistry<T>)
-  );
+  const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
+  const isCompletelyRegistered = Object.values(registry.current).every(Boolean);
 
-  const isCompletelyRegistered = Object.values(registry).every(Boolean);
   const reducer: Reducer<TourState<T>, TourAction<T>> = useCallback(
     (state, action) => {
       const completeTourState = {
@@ -80,7 +75,7 @@ export function useTourReducer<T extends TourEnumType>(
       };
       switch (action.type) {
         case 'REGISTER_STEP': {
-          setRegistry(prev => ({...prev, [action.step.id]: action.step}));
+          registry.current[action.step.id] = action.step;
           return state;
         }
         case 'START_TOUR': {
@@ -96,14 +91,14 @@ export function useTourReducer<T extends TourEnumType>(
           if (action.stepId && startStepIndex !== -1) {
             return {
               ...state,
-              currentStep: registry[action.stepId] ?? null,
+              currentStep: registry.current[action.stepId] ?? null,
             };
           }
           // If no stepId is provided, set the current step to the first step
           if (orderedStepIds[0]) {
             return {
               ...state,
-              currentStep: registry[orderedStepIds[0]] ?? null,
+              currentStep: registry.current[orderedStepIds[0]] ?? null,
             };
           }
 
@@ -118,7 +113,7 @@ export function useTourReducer<T extends TourEnumType>(
           if (nextStepId) {
             return {
               ...state,
-              currentStep: registry[nextStepId] ?? null,
+              currentStep: registry.current[nextStepId] ?? null,
             };
           }
           // If there is no next step, complete the tour
@@ -133,7 +128,7 @@ export function useTourReducer<T extends TourEnumType>(
           if (prevStepId) {
             return {
               ...state,
-              currentStep: registry[prevStepId] ?? null,
+              currentStep: registry.current[prevStepId] ?? null,
             };
           }
           // If there is no previous step, do nothing
@@ -145,7 +140,7 @@ export function useTourReducer<T extends TourEnumType>(
           return state;
       }
     },
-    [registry, setRegistry, orderedStepIds, isCompletelyRegistered]
+    [orderedStepIds, isCompletelyRegistered]
   );
 
   const [tour, dispatch] = useReducer(reducer, initialState);
