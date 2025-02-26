@@ -40,9 +40,9 @@ def get_anomaly_data_from_seer(
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
     }
-    if not snuba_query or aggregation_value in {None, "NULL_VALUE"}:
+    if not snuba_query or not isinstance(aggregation_value, (int, float)):
         extra_data["aggregation_value"] = aggregation_value
-        logger.info("Aggregation value or snuba query is empty", extra=extra_data)
+        logger.warning("Aggregation value not integer or snuba query is empty", extra=extra_data)
         return None
 
     # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
