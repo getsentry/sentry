@@ -565,7 +565,7 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
     if rule_type == "metric":
         return
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
         task=OnboardingTask.ALERT_RULE,
         values={
