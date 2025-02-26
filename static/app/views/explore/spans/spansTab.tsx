@@ -47,7 +47,6 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
-import {QuotaExceededAlert} from 'sentry/views/explore/spans/quotaExceededAlert';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -57,6 +56,7 @@ import {
 } from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
+import {QuotaExceededAlert} from 'sentry/views/performance/quotaExceededAlert';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
