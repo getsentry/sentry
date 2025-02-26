@@ -49,6 +49,7 @@ export function useSpanSamplesCategorizedQuery({
       : undefined,
     browserTypes,
     subregions,
+    webVital: webVital ?? undefined,
   });
   const {data: mehData, isFetching: isMehDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
@@ -59,6 +60,7 @@ export function useSpanSamplesCategorizedQuery({
       : undefined,
     browserTypes,
     subregions,
+    webVital: webVital ?? undefined,
   });
   const {data: poorData, isFetching: isBadDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
@@ -69,6 +71,7 @@ export function useSpanSamplesCategorizedQuery({
       : undefined,
     browserTypes,
     subregions,
+    webVital: webVital ?? undefined,
   });
 
   const data = [...goodData, ...mehData, ...poorData];

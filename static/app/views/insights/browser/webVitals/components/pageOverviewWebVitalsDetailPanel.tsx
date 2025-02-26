@@ -47,7 +47,7 @@ import {generateReplayLink} from 'sentry/views/performance/transactionSummary/ut
 
 type Column = GridColumnHeader;
 
-const columnOrder: GridColumnOrder[] = [
+const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Transaction')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
@@ -55,17 +55,19 @@ const columnOrder: GridColumnOrder[] = [
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const inpColumnOrder: GridColumnOrder[] = [
+const SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER: GridColumnOrder[] = [
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
-    name: t('Interaction Target'),
+    name: t('Description'),
   },
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
-  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Inp')},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
+
+const NO_VALUE = ' \u2014 ';
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
   key: 'totalScore',
@@ -175,6 +177,18 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
       return <AlignCenter>{col.name}</AlignCenter>;
+    }
+
+    if (col.key === SpanIndexedField.SPAN_DESCRIPTION) {
+      if (webVital === 'lcp') {
+        return <span>{t('LCP Element')}</span>;
+      }
+      if (webVital === 'cls') {
+        return <span>{t('CLS Source')}</span>;
+      }
+      if (webVital === 'inp') {
+        return <span>{t('Interaction Target')}</span>;
+      }
     }
     return <NoOverflow>{col.name}</NoOverflow>;
   };
@@ -361,6 +375,26 @@ export function PageOverviewWebVitalsDetailPanel({
         </AlignCenter>
       );
     }
+
+    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      const description =
+        webVital === 'lcp' &&
+        (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
+          ? (row as SpanSampleRowWithScore)[SpanIndexedField.LCP_ELEMENT]
+          : webVital === 'cls' &&
+              (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
+            ? (row as SpanSampleRowWithScore)[SpanIndexedField.CLS_SOURCE]
+            : (row as SpanSampleRowWithScore)[key];
+
+      if (description) {
+        return (
+          <NoOverflow>
+            <Tooltip title={description}>{description}</Tooltip>
+          </NoOverflow>
+        );
+      }
+      return <NoOverflow>{NO_VALUE}</NoOverflow>;
+    }
     if (key === SpanIndexedField.SPAN_DESCRIPTION) {
       return (
         <NoOverflow>
@@ -427,7 +461,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={inpColumnOrder}
+              columnOrder={SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -438,7 +472,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={columnOrder}
+              columnOrder={SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -449,7 +483,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={transactionsTableData}
               isLoading={isTransactionWebVitalsQueryLoading}
-              columnOrder={columnOrder}
+              columnOrder={PAGELOADS_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,

@@ -267,7 +267,11 @@ export enum SpanIndexedField {
   CLS_SCORE = 'measurements.score.cls',
   CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   TTFB = 'measurements.ttfb',
+  TTFB_SCORE = 'measurements.score.ttfb',
+  TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
   FCP = 'measurements.fcp',
+  FCP_SCORE = 'measurements.score.fcp',
+  FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
@@ -280,6 +284,8 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
   IS_TRANSACTION = 'is_transaction',
+  LCP_ELEMENT = 'lcp.element',
+  CLS_SOURCE = 'cls.source.1',
 }
 
 export type SpanIndexedResponse = {
@@ -350,6 +356,12 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.CLS]: number;
   [SpanIndexedField.CLS_SCORE]: number;
   [SpanIndexedField.CLS_SCORE_RATIO]: number;
+  [SpanIndexedField.TTFB]: number;
+  [SpanIndexedField.TTFB_SCORE]: number;
+  [SpanIndexedField.TTFB_SCORE_RATIO]: number;
+  [SpanIndexedField.FCP]: number;
+  [SpanIndexedField.FCP_SCORE]: number;
+  [SpanIndexedField.FCP_SCORE_RATIO]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
@@ -361,6 +373,8 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
+  [SpanIndexedField.LCP_ELEMENT]: string;
+  [SpanIndexedField.CLS_SOURCE]: string;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
