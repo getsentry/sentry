@@ -154,8 +154,9 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
         credentials.latest_fetched_item_id = result["latest_id"]
         # Make sure that once existing customers pull crashes the message is set to SUCCESS,
         # since due to legacy reasons they might still have an empty ERROR message.
+        credentials.message = ""
         credentials.message_type = MessageType.SUCCESS
-        credentials.save(update_fields=["latest_fetched_item_id", "message_type"])
+        credentials.save(update_fields=["latest_fetched_item_id", "message", "message_type"])
     except Exception as e:
         logger.exception(
             "Fetching the crashes failed.",
