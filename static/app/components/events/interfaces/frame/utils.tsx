@@ -201,6 +201,10 @@ function getRootDomain(url: string): string {
  * @returns True if the absolute path should be shown in the title
  */
 export function shouldDisplayAbsPathInTitle(frame: Frame, event: Event): boolean {
+  if (event.platform !== 'javascript') {
+    return false;
+  }
+
   const eventOrigin = extractEventOrigin(event);
 
   if (!frame.absPath || !isUrl(eventOrigin) || !isUrl(frame.absPath)) {

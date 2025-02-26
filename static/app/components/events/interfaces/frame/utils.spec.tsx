@@ -32,6 +32,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
   it('returns false when absPath is from event subdomain', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
+      platform: 'javascript',
     } as Event;
     const frame = {
       absPath: 'https://cdn.example.org/script.js',
@@ -42,6 +43,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
   it('returns false when absPath is from same origin as event', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
+      platform: 'javascript',
     } as Event;
     const frame = {
       absPath: 'https://example.com/script.js',
@@ -52,6 +54,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
   it('returns false when absPath is not a URL', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
+      platform: 'javascript',
     } as Event;
     const frame = {
       absPath: '/path/to/script.js',
@@ -60,7 +63,10 @@ describe('shouldDisplayAbsPathInTitle', () => {
   });
 
   it('returns false when event has no origin', () => {
-    const event = {tags: [{key: 'something', value: 'else'}]} as Event;
+    const event = {
+      tags: [{key: 'something', value: 'else'}],
+      platform: 'javascript',
+    } as Event;
     const frame = {
       absPath: 'https://cdn.example.org/script.js',
     } as Frame;
@@ -70,10 +76,22 @@ describe('shouldDisplayAbsPathInTitle', () => {
   it('returns true when script is from a different origin', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
+      platform: 'javascript',
     } as Event;
     const frame = {
       absPath: 'https://muy-diferente.com/script.js',
     } as Frame;
     expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+  });
+
+  it('returns false when platform is not js', () => {
+    const event = {
+      tags: [{key: 'url', value: 'https://example.com/page'}],
+      platform: 'python',
+    } as Event;
+    const frame = {
+      absPath: 'https://muy-diferente.com/script.js',
+    } as Frame;
+    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
   });
 });
