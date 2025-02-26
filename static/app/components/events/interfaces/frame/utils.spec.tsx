@@ -66,4 +66,14 @@ describe('shouldDisplayAbsPathInTitle', () => {
     } as Frame;
     expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
   });
+
+  it('returns true when script is from a different origin', () => {
+    const event = {
+      tags: [{key: 'url', value: 'https://example.com/page'}],
+    } as Event;
+    const frame = {
+      absPath: 'https://muy-diferente.com/script.js',
+    } as Frame;
+    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+  });
 });
