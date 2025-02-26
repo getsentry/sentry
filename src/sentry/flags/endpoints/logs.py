@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from django.core.exceptions import FieldError
+from django.db.models import Q
 from rest_framework import serializers as rest_serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -63,13 +64,13 @@ class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
         required=False,
     )
     provider = rest_serializers.ListField(
-        child=rest_serializers.ChoiceField(choices=ProviderEnum.get_names()),
+        child=rest_serializers.ChoiceField(choices=ProviderEnum.get_names() + ["unknown"]),
         required=False,
     )
     sort = rest_serializers.CharField(required=False, allow_null=True)
 
-    def validate_provider(self, value: list[str]) -> list[int]:
-        return [PROVIDER_MAP[provider] for provider in value]
+    def validate_provider(self, value: list[str]) -> list[int | None]:
+        return [(PROVIDER_MAP[provider] if provider != "unknown" else None) for provider in value]
 
     # Support camel case since it's used by our response serializer.
     def validate_sort(self, value: str | None) -> str | None:
@@ -107,7 +108,10 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(flag__in=flags)
 
         if providers := query_params.get("provider"):
-            queryset = queryset.filter(provider__in=providers)
+            filter = Q(provider__in=providers)
+            if None in providers:
+                filter |= Q(provider__isnull=True)
+            queryset = queryset.filter(filter)
 
         if sort := query_params.get("sort"):
             try:

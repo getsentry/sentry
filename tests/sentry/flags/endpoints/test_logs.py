@@ -179,6 +179,12 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert result["data"][0]["flag"] == "hello"
             assert result["data"][1]["flag"] == "world"
 
+            response = self.client.get(self.url + "?provider=unknown")
+            assert response.status_code == 200
+            result = response.json()
+            assert len(result["data"]) == 1
+            assert result["data"][0]["flag"] == "goodbye"
+
             # Invalid provider
             response = self.client.get(self.url + "?provider=blahblah")
             assert response.status_code == 400
