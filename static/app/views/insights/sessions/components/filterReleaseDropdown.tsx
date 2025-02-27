@@ -1,4 +1,4 @@
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -13,9 +13,9 @@ export default function FilterReleaseDropdown({
     selection: {environments},
   } = usePageFilters();
 
-  const finalizedOptions = ['Not Finalized', 'Finalized'];
-  const statusOptions = ['Active', 'Archived'];
-  const stageOptions = ['Adopted', 'Replaced', 'Low Adoption'];
+  const finalizedOptions = [t('Not Finalized'), t('Finalized')];
+  const statusOptions = [t('Active'), t('Archived')];
+  const stageOptions = [t('Adopted'), t('Replaced'), t('Low Adoption')];
 
   const arrayToOptions = ({
     array,
@@ -32,8 +32,8 @@ export default function FilterReleaseDropdown({
       tooltip: showTooltip ? tooltip : undefined,
     }));
 
-  const handleValueChange = (newValues: any) => {
-    setFilters(newValues.map((value: any) => value.value));
+  const handleValueChange = (newValues: Array<SelectOption<string>>) => {
+    setFilters(newValues.map((value: SelectOption<string>) => value.value));
   };
 
   const isDisabled = environments.length !== 1;
