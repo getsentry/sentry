@@ -63,7 +63,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             _, created = self.create_or_update(
                 organization_id=organization_id,
                 task=task,
-                **kwargs,
+                values=kwargs,
             )
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
