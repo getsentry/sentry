@@ -588,6 +588,6 @@ class SeparateIOComputeRecordingTestCase(RecordingTestCase):
 class BufferedRunTimeConsumerTestCase(RecordingTestCase):
     def processing_factory(self):
         return PlatformStrategyFactory(
-            flags={"max_buffer_length": 8, "max_buffer_wait": 1, "max_workers": 8},
+            flags={"max_buffer_length": "8", "max_buffer_wait": "1", "max_workers": "8"},
             runtime=recording_runtime,
         )
