@@ -8,7 +8,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
-import BaseTag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -853,14 +853,14 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
       case 'boolean':
       case 'date':
       case 'string':
-        return <BaseTag type="highlight">{t('string')}</BaseTag>;
+        return <Tag type="highlight">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
       case 'number':
-        return <BaseTag type="success">{t('number')}</BaseTag>;
+        return <Tag type="success">{t('number')}</Tag>;
       default:
-        return <BaseTag>{dataType}</BaseTag>;
+        return <Tag>{dataType}</Tag>;
     }
   }
   let text, tagType;
@@ -894,7 +894,7 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
       text = kind;
   }
 
-  return <BaseTag type={tagType}>{text}</BaseTag>;
+  return <Tag type={tagType}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{
