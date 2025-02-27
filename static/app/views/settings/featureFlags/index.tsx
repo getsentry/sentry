@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -148,7 +149,7 @@ export function OrganizationFeatureFlagsIndex() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Feature Flags')} action={addNewProvider(hasAccess)} />
+      <SettingsPageHeader title={t('Feature Flags')} />
       <TextBlock>
         {tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
@@ -160,7 +161,10 @@ export function OrganizationFeatureFlagsIndex() {
         )}
       </TextBlock>
 
-      <h5>{t('Providers')}</h5>
+      <Flex justify="space-between">
+        <h5>{t('Providers')}</h5>
+        {addNewProvider(hasAccess)}
+      </Flex>
       <TextBlock>
         {t(
           'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
