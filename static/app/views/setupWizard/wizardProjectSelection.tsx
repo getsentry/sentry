@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -83,6 +83,9 @@ export function WizardProjectSelection({
 
   const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
+  const adminTeams = teamsRequest.data
+    ? teamsRequest.data.filter(team => team.access.includes('team:admin'))
+    : [];
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
     query: debouncedSearch,
@@ -90,7 +93,7 @@ export function WizardProjectSelection({
 
   const isCreationEnabled =
     orgDetailsRequest.data &&
-    canCreateProject(orgDetailsRequest.data) &&
+    canCreateProject(orgDetailsRequest.data, teamsRequest.data) &&
     teamsRequest.data &&
     teamsRequest.data.length > 0 &&
     platformParam;
@@ -129,6 +132,22 @@ export function WizardProjectSelection({
 
   const {options: cachedProjectOptions, clear: clearProjectOptions} =
     useCompactSelectOptionsCache(projectOptions);
+
+  // Set the selected project to the first option if there is only one
+  useEffect(() => {
+    // We need to check the cached options as they hold all options that were fetched for the org
+    // and not just the options that match the search query
+    if (cachedProjectOptions.length === 1) {
+      setSelectedProjectId(cachedProjectOptions[0]!.value);
+    }
+  }, [cachedProjectOptions]);
+
+  // Set the selected team to the first team if there is only one
+  useEffect(() => {
+    if (teamsRequest.data && teamsRequest.data.length === 1) {
+      setNewProjectTeam(teamsRequest.data[0]!.slug);
+    }
+  }, [teamsRequest.data]);
 
   // As the cache hook sorts the options by value, we need to sort them afterwards
   const sortedProjectOptions = useMemo(
@@ -318,7 +337,7 @@ export function WizardProjectSelection({
               <StyledCompactSelect
                 value={newProjectTeam as string}
                 options={
-                  teamsRequest.data?.map(team => ({
+                  adminTeams?.map(team => ({
                     value: team.slug,
                     label: `#${team.slug}`,
                     leadingItems: <IdBadge team={team} hideName />,

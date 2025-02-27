@@ -222,7 +222,139 @@ describe('SolutionsHubDrawer', () => {
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
-  it('displays autofix steps and Start Over button when autofixData is available', async () => {
+  it('hides ButtonBarWrapper when AI consent is needed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // AutofixFeedback component should not be rendered when consent is needed
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
+  });
+
+  it('shows ButtonBarWrapper but hides Start Over button when hasAutofix is false', async () => {
+    // Mock AI consent as okay but no autofix capability
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    // Use jest.spyOn instead of jest.mock inside the test
+    const issueTypeConfigModule = require('sentry/utils/issueTypeConfig');
+    const spy = jest
+      .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
+      .mockImplementation(() => ({
+        autofix: false,
+        issueSummary: {enabled: true},
+        resources: null,
+      }));
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // The feedback button should be visible, but not the Start Over button
+    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
+
+    // Restore the original implementation
+    spy.mockRestore();
+  });
+
+  it('shows ButtonBarWrapper with disabled Start Over button when hasAutofix is true but no autofixData', async () => {
+    // Mock everything as ready for autofix but no data
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // Both buttons should be visible, but Start Over should be disabled
+    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    const startOverButton = screen.getByRole('button', {name: 'Start Over'});
+    expect(startOverButton).toBeInTheDocument();
+    expect(startOverButton).toBeDisabled();
+  });
+
+  it('shows ButtonBarWrapper with enabled Start Over button when hasAutofix and autofixData are both true', async () => {
+    // Mock everything as ready with existing autofix data
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: mockAutofixData},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // Both buttons should be visible, and Start Over should be enabled
+    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    const startOverButton = screen.getByRole('button', {name: 'Start Over'});
+    expect(startOverButton).toBeInTheDocument();
+    expect(startOverButton).toBeEnabled();
+  });
+
+  it('displays Start Over button with autofix data', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
@@ -234,6 +366,24 @@ describe('SolutionsHubDrawer', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+  });
+
+  it('displays Start Over button even without autofix data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Start Autofix'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Over'})).toBeDisabled();
   });
 
   it('resets autofix on clicking the start over button', async () => {

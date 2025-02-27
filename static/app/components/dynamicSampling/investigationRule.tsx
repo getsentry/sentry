@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -189,9 +190,13 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     hasDatasetSelector(organization) &&
     eventView.dataset === DiscoverDatasets.TRANSACTIONS;
 
-  const query = isTransactionsDataset
+  let query = isTransactionsDataset
     ? appendEventTypeCondition(eventView.getQuery())
     : eventView.getQuery();
+
+  if (organization.features.includes('performance-transaction-summary-eap')) {
+    query = query.replace(/\bis_transaction:true\b/i, 'event.type:transaction');
+  }
 
   const isTransactionQueryMissing =
     getQueryDatasource(query)?.source !== Datasource.TRANSACTION &&
@@ -212,9 +217,12 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     if (isBreakingRequestError) {
       const msg = t('Unable to fetch investigation rule');
       handleXhrErrorResponse(msg, error);
-      addErrorMessage(msg);
+      Sentry.withScope(scope => {
+        scope.setExtra('query', query);
+        Sentry.captureException(error);
+      });
     }
-  }, [isBreakingRequestError, error]);
+  }, [isBreakingRequestError, error, query]);
 
   if (isLoading || isBreakingRequestError) {
     return null;
@@ -252,30 +260,32 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     <Tooltip
       isHoverable
       title={
-        isTransactionQueryMissing
-          ? tct(
-              'If you filter by [code:event.type:transaction] we can adjust your sampling priorities, increasing the odds of getting matching events. [link:Learn more.]',
-              {
-                code: <code />,
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
-                ),
-              }
-            )
-          : tct(
-              'We can find more events that match your search query by adjusting your sampling priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
-                ),
-              }
-            )
+        isBreakingRequestError
+          ? t('Search query unsupported.')
+          : isTransactionQueryMissing
+            ? tct(
+                'If you filter by [code:event.type:transaction] we can adjust your sampling priorities, increasing the odds of getting matching events. [link:Learn more.]',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+                  ),
+                }
+              )
+            : tct(
+                'We can find more events that match your search query by adjusting your sampling priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+                  ),
+                }
+              )
       }
     >
       <Button
         {...props.buttonProps}
         priority={isLikelyMoreNeeded ? 'primary' : 'default'}
-        disabled={isTransactionQueryMissing}
+        disabled={isTransactionQueryMissing || isBreakingRequestError}
         onClick={() => createInvestigationRule({organization, projects, query})}
         icon={<IconStack />}
       >

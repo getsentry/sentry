@@ -21,63 +21,24 @@ import commonTheme, {
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
 function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
-    static: {
-      text: {
-        primary: colorScheme.dynamic.grayTransparent500,
-        secondary: colorScheme.dynamic.grayTransparent400,
-        accent: colorScheme.dynamic.blue400,
-        success: colorScheme.dynamic.green400,
-        warning: colorScheme.dynamic.yellow400,
-        danger: colorScheme.dynamic.red400,
-      },
-      graphic: {
-        icon: {
-          primary: colorScheme.dynamic.grayTransparent500,
-          secondary: colorScheme.dynamic.grayTransparent400,
-          tertiary: colorScheme.dynamic.grayTransparent300,
-          quaternary: colorScheme.dynamic.grayTransparent200,
-          accent: colorScheme.static.blue400,
-          success: colorScheme.static.green100,
-          warning: colorScheme.static.yellow100,
-          danger: colorScheme.static.red400,
-        },
-        chart: {
-          annotation: {
-            axisLabel: colorScheme.dynamic.grayOpaque400,
-          },
-          canvas: {
-            lineGrid: colorScheme.dynamic.grayOpaque100,
-          },
-        },
-      },
-      background: {
-        primary: colorScheme.dynamic.surface500,
-        secondary: colorScheme.dynamic.surface400,
-        tertiary: colorScheme.dynamic.surface300,
-      },
-      border: {
-        primary: colorScheme.dynamic.surface100,
-        secondary: colorScheme.dynamic.surface200,
-      },
+    content: {
+      primary: colorScheme.dynamic.grayTransparent500,
+      secondary: colorScheme.dynamic.grayTransparent400,
+      accent: colorScheme.dynamic.blue400,
+      success: colorScheme.dynamic.green400,
+      warning: colorScheme.dynamic.yellow400,
+      danger: colorScheme.dynamic.red400,
     },
-    interactive: {
-      outline: {
-        default: {
-          color: colorScheme.static.blue400,
-        },
-        danger: {
-          color: colorScheme.static.red400,
-        },
-      },
-      link: {
-        accent: {
-          color: {
-            default: colorScheme.dynamic.blue400,
-            hover: colorScheme.dynamic.blue400,
-            active: colorScheme.dynamic.blue400,
-          },
-        },
-      },
+    background: {
+      primary: colorScheme.dynamic.surface500,
+      secondary: colorScheme.dynamic.surface400,
+      tertiary: colorScheme.dynamic.surface300,
+    },
+    border: {
+      primary: colorScheme.dynamic.surface100,
+      secondary: colorScheme.dynamic.surface200,
+    },
+    component: {
       button: {
         default: {
           chonk: colorScheme.dynamic.surface100,
@@ -125,6 +86,29 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           },
         },
       },
+      chart: {
+        annotation: {
+          axisLabel: colorScheme.dynamic.grayOpaque400,
+        },
+        canvas: {
+          lineGrid: colorScheme.dynamic.grayOpaque100,
+        },
+      },
+      link: {
+        accent: {
+          color: {
+            default: colorScheme.dynamic.blue400,
+            hover: colorScheme.dynamic.blue400,
+            active: colorScheme.dynamic.blue400,
+          },
+        },
+      },
+      util: {
+        outline: {
+          accent: colorScheme.static.blue400,
+          danger: colorScheme.static.red400,
+        },
+      },
     },
   };
 }
@@ -139,17 +123,15 @@ const space = {
   xl: '16px',
 } as const;
 
-//   borderRadius: {
-//     // @TODO(jonasbadalic): none doesn't need to exist
-//     // none: 0,
-//     nano: 1,
-//     micro: 2,
-//     mini: 3,
-//     small: 4,
-//     medium: 5,
-//     large: 6,
-//   },
-// };
+const radius = {
+  nano: '1px',
+  micro: '2px',
+  mini: '3px',
+  sm: '4px',
+  md: '5px',
+  lg: '6px',
+  // @TODO(jonasbadalic): do we need an xl?
+} as const;
 
 const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
@@ -377,90 +359,90 @@ const generateAliases = (
   /**
    * Heading text color
    */
-  headingColor: tokens.static.text.primary,
+  headingColor: tokens.content.primary,
 
   /**
    * Primary text color
    */
-  textColor: tokens.static.text.primary,
+  textColor: tokens.content.primary,
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.static.text.secondary,
+  subText: tokens.content.secondary,
 
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: tokens.static.background.secondary,
+  bodyBackground: tokens.background.secondary,
 
   /**
    * Primary background color
    */
-  background: tokens.static.background.primary,
+  background: tokens.background.primary,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: tokens.static.background.primary,
+  backgroundElevated: tokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: tokens.static.background.secondary,
+  backgroundSecondary: tokens.background.secondary,
 
   /**
    * Tertiary background color used as a stronger contrast against primary background
    */
-  backgroundTertiary: tokens.static.background.tertiary,
+  backgroundTertiary: tokens.background.tertiary,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: tokens.static.background.primary,
+  headerBackground: tokens.background.primary,
 
   /**
    * Primary border color
    */
-  border: tokens.static.border.primary,
-  translucentBorder: tokens.static.border.primary,
+  border: tokens.border.primary,
+  translucentBorder: tokens.border.primary,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.static.border.secondary,
-  translucentInnerBorder: tokens.static.border.secondary,
+  innerBorder: tokens.border.secondary,
+  translucentInnerBorder: tokens.border.secondary,
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: tokens.static.graphic.icon.success,
-  successText: tokens.static.text.success,
+  success: tokens.content.success,
+  successText: tokens.content.success,
   // @TODO(jonasbadalic): should this reference a static color?
   successFocus: colors.static.green200, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: tokens.static.graphic.icon.danger,
-  errorText: tokens.static.text.danger,
-  errorFocus: tokens.interactive.outline.danger.color,
+  error: tokens.content.danger,
+  errorText: tokens.content.danger,
+  errorFocus: tokens.component.util.outline.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
-  danger: tokens.static.graphic.icon.danger,
-  dangerText: tokens.static.text.danger,
+  danger: tokens.content.danger,
+  dangerText: tokens.content.danger,
   // @TODO(jonasbadalic): should this reference a static color?
-  dangerFocus: colors.static.red200, // Not being used
+  dangerFocus: tokens.component.util.outline.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
-  warning: tokens.static.graphic.icon.warning,
-  warningText: tokens.static.text.warning,
+  warning: tokens.content.warning,
+  warningText: tokens.content.warning,
   // @TODO(jonasbadalic): should this reference a static color?
-  warningFocus: colors.static.yellow200, // Not being used
+  warningFocus: colors.dynamic.yellow200, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -475,7 +457,7 @@ const generateAliases = (
    * interaction (hover/press) states.
    * @deprecated
    */
-  hover: tokens.interactive.button.default.background.hover,
+  hover: tokens.component.button.default.background.hover,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -489,8 +471,8 @@ const generateAliases = (
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.interactive.outline.default.color,
-  focusBorder: tokens.interactive.outline.default.color,
+  focus: tokens.component.util.outline.accent,
+  focusBorder: tokens.component.util.outline.accent,
 
   /**
    * Inactive
@@ -501,10 +483,10 @@ const generateAliases = (
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.interactive.link.accent.color.default,
-  linkHoverColor: tokens.interactive.link.accent.color.hover,
-  linkUnderline: tokens.interactive.link.accent.color.default,
-  linkFocus: tokens.interactive.outline.default.color,
+  linkColor: tokens.component.link.accent.color.default,
+  linkHoverColor: tokens.component.link.accent.color.hover,
+  linkUnderline: tokens.component.link.accent.color.default,
+  linkFocus: tokens.component.util.outline.accent,
 
   /**
    * Form placeholder text color
@@ -519,18 +501,18 @@ const generateAliases = (
   /**
    *
    */
-  rowBackground: tokens.static.background.primary,
+  rowBackground: tokens.background.primary,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
-  chartLineColor: tokens.static.graphic.chart.annotation.axisLabel,
+  chartLineColor: tokens.component.chart.annotation.axisLabel,
 
   /**
    * Color for chart label text
    */
-  chartLabel: tokens.static.graphic.chart.canvas.lineGrid,
+  chartLabel: tokens.component.chart.canvas.lineGrid,
 
   /**
    * Color for the 'others' series in topEvent charts
@@ -589,7 +571,7 @@ const generateAliases = (
   /**
    * Count on button
    */
-  buttonCount: tokens.static.text.primary,
+  buttonCount: tokens.content.primary,
 
   /**
    * Background of alert banners at the top
@@ -721,6 +703,7 @@ const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors)
 interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
   colors: typeof lightColors;
   isChonk: true;
+  radius: typeof radius;
   space: typeof space;
 }
 
@@ -739,7 +722,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   space,
-
+  radius,
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
   alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
@@ -800,7 +783,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   colors: darkColors,
 
   space,
-
+  radius,
   sidebar: {
     // @TODO: these colors need to be ported
     ...darkTheme.sidebar,
