@@ -581,3 +581,15 @@ class SeparateIOComputeRecordingTestCase(RecordingTestCase):
             {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
         ):
             super().test_invalid_message()
+
+
+from sentry.replays.consumers.buffered.consumer import recording_runtime
+from sentry.replays.consumers.buffered.platform import PlatformStrategyFactory
+
+
+class RunTimeConsumerTestCase(RecordingTestCase):
+    def processing_factory(self):
+        return PlatformStrategyFactory(
+            flags={"max_buffer_length": 8, "max_buffer_wait": 1},
+            runtime=recording_runtime,
+        )

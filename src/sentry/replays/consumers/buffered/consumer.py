@@ -9,6 +9,7 @@ from sentry.replays.usecases.ingest import (
     DropSilently,
     ProcessedRecordingMessage,
     commit_recording_message,
+    parse_recording_message,
     process_recording_message,
     sentry_tracing,
     track_recording_metadata,
@@ -33,8 +34,11 @@ class BufferManager:
     """
 
     def __init__(self, flags: dict[str, str]) -> None:
-        self.__max_buffer_length = int(flags["max_buffer_length"])
-        self.__max_buffer_wait = int(flags["max_buffer_wait"])
+        # Flags are safely extracted and default arguments are used.
+        self.__max_buffer_length = int(flags.get("max_buffer_length", 8))
+        self.__max_buffer_wait = int(flags.get("max_buffer_wait", 1))
+        self.__max_workers = int(flags.get("max_workers", 8))
+
         self.__last_flushed_at = time.time()
 
     def can_flush(self, model: Model[ProcessedRecordingMessage]) -> bool:
@@ -45,7 +49,7 @@ class BufferManager:
 
     def do_flush(self, model: Model[ProcessedRecordingMessage]) -> None:
         with sentry_tracing("replays.consumers.buffered.flush_buffer"):
-            flush_buffer(model, max_workers=8)
+            flush_buffer(model, max_workers=self.__max_workers)
             # Update the buffer manager with the new time so we don't continuously commit in a
             # loop!
             self.__last_flushed_at = time.time()
@@ -53,9 +57,8 @@ class BufferManager:
 
 @sentry_sdk.trace
 def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int) -> None:
-    # Use as many workers as necessary up to a limit. We don't want to start thousands of
-    # worker threads.
-    max_workers = min(len(model.buffer), max_workers)
+    if len(model.buffer) == 0:
+        return None
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         # We apply whatever function is defined on the class to each message in the list. This
@@ -87,7 +90,7 @@ def flush_message(message: ProcessedRecordingMessage) -> None:
         commit_recording_message(message)
 
 
-def process_message(message: bytes) -> ProcessedRecordingMessage | None:
+def process_message(message_bytes: bytes) -> ProcessedRecordingMessage | None:
     """Message processing function.
 
     Accepts an unstructured type and returns a structured one. Other than tracing the goal is to
@@ -95,6 +98,7 @@ def process_message(message: bytes) -> ProcessedRecordingMessage | None:
     """
     with sentry_tracing("replays.consumers.buffered.process_message"):
         with contextlib.suppress(DropSilently):
+            message = parse_recording_message(message_bytes)
             return process_recording_message(message)
 
 
