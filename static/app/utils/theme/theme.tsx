@@ -7,6 +7,7 @@
  * - Light and dark theme definitions
  * - Theme type exports
  */
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
@@ -1109,6 +1110,16 @@ export type Color = keyof typeof lightColors;
 export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
+
+export type StrictCSSObject = {
+  [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
+} & Partial<{
+  [key: `&${string}`]: StrictCSSObject; // Allow pseudo-selectors
+}> &
+  Partial<{
+    // Augment with newer values that don't yet exist in CSSProperties
+    'font-variant-numeric': string;
+  }>;
 
 /**
  * Do not import theme values directly as they only define light color theme.
