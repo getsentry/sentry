@@ -1,5 +1,5 @@
 ---
-created: '2025-02-27T13:27:33.330715+00:00'
+created: '2025-02-27T13:45:45.157320+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -270,10 +270,10 @@ system:
     system*
       exception*
         stacktrace*
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame*
@@ -399,10 +399,10 @@ system:
           "Ensure condition failed: ensurePtr != nullptr [File:/Users/tustanivsky/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"
       threads (exception of app/system takes precedence)
         stacktrace*
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame*

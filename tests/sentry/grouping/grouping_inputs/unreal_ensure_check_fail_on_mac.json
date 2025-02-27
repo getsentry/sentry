@@ -11,7 +11,7 @@
               "function": "thread_start",
               "symbol": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
@@ -24,7 +24,7 @@
               "function": "_pthread_start",
               "symbol": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
@@ -37,7 +37,7 @@
               "function": "__NSThread__start__",
               "symbol": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": false,
+
               "data": {
                 "category": "internals",
                 "symbolicator_status": "symbolicated"
@@ -473,7 +473,7 @@
               "function": "+[SentrySDK captureException:]",
               "symbol": "+[SentrySDK captureException:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -485,7 +485,7 @@
               "function": "+[SentrySDK captureException:withScope:]",
               "symbol": "+[SentrySDK captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -497,7 +497,7 @@
               "function": "-[SentryHub captureException:withScope:]",
               "symbol": "-[SentryHub captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -509,7 +509,7 @@
               "function": "-[SentryClient captureException:withScope:]",
               "symbol": "-[SentryClient captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -521,7 +521,7 @@
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -533,7 +533,7 @@
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -545,7 +545,7 @@
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "symbol": "-[SentryThreadInspector getCurrentThreads]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -557,7 +557,7 @@
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -572,7 +572,7 @@
             {
               "function": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {
                 "category": "threadbase"
               },
@@ -583,7 +583,7 @@
             {
               "function": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {
                 "category": "threadbase"
               },
@@ -594,7 +594,7 @@
             {
               "function": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": false,
+
               "data": {
                 "category": "internals"
               },
@@ -871,7 +871,7 @@
             {
               "function": "+[SentrySDK captureException:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b3b7634",
               "symbol_addr": "0x33b3b75d8"
@@ -879,7 +879,7 @@
             {
               "function": "+[SentrySDK captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b3b77d4",
               "symbol_addr": "0x33b3b777c"
@@ -887,7 +887,7 @@
             {
               "function": "-[SentryHub captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b38c2b4",
               "symbol_addr": "0x33b38c1bc"
@@ -895,7 +895,7 @@
             {
               "function": "-[SentryClient captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b35d70c",
               "symbol_addr": "0x33b35d6b8"
@@ -903,7 +903,7 @@
             {
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b35ea00",
               "symbol_addr": "0x33b35e994"
@@ -911,7 +911,7 @@
             {
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b360334",
               "symbol_addr": "0x33b35fe20"
@@ -919,7 +919,7 @@
             {
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b36d8f8",
               "symbol_addr": "0x33b36d6c0"
@@ -927,7 +927,7 @@
             {
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "image_addr": "0x33b354000",
               "instruction_addr": "0x33b3cccc0",
               "symbol_addr": "0x33b3ccc9c"
@@ -947,7 +947,7 @@
               "function": "thread_start",
               "symbol": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
@@ -960,7 +960,7 @@
               "function": "_pthread_start",
               "symbol": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "in_app": false,
+
               "data": {
                 "category": "threadbase",
                 "symbolicator_status": "symbolicated"
@@ -973,7 +973,7 @@
               "function": "__NSThread__start__",
               "symbol": "__NSThread__start__",
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "in_app": false,
+
               "data": {
                 "category": "internals",
                 "symbolicator_status": "symbolicated"
@@ -1409,7 +1409,7 @@
               "function": "+[SentrySDK captureException:]",
               "symbol": "+[SentrySDK captureException:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1421,7 +1421,7 @@
               "function": "+[SentrySDK captureException:withScope:]",
               "symbol": "+[SentrySDK captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1433,7 +1433,7 @@
               "function": "-[SentryHub captureException:withScope:]",
               "symbol": "-[SentryHub captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1445,7 +1445,7 @@
               "function": "-[SentryClient captureException:withScope:]",
               "symbol": "-[SentryClient captureException:withScope:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1457,7 +1457,7 @@
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1469,7 +1469,7 @@
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1481,7 +1481,7 @@
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "symbol": "-[SentryThreadInspector getCurrentThreads]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
@@ -1493,7 +1493,7 @@
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "in_app": false,
+
               "data": {
                 "symbolicator_status": "symbolicated"
               },
