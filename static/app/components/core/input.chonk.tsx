@@ -29,6 +29,7 @@ export const chonkInputStyles = (
   "&[disabled], &[aria-disabled='true']": {
     color: p.theme.disabled,
     cursor: 'not-allowed',
+    opacity: '60%',
 
     '&::placeholder': {
       color: p.theme.disabled,
