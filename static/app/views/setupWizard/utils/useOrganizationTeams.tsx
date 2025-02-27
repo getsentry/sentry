@@ -14,7 +14,7 @@ export function useOrganizationTeams({
   return useQuery<Team[], RequestError>({
     queryKey: [`/organizations/${organization?.slug}/teams/`],
     queryFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/teams/`, {
+      return api.requestPromise(`/organizations/${organization?.slug}/user-teams/`, {
         host: organization?.region.url,
       });
     },
