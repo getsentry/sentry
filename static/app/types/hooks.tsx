@@ -194,7 +194,6 @@ export type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
-  'component:explore-quota-exceeded-alert': () => React.ComponentType<ExploreQuotaExceededAlertHook>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
@@ -206,6 +205,7 @@ export type ComponentHooks = {
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
   'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
+  'component:performance-quota-exceeded-alert': () => React.ComponentType | null;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -669,14 +669,6 @@ type InsightsUpsellHook = {
   children: React.ReactNode;
   moduleName: TitleableModuleNames;
   fullPage?: boolean;
-};
-
-/**
- * Explore quota exceeded alert hook takes in a list of project ids and
- * and renders the quota exceeded alert with the appropriate message.
- */
-type ExploreQuotaExceededAlertHook = {
-  projectIds: number[];
 };
 
 /**
