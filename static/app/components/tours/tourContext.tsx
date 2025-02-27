@@ -28,8 +28,9 @@ type TourPreviousStepAction = {
 type TourEndAction = {
   type: 'END_TOUR';
 };
-type TourCompleteRegistrationAction = {
-  type: 'COMPLETE_REGISTRATION';
+type TourSetRegistrationAction = {
+  isRegistered: boolean;
+  type: 'SET_REGISTRATION';
 };
 
 export type TourAction<T extends TourEnumType> =
@@ -37,7 +38,7 @@ export type TourAction<T extends TourEnumType> =
   | TourNextStepAction
   | TourPreviousStepAction
   | TourEndAction
-  | TourCompleteRegistrationAction;
+  | TourSetRegistrationAction;
 
 export interface TourState<T extends TourEnumType> {
   /**
@@ -127,8 +128,8 @@ export function useTourReducer<T extends TourEnumType>(
         }
         case 'END_TOUR':
           return completeTourState;
-        case 'COMPLETE_REGISTRATION':
-          return {...state, isRegistered: true};
+        case 'SET_REGISTRATION':
+          return {...state, isRegistered: action.isRegistered};
         default:
           return state;
       }
@@ -140,17 +141,18 @@ export function useTourReducer<T extends TourEnumType>(
 
   const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
 
-  const registerStep = useCallback(
+  const handleStepRegistration = useCallback(
     (step: TourStep<T>) => {
       registry.current[step.id] = step;
       const isCompletelyRegistered = orderedStepIds.every(stepId =>
         Boolean(registry.current[stepId])
       );
       if (isCompletelyRegistered) {
-        dispatch({type: 'COMPLETE_REGISTRATION'});
+        dispatch({type: 'SET_REGISTRATION', isRegistered: true});
       }
       return () => {
         delete registry.current[step.id];
+        dispatch({type: 'SET_REGISTRATION', isRegistered: false});
       };
     },
     [orderedStepIds]
@@ -159,7 +161,7 @@ export function useTourReducer<T extends TourEnumType>(
   return useMemo<TourContextType<T>>(
     () => ({
       dispatch,
-      registerStep,
+      handleStepRegistration,
       currentStepId: tour.currentStepId,
       isAvailable: tour.isAvailable,
       isRegistered: tour.isRegistered,
@@ -167,7 +169,7 @@ export function useTourReducer<T extends TourEnumType>(
     }),
     [
       dispatch,
-      registerStep,
+      handleStepRegistration,
       tour.currentStepId,
       tour.isAvailable,
       tour.isRegistered,
@@ -178,13 +180,9 @@ export function useTourReducer<T extends TourEnumType>(
 
 export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   dispatch: Dispatch<TourAction<T>>;
-  registerStep: (step: TourStep<T>) => void;
+  /**
+   * Callback to handle step registration. Should be used within a useEffect hook to sync the step
+   * registration with the component's mounting/unmounting.
+   */
+  handleStepRegistration: (step: TourStep<T>) => () => void;
 }
-
-// export function useTourRegistration<T extends TourEnumType>(step: TourStep<T>) {
-//   const tourContext = useTourContext<T>();
-//   const registerStep = tourContext.registerStep;
-//   useEffect(() => {
-//     registerStep(step);
-//   }, [registerStep, step]);
-// }

@@ -24,11 +24,12 @@ const enum MyTour {
 }
 const ORDERED_MY_TOUR = [MyTour.NAME, MyTour.EMAIL, MyTour.PASSWORD];
 const MyTourContext = createContext<TourContextType<MyTour>>({
-  currentStep: null,
+  currentStepId: null,
   isAvailable: true,
+  isRegistered: false,
   orderedStepIds: ORDERED_MY_TOUR,
   dispatch: () => {},
-  registerStep: () => {},
+  handleStepRegistration: () => () => {},
 });
 function useMyTour(): TourContextType<MyTour> {
   return useContext(MyTourContext);
