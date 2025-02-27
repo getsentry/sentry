@@ -9,7 +9,11 @@ import {IconCheckmark, IconFire, IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-export default storyBook('Tag', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/core/badge/tag.tsx';
+
+export default storyBook('Tag', (story, APIReference) => {
+  APIReference(types.Tag);
   story('Default', () => {
     return (
       <Fragment>
@@ -65,27 +69,6 @@ export default storyBook('Tag', story => {
         </Tag>
         <Tag type="success" icon={<IconCheckmark />}>
           Nice
-        </Tag>
-      </Fragment>
-    );
-  });
-
-  story('borderStyle', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="borderStyle" value /> prop can be used to change the
-          border style of the tag to the following 3 options. By default, it is set to{' '}
-          <JSXProperty name="borderStyle" value="solid" />.
-        </p>
-        <Tag type="default" borderStyle="solid">
-          default
-        </Tag>
-        <Tag type="default" borderStyle="dashed">
-          dashed
-        </Tag>
-        <Tag type="default" borderStyle="dotted">
-          dotted
         </Tag>
       </Fragment>
     );

@@ -129,7 +129,7 @@ export function AssigneeBadge({
         </TooltipWrapper>
       }
     >
-      <StyledTag icon={unassignedIcon} borderStyle="dashed" />
+      <StyledTag icon={unassignedIcon} />
     </Tooltip>
   );
 }
@@ -151,6 +151,7 @@ const StyledTag = styled(Tag)`
   }
   & > div {
     height: 24px;
+    border-style: dashed;
     padding: ${space(0.5)};
     padding-right: ${space(0.25)};
   }

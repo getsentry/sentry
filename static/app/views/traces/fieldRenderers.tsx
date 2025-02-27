@@ -597,7 +597,7 @@ export function StatusTag({status, onClick}: {status: string; onClick?: () => vo
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick} borderStyle="solid">
+    <StyledTag type={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );
