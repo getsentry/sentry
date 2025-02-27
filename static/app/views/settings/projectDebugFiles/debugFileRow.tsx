@@ -67,7 +67,10 @@ function DebugFileRow({
           {features && (
             <FeatureTags>
               {features.map(feature => (
-                <StyledTag key={feature} tooltipText={getFeatureTooltip(feature)}>
+                <StyledTag
+                  key={feature}
+                  tooltipProps={{title: getFeatureTooltip(feature)}}
+                >
                   {feature}
                 </StyledTag>
               ))}
