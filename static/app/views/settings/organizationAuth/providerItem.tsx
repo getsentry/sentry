@@ -4,7 +4,7 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';

@@ -6,7 +6,7 @@ import {useRole} from 'sentry/components/acl/useRole';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';

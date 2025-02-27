@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';

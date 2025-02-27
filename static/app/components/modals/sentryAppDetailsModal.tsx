@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconFlag} from 'sentry/icons';

@@ -137,7 +137,7 @@ function BaseTag({
   );
 }
 
-const Tag = styled(BaseTag)`
+export const Tag = styled(BaseTag)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 export default Tag;

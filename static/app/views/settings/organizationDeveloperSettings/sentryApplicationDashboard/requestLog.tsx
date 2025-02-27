@@ -6,7 +6,7 @@ import type moment from 'moment-timezone';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';

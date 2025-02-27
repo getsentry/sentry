@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {LinkButton} from 'sentry/components/button';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';

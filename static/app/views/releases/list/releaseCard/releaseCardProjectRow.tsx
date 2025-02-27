@@ -6,7 +6,7 @@ import type {Location} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';

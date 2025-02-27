@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {

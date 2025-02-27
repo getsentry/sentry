@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import Tag from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
