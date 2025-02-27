@@ -77,9 +77,11 @@ const StyledLayoutBody = styled(Layout.Body)<{
 }>`
   padding: 0 !important;
   gap: 0 !important;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    align-content: stretch;
-    grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
+  align-content: stretch;
+  grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: block;
   }
 `;
 

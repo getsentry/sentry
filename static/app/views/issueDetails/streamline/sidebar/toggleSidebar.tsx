@@ -4,8 +4,6 @@ import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
@@ -13,11 +11,6 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
   const organization = useOrganization();
   const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
-
-  if (!isScreenLarge) {
-    return null;
-  }
 
   return (
     <ToggleContainer
@@ -44,6 +37,9 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
 const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
   width: ${p => (p.sidebarOpen ? '30px' : '50px')};
   position: relative;
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
 
 // The extra 1px on width is to display above the sidebar border
