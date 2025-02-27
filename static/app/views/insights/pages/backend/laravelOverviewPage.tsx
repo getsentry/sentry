@@ -674,7 +674,6 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
 };
 
-// Add this styled component near other styled components
 const PathCell = styled('div')`
   display: flex;
   flex-direction: column;
