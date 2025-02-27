@@ -711,14 +711,7 @@ const Cell = styled('div')`
 `;
 
 const HeaderCell = styled(Cell)`
-  padding: ${space(0.25)} ${space(2)};
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  &[data-align='right'] {
-    text-align: right;
-    justify-content: flex-end;
-  }
+  padding: 0;
 `;
 
 function RoutesTable({query}: {query?: string}) {
