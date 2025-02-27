@@ -43,6 +43,11 @@ export interface IssueViewNavItemContentProps {
    */
   isActive: boolean;
   /**
+   * Whether the item is the last view in the list.
+   * This will be removed once view sharing/starring is implemented.
+   */
+  isLastView: boolean;
+  /**
    * A callback function that updates the view with new params.
    */
   updateView: (updatedView: IssueView) => void;
@@ -65,6 +70,7 @@ export function IssueViewNavItemContent({
   updateView,
   deleteView,
   duplicateView,
+  isLastView,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -137,6 +143,7 @@ export function IssueViewNavItemContent({
           >
             <IssueViewNavQueryCount view={view} />
             <IssueViewNavEllipsisMenu
+              isLastView={isLastView}
               setIsEditing={setIsEditing}
               view={view}
               updateView={updateView}
@@ -312,21 +319,24 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
 
-  :hover {
+  /* Hide the ellipsis menu if not hovered, or if it's not expanded  */
+  :not(:hover):not(:has([data-ellipsis-menu-trigger][aria-expanded='true'])) {
     [data-ellipsis-menu-trigger] {
-      display: flex;
-    }
-    [data-issue-view-query-count] {
-      display: none;
+      ${p => p.theme.visuallyHidden}
     }
   }
 
-  [data-ellipsis-menu-trigger][aria-expanded='true'] {
-    display: flex;
+  /* Hide the query count if the ellipsis menu is not expanded */
+  :hover {
+    [data-issue-view-query-count] {
+      ${p => p.theme.visuallyHidden}
+    }
   }
+
+  /* Hide the query count if the ellipsis menu is expanded */
   &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
     [data-issue-view-query-count] {
-    display: none;
+    ${p => p.theme.visuallyHidden}
   }
 `;
 

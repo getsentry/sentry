@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Input} from 'sentry/components/core/input';
 import {GrowingInput} from 'sentry/components/growingInput';
-import Input from 'sentry/components/input';
 import {Slider} from 'sentry/components/slider';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';

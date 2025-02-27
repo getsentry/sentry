@@ -14,10 +14,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 
-interface IssueViewNavEllipsisMenuProps {
+export interface IssueViewNavEllipsisMenuProps {
   baseUrl: string;
   deleteView: () => void;
   duplicateView: () => void;
+  isLastView: boolean;
   setIsEditing: (isEditing: boolean) => void;
   updateView: (view: IssueView) => void;
   view: IssueView;
@@ -32,6 +33,7 @@ export function IssueViewNavEllipsisMenu({
   duplicateView,
   updateView,
   baseUrl,
+  isLastView,
 }: IssueViewNavEllipsisMenuProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -85,6 +87,7 @@ export function IssueViewNavEllipsisMenu({
             e.preventDefault();
             e.currentTarget.click();
           }}
+          size="zero"
         >
           <InteractionStateLayer />
           <IconEllipsis compact color="gray500" />
@@ -126,6 +129,7 @@ export function IssueViewNavEllipsisMenu({
               label: t('Delete'),
               priority: 'danger',
               onAction: deleteView,
+              disabled: isLastView,
             },
           ],
         },
@@ -181,7 +185,8 @@ const constructViewLink = (baseUrl: string, view: IssueView) => {
   });
 };
 
-const TriggerWrapper = styled('div')`
+const TriggerWrapper = styled(Button)`
+  display: flex;
   position: relative;
   width: 24px;
   height: 20px;
@@ -192,7 +197,6 @@ const TriggerWrapper = styled('div')`
   padding: 0;
   background-color: inherit;
   opacity: inherit;
-  display: none;
 `;
 
 const SectionedOverlayFooter = styled('div')`

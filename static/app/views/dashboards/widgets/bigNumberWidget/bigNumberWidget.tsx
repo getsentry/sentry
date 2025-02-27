@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {defined} from 'sentry/utils';
 import {
   BigNumberWidgetVisualization,
@@ -60,23 +58,16 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
       revealTooltip={props.revealTooltip}
     >
       {defined(value) && (
-        <BigNumberResizeWrapper>
-          <BigNumberWidgetVisualization
-            value={value}
-            previousPeriodValue={previousPeriodValue}
-            field={field ?? DEFAULT_FIELD}
-            maximumValue={props.maximumValue}
-            preferredPolarity={props.preferredPolarity}
-            meta={props.meta}
-            thresholds={props.thresholds}
-          />
-        </BigNumberResizeWrapper>
+        <BigNumberWidgetVisualization
+          value={value}
+          previousPeriodValue={previousPeriodValue}
+          field={field ?? DEFAULT_FIELD}
+          maximumValue={props.maximumValue}
+          preferredPolarity={props.preferredPolarity}
+          meta={props.meta}
+          thresholds={props.thresholds}
+        />
       )}
     </WidgetFrame>
   );
 }
-
-const BigNumberResizeWrapper = styled('div')`
-  position: relative;
-  flex-grow: 1;
-`;

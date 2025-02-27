@@ -4,8 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Flex} from 'sentry/components/container/flex';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -198,9 +198,15 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" variant={variant} title={badgeTitle} />}
-      {isBeta && <FeatureBadge type="beta" variant={variant} title={badgeTitle} />}
-      {isAlpha && <FeatureBadge type="alpha" variant={variant} title={badgeTitle} />}
+      {showIsNew && (
+        <FeatureBadge type="new" variant={variant} tooltipProps={{title: badgeTitle}} />
+      )}
+      {isBeta && (
+        <FeatureBadge type="beta" variant={variant} tooltipProps={{title: badgeTitle}} />
+      )}
+      {isAlpha && (
+        <FeatureBadge type="alpha" variant={variant} tooltipProps={{title: badgeTitle}} />
+      )}
     </Fragment>
   );
 

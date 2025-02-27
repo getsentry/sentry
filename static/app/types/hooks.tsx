@@ -194,6 +194,7 @@ export type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:explore-quota-exceeded-alert': () => React.ComponentType<ExploreQuotaExceededAlertHook>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
@@ -341,6 +342,7 @@ export type ReactHooks = {
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-experiment': UseExperiment;
+  'react-hook:use-get-max-retention-days': () => number | undefined;
 };
 
 /**
@@ -667,6 +669,14 @@ type InsightsUpsellHook = {
   children: React.ReactNode;
   moduleName: TitleableModuleNames;
   fullPage?: boolean;
+};
+
+/**
+ * Explore quota exceeded alert hook takes in a list of project ids and
+ * and renders the quota exceeded alert with the appropriate message.
+ */
+type ExploreQuotaExceededAlertHook = {
+  projectIds: number[];
 };
 
 /**

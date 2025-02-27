@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import Hook from 'sentry/components/hook';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 import {
@@ -13,7 +14,7 @@ import {
 } from 'sentry/components/nav/primary/components';
 import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/components/nav/primary/serviceIncidents';
-import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
   IconDashboard,
@@ -26,6 +27,7 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -167,6 +169,12 @@ export function PrimaryNavigationItems() {
                   label: t('Switch to old navigation'),
                   onAction() {
                     mutateUserOptions({prefersStackedNavigation: false});
+                    trackAnalytics(
+                      'navigation.help_menu_opt_out_stacked_navigation_clicked',
+                      {
+                        organization,
+                      }
+                    );
                   },
                 },
               ],
@@ -180,7 +188,12 @@ export function PrimaryNavigationItems() {
 
         <SeparatorItem />
 
-        <WhatsNew />
+        <PrimaryNavigationWhatsNew />
+        <Hook
+          name="sidebar:bottom-items"
+          organization={organization}
+          orientation="left"
+        />
         <PrimaryNavigationServiceIncidents />
         <PrimaryNavigationOnboarding />
       </SidebarFooter>
@@ -199,7 +212,6 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   align-items: stretch;
   gap: ${space(0.5)};
   width: 100%;
-  color: rgba(255, 255, 255, 0.85);
 
   ${p =>
     !p.isMobile &&

@@ -3,15 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useNavContext} from 'sentry/components/nav/context';
 import {
-  NavButton,
+  SidebarButton,
   SidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
-import {NavLayout} from 'sentry/components/nav/types';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
@@ -117,15 +114,13 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
   );
 }
 
-export function WhatsNew() {
+export function PrimaryNavigationWhatsNew() {
   const {data: broadcasts = []} = useFetchBroadcasts();
   const unseenPostIds = useMemo(
     () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
     [broadcasts]
   );
 
-  const {layout} = useNavContext();
-  const showLabel = layout === NavLayout.MOBILE;
   const theme = useTheme();
 
   const {
@@ -140,18 +135,16 @@ export function WhatsNew() {
 
   return (
     <SidebarItem>
-      <NavButton
-        {...overlayTriggerProps}
-        aria-label={showLabel ? undefined : t("What's New")}
-        isMobile={layout === NavLayout.MOBILE}
+      <SidebarButton
+        analyticsKey="broadcasts"
+        label={t("What's New")}
+        buttonProps={overlayTriggerProps}
       >
-        <InteractionStateLayer />
         <IconBroadcast />
-        {showLabel && <span>{t("What's New")}</span>}
         {unseenPostIds.length > 0 && (
           <SidebarItemUnreadIndicator data-test-id="whats-new-unread-indicator" />
         )}
-      </NavButton>
+      </SidebarButton>
       {isOpen && (
         <FocusScope autoFocus restoreFocus>
           <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
