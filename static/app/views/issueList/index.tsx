@@ -4,7 +4,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -16,14 +15,11 @@ function IssueListContainer({children}: Props) {
   const organization = useOrganization();
   useRouteAnalyticsHookSetup();
   const prefersStackedNav = usePrefersStackedNav();
-  const location = useLocation();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
-
-  const onAllIssues = location.pathname === '/issues/' && !viewId;
 
   const useGlobalPageFilters =
     !organization.features.includes('issue-stream-custom-views') ||
-    (prefersStackedNav && onAllIssues);
+    (prefersStackedNav && !viewId);
 
   return (
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
