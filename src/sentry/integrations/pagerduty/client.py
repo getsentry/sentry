@@ -25,7 +25,6 @@ class PagerDutyClient(ApiClient):
     base_url = "https://events.pagerduty.com/v2/enqueue"
 
     def __init__(self, integration_key: str, integration_id: int | None) -> None:
-        # Clean the integration key by stripping whitespace and quotes
         self.integration_key = integration_key.strip().strip("'").strip('"')
         super().__init__(integration_id=integration_id)
 
@@ -41,7 +40,6 @@ class PagerDutyClient(ApiClient):
         notification_uuid: str | None = None,
         severity: PagerdutySeverity | None = None,
     ):
-        # Ensure routing_key is clean when sending to PagerDuty API
         if isinstance(data, dict) and "routing_key" in data:
             data["routing_key"] = data["routing_key"].strip().strip("'").strip('"')
 
