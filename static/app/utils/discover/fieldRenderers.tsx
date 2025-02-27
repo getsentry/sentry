@@ -64,6 +64,7 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 
 import {decodeScalar} from '../queryString';
 
@@ -705,18 +706,16 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   adoption_stage: {
     sortField: 'adoption_stage',
-    renderFunc: data =>
-      data.adoption_stage ? (
-        data.adoption_stage === 'low_adoption' ? (
-          <Tag type="error">{t('Low Adoption')}</Tag>
-        ) : data.adoption_stage === 'replaced' ? (
-          <Tag type="warning">{t('Replaced')}</Tag>
-        ) : (
-          <Tag type="success">{t('Adopted')}</Tag>
-        )
+    renderFunc: data => {
+      const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
+      return data.adoption_stage && label ? (
+        <Tooltip title={label.tooltipTitle} isHoverable>
+          <Tag type={label.type}>{label.name}</Tag>
+        </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
-      ),
+      );
+    },
   },
   release: {
     sortField: 'release',
