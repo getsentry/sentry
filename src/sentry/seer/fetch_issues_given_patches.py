@@ -11,6 +11,7 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.tasks.language_parsers import (
     PATCH_PARSERS,
     LanguageParser,
@@ -352,15 +353,27 @@ def get_issues_related_to_file_patches(
             organization_id=organization_id, provider=provider, external_id=external_id
         )
     except Repository.DoesNotExist:
-        logger.exception(
-            "Repo doesn't exist",
+        logger.warning(
+            "Repo doesn't exist. Falling back to the first active repo.",
             extra={
                 "organization_id": organization_id,
                 "provider": provider,
                 "external_id": external_id,
             },
         )
-        return {}
+        repo = Repository.objects.filter(
+            organization_id=organization_id, external_id=external_id, status=ObjectStatus.ACTIVE
+        ).first()  # type: ignore[assignment]
+        if not repo:
+            logger.exception(
+                "Repo doesn't exist",
+                extra={
+                    "organization_id": organization_id,
+                    "provider": provider,
+                    "external_id": external_id,
+                },
+            )
+            return {}
 
     repo_id = repo.id
 
@@ -373,22 +386,23 @@ def get_issues_related_to_file_patches(
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
 
     for file in pullrequest_files:
+        logger.info("Processing file", extra={"file": file.filename})
         projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
             organization_id, repo_id, file.filename
         )
         if not projects:
-            logger.error("No projects", extra={"file": file.filename})
+            logger.warning("No projects", extra={"file": file.filename})
             continue
 
         file_extension = file.filename.split(".")[-1]
         if file_extension not in patch_parsers:
-            logger.error("No language parser", extra={"file": file.filename})
+            logger.warning("No language parser", extra={"file": file.filename})
             continue
         language_parser = patch_parsers[file_extension]
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
         if not function_names:
-            logger.error("No function names", extra={"file": file.filename})
+            logger.warning("No function names", extra={"file": file.filename})
             continue
 
         issues = get_issues_with_event_details_for_file(
@@ -397,6 +411,15 @@ def get_issues_related_to_file_patches(
             list(function_names),
             max_num_issues_per_file=max_num_issues_per_file,
         )
+        if issues:
+            logger.info(
+                "Found issues for file",
+                extra={
+                    "file": file.filename,
+                    "num_issues": len(issues),
+                    "issue_ids": ", ".join(str(issue["id"]) for issue in issues),
+                },
+            )
         filename_to_issues[file.filename] = issues
 
     return filename_to_issues

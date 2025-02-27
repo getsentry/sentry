@@ -283,3 +283,12 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             pr_files=pr_files,
         )
         assert filename_to_issues == filename_to_issues_expected
+
+        # Test that we fall back to the first active repo if the the provider is inaccurate
+        filename_to_issues_fallback = get_issues_related_to_file_patches(
+            organization_id=self.organization.id,
+            provider="does-not-exist",
+            external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
+            pr_files=pr_files,
+        )
+        assert filename_to_issues_fallback == filename_to_issues_expected
