@@ -5,15 +5,11 @@ import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils.performance_issues.base import (
     DetectorType,
     fingerprint_http_spans,
@@ -29,8 +25,12 @@ from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResu
 from sentry.workflow_engine.handlers.detector.performance_detector_handler import (
     PerformanceDetectorHandler,
 )
-from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.workflow_engine.models import DataPacket
 
 
 class NPlusOneAPICallsDetectorHandler(PerformanceDetectorHandler):
@@ -50,7 +50,9 @@ class NPlusOneAPICallsDetectorHandler(PerformanceDetectorHandler):
         self.span_hashes: dict[str, str | None] = {}
 
     def evaluate(self, data_packet: DataPacket) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
-        # this will be called by process_detectors
+        from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+        from sentry.issues.issue_occurrence import IssueEvidence
+
         if len(self.spans) < 1:
             return
 
@@ -209,59 +211,6 @@ class NPlusOneAPICallsDetectorHandler(PerformanceDetectorHandler):
         self.evaluate(data_packet)
         self.spans = []
 
-    def _maybe_store_problem(self) -> None:
-        if len(self.spans) < 1:
-            return
-
-        if len(self.spans) < self.settings["count"]:
-            return
-
-        total_duration = get_total_span_duration(self.spans)
-        if total_duration < self.settings["total_duration"]:
-            return
-
-        last_span = self.spans[-1]
-
-        fingerprint = self._fingerprint()
-        if not fingerprint:
-            return
-
-        offender_span_ids = [span["span_id"] for span in self.spans]
-
-        self.stored_problems[fingerprint] = PerformanceProblem(
-            fingerprint=fingerprint,
-            op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=PerformanceNPlusOneAPICallsGroupType,
-            cause_span_ids=[],
-            parent_span_ids=[last_span.get("parent_span_id", None)],
-            offender_span_ids=offender_span_ids,
-            evidence_data={
-                "op": last_span["op"],
-                "cause_span_ids": [],
-                "parent_span_ids": [last_span.get("parent_span_id", None)],
-                "offender_span_ids": offender_span_ids,
-                "transaction_name": self._event.get("transaction", ""),
-                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
-                "repeating_spans": self._get_path_prefix(self.spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters(),
-            },
-            evidence_display=[
-                IssueEvidence(
-                    name="Offending Spans",
-                    value=get_notification_attachment_body(
-                        last_span["op"],
-                        os.path.commonprefix(
-                            [span.get("description", "") or "" for span in self.spans]
-                        ),
-                    ),
-                    # Has to be marked important to be displayed in the notifications
-                    important=True,
-                )
-            ],
-        )
-
     def _get_parameters(self) -> list[str]:
         if not self.spans or len(self.spans) == 0:
             return []
@@ -290,6 +239,8 @@ class NPlusOneAPICallsDetectorHandler(PerformanceDetectorHandler):
         return parsed_url.path or ""
 
     def _fingerprint(self) -> str | None:
+        from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+
         first_url = get_url_from_span(self.spans[0])
         parameterized_first_url = parameterize_url(first_url)
 

@@ -285,7 +285,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
 
 @dataclass(frozen=True)
 class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
-    from sentry.workflow_engine.handlers.detector.n_plus_one_api_calls_detector_handler import (
+    from sentry.utils.performance_issues.detector_handlers.n_plus_one_api_calls_detector_handler import (
         NPlusOneAPICallsDetectorHandler,
     )
 
