@@ -6,6 +6,7 @@ import responses
 from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
+from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric
@@ -14,7 +15,6 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.integrations.pagerduty.client import PagerDutyClient
 
 pytestmark = [requires_snuba]
 
