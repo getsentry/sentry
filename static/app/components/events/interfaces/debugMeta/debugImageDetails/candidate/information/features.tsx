@@ -35,7 +35,7 @@ function Features({download}: Props) {
           <StyledTag
             key={label}
             disabled={isDisabled}
-            tooltipText={isDisabled ? undefined : description}
+            tooltipProps={{title: isDisabled ? undefined : description}}
           >
             {label}
           </StyledTag>

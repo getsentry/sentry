@@ -24,7 +24,7 @@ export function GroupStatusTag({
   children,
 }: GroupStatusBadgeProps) {
   return (
-    <StyledTag type={type} tooltipText={tooltip} fontSize={fontSize}>
+    <StyledTag type={type} tooltipProps={{title: tooltip}} fontSize={fontSize}>
       {children}
       {dateAdded && (
         <Fragment>

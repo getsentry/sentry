@@ -5,7 +5,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import {IconCheckmark, IconFire, IconSentry, IconStar} from 'sentry/icons';
+import {IconCheckmark, IconFire, IconSentry} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
@@ -74,40 +74,6 @@ export default storyBook('Tag', (story, APIReference) => {
     );
   });
 
-  story('to vs href', () => {
-    return (
-      <Fragment>
-        <p>You can also pair a link with this component.</p>
-        <p>
-          The <JSXProperty name="to" value /> prop should be used for internal links.
-        </p>
-        <Tag type="info" to="/stories/?name=app/components/badge.stories.tsx">
-          Internal link
-        </Tag>
-        <p>
-          The <JSXProperty name="href" value /> prop should be used for external links
-          (and opens in a new tab by default).
-        </p>
-        <Tag type="info" href="https://sentry.io/for/session-replay/">
-          Learn about Replay
-        </Tag>
-        <p>
-          You can change the icon for these by passing something else into the{' '}
-          <JSXProperty name="icon" value /> prop (see above).
-        </p>
-        <Tag type="info" href="https://sentry.io/for/session-replay/" icon={<IconStar />}>
-          Learn about Replay
-        </Tag>
-        <p>
-          Or you can set <JSXProperty name="icon" value={null} />:
-        </p>
-        <Tag type="info" href="https://sentry.io/for/session-replay/" icon={null}>
-          No icon, but still a link
-        </Tag>
-      </Fragment>
-    );
-  });
-
   story('textMaxWidth', () => {
     return (
       <Fragment>
@@ -142,7 +108,10 @@ export default storyBook('Tag', (story, APIReference) => {
         </p>
         <Tag
           type="info"
-          tooltipText="Long text will get cut off like this, but thankfully we have this handy tooltip"
+          tooltipProps={{
+            title:
+              'Long text will get cut off like this, but thankfully we have this handy tooltip',
+          }}
         >
           Long text will get cut off like this, but thankfully we have this handy tooltip
         </Tag>
@@ -152,8 +121,10 @@ export default storyBook('Tag', (story, APIReference) => {
         </p>
         <Tag
           type="info"
-          tooltipText="This one has `position: right` specified"
-          tooltipProps={{position: 'right'}}
+          tooltipProps={{
+            position: 'right',
+            title: 'This one has `position: right` specified',
+          }}
         >
           Tooltip on the right
         </Tag>

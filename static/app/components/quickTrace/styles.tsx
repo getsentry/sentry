@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Tag, {Background} from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Truncate from 'sentry/components/truncate';
@@ -51,7 +51,7 @@ export const EventNode = styled(Tag)<{type: NodeType}>`
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
   }
-  & ${Background} {
+  & ${Tag.Background} {
     background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
     border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }

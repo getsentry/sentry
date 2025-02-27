@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/badge/tag';
 import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
@@ -21,7 +21,7 @@ describe('Tag', () => {
 
   it('with tooltip', async () => {
     render(
-      <Tag type="highlight" tooltipProps={{title: 'lorem ipsum'}}>
+      <Tag type="highlight" tooltipText="lorem ipsum">
         Tooltip
       </Tag>
     );
@@ -45,5 +45,41 @@ describe('Tag', () => {
     expect(mockCallback).toHaveBeenCalledTimes(0);
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
     expect(mockCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('with internal link', () => {
+    const to = '/organizations/sentry/issues/';
+    render(
+      <Tag type="highlight" to={to}>
+        Internal link
+      </Tag>
+    );
+    expect(screen.getByText('Internal link')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Internal link'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute('href', to);
+  });
+
+  it('with external link', () => {
+    const href = 'https://sentry.io/';
+    render(
+      <Tag type="highlight" href={href}>
+        External link
+      </Tag>
+    );
+    expect(screen.getByText('External link')).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'External link'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', href);
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('overrides a link default icon', () => {
+    render(
+      <Tag href="#" icon={<IconFire data-test-id="icon-fire" />}>
+        3
+      </Tag>
+    );
+
+    expect(screen.getByTestId('icon-fire')).toBeInTheDocument();
   });
 });

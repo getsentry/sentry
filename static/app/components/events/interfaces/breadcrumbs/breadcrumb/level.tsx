@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Tag, {Background} from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Highlight from 'sentry/components/highlight';
 import {t} from 'sentry/locale';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
@@ -50,7 +50,7 @@ export default Level;
 const LevelTag = styled(Tag)`
   display: flex;
   align-items: center;
-  ${Background} {
+  & ${Tag.Background} {
     /** Same height as menu item labels, to prevent vertical cropping */
     height: calc(${p => p.theme.fontSizeMedium} * 1.4);
     overflow: hidden;

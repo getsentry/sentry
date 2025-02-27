@@ -23,7 +23,7 @@ export function DeployBadge(props: DeployBadgeProps) {
         },
       }}
     >
-      <Tag type="highlight" textMaxWidth={80} tooltipText={t('Open In Issues')}>
+      <Tag type="highlight" textMaxWidth={80} tooltipProps={{title: t('Open In Issues')}}>
         {props.deploy.environment}
       </Tag>
     </Link>
