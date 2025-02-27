@@ -49,10 +49,10 @@ export function TourContextProvider<T extends TourEnumType>({
   const tourContextValue = useTourReducer<T>({
     isAvailable,
     orderedStepIds,
-    currentStep: null,
+    currentStepId: null,
   });
-  const {dispatch, currentStep} = tourContextValue;
-  const isTourActive = currentStep !== null;
+  const {dispatch, currentStepId} = tourContextValue;
+  const isTourActive = currentStepId !== null;
 
   const tourHotkeys = useMemo(() => {
     return [
@@ -117,12 +117,12 @@ export function TourElement<T extends TourEnumType>({
   className,
 }: BaseTourElementProps<T>) {
   const theme = useTheme();
-  const {currentStep, dispatch, orderedStepIds, registerStep} = tourContext;
-  const stepCount = currentStep ? orderedStepIds.indexOf(id) + 1 : 0;
+  const {currentStepId, dispatch, orderedStepIds, registerStep} = tourContext;
+  const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
   const hasPreviousStep = stepCount > 1;
   const hasNextStep = stepCount < stepTotal;
-  const isOpen = currentStep?.id === id;
+  const isOpen = currentStepId === id;
 
   const {triggerProps, triggerRef, overlayProps} = useOverlay({
     isOpen,

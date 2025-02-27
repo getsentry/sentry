@@ -39,7 +39,7 @@ export interface TourState<T extends TourEnumType> {
   /**
    * The current active tour step. If this is null, the tour is not active.
    */
-  currentStep: TourStep<T> | null;
+  currentStepId: TourStep<T>['id'] | null;
   /**
    * Whether the tour is available to the user. Should be set by flags or other conditions.
    */
@@ -58,13 +58,6 @@ export function useTourReducer<T extends TourEnumType>(
   initialState: TourState<T>
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
-  const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
-  const registerStep = useCallback((step: TourStep<T>) => {
-    registry.current[step.id] = step;
-    return () => {
-      delete registry.current[step.id];
-    };
-  }, []);
 
   const reducer: Reducer<TourState<T>, TourAction<T>> = useCallback(
     (state, action) => {
@@ -90,44 +83,44 @@ export function useTourReducer<T extends TourEnumType>(
           if (action.stepId && startStepIndex !== -1) {
             return {
               ...state,
-              currentStep: registry.current[action.stepId] ?? null,
+              currentStep: action.stepId ?? null,
             };
           }
           // If no stepId is provided, set the current step to the first step
           if (orderedStepIds[0]) {
             return {
               ...state,
-              currentStep: registry.current[orderedStepIds[0]] ?? null,
+              currentStep: orderedStepIds[0] ?? null,
             };
           }
 
           return state;
         }
         case 'NEXT_STEP': {
-          if (!state.currentStep) {
+          if (!state.currentStepId) {
             return state;
           }
-          const nextStepIndex = orderedStepIds.indexOf(state.currentStep.id) + 1;
-          const nextStepId = orderedStepIds[nextStepIndex];
+          const nextStepIndex = orderedStepIds.indexOf(state.currentStepId) + 1;
+          const nextStepId = orderedStepIds[nextStepIndex] ?? null;
           if (nextStepId) {
             return {
               ...state,
-              currentStep: registry.current[nextStepId] ?? null,
+              currentStepId: nextStepId,
             };
           }
           // If there is no next step, complete the tour
           return completeTourState;
         }
         case 'PREVIOUS_STEP': {
-          if (!state.currentStep) {
+          if (!state.currentStepId) {
             return state;
           }
-          const prevStepIndex = orderedStepIds.indexOf(state.currentStep.id) - 1;
-          const prevStepId = orderedStepIds[prevStepIndex];
+          const prevStepIndex = orderedStepIds.indexOf(state.currentStepId) - 1;
+          const prevStepId = orderedStepIds[prevStepIndex] ?? null;
           if (prevStepId) {
             return {
               ...state,
-              currentStep: registry.current[prevStepId] ?? null,
+              currentStepId: prevStepId,
             };
           }
           // If there is no previous step, do nothing
@@ -143,15 +136,25 @@ export function useTourReducer<T extends TourEnumType>(
   );
 
   const [tour, dispatch] = useReducer(reducer, initialState);
+
+  const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
+
+  const registerStep = useCallback((step: TourStep<T>) => {
+    registry.current[step.id] = step;
+    return () => {
+      delete registry.current[step.id];
+    };
+  }, []);
+
   return useMemo<TourContextType<T>>(
     () => ({
       dispatch,
       registerStep,
-      currentStep: tour.currentStep,
+      currentStepId: tour.currentStepId,
       isAvailable: tour.isAvailable,
       orderedStepIds: tour.orderedStepIds,
     }),
-    [dispatch, registerStep, tour.currentStep, tour.isAvailable, tour.orderedStepIds]
+    [dispatch, registerStep, tour.currentStepId, tour.isAvailable, tour.orderedStepIds]
   );
 }
 
