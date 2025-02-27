@@ -4,7 +4,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {chonkInputStyles} from 'sentry/components/core/input.chonk';
+import {chonkInputStyles} from 'sentry/components/core/input/chonk';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface InputStylesProps {
