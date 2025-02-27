@@ -28,7 +28,6 @@ const _Table = styled(Grid)<{height?: string | number; scrollable?: boolean}>`
   ${p =>
     p.scrollable &&
     `
-  overflow-x: scroll;
-  overflow-y: scroll;
+    overflow-y: auto;
   `}
 `;

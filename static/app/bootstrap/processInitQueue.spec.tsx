@@ -123,7 +123,7 @@ describe('processInitQueue', function () {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/organization-1/teams/',
+        url: '/organizations/organization-1/user-teams/',
         body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
       });
 
