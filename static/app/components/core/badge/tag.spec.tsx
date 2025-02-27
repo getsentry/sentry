@@ -21,7 +21,7 @@ describe('Tag', () => {
 
   it('with tooltip', async () => {
     render(
-      <Tag type="highlight" tooltipText="lorem ipsum">
+      <Tag type="highlight" tooltipProps={{title: 'lorem ipsum'}}>
         Tooltip
       </Tag>
     );
@@ -45,17 +45,5 @@ describe('Tag', () => {
     expect(mockCallback).toHaveBeenCalledTimes(0);
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
     expect(mockCallback).toHaveBeenCalledTimes(1);
-  });
-
-  it('with internal link', () => {
-    const to = '/organizations/sentry/issues/';
-    render(
-      <Tag type="highlight" to={to}>
-        Internal link
-      </Tag>
-    );
-    expect(screen.getByText('Internal link')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Internal link'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute('href', to);
   });
 });
