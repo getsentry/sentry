@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
@@ -133,9 +134,9 @@ function SuggestedQueryLink({suggestedQuery}: SuggestedQueryLinkProps) {
   );
 
   return (
-    <Tag to={target} icon={null} type="info">
-      {suggestedQuery.title}
-    </Tag>
+    <Link to={target}>
+      <Tag type="info">{suggestedQuery.title}</Tag>
+    </Link>
   );
 }
 

@@ -4,16 +4,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconClose, IconOpen} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Color} from 'sentry/utils/theme';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -25,7 +22,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Icon on the left side.
    */
-  icon?: React.ReactNode;
+  icon?: NonNullable<React.ReactNode>;
   /**
    * Shows clickable IconClose on the right side.
    */
@@ -34,11 +31,6 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
    * Max width of the tag's text
    */
   textMaxWidth?: number;
-  /**
-   * Makes the tag clickable. Use for internal links handled by react router.
-   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
-   */
-  to?: LinkProps['to'];
   /**
    * Additional properites for the Tooltip when `tooltipText` is set.
    */
@@ -58,8 +50,6 @@ function BaseTag({
   icon,
   tooltipText,
   tooltipProps,
-  to,
-  onClick,
   onDismiss,
   children,
   textMaxWidth = 150,
@@ -71,11 +61,6 @@ function BaseTag({
     color: theme.tag[type].color as Color,
   };
 
-  const isLink = to !== undefined;
-
-  // Links use the IconOpen by default
-  const tagIcon = icon || icon === null ? icon : isLink ? <IconOpen /> : null;
-
   const handleDismiss = useCallback<React.MouseEventHandler>(
     event => {
       event.preventDefault();
@@ -84,51 +69,31 @@ function BaseTag({
     [onDismiss]
   );
 
-  const trackClickEvent = useCallback(() => {
-    trackAnalytics('tag.clicked', {
-      is_clickable: onClick !== undefined || isLink,
-      organization: null,
-    });
-  }, [isLink, onClick]);
-
-  const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
-      <Background type={type} data-test-id="tag-background">
-        {tagIcon && (
-          <IconWrapper>
-            <IconDefaultsProvider {...iconsProps}>{tagIcon}</IconDefaultsProvider>
-          </IconWrapper>
-        )}
-
-        <Text type={type} maxWidth={textMaxWidth}>
-          {children}
-        </Text>
-
-        {onDismiss && (
-          <DismissButton
-            onClick={handleDismiss}
-            size="zero"
-            priority="link"
-            aria-label={t('Dismiss')}
-            icon={<IconClose isCircled {...iconsProps} />}
-          />
-        )}
-      </Background>
-    </Tooltip>
-  );
-
-  const tagWithParent =
-    to !== undefined ? (
-      <Link to={to} onClick={onClick}>
-        {tag}
-      </Link>
-    ) : (
-      tag
-    );
-
   return (
-    <span {...props} onClick={trackClickEvent}>
-      {tagWithParent}
+    <span {...props}>
+      <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
+        <Background type={type} data-test-id="tag-background">
+          {icon && (
+            <IconWrapper>
+              <IconDefaultsProvider {...iconsProps}>{icon}</IconDefaultsProvider>
+            </IconWrapper>
+          )}
+
+          <Text type={type} maxWidth={textMaxWidth}>
+            {children}
+          </Text>
+
+          {onDismiss && (
+            <DismissButton
+              onClick={handleDismiss}
+              size="zero"
+              priority="link"
+              aria-label={t('Dismiss')}
+              icon={<IconClose isCircled {...iconsProps} />}
+            />
+          )}
+        </Background>
+      </Tooltip>
     </span>
   );
 }

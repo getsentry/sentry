@@ -33,6 +33,7 @@ import Projects from 'sentry/utils/projects';
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
+import Link from 'sentry/components/links/link';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 
@@ -581,15 +582,17 @@ type EventNodeProps = {
 function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode
-        data-test-id="event-node"
-        type={type}
-        icon={null}
-        to={to}
-        onClick={onClick}
-      >
-        {text}
-      </EventNode>
+      {to ? (
+        <Link to={to} onClick={onClick}>
+          <EventNode data-test-id="event-node" type={type}>
+            {text}
+          </EventNode>
+        </Link>
+      ) : (
+        <EventNode data-test-id="event-node" type={type}>
+          {text}
+        </EventNode>
+      )}
     </Tooltip>
   );
 }

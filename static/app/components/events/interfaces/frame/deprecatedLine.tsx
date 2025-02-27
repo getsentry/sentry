@@ -378,7 +378,7 @@ export class DeprecatedLine extends Component<Props, State> {
           <DefaultLineTagWrapper>
             {this.renderRepeats()}
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+              <Tag type="warning" onClick={this.scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
