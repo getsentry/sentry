@@ -108,7 +108,10 @@ export default storyBook('Tag', (story, APIReference) => {
         </p>
         <Tag
           type="info"
-          tooltipText="Long text will get cut off like this, but thankfully we have this handy tooltip"
+          tooltipProps={{
+            title:
+              'Long text will get cut off like this, but thankfully we have this handy tooltip',
+          }}
         >
           Long text will get cut off like this, but thankfully we have this handy tooltip
         </Tag>
@@ -118,8 +121,10 @@ export default storyBook('Tag', (story, APIReference) => {
         </p>
         <Tag
           type="info"
-          tooltipText="This one has `position: right` specified"
-          tooltipProps={{position: 'right'}}
+          tooltipProps={{
+            title: 'This one has `position: right` specified',
+            position: 'right',
+          }}
         >
           Tooltip on the right
         </Tag>

@@ -104,7 +104,7 @@ export default Tag;
 
 const TAG_HEIGHT = '20px';
 
-const Background = styled('div')<{
+export const Background = styled('div')<{
   type: keyof Theme['tag'];
 }>`
   display: inline-flex;
