@@ -185,7 +185,9 @@ def validate_issue_platform_event_schema(event_data):
             raise
 
 
-def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
+def should_filter_feedback(
+    event, project_id, source: FeedbackCreationSource
+) -> tuple[bool, str | None]:
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
@@ -221,9 +223,11 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
                     "referrer": source.value,
                 },
             )
-        return True
+        return True, "Missing Feedback Context"
 
-    if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+    message = event["contexts"]["feedback"]["message"]
+
+    if message == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
@@ -231,9 +235,9 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
                 "referrer": source.value,
             },
         )
-        return True
+        return True, "Sent in Unreal Unattended Mode"
 
-    if event["contexts"]["feedback"]["message"].strip() == "":
+    if message.strip() == "":
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
@@ -252,52 +256,13 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
                 "referrer": source.value,
             },
         )
-        return True
+        return True, "Empty Feedback Message"
 
-    return False
-
-
-def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
-    metrics.incr(
-        "feedback.create_feedback_issue.entered",
-        tags={
-            "referrer": source.value,
-        },
-    )
-
-    if should_filter_feedback(event, project_id, source):
-        return
-
-    feedback_message = event["contexts"]["feedback"]["message"]
-    max_msg_size = options.get("feedback.message.max-size")  # Note options are cached.
-    project = Project.objects.get_from_cache(id=project_id)
-
-    # Spam detection.
-    is_message_spam = None
-    if spam_detection_enabled(project):
-        if len(feedback_message) <= max_msg_size:
-            try:
-                is_message_spam = is_spam(feedback_message)
-            except Exception:
-                # until we have LLM error types ironed out, just catch all exceptions
-                logger.exception(
-                    "Error checking if message is spam", extra={"project_id": project_id}
-                )
-            metrics.incr(
-                "feedback.create_feedback_issue.spam_detection",
-                tags={
-                    "is_spam": is_message_spam,
-                    "referrer": source.value,
-                },
-                sample_rate=1.0,
-            )
-        else:
-            is_message_spam = True
-
-    if len(feedback_message) > max_msg_size:
+    if len(message) > options.get("feedback.message.max-size"):
+        # Note options are cached.
         metrics.distribution(
             "feedback.large_message",
-            len(feedback_message),
+            len(message),
             tags={
                 "entrypoint": "create_feedback_issue",
                 "referrer": source.value,
@@ -311,9 +276,56 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
                 "referrer": source.value,
             },
         )
-        # Sentry will capture `feedback_message` in local variables (truncated).
+        # For Sentry employee debugging. Sentry will capture a truncated `feedback_message` in local variables.
         sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
-        feedback_message = feedback_message[:max_msg_size]
+        return True, "Too Large"
+
+    return False, None
+
+
+def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
+    metrics.incr(
+        "feedback.create_feedback_issue.entered",
+        tags={
+            "referrer": source.value,
+        },
+    )
+
+    project = Project.objects.get_from_cache(id=project_id)
+
+    should_filter, filter_reason = should_filter_feedback(event, project_id, source)
+    if should_filter:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project_id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason=filter_reason,
+            timestamp=datetime.fromtimestamp(event["timestamp"], UTC),
+            event_id=event["event_id"],
+            category=DataCategory.USER_REPORT_V2,
+            quantity=1,
+        )
+        return
+
+    feedback_message = event["contexts"]["feedback"]["message"]
+
+    # Spam detection.
+    is_message_spam = None
+    if spam_detection_enabled(project):
+        try:
+            is_message_spam = is_spam(feedback_message)
+        except Exception:
+            # until we have LLM error types ironed out, just catch all exceptions
+            logger.exception("Error checking if message is spam", extra={"project_id": project_id})
+        metrics.incr(
+            "feedback.create_feedback_issue.spam_detection",
+            tags={
+                "is_spam": is_message_spam,
+                "referrer": source.value,
+            },
+            sample_rate=1.0,
+        )
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
@@ -448,6 +460,17 @@ def shim_to_feedback(
     legacy user report and event to create the new feedback.
     """
     if is_in_feedback_denylist(project.organization):
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="feedback_denylist",
+            timestamp=datetime.fromisoformat(event.timestamp),
+            event_id=event.event_id,
+            category=DataCategory.USER_REPORT_V2,
+            quantity=1,
+        )
         return
 
     try:
@@ -478,6 +501,7 @@ def shim_to_feedback(
         feedback_event["environment"] = event.get_environment().name
         feedback_event["tags"] = [list(item) for item in event.tags]
 
+        # Entrypoint for "new" (issue platform based) feedback. This emits outcomes.
         create_feedback_issue(feedback_event, project.id, source)
     except Exception:
         logger.exception("Error attempting to create new user feedback by shimming a user report")

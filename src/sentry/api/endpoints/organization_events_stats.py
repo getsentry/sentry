@@ -303,7 +303,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         granularity_secs=rollup,
                         config=SearchResolverConfig(
                             auto_fields=False,
-                            use_aggregate_conditions=False,
+                            use_aggregate_conditions=True,
                         ),
                     )
                 return scoped_dataset.top_events_timeseries(
@@ -340,7 +340,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=True,
                     ),
                     comparison_delta=comparison_delta,
                 )
