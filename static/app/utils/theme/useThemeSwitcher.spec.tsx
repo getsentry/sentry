@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -5,9 +6,10 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.chonk';
-import {useChonkThemeSwitcher} from './useChonkThemeSwitcher';
+import {useThemeSwitcher} from './useThemeSwitcher';
 
 jest.mock('sentry/utils/removeBodyTheme');
 
@@ -15,22 +17,27 @@ describe('useChonkTheme', () => {
   beforeEach(() => {
     sessionStorage.clear();
     OrganizationStore.reset();
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        theme: 'light',
+      })
+    );
   });
 
   it('returns null if no organizationis loaded', () => {
-    const {result} = renderHook(() => useChonkThemeSwitcher());
-    expect(result.current[0]).toBeNull();
+    const {result} = renderHook(() => useThemeSwitcher());
+    expect(result.current).toBe(lightTheme);
   });
 
-  it('returns null if the organization does not have chonk-ui feature', () => {
+  it('returns old theme if the organization does not have chonk-ui feature', () => {
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: [],
       })
     );
 
-    const {result} = renderHook(() => useChonkThemeSwitcher());
-    expect(result.current[0]).toBeNull();
+    const {result} = renderHook(() => useThemeSwitcher());
+    expect(result.current).toBe(lightTheme);
   });
 
   it('returns null if organization has chonk-ui feature and session storage is unset', () => {
@@ -41,8 +48,8 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkThemeSwitcher());
-    expect(result.current[0]).toBeNull();
+    const {result} = renderHook(() => useThemeSwitcher());
+    expect(result.current).toBe(lightTheme);
   });
 
   it('returns light theme if organization has chonk-ui feature and session storage is set to light', () => {
@@ -53,8 +60,8 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkThemeSwitcher());
-    expect(result.current[0]).toBe(DO_NOT_USE_lightChonkTheme);
+    const {result} = renderHook(() => useThemeSwitcher());
+    expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
   });
 
   it('returns dark theme if organization has chonk-ui feature and dark theme is selected', () => {
@@ -65,8 +72,8 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkThemeSwitcher());
-    expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
+    const {result} = renderHook(() => useThemeSwitcher());
+    expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
   });
 
   it('unsets chonk theme on config store theme change', async () => {
@@ -77,15 +84,15 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkThemeSwitcher());
+    const {result} = renderHook(() => useThemeSwitcher());
 
     await waitFor(() => {
-      expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
+      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
 
     act(() => ConfigStore.set('theme', 'dark'));
 
-    expect(result.current[0]).toBeNull();
+    expect(result.current).toBe(darkTheme);
     expect(removeBodyTheme).toHaveBeenCalled();
   });
 
@@ -97,10 +104,10 @@ describe('useChonkTheme', () => {
       })
     );
 
-    const {result} = renderHook(() => useChonkThemeSwitcher());
+    const {result} = renderHook(() => useThemeSwitcher());
 
     await waitFor(() => {
-      expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
+      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
 
     await act(() => {
@@ -111,6 +118,6 @@ describe('useChonkTheme', () => {
       );
     });
 
-    await waitFor(() => expect(result.current[0]).toBeNull());
+    await waitFor(() => expect(result.current).toBe(lightTheme));
   });
 });
