@@ -400,8 +400,8 @@ def maybe_check_seer_for_matching_grouphash(
         if gh_metadata:
 
             # TODO: This should never be true (anything created with `objects.create` should have an
-            # id), but it seems in some cases to happen anyway. This is an attempt to mitigate the
-            # problem.
+            # id), but it seems in some cases to happen anyway. While we debug the problem, to avoid
+            # errors, bail early.
             metadata_id: Any = (
                 gh_metadata.id
             )  # Even mypy knows this should never happen, hence the need for the Any
@@ -409,27 +409,14 @@ def maybe_check_seer_for_matching_grouphash(
                 logger.info(
                     "grouphash_metadata.none_id",
                     extra={
+                        "grouphash_id": event_grouphash.id,
                         "event_id": event.event_id,
-                        "grouphash": str(event_grouphash),
-                        "grouphash_metadata": str(gh_metadata),
-                        "project": str(event.project),
+                        "project_slug": event.project.slug,
+                        "project_id": event.project.id,
+                        "org_id": event.organization.id,
                     },
                 )
-                gh_metadata.save()
-
-                # If that didn't work, log it and bail
-                metadata_id = gh_metadata.id
-                if metadata_id is None:
-                    logger.error(
-                        "grouphash_metadata.none_id_fix_failed",
-                        extra={
-                            "event_id": event.event_id,
-                            "grouphash": str(event_grouphash),
-                            "grouphash_metadata": str(gh_metadata),
-                            "project": str(event.project),
-                        },
-                    )
-                    return seer_matched_grouphash
+                return seer_matched_grouphash
 
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer

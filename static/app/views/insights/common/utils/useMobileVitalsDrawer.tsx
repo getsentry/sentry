@@ -26,7 +26,6 @@ export function useMobileVitalsDrawer({
     openDrawer(() => Component, {
       ariaLabel: t('%s Details', vital.title),
       onClose,
-      transitionProps: {stiffness: 1000},
     });
   }, [openDrawer, isDrawerOpen, onClose, Component, vital]);
 

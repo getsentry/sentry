@@ -134,8 +134,26 @@ def create_or_update_grouphash_metadata_if_needed(
     db_hit_metadata: dict[str, Any] = {}
 
     if not grouphash.metadata:
-        new_data: dict[str, Any] = {"grouphash": grouphash}
-        new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
+        # Use `get_or_create` rather than just `create` (even though the fact that we landed in this
+        # branch implies no record exists) in order to guard against race coditions without the need
+        # for a lock
+        grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+
+        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
+
+        if not created:
+            logger.info(
+                "grouphash_metadata.creation_race_condition.record_exists",
+                extra={
+                    "grouphash_metadata_id": grouphash_metadata.id,
+                    "linked_metadata_id": grouphash.metadata.id if grouphash.metadata else None,
+                    "grouphash_id": grouphash.id,
+                    "grouphash_is_new": grouphash_is_new,
+                    "event_id": event.event_id,
+                    "hash_basis": new_data["hash_basis"],
+                },
+            )
+            return
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 
@@ -144,8 +162,9 @@ def create_or_update_grouphash_metadata_if_needed(
             # doesn't default to now
             new_data["date_added"] = None
 
-        GroupHashMetadata.objects.create(**new_data)
+        grouphash_metadata.update(**new_data)
 
+    # Update data in existing metadata record if needed
     else:
         updated_data: dict[str, Any] = {}
 
@@ -159,6 +178,29 @@ def create_or_update_grouphash_metadata_if_needed(
                 "new_config": grouping_config,
             }
 
+        # If the metadata was gathered under an old schema, get new data and bump the schema version
+        if grouphash.metadata.schema_version != GROUPHASH_METADATA_SCHEMA_VERSION:
+            updated_data.update(
+                # This includes `schema_version`
+                get_grouphash_metadata_data(event, project, variants, grouping_config)
+            )
+
+            db_hit_metadata.update(
+                {
+                    "reason": (
+                        "outdated_schema"
+                        if not db_hit_metadata.get("reason")
+                        else "config_and_schema"
+                    ),
+                    # TODO: Any time during or after May 2025, confirm that all metadata records
+                    # have been backfilled with a schema version (or deleted because their groups
+                    # aged out). If so, we can get rid of the best-guess logic here.
+                    "current_version": grouphash.metadata.schema_version
+                    or grouphash.metadata.get_best_guess_schema_version(),
+                    "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+                }
+            )
+
         # Only hit the DB if there's something to change
         if updated_data:
             grouphash.metadata.update(**updated_data)
@@ -167,7 +209,7 @@ def create_or_update_grouphash_metadata_if_needed(
     if db_hit_metadata:
         metrics.incr("grouping.grouphash_metadata.db_hit", tags=db_hit_metadata)
 
-        if db_hit_metadata["reason"] != "new_grouphash":
+        if db_hit_metadata["reason"] not in ["new_grouphash", "missing_metadata"]:
             # Temporary log to get a sense of how often we're encountering a race condition and
             # backfilling the same grouphash more than once. Note that this data won't be reliable
             # until we increase the sample rate to 100%.

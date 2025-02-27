@@ -14,9 +14,10 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
-    FrameFilename,
+    FrameInfo,
+    NeedsExtension,
     UnexpectedPathException,
-    UnsupportedFrameFilename,
+    UnsupportedFrameInfo,
     convert_stacktrace_frame_path_to_source_path,
     find_roots,
     get_sorted_code_mapping_configs,
@@ -26,7 +27,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.event_frames import EventFrame
 
-sentry_files = [
+SENTRY_FILES = [
     "bin/__init__.py",
     "bin/example1.py",
     "bin/example2.py",
@@ -37,8 +38,6 @@ sentry_files = [
     "src/sentry/wsgi.py",
     "src/sentry_plugins/slack/client.py",
 ]
-
-
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     "/gtm.js",  # Top source; starts with backslash
@@ -47,12 +46,14 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/foo/bar/baz",  # no extension
-    "README",  # no extension
+    "README",  # top level file
     "ssl.py",
     # XXX: The following will need to be supported
     "initialization.dart",
     "backburner.js",
+]
+NO_EXTENSION_FRAME_FILENAMES = [
+    "/foo/bar/baz",  # no extension
 ]
 
 
@@ -60,7 +61,7 @@ class TestRepoFiles(TestCase):
     """These evaluate which files should be included as part of a repo."""
 
     def test_filter_source_code_files(self) -> None:
-        source_code_files = filter_source_code_files(sentry_files)
+        source_code_files = filter_source_code_files(SENTRY_FILES)
 
         assert source_code_files.index("bin/__init__.py") == 0
         assert source_code_files.index("docs-ui/.eslintrc.js") == 3
@@ -101,59 +102,51 @@ def test_buckets_logic() -> None:
     helper = CodeMappingTreesHelper({})
     buckets = helper._stacktrace_buckets(frames)
     assert buckets == {
-        "./app": [FrameFilename({"filename": "./app/utils/handleXhrErrorResponse.tsx"})],
-        "app:": [FrameFilename({"filename": "app://foo.js"})],
-        "cronscripts": [FrameFilename({"filename": "/cronscripts/monitoringsync.php"})],
-        "getsentry": [FrameFilename({"filename": "getsentry/billing/tax/manager.py"})],
+        "./app": [FrameInfo({"filename": "./app/utils/handleXhrErrorResponse.tsx"})],
+        "app:": [FrameInfo({"filename": "app://foo.js"})],
+        "cronscripts": [FrameInfo({"filename": "/cronscripts/monitoringsync.php"})],
+        "getsentry": [FrameInfo({"filename": "getsentry/billing/tax/manager.py"})],
     }
 
 
-class TestFrameFilename:
-    def test_frame_filename_package_and_more_than_one_level(self) -> None:
-        pytest.skip("This test is outdated because of refactors have been made to code mappings")
-        # ff = FrameFilename("getsentry/billing/tax/manager.py")
-        # assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
-        # assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
-
-    def test_frame_filename_package_and_no_levels(self) -> None:
-        pytest.skip("This test is outdated because of refactors have been made to code mappings")
-        # ff = FrameFilename("root/bar.py")
-        # assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
-        # assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
-        # assert ff.dir_path == ""
-
+class TestFrameInfo:
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
-        assert FrameFilename({"filename": path}).__repr__() == f"FrameFilename: {path}"
+        assert FrameInfo({"filename": path}).__repr__() == f"FrameInfo: {path}"
 
     def test_raises_unsupported(self) -> None:
         for filepath in UNSUPPORTED_FRAME_FILENAMES:
-            with pytest.raises(UnsupportedFrameFilename):
-                FrameFilename({"filename": filepath})
+            with pytest.raises(UnsupportedFrameInfo):
+                FrameInfo({"filename": filepath})
+
+    def test_raises_no_extension(self) -> None:
+        for filepath in NO_EXTENSION_FRAME_FILENAMES:
+            with pytest.raises(NeedsExtension):
+                FrameInfo({"filename": filepath})
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",
         [
             pytest.param(
-                FrameFilename({"filename": "app:///utils/something.py"}),
-                "app:///",
+                FrameInfo({"filename": "app:///utils/something.py"}),
+                "app:///utils",
             ),
             pytest.param(
-                FrameFilename({"filename": "./app/utils/something.py"}),
-                "./",
+                FrameInfo({"filename": "./app/utils/something.py"}),
+                "./app",
             ),
             pytest.param(
-                FrameFilename({"filename": "../../../../../../packages/something.py"}),
-                "../../../../../../",
+                FrameInfo({"filename": "../../../../../../packages/something.py"}),
+                "../../../../../../packages",
             ),
             pytest.param(
-                FrameFilename({"filename": "app:///../services/something.py"}),
-                "app:///../",
+                FrameInfo({"filename": "app:///../services/something.py"}),
+                "app:///../services",
             ),
         ],
     )
-    def test_straight_path_prefix(self, frame_filename: FrameFilename, prefix: str) -> None:
-        assert frame_filename.straight_path_prefix == prefix
+    def test_straight_path_prefix(self, frame_filename: FrameInfo, prefix: str) -> None:
+        assert frame_filename.stack_root == prefix
 
 
 class TestDerivedCodeMappings(TestCase):
@@ -167,7 +160,7 @@ class TestDerivedCodeMappings(TestCase):
         self.bar_repo = RepoAndBranch("Test-Organization/bar", "main")
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
-                self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
+                self.foo_repo.name: RepoTree(self.foo_repo, files=SENTRY_FILES),
                 self.bar_repo.name: RepoTree(self.bar_repo, files=["sentry/web/urls.py"]),
             }
         )
@@ -186,7 +179,7 @@ class TestDerivedCodeMappings(TestCase):
         # We create a new tree helper in order to improve the understability of this test
         cmh = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
         cm = cmh._generate_code_mapping_from_tree(
-            repo_tree=repo_tree, frame_filename=FrameFilename({"filename": "raven/base.py"})
+            repo_tree=repo_tree, frame_filename=FrameInfo({"filename": "raven/base.py"})
         )
         # We should not derive a code mapping since the package name does not match
         assert cm == []
@@ -268,7 +261,7 @@ class TestDerivedCodeMappings(TestCase):
         logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")
 
     def test_list_file_matches_single(self) -> None:
-        frame_filename = FrameFilename({"filename": "sentry_plugins/slack/client.py"})
+        frame_filename = FrameInfo({"filename": "sentry_plugins/slack/client.py"})
         matches = self.code_mapping_helper.list_file_matches(frame_filename)
         expected_matches = [
             {
@@ -282,7 +275,7 @@ class TestDerivedCodeMappings(TestCase):
         assert matches == expected_matches
 
     def test_list_file_matches_multiple(self) -> None:
-        frame_filename = FrameFilename({"filename": "sentry/web/urls.py"})
+        frame_filename = FrameInfo({"filename": "sentry/web/urls.py"})
         matches = self.code_mapping_helper.list_file_matches(frame_filename)
         expected_matches = [
             {
@@ -303,52 +296,76 @@ class TestDerivedCodeMappings(TestCase):
         assert matches == expected_matches
 
     def test_find_roots_starts_with_period_slash(self) -> None:
-        stacktrace_root, source_path = find_roots("./app/", "static/app/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
+        )
         assert stacktrace_root == "./"
         assert source_path == "static/"
 
     def test_find_roots_starts_with_period_slash_no_containing_directory(self) -> None:
-        stacktrace_root, source_path = find_roots("./app/", "app/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "./app/foo.tsx"}), "app/foo.tsx"
+        )
         assert stacktrace_root == "./"
         assert source_path == ""
 
     def test_find_roots_not_matching(self) -> None:
-        stacktrace_root, source_path = find_roots("sentry/", "src/sentry/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "sentry/foo.py"}), "src/sentry/foo.py"
+        )
         assert stacktrace_root == "sentry/"
         assert source_path == "src/sentry/"
 
     def test_find_roots_equal(self) -> None:
-        stacktrace_root, source_path = find_roots("source/", "source/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "source/foo.py"}), "source/foo.py"
+        )
         assert stacktrace_root == ""
         assert source_path == ""
 
     def test_find_roots_starts_with_period_slash_two_levels(self) -> None:
-        stacktrace_root, source_path = find_roots("./app/", "app/foo/app/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "./app/foo.tsx"}), "app/foo/app/foo.tsx"
+        )
         assert stacktrace_root == "./"
         assert source_path == "app/foo/"
 
     def test_find_roots_starts_with_app(self) -> None:
-        stacktrace_root, source_path = find_roots("app:///utils/", "utils/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "app:///utils/foo.tsx"}), "utils/foo.tsx"
+        )
         assert stacktrace_root == "app:///"
         assert source_path == ""
 
     def test_find_roots_starts_with_multiple_dot_dot_slash(self) -> None:
-        stacktrace_root, source_path = find_roots("../../../../../../packages/", "packages/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "../../../../../../packages/foo.tsx"}),
+            "packages/foo.tsx",
+        )
         assert stacktrace_root == "../../../../../../"
         assert source_path == ""
 
     def test_find_roots_starts_with_app_dot_dot_slash(self) -> None:
-        stacktrace_root, source_path = find_roots("app:///../services/", "services/")
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "app:///../services/foo.tsx"}),
+            "services/foo.tsx",
+        )
         assert stacktrace_root == "app:///../"
         assert source_path == ""
 
     def test_find_roots_bad_stack_path(self) -> None:
         with pytest.raises(UnexpectedPathException):
-            find_roots("https://yrurlsinyourstackpath.com/", "sentry/something.py")
+            find_roots(
+                FrameInfo({"filename": "https://yrurlsinyourstackpath.com/"}),
+                "sentry/something.py",
+            )
 
     def test_find_roots_bad_source_path(self) -> None:
         with pytest.raises(UnexpectedPathException):
-            find_roots("sentry/random.py", "nothing/something.js")
+            find_roots(
+                FrameInfo({"filename": "sentry/random.py"}),
+                "nothing/something.js",
+            )
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):

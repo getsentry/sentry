@@ -229,6 +229,17 @@ class Enhancements:
                     else py_component.hint
                 )
                 py_component.update(contributes=False, hint=hint)
+            elif variant_name == "system":
+                # We don't need hints about marking frames in or out of app in the system stacktrace
+                # because such changes don't actually have an effect there
+                hint = (
+                    rust_component.hint
+                    if rust_component.hint
+                    and not rust_component.hint.startswith("marked in-app")
+                    and not rust_component.hint.startswith("marked out of app")
+                    else py_component.hint
+                )
+                py_component.update(contributes=rust_component.contributes, hint=hint)
             else:
                 py_component.update(
                     contributes=rust_component.contributes, hint=rust_component.hint
