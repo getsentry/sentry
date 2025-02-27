@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from datetime import datetime
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -177,25 +178,27 @@ class SeerEventManagerGroupingTest(TestCase):
 
 
 class StoredSeerMetadataTest(TestCase):
+    def assert_correct_seer_metadata(
+        self,
+        grouphash: GroupHash,
+        expected_seer_date_sent: datetime | None,
+        expected_seer_event_sent: str | None,
+        expected_seer_model: str | None,
+        expected_seer_matched_grouphash: GroupHash | None,
+        expected_seer_match_distance: float | None,
+    ) -> None:
+        metadata = grouphash.metadata
+
+        assert metadata
+        assert metadata.seer_date_sent == expected_seer_date_sent
+        assert metadata.seer_event_sent == expected_seer_event_sent
+        assert metadata.seer_model == expected_seer_model
+        assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
+        assert metadata.seer_match_distance == expected_seer_match_distance
+
     @with_feature("organizations:grouphash-metadata-creation")
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_stores_seer_results_in_grouphash_metadata(self, _):
-        def assert_correct_seer_metadata(
-            grouphash,
-            expected_seer_date_sent,
-            expected_seer_event_sent,
-            expected_seer_model,
-            expected_seer_matched_grouphash,
-            expected_seer_match_distance,
-        ):
-            metadata = grouphash.metadata
-
-            assert metadata
-            assert metadata.seer_date_sent == expected_seer_date_sent
-            assert metadata.seer_event_sent == expected_seer_event_sent
-            assert metadata.seer_model == expected_seer_model
-            assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
-            assert metadata.seer_match_distance == expected_seer_match_distance
 
         # Event which is sent but finds no match
         with patch(
@@ -215,7 +218,7 @@ class StoredSeerMetadataTest(TestCase):
                 == existing_event_grouphash.hash
             )
 
-            assert_correct_seer_metadata(
+            self.assert_correct_seer_metadata(
                 existing_event_grouphash,
                 existing_event_grouphash.metadata.date_added,
                 existing_event.event_id,
@@ -273,7 +276,7 @@ class StoredSeerMetadataTest(TestCase):
                 == new_event_grouphash.hash
             )
 
-            assert_correct_seer_metadata(
+            self.assert_correct_seer_metadata(
                 new_event_grouphash,
                 new_event_grouphash.metadata.date_added,
                 new_event.event_id,
@@ -293,4 +296,4 @@ class StoredSeerMetadataTest(TestCase):
             assert third_event_grouphash
             assert third_event_grouphash.metadata
 
-            assert_correct_seer_metadata(third_event_grouphash, None, None, None, None, None)
+            self.assert_correct_seer_metadata(third_event_grouphash, None, None, None, None, None)
