@@ -104,6 +104,7 @@ export const sourceMapSdkDocsMap: Record<string, string> = {
   'sentry.javascript.vue': 'vue',
   'sentry.javascript.nestjs': 'nestjs',
   'sentry.javascript.nextjs': 'nextjs',
+  'sentry.javascript.nuxt': 'nuxt',
   'sentry.javascript.remix': 'remix',
   'sentry.javascript.solid': 'solid',
   'sentry.javascript.svelte': 'svelte',
