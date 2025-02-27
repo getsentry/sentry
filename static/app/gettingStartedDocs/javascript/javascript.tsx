@@ -791,7 +791,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
       {
         type: StepType.VERIFY,
         description: t(
-          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in issue details to confirm that your error event has recorded the flag and its result.'
+          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
         ),
         configurations: [
           {

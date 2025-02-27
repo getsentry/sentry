@@ -35,7 +35,9 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
     # Add data like request headers and IP for users, if applicable;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    integrations=[# your other integrations here],
+    integrations=[
+        # your other integrations here
+    ],
 )`,
     makeVerifyCode: () => `import sentry_sdk
 from sentry_sdk.feature_flags import add_feature_flag
@@ -394,7 +396,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
       {
         type: StepType.VERIFY,
         description: t(
-          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in issue details to confirm that your error event has recorded the flag and its result.'
+          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
         ),
         configurations: [
           {
