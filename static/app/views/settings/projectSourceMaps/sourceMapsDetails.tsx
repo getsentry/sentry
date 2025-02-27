@@ -283,7 +283,9 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                       </TimeWrapper>
                       <StyledTag
                         type={data.dist ? 'info' : undefined}
-                        tooltipText={data.dist ? undefined : t('No distribution set')}
+                        tooltipProps={
+                          data.dist ? undefined : {title: t('No distribution set')}
+                        }
                       >
                         {data.dist ?? t('none')}
                       </StyledTag>
