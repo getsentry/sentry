@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:36.015733+00:00'
+created: '2025-02-26T00:32:11.422688+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -44,7 +44,7 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (path:**/go/pkg/mod/** -app))
+            frame*
               module*
                 "github.com/robfig/cron/v3"
               function*

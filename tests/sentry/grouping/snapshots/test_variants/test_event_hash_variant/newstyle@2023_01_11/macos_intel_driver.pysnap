@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T18:23:31.460972+00:00'
+created: '2025-02-26T00:34:10.612905+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -196,7 +196,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored due to recursion)
             function*
               "start"
           frame*
@@ -217,7 +217,7 @@ system:
           frame (ignored due to recursion)
             function*
               "code"
-          frame* (marked out of app by stack trace rule (category:system -app))
+          frame*
             function*
               "-[NSApplication run]"
           frame (ignored by stack trace rule (category:internals -group))
@@ -246,7 +246,7 @@ system:
           frame*
             function*
               "code"
-          frame* (marked out of app by stack trace rule (category:system -app))
+          frame*
             function*
               "-[NSView displayIfNeeded]"
           frame (ignored by stack trace rule (category:internals -group))
@@ -288,7 +288,7 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
           frame

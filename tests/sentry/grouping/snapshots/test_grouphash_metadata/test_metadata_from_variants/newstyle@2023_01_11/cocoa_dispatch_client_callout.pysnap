@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:28.069968+00:00'
+created: '2025-02-26T00:32:03.546142+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -55,7 +55,7 @@ contributing variants:
             frame*
               function*
                 "UIApplicationMain"
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame*
               function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
             frame*

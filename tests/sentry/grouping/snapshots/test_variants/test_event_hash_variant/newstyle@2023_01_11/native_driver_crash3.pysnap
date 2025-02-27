@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T18:23:32.148384+00:00'
+created: '2025-02-26T00:34:11.534819+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -42,13 +42,13 @@ system:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (category:system -app))
+          frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
           frame*
             function*
               "destructor'"
-          frame* (marked out of app by stack trace rule (category:system -app))
+          frame*
             function*
               "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
           frame (ignored by stack trace rule (category:internals -group))

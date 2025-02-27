@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:07.009551+00:00'
+created: '2025-02-26T00:31:42.842448+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -291,7 +291,7 @@ contributing variants:
                 "thread.rs"
               function*
                 "std::sys::unix::thread::Thread::new::thread_start"
-            frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
+            frame*
               filename*
                 "boxed.rs"
               function*

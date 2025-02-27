@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:12.857903+00:00'
+created: '2025-02-26T00:31:52.682961+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,10 +30,10 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "start_wqthread"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_pthread_wqthread"
             frame*
@@ -55,42 +55,42 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "mac"
               function*
                 "std::__1::map<T>::~map"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "map"
               function*
                 "std::__1::map<T>::~map"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "__tree"
               function*
                 "std::__1::__tree<T>::~__tree"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "__tree"
               function*
                 "std::__1::__tree<T>::destroy"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "memory"
               function*
                 "std::__1::allocator_traits<T>::destroy<T>"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "memory"
               function*
                 "std::__1::allocator_traits<T>::__destroy<T>"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "mac"
               function*
                 "std::__1::pair<T>::~pair"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "utility"
               function*
@@ -98,24 +98,24 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               function*
                 "std::__1::thread::~thread"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               function*
                 "std::terminate"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               function*
                 "std::__terminate"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "default_terminate_handler"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "abort_message"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "abort"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "__abort"

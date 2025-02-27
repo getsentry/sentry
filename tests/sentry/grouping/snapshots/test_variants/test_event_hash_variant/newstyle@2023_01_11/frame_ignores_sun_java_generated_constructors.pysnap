@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:12.864856+00:00'
+created: '2025-02-26T00:34:03.980784+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,7 +21,7 @@ system:
   component:
     system*
       stacktrace*
-        frame* (marked out of app by stack trace rule (module:sun.* -app))
+        frame*
           module* (removed codegen marker)
             "sun.reflect.GeneratedSerializationConstructorAccessor<auto>"
           function*
