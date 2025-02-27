@@ -19,6 +19,7 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
@@ -190,6 +191,7 @@ function TransactionSummaryCharts({
 
   return (
     <Panel>
+      <EAPChartsWidget />
       <ChartContainer data-test-id="transaction-summary-charts">
         {display === DisplayModes.LATENCY && (
           <LatencyChart
