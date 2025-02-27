@@ -25,7 +25,7 @@ interface Options {
    */
   enabled?: boolean;
   /**
-   * Configres clampped offsets on the left and right of the cursor overlay
+   * Configures clamped offsets on the left and right of the cursor overlay
    * element. May be useful in scenarios where you do not want the overlay to
    * cover some additional UI elements
    */
