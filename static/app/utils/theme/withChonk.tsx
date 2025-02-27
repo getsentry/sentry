@@ -21,7 +21,7 @@ export function withChonk<
 >(
   legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
-  propMapping: ChonkPropMapping<LegacyProps, ChonkProps>
+  propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
 ): (props: LegacyProps, theme: DO_NOT_USE_ChonkTheme) => React.ReactNode {
   return function (props: LegacyProps) {
     const theme = useTheme();
@@ -41,4 +41,8 @@ export function withChonk<
     const LegacyComponent: any = legacyComponent;
     return <LegacyComponent {...props}>{props.children}</LegacyComponent>;
   };
+}
+
+function identity<T, U>(props: T): U {
+  return props as unknown as U;
 }
