@@ -55,6 +55,7 @@ export function OverviewTimeline({uptimeRules}: Props) {
         stickyCursor
         allowZoom
         showCursor
+        cursorOffsets={{right: 40}}
         timeWindowConfig={timeWindowConfig}
       />
       <UptimeAlertRow>

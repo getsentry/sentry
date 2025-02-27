@@ -129,7 +129,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
 
 const ChartContainer = styled('div')`
   position: relative;
-  min-height: 104px;
+  min-height: 100px;
   width: 100%;
 `;
 
