@@ -2,7 +2,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {IssueViewNavEllipsisMenu} from './issueViewNavEllipsisMenu';
+import {
+  IssueViewNavEllipsisMenu,
+  type IssueViewNavEllipsisMenuProps,
+} from './issueViewNavEllipsisMenu';
 
 describe('IssueViewNavEllipsisMenu', () => {
   const mockView = {
@@ -23,13 +26,14 @@ describe('IssueViewNavEllipsisMenu', () => {
     label: 'Test View',
   };
 
-  const defaultProps = {
+  const defaultProps: IssueViewNavEllipsisMenuProps = {
     baseUrl: '/organizations/sentry/issues',
     deleteView: jest.fn(),
     duplicateView: jest.fn(),
     setIsEditing: jest.fn(),
     updateView: jest.fn(),
     view: mockView,
+    isLastView: false,
   };
 
   beforeEach(() => {
@@ -96,5 +100,11 @@ describe('IssueViewNavEllipsisMenu', () => {
     await waitFor(() => {
       expect(screen.queryByText('Rename')).not.toBeInTheDocument();
     });
+  });
+
+  it('disables delete button when isLastView is true', () => {
+    render(<IssueViewNavEllipsisMenu {...defaultProps} isLastView />);
+
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
   });
 });
