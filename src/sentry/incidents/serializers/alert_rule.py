@@ -270,8 +270,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
 
-            should_dual_write = features.has(
-                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+            # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
+            should_dual_write = (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+                )
+                and alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
             )
             if should_dual_write:
                 migrate_alert_rule(alert_rule, user)

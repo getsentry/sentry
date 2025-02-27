@@ -1316,9 +1316,13 @@ def create_alert_rule_trigger_action(
             sentry_app_id=sentry_app_id,
             sentry_app_config=sentry_app_config,
         )
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-write",
-            trigger.alert_rule.organization,
+        # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
+        if (
+            features.has(
+                "organizations:workflow-engine-metric-alert-dual-write",
+                trigger.alert_rule.organization,
+            )
+            and trigger.alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
         ):
             migrate_metric_action(trigger_action)
     return trigger_action
