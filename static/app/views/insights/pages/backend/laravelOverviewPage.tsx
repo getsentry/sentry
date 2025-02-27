@@ -20,6 +20,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -703,7 +704,7 @@ const Cell = styled('div')`
     color: ${p => p.theme.gray300};
     font-size: ${p => p.theme.fontSizeSmall};
     font-weight: 600;
-    min-height: ${space(3)};
+    max-height: ${space(2)};
   }
 
   &[data-color='danger'] {
@@ -721,6 +722,7 @@ const Cell = styled('div')`
 function RoutesTable({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
+  const theme = useTheme();
 
   const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
     [
@@ -826,7 +828,7 @@ function RoutesTable({query}: {query?: string}) {
           Users
         </Cell>,
       ]}
-      isLoading={transactionsRequest.isLoading || routeControllersRequest.isLoading}
+      isLoading={transactionsRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
     >
       {tableData?.map(transaction => {
@@ -841,7 +843,17 @@ function RoutesTable({query}: {query?: string}) {
             <Cell>{transaction.method}</Cell>
             <PathCell>
               {transaction.path}
-              <ControllerText>{transaction.controller}</ControllerText>
+              {routeControllersRequest.isLoading ? (
+                <Placeholder
+                  height={theme.fontSizeSmall}
+                  width="30vw"
+                  testId="skeleton-ui"
+                />
+              ) : (
+                transaction.controller && (
+                  <ControllerText>{transaction.controller}</ControllerText>
+                )
+              )}
             </PathCell>
             <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
             <Cell data-color={errorRateColor}>
