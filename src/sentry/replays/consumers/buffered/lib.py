@@ -14,6 +14,7 @@ from arroyo.types import Partition
 from sentry.replays.consumers.buffered.platform import (
     Cmd,
     Commit,
+    Flags,
     Join,
     Nothing,
     Poll,
@@ -78,8 +79,8 @@ def process(
 
 
 def init(
-    init_fn: Callable[[dict[str, str]], Model[Item]],
-    flags: dict[str, str],
+    init_fn: Callable[[Flags], Model[Item]],
+    flags: Flags,
 ) -> tuple[Model[Item], Cmd[Msg[Item]]]:
     return (init_fn(flags), Nothing())
 
@@ -119,9 +120,9 @@ def subscription(model: Model[Item]) -> list[Sub[Msg[Item]]]:
 
 
 def buffering_runtime(
-    init_fn: Callable[[dict[str, str]], Model[Item]],
+    init_fn: Callable[[Flags], Model[Item]],
     process_fn: Callable[[bytes], Item | None],
-) -> RunTime[Model[Item], Msg[Item]]:
+) -> RunTime[Model[Item], Msg[Item], Flags]:
     return RunTime(
         init=partial(init, init_fn),
         process=partial(process, process_fn),

@@ -3,6 +3,7 @@
 import contextlib
 import time
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
+from typing import TypedDict
 
 import sentry_sdk
 
@@ -16,6 +17,12 @@ from sentry.replays.usecases.ingest import (
     sentry_tracing,
     track_recording_metadata,
 )
+
+
+class Flags(TypedDict):
+    max_buffer_length: int
+    max_buffer_wait: int
+    max_workers: int
 
 
 class BufferManager:
@@ -35,11 +42,10 @@ class BufferManager:
     if you wanted to expose the state across more locations in the application.
     """
 
-    def __init__(self, flags: dict[str, str]) -> None:
-        # Flags are safely extracted and default arguments are used.
-        self.__max_buffer_length = int(flags.get("max_buffer_length", 8))
-        self.__max_buffer_wait = int(flags.get("max_buffer_wait", 1))
-        self.__max_workers = int(flags.get("max_workers", 8))
+    def __init__(self, flags: Flags) -> None:
+        self.__max_buffer_length = flags["max_buffer_length"]
+        self.__max_buffer_wait = flags["max_buffer_wait"]
+        self.__max_workers = flags["max_workers"]
 
         self.__last_flushed_at = time.time()
 
@@ -102,7 +108,7 @@ def process_message(message_bytes: bytes) -> ProcessedRecordingMessage | None:
         return None
 
 
-def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
+def init(flags: Flags) -> Model[ProcessedRecordingMessage]:
     """Return the initial state of the application."""
     buffer = BufferManager(flags)
     return Model(buffer=[], can_flush=buffer.can_flush, do_flush=buffer.do_flush, offsets={})

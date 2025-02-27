@@ -4,27 +4,9 @@ from datetime import datetime
 from typing import Generic, TypeVar
 
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import (
-    CommitOffsets,
-    ProcessingStrategy,
-    ProcessingStrategyFactory,
-)
+from arroyo.processing.strategies import CommitOffsets, ProcessingStrategy
 from arroyo.types import Commit as ArroyoCommit
 from arroyo.types import Message, Partition, Value
-
-
-class PlatformStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-
-    def __init__(self, flags: dict[str, str], runtime: "RunTime[Model, Msg]") -> None:
-        self.flags = flags
-        self.runtime = runtime
-
-    def create_with_partitions(
-        self,
-        commit: ArroyoCommit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return PlatformStrategy(commit=commit, flags=self.flags, runtime=self.runtime)
 
 
 class PlatformStrategy(ProcessingStrategy[KafkaPayload]):
@@ -32,8 +14,8 @@ class PlatformStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit: ArroyoCommit,
-        flags: dict[str, str],
-        runtime: "RunTime[Model, Msg]",
+        flags: "Flags",
+        runtime: "RunTime[Model, Msg, Flags]",
     ) -> None:
         # The RunTime is made aware of the commit strategy. It will
         # submit the partition, offset mapping it wants committed.
@@ -79,6 +61,8 @@ Model = TypeVar("Model")
 # A Msg represents the commands an application can issue to itself. These commands update the state
 # and optionally issue commands to the RunTime.
 Msg = TypeVar("Msg")
+
+Flags = TypeVar("Flags")
 
 
 @dataclass(frozen=True)
@@ -145,7 +129,7 @@ class Poll(Generic[Msg]):
 Sub = Join[Msg] | Poll[Msg]
 
 
-class RunTime(Generic[Model, Msg]):
+class RunTime(Generic[Model, Msg, Flags]):
     """RunTime object.
 
     The RunTime is an intermediate data structure which manages communication between the platform
@@ -157,7 +141,7 @@ class RunTime(Generic[Model, Msg]):
 
     def __init__(
         self,
-        init: Callable[[dict[str, str]], tuple[Model, Cmd[Msg] | None]],
+        init: Callable[[Flags], tuple[Model, Cmd[Msg] | None]],
         process: Callable[[Model, bytes, Mapping[Partition, int]], Msg | None],
         subscription: Callable[[Model], list[Sub[Msg]]],
         update: Callable[[Model, Msg], tuple[Model, Cmd[Msg] | None]],
@@ -181,7 +165,7 @@ class RunTime(Generic[Model, Msg]):
         assert self.__model is not None
         return self.__model
 
-    def setup(self, flags: dict[str, str], commit: CommitProtocol) -> None:
+    def setup(self, flags: Flags, commit: CommitProtocol) -> None:
         # NOTE: Could this be a factory function that produces RunTimes instead? That way we
         #       don't need the assert checks on model and commit.
         self.__commit = commit
