@@ -2582,3 +2582,43 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_trace_id_in_filter(self):
+        spans = [
+            self.create_span(
+                {"description": "bar", "trace_id": "1" * 32},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "trace_id": "2" * 32},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": f"trace:[{'1' * 32}, {'2' * 32}]",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "description": "bar",
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+            },
+            {
+                "description": "foo",
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
