@@ -84,6 +84,8 @@ const getConfigurationSnippet = (params: Params) => `
     params.isProfilingSelected
       ? `
   <!-- enable profiling when starting transactions, adjust in production env -->
+  <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
+  <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
   <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
       : ''
   }
