@@ -92,14 +92,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         tags: set,
         integration: RpcIntegration,
         notification_uuid: str | None = None,
-    ) -> tuple[dict, str | None]:
+    ) -> tuple[dict, str]:
         """Build the notification blocks and return the blocks and JSON representation."""
         additional_attachment = get_additional_attachment(integration, self.project.organization)
         blocks = SlackIssuesMessageBuilder(
             group=event.group,
             event=event,
             tags=tags,
-            rules=rules,
+            rules=list(rules),
             notes=self.get_option("notes", ""),
         ).build(notification_uuid=notification_uuid)
 
@@ -107,7 +107,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             for block in additional_attachment:
                 blocks["blocks"].append(block)
 
-        json_blocks = None
+        json_blocks = ""
         if payload_blocks := blocks.get("blocks"):
             json_blocks = orjson.dumps(payload_blocks).decode()
 
@@ -164,21 +164,36 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             record_lifecycle_termination_level(lifecycle, e)
             return None
 
-    def _save_notification_message(
+    def _save_issue_alert_notification_message(
         self,
-        repository: (
-            IssueAlertNotificationMessageRepository
-            | NotificationActionNotificationMessageRepository
-        ),
-        data: NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage,
+        data: NewIssueAlertNotificationMessage,
     ) -> None:
-        """Save the notification message to the repository."""
+        """Save an issue alert notification message to the repository."""
         try:
-            repository.create_notification_message(data=data)
+            self._issue_repository.create_notification_message(data=data)
         except NotificationMessageValidationError as err:
             extra = data.__dict__ if data else None
             _default_logger.info(
-                "Validation error for new notification message", exc_info=err, extra=extra
+                "Validation error for new issue alert notification message",
+                exc_info=err,
+                extra=extra,
+            )
+        except Exception:
+            # if there's an error trying to save a notification message, don't let that error block this flow
+            # we already log at the repository layer, no need to log again here
+            pass
+
+    def _save_notification_action_message(
+        self,
+        data: NewNotificationActionNotificationMessage,
+    ) -> None:
+        """Save a notification action message to the repository."""
+        try:
+            self._action_repository.create_notification_message(data=data)
+        except NotificationMessageValidationError as err:
+            extra = data.__dict__ if data else None
+            _default_logger.info(
+                "Validation error for new notification action message", exc_info=err, extra=extra
             )
         except Exception:
             # if there's an error trying to save a notification message, don't let that error block this flow
@@ -349,8 +364,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
 
         if rule_action_uuid and rule_id:
-            self._save_notification_message(
-                repository=self._issue_repository,
+            self._save_issue_alert_notification_message(
                 data=new_notification_message_object,
             )
 
@@ -441,8 +455,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 new_notification_message_object=new_notification_message_object,
             )
 
-        self._save_notification_message(
-            repository=self._action_repository,
+        self._save_notification_action_message(
             data=new_notification_message_object,
         )
 
