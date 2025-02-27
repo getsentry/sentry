@@ -2410,7 +2410,7 @@ describe('Dashboards > Detail', function () {
         });
 
         // The widget is added in the dashboard
-        expect(screen.getByText('Totally new widget')).toBeInTheDocument();
+        expect(await screen.findByText('Totally new widget')).toBeInTheDocument();
       });
 
       it('allows for editing a widget in view mode', async function () {
