@@ -12,6 +12,14 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
 
+EMPTY_SEER_RESULTS = (
+    {
+        "results": [],
+        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+    },
+    None,
+)
+
 
 def get_event_data() -> dict[str, Any]:
     return {
@@ -119,13 +127,13 @@ class SeerEventManagerGroupingTest(TestCase):
             assert new_event.group_id == existing_event.group_id
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=({}, None))
+    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
     def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
         save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=({}, None))
+    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
     def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
