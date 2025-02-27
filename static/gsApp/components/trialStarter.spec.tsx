@@ -18,6 +18,7 @@ describe('TrialStarter', function () {
 
   it('starts a trial', async function () {
     const handleTrialStarted = jest.fn();
+    // eslint-disable-next-line no-empty-pattern
     const renderer = jest.fn(({}: RendererProps) => <div>render text</div>);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
@@ -73,6 +74,7 @@ describe('TrialStarter', function () {
 
   it('handles failing to start a trial', async function () {
     const handleTrialFailed = jest.fn();
+    // eslint-disable-next-line no-empty-pattern
     const renderer = jest.fn(({}: RendererProps) => null);
 
     render(
