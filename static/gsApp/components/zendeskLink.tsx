@@ -2,6 +2,7 @@ import {Component} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
+import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -30,9 +31,9 @@ class ZendeskLink extends Component<Props> {
   activateSupportWidget = (e: React.MouseEvent) => {
     const {organization, source} = this.props;
 
-    if (window.zE && typeof window.zE.activate === 'function') {
+    if (zendeskIsLoaded()) {
       e.preventDefault();
-      window.zE.activate({hideOnClose: true});
+      activateZendesk();
     }
 
     trackGetsentryAnalytics('zendesk_link.clicked', {organization, source});
