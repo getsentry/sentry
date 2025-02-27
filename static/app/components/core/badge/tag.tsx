@@ -97,14 +97,13 @@ function BaseTag({
   );
 }
 
-export const Tag = styled(BaseTag)`
+const StyledTag = styled(BaseTag)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
-export default Tag;
 
 const TAG_HEIGHT = '20px';
 
-export const Background = styled('div')<{
+const Background = styled('div')<{
   type: keyof Theme['tag'];
 }>`
   display: inline-flex;
@@ -115,6 +114,10 @@ export const Background = styled('div')<{
   border: solid 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
+
+export const Tag = Object.assign(StyledTag, {
+  Background,
+});
 
 const IconWrapper = styled('span')`
   margin-right: ${space(0.5)};
