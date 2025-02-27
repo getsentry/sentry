@@ -404,7 +404,7 @@ def count_processor(count_value: int | None) -> int:
 
 def http_response_rate(arg: str) -> Column.BinaryFormula:
 
-    if not arg.isdigit():
+    if arg not in ["1", "2", "3", "4", "5"]:
         raise InvalidSearchQuery("http_response_rate accepts a single digit (1,2,3,4,5)")
 
     code = int(
@@ -433,7 +433,7 @@ def http_response_rate(arg: str) -> Column.BinaryFormula:
                         op=ComparisonFilter.OP_IN,
                         value=AttributeValue(
                             val_str_array=StrArray(
-                                values=response_codes,  #
+                                values=response_codes,
                             ),
                         ),
                     )
