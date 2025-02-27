@@ -13,7 +13,11 @@ from sentry.incidents.logic import (
     rewrite_trigger_action_fields,
     update_alert_rule_trigger,
 )
-from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger_action,
     migrate_metric_data_conditions,
@@ -59,9 +63,13 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     "This label is already in use for this alert rule"
                 )
 
-            if features.has(
-                "organizations:workflow-engine-metric-alert-dual-write",
-                alert_rule_trigger.alert_rule.organization,
+            # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
+            if (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-dual-write",
+                    alert_rule_trigger.alert_rule.organization,
+                )
+                and alert_rule_trigger.alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
             ):
                 migrate_metric_data_conditions(alert_rule_trigger)
         self._handle_actions(alert_rule_trigger, actions)
