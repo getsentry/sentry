@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/core/badge/tag';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
