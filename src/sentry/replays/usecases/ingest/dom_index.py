@@ -63,22 +63,6 @@ class ReplayActionsEvent(TypedDict):
     type: Literal["replay_event"]
 
 
-def parse_and_emit_replay_actions(
-    project: Project,
-    replay_id: str,
-    retention_days: int,
-    segment_data: list[dict[str, Any]],
-    replay_event: dict[str, Any] | None,
-    org_id: int | None = None,
-) -> None:
-    with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
-        message = parse_replay_actions(
-            project, replay_id, retention_days, segment_data, replay_event, org_id=org_id
-        )
-        if message is not None:
-            emit_replay_actions(message)
-
-
 @sentry_sdk.trace
 def emit_replay_actions(action: ReplayActionsEvent) -> None:
     publisher = _initialize_publisher()
@@ -237,14 +221,13 @@ def _get_testid(container: dict[str, str]) -> str:
     )
 
 
-def _initialize_publisher(asynchronous: bool = True) -> KafkaPublisher:
+def _initialize_publisher() -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
         config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-            asynchronous=asynchronous,
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )
 
     return replay_publisher
