@@ -270,24 +270,29 @@ def _unpack_organization(alert_rule: AlertRule) -> Organization:
     return organization
 
 
-def _build_incident_query_builder(
-    incident: Incident,
+def _build_metric_query_builder(
+    snuba_query: SnubaQuery,
+    organization: Organization,
+    project_ids: list[int],
     entity_subscription: EntitySubscription,
+    date_started: datetime,
+    current_end_date: datetime,
     start: datetime | None = None,
     end: datetime | None = None,
-    windowed_stats: bool = False,
 ) -> BaseQueryBuilder:
-    snuba_query = _unpack_snuba_query(incident.alert_rule)
-    start, end = _calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
-    project_ids = list(
-        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    start, end = _calculate_incident_time_range(
+        snuba_query,
+        date_started,
+        current_end_date,
+        organization,
     )
+
     query_builder = entity_subscription.build_query_builder(
         query=snuba_query.query,
         project_ids=project_ids,
         environment=snuba_query.environment,
         params={
-            "organization_id": incident.organization_id,
+            "organization_id": organization.id,
             "project_id": project_ids,
             "start": start,
             "end": end,
@@ -310,36 +315,19 @@ def _build_incident_query_builder(
 
 
 def _calculate_incident_time_range(
-    incident: Incident,
+    snuba_query: SnubaQuery,
+    date_started: datetime,
+    current_end_date: datetime,
+    organization: Organization,
     start_arg: datetime | None = None,
     end_arg: datetime | None = None,
-    windowed_stats: bool = False,
 ) -> tuple[datetime, datetime]:
-    snuba_query = _unpack_snuba_query(incident.alert_rule)
-    time_window = snuba_query.time_window if incident.alert_rule is not None else 60
+    time_window = snuba_query.time_window
     time_window_delta = timedelta(seconds=time_window)
-    start = (incident.date_started - time_window_delta) if start_arg is None else start_arg
-    end = (incident.current_end_date + time_window_delta) if end_arg is None else end_arg
-    if windowed_stats:
-        now = django_timezone.now()
-        end = start + timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
-        start = start - timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
-        if end > now:
-            end = now
+    start = (date_started - time_window_delta) if start_arg is None else start_arg
+    end = (current_end_date + time_window_delta) if end_arg is None else end_arg
 
-            # If the incident ended already, 'now' could be greater than we'd like
-            # which would result in showing too many data points after an incident ended.
-            # This depends on when the task to process snapshots runs.
-            # To resolve that, we ensure that the end is never greater than the date
-            # an incident ended + the smaller of time_window*10 or 10 days.
-            latest_end_date = incident.current_end_date + min(
-                timedelta(seconds=time_window * 10), timedelta(days=10)
-            )
-            end = min(end, latest_end_date)
-
-            start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
-
-    retention = quotas.backend.get_event_retention(organization=incident.organization) or 90
+    retention = quotas.backend.get_event_retention(organization=organization) or 90
     start = max(
         start.replace(tzinfo=timezone.utc),
         datetime.now(timezone.utc) - timedelta(days=retention),
@@ -353,7 +341,6 @@ def get_incident_aggregates(
     incident: Incident,
     start: datetime | None = None,
     end: datetime | None = None,
-    windowed_stats: bool = False,
 ) -> dict[str, float | int]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
@@ -365,9 +352,13 @@ def get_incident_aggregates(
     )
     if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
         start, end = _calculate_incident_time_range(
-            incident, start, end, windowed_stats=windowed_stats
+            snuba_query,
+            incident.date_started,
+            incident.current_end_date,
+            incident.organization,
+            start,
+            end,
         )
-
         project_ids = list(
             IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
         )
@@ -404,8 +395,16 @@ def get_incident_aggregates(
             )
             raise
     else:
-        query_builder = _build_incident_query_builder(
-            incident, entity_subscription, start, end, windowed_stats
+        project_ids = list(
+            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        )
+        query_builder = _build_metric_query_builder(
+            snuba_query,
+            incident.organization,
+            project_ids,
+            entity_subscription,
+            incident.date_started,
+            incident.current_end_date,
         )
         try:
             results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
