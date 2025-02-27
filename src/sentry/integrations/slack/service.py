@@ -29,7 +29,6 @@ from sentry.integrations.repository.notification_action import (
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.message_builder.types import SlackBlock
-from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.threads.activity_notifications import (
@@ -556,10 +555,11 @@ class SlackService:
         """Execution of send_notification_as_slack."""
 
         client = SlackSdkClient(integration_id=integration_id)
-        with MessagingInteractionEvent(
+        interaction_event = MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_GENERIC_NOTIFICATION,
             spec=SlackMessagingSpec(),
-        ).capture() as lifecycle:
+        )
+        with interaction_event.capture() as lifecycle:
             try:
                 lifecycle.add_extras({"integration_id": integration_id})
                 client.chat_postMessage(
@@ -574,4 +574,4 @@ class SlackService:
                 lifecycle.add_extras(
                     {k: str(v) for k, v in log_params.items() if isinstance(v, (int, str))}
                 )
-                record_lifecycle_termination_level(lifecycle, e)
+                interaction_event.record_lifecycle_termination_level(lifecycle, e)
