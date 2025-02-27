@@ -98,7 +98,12 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
-  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+  const hasPerfLandingRemovalFlag = organization.features?.includes(
+    'insights-performance-landing-removal'
+  );
+  const performanceUrl = hasPerfLandingRemovalFlag
+    ? `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`
+    : `${getPerformanceBaseUrl(organization.slug)}/`;
 
   if (isDemoModeEnabled()) {
     return [
