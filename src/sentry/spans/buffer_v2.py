@@ -91,18 +91,15 @@ class RedisSpansBufferV2:
 
             p.execute()
 
-    def flush_segments(self, now: int) -> dict[SegmentId, set[bytes]]:
+    def flush_segments(self, max_segments: int, now: int) -> dict[SegmentId, set[bytes]]:
         cutoff = now
 
         with self.client.pipeline(transaction=False) as p:
             for shard in range(self.sharding_factor):
                 key = f"span-buf:q:{shard}"
                 p.zrangebyscore(key, 0, cutoff)
-                # TODO: delete only when flushing succeeds? maybe use ZRANGESTORE
-                p.zremrangebyscore(key, 0, cutoff)
 
             result = p.execute()
-            result = iter(result)
 
         segment_ids = []
 
@@ -114,8 +111,11 @@ class RedisSpansBufferV2:
                     segment_ids.append(segment_id)
                     p.smembers(segment_id)
 
-                # skip remrangebyscore return value
-                assert isinstance(next(result), int)
+                    if len(segment_ids) >= max_segments:
+                        break
+
+                if len(segment_ids) >= max_segments:
+                    break
 
             segments = p.execute()
 
@@ -134,5 +134,10 @@ class RedisSpansBufferV2:
         with self.client.pipeline(transaction=False) as p:
             for segment_id in segment_ids:
                 p.delete(segment_id)
+
+                # parse trace_id out of SegmentId, then remove from queue
+                trace_id = segment_id.split(b":")[2][:-1]
+                shard = int(trace_id, 16) % self.sharding_factor
+                p.zrem(f"span-buf:q:{shard}", segment_id)
 
             p.execute()

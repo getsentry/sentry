@@ -390,7 +390,8 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
 
     now = int(time.time())
     buffer.process_spans(spans, now=now)
-    flushed_segments = buffer.flush_segments(now)
+    # TODO: make max segments during flushing configurable
+    flushed_segments = buffer.flush_segments(max_segments=len(values.payload), now=now)
 
     segment_messages: list[BaseValue[KafkaPayload]] = []
 
@@ -412,6 +413,7 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
 
         segment_messages.append(value)
 
-    # TODO: call done_flush_segments after commit
+    # TODO: call done_flush_segments after commit, not here
+    buffer.done_flush_segments(flushed_segments)
 
     return segment_messages
