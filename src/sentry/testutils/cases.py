@@ -29,7 +29,6 @@ from django.core import signing
 from django.core.cache import cache
 from django.db import connection, connections
 from django.db.migrations.executor import MigrationExecutor
-from django.db.migrations.state import ProjectState
 from django.http import HttpRequest
 from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
@@ -2673,20 +2672,6 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.login_as(self.user)
 
 
-_project_state_cache: dict[str, ProjectState] = {}
-
-
-def get_project_state(connection: str) -> ProjectState:
-    global _project_state_cache
-
-    if connection not in _project_state_cache:
-        executor = MigrationExecutor(connections[connection])
-        _project_state_cache[connection] = executor._create_project_state(
-            with_applied_migrations=True
-        )
-    return _project_state_cache[connection].clone()
-
-
 @pytest.mark.migrations
 class TestMigrations(TransactionTestCase):
     """
@@ -2727,14 +2712,14 @@ class TestMigrations(TransactionTestCase):
         old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(migrate_from, state=get_project_state(self.connection))
+        executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(migrate_to, state=get_project_state(self.connection))
+        executor.migrate(migrate_to)
 
         self.apps = executor.loader.project_state(migrate_to).apps
 
@@ -2742,7 +2727,7 @@ class TestMigrations(TransactionTestCase):
         super().tearDown()
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.current_migration, state=get_project_state(self.connection))
+        executor.migrate(self.current_migration)
 
     def setup_initial_state(self):
         # Add code here that will run before we roll back the database to the `migrate_from`
