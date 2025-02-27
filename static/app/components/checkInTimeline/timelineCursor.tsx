@@ -9,11 +9,10 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
 
-/**
- * Ensure the tooltip does not overlap with the navigation button at the right
- * of the timeline.
- */
-const TOOLTIP_RIGHT_CLAMP_OFFSET = 40;
+export interface CursorOffsets {
+  left?: number;
+  right?: number;
+}
 
 interface Options {
   /**
@@ -26,6 +25,12 @@ interface Options {
    */
   enabled?: boolean;
   /**
+   * Configres clampped offsets on the left and right of the cursor overlay
+   * element. May be useful in scenarios where you do not want the overlay to
+   * cover some additional UI elements
+   */
+  offsets?: CursorOffsets;
+  /**
    * Should the label stick to teh top of the screen?
    */
   sticky?: boolean;
@@ -34,6 +39,7 @@ interface Options {
 function useTimelineCursor<E extends HTMLElement>({
   enabled = true,
   sticky,
+  offsets,
   labelText,
 }: Options) {
   const rafIdRef = useRef<number | null>(null);
@@ -101,13 +107,10 @@ function useTimelineCursor<E extends HTMLElement>({
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [enabled, handleMouseMove]);
 
-  const cursorLabel = sticky ? (
-    <StickyLabel>
-      <CursorLabel ref={labelRef} animated placement="right" />
-    </StickyLabel>
-  ) : (
-    <CursorLabel ref={labelRef} animated placement="right" />
+  const labelOverlay = (
+    <CursorLabel ref={labelRef} animated placement="right" offsets={offsets} />
   );
+  const cursorLabel = sticky ? <StickyLabel>{labelOverlay}</StickyLabel> : labelOverlay;
 
   const timelineCursor = (
     <AnimatePresence>
@@ -146,7 +149,7 @@ const Cursor = styled(motion.div)`
   z-index: 3;
 `;
 
-const CursorLabel = styled(Overlay)`
+const CursorLabel = styled(Overlay)<{offsets?: CursorOffsets}>`
   font-variant-numeric: tabular-nums;
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
@@ -157,9 +160,9 @@ const CursorLabel = styled(Overlay)`
   top: 12px;
   left: clamp(
     0px,
-    calc(var(--cursorOffset) + ${TOOLTIP_OFFSET}px),
+    calc(var(--cursorOffset) + ${p => p.offsets?.left ?? 0}px + ${TOOLTIP_OFFSET}px),
     calc(
-      var(--cursorMax) - var(--cursorLabelWidth) - ${TOOLTIP_RIGHT_CLAMP_OFFSET}px -
+      var(--cursorMax) - var(--cursorLabelWidth) - ${p => p.offsets?.right ?? 0}px -
         ${TOOLTIP_OFFSET}px
     )
   );

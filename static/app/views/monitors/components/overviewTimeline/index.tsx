@@ -149,6 +149,7 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
         stickyCursor
         allowZoom
         showCursor
+        cursorOffsets={{right: 40}}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
