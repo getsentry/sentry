@@ -117,6 +117,7 @@ def child_worker(
         try:
             activation = child_tasks.get(timeout=0.1)
         except queue.Empty:
+            metrics.incr("taskworker.worker.child_task_queue_empty")
             continue
 
         task_func = _get_known_task(activation)
@@ -341,6 +342,7 @@ class TaskWorker:
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
+            metrics.incr("taskworker.worker.fetch_next", tags={"next": fetch_next is not None})
             try:
                 next_task = self.client.update_task(
                     task_id=result.task_id,
