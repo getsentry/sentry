@@ -42,7 +42,6 @@ export const chonkInputStyles = ({
   '&:focus, &:focus-visible, :focus-within': {
     outline: 'none',
     boxShadow: `0 0 0 2px ${theme.background}, 0 0 0 4px ${theme.focusBorder}`,
-    borderRadius: `calc(${theme.formRadius[size].borderRadius} + 2px)`,
   },
   "&[type='number']": {
     appearance: 'textfield',
