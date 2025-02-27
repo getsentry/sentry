@@ -4,6 +4,7 @@ import dataclasses
 import logging
 import time
 import zlib
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
 
@@ -91,30 +92,30 @@ class RecordingIngestMessage:
     replay_video: bytes | None
 
 
-def ingest_recording(message_bytes: bytes) -> None:
-    """Ingest non-chunked recording messages."""
+@contextmanager
+def sentry_tracing(name: str):
+    sample_rate = getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
-            name="replays.consumer.process_recording",
-            op="replays.consumer",
-            custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
-            },
+            name=name, op="replays.consumer", custom_sampling_context={"sample_rate": sample_rate}
         ):
-            try:
-                message = parse_recording_message(message_bytes)
-                if message.org_id in options.get("replay.consumer.separate-compute-and-io-org-ids"):
-                    _ingest_recording_separated_io_compute(message)
-                else:
-                    _ingest_recording(message)
-            except DropSilently:
-                # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
-                # so we ignore it.
-                pass
+            yield
+
+
+def ingest_recording(message_bytes: bytes) -> None:
+    """Ingest non-chunked recording messages."""
+    with sentry_tracing("replays.consumer.process_recording"):
+        try:
+            message = parse_recording_message(message_bytes)
+            if message.org_id in options.get("replay.consumer.separate-compute-and-io-org-ids"):
+                _ingest_recording_separated_io_compute(message)
+            else:
+                _ingest_recording(message)
+        except DropSilently:
+            # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
+            # so we ignore it.
+            pass
 
 
 @sentry_sdk.trace

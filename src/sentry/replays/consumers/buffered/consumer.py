@@ -1,8 +1,8 @@
+import contextlib
 import time
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry.replays.consumers.buffered.lib import Model, buffering_runtime
 from sentry.replays.usecases.ingest import (
@@ -10,6 +10,7 @@ from sentry.replays.usecases.ingest import (
     ProcessedRecordingMessage,
     commit_recording_message,
     process_recording_message,
+    sentry_tracing,
     track_recording_metadata,
 )
 
@@ -42,14 +43,16 @@ class BufferManager:
             or (time.time() - self.__max_buffer_wait) >= self.__last_flushed_at
         )
 
-    @sentry_sdk.trace
     def do_flush(self, model: Model[ProcessedRecordingMessage]) -> None:
-        flush_buffer(model, max_workers=32)
-        # Update the buffer manager with the new time so we don't continuously commit in a loop!
-        self.__last_flushed_at = time.time()
+        with sentry_tracing("replays.consumers.buffered.flush_buffer"):
+            flush_buffer(model, max_workers=8)
+            # Update the buffer manager with the new time so we don't continuously commit in a
+            # loop!
+            self.__last_flushed_at = time.time()
 
 
-def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int = 32) -> None:
+@sentry_sdk.trace
+def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int) -> None:
     # Use as many workers as necessary up to a limit. We don't want to start thousands of
     # worker threads.
     max_workers = min(len(model.buffer), max_workers)
@@ -57,7 +60,7 @@ def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int = 32)
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         # We apply whatever function is defined on the class to each message in the list. This
         # is useful for testing reasons (dependency injection).
-        futures = [pool.submit(commit_recording_message, message) for message in model.buffer]
+        futures = [pool.submit(flush_message, message) for message in model.buffer]
 
         # Tasks can fail. We check the done set for any failures. We will wait for all the
         # futures to complete before running this step or eagerly run this step if any task
@@ -77,27 +80,22 @@ def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int = 32)
     return None
 
 
+@sentry_sdk.trace
+def flush_message(message: ProcessedRecordingMessage) -> None:
+    """Message flushing function."""
+    with contextlib.suppress(DropSilently):
+        commit_recording_message(message)
+
+
 def process_message(message: bytes) -> ProcessedRecordingMessage | None:
     """Message processing function.
 
     Accepts an unstructured type and returns a structured one. Other than tracing the goal is to
     have no I/O here. We'll commit the I/O on flush.
     """
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
-            name="replays.consumer.process_recording",
-            op="replays.consumer",
-            custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
-            },
-        ):
-            try:
-                return process_recording_message(message)
-            except DropSilently:
-                return None
+    with sentry_tracing("replays.consumers.buffered.process_message"):
+        with contextlib.suppress(DropSilently):
+            return process_recording_message(message)
 
 
 def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
