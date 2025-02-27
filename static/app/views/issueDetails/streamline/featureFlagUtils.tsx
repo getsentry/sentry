@@ -6,6 +6,7 @@ export type RawFlag = {
   flag: string;
   id: number;
   tags: Record<string, any>;
+  provider?: string | null;
 };
 
 export type RawFlagData = {data: RawFlag[]};
