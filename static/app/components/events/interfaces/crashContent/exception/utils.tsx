@@ -87,20 +87,29 @@ export const renderLinksInText = ({
 
 // Maps the SDK name to the url token for docs
 export const sourceMapSdkDocsMap: Record<string, string> = {
+  'sentry.javascript.aws-serverless': 'aws-lambda',
   'sentry.javascript.browser': 'javascript',
   'sentry.javascript.node': 'node',
   'sentry.javascript.react': 'react',
   'sentry.javascript.angular': 'angular',
   'sentry.javascript.angular-ivy': 'angular',
+  'sentry.javascript.bun': 'bun',
+  'sentry.javascript.capacitor': 'capacitor',
+  'sentry.javascript.cloudflare': 'cloudflare',
+  'sentry.javascript.deno': 'deno',
+  'sentry.javascript.electron': 'electron',
   'sentry.javascript.ember': 'ember',
   'sentry.javascript.gatsby': 'gatsby',
+  'sentry.javascript.google-cloud-serverless': 'gcp-functions',
   'sentry.javascript.vue': 'vue',
+  'sentry.javascript.nestjs': 'nestjs',
   'sentry.javascript.nextjs': 'nextjs',
   'sentry.javascript.remix': 'remix',
+  'sentry.javascript.solid': 'solid',
   'sentry.javascript.svelte': 'svelte',
   'sentry.javascript.sveltekit': 'sveltekit',
   'sentry.javascript.react-native': 'react-native',
-  'sentry.javascript.atro': 'astro',
+  'sentry.javascript.astro': 'astro',
 };
 
 const IconPlacement = styled(IconOpen)`
