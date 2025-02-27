@@ -9,11 +9,6 @@ from sentry.replays.usecases.ingest import ProcessedRecordingMessage
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 
 
-def test_process_message_invalid():
-    result = process_message(msgpack.packb(b"hello, world!"))
-    assert result is None
-
-
 def test_process_message():
     result = process_message(
         msgpack.packb(
@@ -51,3 +46,8 @@ def test_process_message():
         video_size=None,
         replay_event=None,
     )
+
+
+def test_process_message_invalid():
+    result = process_message(msgpack.packb(b"hello, world!"))
+    assert result is None
