@@ -1130,7 +1130,7 @@ export type ColorOrAlias = keyof Aliases | Color;
 export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
-  [key: `&${string}`]: StrictCSSObject; // Allow pseudo-selectors
+  [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
 }>;
 
 /**
