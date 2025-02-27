@@ -680,11 +680,6 @@ const PathCell = styled('div')`
   padding: ${space(1)} ${space(2)};
   justify-content: center;
   gap: ${space(0.5)};
-
-  [role='columnheader'] & {
-    padding-top: ${space(0.75)};
-    padding-bottom: ${space(0.75)};
-  }
 `;
 
 const ControllerText = styled('div')`
@@ -851,11 +846,7 @@ function RoutesTable({query}: {query?: string}) {
             <PathCell>
               {transaction.path}
               {routeControllersRequest.isLoading ? (
-                <Placeholder
-                  height={theme.fontSizeSmall}
-                  width="25vw"
-                  testId="skeleton-ui"
-                />
+                <Placeholder height={theme.fontSizeSmall} width="25vw" />
               ) : (
                 transaction.controller && (
                   <ControllerText>{transaction.controller}</ControllerText>
