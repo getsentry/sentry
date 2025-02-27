@@ -1,3 +1,5 @@
+"""Session Replay recording consumer implementation."""
+
 import contextlib
 import time
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
@@ -61,8 +63,6 @@ def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int) -> N
         return None
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        # We apply whatever function is defined on the class to each message in the list. This
-        # is useful for testing reasons (dependency injection).
         futures = [pool.submit(flush_message, message) for message in model.buffer]
 
         # Tasks can fail. We check the done set for any failures. We will wait for all the
@@ -85,7 +85,6 @@ def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int) -> N
 
 @sentry_sdk.trace
 def flush_message(message: ProcessedRecordingMessage) -> None:
-    """Message flushing function."""
     with contextlib.suppress(DropSilently):
         commit_recording_message(message)
 
