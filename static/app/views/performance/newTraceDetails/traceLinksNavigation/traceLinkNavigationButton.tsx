@@ -1,6 +1,10 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  SpanLink,
+  TraceContextType,
+} from 'sentry/components/events/interfaces/spans/types';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -9,7 +13,33 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+function useIsTraceAvailable(traceLink?: SpanLink): {
+  isAvailable: boolean;
+  isLoading: boolean;
+} {
+  const queryParams = useTraceQueryParams();
+
+  const trace = useTrace({
+    traceSlug: traceLink?.trace_id,
+    timestamp: queryParams.timestamp,
+  });
+
+  const isAvailable = useMemo(() => {
+    if (!traceLink) {
+      return false;
+    }
+    return Boolean(trace?.data?.transactions?.length);
+  }, [traceLink, trace?.data?.transactions]);
+
+  return {
+    isAvailable,
+    isLoading: trace.isLoading,
+  };
+}
 
 type TraceLinkNavigationButtonProps = {
   // Currently, we only support previous but component can be used for 'next trace' in the future
@@ -30,13 +60,18 @@ export function TraceLinkNavigationButton({
     link => link.attributes?.['sentry.link.type'] === `${direction}_trace`
   );
 
-  const dateSelection = normalizeDateTimeParams(location.query);
+  const dateSelection = useMemo(
+    () => normalizeDateTimeParams(location.query),
+    [location.query]
+  );
+
+  const isLinkedTraceAvailable = useIsTraceAvailable(traceLink);
 
   if (isLoading) {
     return <TraceLinkSkeleton>{t('Fetching previous trace...')}</TraceLinkSkeleton>;
   }
 
-  if (!traceLink) {
+  if (!traceLink || !isLinkedTraceAvailable) {
     return null;
   }
 

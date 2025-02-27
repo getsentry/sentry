@@ -215,7 +215,7 @@ export enum TickAlignment {
 
 type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
 
-type SpanLink = {
+export type SpanLink = {
   span_id: string;
   trace_id: string;
   attributes?: Record<string, AttributeValue> & {'sentry.link.type'?: AttributeValue};
