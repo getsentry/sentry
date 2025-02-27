@@ -57,9 +57,12 @@ export function MultiQueryModeChart({
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
-  const confidence = useMemo(() => {
+  const [confidence, numSeries] = useMemo(() => {
     const series = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis]).filter(defined);
-    return combineConfidenceForSeries(series);
+    return [
+      combineConfidenceForSeries(series),
+      Math.min(series.length, DEFAULT_TOP_EVENTS),
+    ];
   }, [timeseriesResult.data, yAxes]);
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -301,7 +304,7 @@ export function MultiQueryModeChart({
         <ConfidenceFooter
           sampleCount={sampleCount}
           confidence={confidence}
-          topEvents={isTopN ? DEFAULT_TOP_EVENTS : undefined}
+          topEvents={isTopN ? numSeries : undefined}
         />
       }
     />
