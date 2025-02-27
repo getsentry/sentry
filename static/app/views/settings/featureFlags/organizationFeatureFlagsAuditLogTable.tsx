@@ -1,12 +1,9 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 
 import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -71,46 +68,6 @@ export function OrganizationFeatureFlagsAuditLogTable({
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
-  const [hasFilters, setHasFilters] = useState<boolean>(false);
-
-  const clearQuery = useCallback(() => {
-    const {width} = location.query;
-    navigate({
-      pathname: location.pathname,
-      query: width ? {width} : {},
-    });
-    setHasFilters(false);
-  }, [navigate, location.pathname, location.query]);
-
-  const onFlagClick = useCallback(
-    (flag: string) => {
-      const {cursor: _, ...queryParams} = location.query; // persist the current query but reset cursor.
-      navigate({
-        pathname: location.pathname,
-        query: {
-          ...queryParams,
-          flag,
-        },
-      });
-      setHasFilters(true);
-    },
-    [navigate, location.pathname, location.query]
-  );
-
-  const onProviderClick = useCallback(
-    (provider: string | null | undefined) => {
-      const {cursor: _, ...queryParams} = location.query; // persist the current query but reset cursor.
-      navigate({
-        pathname: location.pathname,
-        query: {
-          ...queryParams,
-          provider: provider || 'unknown',
-        },
-      });
-      setHasFilters(true);
-    },
-    [navigate, location.pathname, location.query]
-  );
 
   const renderBodyCell = (
     column: GridColumnOrder<ColumnKey>,
@@ -120,31 +77,9 @@ export function OrganizationFeatureFlagsAuditLogTable({
   ) => {
     switch (column.key) {
       case 'flag':
-        return (
-          <Tooltip title={t('Click to filter by this flag')}>
-            <code
-              onClick={() => {
-                onFlagClick(dataRow.flag);
-              }}
-              style={{cursor: 'pointer'}}
-            >
-              {dataRow.flag}
-            </code>
-          </Tooltip>
-        );
+        return <code>{dataRow.flag}</code>;
       case 'provider':
-        return (
-          <Tooltip title={t('Click to filter by this provider')}>
-            <div
-              onClick={() => {
-                onProviderClick(dataRow.provider);
-              }}
-              style={{cursor: 'pointer'}}
-            >
-              {dataRow.provider || t('unknown')}
-            </div>
-          </Tooltip>
-        );
+        return dataRow.provider || t('unknown');
       case 'createdAt':
         return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
       case 'action': {
@@ -170,10 +105,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
 
   return (
     <Fragment>
-      <Flex justify="space-between">
-        <h5>{t('Audit Logs')}</h5>
-        {hasFilters && <Button onClick={clearQuery}>{t('View All')}</Button>}
-      </Flex>
+      <h5>{t('Audit Logs')}</h5>
       <TextBlock>
         {t(
           'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags.'
