@@ -657,6 +657,11 @@ export default typescript.config([
           paths: [
             ...restrictedImportPaths,
             {
+              name: 'sentry/components/button',
+              message:
+                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
+            },
+            {
               name: 'sentry/utils/queryClient',
               message:
                 'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
