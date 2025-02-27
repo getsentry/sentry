@@ -91,7 +91,7 @@ class RedisSpansBufferV2:
 
             p.execute()
 
-    def flush_segments(self, max_segments: int, now: int) -> dict[SegmentId, set[bytes]]:
+    def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentId, set[bytes]]:
         cutoff = now
 
         with self.client.pipeline(transaction=False) as p:
@@ -111,10 +111,10 @@ class RedisSpansBufferV2:
                     segment_ids.append(segment_id)
                     p.smembers(segment_id)
 
-                    if len(segment_ids) >= max_segments:
+                    if max_segments > 0 and len(segment_ids) >= max_segments:
                         break
 
-                if len(segment_ids) >= max_segments:
+                if max_segments > 0 and len(segment_ids) >= max_segments:
                     break
 
             segments = p.execute()

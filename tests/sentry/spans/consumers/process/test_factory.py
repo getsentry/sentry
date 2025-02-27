@@ -88,6 +88,7 @@ def process_spans_strategy():
         max_batch_size=2,
         max_batch_time=1,
         output_block_size=1,
+        buffer_v2=False,
     )
 
 
