@@ -780,7 +780,7 @@ function RoutesTable({query}: {query?: string}) {
           ],
           query: `transaction.op:http.server span.op:http.route transaction:[${
             transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
-          }] ${query}`,
+          }]`,
           referrer: 'api.explore.spans-aggregates-table',
           sort: '-transaction',
           per_page: 25,
