@@ -1115,11 +1115,7 @@ export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow pseudo-selectors
-}> &
-  Partial<{
-    // Augment with newer values that don't yet exist in CSSProperties
-    'font-variant-numeric': string;
-  }>;
+}>;
 
 /**
  * Do not import theme values directly as they only define light color theme.

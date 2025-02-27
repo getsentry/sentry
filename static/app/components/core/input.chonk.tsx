@@ -44,7 +44,7 @@ export const chonkInputStyles = (
   "&[type='number']": {
     appearance: 'textfield',
     MozAppearance: 'textfield',
-    'font-variant-numeric': 'tabular-nums',
+    fontVariantNumeric: 'tabular-nums',
   },
   '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
     WebkitAppearance: 'none',
