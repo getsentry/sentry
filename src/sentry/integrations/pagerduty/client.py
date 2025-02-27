@@ -7,6 +7,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
+from sentry.integrations.pagerduty.utils import sanitize_routing_key
 
 LEVEL_SEVERITY_MAP = {
     "debug": "info",
@@ -25,7 +26,7 @@ class PagerDutyClient(ApiClient):
     base_url = "https://events.pagerduty.com/v2/enqueue"
 
     def __init__(self, integration_key: str, integration_id: int | None) -> None:
-        self.integration_key = integration_key
+        self.integration_key = sanitize_routing_key(integration_key)
         super().__init__(integration_id=integration_id)
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> Any:

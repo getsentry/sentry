@@ -14,6 +14,7 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.integrations.pagerduty.client import PagerDutyClient
 
 pytestmark = [requires_snuba]
 
@@ -71,6 +72,12 @@ class PagerDutyClientTest(APITestCase):
         self.custom_details = serialize(self.event, None, ExternalEventSerializer())
         assert self.event.group is not None
         self.group = self.event.group
+
+    def test_client_initialization_sanitizes_key(self):
+        """Test that the PagerDutyClient properly sanitizes routing keys on initialization"""
+        messy_key = " '46e00c51d3c54438b803b9a947d9d5db' "
+        client = PagerDutyClient(integration_key=messy_key, integration_id=1)
+        assert client.integration_key == "46e00c51d3c54438b803b9a947d9d5db"
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

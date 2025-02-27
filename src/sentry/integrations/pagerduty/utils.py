@@ -35,6 +35,15 @@ class PagerDutyServiceDict(TypedDict):
     id: int
 
 
+def sanitize_routing_key(key: str) -> str:
+    """
+    Clean a PagerDuty routing/integration key by removing surrounding quotes and whitespace.
+    
+    >>> sanitize_routing_key(" '46e00c51d3c54438b803b9a947d9d5db ' ")
+    '46e00c51d3c54438b803b9a947d9d5db'
+    """
+    return key.strip().strip('"').strip("'")
+
 @control_silo_function
 def add_service(
     organization_integration: OrganizationIntegration, integration_key: str, service_name: str
