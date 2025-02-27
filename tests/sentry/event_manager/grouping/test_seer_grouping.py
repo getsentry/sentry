@@ -22,20 +22,20 @@ EMPTY_SEER_RESULTS = (
 )
 
 
-def get_event_data() -> dict[str, Any]:
+def get_event_data(dog: str = "Charlie") -> dict[str, Any]:
     return {
-        "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+        "title": f"FailedToFetchError('{dog} didn't bring the ball back')",
         "exception": {
             "values": [
                 {
                     "type": "FailedToFetchError",
-                    "value": "Charlie didn't bring the ball back",
+                    "value": f"{dog} didn't bring the ball back",
                     "stacktrace": {
                         "frames": [
                             {
                                 "function": "play_fetch",
                                 "filename": "dogpark.py",
-                                "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                "context_line": f"raise FailedToFetchError('{dog} didn't bring the ball back')",
                             }
                         ]
                     },
