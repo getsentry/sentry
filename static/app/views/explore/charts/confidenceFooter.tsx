@@ -71,7 +71,7 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
     }
 
     return tct(
-      '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
+      '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples',
       {
         topEvents,
         sampleCount: <Count value={sampleCount} />,
