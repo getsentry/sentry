@@ -197,6 +197,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
         }}
         highlightedRowKey={activeRowKey}
         scrollable={false}
+        data-test-id="audit-log-table"
       />
 
       <Pagination

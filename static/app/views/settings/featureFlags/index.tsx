@@ -179,6 +179,7 @@ export function OrganizationFeatureFlagsIndex() {
         }
         emptyMessage={t("You haven't linked any providers yet.")}
         headers={[t('Provider'), t('Created'), t('Created by'), '']}
+        data-test-id="secrets-table"
       >
         {!isError && !isPending && !!secretList?.data?.length && (
           <SecretList

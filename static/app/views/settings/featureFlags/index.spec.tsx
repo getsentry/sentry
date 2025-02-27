@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -27,6 +28,11 @@ describe('OrganizationFeatureFlagsIndex', function () {
       url: '/organizations/org-slug/users/1234/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: LOGS_ENDPOINT,
+      method: 'GET',
+      body: {data: []},
+    });
     OrganizationsStore.addOrReplace(organization);
   });
 
@@ -45,22 +51,21 @@ describe('OrganizationFeatureFlagsIndex', function () {
       method: 'GET',
       body: {data: secrets},
     });
-    MockApiClient.addMockResponse({
-      url: LOGS_ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
 
     render(<OrganizationFeatureFlagsIndex />);
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const secretsTable = within(screen.getByTestId('secrets-table'));
 
-    expect(screen.getByText('launchdarkly')).toBeInTheDocument();
-    expect(screen.getByText('openfeature')).toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      secretsTable.queryByTestId('loading-indicator')
+    );
 
-    expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(secretsTable.getByText('launchdarkly')).toBeInTheDocument();
+    expect(secretsTable.getByText('openfeature')).toBeInTheDocument();
+
+    expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
+    expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(secretsTable.queryByTestId('empty-state')).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
@@ -75,19 +80,16 @@ describe('OrganizationFeatureFlagsIndex', function () {
       method: 'GET',
       statusCode: 400,
     });
-    MockApiClient.addMockResponse({
-      url: LOGS_ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
 
     render(<OrganizationFeatureFlagsIndex />);
 
-    expect(await screen.findByTestId('loading-error')).toHaveTextContent(
+    const secretsTable = within(screen.getByTestId('secrets-table'));
+
+    expect(await secretsTable.findByTestId('loading-error')).toHaveTextContent(
       'Failed to load secrets and providers for the organization.'
     );
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(secretsTable.queryByTestId('empty-state')).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
@@ -100,19 +102,18 @@ describe('OrganizationFeatureFlagsIndex', function () {
       method: 'GET',
       body: {data: secrets},
     });
-    MockApiClient.addMockResponse({
-      url: LOGS_ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
 
     render(<OrganizationFeatureFlagsIndex />);
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const secretsTable = within(screen.getByTestId('secrets-table'));
 
-    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      secretsTable.queryByTestId('loading-indicator')
+    );
+
+    expect(secretsTable.getByTestId('empty-state')).toBeInTheDocument();
+    expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
+    expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   describe('removing', function () {
@@ -129,11 +130,6 @@ describe('OrganizationFeatureFlagsIndex', function () {
         method: 'GET',
         body: {data: secrets},
       });
-      MockApiClient.addMockResponse({
-        url: LOGS_ENDPOINT,
-        method: 'GET',
-        body: {data: []},
-      });
 
       const deleteMock = MockApiClient.addMockResponse({
         url: `${SECRETS_ENDPOINT}1/`,
@@ -143,21 +139,23 @@ describe('OrganizationFeatureFlagsIndex', function () {
       render(<OrganizationFeatureFlagsIndex />);
       renderGlobalModal();
 
-      expect(await screen.findByText('openfeature')).toBeInTheDocument();
-      expect(screen.getByText('launchdarkly')).toBeInTheDocument();
+      const secretsTable = within(screen.getByTestId('secrets-table'));
+
+      expect(await secretsTable.findByText('openfeature')).toBeInTheDocument();
+      expect(secretsTable.getByText('launchdarkly')).toBeInTheDocument();
 
       expect(
-        screen.getByLabelText('Remove secret for launchdarkly provider')
+        secretsTable.getByLabelText('Remove secret for launchdarkly provider')
       ).toBeEnabled();
 
       await userEvent.click(
-        screen.getByLabelText('Remove secret for launchdarkly provider')
+        secretsTable.getByLabelText('Remove secret for launchdarkly provider')
       );
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-      expect(screen.getByText('openfeature')).toBeInTheDocument();
-      expect(screen.queryByText('launchdarkly')).not.toBeInTheDocument();
+      expect(secretsTable.getByText('openfeature')).toBeInTheDocument();
+      expect(secretsTable.queryByText('launchdarkly')).not.toBeInTheDocument();
 
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
         'Removed the provider and signing secret for the organization.'
@@ -184,18 +182,14 @@ describe('OrganizationFeatureFlagsIndex', function () {
         method: 'GET',
         body: {data: secrets},
       });
-      MockApiClient.addMockResponse({
-        url: LOGS_ENDPOINT,
-        method: 'GET',
-        body: {data: []},
-      });
 
       render(<OrganizationFeatureFlagsIndex />, {organization: org});
 
-      expect(await screen.findByText('launchdarkly')).toBeInTheDocument();
+      const secretsTable = within(screen.getByTestId('secrets-table'));
 
+      expect(await secretsTable.findByText('launchdarkly')).toBeInTheDocument();
       expect(
-        screen.getByLabelText('Remove secret for launchdarkly provider')
+        secretsTable.getByLabelText('Remove secret for launchdarkly provider')
       ).toBeDisabled();
     });
   });
