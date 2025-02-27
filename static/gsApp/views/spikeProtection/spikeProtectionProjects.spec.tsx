@@ -9,6 +9,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types/project';
@@ -300,17 +301,22 @@ describe('project renders and toggles', () => {
 
   it('searches successfully', async () => {
     const projectSlug = projects[0]!.slug;
+    jest.useFakeTimers();
     render(<SpikeProtectionProjects />, {organization});
 
     const projectSearch = await screen.findByPlaceholderText('Search projects');
-    await userEvent.click(projectSearch);
-    await userEvent.paste(projectSlug);
+    await userEvent.type(projectSearch, projectSlug, {delay: null});
+    await waitFor(() => {
+      expect(projectSearch).toHaveValue(projectSlug);
+    });
 
-    expect(projectSearch).toHaveValue(projectSlug);
-    expect(mockGet).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalledTimes(2);
+    });
 
     const requestOptions = mockGet.mock.calls[1][1];
     expect(requestOptions.query).toEqual(expect.objectContaining({query: projectSlug}));
+    jest.useRealTimers();
   });
 
   it('response to successful toggle for all projects', async () => {

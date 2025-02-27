@@ -1137,6 +1137,22 @@ describe('calculateCategoryPrepaidUsage', () => {
       prepaidSpend: 100_000_00,
       prepaidUsage: 100_000,
     });
+
+    const result3 = calculateCategoryPrepaidUsage(
+      'spans',
+      subscription,
+      totals,
+      prepaid,
+      undefined,
+      0
+    );
+    expect(result3).toEqual({
+      onDemandUsage: 0,
+      prepaidPercentUsed: 0,
+      prepaidPrice: 100_000_00,
+      prepaidSpend: 0,
+      prepaidUsage: 150_000,
+    });
   });
 
   it('calculates for reserved budgets with reserved cpe', function () {

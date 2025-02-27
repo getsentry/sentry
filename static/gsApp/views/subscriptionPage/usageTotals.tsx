@@ -94,7 +94,7 @@ type UsageProps = {
   /**
    * Gifted budget for the current billing period.
    */
-  freeBudget?: number;
+  freeBudget?: number | null;
   /**
    * Gifted events for the current billing period.
    */
@@ -102,7 +102,7 @@ type UsageProps = {
   /**
    * The prepaid budget (reserved + gifted) if any
    */
-  prepaidBudget?: number;
+  prepaidBudget?: number | null;
   /**
    * Total events allowed for the current usage period including gifted
    */
@@ -110,15 +110,11 @@ type UsageProps = {
   /**
    * The reserved budget if any
    */
-  reservedBudget?: number;
-  /**
-   * The reserved cpe, in cents, if any
-   */
-  reservedCpe?: number;
+  reservedBudget?: number | null;
   /**
    * The reserved spend if any
    */
-  reservedSpend?: number;
+  reservedSpend?: number | null;
   /**
    * The reserved amount or null if the account doesn't have this category.
    */
@@ -165,8 +161,8 @@ export function calculateCategoryPrepaidUsage(
   subscription: Subscription,
   totals: Pick<BillingStatTotal, 'accepted'>,
   prepaid: number,
-  reservedCpe?: number,
-  reservedSpend?: number
+  reservedCpe?: number | null,
+  reservedSpend?: number | null
 ): {
   onDemandUsage: number;
   prepaidPercentUsed: number;
@@ -194,7 +190,7 @@ export function calculateCategoryPrepaidUsage(
         prepaidTotal = prepaid;
     }
   }
-  const hasReservedBudget = reservedCpe || reservedSpend;
+  const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
     ? reservedSpend ?? totals.accepted * (reservedCpe ?? 0)
     : totals.accepted;
@@ -333,10 +329,10 @@ function UsageTotals({
   freeUnits = 0,
   prepaidUnits = 0,
   reservedUnits = null,
-  freeBudget = 0,
-  prepaidBudget = 0,
-  reservedBudget = 0,
-  reservedSpend = 0,
+  freeBudget = null,
+  prepaidBudget = null,
+  reservedBudget = null,
+  reservedSpend = null,
   softCapType = null,
   totals = EMPTY_STAT_TOTAL,
   eventTotals = {},
@@ -355,7 +351,7 @@ function UsageTotals({
   const hasReservedBudget = reservedUnits === RESERVED_BUDGET_QUOTA;
   const free = hasReservedBudget ? freeBudget : freeUnits;
   const reserved = hasReservedBudget ? reservedBudget : reservedUnits;
-  const prepaid = hasReservedBudget ? prepaidBudget : prepaidUnits;
+  const prepaid = hasReservedBudget ? prepaidBudget ?? 0 : prepaidUnits;
 
   const displayGifts = (free || freeBudget) && !isUnlimitedReserved(reservedUnits);
   const reservedTestId = displayGifts ? `gifted-${category}` : `reserved-${category}`;
@@ -429,7 +425,7 @@ function UsageTotals({
   const unusedPrepaidWidth =
     reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
   const totalCategorySpend =
-    (hasReservedBudget ? reservedSpend : prepaidPrice) + categoryOnDemandSpent;
+    (hasReservedBudget ? reservedSpend ?? 0 : prepaidPrice) + categoryOnDemandSpent;
 
   // Shared on demand spend is gone, another category has spent all of it
   // It is confusing to show on demand spend when the category did not spend any and the budget is gone

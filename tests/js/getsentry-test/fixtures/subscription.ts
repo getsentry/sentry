@@ -25,6 +25,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const hasMonitors = planDetails?.categories?.includes(
     DATA_CATEGORY_INFO.monitorSeat.plural
   );
+  const hasUptime = planDetails?.categories?.includes(DATA_CATEGORY_INFO.uptime.plural);
   const hasSpans = planDetails?.categories?.includes(DATA_CATEGORY_INFO.span.plural);
   const hasSpansIndexed = planDetails?.categories?.includes(
     DATA_CATEGORY_INFO.spanIndexed.plural
@@ -180,12 +181,20 @@ export function SubscriptionFixture(props: Props): TSubscription {
           order: 7,
         }),
       }),
+      ...(hasUptime && {
+        uptime: MetricHistoryFixture({
+          category: DATA_CATEGORY_INFO.uptime.plural,
+          reserved: planDetails!.planCategories.uptime![0]!.events,
+          prepaid: planDetails!.planCategories.uptime![0]!.events,
+          order: 8,
+        }),
+      }),
       ...(hasAttachments && {
         attachments: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.attachment.plural,
           reserved: planDetails!.planCategories.attachments![0]!.events,
           prepaid: planDetails!.planCategories.attachments![0]!.events,
-          order: 8,
+          order: 9,
         }),
       }),
       ...(hasProfileDuration && {
@@ -193,7 +202,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
           category: DataCategory.PROFILE_DURATION,
           reserved: planDetails!.planCategories.profileDuration![0]!.events,
           prepaid: planDetails!.planCategories.profileDuration![0]!.events,
-          order: 9,
+          order: 10,
         }),
       }),
     },

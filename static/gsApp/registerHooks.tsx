@@ -34,6 +34,7 @@ import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
@@ -80,6 +81,7 @@ import {
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
+import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
@@ -189,6 +191,10 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <SpikeProtectionProjectSettings {...p} />
   ),
   /**
+   *   Tracing units exceeded alerts
+   */
+  'component:performance-quota-exceeded-alert': () => QuotaExceededAlert,
+  /**
    *   Given a module name, if applicable, displays the appropriate upsell page
    */
   'component:insights-upsell-page': () => InsightsUpsellPage,
@@ -227,6 +233,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-experiment': useExperiment,
+  'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),

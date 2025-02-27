@@ -221,16 +221,28 @@ function ReviewAndConfirmHeader({
   const {effectiveAt} = previewData;
   const effectiveNow = new Date(effectiveAt).getTime() <= new Date().getTime() + 3600;
 
+  let subText;
+  if (effectiveNow) {
+    subText = tct(
+      'These changes will apply immediately, and you will be billed today[partnerName].',
+      {
+        partnerName: subscription.isSelfServePartner
+          ? ` through ${subscription.partner?.partnership.displayName}`
+          : '',
+      }
+    );
+  } else {
+    subText = t(
+      'This change will take effect at the end of your current contract period.'
+    );
+  }
+
   return (
     <Header>
       {effectiveNow
         ? t('Effective changes as of today')
         : tct('Effective on [date]', {date: <strong>{formatDate(effectiveAt)}</strong>})}
-      <SubText>
-        {effectiveNow
-          ? t('These changes will apply immediately, and you will be billed today.')
-          : t('This change will take effect at the end of your current contract period.')}
-      </SubText>
+      <SubText>{subText}</SubText>
     </Header>
   );
 }

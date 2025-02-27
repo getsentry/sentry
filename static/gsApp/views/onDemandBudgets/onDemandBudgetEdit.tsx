@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Tag from 'sentry/components/badge/tag';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Radio from 'sentry/components/radio';

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {DiamondStatus} from 'sentry/components/diamondStatus';
-import {IconCalendar, IconFire} from 'sentry/icons';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {IconCalendar} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
@@ -23,7 +24,7 @@ function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
 
   return (
     <SpikeTimeDetailsWrapper>
-      <DiamondStatus icon={IconFire} color="errorText" />
+      <AlertBadge status={IncidentStatus.CRITICAL} />
       <SpikeTimeDetailsTextWrapper>
         <strong>{formattedTime.toLowerCase()}</strong>
         <span>

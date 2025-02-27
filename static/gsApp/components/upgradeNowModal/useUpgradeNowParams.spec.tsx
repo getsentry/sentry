@@ -58,7 +58,7 @@ describe('useUpgradeNowParams', () => {
           reservedReplays: 500,
           reservedAttachments: 1,
           reservedMonitorSeats: 1,
-          reservedUptime: undefined,
+          reservedUptime: 1,
         },
       })
     );

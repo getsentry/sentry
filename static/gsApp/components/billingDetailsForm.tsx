@@ -5,6 +5,7 @@ import {useLoadScript} from '@react-google-maps/api';
 import * as Sentry from '@sentry/react';
 
 import AutoComplete from 'sentry/components/autoComplete';
+import {Input} from 'sentry/components/core/input';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -12,7 +13,6 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import FormModel from 'sentry/components/forms/model';
-import Input from 'sentry/components/input';
 import MenuListItem from 'sentry/components/menuListItem';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

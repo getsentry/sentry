@@ -128,10 +128,16 @@ describe('hasCategoryFeature', function () {
         order: 7,
       }),
       MetricHistoryFixture({
-        category: DataCategory.ATTACHMENTS,
+        category: DataCategory.UPTIME,
         reserved: 1,
         prepaid: 1,
         order: 8,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.ATTACHMENTS,
+        reserved: 1,
+        prepaid: 1,
+        order: 9,
       }),
     ]);
   });
@@ -176,12 +182,21 @@ describe('hasCategoryFeature', function () {
         }),
       ],
       [
+        'uptime',
+        MetricHistoryFixture({
+          category: DataCategory.UPTIME,
+          reserved: 1,
+          prepaid: 1,
+          order: 8,
+        }),
+      ],
+      [
         'attachments',
         MetricHistoryFixture({
           category: DataCategory.ATTACHMENTS,
           reserved: 1,
           prepaid: 1,
-          order: 8,
+          order: 9,
         }),
       ],
     ]);

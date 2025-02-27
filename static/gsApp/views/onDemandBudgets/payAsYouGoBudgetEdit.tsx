@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';

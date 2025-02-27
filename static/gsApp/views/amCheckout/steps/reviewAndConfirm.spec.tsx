@@ -83,8 +83,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     prevStepCompleted: false,
   };
 
-  function mockPreviewGet(slug = organization.slug) {
+  function mockPreviewGet(slug = organization.slug, effectiveAt: Date | null = null) {
     const preview = InvoicePreviewFixture();
+    if (effectiveAt) {
+      preview.effectiveAt = effectiveAt.toISOString();
+    }
     const mockPreview = MockApiClient.addMockResponse({
       url: `/customers/${slug}/subscription/preview/`,
       method: 'GET',
@@ -489,6 +492,126 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         partner: 'FOO',
       }
     );
+  });
+
+  it('should render immediate copy for effectiveNow', async function () {
+    mockPreviewGet(organization.slug, new Date());
+    mockSubscriptionPut(organization.slug);
+
+    const updatedData = {
+      plan: 'am3_business',
+      reserved: {
+        errors: 100_000,
+        replays: 5000,
+        spans: 10_000_000,
+        attachments: 1,
+        monitorSeats: 1,
+      },
+    };
+
+    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
+    expect(
+      await screen.findByText(
+        `These changes will apply immediately, and you will be billed today.`
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should render contract end copy for effective later', async function () {
+    mockPreviewGet(organization.slug);
+    mockSubscriptionPut(organization.slug);
+
+    const updatedData = {
+      plan: 'am3_business',
+      reserved: {
+        errors: 100_000,
+        replays: 5000,
+        spans: 10_000_000,
+        attachments: 1,
+        monitorSeats: 1,
+      },
+    };
+
+    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
+    expect(
+      await screen.findByText(
+        `This change will take effect at the end of your current contract period.`
+      )
+    ).toBeInTheDocument();
+
+    // Expects the same copy for self serve partners
+    const partnerSub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: moment().add(20, 'days').toString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          id: 'FOO',
+          displayName: 'FOO',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    const partnerStepProps = {
+      ...stepProps,
+      subscription: partnerSub,
+    };
+
+    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
+    expect(
+      await screen.findByText(
+        `This change will take effect at the end of your current contract period.`
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should render billed through self serve partner copy effectiveNow', async function () {
+    const partnerSub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: moment().add(20, 'days').toString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          id: 'FOO',
+          displayName: 'FOO',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    mockPreviewGet(organization.slug, new Date());
+    mockSubscriptionPut(organization.slug);
+
+    const updatedData = {
+      plan: 'am3_business',
+      reserved: {
+        errors: 100_000,
+        replays: 5000,
+        spans: 10_000_000,
+        attachments: 1,
+        monitorSeats: 1,
+      },
+    };
+    const partnerStepProps = {
+      ...stepProps,
+      subscription: partnerSub,
+    };
+
+    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
+    expect(
+      await screen.findByText(
+        `These changes will apply immediately, and you will be billed today through FOO.`
+      )
+    ).toBeInTheDocument();
   });
 
   it('does not send transactions upgrade event for plan upgrade', async function () {
