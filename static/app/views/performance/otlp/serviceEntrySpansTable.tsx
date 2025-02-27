@@ -20,6 +20,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,10 +30,6 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {
-  filterToField,
-  SpanOperationBreakdownFilter,
-} from 'sentry/views/performance/transactionSummary/filter';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 // TODO: When supported, also add span operation breakdown as a field
@@ -110,7 +107,6 @@ const CURSOR_NAME = 'serviceEntrySpansCursor';
 type Props = {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
   showViewSampledEventsButton?: boolean;
@@ -121,7 +117,6 @@ export function ServiceEntrySpansTable({
   eventView,
   handleDropdownChange,
   totalValues,
-  spanOperationBreakdownFilter,
   transactionName,
   supportsInvestigationRule,
   showViewSampledEventsButton,
@@ -133,10 +128,13 @@ export function ServiceEntrySpansTable({
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
-  const {selected, options} = getOTelTransactionsListSort(location, {
-    spanOperationBreakdownFilter,
-    p95: totalValues?.['p95()'] ?? 0,
-  });
+  const {selected, options} = getOTelTransactionsListSort(location);
+
+  const p95 = totalValues?.['p95()'] ?? 0;
+  const eventViewQuery = new MutableSearch(eventView.query);
+  if (selected.value === TransactionFilterOptions.SLOW && p95) {
+    eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
+  }
 
   const {
     data: tableData,
@@ -146,7 +144,7 @@ export function ServiceEntrySpansTable({
     error,
   } = useEAPSpans(
     {
-      search: eventView.query,
+      search: eventViewQuery.formatString(),
       fields: [
         'span_id',
         'user.id',
@@ -366,58 +364,24 @@ function CustomPagination({
   );
 }
 
-function getOTelFilterOptions({
-  p95,
-  spanOperationBreakdownFilter,
-}: {
-  p95: number;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-}): DropdownOption[] {
-  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
-    return [
-      {
-        sort: {kind: 'asc', field: 'span.duration'},
-        value: TransactionFilterOptions.FASTEST,
-        label: t('Fastest Transactions'),
-      },
-      {
-        query: p95 > 0 ? [['span.duration', `<=${p95.toFixed(0)}`]] : undefined,
-        sort: {kind: 'desc', field: 'span.duration'},
-        value: TransactionFilterOptions.SLOW,
-        label: t('Slow Transactions (p95)'),
-      },
-      {
-        sort: {kind: 'desc', field: 'span.duration'},
-        value: TransactionFilterOptions.OUTLIER,
-        label: t('Outlier Transactions (p100)'),
-      },
-      {
-        sort: {kind: 'desc', field: 'timestamp'},
-        value: TransactionFilterOptions.RECENT,
-        label: t('Recent Transactions'),
-      },
-    ];
-  }
-
-  const field = filterToField(spanOperationBreakdownFilter)!;
-  const operationName = spanOperationBreakdownFilter;
-
+// TODO: The span ops breakdown filter will not work here due to OTLP changes.
+// this may need to be adjusted in the future to handle the new breakdown filter that will replace it.
+function getOTelFilterOptions(): DropdownOption[] {
   return [
     {
-      sort: {kind: 'asc', field},
+      sort: {kind: 'asc', field: 'span.duration'},
       value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest %s Operations', operationName),
+      label: t('Fastest Transactions'),
     },
     {
-      query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
-      sort: {kind: 'desc', field},
+      sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.SLOW,
-      label: t('Slow %s Operations (p95)', operationName),
+      label: t('Slow Transactions (p95)'),
     },
     {
-      sort: {kind: 'desc', field},
+      sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier %s Operations (p100)', operationName),
+      label: t('Outlier Transactions (p100)'),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
@@ -427,11 +391,11 @@ function getOTelFilterOptions({
   ];
 }
 
-function getOTelTransactionsListSort(
-  location: Location,
-  options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
-): {options: DropdownOption[]; selected: DropdownOption} {
-  const sortOptions = getOTelFilterOptions(options);
+function getOTelTransactionsListSort(location: Location): {
+  options: DropdownOption[];
+  selected: DropdownOption;
+} {
+  const sortOptions = getOTelFilterOptions();
   const urlParam = decodeScalar(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
