@@ -413,9 +413,9 @@ describe('Quick Trace', function () {
       ].forEach((target, i) => {
         const linkNode = nodes[i]!.children[0];
         if (target) {
-          expect(linkNode).toHaveAttribute('href', target);
+          expect(linkNode?.parentNode).toHaveAttribute('href', target);
         } else {
-          expect(linkNode).not.toHaveAttribute('href');
+          expect(linkNode?.parentNode).not.toHaveAttribute('href');
         }
       });
     });

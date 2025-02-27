@@ -583,10 +583,8 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
       {to ? (
-        <Link to={to} onClick={onClick}>
-          <EventNode data-test-id="event-node" type={type}>
-            {text}
-          </EventNode>
+        <Link to={to} onClick={onClick} data-test-id="event-node">
+          <EventNode type={type}>{text}</EventNode>
         </Link>
       ) : (
         <EventNode data-test-id="event-node" type={type}>
