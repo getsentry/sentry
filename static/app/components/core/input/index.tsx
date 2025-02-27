@@ -4,6 +4,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {chonkInputStyles} from 'sentry/components/core/input/chonk';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface InputStylesProps {
@@ -40,7 +41,7 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
 
   &[disabled],
   &[aria-disabled='true'] {
-    background: ${p.theme.backgroundSecondary};
+    background: ${p.theme.background};
     color: ${p.theme.disabled};
     cursor: not-allowed;
 
@@ -50,7 +51,8 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   }
 
   &:focus,
-  &:focus-visible {
+  &:focus-visible,
+  :focus-within {
     outline: none;
     border-color: ${p.theme.focusBorder};
     box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
@@ -99,5 +101,5 @@ export const Input = styled(
   ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  ${inputStyles}
+  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
 `;
