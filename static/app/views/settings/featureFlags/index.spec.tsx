@@ -18,7 +18,8 @@ import {
 } from 'sentry/views/settings/featureFlags';
 
 describe('OrganizationFeatureFlagsIndex', function () {
-  const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
+  const SECRETS_ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
+  const LOGS_ENDPOINT = '/organizations/org-slug/flags/logs/';
   const {organization} = initializeOrg();
 
   beforeEach(function () {
@@ -40,9 +41,14 @@ describe('OrganizationFeatureFlagsIndex', function () {
     ];
 
     const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
+      url: SECRETS_ENDPOINT,
       method: 'GET',
       body: {data: secrets},
+    });
+    MockApiClient.addMockResponse({
+      url: LOGS_ENDPOINT,
+      method: 'GET',
+      body: {data: []},
     });
 
     render(<OrganizationFeatureFlagsIndex />);
@@ -57,14 +63,22 @@ describe('OrganizationFeatureFlagsIndex', function () {
     expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
-    expect(mock).toHaveBeenCalledWith(ENDPOINT, expect.objectContaining({method: 'GET'}));
+    expect(mock).toHaveBeenCalledWith(
+      SECRETS_ENDPOINT,
+      expect.objectContaining({method: 'GET'})
+    );
   });
 
   it('handle error when loading secrets', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
+      url: SECRETS_ENDPOINT,
       method: 'GET',
       statusCode: 400,
+    });
+    MockApiClient.addMockResponse({
+      url: LOGS_ENDPOINT,
+      method: 'GET',
+      body: {data: []},
     });
 
     render(<OrganizationFeatureFlagsIndex />);
@@ -82,9 +96,14 @@ describe('OrganizationFeatureFlagsIndex', function () {
     const secrets: Secret[] = [];
 
     MockApiClient.addMockResponse({
-      url: ENDPOINT,
+      url: SECRETS_ENDPOINT,
       method: 'GET',
       body: {data: secrets},
+    });
+    MockApiClient.addMockResponse({
+      url: LOGS_ENDPOINT,
+      method: 'GET',
+      body: {data: []},
     });
 
     render(<OrganizationFeatureFlagsIndex />);
@@ -106,13 +125,18 @@ describe('OrganizationFeatureFlagsIndex', function () {
       ];
 
       MockApiClient.addMockResponse({
-        url: ENDPOINT,
+        url: SECRETS_ENDPOINT,
         method: 'GET',
         body: {data: secrets},
       });
+      MockApiClient.addMockResponse({
+        url: LOGS_ENDPOINT,
+        method: 'GET',
+        body: {data: []},
+      });
 
       const deleteMock = MockApiClient.addMockResponse({
-        url: `${ENDPOINT}1/`,
+        url: `${SECRETS_ENDPOINT}1/`,
         method: 'DELETE',
       });
 
@@ -156,9 +180,14 @@ describe('OrganizationFeatureFlagsIndex', function () {
       ];
 
       MockApiClient.addMockResponse({
-        url: ENDPOINT,
+        url: SECRETS_ENDPOINT,
         method: 'GET',
         body: {data: secrets},
+      });
+      MockApiClient.addMockResponse({
+        url: LOGS_ENDPOINT,
+        method: 'GET',
+        body: {data: []},
       });
 
       render(<OrganizationFeatureFlagsIndex />, {organization: org});
