@@ -1,10 +1,12 @@
 import time
 import uuid
+import zlib
 
 import msgpack
 
 from sentry.replays.consumers.buffered.consumer import process_message
 from sentry.replays.usecases.ingest import ProcessedRecordingMessage
+from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 
 
 def test_process_message_invalid():
@@ -29,10 +31,12 @@ def test_process_message():
             }
         )
     )
+
+    expected_event_metadata = ParsedEventMeta([], [], [], [], [], [])
     assert result is not None
     assert result == ProcessedRecordingMessage(
-        actions_event=[],
-        filedata=b"[]",
+        actions_event=expected_event_metadata,
+        filedata=zlib.compress(b"[]"),
         filename=result.filename,
         is_replay_video=False,
         key_id=3,
@@ -41,7 +45,9 @@ def test_process_message():
         received=result.received,
         recording_size_uncompressed=2,
         recording_size=result.recording_size,
+        retention_days=30,
         replay_id=result.replay_id,
         segment_id=0,
         video_size=None,
+        replay_event=None,
     )
