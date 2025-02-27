@@ -65,10 +65,10 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                 task=task,
                 **kwargs,
             )
-            if created:
-                return True
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
+            if created:
+                return True
         return False
 
 
