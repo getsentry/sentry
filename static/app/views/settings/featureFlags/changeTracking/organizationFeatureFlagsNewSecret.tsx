@@ -12,8 +12,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import NewProviderForm from 'sentry/views/settings/featureFlags/newProviderForm';
-import NewSecretHandler from 'sentry/views/settings/featureFlags/newSecretHandler';
+import NewProviderForm from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
+import NewSecretHandler from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
 
 export function OrganizationFeatureFlagsNewSecet() {
   const [newSecret, setNewSecret] = useState<string | null>(null);

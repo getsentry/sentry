@@ -14,9 +14,9 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {
-  OrganizationFeatureFlagsIndex,
+  OrganizationFeatureFlagsChangeTracking,
   type Secret,
-} from 'sentry/views/settings/featureFlags';
+} from 'sentry/views/settings/featureFlags/changeTracking';
 
 describe('OrganizationFeatureFlagsIndex', function () {
   const SECRETS_ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
@@ -52,7 +52,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       body: {data: secrets},
     });
 
-    render(<OrganizationFeatureFlagsIndex />);
+    render(<OrganizationFeatureFlagsChangeTracking />);
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
@@ -81,7 +81,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       statusCode: 400,
     });
 
-    render(<OrganizationFeatureFlagsIndex />);
+    render(<OrganizationFeatureFlagsChangeTracking />);
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
@@ -103,7 +103,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       body: {data: secrets},
     });
 
-    render(<OrganizationFeatureFlagsIndex />);
+    render(<OrganizationFeatureFlagsChangeTracking />);
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
@@ -136,7 +136,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
         method: 'DELETE',
       });
 
-      render(<OrganizationFeatureFlagsIndex />);
+      render(<OrganizationFeatureFlagsChangeTracking />);
       renderGlobalModal();
 
       const secretsTable = within(screen.getByTestId('secrets-table'));
@@ -183,7 +183,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
         body: {data: secrets},
       });
 
-      render(<OrganizationFeatureFlagsIndex />, {organization: org});
+      render(<OrganizationFeatureFlagsChangeTracking />, {organization: org});
 
       const secretsTable = within(screen.getByTestId('secrets-table'));
 

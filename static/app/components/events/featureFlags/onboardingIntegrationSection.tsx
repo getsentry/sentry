@@ -26,11 +26,11 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
+import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags/changeTracking';
 import type {
   CreateSecretQueryVariables,
   CreateSecretResponse,
-} from 'sentry/views/settings/featureFlags/newProviderForm';
+} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 
 export default function OnboardingIntegrationSection({
   provider,

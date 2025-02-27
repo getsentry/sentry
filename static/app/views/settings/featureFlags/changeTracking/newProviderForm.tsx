@@ -23,7 +23,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
+import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags/changeTracking';
 
 export type CreateSecretQueryVariables = {
   provider: string;
