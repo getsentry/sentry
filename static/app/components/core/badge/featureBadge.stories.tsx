@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
@@ -16,24 +16,8 @@ export default storyBook('FeatureBadge', story => {
     </SideBySide>
   ));
 
-  story('Custom tooltip props', () => (
+  story('Variants', () => (
     <Fragment>
-      <FeatureBadge type="new" title="The tooltip title can be custom too" />
-      <FeatureBadge
-        type="new"
-        tooltipProps={{
-          title: 'You can use tooltipProps to override the title too',
-        }}
-      />
-    </Fragment>
-  ));
-
-  story('variant', () => (
-    <Fragment>
-      <p>
-        When using an indicator you might want to position it manually using{' '}
-        <kbd>styled(FeatureBadge)</kbd>.
-      </p>
       <Matrix<ComponentProps<typeof FeatureBadge>>
         render={props => (
           <span>

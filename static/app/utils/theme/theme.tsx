@@ -995,12 +995,12 @@ const commonTheme = {
 
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
-  fontSizeRelativeSmall: '0.9em',
-  fontSizeExtraSmall: '11px',
-  fontSizeSmall: '12px',
-  fontSizeMedium: '14px',
-  fontSizeLarge: '16px',
-  fontSizeExtraLarge: '18px',
+  fontSizeRelativeSmall: '0.9em' as const,
+  fontSizeExtraSmall: '11px' as const,
+  fontSizeSmall: '12px' as const,
+  fontSizeMedium: '14px' as const,
+  fontSizeLarge: '16px' as const,
+  fontSizeExtraLarge: '18px' as const,
 
   codeFontSize: '13px',
   headerFontSize: '22px',

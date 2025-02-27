@@ -1,13 +1,15 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 
 describe('FeatureBadge', function () {
   it('auto-hides when expired', function () {
     const {rerender} = render(
       <FeatureBadge
         type="new"
-        title="Something awesome"
+        tooltipProps={{
+          title: 'Something awesome',
+        }}
         expiresAt={new Date(2018, 9, 16)}
       />
     );
@@ -15,7 +17,9 @@ describe('FeatureBadge', function () {
     rerender(
       <FeatureBadge
         type="new"
-        title="Something awesome"
+        tooltipProps={{
+          title: 'Something awesome',
+        }}
         expiresAt={new Date(2017, 9, 16)}
       />
     );
@@ -24,7 +28,15 @@ describe('FeatureBadge', function () {
   it('shows before expiry date', function () {
     // One hour from 'now'.
     const expires = new Date(Date.now() + 1000 * 60 * 60);
-    render(<FeatureBadge type="new" title="Something awesome" expiresAt={expires} />);
+    render(
+      <FeatureBadge
+        type="new"
+        tooltipProps={{
+          title: 'Something awesome',
+        }}
+        expiresAt={expires}
+      />
+    );
     expect(screen.getByText('new')).toBeInTheDocument();
   });
 });

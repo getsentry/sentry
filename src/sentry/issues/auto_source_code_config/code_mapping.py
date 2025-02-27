@@ -47,6 +47,10 @@ class UnsupportedFrameFilename(Exception):
     pass
 
 
+class NeedsExtension(Exception):
+    pass
+
+
 def derive_code_mappings(
     organization: Organization,
     frame: Mapping[str, Any],
@@ -56,8 +60,13 @@ def derive_code_mappings(
         return []
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
-    frame_filename = FrameFilename(frame)
-    return trees_helper.list_file_matches(frame_filename)
+    try:
+        frame_filename = FrameFilename(frame)
+        return trees_helper.list_file_matches(frame_filename)
+    except NeedsExtension:
+        logger.warning("Needs extension: %s", frame.get("filename"))
+
+    return []
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -86,7 +95,7 @@ class FrameFilename:
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
         if not self.extension:
-            raise UnsupportedFrameFilename("It needs an extension.")
+            raise NeedsExtension("It needs an extension.")
 
         # Remove drive letter if it exists
         if is_windows_path and frame_file_path[1] == ":":
@@ -158,25 +167,19 @@ class CodeMappingTreesHelper:
             for file in matches:
                 stack_path = frame_filename.raw_path
                 source_path = file
+                extra = {"stack_path": stack_path, "source_path": source_path}
 
                 try:
-                    stack_root, source_root = find_roots(stack_path, source_path)
+                    stack_root, source_root = find_roots(frame_filename, source_path)
                 except UnexpectedPathException:
-                    logger.info(
-                        "Unexpected format for stack_path or source_path",
-                        extra={"stack_path": stack_path, "source_path": source_path},
-                    )
+                    logger.warning("Unexpected format for stack_path or source_path", extra=extra)
                     continue
 
+                extra.update({"stack_root": stack_root, "source_root": source_root})
                 if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
-                    logger.info(
+                    logger.warning(
                         "Unexpected stack_path/source_path found. A code mapping was not generated.",
-                        extra={
-                            "stack_path": stack_path,
-                            "source_path": source_path,
-                            "stack_root": stack_root,
-                            "source_root": source_root,
-                        },
+                        extra=extra,
                     )
                 else:
                     file_matches.append(
@@ -201,7 +204,9 @@ class CodeMappingTreesHelper:
                 # Any files without a top directory will be grouped together
                 buckets[frame_filename.root].append(frame_filename)
             except UnsupportedFrameFilename:
-                logger.info("Frame's filepath not supported: %s", frame.get("filename"))
+                logger.warning("Frame's filepath not supported: %s", frame.get("filename"))
+            except NeedsExtension:
+                logger.warning("Needs extension: %s", frame.get("filename"))
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
@@ -270,24 +275,18 @@ class CodeMappingTreesHelper:
         stack_path = frame_filename.raw_path
         source_path = matched_files[0]
 
+        extra = {"stack_path": stack_path, "source_path": source_path}
         try:
-            stack_root, source_root = find_roots(stack_path, source_path)
+            stack_root, source_root = find_roots(frame_filename, source_path)
         except UnexpectedPathException:
-            logger.info(
-                "Unexpected format for stack_path or source_path",
-                extra={"stack_path": stack_path, "source_path": source_path},
-            )
+            logger.warning("Unexpected format for stack_path or source_path", extra=extra)
             return []
 
+        extra.update({"stack_root": stack_root, "source_root": source_root})
         if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
-            logger.info(
+            logger.warning(
                 "Unexpected stack_path/source_path found. A code mapping was not generated.",
-                extra={
-                    "stack_path": stack_path,
-                    "source_path": source_path,
-                    "stack_root": stack_root,
-                    "source_root": source_root,
-                },
+                extra=extra,
             )
             return []
 
@@ -484,11 +483,12 @@ def get_straight_path_prefix_end_index(file_path: str) -> int:
     return index
 
 
-def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
+def find_roots(frame_filename: FrameFilename, source_path: str) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
+    stack_path = frame_filename.raw_path
     stack_root = ""
     if stack_path[0] == "/" or stack_path[0] == "\\":
         stack_root += stack_path[0]
