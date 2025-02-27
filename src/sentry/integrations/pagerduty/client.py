@@ -43,7 +43,7 @@ class PagerDutyClient(ApiClient):
     ):
         # Ensure routing_key is clean when sending to PagerDuty API
         if isinstance(data, dict) and "routing_key" in data:
-            data["routing_key"] = data["routing_key"].strip().strip("'").strip('"') 
+            data["routing_key"] = data["routing_key"].strip().strip("'").strip('"')
 
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         if isinstance(data, (Event, GroupEvent)):
