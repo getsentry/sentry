@@ -29,7 +29,6 @@ from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import (
     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
     SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -123,10 +122,11 @@ def send_incident_alert_notification(
             reply_broadcast = True
 
     success = False
-    with MessagingInteractionEvent(
+    interaction_event = MessagingInteractionEvent(
         interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
         spec=SlackMessagingSpec(),
-    ).capture() as lifecycle:
+    )
+    with interaction_event.capture() as lifecycle:
         try:
             client = SlackSdkClient(integration_id=integration.id)
             response = client.chat_postMessage(
@@ -161,7 +161,7 @@ def send_incident_alert_notification(
             lifecycle.add_extras(log_params)
             # If the error is a channel not found or archived, we can halt the flow
             # This means that the channel was deleted or archived after the alert rule was created
-            record_lifecycle_termination_level(lifecycle, e)
+            interaction_event.record_lifecycle_termination_level(lifecycle, e)
 
         else:
             success = True

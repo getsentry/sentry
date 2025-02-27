@@ -270,10 +270,11 @@ class SlackService:
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         parent_notification_count = 0
         for parent_notification in parent_notifications:
-            with MessagingInteractionEvent(
+            interaction_event = MessagingInteractionEvent(
                 interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
                 spec=SlackMessagingSpec(),
-            ).capture() as lifecycle:
+            )
+            with interaction_event.capture() as lifecycle:
                 parent_notification_count += 1
                 lifecycle.add_extras(
                     {
@@ -315,7 +316,7 @@ class SlackService:
                     )
                 except Exception as err:
                     if isinstance(err, SlackApiError):
-                        record_lifecycle_termination_level(lifecycle, err)
+                        interaction_event.record_lifecycle_termination_level(lifecycle, err)
                     else:
                         lifecycle.record_failure(err)
 

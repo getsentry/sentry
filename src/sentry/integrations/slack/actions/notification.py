@@ -32,7 +32,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 from sentry.integrations.slack.metrics import (
     SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -194,10 +193,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             client = SlackSdkClient(integration_id=integration.id)
             text = str(blocks.get("text"))
             # Wrap the Slack API call with lifecycle tracking
-            with MessagingInteractionEvent(
+            interaction_event = MessagingInteractionEvent(
                 interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
                 spec=SlackMessagingSpec(),
-            ).capture() as lifecycle:
+            )
+            with interaction_event.capture() as lifecycle:
                 try:
                     response = client.chat_postMessage(
                         blocks=json_blocks,
@@ -227,7 +227,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         log_params["channel_name"] = self.get_option("channel")
 
                     lifecycle.add_extras(log_params)
-                    record_lifecycle_termination_level(lifecycle, e)
+                    interaction_event.record_lifecycle_termination_level(lifecycle, e)
                 else:
                     ts = response.get("ts")
                     new_notification_message_object.message_identifier = (

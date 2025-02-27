@@ -321,3 +321,21 @@ class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
+
+
+class IntegrationEventOutcomeHandler(ABC):
+    """
+    A handler for the outcome of an integration event.
+
+    This is a utility class that can be used to record the outcome of an integration
+    event. It is used to record the outcome of an integration event.
+    """
+
+    @property
+    def HALT_ERROR_CATEGORIES(self) -> set:
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: Exception) -> None:
+        raise NotImplementedError

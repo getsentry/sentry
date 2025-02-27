@@ -3,13 +3,48 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from slack_sdk.errors import SlackApiError, SlackRequestError
+
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
-from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.integrations.slack.utils.errors import (
+    SLACK_SDK_HALT_ERROR_CATEGORIES,
+    SlackSdkErrorCategory,
+    unpack_slack_api_error,
+)
+from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.utils.metrics import (
+    EventLifecycle,
+    IntegrationEventLifecycleMetric,
+    IntegrationEventOutcomeHandler,
+)
+from sentry.integrations.utils.registry import integration_outcome_handler_registry
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+
+
+@integration_outcome_handler_registry.register(ExternalProviderEnum.SLACK.value)
+class SlackMessagingInteractionUtility(IntegrationEventOutcomeHandler):
+    @property
+    def HALT_ERROR_CATEGORIES(self) -> set[SlackSdkErrorCategory]:
+        return set(SLACK_SDK_HALT_ERROR_CATEGORIES)
+
+    @staticmethod
+    def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: Exception) -> None:
+        if not isinstance(error, (SlackApiError, SlackRequestError)):
+            lifecycle.record_failure(error)
+            return
+
+        if (
+            (reason := unpack_slack_api_error(error))
+            and reason is not None
+            and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
+        ):
+            lifecycle.record_halt(reason.message)
+        else:
+            lifecycle.record_failure(error)
 
 
 class MessagingInteractionType(StrEnum):
@@ -60,6 +95,13 @@ class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
     # Optional attributes to populate extras
     user: User | RpcUser | None = None
     organization: Organization | RpcOrganization | None = None
+
+    def record_lifecycle_termination_level(
+        self, lifecycle: EventLifecycle, error: Exception
+    ) -> None:
+        return integration_outcome_handler_registry.get(
+            self.spec.provider_slug
+        ).record_lifecycle_termination_level(lifecycle, error)
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.MESSAGING
