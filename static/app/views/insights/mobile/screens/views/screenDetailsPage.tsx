@@ -1,7 +1,8 @@
 import type React from 'react';
 import {useState} from 'react';
 
-import FeatureBadge, {
+import {
+  FeatureBadge,
   type FeatureBadgeProps,
 } from 'sentry/components/core/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -99,9 +100,7 @@ export function ScreenDetailsPage() {
         return (
           <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
             {tab.label}
-            {tab.featureBadge && (
-              <FeatureBadge type={tab.featureBadge} variant={'badge'} />
-            )}
+            {tab.featureBadge && <FeatureBadge type={tab.featureBadge} />}
           </TabList.Item>
         );
       })}

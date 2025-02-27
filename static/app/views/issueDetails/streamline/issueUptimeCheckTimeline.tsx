@@ -104,7 +104,6 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
         ))}
       </TimelineLegend>
       <GridLineOverlay
-        stickyCursor
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
@@ -130,7 +129,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
 
 const ChartContainer = styled('div')`
   position: relative;
-  min-height: 104px;
+  min-height: 100px;
   width: 100%;
 `;
 
@@ -151,4 +150,5 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
+  width: 100%;
 `;
