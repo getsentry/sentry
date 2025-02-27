@@ -21,6 +21,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -685,9 +686,12 @@ const PathCell = styled('div')`
 const ControllerText = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
-  ${p => p.theme.overflowEllipsis};
   line-height: 1;
-  width: 25vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  min-width: 0px;
 `;
 
 const Cell = styled('div')`
@@ -839,10 +843,17 @@ function RoutesTable({query}: {query?: string}) {
             <PathCell>
               {transaction.path}
               {routeControllersRequest.isLoading ? (
-                <Placeholder height={theme.fontSizeSmall} width="25vw" />
+                <Placeholder height={theme.fontSizeSmall} width="200px" />
               ) : (
                 transaction.controller && (
-                  <ControllerText>{transaction.controller}</ControllerText>
+                  <Tooltip
+                    title={transaction.controller}
+                    position="top"
+                    maxWidth={400}
+                    showOnlyOnOverflow
+                  >
+                    <ControllerText>{transaction.controller}</ControllerText>
+                  </Tooltip>
                 )
               )}
             </PathCell>
