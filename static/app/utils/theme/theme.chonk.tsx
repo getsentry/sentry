@@ -364,7 +364,7 @@ const generateAliases = (
   /**
    * Primary text color
    */
-  textColor: tokens.content.secondary,
+  textColor: tokens.content.primary,
 
   /**
    * Text that should not have as much emphasis
