@@ -7,7 +7,6 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -56,12 +55,8 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
-    await waitForElementToBeRemoved(() =>
-      secretsTable.queryByTestId('loading-indicator')
-    );
-
-    expect(secretsTable.getByText('launchdarkly')).toBeInTheDocument();
-    expect(secretsTable.getByText('openfeature')).toBeInTheDocument();
+    expect(await secretsTable.findByText('launchdarkly')).toBeInTheDocument();
+    expect(await secretsTable.findByText('openfeature')).toBeInTheDocument();
 
     expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -107,11 +102,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
-    await waitForElementToBeRemoved(() =>
-      secretsTable.queryByTestId('loading-indicator')
-    );
-
-    expect(secretsTable.getByTestId('empty-state')).toBeInTheDocument();
+    expect(await secretsTable.findByTestId('empty-state')).toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });

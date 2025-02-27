@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from time import time
 from typing import Any
-from unittest.mock import ANY, MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, patch
 from uuid import uuid1
 
 from sentry import options
@@ -62,6 +62,9 @@ class ShouldCallSeerTest(TestCase):
         )
         self.variants = self.event.get_grouping_variants()
         self.primary_hashes = self.event.get_hashes()
+        self.stacktrace_string = get_stacktrace_string(
+            get_grouping_info_from_variants(self.variants)
+        )
 
     def test_obeys_feature_enablement_check(self) -> None:
         for backfill_completed_option, expected_result in [(None, False), (11211231, True)]:
@@ -243,21 +246,33 @@ class ShouldCallSeerTest(TestCase):
                 assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
-    def test_obeys_empty_stacktrace_string_check(self, mock_record_did_call_seer: Mock) -> None:
+    def test_obeys_empty_stacktrace_string_check(
+        self, mock_record_did_call_seer: MagicMock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-        new_event = Event(
+
+        empty_frame_event = Event(
             project_id=self.project.id,
             event_id="12312012112120120908201304152013",
             data={
-                "title": "title",
+                "title": "Dogs are great!",
                 "platform": "python",
                 "stacktrace": {"frames": [{}]},
             },
         )
+        empty_frame_variants = empty_frame_event.get_grouping_variants()
+        empty_frame_stacktrace_string = get_stacktrace_string(
+            get_grouping_info_from_variants(empty_frame_variants)
+        )
 
-        assert should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
+        assert self.stacktrace_string != ""
+        assert should_call_seer_for_grouping(self.event, self.variants) is True
+        mock_record_did_call_seer.assert_not_called()
+
+        assert empty_frame_stacktrace_string == ""
+        assert should_call_seer_for_grouping(empty_frame_event, empty_frame_variants) is False
         mock_record_did_call_seer.assert_any_call(
-            new_event, call_made=False, blocker="empty-stacktrace-string"
+            empty_frame_event, call_made=False, blocker="empty-stacktrace-string"
         )
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])

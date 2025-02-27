@@ -20,6 +20,7 @@ export default function OrganizationFeatureFlagsIndex() {
     <Fragment>
       <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Feature Flags')} />
+      <SettingsPageHeader title={t('Feature Flags')} />
       <TextBlock>
         {tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. To learn more about our feature flag features, [link:read our docs].',
