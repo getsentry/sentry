@@ -14,12 +14,11 @@ import IssueTagsPreview from './issueTagsPreview';
 
 describe('IssueTagsPreview', () => {
 <<<<<<< HEAD
-  beforeEach(() => {
+  beforeEach(() =>
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: [ProjectFixture()],
-    });
-  });
+    }););
 =======
 >>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   it('renders preview tags', async () => {
@@ -34,10 +33,10 @@ describe('IssueTagsPreview', () => {
 
     expect(await screen.findByText('prod')).toBeInTheDocument();
 <<<<<<< HEAD
-    expect(screen.getByRole('link', {name: 'View all tags'})).toBeInTheDocument();
+    expect(screen.getByRole('link', name: 'View all tags')).toBeInTheDocument();
 =======
     expect(
-      screen.getByRole('button', {name: 'View issue tag distributions'})
+      screen.getByRole('button', name: 'View issue tag distributions')
     ).toBeInTheDocument();
 >>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   });

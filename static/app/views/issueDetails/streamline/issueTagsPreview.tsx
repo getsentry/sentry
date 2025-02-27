@@ -2,7 +2,7 @@ import type React from 'react';
 <<<<<<< HEAD
 import {Fragment, useMemo, useState} from 'react';
 =======
-import {Fragment, useMemo} from 'react';
+import {Fragment, type useMemo} from 'react';
 >>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -26,7 +26,7 @@ import {percent} from 'sentry/utils';
 <<<<<<< HEAD
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import type {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
