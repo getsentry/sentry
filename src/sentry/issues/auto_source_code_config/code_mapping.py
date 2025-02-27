@@ -507,10 +507,8 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         return (stack_root, "")
     elif source_path.endswith(stack_path):  # "Packaged" logic
         source_prefix = source_path.rpartition(stack_path)[0]
-        return (
-            f"{stack_root}{frame_filename.stack_root}/",
-            f"{source_prefix}{frame_filename.stack_root}/",
-        )
+        package_dir = stack_path.split("/")[0]
+        return (f"{stack_root}{package_dir}/", f"{source_prefix}{package_dir}/")
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")
