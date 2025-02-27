@@ -54,6 +54,7 @@ class NeedsExtension(Exception):
 def derive_code_mappings(
     organization: Organization,
     frame: Mapping[str, Any],
+    platform: str | None = None,
 ) -> list[dict[str, str]]:
     installation = get_installation(organization)
     if not isinstance(installation, RepoTreesIntegration):
@@ -61,7 +62,7 @@ def derive_code_mappings(
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     try:
-        frame_filename = FrameInfo(frame)
+        frame_filename = FrameInfo(frame, platform)
         return trees_helper.list_file_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
@@ -71,8 +72,8 @@ def derive_code_mappings(
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameInfo:
-    def __init__(self, frame: Mapping[str, Any]) -> None:
-        # XXX: In the next PR, we will use more than just the filename
+    def __init__(self, frame: Mapping[str, Any], platform: str | None = None) -> None:
+        # XXX: platform will be used in a following PR
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
 
@@ -102,11 +103,13 @@ class FrameInfo:
 
     def transformations(self, frame_file_path: str) -> str:
         self.raw_path = frame_file_path
+
         is_windows_path = False
         if "\\" in frame_file_path:
             is_windows_path = True
             frame_file_path = frame_file_path.replace("\\", "/")
 
+        # Remove leading slash if it exists
         if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
             frame_file_path = frame_file_path[1:]
 
@@ -131,15 +134,21 @@ class FrameInfo:
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
+    platform: str | None = None
+
     def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 
-    def generate_code_mappings(self, frames: Sequence[Mapping[str, Any]]) -> list[CodeMapping]:
+    def generate_code_mappings(
+        self, frames: Sequence[Mapping[str, Any]], platform: str | None = None
+    ) -> list[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
+        self.platform = platform
+
         buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
 
         # We reprocess stackframes until we are told that no code mappings were produced
@@ -200,7 +209,7 @@ class CodeMappingTreesHelper:
         buckets: defaultdict[str, list[FrameInfo]] = defaultdict(list)
         for frame in frames:
             try:
-                frame_filename = FrameInfo(frame)
+                frame_filename = FrameInfo(frame, self.platform)
                 # Any files without a top directory will be grouped together
                 buckets[frame_filename.stack_root].append(frame_filename)
             except UnsupportedFrameInfo:
@@ -498,8 +507,10 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         return (stack_root, "")
     elif source_path.endswith(stack_path):  # "Packaged" logic
         source_prefix = source_path.rpartition(stack_path)[0]
-        package_dir = stack_path.split("/")[0]
-        return (f"{stack_root}{package_dir}/", f"{source_prefix}{package_dir}/")
+        return (
+            f"{stack_root}{frame_filename.stack_root}/",
+            f"{source_prefix}{frame_filename.stack_root}/",
+        )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")
