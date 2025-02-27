@@ -2520,11 +2520,6 @@ def _detect_performance_problems(
 
 @sentry_sdk.tracing.trace
 def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    """
-    this function does what we do in post_process for transactions. if this option is
-    turned on, we do the actions here instead of in post_process, with the goal
-    eventually being to not run transactions through post_process
-    """
     for job in jobs:
         try:
             event = job["event"]
@@ -2624,6 +2619,8 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     set_measurement(measurement_name="jobs", value=len(jobs))
     set_measurement(measurement_name="projects", value=len(projects))
+
+    # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
