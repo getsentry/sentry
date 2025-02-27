@@ -1116,7 +1116,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
                 },
             ],
             "target_display": "oolong",
-            "target_identifier": "1",
+            "target_identifier": str(sentry_app.id),
             "target_type": ActionTarget.SENTRY_APP,
         }
 
@@ -1141,7 +1141,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             },
         ]
         assert action.target_display == "oolong"
-        assert action.target_identifier == "1"
+        assert action.target_identifier == str(sentry_app.id)
         assert action.target_type == ActionTarget.SENTRY_APP
 
 
