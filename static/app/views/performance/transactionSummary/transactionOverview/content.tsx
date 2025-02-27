@@ -40,6 +40,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -256,6 +257,11 @@ function OTelSummaryContentInner({
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
+        {hasNewSpansUIFlag && (
+          <EAPChartsWidgetContainer>
+            <EAPChartsWidget />
+          </EAPChartsWidgetContainer>
+        )}
         <PerformanceAtScaleContextProvider>
           <TransactionSummaryCharts
             organization={organization}
@@ -867,6 +873,10 @@ const StyledSearchBarWrapper = styled('div')`
 
 const StyledIconWarning = styled(IconWarning)`
   display: block;
+`;
+
+const EAPChartsWidgetContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default withProjects(SummaryContent);
