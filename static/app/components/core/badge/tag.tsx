@@ -34,11 +34,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Additional properites for the Tooltip when `tooltipText` is set.
    */
-  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
-  /**
-   * Text to show up on a hover.
-   */
-  tooltipText?: TooltipProps['title'];
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper'>;
   /**
    * Dictates color scheme of the tag.
    */
@@ -48,7 +44,6 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
 function BaseTag({
   type = 'default',
   icon,
-  tooltipText,
   tooltipProps,
   onDismiss,
   children,
@@ -71,7 +66,11 @@ function BaseTag({
 
   return (
     <span {...props}>
-      <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
+      <Tooltip
+        containerDisplayMode="inline-flex"
+        title={tooltipProps?.title}
+        {...tooltipProps}
+      >
         <Background type={type} data-test-id="tag-background">
           {icon && (
             <IconWrapper>
