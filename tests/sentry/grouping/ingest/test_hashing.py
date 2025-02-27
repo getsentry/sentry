@@ -3,8 +3,15 @@ from __future__ import annotations
 from time import time
 from unittest.mock import MagicMock, patch
 
-from sentry.grouping.ingest.hashing import _calculate_event_grouping, _calculate_secondary_hashes
+import pytest
+
+from sentry.grouping.ingest.hashing import (
+    _calculate_event_grouping,
+    _calculate_secondary_hashes,
+    get_or_create_grouphashes,
+)
 from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -114,3 +121,80 @@ class SecondaryGroupingTest(TestCase):
             mock_capture_exception.assert_called_with(secondary_grouping_error)
             # This proves the secondary grouping crash didn't crash the overall grouping process
             assert event.group
+
+    @patch("sentry.event_manager.get_or_create_grouphashes", wraps=get_or_create_grouphashes)
+    def test_secondary_grouphashes_not_saved_when_creating_new_group(
+        self, get_or_create_grouphashes_spy: MagicMock
+    ):
+        project = self.project
+        project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+
+        # Include a number so the two configs will produce different hashes (since the new config
+        # will parameterize the number and the legacy config won't)
+        event = save_new_event({"message": "Dogs are great! 1121"}, project)
+        assert event.group_id
+
+        assert get_or_create_grouphashes_spy.call_count == 2  # Once for each config
+
+        # Get the hash value for each config by spying on the `get_or_create_grouphashes` function.
+        # `call.args[4]` is the grouping config, and `call.args[3]` is the list of hashes. Since
+        # we're hashing on message, we know there will only be one hash value in each hash list.
+        hashes_by_config = {
+            call.args[4]: call.args[3][0] for call in get_or_create_grouphashes_spy.call_args_list
+        }
+
+        # The configs produced different hashes...
+        assert len(set(hashes_by_config.values())) == 2
+
+        # ...but only the primary config's grouphash is saved
+        grouphashes_for_group = GroupHash.objects.filter(project=project, group_id=event.group_id)
+        assert grouphashes_for_group.count() == 1
+        assert grouphashes_for_group.filter(hash=hashes_by_config[DEFAULT_GROUPING_CONFIG]).exists()
+        assert not grouphashes_for_group.filter(
+            hash=hashes_by_config[LEGACY_GROUPING_CONFIG]
+        ).exists()
+
+    @pytest.mark.xfail(reason="new secondary hashes not filtered if not all are new")
+    def test_filters_new_secondary_hashes_when_creating_grouphashes(self):
+        project = self.project
+        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+
+        # Include a number so the two configs will produce different hashes (since the new config
+        # will parameterize the number and the legacy config won't)
+        event1 = save_new_event({"message": "Dogs are great! 1231"}, project)
+        legacy_config_hash = event1.get_primary_hash()
+        assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {legacy_config_hash}
+
+        # Update the project's grouping config and set it in transition
+        project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+
+        with (
+            patch(
+                "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+                return_value=[legacy_config_hash, "new_legacy_hash_value"],
+            ),
+            patch(
+                "sentry.event_manager.get_or_create_grouphashes", wraps=get_or_create_grouphashes
+            ) as get_or_create_grouphashes_spy,
+        ):
+            event2 = save_new_event({"message": "Dogs are great! 1231"}, project)
+            default_config_hash = event2.get_primary_hash()
+            assert legacy_config_hash != default_config_hash
+
+            # Even though `get_or_create_grouphashes` was called for secondary grouping, no
+            # grouphash was created for the new secondary hash "new_legacy_hash_value"
+            get_or_create_grouphashes_spy.assert_any_call(
+                event2,
+                project,
+                {},
+                [legacy_config_hash, "new_legacy_hash_value"],
+                LEGACY_GROUPING_CONFIG,
+            )
+            assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {
+                legacy_config_hash,
+                default_config_hash,
+            }
