@@ -32,17 +32,18 @@ export default function RawContent({
     platform === 'native' || platform === 'cocoa' || platform === 'nintendo-switch';
 
   const endpointUrl = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${type === 'minified'}`;
+  const hasCrashReport = isNative && defined(organization);
 
   const {
     data: crashReport,
     isPending,
     isError,
   } = useApiQuery<string>([endpointUrl, {headers: {Accept: '*/*; charset=utf-8'}}], {
-    enabled: isNative && defined(organization),
+    enabled: hasCrashReport,
     staleTime: Infinity,
   });
 
-  if (isPending) {
+  if (isPending && hasCrashReport) {
     return <Placeholder height="270px" />;
   }
 
@@ -58,13 +59,17 @@ export default function RawContent({
     <Fragment>
       {values.map((exc, excIdx) => {
         if (!isNative) {
-          const nonNativeContent = exc.stacktrace
-            ? rawStacktraceContent(
-                type === 'original' ? exc.stacktrace : exc.rawStacktrace,
-                platform,
-                exc
-              )
-            : null;
+          const nonNativeContent = exc.stacktrace ? (
+            rawStacktraceContent(
+              type === 'original' ? exc.stacktrace : exc.rawStacktrace,
+              platform,
+              exc
+            )
+          ) : (
+            <div>
+              {exc.type}: {exc.value}
+            </div>
+          );
           return (
             <div key={excIdx} data-test-id="raw-stack-trace">
               <pre className="traceback plain">{nonNativeContent}</pre>
