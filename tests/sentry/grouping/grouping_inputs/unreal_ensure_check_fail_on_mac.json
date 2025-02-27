@@ -10,20 +10,12 @@
             {
               "function": "thread_start",
               "symbol": "thread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "data": {
-                "category": "threadbase",
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
               "function": "_pthread_start",
               "symbol": "_pthread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "data": {
-                "category": "threadbase",
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
               "function": "__NSThread__start__",
@@ -37,200 +29,120 @@
             {
               "function": "-[FCocoaGameThread main]",
               "symbol": "-[FCocoaGameThread main]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "-[UEAppDelegate runGameThread:]",
               "symbol": "-[UEAppDelegate runGameThread:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "GuardedMain",
               "raw_function": "GuardedMain(char16_t const*)",
               "symbol": "_Z11GuardedMainPKDs",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FEngineLoop::Tick",
               "raw_function": "FEngineLoop::Tick()",
               "symbol": "_ZN11FEngineLoop4TickEv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::Tick",
               "raw_function": "FSlateApplication::Tick(ESlateTickType)",
               "symbol": "_ZN17FSlateApplication4TickE14ESlateTickType",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::TickPlatform",
               "raw_function": "FSlateApplication::TickPlatform(float)",
               "symbol": "_ZN17FSlateApplication12TickPlatformEf",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FMacApplication::ProcessDeferredEvents",
               "raw_function": "FMacApplication::ProcessDeferredEvents(float)",
               "symbol": "_ZN15FMacApplication21ProcessDeferredEventsEf",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FMacApplication::ProcessEvent",
               "raw_function": "FMacApplication::ProcessEvent(FDeferredMacEvent const&)",
               "symbol": "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FMacApplication::ProcessMouseUpEvent",
               "raw_function": "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)",
               "symbol": "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::OnMouseUp",
               "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
               "symbol": "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::ProcessMouseButtonUpEvent",
               "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
               "symbol": "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::RoutePointerUpEvent",
               "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
               "symbol": "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "SButton::OnMouseButtonUp",
               "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
               "symbol": "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "SButton::ExecuteOnClick",
               "raw_function": "SButton::ExecuteOnClick()",
               "symbol": "_ZN7SButton14ExecuteOnClickEv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UButton::SlateHandleClicked",
               "raw_function": "UButton::SlateHandleClicked()",
               "symbol": "_ZN7UButton18SlateHandleClickedEv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>",
               "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
               "symbol": "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UObject::ProcessEvent",
               "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
               "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UFunction::Invoke",
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
               "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalFunction",
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)",
               "symbol": "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalFunction::lambda::operator()",
@@ -247,177 +159,101 @@
               "function": "ProcessScriptFunction<T>",
               "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))",
               "symbol": "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UObject::execCallMathFunction",
               "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void*)",
               "symbol": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UE::Assert::Private::ExecCheckImplInternal",
               "raw_function": "UE::Assert::Private::ExecCheckImplInternal(std::__1::atomic<bool>&, bool, char const*, int, char const*)",
               "symbol": "_ZN2UE6Assert7Private21ExecCheckImplInternalERNSt3__16atomicIbEEbPKciS7_",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl",
               "raw_function": "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, char16_t const*, char*)",
               "symbol": "_ZN6FDebug53OptionallyLogFormattedEnsureMessageReturningFalseImplEbPKcS1_iPvPKDsPc",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FDebug::EnsureFailed",
               "raw_function": "FDebug::EnsureFailed(char const*, char const*, int, void*, char16_t const*)",
               "symbol": "_ZN6FDebug12EnsureFailedEPKcS1_iPvPKDs",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "TMulticastDelegateBase<T>::Broadcast<T>",
               "raw_function": "TMulticastDelegateBase<FDefaultDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (), FDefaultDelegateUserPolicy>, >() const",
               "symbol": "_ZNK22TMulticastDelegateBaseI26FDefaultDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvvES0_EJEEEvDpT0_",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "+[SentrySDK captureException:]",
               "symbol": "+[SentrySDK captureException:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "+[SentrySDK captureException:withScope:]",
               "symbol": "+[SentrySDK captureException:withScope:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "-[SentryHub captureException:withScope:]",
               "symbol": "-[SentryHub captureException:withScope:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "-[SentryClient captureException:withScope:]",
               "symbol": "-[SentryClient captureException:withScope:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
               "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
               "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "-[SentryThreadInspector getCurrentThreads]",
               "symbol": "-[SentryThreadInspector getCurrentThreads]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             },
             {
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
               "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
-              "data": {
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib"
             }
           ]
         }
@@ -433,20 +269,12 @@
             {
               "function": "thread_start",
               "symbol": "thread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "data": {
-                "category": "threadbase",
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
               "function": "_pthread_start",
               "symbol": "_pthread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "data": {
-                "category": "threadbase",
-                "symbolicator_status": "symbolicated"
-              }
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
               "function": "__NSThread__start__",
@@ -460,200 +288,120 @@
             {
               "function": "-[FCocoaGameThread main]",
               "symbol": "-[FCocoaGameThread main]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "-[UEAppDelegate runGameThread:]",
               "symbol": "-[UEAppDelegate runGameThread:]",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "GuardedMain",
               "raw_function": "GuardedMain(char16_t const*)",
               "symbol": "_Z11GuardedMainPKDs",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FEngineLoop::Tick",
               "raw_function": "FEngineLoop::Tick()",
               "symbol": "_ZN11FEngineLoop4TickEv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::Tick",
               "raw_function": "FSlateApplication::Tick(ESlateTickType)",
               "symbol": "_ZN17FSlateApplication4TickE14ESlateTickType",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::TickPlatform",
               "raw_function": "FSlateApplication::TickPlatform(float)",
               "symbol": "_ZN17FSlateApplication12TickPlatformEf",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FMacApplication::ProcessDeferredEvents",
               "raw_function": "FMacApplication::ProcessDeferredEvents(float)",
               "symbol": "_ZN15FMacApplication21ProcessDeferredEventsEf",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FMacApplication::ProcessEvent",
               "raw_function": "FMacApplication::ProcessEvent(FDeferredMacEvent const&)",
               "symbol": "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FMacApplication::ProcessMouseUpEvent",
               "raw_function": "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)",
               "symbol": "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::OnMouseUp",
               "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
               "symbol": "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::ProcessMouseButtonUpEvent",
               "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
               "symbol": "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FSlateApplication::RoutePointerUpEvent",
               "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
               "symbol": "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "SButton::OnMouseButtonUp",
               "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
               "symbol": "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "SButton::ExecuteOnClick",
               "raw_function": "SButton::ExecuteOnClick()",
               "symbol": "_ZN7SButton14ExecuteOnClickEv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UButton::SlateHandleClicked",
               "raw_function": "UButton::SlateHandleClicked()",
               "symbol": "_ZN7UButton18SlateHandleClickedEv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>",
               "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
               "symbol": "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UObject::ProcessEvent",
               "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
               "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UFunction::Invoke",
               "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
               "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalFunction",
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)",
               "symbol": "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalFunction::lambda::operator()",
@@ -670,113 +418,61 @@
               "function": "ProcessScriptFunction<T>",
               "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))",
               "symbol": "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessLocalScriptFunction",
               "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
               "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UObject::execCallMathFunction",
               "raw_function": "UObject::execCallMathFunction(UObject*, FFrame&, void*)",
               "symbol": "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "UE::Assert::Private::ExecCheckImplInternal",
               "raw_function": "UE::Assert::Private::ExecCheckImplInternal(std::__1::atomic<bool>&, bool, char const*, int, char const*)",
               "symbol": "_ZN2UE6Assert7Private21ExecCheckImplInternalERNSt3__16atomicIbEEbPKciS7_",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl",
               "raw_function": "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, char16_t const*, char*)",
               "symbol": "_ZN6FDebug53OptionallyLogFormattedEnsureMessageReturningFalseImplEbPKcS1_iPvPKDsPc",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "FDebug::EnsureFailed",
               "raw_function": "FDebug::EnsureFailed(char const*, char const*, int, void*, char16_t const*)",
               "symbol": "_ZN6FDebug12EnsureFailedEPKcS1_iPvPKDs",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "TMulticastDelegateBase<T>::Broadcast<T>",
               "raw_function": "TMulticastDelegateBase<FDefaultDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (), FDefaultDelegateUserPolicy>, >() const",
               "symbol": "_ZNK22TMulticastDelegateBaseI26FDefaultDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvvES0_EJEEEvDpT0_",
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
-              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-
-              "data": {
-                "symbolicator_status": "missing"
-              }
+              "package": "/Users/tustanivsky/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "+[SentrySDK captureException:]",

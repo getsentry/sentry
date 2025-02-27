@@ -1,5 +1,5 @@
 ---
-created: '2025-02-27T13:29:28.958335+00:00'
+created: '2025-02-27T13:56:19.196170+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,152 +25,152 @@ app:
               "__NSThread__start__"
             function (function name is not used if module or filename are available)
               "__NSThread__start__"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[FCocoaGameThread main]"
             function (function name is not used if module or filename are available)
               "-[FCocoaGameThread main]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
             function (function name is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z11GuardedMainPKDs"
             function (function name is not used if module or filename are available)
               "GuardedMain(char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN11FEngineLoop4TickEv"
             function (function name is not used if module or filename are available)
               "FEngineLoop::Tick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication4TickE14ESlateTickType"
             function (function name is not used if module or filename are available)
               "FSlateApplication::Tick(ESlateTickType)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication12TickPlatformEf"
             function (function name is not used if module or filename are available)
               "FSlateApplication::TickPlatform(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication21ProcessDeferredEventsEf"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessDeferredEvents(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessEvent(FDeferredMacEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE"
             function (function name is not used if module or filename are available)
               "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton14ExecuteOnClickEv"
             function (function name is not used if module or filename are available)
               "SButton::ExecuteOnClick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UButton18SlateHandleClickedEv"
             function (function name is not used if module or filename are available)
               "UButton::SlateHandleClicked()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv"
             function (function name is not used if module or filename are available)
               "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject12ProcessEventEP9UFunctionPv"
             function (function name is not used if module or filename are available)
               "UObject::ProcessEvent(UFunction*, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN9UFunction6InvokeEP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "UFunction::Invoke(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_"
             function (function name is not used if module or filename are available)
               "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv"
             function (function name is not used if module or filename are available)
               "UObject::execCallMathFunction(UObject*, FFrame&, void*)"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN2UE6Assert7Private21ExecCheckImplInternalERNSt3__16atomicIbEEbPKciS7_"
             function (function name is not used if module or filename are available)
               "UE::Assert::Private::ExecCheckImplInternal(std::__1::atomic<bool>&, bool, char const*, int, char const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug53OptionallyLogFormattedEnsureMessageReturningFalseImplEbPKcS1_iPvPKDsPc"
             function (function name is not used if module or filename are available)
               "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, char16_t const*, char*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug12EnsureFailedEPKcS1_iPvPKDs"
             function (function name is not used if module or filename are available)
               "FDebug::EnsureFailed(char const*, char const*, int, void*, char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK22TMulticastDelegateBaseI26FDefaultDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvvES0_EJEEEvDpT0_"
             function (function name is not used if module or filename are available)
               "TMulticastDelegateBase<FDefaultDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (), FDefaultDelegateUserPolicy>, >() const"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
           frame (marked out of app by stack trace rule (family:native function:?[[]SentrySDK * -app -group))
             symbol (symbol is not used if module or filename are available)
               "+[SentrySDK captureException:]"
@@ -232,152 +232,152 @@ app:
               "__NSThread__start__"
             function (function name is not used if module or filename are available)
               "__NSThread__start__"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[FCocoaGameThread main]"
             function (function name is not used if module or filename are available)
               "-[FCocoaGameThread main]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
             function (function name is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z11GuardedMainPKDs"
             function (function name is not used if module or filename are available)
               "GuardedMain(char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN11FEngineLoop4TickEv"
             function (function name is not used if module or filename are available)
               "FEngineLoop::Tick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication4TickE14ESlateTickType"
             function (function name is not used if module or filename are available)
               "FSlateApplication::Tick(ESlateTickType)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication12TickPlatformEf"
             function (function name is not used if module or filename are available)
               "FSlateApplication::TickPlatform(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication21ProcessDeferredEventsEf"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessDeferredEvents(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessEvent(FDeferredMacEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE"
             function (function name is not used if module or filename are available)
               "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton14ExecuteOnClickEv"
             function (function name is not used if module or filename are available)
               "SButton::ExecuteOnClick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UButton18SlateHandleClickedEv"
             function (function name is not used if module or filename are available)
               "UButton::SlateHandleClicked()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv"
             function (function name is not used if module or filename are available)
               "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject12ProcessEventEP9UFunctionPv"
             function (function name is not used if module or filename are available)
               "UObject::ProcessEvent(UFunction*, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN9UFunction6InvokeEP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "UFunction::Invoke(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_"
             function (function name is not used if module or filename are available)
               "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv"
             function (function name is not used if module or filename are available)
               "UObject::execCallMathFunction(UObject*, FFrame&, void*)"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN2UE6Assert7Private21ExecCheckImplInternalERNSt3__16atomicIbEEbPKciS7_"
             function (function name is not used if module or filename are available)
               "UE::Assert::Private::ExecCheckImplInternal(std::__1::atomic<bool>&, bool, char const*, int, char const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug53OptionallyLogFormattedEnsureMessageReturningFalseImplEbPKcS1_iPvPKDsPc"
             function (function name is not used if module or filename are available)
               "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, char16_t const*, char*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug12EnsureFailedEPKcS1_iPvPKDs"
             function (function name is not used if module or filename are available)
               "FDebug::EnsureFailed(char const*, char const*, int, void*, char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK22TMulticastDelegateBaseI26FDefaultDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvvES0_EJEEEvDpT0_"
             function (function name is not used if module or filename are available)
               "TMulticastDelegateBase<FDefaultDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (), FDefaultDelegateUserPolicy>, >() const"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
           frame (marked out of app by stack trace rule (family:native function:?[[]SentrySDK * -app -group))
             symbol (symbol is not used if module or filename are available)
               "+[SentrySDK captureException:]"
@@ -441,152 +441,152 @@ system:
               "__NSThread__start__"
             function (function name is not used if module or filename are available)
               "__NSThread__start__"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[FCocoaGameThread main]"
             function (function name is not used if module or filename are available)
               "-[FCocoaGameThread main]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
             function (function name is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z11GuardedMainPKDs"
             function (function name is not used if module or filename are available)
               "GuardedMain(char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN11FEngineLoop4TickEv"
             function (function name is not used if module or filename are available)
               "FEngineLoop::Tick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication4TickE14ESlateTickType"
             function (function name is not used if module or filename are available)
               "FSlateApplication::Tick(ESlateTickType)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication12TickPlatformEf"
             function (function name is not used if module or filename are available)
               "FSlateApplication::TickPlatform(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication21ProcessDeferredEventsEf"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessDeferredEvents(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessEvent(FDeferredMacEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE"
             function (function name is not used if module or filename are available)
               "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton14ExecuteOnClickEv"
             function (function name is not used if module or filename are available)
               "SButton::ExecuteOnClick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UButton18SlateHandleClickedEv"
             function (function name is not used if module or filename are available)
               "UButton::SlateHandleClicked()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv"
             function (function name is not used if module or filename are available)
               "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject12ProcessEventEP9UFunctionPv"
             function (function name is not used if module or filename are available)
               "UObject::ProcessEvent(UFunction*, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN9UFunction6InvokeEP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "UFunction::Invoke(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_"
             function (function name is not used if module or filename are available)
               "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv"
             function (function name is not used if module or filename are available)
               "UObject::execCallMathFunction(UObject*, FFrame&, void*)"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN2UE6Assert7Private21ExecCheckImplInternalERNSt3__16atomicIbEEbPKciS7_"
             function (function name is not used if module or filename are available)
               "UE::Assert::Private::ExecCheckImplInternal(std::__1::atomic<bool>&, bool, char const*, int, char const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug53OptionallyLogFormattedEnsureMessageReturningFalseImplEbPKcS1_iPvPKDsPc"
             function (function name is not used if module or filename are available)
               "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, char16_t const*, char*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug12EnsureFailedEPKcS1_iPvPKDs"
             function (function name is not used if module or filename are available)
               "FDebug::EnsureFailed(char const*, char const*, int, void*, char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK22TMulticastDelegateBaseI26FDefaultDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvvES0_EJEEEvDpT0_"
             function (function name is not used if module or filename are available)
               "TMulticastDelegateBase<FDefaultDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (), FDefaultDelegateUserPolicy>, >() const"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
           frame (marked out of app by stack trace rule (family:native function:?[[]SentrySDK * -app -group))
             symbol (symbol is not used if module or filename are available)
               "+[SentrySDK captureException:]"
@@ -648,152 +648,152 @@ system:
               "__NSThread__start__"
             function (function name is not used if module or filename are available)
               "__NSThread__start__"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[FCocoaGameThread main]"
             function (function name is not used if module or filename are available)
               "-[FCocoaGameThread main]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
             function (function name is not used if module or filename are available)
               "-[UEAppDelegate runGameThread:]"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z11GuardedMainPKDs"
             function (function name is not used if module or filename are available)
               "GuardedMain(char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN11FEngineLoop4TickEv"
             function (function name is not used if module or filename are available)
               "FEngineLoop::Tick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication4TickE14ESlateTickType"
             function (function name is not used if module or filename are available)
               "FSlateApplication::Tick(ESlateTickType)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication12TickPlatformEf"
             function (function name is not used if module or filename are available)
               "FSlateApplication::TickPlatform(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication21ProcessDeferredEventsEf"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessDeferredEvents(float)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessEvent(FDeferredMacEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE"
             function (function name is not used if module or filename are available)
               "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE"
             function (function name is not used if module or filename are available)
               "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent"
             function (function name is not used if module or filename are available)
               "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7SButton14ExecuteOnClickEv"
             function (function name is not used if module or filename are available)
               "SButton::ExecuteOnClick()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UButton18SlateHandleClickedEv"
             function (function name is not used if module or filename are available)
               "UButton::SlateHandleClicked()"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv"
             function (function name is not used if module or filename are available)
               "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject12ProcessEventEP9UFunctionPv"
             function (function name is not used if module or filename are available)
               "UObject::ProcessEvent(UFunction*, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN9UFunction6InvokeEP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "UFunction::Invoke(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv"
             function (function name is not used if module or filename are available)
               "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_"
             function (function name is not used if module or filename are available)
               "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv"
             function (function name is not used if module or filename are available)
               "ProcessLocalScriptFunction(UObject*, FFrame&, void*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN7UObject20execCallMathFunctionEPS_R6FFramePv"
             function (function name is not used if module or filename are available)
               "UObject::execCallMathFunction(UObject*, FFrame&, void*)"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN2UE6Assert7Private21ExecCheckImplInternalERNSt3__16atomicIbEEbPKciS7_"
             function (function name is not used if module or filename are available)
               "UE::Assert::Private::ExecCheckImplInternal(std::__1::atomic<bool>&, bool, char const*, int, char const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug53OptionallyLogFormattedEnsureMessageReturningFalseImplEbPKcS1_iPvPKDsPc"
             function (function name is not used if module or filename are available)
               "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl(bool, char const*, char const*, int, void*, char16_t const*, char*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZN6FDebug12EnsureFailedEPKcS1_iPvPKDs"
             function (function name is not used if module or filename are available)
               "FDebug::EnsureFailed(char const*, char const*, int, void*, char16_t const*)"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
             symbol (symbol is not used if module or filename are available)
               "_ZNK22TMulticastDelegateBaseI26FDefaultDelegateUserPolicyE9BroadcastI21IBaseDelegateInstanceIFvvES0_EJEEEvDpT0_"
             function (function name is not used if module or filename are available)
               "TMulticastDelegateBase<FDefaultDelegateUserPolicy>::Broadcast<IBaseDelegateInstance<void (), FDefaultDelegateUserPolicy>, >() const"
-          frame
-          frame (ignored due to recursion)
-          frame (ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
           frame (marked out of app by stack trace rule (family:native function:?[[]SentrySDK * -app -group))
             symbol (symbol is not used if module or filename are available)
               "+[SentrySDK captureException:]"
