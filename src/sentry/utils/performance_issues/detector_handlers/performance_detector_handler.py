@@ -4,20 +4,15 @@ import random
 from abc import abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.performance_issues.base import PerformanceProblemsMap, Span
+from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
-
-if TYPE_CHECKING:
-    from sentry.workflow_engine.handlers.detector.base import (
-        DetectorEvaluationResult,
-        DetectorHandler,
-    )
 
 
 class DetectorType(Enum):

@@ -7,7 +7,6 @@ from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
-from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -16,6 +15,7 @@ from sentry.utils.performance_issues.detectors.utils import (
     get_max_span_duration,
     get_total_span_duration,
 )
+from sentry.utils.performance_issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 
 from ..base import (
     DetectorType,

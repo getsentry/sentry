@@ -10,8 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
-from sentry.issues.grouptype import (
-    GroupType,
+from sentry.issues.grouptype import GroupType, ProfileFunctionRegressionType
+from sentry.utils.performance_issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -24,7 +24,6 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
-    ProfileFunctionRegressionType,
 )
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
