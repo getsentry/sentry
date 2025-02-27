@@ -36,7 +36,7 @@ export const chonkInputStyles = (
     },
   },
 
-  '&:focus, &:focus-visible': {
+  '&:focus, &:focus-visible, :focus-within': {
     outline: 'none',
     boxShadow: `0 0 0 2px ${p.theme.background}, 0 0 0 4px ${p.theme.focusBorder}`,
     borderRadius: `calc(${p.theme.borderRadius} + 2px)`,

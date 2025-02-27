@@ -51,7 +51,8 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   }
 
   &:focus,
-  &:focus-visible {
+  &:focus-visible,
+  :focus-within {
     outline: none;
     border-color: ${p.theme.focusBorder};
     box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
