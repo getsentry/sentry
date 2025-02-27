@@ -164,7 +164,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
               {
                 wizardLink: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/flutter/#install" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/#install" />
                 ),
               }
             ),
@@ -327,7 +327,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                         'To learn more about the API and automatic instrumentations, check out the [perfDocs: tracing documentation].',
                         {
                           perfDocs: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
+                            <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/tracing/instrumentation/" />
                           ),
                         }
                       ),
@@ -343,14 +343,14 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t(
         'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
       ),
-      link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
+      link: 'https://docs.sentry.io/platforms/dart/guides/flutter/upload-debug/',
     },
     {
       name: t('Distributed Tracing'),
       description: t(
         'Connect all your services by configuring your endpoints in the Sentry init.'
       ),
-      link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
+      link: 'https://docs.sentry.io/platforms/dart/guides/flutter/tracing/trace-propagation/limiting-trace-propagation/',
     },
     {
       name: t('Connect your Git Repo'),
@@ -403,7 +403,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: getReplayMobileConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/flutter/session-replay/#privacy',
+        link: 'https://docs.sentry.io/platforms/dart/guides/flutter/session-replay/#privacy',
       }),
       configurations: [
         {
