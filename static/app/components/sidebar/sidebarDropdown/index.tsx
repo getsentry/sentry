@@ -152,6 +152,9 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                     <SidebarMenuItem to="/settings/account/api/">
                       {t('User auth tokens')}
                     </SidebarMenuItem>
+                    <SidebarMenuItem to="https://sentry.shop/">
+                      {t('Merch store')}
+                    </SidebarMenuItem>
                     {hasOrganization && (
                       <Hook
                         name="sidebar:organization-dropdown-menu-bottom"
