@@ -1,5 +1,4 @@
 import os
-import stat
 import sys
 from collections.abc import MutableMapping
 
@@ -39,12 +38,8 @@ if sys.platform == "linux":
             except FileNotFoundError:
                 continue
             else:
-                if path.startswith("/"):
-                    try:
-                        if stat.S_ISREG(os.stat(path).st_mode):
-                            ret.append(path)
-                    except OSError:
-                        continue
+                if os.path.exists(path):
+                    ret.append(path)
         return frozenset(ret)
 
 else:
