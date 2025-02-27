@@ -28,12 +28,16 @@ type TourPreviousStepAction = {
 type TourEndAction = {
   type: 'END_TOUR';
 };
+type TourCompleteRegistrationAction = {
+  type: 'COMPLETE_REGISTRATION';
+};
 
 export type TourAction<T extends TourEnumType> =
   | TourStartAction<T>
   | TourNextStepAction
   | TourPreviousStepAction
-  | TourEndAction;
+  | TourEndAction
+  | TourCompleteRegistrationAction;
 
 export interface TourState<T extends TourEnumType> {
   /**
@@ -44,6 +48,10 @@ export interface TourState<T extends TourEnumType> {
    * Whether the tour is available to the user. Should be set by flags or other conditions.
    */
   isAvailable: boolean;
+  /**
+   * Whether every step of the tour has been registered in the DOM.
+   */
+  isRegistered: boolean;
   /**
    * The ordered step IDs. Declared once when the provider is initialized.
    */
@@ -61,21 +69,13 @@ export function useTourReducer<T extends TourEnumType>(
 
   const reducer: Reducer<TourState<T>, TourAction<T>> = useCallback(
     (state, action) => {
-      const completeTourState = {
-        ...state,
-        isActive: false,
-        currentStep: null,
-      };
+      const completeTourState = {...state, currentStepId: null};
       switch (action.type) {
         case 'START_TOUR': {
-          const isCompletelyRegistered = orderedStepIds.every(id =>
-            Boolean(registry.current[id])
-          );
           // If the tour is not available, or not all steps are registered, do nothing
-          if (!state.isAvailable || !isCompletelyRegistered) {
+          if (!state.isAvailable || !state.isRegistered) {
             return state;
           }
-
           // If the stepId is provided, set the current step to the stepId
           const startStepIndex = action.stepId
             ? orderedStepIds.indexOf(action.stepId)
@@ -83,17 +83,16 @@ export function useTourReducer<T extends TourEnumType>(
           if (action.stepId && startStepIndex !== -1) {
             return {
               ...state,
-              currentStep: action.stepId ?? null,
+              currentStepId: action.stepId ?? null,
             };
           }
           // If no stepId is provided, set the current step to the first step
           if (orderedStepIds[0]) {
             return {
               ...state,
-              currentStep: orderedStepIds[0] ?? null,
+              currentStepId: orderedStepIds[0] ?? null,
             };
           }
-
           return state;
         }
         case 'NEXT_STEP': {
@@ -128,6 +127,8 @@ export function useTourReducer<T extends TourEnumType>(
         }
         case 'END_TOUR':
           return completeTourState;
+        case 'COMPLETE_REGISTRATION':
+          return {...state, isRegistered: true};
         default:
           return state;
       }
@@ -139,12 +140,21 @@ export function useTourReducer<T extends TourEnumType>(
 
   const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
 
-  const registerStep = useCallback((step: TourStep<T>) => {
-    registry.current[step.id] = step;
-    return () => {
-      delete registry.current[step.id];
-    };
-  }, []);
+  const registerStep = useCallback(
+    (step: TourStep<T>) => {
+      registry.current[step.id] = step;
+      const isCompletelyRegistered = orderedStepIds.every(stepId =>
+        Boolean(registry.current[stepId])
+      );
+      if (isCompletelyRegistered) {
+        dispatch({type: 'COMPLETE_REGISTRATION'});
+      }
+      return () => {
+        delete registry.current[step.id];
+      };
+    },
+    [orderedStepIds]
+  );
 
   return useMemo<TourContextType<T>>(
     () => ({
@@ -152,9 +162,17 @@ export function useTourReducer<T extends TourEnumType>(
       registerStep,
       currentStepId: tour.currentStepId,
       isAvailable: tour.isAvailable,
+      isRegistered: tour.isRegistered,
       orderedStepIds: tour.orderedStepIds,
     }),
-    [dispatch, registerStep, tour.currentStepId, tour.isAvailable, tour.orderedStepIds]
+    [
+      dispatch,
+      registerStep,
+      tour.currentStepId,
+      tour.isAvailable,
+      tour.isRegistered,
+      tour.orderedStepIds,
+    ]
   );
 }
 
@@ -162,3 +180,11 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   dispatch: Dispatch<TourAction<T>>;
   registerStep: (step: TourStep<T>) => void;
 }
+
+// export function useTourRegistration<T extends TourEnumType>(step: TourStep<T>) {
+//   const tourContext = useTourContext<T>();
+//   const registerStep = tourContext.registerStep;
+//   useEffect(() => {
+//     registerStep(step);
+//   }, [registerStep, step]);
+// }

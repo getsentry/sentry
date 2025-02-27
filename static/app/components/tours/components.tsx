@@ -48,6 +48,7 @@ export function TourContextProvider<T extends TourEnumType>({
 }: TourContextProviderProps<T>) {
   const tourContextValue = useTourReducer<T>({
     isAvailable,
+    isRegistered: false,
     orderedStepIds,
     currentStepId: null,
   });

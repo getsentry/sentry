@@ -28,8 +28,9 @@ export const ORDERED_ISSUE_DETAILS_TOUR = [
 ];
 
 export const IssueDetailsTourContext = createContext<TourContextType<IssueDetailsTour>>({
-  currentStep: null,
+  currentStepId: null,
   isAvailable: false,
+  isRegistered: false,
   orderedStepIds: ORDERED_ISSUE_DETAILS_TOUR,
   dispatch: () => {},
   registerStep: () => {},
