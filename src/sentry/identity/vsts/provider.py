@@ -245,6 +245,7 @@ class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
         from urllib.parse import parse_qsl
 
         from sentry.http import safe_urlopen, safe_urlread
+        from sentry.utils.http import absolute_uri
 
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
@@ -260,7 +261,7 @@ class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
                     "code": code,
-                    "redirect_uri": pipeline.config.get("redirect_url"),
+                    "redirect_uri": absolute_uri(pipeline.config.get("redirect_url")),
                 },
             )
             body = safe_urlread(req)
