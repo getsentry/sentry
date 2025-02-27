@@ -707,13 +707,18 @@ class SearchVisitor(NodeVisitor):
     def visit_free_text(self, node, children):
         if not children[0]:
             return None
-        return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(children[0]))
+        # Free text searches need to be treated like they were wildcards
+        return SearchFilter(
+            SearchKey(self.config.free_text_key), "=", SearchValue(f"*{children[0]}*")
+        )
 
     def visit_paren_group(self, node, children):
         if not self.config.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
+            return SearchFilter(
+                SearchKey(self.config.free_text_key), "=", SearchValue(f"*{node.text}*")
+            )
 
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
