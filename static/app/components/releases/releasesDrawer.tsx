@@ -90,7 +90,6 @@ export function ReleasesDrawer({
               Visualization={chartRenderer?.({
                 releases,
                 timeSeries: trimmedTimeSeries,
-                showReleaseLines: true,
               })}
             />
           </ChartContainer>
