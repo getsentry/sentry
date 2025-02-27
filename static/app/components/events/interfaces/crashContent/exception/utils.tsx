@@ -100,7 +100,7 @@ export const sourceMapSdkDocsMap: Record<string, string> = {
   'sentry.javascript.svelte': 'svelte',
   'sentry.javascript.sveltekit': 'sveltekit',
   'sentry.javascript.react-native': 'react-native',
-  'sentry.javascript.atro': 'astro',
+  'sentry.javascript.astro': 'astro',
 };
 
 const IconPlacement = styled(IconOpen)`
