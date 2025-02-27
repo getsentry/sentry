@@ -69,8 +69,19 @@ class FakeLogIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = FakeLogIntegration
 
+    features = frozenset(
+        [
+            IntegrationFeatures.ALERT_RULE,
+        ]
+    )
+
     def get_pipeline_views(self) -> list[PipelineView]:
         return []
 
     def build_integration(self, state):
-        pass
+        return {
+            "external_id": "fake-log",
+            "provider": "fake-log",
+            "name": "Fake Log",
+            "metadata": {},
+        }

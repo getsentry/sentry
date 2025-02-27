@@ -49,6 +49,8 @@ class Action(DefaultFieldsModel):
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
 
+        FAKE_LOG = "fake_log"
+
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)

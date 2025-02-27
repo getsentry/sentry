@@ -224,6 +224,31 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         self.run_test(actions=self.notify_issue_owners_action, conditions=self.first_seen_condition)
 
+    def test_personal(self):
+        request = {
+            "actionMatch": "any",
+            "filterMatch": "all",
+            "actions": [
+                {
+                    "id": "sentry.integrations.fake_log.notify_action.FakeLogAction",
+                    "identifier": "test",
+                }
+            ],
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+            "filters": [],
+            "name": "test",
+            "frequency": 1440,
+            "owner": f"team:{self.team.id}",
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **request,
+        )
+
     def test_with_name(self):
         conditions = [
             {

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.fake_log_integration.actions.form import FakeLogServiceForm
 from sentry.integrations.fake_log_integration.log_provider import FakeIntegrationClient
 from sentry.rules.actions.integrations.base import IntegrationEventAction
 from sentry.types.rules import RuleFuture
@@ -9,8 +10,8 @@ from sentry.types.rules import RuleFuture
 # Our bread and butter for defining a new action
 # This allows us to set up alert rules via the UI
 class FakeLogAction(IntegrationEventAction):
-    id = "sentry.integrations.fake_log_integration.actions.FakeLogAction"
-    label = "Log a message"
+    id = "sentry.integrations.fake_log.notify_action.FakeLogAction"
+    label = "Log a message with identifier: {identifier}"
     prompt = "Enter a fake identifier to log alongside issue data"
     provider = "fake-log"
     integration_key = "fake-log"
@@ -26,6 +27,7 @@ class FakeLogAction(IntegrationEventAction):
         # We need integration information in both the closure and the future key.
         integration = self.get_integration()
         assert integration is not None, "Integration is required for fake log client"
+        identifier = self.get_option("identifier", "damn")
 
         # We construct a future for the caller to eventually invoke, but for
         # whatever reason, we also supply a sequence of futures?
@@ -35,7 +37,6 @@ class FakeLogAction(IntegrationEventAction):
             # coupling to the provider's implementation here.
             # Also lots of coupling to the client, thereby bypassing the
             # integration installation class entirely. Doesn't feel great.
-            identifier = self.get_option("identifier")
             client.log(
                 event.message,
                 target_identifier=identifier,
@@ -44,3 +45,13 @@ class FakeLogAction(IntegrationEventAction):
 
         # Key is used for rudimentary deduping
         yield self.future(send_log, key=f"fake-log:{integration.id}")
+
+    def render_label(self) -> str:
+        identifier = self.get_option("identifier", "damn")
+        label = f"Log a message with identifier: {identifier}"
+        return label
+
+    def get_form_instance(self) -> FakeLogServiceForm:
+        return FakeLogServiceForm(
+            self.data,
+        )

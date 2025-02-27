@@ -128,6 +128,10 @@ ACTION_FIELD_MAPPINGS: dict[Action.Type, ActionFieldMapping] = {
         id="sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
         target_identifier_key="sentryAppInstallationUuid",
     ),
+    Action.Type.FAKE_LOG: ActionFieldMapping(
+        id="sentry.rules.actions.fake_log.FakeLogAction",
+        target_identifier_key="identifier",
+    ),
 }
 
 
