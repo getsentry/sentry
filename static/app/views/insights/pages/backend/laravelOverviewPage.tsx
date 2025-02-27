@@ -679,9 +679,13 @@ const PathCell = styled('div')`
   display: flex;
   flex-direction: column;
   padding: ${space(1)} ${space(2)};
-  min-height: ${space(4)};
   justify-content: center;
   gap: ${space(0.5)};
+
+  [role='columnheader'] & {
+    padding-top: ${space(0.75)};
+    padding-bottom: ${space(0.75)};
+  }
 `;
 
 const ControllerText = styled('div')`
@@ -699,14 +703,6 @@ const Cell = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   padding: ${space(1)} ${space(2)};
-  min-height: ${space(4)};
-
-  [role='columnheader'] & {
-    color: ${p => p.theme.gray300};
-    font-size: ${p => p.theme.fontSizeSmall};
-    font-weight: 600;
-    max-height: ${space(2)};
-  }
 
   &[data-color='danger'] {
     color: ${p => p.theme.red400};
@@ -714,6 +710,17 @@ const Cell = styled('div')`
   &[data-color='warning'] {
     color: ${p => p.theme.yellow400};
   }
+  &[data-align='right'] {
+    text-align: right;
+    justify-content: flex-end;
+  }
+`;
+
+const HeaderCell = styled(Cell)`
+  padding: ${space(0.25)} ${space(2)};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
   &[data-align='right'] {
     text-align: right;
     justify-content: flex-end;
@@ -818,16 +825,16 @@ function RoutesTable({query}: {query?: string}) {
       headers={[
         'Method',
         'Path',
-        <Cell key="requests">
+        <HeaderCell key="requests">
           <IconArrow direction="down" />
           Requests
-        </Cell>,
+        </HeaderCell>,
         'Error Rate',
         'AVG',
         'P95',
-        <Cell key="users" data-align="right">
+        <HeaderCell key="users" data-align="right">
           Users
-        </Cell>,
+        </HeaderCell>,
       ]}
       isLoading={transactionsRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
