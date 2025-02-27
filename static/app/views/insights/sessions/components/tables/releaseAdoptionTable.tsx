@@ -16,11 +16,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type ReleaseAdoptionItem = {
   adoption: number;
+  adoption_stage: string;
   date: string;
   lifespan: number | undefined;
   project_id: number;
   release: string;
-  stage: string;
 };
 
 interface Props {
@@ -38,7 +38,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseAdoptionItem>> = [
   {key: 'date', name: 'date created'},
   {key: 'lifespan', name: 'lifespan'},
   {key: 'adoption', name: 'adoption'},
-  {key: 'stage', name: 'stage'},
+  {key: 'adoption_stage', name: 'stage'},
 ];
 
 export default function ReleaseAdoptionTable({

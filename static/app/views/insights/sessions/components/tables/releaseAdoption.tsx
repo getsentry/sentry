@@ -7,8 +7,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import ReleaseAdoptionTable from 'sentry/views/insights/sessions/components/tables/releaseAdoptionTable';
 import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useOrganizationReleases';
 
-export default function ReleaseAdoption() {
-  const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases();
+export default function ReleaseAdoption({filters}: {filters: string[]}) {
+  const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases({
+    tableType: 'adoption',
+    filters,
+  });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,7 +27,7 @@ export default function ReleaseAdoption() {
           fields: {
             release: 'string',
             date: 'date',
-            stage: 'string',
+            adoption_stage: 'string',
             lifespan: 'duration',
             adoption: 'percentage',
           },
@@ -39,7 +42,7 @@ export default function ReleaseAdoption() {
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, cursor},
+            query: {...searchQuery, cursor_adoption_table: cursor},
           });
         }}
       />
