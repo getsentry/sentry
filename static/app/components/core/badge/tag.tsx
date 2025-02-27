@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import type {TooltipProps} from 'sentry/components/tooltip';
@@ -22,7 +21,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
-  href?: string;
+  // href?: string;
   /**
    * Icon on the left side.
    */
@@ -61,7 +60,6 @@ function BaseTag({
   tooltipProps,
   to,
   onClick,
-  href,
   onDismiss,
   children,
   textMaxWidth = 150,
@@ -73,7 +71,7 @@ function BaseTag({
     color: theme.tag[type].color as Color,
   };
 
-  const isLink = href !== undefined || to !== undefined;
+  const isLink = to !== undefined;
 
   // Links use the IconOpen by default
   const tagIcon = icon || icon === null ? icon : isLink ? <IconOpen /> : null;
@@ -120,9 +118,7 @@ function BaseTag({
   );
 
   const tagWithParent =
-    href !== undefined ? (
-      <ExternalLink href={href}>{tag}</ExternalLink>
-    ) : to !== undefined ? (
+    to !== undefined ? (
       <Link to={to} onClick={onClick}>
         {tag}
       </Link>
