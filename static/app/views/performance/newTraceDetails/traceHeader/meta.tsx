@@ -117,8 +117,8 @@ export function Meta(props: MetaProps) {
         }
       />
       <MetaSection
-        headingText={t('Events')}
-        bodyText={(props.meta?.transactions ?? 0) + (props.meta?.errors ?? 0)}
+        headingText={t('Spans')}
+        bodyText={props.meta?.span_count ?? '\u2014'}
       />
       {traceNode ? (
         <MetaSection
