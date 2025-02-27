@@ -1229,7 +1229,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
 
-    def test_top_events_only_one_row_filtered_out(self):
+    def test_top_events_filters_out_groupby_even_when_its_just_one_row(self):
         self.store_spans(
             [
                 self.create_span(
