@@ -333,12 +333,54 @@ def _get_projects_and_filenames_from_source_file(
     return projects_set, sentry_filenames
 
 
+def _get_repo(
+    organization_id: int, provider: str, external_id: str, repo_full_name: str | None = None
+) -> Repository | None:
+    try:
+        repo = Repository.objects.get(
+            organization_id=organization_id, provider=provider, external_id=external_id
+        )
+    except Repository.DoesNotExist:
+        if repo_full_name:
+            logger.warning(
+                "Repo doesn't exist. Falling back to the first active repo by name.",
+                extra={
+                    "organization_id": organization_id,
+                    "provider": provider,
+                    "external_id": external_id,
+                    "repo_full_name": repo_full_name,
+                },
+            )
+            repo: Repository | None = Repository.objects.filter(
+                organization_id=organization_id,
+                external_id=external_id,
+                status=ObjectStatus.ACTIVE,
+                name=repo_full_name,
+            ).first()  # type: ignore[assignment]
+        else:
+            repo = None  # there isn't enough info to fall back on
+
+        if not repo:
+            logger.exception(
+                "Repo doesn't exist",
+                extra={
+                    "organization_id": organization_id,
+                    "provider": provider,
+                    "external_id": external_id,
+                    "repo_full_name": repo_full_name,
+                },
+            )
+
+    return repo
+
+
 def get_issues_related_to_file_patches(
     *,
     organization_id: int,
     provider: str,
     external_id: str,
     pr_files: list[PrFile],
+    repo_full_name: str | None = None,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
 ) -> dict[str, list[dict[str, Any]]]:
     """
@@ -347,33 +389,9 @@ def get_issues_related_to_file_patches(
 
     Each issue includes its latest serialized event.
     """
-
-    try:
-        repo = Repository.objects.get(
-            organization_id=organization_id, provider=provider, external_id=external_id
-        )
-    except Repository.DoesNotExist:
-        logger.warning(
-            "Repo doesn't exist. Falling back to the first active repo.",
-            extra={
-                "organization_id": organization_id,
-                "provider": provider,
-                "external_id": external_id,
-            },
-        )
-        repo = Repository.objects.filter(
-            organization_id=organization_id, external_id=external_id, status=ObjectStatus.ACTIVE
-        ).first()  # type: ignore[assignment]
-        if not repo:
-            logger.exception(
-                "Repo doesn't exist",
-                extra={
-                    "organization_id": organization_id,
-                    "provider": provider,
-                    "external_id": external_id,
-                },
-            )
-            return {}
+    repo = _get_repo(organization_id, provider, external_id, repo_full_name=repo_full_name)
+    if not repo:
+        return {}
 
     repo_id = repo.id
 
@@ -387,6 +405,7 @@ def get_issues_related_to_file_patches(
 
     for file in pullrequest_files:
         logger.info("Processing file", extra={"file": file.filename})
+
         projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
             organization_id, repo_id, file.filename
         )
@@ -414,11 +433,7 @@ def get_issues_related_to_file_patches(
         if issues:
             logger.info(
                 "Found issues for file",
-                extra={
-                    "file": file.filename,
-                    "num_issues": len(issues),
-                    "issue_ids": ", ".join(str(issue["id"]) for issue in issues),
-                },
+                extra={"file": file.filename, "num_issues": len(issues)},
             )
         filename_to_issues[file.filename] = issues
 

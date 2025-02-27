@@ -231,9 +231,9 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
     def test_missing_repo(self):
         assert (
             get_issues_related_to_file_patches(
-                organization_id=1,
-                provider="integrations:github",
-                external_id="does-not-exist",
+                organization_id=self.organization.id,
+                provider="unknown-provider",
+                external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
                 pr_files=[],
             )
             == {}
@@ -287,8 +287,9 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         # Test that we fall back to the first active repo if the the provider is inaccurate
         filename_to_issues_fallback = get_issues_related_to_file_patches(
             organization_id=self.organization.id,
-            provider="does-not-exist",
+            provider="is-not-known",
             external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
+            repo_full_name=self.gh_repo.name,
             pr_files=pr_files,
         )
         assert filename_to_issues_fallback == filename_to_issues_expected
