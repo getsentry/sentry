@@ -17,6 +17,11 @@ type Props = {
 function useShouldRedirect(oldPathPrefix: `/${string}`) {
   const organization = useOrganization();
   const location = useLocation();
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (!prefersStackedNav) {
+    return false;
+  }
 
   if (USING_CUSTOMER_DOMAIN) {
     return location.pathname.startsWith(oldPathPrefix);
@@ -66,12 +71,11 @@ export function useRedirectNavV2Routes({
 }: Props): string | null {
   const location = useLocation();
   const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
   const shouldRedirect = useShouldRedirect(oldPathPrefix);
 
   useLogUnexpectedNavigationRedirect({shouldRedirect});
 
-  if (!prefersStackedNav || !shouldRedirect) {
+  if (!shouldRedirect) {
     return null;
   }
 
