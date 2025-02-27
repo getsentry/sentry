@@ -14,7 +14,6 @@ export const chonkInputStyles = ({
   color: theme.textColor,
   background: theme.background,
   border: `1px solid ${theme.border}`,
-  boxShadow: `inset ${theme.dropShadowMedium}`,
   fontWeight: theme.fontWeightNormal,
   resize: 'vertical',
   transition: 'border 0.1s, box-shadow 0.1s',
