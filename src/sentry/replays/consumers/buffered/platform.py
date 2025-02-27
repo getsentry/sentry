@@ -70,22 +70,20 @@ class PlatformStrategy(ProcessingStrategy[KafkaPayload]):
 
 
 CommitProtocol = Callable[[Mapping[Partition, int]], None]
+
+# A Model represents the state of your application. It is a type variable and the RunTime is
+# generic over it. Your state can be anything from a simple integer to a large class with many
+# fields.
 Model = TypeVar("Model")
+
+# A Msg represents the commands an application can issue to itself. These commands update the state
+# and optionally issue commands to the RunTime.
 Msg = TypeVar("Msg")
-
-
-class BackPressure:
-    """Instructs the RunTime to back-pressure the platform.
-
-    Does not accept a `msg` argument as we do not expect the platform to fail.
-    """
-
-    pass
 
 
 @dataclass(frozen=True)
 class Commit(Generic[Msg]):
-    """Instructs the RunTime to commit the platform.
+    """Instructs the RunTime to commit the message offsets.
 
     Because the RunTime is based on a Kafka platform there is an expectation that the application
     should trigger commits when necessary. While the application can't be sure its running Kafka
@@ -109,8 +107,10 @@ class Task(Generic[Msg]):
     msg: Msg
 
 
-# A "Cmd" is the union of all the commands an application can issue to the RunTime.
-Cmd = BackPressure | Commit[Msg] | Nothing | Task[Msg]
+# A "Cmd" is the union of all the commands an application can issue to the RunTime. The RunTime
+# accepts these commands and handles them in some pre-defined way. Commands are fixed and can not
+# be registered on a per application basis.
+Cmd = Commit[Msg] | Nothing | Task[Msg]
 
 
 @dataclass(frozen=True)
@@ -138,11 +138,22 @@ class Poll(Generic[Msg]):
     name = "poll"
 
 
-# A "Sub" is the union of all the events an application can subscribe to.
+# A "Sub" is the union of all the commands the Platform can issue to an application. The Platform
+# will occassionally emit actions which are intercepted by the RunTime. The RunTime translates
+# these actions into a set of predefined subscriptions. These subscriptions are exposed to the
+# application and the developer is free to handle them in the way they see fit.
 Sub = Join[Msg] | Poll[Msg]
 
 
 class RunTime(Generic[Model, Msg]):
+    """RunTime object.
+
+    The RunTime is an intermediate data structure which manages communication between the platform
+    and the application. It formalizes state transformations and abstracts the logic of the
+    platform. Commands are declaratively issued rather than defined within the logic of the
+    application. Commands can be issued bidirectionally with "Cmd" types flowing from the
+    application to the platform and "Sub" types flowing from the platform to the application.
+    """
 
     def __init__(
         self,
@@ -171,6 +182,8 @@ class RunTime(Generic[Model, Msg]):
         return self.__model
 
     def setup(self, flags: dict[str, str], commit: CommitProtocol) -> None:
+        # NOTE: Could this be a factory function that produces RunTimes instead? That way we
+        #       don't need the assert checks on model and commit.
         self.__commit = commit
 
         model, cmd = self.init(flags)
@@ -212,9 +225,6 @@ class RunTime(Generic[Model, Msg]):
             return None
 
         match cmd:
-            case BackPressure():
-                # TODO
-                return None
             case Commit(msg=msg, offsets=offsets):
                 self.commit(offsets)
                 return self.__handle_msg(msg)

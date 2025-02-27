@@ -1,4 +1,8 @@
-"""Buffered RunTime implementation."""
+"""Buffered RunTime implementation.
+
+The Buffering RunTime eagerly processes messages as they are received and waits until its buffer
+is full before flushing those messages. The goal being to achieve efficiencies from batched I/O.
+"""
 
 from collections.abc import Callable, MutableMapping
 from dataclasses import dataclass
