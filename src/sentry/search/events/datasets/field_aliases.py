@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression, Function
+from snuba_sdk import AliasedExpression, Column, Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -165,4 +165,4 @@ def resolve_column_if_exists(builder: BaseQueryBuilder, alias: str) -> SelectTyp
         hasColumn = builder.resolve_tag_key(alias)
         if hasColumn:
             return builder.column(alias)
-    return Function("nullif", ["", ""], alias)
+    return Column("null")
