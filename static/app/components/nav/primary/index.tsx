@@ -71,6 +71,7 @@ export function PrimaryNavigationItems() {
 
         <SidebarLink
           to={`/${prefix}/explore/traces/`}
+          activeTo={`/${prefix}/explore`}
           analyticsKey="explore"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
         >
@@ -95,6 +96,7 @@ export function PrimaryNavigationItems() {
         <Feature features={['performance-view']}>
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
+            activeTo={`/${prefix}/insights`}
             analyticsKey="insights-domains"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
           >
