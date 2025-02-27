@@ -737,7 +737,7 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 88px;
 
       [data-issue-title-link] {
         &::before {
