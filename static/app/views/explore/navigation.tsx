@@ -50,7 +50,10 @@ export default function ExploreNavigation({children}: Props) {
               </SecondaryNav.Item>
             </Feature>
             <Feature features="discover-basic">
-              <SecondaryNav.Item to={`${baseUrl}/discover/`}>
+              <SecondaryNav.Item
+                to={`${baseUrl}/discover/homepage/`}
+                activeTo={`${baseUrl}/discover/`}
+              >
                 {t('Discover')}
               </SecondaryNav.Item>
             </Feature>
