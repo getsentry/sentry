@@ -61,7 +61,7 @@ function InviteRequestRow({
           )
         ) : (
           <JoinRequestIndicator
-            tooltipText={t('This user has asked to join your organization.')}
+            tooltipProps={{title: t('This user has asked to join your organization.')}}
           >
             {t('Join request')}
           </JoinRequestIndicator>
