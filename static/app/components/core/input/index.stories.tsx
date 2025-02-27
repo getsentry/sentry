@@ -5,10 +5,10 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-import {Input} from './input';
+import {Input} from './';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/input';
+import types from '!!type-loader!sentry/components/core/input';
 
 export default storyBook('Input', (story, APIReference) => {
   APIReference(types.Input);
