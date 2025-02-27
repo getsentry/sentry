@@ -1,9 +1,10 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import useDrawer from 'sentry/components/globalDrawer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -47,6 +48,9 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import TracesOnboardingGuide, {
+  TRACES_ONBOARDING_VIEWED_KEY,
+} from 'sentry/views/explore/spans/components/onboardingGuide';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -136,6 +140,21 @@ export function SpansTabContentImpl({
   );
 
   const [expanded, setExpanded] = useState(true);
+
+  const {openDrawer: openOnboardingGuide, isDrawerOpen: isOnboardingGuideOpen} =
+    useDrawer();
+  const hasViewedOnboardingGuide = localStorage.getItem(TRACES_ONBOARDING_VIEWED_KEY);
+
+  useEffect(() => {
+    if (!hasViewedOnboardingGuide || hasViewedOnboardingGuide === 'false') {
+      openOnboardingGuide(() => <TracesOnboardingGuide />, {
+        ariaLabel: t('Traces Onboarding Guide'),
+        onClose: () => {
+          localStorage.setItem(TRACES_ONBOARDING_VIEWED_KEY, 'true');
+        },
+      });
+    }
+  }, [hasViewedOnboardingGuide, isOnboardingGuideOpen, openOnboardingGuide]);
 
   useAnalytics({
     queryType,
