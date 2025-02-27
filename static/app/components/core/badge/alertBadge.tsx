@@ -124,6 +124,5 @@ const DiamondBackground = withChonk(
       color: ${p => p.theme.white};
     }
   `,
-  ChonkAlertBadgeDiamondBackground,
-  p => p
+  ChonkAlertBadgeDiamondBackground
 );
