@@ -1089,6 +1089,60 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
         self.action.refresh_from_db()
         assert self.action.data == {"priority": "P3"}
+        assert self.action.type == Action.Type.OPSGENIE
+
+    def test_dual_update_trigger_action_data_sentry_app(self):
+        sentry_app = self.create_sentry_app(
+            name="oolong",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.rpc_user
+        )
+        sentry_app_trigger_action = self.create_alert_rule_trigger_action(
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=sentry_app,
+            alert_rule_trigger=self.alert_rule_trigger,
+        )
+        action, _, _ = migrate_metric_action(sentry_app_trigger_action)
+        updated_fields = {
+            "sentry_app_config": [
+                {
+                    "name": "mifu",
+                    "value": "matcha",
+                },
+            ],
+            "target_display": "oolong",
+            "target_identifier": "1",
+            "target_type": ActionTarget.SENTRY_APP,
+        }
+
+        # XXX: This is a bit of a hack, but we update the action's data blob based on the
+        # updated trigger action. So we need to update the trigger action first.
+        update_alert_rule_trigger_action(
+            sentry_app_trigger_action,
+            sentry_app_config=[
+                {
+                    "name": "mifu",
+                    "value": "matcha",
+                },
+            ],
+        )
+        dual_update_migrated_alert_rule_trigger_action(sentry_app_trigger_action, updated_fields)
+
+        action.refresh_from_db()
+        assert action.data["settings"] == [
+            {
+                "name": "mifu",
+                "value": "matcha",
+            },
+        ]
+        assert action.target_display == "oolong"
+        assert action.target_identifier == "1"
+        assert action.target_type == ActionTarget.SENTRY_APP
 
 
 class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
