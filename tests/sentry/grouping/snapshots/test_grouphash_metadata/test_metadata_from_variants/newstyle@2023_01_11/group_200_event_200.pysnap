@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T18:30:54.154107+00:00'
+created: '2025-02-26T00:32:11.603758+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,7 +30,7 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (category:system -app))
+            frame*
               function*
                 "HTTP_THREAD_POOL::_StaticWorkItemCallback"
             frame*
