@@ -689,6 +689,7 @@ const ControllerText = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.theme.overflowEllipsis};
   line-height: 1;
+  width: 25vw;
 `;
 
 const Cell = styled('div')`
@@ -846,7 +847,7 @@ function RoutesTable({query}: {query?: string}) {
               {routeControllersRequest.isLoading ? (
                 <Placeholder
                   height={theme.fontSizeSmall}
-                  width="30vw"
+                  width="25vw"
                   testId="skeleton-ui"
                 />
               ) : (
