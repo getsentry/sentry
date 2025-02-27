@@ -13,31 +13,32 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
 
 
+def get_event_data() -> dict[str, Any]:
+    return {
+        "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+        "exception": {
+            "values": [
+                {
+                    "type": "FailedToFetchError",
+                    "value": "Charlie didn't bring the ball back",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "play_fetch",
+                                "filename": "dogpark.py",
+                                "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                            }
+                        ]
+                    },
+                }
+            ]
+        },
+        "platform": "python",
+    }
+
+
 class SeerEventManagerGroupingTest(TestCase):
     """Test whether Seer is called during ingest and if so, how the results are used"""
-
-    def setUp(self) -> None:
-        self.event_data = {
-            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
-            "exception": {
-                "values": [
-                    {
-                        "type": "FailedToFetchError",
-                        "value": "Charlie didn't bring the ball back",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "play_fetch",
-                                    "filename": "dogpark.py",
-                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-            "platform": "python",
-        }
 
     def test_obeys_seer_similarity_flags(self):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -158,7 +159,7 @@ class SeerEventManagerGroupingTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ) as mock_get_similarity_data_from_seer:
-            existing_event = save_new_event(self.event_data, self.project)
+            existing_event = save_new_event(get_event_data(), self.project)
 
             existing_event_grouphash = GroupHash.objects.filter(
                 hash=existing_event.get_primary_hash(), project_id=self.project.id
@@ -267,7 +268,7 @@ class SeerEventManagerGroupingTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ) as mock_get_similarity_data:
-            new_event = save_new_event(self.event_data, self.project)
+            new_event = save_new_event(get_event_data(), self.project)
 
             assert mock_get_similarity_data.call_count == 1
             assert existing_event.group_id == new_event.group_id
@@ -279,7 +280,7 @@ class SeerEventManagerGroupingTest(TestCase):
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
         ) as mock_get_similarity_data:
-            new_event = save_new_event(self.event_data, self.project)
+            new_event = save_new_event(get_event_data(), self.project)
 
             assert mock_get_similarity_data.call_count == 1
             assert existing_event.group_id != new_event.group_id
