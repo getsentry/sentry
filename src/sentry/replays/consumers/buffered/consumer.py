@@ -100,6 +100,7 @@ def process_message(message_bytes: bytes) -> ProcessedRecordingMessage | None:
         with contextlib.suppress(DropSilently):
             message = parse_recording_message(message_bytes)
             return process_recording_message(message)
+        return None
 
 
 def init(flags: dict[str, str]) -> Model[ProcessedRecordingMessage]:
