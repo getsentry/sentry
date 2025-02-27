@@ -11,8 +11,10 @@ from sentry.event_manager import (
     _calculate_span_grouping,
     _detect_performance_problems,
     _get_or_create_environment_many,
+    _get_or_create_release_associated_models,
     _get_or_create_release_many,
     _pull_out_data,
+    _record_transaction_info,
 )
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -116,6 +118,11 @@ def flatten_tree(tree, root_span_id):
 
 
 def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    """
+    Exclusive to the segments consumer: Updates group type and fingerprint of
+    all performance problems so they don't double write occurrences as we test.
+    """
+
     for job in jobs:
         updated_problems = []
         performance_problems = job.pop("performance_problems")
@@ -209,17 +216,28 @@ def process_segment(spans: list[dict[str, Any]]):
         }
     ]
 
+    # XXX: Apply the same pipeline as in `save_transaction_events` with
+    # redundant operations removed. The disabled elements will be removed once
+    # the refactor is complete:
+
     _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
-    # _get_event_user_many(jobs, projects)
-    _get_or_create_environment_many(jobs, projects)
+    # _get_event_user_many(jobs, projects)                                 # N/A: transaction data
+    # _derive_plugin_tags_many(jobs, projects)                             # N/A: transaction data
+    # _derive_interface_tags_many(jobs)                                    # N/A: transaction data
     _calculate_span_grouping(jobs, projects)
+    # _materialize_metadata_many(jobs)                                     # N/A: writes group metadata
+    _get_or_create_environment_many(jobs, projects)
+    _get_or_create_release_associated_models(jobs, projects)
+    # _tsdb_record_all_metrics(jobs)                                       # TODO: Refactor and enable
+    # _materialize_event_metrics(jobs)                                     # N/A: transaction data
+    # _nodestore_save_many(jobs=jobs, app_feature="transactions")          # N/A: nodestore is deprecated
+    # _eventstream_insert_many(jobs)                                       # N/A: produced outside
+    # _track_outcome_accepted_many(jobs)                                   # N/A: created by outcomes consumer
     _detect_performance_problems(jobs, projects, is_standalone_spans=True)
-    # Updates group type and fingerprint of all performance problems
-    # so they don't double write occurrences as we test.
-    _update_occurrence_group_type(jobs, projects)
-
+    _update_occurrence_group_type(jobs, projects)  # NB: exclusive to spans consumer
     if options.get("standalone-spans.send-occurrence-to-platform.enable"):
         _send_occurrence_to_platform(jobs, projects)
+    _record_transaction_info(jobs, projects)
 
     return jobs
