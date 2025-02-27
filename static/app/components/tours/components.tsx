@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
+import ButtonBar from 'sentry/components/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   type TourContextType,
@@ -72,8 +72,7 @@ export function TourContextProvider<T extends TourEnumType>({
   );
 }
 
-export interface TourElementProps<T extends TourEnumType>
-  extends Partial<UseOverlayProps> {
+interface BaseTourElementProps<T extends TourEnumType> extends Partial<UseOverlayProps> {
   /**
    * The content being focused during the tour.
    */
@@ -100,6 +99,14 @@ export interface TourElementProps<T extends TourEnumType>
   className?: string;
 }
 
+/**
+ * Most implementations of TourElementProps will hook in their own context.
+ */
+export type TourElementProps<T extends TourEnumType> = Omit<
+  BaseTourElementProps<T>,
+  'tourContext'
+>;
+
 export function TourElement<T extends TourEnumType>({
   children,
   id,
@@ -108,9 +115,8 @@ export function TourElement<T extends TourEnumType>({
   tourContext,
   position,
   className,
-}: TourElementProps<T>) {
+}: BaseTourElementProps<T>) {
   const theme = useTheme();
-
   const {currentStep, dispatch, orderedStepIds, registerStep} = tourContext;
   const stepCount = currentStep ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
@@ -125,9 +131,7 @@ export function TourElement<T extends TourEnumType>({
   });
   const element = triggerRef.current;
 
-  useEffect(() => {
-    registerStep({id, element});
-  }, [id, element, registerStep]);
+  useEffect(() => registerStep({id, element}), [id, element, registerStep]);
 
   return (
     <Fragment>
@@ -155,7 +159,7 @@ export function TourElement<T extends TourEnumType>({
             </TopRow>
             <TitleRow>{title}</TitleRow>
             <div>{description}</div>
-            <Flex justify="flex-end" gap={space(1)}>
+            <ActionBar gap={1}>
               {hasPreviousStep && (
                 <ActionButton size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
                   {t('Previous')}
@@ -170,7 +174,7 @@ export function TourElement<T extends TourEnumType>({
                   {t('Finish tour')}
                 </ActionButton>
               )}
-            </Flex>
+            </ActionBar>
           </TourOverlay>
         </PositionWrapper>
       ) : null}
@@ -235,6 +239,10 @@ const TopRow = styled('div')`
 const TitleRow = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ActionBar = styled(ButtonBar)`
+  justify-content: flex-end;
 `;
 
 const ActionButton = styled(Button)`

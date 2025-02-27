@@ -59,10 +59,11 @@ export function useTourReducer<T extends TourEnumType>(
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
   const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
-  const isCompletelyRegistered = Object.values(registry.current).every(Boolean);
-
   const registerStep = useCallback((step: TourStep<T>) => {
     registry.current[step.id] = step;
+    return () => {
+      delete registry.current[step.id];
+    };
   }, []);
 
   const reducer: Reducer<TourState<T>, TourAction<T>> = useCallback(
@@ -74,6 +75,9 @@ export function useTourReducer<T extends TourEnumType>(
       };
       switch (action.type) {
         case 'START_TOUR': {
+          const isCompletelyRegistered = orderedStepIds.every(id =>
+            Boolean(registry.current[id])
+          );
           // If the tour is not available, or not all steps are registered, do nothing
           if (!state.isAvailable || !isCompletelyRegistered) {
             return state;
@@ -135,7 +139,7 @@ export function useTourReducer<T extends TourEnumType>(
           return state;
       }
     },
-    [orderedStepIds, isCompletelyRegistered]
+    [orderedStepIds]
   );
 
   const [tour, dispatch] = useReducer(reducer, initialState);

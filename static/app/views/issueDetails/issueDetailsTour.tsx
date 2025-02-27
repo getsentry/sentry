@@ -5,26 +5,26 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 
 export const enum IssueDetailsTour {
   /** Onboarding for trends and aggregates, the graph, and tag distributions */
-  ISSUE_DETAILS_AGGREGATES = 'issue-details-aggregates',
+  AGGREGATES = 'issue-details-aggregates',
   /** Onboarding for date/time/environment filters */
-  ISSUE_DETAILS_FILTERS = 'issue-details-filters',
+  FILTERS = 'issue-details-filters',
   /** Onboarding for event details, event navigation, main page content */
-  ISSUE_DETAILS_EVENT_DETAILS = 'issue-details-event-details',
+  EVENT_DETAILS = 'issue-details-event-details',
   /** Onboarding for event navigation; next/previous, first/last/recommended events */
-  ISSUE_DETAILS_NAVIGATION = 'issue-details-navigation',
+  NAVIGATION = 'issue-details-navigation',
   /** Onboarding for workflow actions; resolution, archival, assignment, priority, etc. */
-  ISSUE_DETAILS_WORKFLOWS = 'issue-details-workflows',
+  WORKFLOWS = 'issue-details-workflows',
   /** Onboarding for activity log, issue tracking, solutions hub area */
-  ISSUE_DETAILS_SIDEBAR = 'issue-details-sidebar',
+  SIDEBAR = 'issue-details-sidebar',
 }
 
 export const ORDERED_ISSUE_DETAILS_TOUR = [
-  IssueDetailsTour.ISSUE_DETAILS_AGGREGATES,
-  IssueDetailsTour.ISSUE_DETAILS_FILTERS,
-  IssueDetailsTour.ISSUE_DETAILS_EVENT_DETAILS,
-  IssueDetailsTour.ISSUE_DETAILS_NAVIGATION,
-  IssueDetailsTour.ISSUE_DETAILS_WORKFLOWS,
-  IssueDetailsTour.ISSUE_DETAILS_SIDEBAR,
+  IssueDetailsTour.AGGREGATES,
+  IssueDetailsTour.FILTERS,
+  IssueDetailsTour.EVENT_DETAILS,
+  IssueDetailsTour.NAVIGATION,
+  IssueDetailsTour.WORKFLOWS,
+  IssueDetailsTour.SIDEBAR,
 ];
 
 export const IssueDetailsTourContext = createContext<TourContextType<IssueDetailsTour>>({
@@ -39,9 +39,7 @@ export function useIssueDetailsTour(): TourContextType<IssueDetailsTour> {
   return useContext(IssueDetailsTourContext);
 }
 
-export function IssueDetailsTourElement(
-  props: Omit<TourElementProps<IssueDetailsTour>, 'tourContext'>
-) {
+export function IssueDetailsTourElement(props: TourElementProps<IssueDetailsTour>) {
   const tourContext = useIssueDetailsTour();
   return <TourElement tourContext={tourContext} {...props} />;
 }
