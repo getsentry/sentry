@@ -3,43 +3,46 @@ import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 
-export const chonkInputStyles = (
-  p: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}
-): StrictCSSObject => ({
+export const chonkInputStyles = ({
+  theme,
+  monospace,
+  readOnly,
+  size = 'md',
+}: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => ({
   display: 'block',
   width: '100%',
-  color: p.theme.textColor,
-  background: p.theme.background,
-  border: `1px solid ${p.theme.border}`,
-  borderRadius: p.theme.borderRadius,
-  boxShadow: `inset ${p.theme.dropShadowMedium}`,
+  color: theme.textColor,
+  background: theme.background,
+  border: `1px solid ${theme.border}`,
+  boxShadow: `inset ${theme.dropShadowMedium}`,
   resize: 'vertical',
   transition: 'border 0.1s, box-shadow 0.1s',
-  ...(p.monospace ? {fontFamily: p.theme.text.familyMono} : {}),
-  ...(p.readOnly ? {cursor: 'default'} : {}),
+  ...(monospace ? {fontFamily: theme.text.familyMono} : {}),
+  ...(readOnly ? {cursor: 'default'} : {}),
 
-  ...p.theme.form[p.size ?? 'md'],
-  ...p.theme.formPadding[p.size ?? 'md'],
+  ...theme.form[size],
+  ...theme.formPadding[size],
+  ...theme.formRadius[size],
 
   '&::placeholder': {
-    color: p.theme.subText,
+    color: theme.subText,
     opacity: 1,
   },
 
   "&[disabled], &[aria-disabled='true']": {
-    color: p.theme.disabled,
+    color: theme.disabled,
     cursor: 'not-allowed',
     opacity: '60%',
 
     '&::placeholder': {
-      color: p.theme.disabled,
+      color: theme.disabled,
     },
   },
 
   '&:focus, &:focus-visible, :focus-within': {
     outline: 'none',
-    boxShadow: `0 0 0 2px ${p.theme.background}, 0 0 0 4px ${p.theme.focusBorder}`,
-    borderRadius: `calc(${p.theme.borderRadius} + 2px)`,
+    boxShadow: `0 0 0 2px ${theme.background}, 0 0 0 4px ${theme.focusBorder}`,
+    borderRadius: `calc(${theme.borderRadius} + 2px)`,
   },
   "&[type='number']": {
     appearance: 'textfield',

@@ -69,6 +69,17 @@ const formTheme: FormTheme = {
       paddingBottom: 4,
     },
   },
+  formRadius: {
+    md: {
+      borderRadius: '6px',
+    },
+    sm: {
+      borderRadius: '5px',
+    },
+    xs: {
+      borderRadius: '4px',
+    },
+  },
 };
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values

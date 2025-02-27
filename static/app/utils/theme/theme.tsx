@@ -820,6 +820,11 @@ export type FormTheme = {
       paddingTop: number;
     };
   };
+  formRadius: {
+    [key in FormSize]: {
+      borderRadius: string;
+    };
+  };
 };
 
 const formTheme: FormTheme = {
@@ -870,6 +875,17 @@ const formTheme: FormTheme = {
       paddingRight: 6,
       paddingTop: 6,
       paddingBottom: 6,
+    },
+  },
+  formRadius: {
+    md: {
+      borderRadius: '6px',
+    },
+    sm: {
+      borderRadius: '6px',
+    },
+    xs: {
+      borderRadius: '6px',
     },
   },
 };
