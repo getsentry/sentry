@@ -25,7 +25,7 @@ export function withChonk<
 >(
   legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
-  propMapping: ChonkPropMapping<LegacyProps, ChonkProps>
+  propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
 ): React.ForwardRefExoticComponent<
   React.PropsWithoutRef<LegacyProps> & React.RefAttributes<any>
 > {
@@ -55,4 +55,8 @@ export function withChonk<
 
   const ForwardRefComponent = forwardRef(ChonkSwitch);
   return ForwardRefComponent;
+}
+
+function identity<T, U>(props: T): U {
+  return props as unknown as U;
 }
