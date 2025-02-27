@@ -1,4 +1,4 @@
-import BadgeTag from 'sentry/components/badge/tag';
+import BadgeTag from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';

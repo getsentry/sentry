@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Tag, {Background} from 'sentry/components/badge/tag';
+import Tag, {Background} from 'sentry/components/core/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Truncate from 'sentry/components/truncate';

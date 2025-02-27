@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import Tag from 'sentry/components/core/badge/tag';
 import TimeSince from 'sentry/components/timeSince';
 
 interface GroupStatusBadgeProps {

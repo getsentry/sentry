@@ -2,9 +2,9 @@ import type {MouseEvent} from 'react';
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import Tag from 'sentry/components/core/badge/tag';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
