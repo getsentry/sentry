@@ -18,13 +18,13 @@ from sentry.utils.performance_issues.base import (
     get_url_from_span,
     parameterize_url,
 )
+from sentry.utils.performance_issues.detector_handlers.performance_detector_handler import (
+    PerformanceDetectorHandler,
+)
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
 from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
-from sentry.workflow_engine.handlers.detector.performance_detector_handler import (
-    PerformanceDetectorHandler,
-)
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 if TYPE_CHECKING:
