@@ -29,7 +29,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {
+  getPerformanceBaseUrl,
+  platformToDomainView,
+} from 'sentry/views/performance/utils';
 import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -123,6 +127,12 @@ class ProjectCard extends Component<Props> {
       transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
+    const hasPerfLandingRemovalFlag = organization.features?.includes(
+      'insights-performance-landing-removal'
+    );
+    const domainView: DomainView | undefined = project
+      ? platformToDomainView([project], [parseInt(project.id, 10)])
+      : 'backend';
 
     return (
       <div data-test-id={slug}>
@@ -159,7 +169,11 @@ class ProjectCard extends Component<Props> {
                       <em>|</em>
                       <TransactionsLink
                         data-test-id="project-transactions"
-                        to={`${getPerformanceBaseUrl(organization.slug)}/?project=${project.id}`}
+                        to={`${
+                          hasPerfLandingRemovalFlag
+                            ? getPerformanceBaseUrl(organization.slug, domainView)
+                            : getPerformanceBaseUrl(organization.slug)
+                        }/?project=${project.id}`}
                       >
                         {t(
                           'Transactions: %s',
