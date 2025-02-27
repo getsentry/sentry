@@ -135,7 +135,14 @@ describe('SpansTabContent', function () {
           '7d': 'Last 7 days',
         }}
       />,
-      {disableRouterMocks: true, router, organization}
+      {
+        disableRouterMocks: true,
+        router,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'traces-onboarding-guide'],
+        },
+      }
     );
 
     expect(screen.getByLabelText('Traces Onboarding Guide')).toBeInTheDocument();

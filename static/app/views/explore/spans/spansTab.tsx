@@ -146,7 +146,10 @@ export function SpansTabContentImpl({
   const hasViewedOnboardingGuide = localStorage.getItem(TRACES_ONBOARDING_VIEWED_KEY);
 
   useEffect(() => {
-    if (!hasViewedOnboardingGuide || hasViewedOnboardingGuide === 'false') {
+    if (
+      organization.features.includes('traces-onboarding-guide') &&
+      (!hasViewedOnboardingGuide || hasViewedOnboardingGuide === 'false')
+    ) {
       openOnboardingGuide(() => <TracesOnboardingGuide />, {
         ariaLabel: t('Traces Onboarding Guide'),
         onClose: () => {
@@ -154,7 +157,12 @@ export function SpansTabContentImpl({
         },
       });
     }
-  }, [hasViewedOnboardingGuide, isOnboardingGuideOpen, openOnboardingGuide]);
+  }, [
+    hasViewedOnboardingGuide,
+    isOnboardingGuideOpen,
+    openOnboardingGuide,
+    organization.features,
+  ]);
 
   useAnalytics({
     queryType,
