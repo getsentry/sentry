@@ -56,6 +56,7 @@ import {
 } from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
+import {QuotaExceededAlert} from 'sentry/views/performance/quotaExceededAlert';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -145,6 +146,15 @@ export function SpansTabContentImpl({
     timeseriesResult,
   });
 
+  const resultsLength =
+    {
+      aggregate: aggregatesTableResult.result.data?.length,
+      samples: spansTableResult.result.data?.length,
+      traces: tracesTableResult.result.data?.data?.length,
+    }[queryType] ?? 0;
+
+  const hasResults = !!resultsLength;
+
   return (
     <Body withToolbar={expanded}>
       <TopSection>
@@ -199,6 +209,7 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
+        {!hasResults && <QuotaExceededAlert />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
