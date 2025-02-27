@@ -85,16 +85,16 @@ export default storyBook('Widget', (story, APIReference) => {
           <JSXNode name="Widget" /> also provides a few sub-components:
           <ul>
             <li>
-              <JSXNode name="Widget.TextTitle" /> is a truncated title string
+              <JSXNode name="Widget.WidgetTitle" /> is a truncated title string
             </li>
             <li>
-              <JSXNode name="Widget.Description" /> is a description tooltip
+              <JSXNode name="Widget.WidgetDescription" /> is a description tooltip
             </li>
             <li>
-              <JSXNode name="Widget.Toolbar" /> is a wrapper for multiple buttons
+              <JSXNode name="Widget.WidgetToolbar" /> is a wrapper for multiple buttons
             </li>
             <li>
-              <JSXNode name="Widget.Error" /> is an error panel that takes over the{' '}
+              <JSXNode name="Widget.WidgetError" /> is an error panel that takes over the{' '}
               <code>Visualization</code> if needed
             </li>
           </ul>
@@ -113,16 +113,16 @@ import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurati
 import {Widget} from './widget';
 
 <Widget
-  Title={<Widget.TextTitle title="epm() : /insights/frontend/assets" />}
+  Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
   Actions={
-    <Widget.Toolbar>
+    <Widget.WidgetToolbar>
       <Button size="xs">Say More</Button>
       <Button size="xs">Say Less</Button>
-      <Widget.Description
+      <Widget.WidgetDescription
         title="epm() : /insights/frontend/assets"
         description="Events received, tracked per minute"
       />
-    </Widget.Toolbar>
+    </Widget.WidgetToolbar>
   }
   Visualization={
     isLoading ? (
