@@ -51,7 +51,9 @@ export default function NewProviderForm({
   const [selectedProvider, setSelectedProvider] = useState('<provider_name>');
 
   const handleGoBack = useCallback(() => {
-    navigate(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
+    navigate(
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+    );
   }, [organization.slug, navigate]);
 
   const {mutate: submitSecret, isPending} = useMutation<

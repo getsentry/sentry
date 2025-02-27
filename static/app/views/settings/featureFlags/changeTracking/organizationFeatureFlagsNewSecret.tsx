@@ -22,7 +22,9 @@ export function OrganizationFeatureFlagsNewSecet() {
   const navigate = useNavigate();
 
   const handleGoBack = useCallback(() => {
-    navigate(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
+    navigate(
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+    );
   }, [organization.slug, navigate]);
 
   return (

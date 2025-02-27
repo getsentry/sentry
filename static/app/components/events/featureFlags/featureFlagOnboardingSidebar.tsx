@@ -329,7 +329,10 @@ function OnboardingContent({
         {t(
           'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
         )}
-        <LinkButton size="sm" href={`/settings/${organization.slug}/feature-flags/`}>
+        <LinkButton
+          size="sm"
+          href={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+        >
           {t('Go to Feature Flag Settings')}
         </LinkButton>
       </StyledDefaultContent>
