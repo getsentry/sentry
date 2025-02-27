@@ -154,11 +154,7 @@ describe('PageOverview', function () {
             dataset: 'spansIndexed',
             field: [
               'measurements.inp',
-              'measurements.lcp',
-              'measurements.cls',
               'measurements.score.ratio.inp',
-              'measurements.score.ratio.lcp',
-              'measurements.score.ratio.cls',
               'measurements.score.total',
               'trace',
               'profile_id',
@@ -170,9 +166,11 @@ describe('PageOverview', function () {
               'span.self_time',
               'transaction',
               'span.op',
+              'lcp.element',
+              'cls.source.1',
             ],
             query:
-              'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
+              'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
           }),
         })
       )
@@ -204,11 +202,7 @@ describe('PageOverview', function () {
             dataset: 'spansIndexed',
             field: [
               'measurements.inp',
-              'measurements.lcp',
-              'measurements.cls',
               'measurements.score.ratio.inp',
-              'measurements.score.ratio.lcp',
-              'measurements.score.ratio.cls',
               'measurements.score.total',
               'trace',
               'profile_id',
@@ -220,9 +214,11 @@ describe('PageOverview', function () {
               'span.self_time',
               'transaction',
               'span.op',
+              'lcp.element',
+              'cls.source.1',
             ],
             query:
-              'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
+              'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
           }),
         })
       )
