@@ -62,6 +62,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
                 self.builder, alias
             ),
+            constants.MESSAGING_OPERATION_TYPE_ALIAS: lambda alias: field_aliases.resolve_column_if_exists(
+                self.builder, alias
+            ),
+            constants.MESSAGING_OPERATION_NAME_ALIAS: lambda alias: field_aliases.resolve_column_if_exists(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:
