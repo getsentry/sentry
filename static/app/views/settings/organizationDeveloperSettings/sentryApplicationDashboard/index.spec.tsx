@@ -50,7 +50,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
 
@@ -93,7 +93,7 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [],
       });
 
@@ -134,7 +134,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
 
@@ -172,7 +172,7 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [],
       });
 
