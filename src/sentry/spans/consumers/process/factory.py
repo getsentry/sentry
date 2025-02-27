@@ -414,6 +414,7 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
         segment_messages.append(value)
 
     # TODO: call done_flush_segments after commit, not here
+    # figure out how to flush when consumer is inactive
     buffer.done_flush_segments(flushed_segments)
 
     return segment_messages
