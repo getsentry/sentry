@@ -21,7 +21,9 @@ class MockSink:
         self.accepted.extend(buffer)
 
 
-def make_kafka_message(message: bytes):
+def make_kafka_message(message: bytes, topic: str = "a", index: int = 1, offset: int = 1):
     return Message(
-        BrokerValue(KafkaPayload(b"k", message, []), Partition(Topic("a"), 1), 1, datetime.now())
+        BrokerValue(
+            KafkaPayload(b"k", message, []), Partition(Topic(topic), index), offset, datetime.now()
+        )
     )

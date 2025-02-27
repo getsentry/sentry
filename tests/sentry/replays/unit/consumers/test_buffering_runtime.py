@@ -162,3 +162,23 @@ def test_buffering_runtime_poll():
     assert runtime.model.buffer == []
     assert sink.accepted == [1, 2, 3, 4, 5]
     assert mock_commit.commit == {Partition(Topic("a"), 1): 2}
+
+
+def test_buffering_runtime_committed_offsets():
+    """Test offset commit."""
+    mock_commit = MockCommit()
+    sink = MockSink()
+
+    runtime = buffer_runtime(sink)
+    runtime.setup({}, mock_commit)
+    assert runtime.model.buffer == []
+    assert runtime.model.offsets == {}
+    assert sink.accepted == []
+    assert mock_commit.commit == {}
+
+    # Assert committed offsets are correct.
+    runtime.submit(make_kafka_message(b"1"))
+    runtime.submit(make_kafka_message(b"1", topic="b"))
+    runtime.submit(make_kafka_message(b"1", offset=2))
+    runtime.publish("join")
+    assert mock_commit.commit == {Partition(Topic("a"), 1): 3, Partition(Topic("b"), 1): 2}
