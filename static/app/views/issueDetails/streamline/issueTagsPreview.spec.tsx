@@ -15,10 +15,9 @@ import IssueTagsPreview from './issueTagsPreview';
 describe('IssueTagsPreview', () => {
 <<<<<<< HEAD
   beforeEach(() =>
-    MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse(
       url: '/projects/org-slug/project-slug/',
-      body: [ProjectFixture()],
-    }););
+      body: [ProjectFixture()],););
 =======
 >>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   it('renders preview tags', async () => {
