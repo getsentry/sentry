@@ -16,7 +16,7 @@ function getPath(sdkName: string | null | undefined) {
     case 'sentry.java.android':
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/
     case 'sentry.dart.flutter':
-      return 'flutter'; // https://docs.sentry.io/platforms/dart/guides/flutter/session-replay/
+      return 'dart/guides/flutter'; // https://docs.sentry.io/platforms/dart/guides/flutter/session-replay/
     case 'npm:@sentry/react-native':
     case 'sentry.cocoa.react-native':
     case 'sentry.javascript.react-native':
