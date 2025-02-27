@@ -351,7 +351,7 @@ def _get_repo(
                     "repo_full_name": repo_full_name,
                 },
             )
-            repo: Repository | None = Repository.objects.filter(
+            repo = Repository.objects.filter(
                 organization_id=organization_id,
                 external_id=external_id,
                 status=ObjectStatus.ACTIVE,
