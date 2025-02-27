@@ -20,6 +20,7 @@ from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors.detector import process_detectors
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
@@ -39,6 +40,7 @@ from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
+
 INTEGRATIONS_OF_INTEREST = [
     "django",
     "flask",
@@ -423,7 +425,7 @@ def run_detector_on_data(
     if use_workflow_engine:
         event_id = data.get("event_id", None)
         data_packet = DataPacket(source_id=str(event_id), packet=data)
-        detector.on_complete(data_packet)
+        process_detectors(data_packet, [detector])
     else:
         detector.on_complete()
 
