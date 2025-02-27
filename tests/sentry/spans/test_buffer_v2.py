@@ -58,9 +58,8 @@ def test_basic(buffer: RedisSpansBufferV2):
     assert buffer.flush_segments(now=5) == {}
     rv = buffer.flush_segments(now=11)
     assert rv == {buffer._segment_id(1, "a" * 32, "b" * 16): {b"D", b"B", b"A", b"C"}}
-    assert buffer.flush_segments(now=30) == {}
-
     buffer.done_flush_segments(rv)
+    assert buffer.flush_segments(now=30) == {}
 
     assert_clean(buffer.client)
 

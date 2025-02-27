@@ -11,7 +11,7 @@ from sentry.utils import redis
 
 # This SegmentId is an internal identifier used by the redis buffer that is
 # also directly used as raw redis key. the format is
-# "s:{project_id:trace_id}:span_id", and the type is bytes because our redis
+# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our redis
 # client is bytes.
 #
 # The segment ID in the Kafka protocol is actually only the span ID.
@@ -136,7 +136,7 @@ class RedisSpansBufferV2:
                 p.delete(segment_id)
 
                 # parse trace_id out of SegmentId, then remove from queue
-                trace_id = segment_id.split(b":")[2][:-1]
+                trace_id = segment_id.split(b":")[3][:-1]
                 shard = int(trace_id, 16) % self.sharding_factor
                 p.zrem(f"span-buf:q:{shard}", segment_id)
 
