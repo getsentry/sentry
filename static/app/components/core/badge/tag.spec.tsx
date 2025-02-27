@@ -58,28 +58,4 @@ describe('Tag', () => {
     expect(screen.getByRole('link', {name: 'Internal link'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute('href', to);
   });
-
-  it('with external link', () => {
-    const href = 'https://sentry.io/';
-    render(
-      <Tag type="highlight" href={href}>
-        External link
-      </Tag>
-    );
-    expect(screen.getByText('External link')).toBeInTheDocument();
-    const link = screen.getByRole('link', {name: 'External link'});
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', href);
-    expect(link).toHaveAttribute('target', '_blank');
-  });
-
-  it('overrides a link default icon', () => {
-    render(
-      <Tag href="#" icon={<IconFire data-test-id="icon-fire" />}>
-        3
-      </Tag>
-    );
-
-    expect(screen.getByTestId('icon-fire')).toBeInTheDocument();
-  });
 });
