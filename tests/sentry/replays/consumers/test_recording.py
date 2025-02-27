@@ -13,6 +13,8 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
+from sentry.replays.consumers.buffered.consumer import recording_runtime
+from sentry.replays.consumers.buffered.platform import PlatformStrategyFactory
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.consumers.recording_buffered import (
     RecordingBufferedStrategyFactory,
@@ -583,13 +585,9 @@ class SeparateIOComputeRecordingTestCase(RecordingTestCase):
             super().test_invalid_message()
 
 
-from sentry.replays.consumers.buffered.consumer import recording_runtime
-from sentry.replays.consumers.buffered.platform import PlatformStrategyFactory
-
-
-class RunTimeConsumerTestCase(RecordingTestCase):
+class BufferedRunTimeConsumerTestCase(RecordingTestCase):
     def processing_factory(self):
         return PlatformStrategyFactory(
-            flags={"max_buffer_length": 8, "max_buffer_wait": 1},
+            flags={"max_buffer_length": 8, "max_buffer_wait": 1, "max_workers": 8},
             runtime=recording_runtime,
         )
