@@ -701,7 +701,11 @@ const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColo
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
 interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
-  colors: typeof lightColors;
+  colors: typeof lightColors & {
+    background: ReturnType<typeof generateChonkTokens>['background'];
+    border: ReturnType<typeof generateChonkTokens>['border'];
+    content: ReturnType<typeof generateChonkTokens>['content'];
+  };
   isChonk: true;
   radius: typeof radius;
   space: typeof space;
@@ -742,7 +746,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
   stacktraceActiveText: lightTheme.stacktraceActiveText,
 
-  colors: lightColors,
+  colors: {
+    ...lightColors,
+    content: generateChonkTokens(lightColors).content,
+    background: generateChonkTokens(lightColors).background,
+    border: generateChonkTokens(lightColors).border,
+  },
 
   sidebar: {
     // @TODO: these colors need to be ported
@@ -780,7 +789,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
   stacktraceActiveText: darkTheme.stacktraceActiveText,
 
-  colors: darkColors,
+  colors: {
+    ...darkColors,
+    content: generateChonkTokens(darkColors).content,
+    background: generateChonkTokens(darkColors).background,
+    border: generateChonkTokens(darkColors).border,
+  },
 
   space,
   radius,
