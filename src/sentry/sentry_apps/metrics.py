@@ -20,7 +20,7 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
     """An event under the Sentry App umbrella"""
 
     operation_type: SentryAppInteractionType
-    event_type: str | None = None
+    event_type: str
 
     def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
         tokens = ("sentry_app", str(outcome))

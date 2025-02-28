@@ -525,8 +525,8 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
     ).capture() as lifecycle:
         servicehook: ServiceHook
-        extras = {"installation_id": installation.id, "event": event}
-        lifecycle.add_extras(extras)
+        extras: dict[str, int | str] = {"installation_id": installation.id, "event": event}
+        lifecycle.add_extras(extras=extras)
 
         try:
             servicehook = ServiceHook.objects.get(
