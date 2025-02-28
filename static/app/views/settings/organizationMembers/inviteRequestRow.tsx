@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -60,11 +60,12 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <JoinRequestIndicator
-            tooltipText={t('This user has asked to join your organization.')}
+          <Tooltip
+            title={t('This user has asked to join your organization.')}
+            skipWrapper
           >
-            {t('Join request')}
-          </JoinRequestIndicator>
+            <JoinRequestIndicator>{t('Join request')}</JoinRequestIndicator>
+          </Tooltip>
         )}
       </div>
 

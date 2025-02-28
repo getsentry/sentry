@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import Tag from 'sentry/components/badge/tag';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownBubble from 'sentry/components/dropdownBubble';
@@ -211,10 +211,10 @@ function RuleListRow({
     rule.mode === UptimeMonitorMode.AUTO_DETECTED_ACTIVE;
 
   const titleBadge = hasUptimeAutoconfigureBadge ? (
-    <Tag
-      type="info"
-      tooltipProps={{isHoverable: true}}
-      tooltipText={tct(
+    <Tooltip
+      skipWrapper
+      isHoverable
+      title={tct(
         'This Uptime Monitoring alert was auto-detected. [learnMore: Learn more].',
         {
           learnMore: (
@@ -223,8 +223,8 @@ function RuleListRow({
         }
       )}
     >
-      {t('Auto Detected')}
-    </Tag>
+      <Tag type="info">{t('Auto Detected')}</Tag>
+    </Tooltip>
   ) : null;
 
   function ruleUrl() {

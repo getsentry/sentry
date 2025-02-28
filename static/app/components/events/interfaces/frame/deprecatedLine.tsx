@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
@@ -378,7 +378,7 @@ export class DeprecatedLine extends Component<Props, State> {
           <DefaultLineTagWrapper>
             {this.renderRepeats()}
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+              <Tag type="warning" onClick={this.scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}

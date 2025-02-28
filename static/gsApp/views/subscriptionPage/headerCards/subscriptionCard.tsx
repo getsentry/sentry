@@ -5,8 +5,8 @@ import CustomBundleArt from 'getsentry-images/bundles/custom-bundle-art-plain.sv
 import TeamBundleArt from 'getsentry-images/bundles/team-bundle-art-plain.svg';
 import moment from 'moment-timezone';
 
-import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

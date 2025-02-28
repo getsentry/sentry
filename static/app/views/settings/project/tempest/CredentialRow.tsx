@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
+import {Tag} from 'sentry/components/core/badge/tag';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -87,9 +87,9 @@ const STATUS_CONFIG = {
 function StatusTag({statusType, message}: StatusTagProps) {
   const config = STATUS_CONFIG[statusType];
   return (
-    <Tag type={config.type} tooltipText={message}>
-      {config.label}
-    </Tag>
+    <Tooltip title={message} skipWrapper>
+      <Tag type={config.type}>{config.label}</Tag>
+    </Tooltip>
   );
 }
 
