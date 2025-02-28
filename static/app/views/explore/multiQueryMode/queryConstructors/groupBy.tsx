@@ -26,14 +26,22 @@ export function GroupBySection({query, index}: Props) {
 
   const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = Object.keys(tags).filter(key => key !== 'id');
-    potentialOptions.sort();
+    potentialOptions.sort((a, b) => {
+      if (query.groupBys.includes(a) === query.groupBys.includes(b)) {
+        return a.localeCompare(b);
+      }
+      if (query.groupBys.includes(a)) {
+        return -1;
+      }
+      return 1;
+    });
 
     return potentialOptions.map(key => ({
       label: key,
       value: key,
       textValue: key,
     }));
-  }, [tags]);
+  }, [tags, query.groupBys]);
 
   return (
     <Section data-test-id={`section-group-by-${index}`}>
