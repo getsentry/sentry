@@ -84,4 +84,15 @@ describe('useTourReducer', () => {
     act(() => result.current.dispatch({type: 'PREVIOUS_STEP'}));
     expect(result.current.currentStepId).toBe(TestTour.NAME);
   });
+
+  it('sets the step correctly', () => {
+    const result = registerAllSteps();
+    expect(result.current.currentStepId).toBeNull();
+    act(() => result.current.dispatch({type: 'SET_STEP', stepId: TestTour.EMAIL}));
+    expect(result.current.currentStepId).toBe(TestTour.EMAIL);
+    act(() => result.current.dispatch({type: 'SET_STEP', stepId: TestTour.PASSWORD}));
+    expect(result.current.currentStepId).toBe(TestTour.PASSWORD);
+    act(() => result.current.dispatch({type: 'SET_STEP', stepId: TestTour.NAME}));
+    expect(result.current.currentStepId).toBe(TestTour.NAME);
+  });
 });

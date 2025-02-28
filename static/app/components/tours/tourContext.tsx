@@ -25,6 +25,10 @@ type TourNextStepAction = {
 type TourPreviousStepAction = {
   type: 'PREVIOUS_STEP';
 };
+type TourSetStepAction<T extends TourEnumType> = {
+  stepId: T;
+  type: 'SET_STEP';
+};
 type TourEndAction = {
   type: 'END_TOUR';
 };
@@ -37,6 +41,7 @@ export type TourAction<T extends TourEnumType> =
   | TourStartAction<T>
   | TourNextStepAction
   | TourPreviousStepAction
+  | TourSetStepAction<T>
   | TourEndAction
   | TourSetRegistrationAction;
 
@@ -123,6 +128,11 @@ function tourReducer<T extends TourEnumType>(
       // If there is no previous step, do nothing
       return state;
     }
+    case 'SET_STEP':
+      return {
+        ...state,
+        currentStepId: action.stepId,
+      };
     case 'END_TOUR':
       return completeTourState;
     case 'SET_REGISTRATION':
