@@ -16,7 +16,6 @@ from sentry.replays.consumers.buffered.platform import (
     Commit,
     Flags,
     Join,
-    Nothing,
     Poll,
     RunTime,
     Sub,
@@ -45,6 +44,8 @@ class Append(Generic[Item]):
 
 @dataclass(frozen=True)
 class AppendOffset:
+    """Update the offsets; no item needs to be appended to the buffer."""
+
     offset: MutableMapping[Partition, int]
 
 
@@ -67,6 +68,8 @@ class Polled:
 
 
 class TryFlush:
+    """Instruct the application to flush the buffer if its time."""
+
     pass
 
 
@@ -91,7 +94,7 @@ def init(
     init_fn: Callable[[Flags], Model[Item]],
     flags: Flags,
 ) -> tuple[Model[Item], Cmd[Msg[Item]]]:
-    return (init_fn(flags), Nothing())
+    return (init_fn(flags), None)
 
 
 def update(model: Model[Item], msg: Msg[Item]) -> tuple[Model[Item], Cmd[Msg[Item]] | None]:

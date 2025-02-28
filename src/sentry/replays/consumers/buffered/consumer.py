@@ -1,5 +1,8 @@
 """Session Replay recording consumer implementation.
 
+To understand how the buffering works visit the `lib.py` module and inspect the source of the
+buffering runtime.
+
 This module has two parts. A processing component and a buffer flushing component. The processing
 component is straight-forward. It accepts a message and performs some work on it. After it
 completes it instructs the runtime to append the message to the buffer. This is abstracted by the
