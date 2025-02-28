@@ -600,7 +600,6 @@ class _Table extends Component<Props, State> {
 
     return (
       <div data-test-id="performance-table">
-        {/* <GuideAnchor target="performance_table" position="top-start"> */}
         <MEPConsumer>
           {value => {
             return (
@@ -652,7 +651,6 @@ class _Table extends Component<Props, State> {
             );
           }}
         </MEPConsumer>
-        {/* </GuideAnchor> */}
       </div>
     );
   }
