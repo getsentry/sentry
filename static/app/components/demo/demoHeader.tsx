@@ -5,8 +5,6 @@ import {Button, LinkButton} from 'sentry/components/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -20,8 +18,6 @@ import {
 export const DEMO_HEADER_HEIGHT_PX = 70;
 
 export default function DemoHeader() {
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
-
   useEffect(() => {
     openDemoEmailModal();
   }, []);
@@ -30,7 +26,6 @@ export default function DemoHeader() {
     return null;
   }
 
-  // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
 
   const docsBtn = (
@@ -59,6 +54,7 @@ export default function DemoHeader() {
 
   const signUpBtn = (
     <FreeTrial
+      priority="primary"
       onClick={() => {
         const url = urlAttachQueryParams(
           'https://sentry.io/signup/',
@@ -81,7 +77,7 @@ export default function DemoHeader() {
   );
 
   return (
-    <Wrapper collapsed={collapsed}>
+    <Wrapper>
       <StyledLogoSentry />
       {docsBtn}
       {reqDemoBtn}
@@ -91,7 +87,7 @@ export default function DemoHeader() {
 }
 
 // Note many of the colors don't come from the theme as they come from the marketing site
-const Wrapper = styled('div')<{collapsed: boolean}>`
+const Wrapper = styled('div')`
   display: flex;
   height: ${DEMO_HEADER_HEIGHT_PX}px;
   justify-content: space-between;
@@ -99,7 +95,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   align-items: center;
   padding-right: ${space(3)};
   gap: ${space(4)};
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.backgroundElevated};
   white-space: nowrap;
 
   border-bottom: 1px solid ${p => p.theme.border};
@@ -120,7 +116,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-right: auto;
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  fill: ${p => p.theme.textColor};
 `;
 
 const FreeTrialTextShort = styled('span')`
@@ -145,9 +141,7 @@ const DocsDemoBtn = styled(LinkButton)`
 
 const FreeTrial = styled(Button)`
   text-transform: uppercase;
-  border-color: transparent;
-  background-color: #6c5fc7;
-  color: #fff;
+
   .short-text {
     display: none;
   }

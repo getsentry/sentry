@@ -14,6 +14,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
@@ -37,6 +38,8 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-trace-explorer',
   'profiling',
 ];
+
+jest.mock('sentry/utils/demoMode');
 
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
@@ -135,6 +138,17 @@ describe('Sidebar', function () {
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
+  });
+
+  it('does not render help center in demo mode', async () => {
+    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+
+    renderSidebar({organization});
+    await userEvent.click(await screen.findByText('Help'));
+
+    expect(screen.queryByText('Visit Help Center')).not.toBeInTheDocument();
+
+    (isDemoModeEnabled as jest.Mock).mockReset();
   });
 
   describe('SidebarDropdown', function () {

@@ -13,6 +13,7 @@ type Props = {
 
 export default function EmailForm({onSubmit}: Props) {
   const [disabledButton, setDisabledButton] = useState(true);
+
   return (
     <StyledForm
       onSubmit={event => {

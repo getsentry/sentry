@@ -4,7 +4,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
-const SIGN_UP_MODAL_DELAY = 30_000;
+const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
