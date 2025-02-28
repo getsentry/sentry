@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:35.578593+00:00'
+created: '2025-02-26T00:33:38.326987+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -80,13 +80,13 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "-[UIApplication _run]"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_main_queue_drain"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_client_callout"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_block_async_invoke2"
           frame
@@ -107,10 +107,10 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "SentrySetupInteractor.setupSentry"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_lane_barrier_sync_invoke_and_complete"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_client_callout"
           frame
