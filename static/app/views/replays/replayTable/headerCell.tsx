@@ -44,7 +44,16 @@ function HeaderCell({column, sort}: Props) {
       );
 
     case ReplayColumn.COUNT_ERRORS:
-      return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
+      return (
+        <SortableHeader
+          sort={sort}
+          fieldName="count_errors"
+          label={t('Errors')}
+          tooltip={t(
+            'The error count only reflects errors generated within the Replay SDK. Inbound Filters may have prevented those errors from being saved. Backend and other error types may have been added afterwards.'
+          )}
+        />
+      );
 
     case ReplayColumn.COUNT_RAGE_CLICKS:
       return (
