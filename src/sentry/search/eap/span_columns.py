@@ -402,19 +402,7 @@ def count_processor(count_value: int | None) -> int:
         return count_value
 
 
-def http_response_rate(arg: str) -> Column.BinaryFormula:
-
-    if arg not in ["1", "2", "3", "4", "5"]:
-        raise InvalidSearchQuery("http_response_rate accepts a single digit (1,2,3,4,5)")
-
-    code = int(
-        arg  # TODO - converting this arg is a bit of a hack, we should pass in the int directly if the arg type is int
-    )
-
-    # TODO - handling valid parameters should be handled in the function_definitions (span_columns.py)
-    if code not in [1, 2, 3, 4, 5]:
-        raise InvalidSearchQuery("http_response_rate accepts a single digit (1,2,3,4,5)")
-
+def http_response_rate(code: int) -> Column.BinaryFormula:
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
         left=Column(
@@ -457,7 +445,16 @@ def http_response_rate(arg: str) -> Column.BinaryFormula:
     )
 
 
-CUSTOM_FUNCTION_RESOLVER: dict[str, Callable[[Any], Column.BinaryFormula]] = {
+def literal_validator(values: list[Any]) -> Callable[[str], bool]:
+    def _validator(input: str) -> bool:
+        if input in values:
+            return True
+        raise InvalidSearchQuery(f"Invalid parameter {input}. Must be one of {values}")
+
+    return _validator
+
+
+CUSTOM_FUNCTION_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
     "http_response_rate": http_response_rate
 }
 
@@ -701,10 +698,9 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         arguments=[
             ArgumentDefinition(
-                argument_types={
-                    "string"
-                },  # TODO - this should be an integer, but `resolve_attribute` returns a string
-                default_arg=None,  # TODO - this should only accept 2,3,4,5
+                argument_types={"integer"},
+                is_attribute=False,
+                validator=literal_validator(["1", "2", "3", "4", "5"]),
             )
         ],
         formula_resolver=CUSTOM_FUNCTION_RESOLVER["http_response_rate"],

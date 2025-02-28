@@ -2612,7 +2612,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 400, response.content
         assert (
-            "Http_Response_Rate Accepts A Single Digit (1,2,3,4,5)"
+            "Invalid Parameter A. Must Be One Of ['1', '2', '3', '4', '5']"
             == response.data["detail"].title()
         )
 

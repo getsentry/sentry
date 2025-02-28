@@ -78,6 +78,10 @@ class ArgumentDefinition:
     argument_types: set[constants.SearchType] | None = None
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
+    # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
+    is_attribute: bool = True
+    # Validator to check if the value is allowed for this argument, and transforms into correct type
+    validator: Callable[[Any], Any] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
 
@@ -201,12 +205,15 @@ class FormulaDefinition:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
-        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_argument: AttributeKey | Any | None,
     ) -> ResolvedFormula:
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_argument.name if resolved_argument else None),
+            formula=self.formula_resolver(resolved_argument),
             argument=resolved_argument,
             internal_type=self.internal_type,
             processor=self.processor,

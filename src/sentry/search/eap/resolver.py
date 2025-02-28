@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
@@ -704,7 +704,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function}")
 
-        parsed_columns = []
+        parsed_args: list[ResolvedColumn | Any] = []
 
         # Parse the arguments
         attribute_args = fields.parse_arguments(function, columns)
@@ -716,8 +716,27 @@ class SearchResolver:
         for index, argument in enumerate(function_definition.arguments):
             if argument.ignored:
                 continue
+            if argument.validator is not None:
+                if not argument.validator(attribute_args[index]):
+                    raise InvalidSearchQuery(
+                        f"{attribute_args[index]} is not a valid argument for {function}"
+                    )
+
             if index < len(attribute_args):
-                parsed_argument, _ = self.resolve_attribute(attribute_args[index])
+                if argument.is_attribute:
+                    parsed_argument, _ = self.resolve_attribute(attribute_args[index])
+                else:
+                    if argument.argument_types is None:
+                        parsed_args.append(attribute_args[index])  # assume it's a string
+                        continue
+                    # TODO: we assume that the argument is only one type for now, and we only support string/integer
+                    for type in argument.argument_types:
+                        if type == "integer":
+                            parsed_args.append(int(attribute_args[index]))
+                        else:
+                            parsed_args.append(attribute_args[index])
+                    continue
+
             elif argument.default_arg:
                 parsed_argument, _ = self.resolve_attribute(argument.default_arg)
             else:
@@ -732,21 +751,23 @@ class SearchResolver:
                 raise InvalidSearchQuery(
                     f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a field that are one of these types: {argument.argument_types}"
                 )
-            parsed_columns.append(parsed_argument)
+            parsed_args.append(parsed_argument)
 
         # Proto doesn't support anything more than 1 argument yet
-        if len(parsed_columns) > 1:
+        if len(parsed_args) > 1:
             raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_columns) == 1 and isinstance(
-            parsed_columns[0].proto_definition, AttributeKey
-        ):
-            parsed_column = parsed_columns[0]
-            resolved_argument = parsed_column.proto_definition
-            search_type = (
-                parsed_column.search_type
-                if function_definition.infer_search_type_from_arguments
-                else function_definition.default_search_type
-            )
+        elif len(parsed_args) == 1:
+            parsed_arg = parsed_args[0]
+            if not isinstance(parsed_arg, ResolvedColumn):
+                resolved_argument = parsed_arg
+                search_type = function_definition.default_search_type
+            elif isinstance(parsed_arg.proto_definition, AttributeKey):
+                resolved_argument = parsed_arg.proto_definition
+                search_type = (
+                    parsed_arg.search_type
+                    if function_definition.infer_search_type_from_arguments
+                    else function_definition.default_search_type
+                )
         else:
             resolved_argument = None
             search_type = function_definition.default_search_type
