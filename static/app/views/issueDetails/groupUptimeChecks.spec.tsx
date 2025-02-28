@@ -4,7 +4,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
-import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -49,10 +48,6 @@ describe('GroupUptimeChecks', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: event,
     });
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/uptime/123/`,
-      body: UptimeRuleFixture(),
-    });
   });
 
   it('renders the empty uptime check table', async () => {
@@ -86,7 +81,9 @@ describe('GroupUptimeChecks', () => {
     expect(screen.getByRole('time')).toHaveTextContent(/Jan 1, 2025/);
     expect(screen.getByText(statusToText[uptimeCheck.checkStatus])).toBeInTheDocument();
     expect(screen.getByText(`${uptimeCheck.durationMs}ms`)).toBeInTheDocument();
-    expect(screen.getByText(getShortEventId(uptimeCheck.traceId))).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: getShortEventId(uptimeCheck.traceId)})
+    ).toHaveAttribute('href', `/performance/trace/${uptimeCheck.traceId}/`);
     expect(screen.getByText(uptimeCheck.regionName)).toBeInTheDocument();
   });
 });
