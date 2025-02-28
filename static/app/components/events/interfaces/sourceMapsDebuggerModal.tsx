@@ -191,9 +191,20 @@ function useSourceMapsDocLinks({
 
   return {
     sourcemaps: `${basePlatformUrl}/sourcemaps/`,
-    sentryBundleSupport: `${basePlatformUrl}/sourcemaps/#sentry-bundler-support`,
-    artifactBundles: `${basePlatformUrl}/sourcemaps/troubleshooting_js/artifact-bundles/`,
-    legacyUploadingMethods: `${basePlatformUrl}/sourcemaps/troubleshooting_js/legacy-uploading-methods/`,
+    // Although we have a few specific sourcemap pages (see: https://github.com/getsentry/sentry-docs/tree/master/platform-includes/sourcemaps/primer),
+    // they don't include the Sentry bundler section. All the others just render content for JavaScript.
+    // Therefore, we have a static link here.
+    sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
+    // cordova and capacitor are not supported (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
+    artifactBundles:
+      platform === 'cordova' || platform === 'capacitor'
+        ? undefined
+        : `${basePlatformUrl}/sourcemaps/troubleshooting_js/artifact-bundles/`,
+    // cordova and capacitor are not supported (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
+    legacyUploadingMethods:
+      platform === 'cordova' || platform === 'capacitor'
+        ? undefined
+        : `${basePlatformUrl}/sourcemaps/troubleshooting_js/legacy-uploading-methods/`,
     rewriteFrames: `${basePlatformUrl}/configuration/integrations/rewriteframes/`,
     sentryCli: `${basePlatformUrl}/sourcemaps/uploading/cli/`,
     hostingPublicly: `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
@@ -890,8 +901,10 @@ function ReleaseHasUploadedArtifactsChecklistItem({
           {tct(
             'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
             {
-              link: (
+              link: defined(sourceMapsDocLinks.legacyUploadingMethods) ? (
                 <ExternalLinkWithIcon href={sourceMapsDocLinks.legacyUploadingMethods} />
+              ) : (
+                <Fragment />
               ),
             }
           )}
