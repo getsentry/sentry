@@ -23,7 +23,7 @@ type Bucket = [
   start: number,
   placeholder: number,
   end: number,
-  releases: number,
+  numReleases: number,
   releases: Release[],
 ];
 
