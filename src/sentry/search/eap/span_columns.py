@@ -454,7 +454,7 @@ def literal_validator(values: list[Any]) -> Callable[[str], bool]:
     return _validator
 
 
-CUSTOM_FUNCTION_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
+FORMULA_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
     "http_response_rate": http_response_rate
 }
 
@@ -703,7 +703,7 @@ SPAN_FORMULA_DEFINITIONS = {
                 validator=literal_validator(["1", "2", "3", "4", "5"]),
             )
         ],
-        formula_resolver=CUSTOM_FUNCTION_RESOLVER["http_response_rate"],
+        formula_resolver=FORMULA_RESOLVER["http_response_rate"],
     ),
 }
 
