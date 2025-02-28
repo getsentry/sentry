@@ -14,34 +14,42 @@ enum EAPWidgetType {
   // USER_MISERY = 5
 }
 
-const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}> = {
+const WIDGET_OPTIONS: Record<
+  EAPWidgetType,
+  {description: string; title: string; visualization: React.ReactNode}
+> = {
   [EAPWidgetType.DURATION_BREAKDOWN]: {
     title: t('Duration Breakdown'),
     description: t(
       'Duration Breakdown reflects transaction durations by percentile over time.'
     ),
+    visualization: null,
   },
   [EAPWidgetType.DURATION_PERCENTILES]: {
     title: t('Duration Percentiles'),
     description: t(
       `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
     ),
+    visualization: null,
   },
   [EAPWidgetType.DURATION_DISTRIBUTION]: {
     title: t('Duration Distribution'),
     description: t(
       'Duration Distribution reflects the volume of transactions per median duration.'
     ),
+    visualization: null,
   },
   [EAPWidgetType.TRENDS]: {
     title: t('Trends'),
     description: t('Trends shows the smoothed value of an aggregate over time.'),
+    visualization: null,
   },
   [EAPWidgetType.WEB_VITALS]: {
     title: t('Web Vitals'),
     description: t(
       'Web Vitals Breakdown reflects the 75th percentile of web vitals over time.'
     ),
+    visualization: null,
   },
 };
 
@@ -57,18 +65,18 @@ export function EAPChartsWidget() {
     }));
   }, []);
 
+  const widget = WIDGET_OPTIONS[selectedWidget];
+  const {title, description, visualization} = widget;
+
   return (
     <Widget
       Title={<Widget.WidgetTitle title={WIDGET_OPTIONS[selectedWidget].title} />}
       Actions={
         <Widget.WidgetToolbar>
-          <Widget.WidgetDescription
-            title={WIDGET_OPTIONS[selectedWidget].title}
-            description={WIDGET_OPTIONS[selectedWidget].description}
-          />
+          <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
-      Visualization={null}
+      Visualization={visualization}
       Footer={
         <FooterContainer>
           <CompactSelect
