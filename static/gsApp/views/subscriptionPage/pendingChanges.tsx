@@ -130,35 +130,39 @@ class PendingChanges extends Component<Props> {
       return results;
     }
 
-    this.hasChange('plan') &&
+    if (this.hasChange('plan')) {
       results.push(
         tct('Plan change to [name]', {
           name: pendingChanges.planDetails.name,
         })
       );
+    }
 
-    hasPerformance(subscription.pendingChanges?.planDetails)
-      ? results.push(...this.getAMPlanChanges())
-      : this.hasChange('reservedEvents') &&
-        results.push(
-          tct('Reserved errors change to [quantity]', {
-            quantity: pendingChanges.reservedEvents.toLocaleString(),
-          })
-        );
+    if (hasPerformance(subscription.pendingChanges?.planDetails)) {
+      results.push(...this.getAMPlanChanges());
+    } else if (this.hasChange('reservedEvents')) {
+      results.push(
+        tct('Reserved errors change to [quantity]', {
+          quantity: pendingChanges.reservedEvents.toLocaleString(),
+        })
+      );
+    }
 
-    this.hasChange('planDetails.contractInterval') &&
+    if (this.hasChange('planDetails.contractInterval')) {
       results.push(
         tct('Contract period change to [contractInterval]', {
           contractInterval: pendingChanges.planDetails.contractInterval,
         })
       );
+    }
 
-    this.hasChange('planDetails.billingInterval') &&
+    if (this.hasChange('planDetails.billingInterval')) {
       results.push(
         tct('Billing period change to [billingInterval]', {
           billingInterval: pendingChanges.planDetails.billingInterval,
         })
       );
+    }
 
     if (isAm3DsPlan(subscription.pendingChanges?.plan)) {
       results.push(...this.getReservedBudgetChanges());
