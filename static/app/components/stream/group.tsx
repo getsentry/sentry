@@ -740,7 +740,7 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 86px;
 
       &:not(:hover):not(:focus-within):not(:has(input:checked)) {
         ${CheckboxLabel} {
