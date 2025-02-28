@@ -75,7 +75,7 @@ function OnDemandDisabled({subscription}: Props) {
         </span>{' '}
         <span>
           {tct(
-            'Please pay any [receipts_link:outstanding invoices] to re-enable [lowercase_name] billing. If there are any issues, please contact us at [contact_link:support@sentry.io].',
+            'Please contact [contact_link:support@sentry.io] to pay [receipts_link:closed/outstanding invoices] to re-enable [lowercase_name] billing.',
             {
               lowercase_name: name.toLowerCase(),
               receipts_link: <NavLink to="/settings/billing/receipts/" />,

@@ -104,10 +104,9 @@ describe('OnDemandDisabled', function () {
 
     render(<OnDemandDisabled subscription={subscription} />);
 
-    expect(screen.getByRole('link', {name: 'outstanding invoices'})).toHaveAttribute(
-      'href',
-      '/settings/billing/receipts/'
-    );
+    expect(
+      screen.getByRole('link', {name: 'closed/outstanding invoices'})
+    ).toHaveAttribute('href', '/settings/billing/receipts/');
     expect(screen.getByRole('link', {name: 'support@sentry.io'})).toHaveAttribute(
       'href',
       'mailto:support@sentry.io'
