@@ -164,7 +164,7 @@ const projectPlatformToDocsMap: Record<string, string> = {
   'node-awslambda': 'aws-lambda',
 };
 
-function useSourceMapsDocLinks({
+function getSourceMapsDocLinks({
   sdkName,
   projectPlatform,
 }: Pick<FrameSourceMapDebuggerData, 'sdkName' | 'projectPlatform'>) {
@@ -238,7 +238,7 @@ export function SourceMapsDebuggerModal({
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
@@ -622,7 +622,7 @@ function HasDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
   const successMessage = t('Stack frame has Debug IDs');
   const errorMessage = t("Stack frame doesn't have Debug IDs");
 
@@ -720,7 +720,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
   const successMessage = t('Source file with a matching Debug ID was uploaded');
   const errorMessage = t('Missing source file with a matching Debug ID');
 
@@ -783,7 +783,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
   const successMessage = t('Uploaded source map with a matching Debug ID');
   const errorMessage = t('Missing source map with a matching Debug ID');
 
@@ -846,7 +846,7 @@ function EventHasReleaseNameChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
   const successMessage = t('Event has release value');
   const errorMessage = t("Event doesn't have a release value");
 
@@ -893,7 +893,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
   const successMessage = t('Release has uploaded artifacts');
   const errorMessage = t("Release doesn't have uploaded artifacts");
 
@@ -939,7 +939,7 @@ function ReleaseSourceFileMatchingChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = useSourceMapsDocLinks(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
   const successMessage = t('Stack frame path matches a source file artifact name');
   const errorMessage = t("Stack frame path doesn't match a source file artifact name");
 
