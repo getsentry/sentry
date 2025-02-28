@@ -238,6 +238,15 @@ def get_grouphash_metadata_data(
             "platform": event.platform or "unknown",
         }
         hashing_metadata: HashingMetadata = {}
+
+        # If we've landed here as the result of secondary grouping, we won't actually have any
+        # variants data from which to derive hash basis or hashing metadata, but we still want to
+        # collect grouping config (so we know it's an outdated hash), schema version (to forestall
+        # any race-condition-y attempts to update the data), and platform (to make whatever
+        # querying we do more complete).
+        if not variants:
+            return base_data
+
         # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
         # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
         # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
