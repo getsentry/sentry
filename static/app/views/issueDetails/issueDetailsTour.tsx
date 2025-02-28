@@ -27,17 +27,15 @@ export const ORDERED_ISSUE_DETAILS_TOUR = [
   IssueDetailsTour.SIDEBAR,
 ];
 
-export const IssueDetailsTourContext = createContext<TourContextType<IssueDetailsTour>>({
-  currentStepId: null,
-  isAvailable: false,
-  isRegistered: false,
-  orderedStepIds: ORDERED_ISSUE_DETAILS_TOUR,
-  dispatch: () => {},
-  handleStepRegistration: () => () => {},
-});
+export const IssueDetailsTourContext =
+  createContext<TourContextType<IssueDetailsTour> | null>(null);
 
 export function useIssueDetailsTour(): TourContextType<IssueDetailsTour> {
-  return useContext(IssueDetailsTourContext);
+  const tourContext = useContext(IssueDetailsTourContext);
+  if (!tourContext) {
+    throw new Error('Must be used within a TourContextProvider');
+  }
+  return tourContext;
 }
 
 export function IssueDetailsTourElement(props: TourElementProps<IssueDetailsTour>) {
