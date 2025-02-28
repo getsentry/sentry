@@ -43,7 +43,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
       search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
       fields: ['trace', 'count()'],
     },
-    'uptime_checks'
+    'api.uptime-checks-grid'
   );
 
   const traceSpanCounts = spanCountLoading
