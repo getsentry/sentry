@@ -410,6 +410,7 @@ def maybe_check_seer_for_matching_grouphash(
                     "grouphash_metadata.none_id",
                     extra={
                         "grouphash_id": event_grouphash.id,
+                        "hash": event_grouphash.hash,
                         "event_id": event.event_id,
                         "project_slug": event.project.slug,
                         "project_id": event.project.id,
