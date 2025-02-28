@@ -218,10 +218,6 @@ def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: lis
         id__in=view_ids_to_keep
     ).delete()
 
-    GroupSearchViewStarred.objects.filter(organization=org, user_id=user_id).exclude(
-        group_search_view__in=view_ids_to_keep
-    ).delete()
-
 
 def _update_existing_view(
     org: Organization, user_id: int, view: GroupSearchViewValidatorResponse, position: int
