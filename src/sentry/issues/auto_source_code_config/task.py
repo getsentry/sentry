@@ -65,11 +65,12 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         logger.error("Event not found.", extra=extra)
         return []
 
-    platform = event.data["platform"]
+    platform = event.platform
+    assert platform is not None
     if not supported_platform(platform):
         return []
 
-    frames_to_process = get_frames_to_process(event.data, event.platform)
+    frames_to_process = get_frames_to_process(event.data, platform)
     if not frames_to_process:
         return []
 
@@ -78,7 +79,7 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
-        code_mappings = trees_helper.generate_code_mappings(frames_to_process)
+        code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
         if platform not in DRY_RUN_PLATFORMS:
             set_project_codemappings(code_mappings, installation, project, platform)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
