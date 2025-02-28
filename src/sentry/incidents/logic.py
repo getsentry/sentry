@@ -270,30 +270,49 @@ def _unpack_organization(alert_rule: AlertRule) -> Organization:
     return organization
 
 
+@dataclass
+class BaseMetricIssueQueryParams:
+    snuba_query: SnubaQuery
+    date_started: datetime
+    current_end_date: datetime
+    organization: Organization
+
+
+@dataclass
+class CalculateOpenPeriodTimeRangeParams(BaseMetricIssueQueryParams):
+    start_arg: datetime | None = None
+    end_arg: datetime | None = None
+
+
+@dataclass
+class BuildMetricQueryBuilderParams(BaseMetricIssueQueryParams):
+    project_ids: list[int]
+    entity_subscription: EntitySubscription
+    start_arg: datetime | None = None
+    end_arg: datetime | None = None
+
+
 def _build_metric_query_builder(
-    snuba_query: SnubaQuery,
-    organization: Organization,
-    project_ids: list[int],
-    entity_subscription: EntitySubscription,
-    date_started: datetime,
-    current_end_date: datetime,
-    start: datetime | None = None,
-    end: datetime | None = None,
+    params: BuildMetricQueryBuilderParams,
 ) -> BaseQueryBuilder:
-    start, end = _calculate_incident_time_range(
-        snuba_query,
-        date_started,
-        current_end_date,
-        organization,
+    start, end = _calculate_open_period_time_range(
+        CalculateOpenPeriodTimeRangeParams(
+            snuba_query=params.snuba_query,
+            date_started=params.date_started,
+            current_end_date=params.current_end_date,
+            organization=params.organization,
+            start_arg=params.start_arg,
+            end_arg=params.end_arg,
+        )
     )
 
-    query_builder = entity_subscription.build_query_builder(
-        query=snuba_query.query,
-        project_ids=project_ids,
-        environment=snuba_query.environment,
+    query_builder = params.entity_subscription.build_query_builder(
+        query=params.snuba_query.query,
+        project_ids=params.project_ids,
+        environment=params.snuba_query.environment,
         params={
-            "organization_id": organization.id,
-            "project_id": project_ids,
+            "organization_id": params.organization.id,
+            "project_id": params.project_ids,
             "start": start,
             "end": end,
         },
@@ -314,20 +333,19 @@ def _build_metric_query_builder(
     return query_builder
 
 
-def _calculate_incident_time_range(
-    snuba_query: SnubaQuery,
-    date_started: datetime,
-    current_end_date: datetime,
-    organization: Organization,
-    start_arg: datetime | None = None,
-    end_arg: datetime | None = None,
+def _calculate_open_period_time_range(
+    params: CalculateOpenPeriodTimeRangeParams,
 ) -> tuple[datetime, datetime]:
-    time_window = snuba_query.time_window
+    time_window = params.snuba_query.time_window
     time_window_delta = timedelta(seconds=time_window)
-    start = (date_started - time_window_delta) if start_arg is None else start_arg
-    end = (current_end_date + time_window_delta) if end_arg is None else end_arg
+    start = (
+        (params.date_started - time_window_delta) if params.start_arg is None else params.start_arg
+    )
+    end = (
+        (params.current_end_date + time_window_delta) if params.end_arg is None else params.end_arg
+    )
 
-    retention = quotas.backend.get_event_retention(organization=organization) or 90
+    retention = quotas.backend.get_event_retention(organization=params.organization) or 90
     start = max(
         start.replace(tzinfo=timezone.utc),
         datetime.now(timezone.utc) - timedelta(days=retention),
@@ -355,13 +373,15 @@ def get_incident_aggregates(
     )
 
     if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
-        start, end = _calculate_incident_time_range(
-            snuba_query,
-            incident.date_started,
-            incident.current_end_date,
-            incident.organization,
-            start,
-            end,
+        start, end = _calculate_open_period_time_range(
+            CalculateOpenPeriodTimeRangeParams(
+                snuba_query=snuba_query,
+                date_started=incident.date_started,
+                current_end_date=incident.current_end_date,
+                organization=incident.organization,
+                start_arg=start,
+                end_arg=end,
+            )
         )
 
         params = SnubaParams(
@@ -397,12 +417,16 @@ def get_incident_aggregates(
             raise
     else:
         query_builder = _build_metric_query_builder(
-            snuba_query,
-            incident.organization,
-            project_ids,
-            entity_subscription,
-            incident.date_started,
-            incident.current_end_date,
+            BuildMetricQueryBuilderParams(
+                snuba_query=snuba_query,
+                organization=incident.organization,
+                project_ids=project_ids,
+                entity_subscription=entity_subscription,
+                date_started=incident.date_started,
+                current_end_date=incident.current_end_date,
+                start_arg=start,
+                end_arg=end,
+            )
         )
         try:
             results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
