@@ -162,12 +162,22 @@ export function SentryAppPublishRequestModal(props: Props) {
             : [],
       },
       {
+        type: 'email',
+        required: true,
+        label: t('Email address for user support.'),
+        meta: 'Email address for user support.',
+        autosize: true,
+        rows: 1,
+        inline: false,
+        name: 'supportEmail',
+      },
+      {
         type: 'url',
         required: true,
         label: t(
-          'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube'
+          'Link to a video showing installation, setup and user flow for your submission.'
         ),
-        meta: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+        meta: 'Link to a video showing installation, setup and user flow for your submission.',
         autosize: true,
         rows: 1,
         inline: false,
@@ -263,15 +273,30 @@ export function SentryAppPublishRequestModal(props: Props) {
   const renderFooter = () => {
     return (
       <Footer>
-        {t(
-          'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.'
-        )}
+        <FooterParagraph>
+          {t(
+            'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
+          )}
+        </FooterParagraph>
+        <FooterParagraph>
+          {t(
+            'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
+          )}
+        </FooterParagraph>
+        <FooterParagraph>
+          {t(
+            'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
+          )}
+        </FooterParagraph>
+        <p>{t('Thank you for contributing to the Sentry community!')}</p>
       </Footer>
     );
   };
   return (
     <Fragment>
-      <Header>{t('Publish Request Questionnaire')}</Header>
+      <Header>
+        <h1>{t('Publish Request Questionnaire')}</h1>
+      </Header>
       <Body>
         <Explanation>
           {t(
@@ -289,10 +314,8 @@ export function SentryAppPublishRequestModal(props: Props) {
           submitLabel={t('Request Publication')}
           onCancel={closeModal}
         >
-          <JsonForm
-            forms={forms}
-            renderFooter={isNewModalVisible ? renderFooter : () => <Fragment />}
-          />
+          <JsonForm forms={forms} />
+          {renderFooter()}
         </Form>
       </Body>
     </Fragment>
@@ -301,7 +324,7 @@ export function SentryAppPublishRequestModal(props: Props) {
 
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
-  font-size: 18px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const PermissionLabel = styled('span')`
@@ -313,5 +336,9 @@ const Permission = styled('code')`
 `;
 
 const Footer = styled('div')`
-  padding: ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const FooterParagraph = styled(`p`)`
+  margin-bottom: ${space(1)};
 `;
