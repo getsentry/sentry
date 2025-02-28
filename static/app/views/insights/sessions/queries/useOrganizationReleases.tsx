@@ -1,3 +1,4 @@
+import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import type {Release} from 'sentry/types/release';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -5,11 +6,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function useOrganizationReleases({
+  dateRange,
   tableType,
   filters,
 }: {
   filters: string[];
   tableType: 'health' | 'adoption';
+  dateRange?: Pick<PageFiltersStringified, 'start' | 'end' | 'statsPeriod'>;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -18,6 +21,7 @@ export default function useOrganizationReleases({
     ...location,
     query: {
       ...location.query,
+      ...dateRange,
       width_health_table: undefined,
       width_adoption_table: undefined,
       cursor_health_table: undefined,
