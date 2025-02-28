@@ -707,8 +707,8 @@ class SearchResolver:
         parsed_args: list[ResolvedColumn | Any] = []
 
         # Parse the arguments
-        attribute_args = fields.parse_arguments(function, columns)
-        if len(attribute_args) < len(function_definition.required_arguments):
+        arguments = fields.parse_arguments(function, columns)
+        if len(arguments) < len(function_definition.required_arguments):
             raise InvalidSearchQuery(
                 f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
             )
@@ -717,24 +717,24 @@ class SearchResolver:
             if argument.ignored:
                 continue
             if argument.validator is not None:
-                if not argument.validator(attribute_args[index]):
+                if not argument.validator(arguments[index]):
                     raise InvalidSearchQuery(
-                        f"{attribute_args[index]} is not a valid argument for {function}"
+                        f"{arguments[index]} is not a valid argument for {function}"
                     )
 
-            if index < len(attribute_args):
+            if index < len(arguments):
                 if argument.is_attribute:
-                    parsed_argument, _ = self.resolve_attribute(attribute_args[index])
+                    parsed_argument, _ = self.resolve_attribute(arguments[index])
                 else:
                     if argument.argument_types is None:
-                        parsed_args.append(attribute_args[index])  # assume it's a string
+                        parsed_args.append(arguments[index])  # assume it's a string
                         continue
                     # TODO: we assume that the argument is only one type for now, and we only support string/integer
                     for type in argument.argument_types:
                         if type == "integer":
-                            parsed_args.append(int(attribute_args[index]))
+                            parsed_args.append(int(arguments[index]))
                         else:
-                            parsed_args.append(attribute_args[index])
+                            parsed_args.append(arguments[index])
                     continue
 
             elif argument.default_arg:
