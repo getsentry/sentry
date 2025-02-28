@@ -5,44 +5,44 @@ import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
-import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Release, ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useOrganizationReleases';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
-  adoption_stage: string;
-  crash_free_sessions: number;
   date: string;
   error_count: number;
+  project: ReleaseProject;
   project_id: number;
   release: string;
-  sessions: number;
 };
 
 interface Props {
   end: string;
+  onSelectRelease: (release: string, projectId: string) => void;
   start: string;
 }
 
-type Column = GridColumnHeader<keyof ReleaseHealthItem>;
+type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error_count'>;
+type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
-const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
-  {key: 'release', name: 'version'},
-  {key: 'adoption_stage', name: 'stage'},
-  {key: 'crash_free_sessions', name: 'crash free rate'},
-  {key: 'sessions', name: 'total sessions'},
+const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
+  {key: 'release', name: 'version', width: 400},
   {key: 'error_count', name: 'new issues'},
   {key: 'date', name: 'created'},
 ];
@@ -53,29 +53,41 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({start, end}: Props) {
+export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
-  const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases({
-    filters: [],
-    dateRange: {
-      start,
-      end,
-      statsPeriod: undefined,
-    },
-  });
+  const organization = useOrganization();
+  const {data, isLoading, isError /* isPending, getResponseHeader */} = useApiQuery<
+    Release[]
+  >(
+    [
+      `/organizations/${organization.slug}/releases/`,
+      {
+        query: {
+          ...location.query,
+          ...normalizeDateTimeParams({
+            start,
+            end,
+          }),
+          per_page: 10,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const releaseData = data?.map(d => ({
+    project: d.projects[0]!,
+    release: d.shortVersion ?? d.version,
+    date: d.dateCreated,
+    error_count: d.projects[0]?.newGroups ?? 0,
+    project_id: d.projects[0]?.id ?? 0,
+  }));
 
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},
     location,
   });
-
-  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: BASE_COLUMNS,
-    location,
-  });
-
-  const organization = useOrganization();
 
   const renderHeadCell = useMemo(
     () =>
@@ -91,28 +103,30 @@ export function ReleaseDrawerTable({start, end}: Props) {
 
   const renderBodyCell = useCallback(
     (column: Column, dataRow: ReleaseHealthItem) => {
-      const value = dataRow[column.key];
       const meta: EventsMetaType = {
         fields: {
           release: 'string',
           date: 'date',
-          stage: 'string',
-          crash_free_sessions: 'percentage',
-          sessions: 'integer',
           error_count: 'integer',
         },
-        units: {
-          crash_free_sessions: '%',
-        },
+        units: {},
       };
 
       if (column.key === 'release') {
+        const value = dataRow[column.key];
         // Custom release renderer -- we want to keep navigation within drawer
-        return <TextOverflow>{value}</TextOverflow>;
-      }
-
-      if (column.key === 'crash_free_sessions') {
-        return `${(value as number).toFixed(2)}%`;
+        return (
+          <ReleaseLink
+            to="#"
+            onClick={e => {
+              e.preventDefault();
+              onSelectRelease(String(value), String(dataRow.project_id));
+            }}
+          >
+            <ProjectBadge project={dataRow.project} disableLink hideName />
+            <TextOverflow>{value}</TextOverflow>
+          </ReleaseLink>
+        );
       }
 
       if (column.key === 'error_count') {
@@ -125,13 +139,13 @@ export function ReleaseDrawerTable({start, end}: Props) {
                 dataRow.release
               )}
             >
-              <Count value={value} />
+              <Count value={dataRow[column.key]} />
             </GlobalSelectionLink>
           </Tooltip>
         );
       }
       if (!meta?.fields) {
-        return value;
+        return dataRow[column.key];
       }
 
       const renderer = getFieldRenderer(column.key, meta.fields, false);
@@ -146,7 +160,7 @@ export function ReleaseDrawerTable({start, end}: Props) {
         </CellWrapper>
       );
     },
-    [organization, location]
+    [organization, location, onSelectRelease]
   );
 
   const tableEmptyMessage = (
@@ -162,18 +176,17 @@ export function ReleaseDrawerTable({start, end}: Props) {
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}
-        columnOrder={columns}
+        columnOrder={BASE_COLUMNS}
         emptyMessage={tableEmptyMessage}
         columnSortBy={[]}
         stickyHeader
         grid={{
-          onResizeColumn: handleResizeColumn,
           renderHeadCell,
           renderBodyCell,
         }}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
+        // pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
@@ -209,4 +222,10 @@ const CellWrapper = styled('div')`
 `;
 const PaginationNoMargin = styled(Pagination)`
   margin: 0;
+`;
+
+const ReleaseLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
