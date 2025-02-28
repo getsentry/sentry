@@ -1,4 +1,4 @@
-import {type Dispatch, type Reducer, useCallback, useMemo, useRef} from 'react';
+import {type Dispatch, useCallback, useMemo, useRef} from 'react';
 import {useReducer} from 'react';
 
 export type TourEnumType = string | number;
@@ -63,82 +63,81 @@ type TourRegistry<T extends TourEnumType> = {
   [key in T]: TourStep<T> | null;
 };
 
+function tourReducer<T extends TourEnumType>(
+  state: TourState<T>,
+  action: TourAction<T>
+): TourState<T> {
+  const completeTourState = {...state, currentStepId: null};
+  switch (action.type) {
+    case 'START_TOUR': {
+      // If the tour is not available, or not all steps are registered, do nothing
+      if (!state.isAvailable || !state.isRegistered) {
+        return state;
+      }
+      // If the stepId is provided, set the current step to the stepId
+      const startStepIndex = action.stepId
+        ? state.orderedStepIds.indexOf(action.stepId)
+        : -1;
+      if (action.stepId && startStepIndex !== -1) {
+        return {
+          ...state,
+          currentStepId: action.stepId ?? null,
+        };
+      }
+      // If no stepId is provided, set the current step to the first step
+      if (state.orderedStepIds[0]) {
+        return {
+          ...state,
+          currentStepId: state.orderedStepIds[0] ?? null,
+        };
+      }
+      return state;
+    }
+    case 'NEXT_STEP': {
+      if (!state.currentStepId) {
+        return state;
+      }
+      const nextStepIndex = state.orderedStepIds.indexOf(state.currentStepId) + 1;
+      const nextStepId = state.orderedStepIds[nextStepIndex] ?? null;
+      if (nextStepId) {
+        return {
+          ...state,
+          currentStepId: nextStepId,
+        };
+      }
+      // If there is no next step, complete the tour
+      return completeTourState;
+    }
+    case 'PREVIOUS_STEP': {
+      if (!state.currentStepId) {
+        return state;
+      }
+      const prevStepIndex = state.orderedStepIds.indexOf(state.currentStepId) - 1;
+      const prevStepId = state.orderedStepIds[prevStepIndex] ?? null;
+      if (prevStepId) {
+        return {
+          ...state,
+          currentStepId: prevStepId,
+        };
+      }
+      // If there is no previous step, do nothing
+      return state;
+    }
+    case 'END_TOUR':
+      return completeTourState;
+    case 'SET_REGISTRATION':
+      return {...state, isRegistered: action.isRegistered};
+    default:
+      return state;
+  }
+}
+
 export function useTourReducer<T extends TourEnumType>(
   initialState: TourState<T>
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
 
-  const reducer: Reducer<TourState<T>, TourAction<T>> = useCallback(
-    (state, action) => {
-      const completeTourState = {...state, currentStepId: null};
-      switch (action.type) {
-        case 'START_TOUR': {
-          // If the tour is not available, or not all steps are registered, do nothing
-          if (!state.isAvailable || !state.isRegistered) {
-            return state;
-          }
-          // If the stepId is provided, set the current step to the stepId
-          const startStepIndex = action.stepId
-            ? orderedStepIds.indexOf(action.stepId)
-            : -1;
-          if (action.stepId && startStepIndex !== -1) {
-            return {
-              ...state,
-              currentStepId: action.stepId ?? null,
-            };
-          }
-          // If no stepId is provided, set the current step to the first step
-          if (orderedStepIds[0]) {
-            return {
-              ...state,
-              currentStepId: orderedStepIds[0] ?? null,
-            };
-          }
-          return state;
-        }
-        case 'NEXT_STEP': {
-          if (!state.currentStepId) {
-            return state;
-          }
-          const nextStepIndex = orderedStepIds.indexOf(state.currentStepId) + 1;
-          const nextStepId = orderedStepIds[nextStepIndex] ?? null;
-          if (nextStepId) {
-            return {
-              ...state,
-              currentStepId: nextStepId,
-            };
-          }
-          // If there is no next step, complete the tour
-          return completeTourState;
-        }
-        case 'PREVIOUS_STEP': {
-          if (!state.currentStepId) {
-            return state;
-          }
-          const prevStepIndex = orderedStepIds.indexOf(state.currentStepId) - 1;
-          const prevStepId = orderedStepIds[prevStepIndex] ?? null;
-          if (prevStepId) {
-            return {
-              ...state,
-              currentStepId: prevStepId,
-            };
-          }
-          // If there is no previous step, do nothing
-          return state;
-        }
-        case 'END_TOUR':
-          return completeTourState;
-        case 'SET_REGISTRATION':
-          return {...state, isRegistered: action.isRegistered};
-        default:
-          return state;
-      }
-    },
-    [orderedStepIds]
-  );
-
-  const [tour, dispatch] = useReducer(reducer, initialState);
-
+  const [state, dispatch] = useReducer(tourReducer<T>, initialState);
   const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
 
   const handleStepRegistration = useCallback(
@@ -162,18 +161,18 @@ export function useTourReducer<T extends TourEnumType>(
     () => ({
       dispatch,
       handleStepRegistration,
-      currentStepId: tour.currentStepId,
-      isAvailable: tour.isAvailable,
-      isRegistered: tour.isRegistered,
-      orderedStepIds: tour.orderedStepIds,
+      currentStepId: state.currentStepId,
+      isAvailable: state.isAvailable,
+      isRegistered: state.isRegistered,
+      orderedStepIds: state.orderedStepIds,
     }),
     [
       dispatch,
       handleStepRegistration,
-      tour.currentStepId,
-      tour.isAvailable,
-      tour.isRegistered,
-      tour.orderedStepIds,
+      state.currentStepId,
+      state.isAvailable,
+      state.isRegistered,
+      state.orderedStepIds,
     ]
   );
 }
