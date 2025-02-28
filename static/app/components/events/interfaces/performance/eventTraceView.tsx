@@ -6,7 +6,6 @@ import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
@@ -228,9 +227,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       actions={
         <LinkButton
           size="xs"
-          icon={<IconOpen />}
           href={getHrefFromTraceTarget(traceTarget)}
-          external
           analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
           analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
         >
