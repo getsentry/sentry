@@ -1,6 +1,5 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import DemoModeGate from 'sentry/components/acl/demoModeDisabled';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -89,7 +88,7 @@ export function Broadcasts({
   }, []);
 
   return (
-    <DemoModeGate>
+    <Fragment>
       <SidebarItem
         data-test-id="sidebar-broadcasts"
         orientation={orientation}
@@ -131,6 +130,6 @@ export function Broadcasts({
           )}
         </SidebarPanel>
       )}
-    </DemoModeGate>
+    </Fragment>
   );
 }

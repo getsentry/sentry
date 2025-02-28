@@ -4,6 +4,7 @@ import type {Node} from '@react-types/shared';
 import isEqual from 'lodash/isEqual';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
@@ -118,14 +119,16 @@ function IssueViewsIssueListHeader({
             </Button>
           )}
           {!newViewActive && (
-            <Button
-              size="sm"
-              data-test-id="real-time"
-              title={realtimeTitle}
-              aria-label={realtimeTitle}
-              icon={realtimeActive ? <IconPause /> : <IconPlay />}
-              onClick={() => onRealtimeChange(!realtimeActive)}
-            />
+            <DisableInDemoMode>
+              <Button
+                size="sm"
+                data-test-id="real-time"
+                title={realtimeTitle}
+                aria-label={realtimeTitle}
+                icon={realtimeActive ? <IconPause /> : <IconPlay />}
+                onClick={() => onRealtimeChange(!realtimeActive)}
+              />
+            </DisableInDemoMode>
           )}
         </ButtonBar>
       </Layout.HeaderActions>
