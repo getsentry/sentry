@@ -1187,6 +1187,9 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
+            bytes_scanned = body.get("profile", 0).get("progress_bytes", None)
+            if bytes_scanned is not None:
+                span.set_measurement(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
