@@ -34,6 +34,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     send_webhooks,
     workflow_notification,
 )
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import TestCase
@@ -656,7 +657,8 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
     def test_does_not_send_if_event_not_in_app_events(self, safe_urlopen):
@@ -668,7 +670,8 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
 
