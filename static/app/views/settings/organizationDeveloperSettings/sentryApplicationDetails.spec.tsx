@@ -23,24 +23,18 @@ describe('Sentry Application Details', function () {
 
   const maskedValue = '************oken';
 
-  const router = RouterFixture();
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   describe('Creating a new public Sentry App', () => {
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{}}
-        />
-      );
+      const publicRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/settings/developer-settings/new-public/`,
+        }),
+      });
+      return render(<SentryApplicationDetails />, {router: publicRouter});
     }
 
     beforeEach(() => {
@@ -140,17 +134,15 @@ describe('Sentry Application Details', function () {
   });
 
   describe('Creating a new internal Sentry App', () => {
+    window.location.pathname = 'new-internal/';
+
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-internal/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{}}
-        />
-      );
+      const internalRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/settings/developer-settings/new-internal/`,
+        }),
+      });
+      return render(<SentryApplicationDetails />, {router: internalRouter});
     }
 
     it('does not show logo upload fields', function () {
@@ -175,16 +167,7 @@ describe('Sentry Application Details', function () {
 
   describe('Renders public app', function () {
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
     }
 
     beforeEach(() => {
@@ -202,16 +185,18 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('shows logo upload fields', function () {
+    it('shows logo upload fields', async function () {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
-    it('has inputs for redirectUrl and verifyInstall', () => {
+    it('has inputs for redirectUrl and verifyInstall', async () => {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(
         screen.getByRole('checkbox', {name: 'Verify Installation'})
       ).toBeInTheDocument();
@@ -222,13 +207,15 @@ describe('Sentry Application Details', function () {
     it('shows application data', async function () {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
-    it('renders clientId and clientSecret for public apps', function () {
+    it('renders clientId and clientSecret for public apps', async function () {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
@@ -236,16 +223,7 @@ describe('Sentry Application Details', function () {
 
   describe('Renders for internal apps', () => {
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
     }
 
     beforeEach(() => {
@@ -266,9 +244,10 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('no inputs for redirectUrl and verifyInstall', () => {
+    it('no inputs for redirectUrl and verifyInstall', async () => {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(
         screen.queryByRole('checkbox', {name: 'Verify Installation'})
       ).not.toBeInTheDocument();
@@ -278,23 +257,26 @@ describe('Sentry Application Details', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows logo upload fields', function () {
+    it('shows logo upload fields', async function () {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
-    it('has tokens', function () {
+    it('has tokens', async function () {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Tokens')).toBeInTheDocument();
       expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
     });
 
-    it('shows just clientSecret', function () {
+    it('shows just clientSecret', async function () {
       renderComponent();
 
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
@@ -302,16 +284,7 @@ describe('Sentry Application Details', function () {
 
   describe('Renders masked values', () => {
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
     }
 
     beforeEach(() => {
@@ -333,13 +306,17 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('shows masked tokens', function () {
+    it('shows masked tokens', async function () {
       renderComponent();
+
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(maskedValue);
     });
 
-    it('shows masked clientSecret', function () {
+    it('shows masked clientSecret', async function () {
       renderComponent();
+
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toHaveValue(
         maskedValue
       );
@@ -348,16 +325,7 @@ describe('Sentry Application Details', function () {
 
   describe('Editing internal app tokens', () => {
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
     }
 
     beforeEach(() => {
@@ -393,6 +361,7 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
+      await screen.findAllByRole('button', {name: 'Save Changes'});
       expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
       expect(screen.getAllByLabelText('Token preview')).toHaveLength(1);
 
@@ -415,7 +384,7 @@ describe('Sentry Application Details', function () {
 
       renderComponent();
       renderGlobalModal();
-
+      await screen.findByRole('button', {name: 'Save Changes'});
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
@@ -424,7 +393,7 @@ describe('Sentry Application Details', function () {
 
     it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
       renderComponent();
-
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).toBeChecked();
       await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
       expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).not.toBeChecked();
@@ -433,16 +402,7 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App', () => {
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
     }
 
     beforeEach(() => {
@@ -469,7 +429,7 @@ describe('Sentry Application Details', function () {
 
     it('updates app with correct data', async function () {
       renderComponent();
-
+      await screen.findByRole('button', {name: 'Save Changes'});
       await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
       await userEvent.type(
         screen.getByRole('textbox', {name: 'Redirect URL'}),
@@ -497,7 +457,7 @@ describe('Sentry Application Details', function () {
 
     it('submits with no-access for event subscription when permission is revoked', async () => {
       renderComponent();
-
+      await screen.findByRole('button', {name: 'Save Changes'});
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
@@ -524,16 +484,7 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App with a scope error', () => {
     function renderComponent() {
-      render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
     }
 
     beforeEach(() => {
@@ -564,6 +515,7 @@ describe('Sentry Application Details', function () {
 
     it('renders the error', async () => {
       renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -590,18 +542,10 @@ describe('Sentry Application Details', function () {
         },
       });
 
-      render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          route={{}}
-          routeParams={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      renderComponent();
       renderGlobalModal();
 
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('hidden')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Rotate client secret'})
