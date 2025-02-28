@@ -46,10 +46,6 @@ function BaseTag({
   ...props
 }: TagProps) {
   const theme = useTheme();
-  const iconsProps: SVGIconProps = {
-    size: 'xs',
-    color: theme.tag[type].color as Color,
-  };
 
   const handleDismiss = useCallback<React.MouseEventHandler>(
     event => {
@@ -58,6 +54,11 @@ function BaseTag({
     },
     [onDismiss]
   );
+
+  const iconsProps: SVGIconProps = {
+    size: 'xs',
+    color: theme.tag[type].color as Color,
+  };
 
   return (
     <span {...props}>

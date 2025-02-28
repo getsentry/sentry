@@ -581,19 +581,22 @@ type EventNodeProps = {
 
 function StyledEventNode(props: EventNodeProps) {
   const eventNodeProps = {
-    'data-test-id': 'event-node',
     type: props.type ?? 'white',
-    ...props,
+    onClick: props.onClick,
   };
 
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={props.hoverText}>
       {props.to ? (
         <Link to={props.to}>
-          <EventNode {...eventNodeProps}>{props.text}</EventNode>
+          <EventNode data-test-id="event-node" {...eventNodeProps}>
+            {props.text}
+          </EventNode>
         </Link>
       ) : (
-        <EventNode {...eventNodeProps}>{props.text}</EventNode>
+        <EventNode data-test-id="event-node" {...eventNodeProps}>
+          {props.text}
+        </EventNode>
       )}
     </Tooltip>
   );
