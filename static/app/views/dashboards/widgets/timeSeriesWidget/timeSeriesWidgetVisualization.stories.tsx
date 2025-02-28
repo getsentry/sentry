@@ -341,6 +341,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Colors', () => {
     const theme = useTheme();
 
+    const timeSeries = {
+      ...sampleThroughputTimeSeries,
+      field: 'error_rate()',
+      meta: {
+        fields: {
+          'error_rate()': 'rate',
+        },
+        units: {
+          'error_rate()': '1/second',
+        },
+      },
+      color: theme.error,
+    };
+
     return (
       <Fragment>
         {' '}
@@ -348,26 +362,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           You can control the color of each time series by setting the <code>color</code>{' '}
           attribute to a string that contains a valid hex color code.
         </p>
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={[
-              {
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-                meta: {
-                  fields: {
-                    'error_rate()': 'rate',
-                  },
-                  units: {
-                    'error_rate()': '1/second',
-                  },
-                },
-                color: theme.error,
-              },
-            ]}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="line"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="area"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+        </SideBySide>
       </Fragment>
     );
   });
