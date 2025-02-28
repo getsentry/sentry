@@ -65,7 +65,7 @@ export function getDemoGuides() {
     {guide: 'sidebar_v2', seen: false},
     {guide: 'issues_v3', seen: false},
     {guide: 'releases_v2', seen: false},
-    {guide: 'react-native-release', seen: false},
+    {guide: 'react-release', seen: false},
     {guide: 'release-details_v2', seen: false},
     {guide: 'performance', seen: false},
     {guide: 'transaction_summary', seen: false},
@@ -172,13 +172,13 @@ export function getDemoModeGuides(): GuidesContent {
           title: t('Compare releases'),
           target: 'release_projects',
           description: t(
-            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
+            `Click here and select the "react" project to see how the release is trending compared to previous releases.`
           ),
         },
       ],
     },
     {
-      guide: 'react-native-release',
+      guide: 'react-release',
       requiredTargets: ['release_version'],
       steps: [
         {
