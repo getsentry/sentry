@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
@@ -63,6 +64,7 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 
 import {decodeScalar} from '../queryString';
 
@@ -366,6 +368,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  adoption_stage: SpecialField;
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
@@ -711,6 +714,19 @@ const SPECIAL_FIELDS: SpecialFields = {
       }
 
       return <Container>{emptyValue}</Container>;
+    },
+  },
+  adoption_stage: {
+    sortField: 'adoption_stage',
+    renderFunc: data => {
+      const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
+      return data.adoption_stage && label ? (
+        <Tooltip title={label.tooltipTitle} isHoverable>
+          <Tag type={label.type}>{label.name}</Tag>
+        </Tooltip>
+      ) : (
+        <Container>{emptyValue}</Container>
+      );
     },
   },
   release: {
