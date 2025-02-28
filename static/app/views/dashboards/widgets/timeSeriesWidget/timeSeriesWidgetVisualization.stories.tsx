@@ -157,6 +157,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Basic Plotting', () => {
+    const millisecondsSeries = sampleDurationTimeSeries;
+
+    // Create a very similar series, but with a different unit to demonstrate automatic scaling
+    const secondsSeries = {
+      field: 'p99(span.self_time)',
+      data: sampleDurationTimeSeries.data.map(datum => {
+        return {
+          ...datum,
+          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+        };
+      }),
+      meta: {
+        fields: {
+          'p99(span.self_time)': 'duration',
+        },
+        units: {
+          'p99(span.self_time)': 'second',
+        },
+      },
+    };
+
     return (
       <Fragment>
         <p>
@@ -171,9 +192,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <SmallSizingWindow>
           <FillParent>
             <TimeSeriesWidgetVisualization
-              visualizationType="bar"
+              visualizationType="line"
               stacked
-              timeSeries={[sampleDurationTimeSeries]}
+              timeSeries={[millisecondsSeries, secondsSeries]}
             />
           </FillParent>
         </SmallSizingWindow>
