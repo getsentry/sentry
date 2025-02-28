@@ -35,7 +35,7 @@ export function useReleaseStats({
       },
     ],
     {
-      staleTime: Infinity,
+      staleTime: 0,
     }
   );
 
