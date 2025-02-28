@@ -7,8 +7,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import ReleaseHealthTable from 'sentry/views/insights/sessions/components/tables/releaseHealthTable';
 import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useOrganizationReleases';
 
-export default function ReleaseHealth() {
-  const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases();
+export default function ReleaseHealth({filters}: {filters: string[]}) {
+  const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases({
+    tableType: 'health',
+    filters,
+  });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,7 +27,7 @@ export default function ReleaseHealth() {
           fields: {
             release: 'string',
             date: 'date',
-            stage: 'string',
+            adoption_stage: 'string',
             crash_free_sessions: 'percentage',
             sessions: 'integer',
             error_count: 'integer',
@@ -39,7 +42,7 @@ export default function ReleaseHealth() {
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, cursor},
+            query: {...searchQuery, cursor_health_table: cursor},
           });
         }}
       />
