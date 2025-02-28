@@ -7,6 +7,7 @@ import queue
 import signal
 import sys
 import time
+from multiprocessing.connection import Connection
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
 from types import FrameType
@@ -38,7 +39,14 @@ logger = logging.getLogger("sentry.taskworker.worker")
 
 
 @dataclasses.dataclass
-class ProcessingResult:
+class WaitResult:
+    """Result structure that indicates a child is waiting for a task"""
+
+    channel: Connection
+
+
+@dataclasses.dataclass
+class ProcessingResult(WaitResult):
     """Result structure from child processess to parent"""
 
     task_id: str
@@ -72,8 +80,7 @@ def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
 
 
 def child_worker(
-    child_tasks: queue.Queue[TaskActivation],
-    processed_tasks: queue.Queue[ProcessingResult],
+    wait_queue: queue.Queue[WaitResult | ProcessingResult],
     shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
@@ -82,6 +89,9 @@ def child_worker(
 
     current_task_id: str | None = None
     processed_task_count = 0
+    # send_conn is given back to the parent, and it will be used to send the
+    # next activation. The worker waits for those activations on recv_conn.
+    recv_conn, send_conn = multiprocessing.Pipe()
 
     def handle_alarm(signum: int, frame: Any) -> None:
         """
@@ -90,16 +100,26 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        nonlocal current_task_id, processed_tasks
+        nonlocal current_task_id, wait_queue
 
         if current_task_id:
-            processed_tasks.put(
-                ProcessingResult(task_id=current_task_id, status=TASK_ACTIVATION_STATUS_FAILURE)
+            wait_queue.put(
+                ProcessingResult(
+                    task_id=current_task_id,
+                    status=TASK_ACTIVATION_STATUS_FAILURE,
+                    channel=send_conn,
+                )
             )
         metrics.incr("taskworker.worker.processing_deadline_exceeded")
         sys.exit(1)
 
     signal.signal(signal.SIGALRM, handle_alarm)
+
+    # Put initial result on the queue
+    wait_queue.put(WaitResult(channel=send_conn))
+
+    def send_result(task_id: str, status: TaskActivationStatus.ValueType) -> None:
+        wait_queue.put(ProcessingResult(task_id=task_id, status=status, channel=send_conn))
 
     while True:
         if max_task_count and processed_task_count >= max_task_count:
@@ -114,9 +134,9 @@ def child_worker(
             logger.info("taskworker.worker.shutdown_event")
             break
 
-        try:
-            activation = child_tasks.get(timeout=0.1)
-        except queue.Empty:
+        if recv_conn.poll(timeout=0.1):
+            activation = recv_conn.recv()
+        else:
             metrics.incr("taskworker.worker.child_task_queue_empty")
             continue
 
@@ -126,20 +146,20 @@ def child_worker(
                 "taskworker.worker.unknown_task",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            processed_tasks.put(
-                ProcessingResult(task_id=activation.id, status=TASK_ACTIVATION_STATUS_FAILURE)
-            )
+            send_result(activation.id, TASK_ACTIVATION_STATUS_FAILURE)
             continue
 
         if task_func.at_most_once:
             key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
             if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
                 metrics.incr(
-                    "taskworker.task.at_most_once.executed", tags={"task": activation.taskname}
+                    "taskworker.task.at_most_once.executed",
+                    tags={"namespace": activation.namespace, "taskname": activation.taskname},
                 )
             else:
                 metrics.incr(
-                    "taskworker.worker.at_most_once.skipped", tags={"task": activation.taskname}
+                    "taskworker.worker.at_most_once.skipped",
+                    tags={"namespace": activation.namespace, "taskname": activation.taskname},
                 )
                 continue
 
@@ -169,7 +189,7 @@ def child_worker(
 
         # Get completion time before pushing to queue to avoid inflating latency metrics.
         execution_complete_time = time.time()
-        processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
+        send_result(activation.id, next_state)
 
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = execution_complete_time - execution_start_time
@@ -186,6 +206,7 @@ def child_worker(
         metrics.incr(
             "taskworker.worker.execute_task",
             tags={
+                "taskname": activation.taskname,
                 "namespace": activation.namespace,
                 "status": next_state,
             },
@@ -193,12 +214,12 @@ def child_worker(
         metrics.distribution(
             "taskworker.worker.execution_duration",
             execution_duration,
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
         metrics.distribution(
             "taskworker.worker.execution_latency",
             execution_latency,
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
 
 
@@ -246,10 +267,13 @@ class TaskWorker:
         self._worker_id = uuid4().hex
         self._max_task_count = max_task_count
         self._namespace = namespace
+        self._tags = {"namespace": namespace}
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(maxsize=1)
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(maxsize=1)
+        # self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(maxsize=1)
+        self._waiting_results: multiprocessing.Queue[WaitResult] = mp_context.Queue(
+            maxsize=concurrency
+        )
         self._children: list[ForkProcess] = []
         self._shutdown_event = mp_context.Event()
         self._task_receive_timing: dict[str, float] = {}
@@ -275,19 +299,165 @@ class TaskWorker:
         signal.signal(signal.SIGINT, self._handle_sigint)
 
         while True:
-            work_remaining = self.run_once()
-            if work_remaining:
-                self.backoff_sleep_seconds = 0
-            else:
-                self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
-                time.sleep(self.backoff_sleep_seconds)
+            values = self.run_once()
+            if values is None:
+                metrics.incr("taskworker.worker.no_results", tags=self._tags)
+                continue
 
-    def run_once(self) -> bool:
+            fetched_tasks, idle_workers = values
+            if fetched_tasks == 0 and idle_workers == self._concurrency:
+                metrics.incr("taskworker.worker.no_work", tags=self._tags)
+                time.sleep(self.backoff_sleep_seconds)
+                self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
+            else:
+                self.backoff_sleep_seconds = 0
+
+    def run_once(self) -> tuple[int, int] | None:
         """Access point for tests to run a single worker loop"""
-        task_added = self._add_task()
-        results_drained = self._drain_result()
-        self._spawn_children()
-        return task_added or results_drained
+        results_drained = self.drain_queue()
+        metrics.distribution(
+            "taskworker.worker.results_drained", len(results_drained), tags=self._tags
+        )
+        results = self.update_results(results_drained)
+        if results is None:
+            # There were no results in the queue. Wait for the next loop.
+            return None
+
+        next_tasks, num_tasks_to_fetch = results
+
+        if num_tasks_to_fetch:
+            metrics.distribution(
+                "taskworker.worker.requested_extra_tasks", num_tasks_to_fetch, tags=self._tags
+            )
+            get_tasks = self.fetch_tasks(num_tasks_to_fetch)
+            next_tasks.extend(get_tasks)
+
+        work_remaining = len(next_tasks)
+        metrics.distribution(
+            "taskworker.worker.idle_workers",
+            len(results_drained) - len(next_tasks),
+            tags=self._tags,
+        )
+        idle_workers = 0
+        for result in results_drained:
+            if len(next_tasks) == 0:
+                # Enqueue for the next pass
+                self._waiting_results.put(WaitResult(channel=result.channel))
+                idle_workers += 1
+                continue
+
+            next_task = next_tasks.pop(0)
+            result.channel.send(next_task)
+
+        return work_remaining, idle_workers
+
+    def drain_queue(self) -> list[WaitResult | ProcessingResult]:
+        """
+        Drain the queue of all the results and return them for processing.
+        """
+        results = []
+        try:
+            results.append(self._waiting_results.get_nowait())
+        except queue.Empty:
+            return results
+        return results
+
+    def update_results(
+        self, results: list[WaitResult | ProcessingResult], fetch_next: bool = True
+    ) -> tuple[list[TaskActivation], int] | None:
+        # If there are no results, and no tasks were fetched, then there is no work to do at the moment.
+        if len(results) == 0:
+            metrics.incr("taskworker.worker.no_results")
+            return None
+
+        tasks_to_fetch = len(results)
+
+        processing_results = [r for r in results if isinstance(r, ProcessingResult)]
+        next_tasks = self.send_task_results(processing_results, fetch_next)
+
+        return next_tasks, tasks_to_fetch - len(next_tasks)
+
+    def send_task_results(
+        self, results: list[ProcessingResult], should_fetch_next: bool = True
+    ) -> list[TaskActivation]:
+        """
+        Send the results of task activations to the taskbroker.
+        """
+        next_tasks = []
+        for result in results:
+            fetch_next = None
+            if should_fetch_next:
+                fetch_next = FetchNextTask(namespace=self._namespace)
+                metrics.incr("taskworker.worker.fetch_next", tags=self._tags)
+
+            # TODO: This could be done in a batch
+            next_task = self.client.update_task(
+                task_id=result.task_id,
+                status=result.status,
+                fetch_next_task=fetch_next,
+            )
+            if next_task:
+                next_tasks.append(next_task)
+
+            # Update timing metric
+            task_received = self._task_receive_timing.pop(result.task_id, None)
+            if task_received is not None:
+                metrics.distribution(
+                    "taskworker.worker.complete_duration", time.time() - task_received
+                )
+            if next_task:
+                self._task_receive_timing[next_task.id] = time.time()
+
+        return next_tasks
+
+    def fetch_tasks(self, num_tasks: int) -> list[TaskActivation]:
+        tasks: list[TaskActivation] = []
+        # TODO: Do this in a batch
+        for _ in range(num_tasks):
+            try:
+                activation = self.client.get_task(self._namespace)
+            except grpc.RpcError as e:
+                metrics.incr(
+                    "taskworker.worker.fetch_task", tags={**self._tags, "status": "failed"}
+                )
+                logger.info("taskworker.fetch_task.failed", extra={"error": e})
+                return tasks
+
+            if not activation:
+                metrics.incr(
+                    "taskworker.worker.fetch_task", tags={**self._tags, "status": "notfound"}
+                )
+                logger.debug("taskworker.fetch_task.not_found")
+                return tasks
+
+            tasks.append(activation)
+
+            metrics.incr(
+                "taskworker.worker.fetch_task",
+                tags={**self._tags, "status": "success"},
+            )
+            self._task_receive_timing[activation.id] = time.time()
+
+        return tasks
+
+    def _spawn_children(self) -> None:
+        active_children = [child for child in self._children if child.is_alive()]
+        if len(active_children) >= self._concurrency:
+            return
+        for _ in range(self._concurrency - len(active_children)):
+            process = mp_context.Process(
+                target=child_worker,
+                args=(
+                    self._waiting_results,
+                    self._shutdown_event,
+                    self._max_task_count,
+                ),
+            )
+            process.start()
+            active_children.append(process)
+            logger.info("taskworker.spawn_child", extra={"pid": process.pid})
+
+        self._children = active_children
 
     def _handle_sigint(self, signum: int, frame: FrameType | None) -> None:
         logger.info("taskworker.worker.sigint_received")
@@ -301,119 +471,9 @@ class TaskWorker:
         """
         self._shutdown_event.set()
 
-        while True:
-            more = self._drain_result(fetch=False)
-            if not more:
-                break
+        results = self.drain_queue()
+        self.update_results(results, fetch_next=False)
+
         for child in self._children:
             child.terminate()
             child.join()
-
-    def _add_task(self) -> bool:
-        """
-        Add a task to child tasks queue. Returns False if no new task was fetched.
-        """
-        if self._child_tasks.full():
-            return False
-
-        task = self.fetch_task()
-        if task:
-            try:
-                self._child_tasks.put(task, timeout=0.1)
-            except queue.Full:
-                logger.warning(
-                    "taskworker.add_task.child_task_queue_full", extra={"task_id": task.id}
-                )
-            return True
-        else:
-            return False
-
-    def _drain_result(self, fetch: bool = True) -> bool:
-        """
-        Consume results from children and update taskbroker. Returns True if there are more tasks to process.
-        """
-        try:
-            result = self._processed_tasks.get_nowait()
-        except queue.Empty:
-            return False
-
-        if fetch:
-            fetch_next = None
-            if not self._child_tasks.full():
-                fetch_next = FetchNextTask(namespace=self._namespace)
-
-            metrics.incr("taskworker.worker.fetch_next", tags={"next": fetch_next is not None})
-            try:
-                next_task = self.client.update_task(
-                    task_id=result.task_id,
-                    status=result.status,
-                    fetch_next_task=fetch_next,
-                )
-                task_received = self._task_receive_timing.pop(result.task_id, None)
-                if task_received is not None:
-                    metrics.distribution(
-                        "taskworker.worker.complete_duration", time.time() - task_received
-                    )
-            except grpc.RpcError as e:
-                logger.exception(
-                    "taskworker.drain_result.update_task_failed",
-                    extra={"task_id": result.task_id, "error": e},
-                )
-                return True
-
-            if next_task:
-                self._task_receive_timing[next_task.id] = time.time()
-                try:
-                    self._child_tasks.put(next_task, block=False)
-                except queue.Full:
-                    logger.warning(
-                        "taskworker.drain_result.child_task_queue_full",
-                        extra={"task_id": next_task.id},
-                    )
-            return True
-
-        self.client.update_task(
-            task_id=result.task_id,
-            status=result.status,
-        )
-        return True
-
-    def _spawn_children(self) -> None:
-        active_children = [child for child in self._children if child.is_alive()]
-        if len(active_children) >= self._concurrency:
-            return
-        for _ in range(self._concurrency - len(active_children)):
-            process = mp_context.Process(
-                target=child_worker,
-                args=(
-                    self._child_tasks,
-                    self._processed_tasks,
-                    self._shutdown_event,
-                    self._max_task_count,
-                ),
-            )
-            process.start()
-            active_children.append(process)
-            logger.info("taskworker.spawn_child", extra={"pid": process.pid})
-
-        self._children = active_children
-
-    def fetch_task(self) -> TaskActivation | None:
-        try:
-            activation = self.client.get_task(self._namespace)
-        except grpc.RpcError as e:
-            metrics.incr("taskworker.worker.fetch_task", tags={"status": "failed"})
-            logger.info("taskworker.fetch_task.failed", extra={"error": e})
-            return None
-
-        if not activation:
-            metrics.incr("taskworker.worker.fetch_task", tags={"status": "notfound"})
-            logger.debug("taskworker.fetch_task.not_found")
-            return None
-
-        metrics.incr(
-            "taskworker.worker.fetch_task",
-            tags={"status": "success", "namespace": activation.namespace},
-        )
-        self._task_receive_timing[activation.id] = time.time()
-        return activation

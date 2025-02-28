@@ -61,25 +61,25 @@ class TestTaskWorker(TestCase):
         assert example_tasks.retry_task
         assert example_tasks.at_most_once_task
 
-    def test_fetch_task(self) -> None:
+    def test_fetch_tasks(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
 
-            task = taskworker.fetch_task()
+            tasks = taskworker.fetch_tasks(1)
             mock_get.assert_called_once()
 
-        assert task
-        assert task.id == SIMPLE_TASK.id
+        assert len(tasks) == 1
+        assert tasks[0].id == SIMPLE_TASK.id
 
     def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
-            task = taskworker.fetch_task()
+            tasks = taskworker.fetch_tasks(1)
 
             mock_get.assert_called_once()
-        assert task is None
+        assert len(tasks) == 0
 
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
@@ -136,12 +136,11 @@ class TestTaskWorker(TestCase):
 
 
 def test_child_worker_complete() -> None:
-    todo: queue.Queue[TaskActivation] = queue.Queue()
-    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    wait_queue: queue.Queue[WaitResult | ProcessingResult] = queue.Queue()
     shutdown = Event()
 
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(wait_queue, shutdown, max_task_count=1)
 
     assert todo.empty()
     result = processed.get()
