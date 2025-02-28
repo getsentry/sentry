@@ -2,8 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -281,12 +281,14 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
                       </TimeWrapper>
-                      <StyledTag
-                        type={data.dist ? 'info' : undefined}
-                        tooltipText={data.dist ? undefined : t('No distribution set')}
+                      <Tooltip
+                        title={data.dist ? undefined : t('No distribution set')}
+                        skipWrapper
                       >
-                        {data.dist ?? t('none')}
-                      </StyledTag>
+                        <StyledTag type={data.dist ? 'info' : undefined}>
+                          {data.dist ?? t('none')}
+                        </StyledTag>
+                      </Tooltip>
                     </TimeAndDistWrapper>
                   }
                 />
