@@ -73,5 +73,5 @@ def at_most_once_task() -> None:
 
 @exampletasks.register(name="examples.timed")
 def timed_task(sleep_seconds: int) -> None:
-    sleep(sleep_seconds)
+    sleep(int(sleep_seconds))
     logger.info("timed_task complete")
