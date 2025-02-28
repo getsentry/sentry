@@ -363,7 +363,7 @@ class OAuth2CallbackView(PipelineView):
         ).capture() as lifecycle:
             error = request.GET.get("error")
             state = request.GET.get("state")
-            code = request.GET["code"]
+            code = request.GET.get("code")
 
             if error:
                 logger.info("identity.token-exchange-error", extra={"error": error})
@@ -386,6 +386,9 @@ class OAuth2CallbackView(PipelineView):
                     "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
                 return pipeline.error(ERR_INVALID_STATE)
+
+            if code is None:
+                return pipeline.error("no code was provided")
 
         # separate lifecycle event inside exchange_token
         data = self.exchange_token(request, pipeline, code)
