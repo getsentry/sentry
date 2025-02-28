@@ -226,4 +226,16 @@ describe('StreamGroup', function () {
       });
     });
   });
+
+  it('displays unread indicator when issue is unread', async function () {
+    GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
+
+    render(<StreamGroup id="1337" query="is:unresolved" />, {
+      organization: OrganizationFixture({
+        features: ['issue-stream-table-layout'],
+      }),
+    });
+
+    expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();
+  });
 });
