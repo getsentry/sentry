@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';

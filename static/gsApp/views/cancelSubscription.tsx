@@ -242,7 +242,7 @@ function CancelSubscriptionWrapper({
     browserHistory.push('/settings/billing/overview/');
   useEffect(() => {
     // when we mount, we know someone is thinking about canceling their subscription
-    promotionData &&
+    if (promotionData) {
       checkForPromptBasedPromotion({
         organization,
         refetch,
@@ -251,6 +251,7 @@ function CancelSubscriptionWrapper({
         promotionData,
         onAcceptConditions: switchToBillingOverview,
       });
+    }
   }, [api, organization, refetch, subscription, promotionData]);
 
   const title = t('Cancel Subscription');

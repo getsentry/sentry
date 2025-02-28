@@ -47,7 +47,7 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputGroup.TrailingItems> … </InputGroup.TrailingItems>
  *   </InputGroup>
  */
-function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
+export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
@@ -200,7 +200,6 @@ InputGroup.TextArea = TextArea;
 InputGroup.LeadingItems = LeadingItems;
 InputGroup.TrailingItems = TrailingItems;
 
-export {InputGroup};
 export type {InputProps, TextAreaProps};
 
 export const InputGroupWrap = styled('div')<{disabled?: boolean}>`

@@ -48,7 +48,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
           body: t(
             'Thank you for completing the Releases tour. Learn about other Sentry features by starting another tour.'
           ),
-          guides: ['releases_v2', 'react-native-release', 'release-details_v2'],
+          guides: ['releases_v2', 'react-release', 'release-details_v2'],
           path: `/organizations/${orgSlug}/releases/`,
         };
 
@@ -116,7 +116,8 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
       <ModalTask title={cardTitle} />
       <ModalHeader>{body}</ModalHeader>
       <ButtonContainer>
-        <SignUpButton
+        <LinkButton
+          priority="primary"
           external
           href={'https://sentry.io/signup/'}
           onClick={() => {
@@ -126,7 +127,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
           }}
         >
           {t('Sign up for Sentry')}
-        </SignUpButton>
+        </LinkButton>
         <ButtonBar>
           <Button onClick={handleMoreTours}>{t('More Tours')} </Button>
           <Button onClick={handleRestart}>{t('Restart Tour')}</Button>
@@ -162,13 +163,6 @@ const ModalHeader = styled('div')`
     font-size: 2em;
     margin: 0;
   }
-`;
-
-const SignUpButton = styled(LinkButton)`
-  background-color: ${p => p.theme.purple300};
-  border: none;
-  color: ${p => p.theme.white};
-  width: 100%;
 `;
 
 const ButtonBar = styled('div')`

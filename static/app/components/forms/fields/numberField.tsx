@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
 
 import type {InputFieldProps, OnEvent} from './inputField';

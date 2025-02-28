@@ -65,6 +65,7 @@ function EventOrGroupHeader({
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             query={query}
+            hasNewLayout={hasNewLayout}
           />
         </ErrorBoundary>
       </Fragment>
@@ -204,7 +205,9 @@ const TitleWithoutLink = styled('span')`
 export default withOrganization(EventOrGroupHeader);
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
+  hasNewLayout: boolean;
   hasSeen: boolean;
 }>`
-  font-weight: ${p => (p.hasSeen ? 400 : 600)};
+  font-weight: ${p =>
+    p.hasSeen && !p.hasNewLayout ? p.theme.fontWeightNormal : p.theme.fontWeightBold};
 `;
