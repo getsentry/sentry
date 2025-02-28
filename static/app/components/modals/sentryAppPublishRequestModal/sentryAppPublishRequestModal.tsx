@@ -273,24 +273,22 @@ export function SentryAppPublishRequestModal(props: Props) {
   const renderFooter = () => {
     return (
       <Footer>
-        <i>
-          <FooterParagraph>
-            {t(
-              'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
-            )}
-          </FooterParagraph>
-          <FooterParagraph>
-            {t(
-              'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
-            )}
-          </FooterParagraph>
-          <FooterParagraph>
-            {t(
-              'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
-            )}
-          </FooterParagraph>
-          <p>{t('Thank you for contributing to the Sentry community!')}</p>
-        </i>
+        <FooterParagraph>
+          {t(
+            'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
+          )}
+        </FooterParagraph>
+        <FooterParagraph>
+          {t(
+            'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
+          )}
+        </FooterParagraph>
+        <FooterParagraph>
+          {t(
+            'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
+          )}
+        </FooterParagraph>
+        <p>{t('Thank you for contributing to the Sentry community!')}</p>
       </Footer>
     );
   };
