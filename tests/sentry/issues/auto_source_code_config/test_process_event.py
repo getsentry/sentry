@@ -13,6 +13,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -330,16 +331,18 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     ]
 
     def test_handles_two_levels_of_directories_and_dollar_sign_in_module(self) -> None:
-        # No code mapping will be stored, however, we get what would have been created
-        code_mappings = self._process_and_assert_no_code_mapping(["src/com/example/foo/Bar.kt"])
-        assert len(code_mappings) == 1
-        # Two levels of directories implies that we're not including the package name,
-        # thus, making a more generic code mapping.
-        assert code_mappings[0].stacktrace_root == "com/example/"
-        assert code_mappings[0].source_path == "src/com/example/"
+        with override_options({"issues.auto_source_code_config.dry-run-platforms": ["java"]}):
+            # No code mapping will be stored, however, we get what would have been created
+            code_mappings = self._process_and_assert_no_code_mapping(["src/com/example/foo/Bar.kt"])
+            assert len(code_mappings) == 1
+            # Two levels of directories implies that we're not including the package name,
+            # thus, making a more generic code mapping.
+            assert code_mappings[0].stacktrace_root == "com/example/"
+            assert code_mappings[0].source_path == "src/com/example/"
 
     def test_module_is_too_short(self) -> None:
-        # This is to prove that we will prevent code mappings when the module is too short
-        # to be a valid code mapping.
-        code_mappings = self._process_and_assert_no_code_mapping(["src/com/foo/Short.kt"])
-        assert len(code_mappings) == 0
+        with override_options({"issues.auto_source_code_config.dry-run-platforms": ["java"]}):
+            # This is to prove that we will prevent code mappings when the module is too short
+            # to be a valid code mapping.
+            code_mappings = self._process_and_assert_no_code_mapping(["src/com/foo/Short.kt"])
+            assert len(code_mappings) == 0
