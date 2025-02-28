@@ -106,6 +106,7 @@ export function AssigneeBadge({
           )}
         </TooltipWrapper>
       }
+      skipWrapper
     >
       <StyledTag icon={makeAssignedIcon(assignedTo)} />
     </Tooltip>
@@ -128,6 +129,7 @@ export function AssigneeBadge({
           </TooltipSubtext>
         </TooltipWrapper>
       }
+      skipWrapper
     >
       <UnassignedTag icon={unassignedIcon} />
     </Tooltip>
@@ -153,6 +155,10 @@ const StyledTag = styled(Tag)`
 
 const UnassignedTag = styled(Tag)`
   border-style: dashed;
+  gap: ${space(0.5)};
+  height: 24px;
+  padding: ${space(0.5)};
+  padding-right: ${space(0.25)};
 `;
 
 const TooltipSubtext = styled('div')`
