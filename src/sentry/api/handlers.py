@@ -14,6 +14,8 @@ def custom_exception_handler(exc, context):
             level="warning",
         )
         # let the client know that they've been rate limited with details
-        exc = Throttled(detail=str(exc))
+        exc = Throttled(
+            detail="Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
+        )
 
     return exception_handler(exc, context)
