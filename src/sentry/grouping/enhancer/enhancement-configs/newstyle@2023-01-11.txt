@@ -18,7 +18,7 @@ family:native package:/Users/**                                      +app
 family:native stack.function:FDebug::CheckVerifyFailedImpl*                v+app -app ^-app
 
 ## UE internal ensure handling
-family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
 
 ## UE SDK USentrySubsystem event capturing
 family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
