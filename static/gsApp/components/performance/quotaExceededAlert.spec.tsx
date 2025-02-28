@@ -19,13 +19,13 @@ describe('Renders QuotaExceededAlert correctly', function () {
     renewalDate: '2024-12-31',
     onDemandBudgets: {
       enabled: true,
-    },
-    planTier: 'am1',
+    } as any,
+    planTier: 'am1' as any,
     categories: {
       spans: {
         usageExceeded: true,
       },
-    },
+    } as any,
   } as unknown as Subscription);
   beforeEach(function () {
     jest.useFakeTimers();
