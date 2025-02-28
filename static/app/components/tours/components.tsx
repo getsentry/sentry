@@ -18,7 +18,7 @@ import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
-interface TourContextProviderProps<T extends TourEnumType> {
+export interface TourContextProviderProps<T extends TourEnumType> {
   /**
    * The children of the tour context provider.
    * All children of this component will be blurred when the tour is active.
@@ -38,12 +38,17 @@ interface TourContextProviderProps<T extends TourEnumType> {
    * The value for this prop comes from useTourReducer, to avoid extra steps.
    */
   tourContext: React.Context<TourContextType<T>>;
+  /**
+   * Whether to omit the blurring window.
+   */
+  omitBlur?: boolean;
 }
 
 export function TourContextProvider<T extends TourEnumType>({
   children,
   isAvailable,
   tourContext,
+  omitBlur,
   orderedStepIds,
 }: TourContextProviderProps<T>) {
   const tourContextValue = useTourReducer<T>({
@@ -67,7 +72,7 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <tourContext.Provider value={tourContextValue}>
-      {isTourActive && <BlurWindow />}
+      {isTourActive && !omitBlur && <BlurWindow />}
       {children}
     </tourContext.Provider>
   );

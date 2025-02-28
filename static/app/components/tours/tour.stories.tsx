@@ -4,11 +4,16 @@ import styled from '@emotion/styled';
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {Button} from 'sentry/components/button';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import {Input} from 'sentry/components/input';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {
   TourContextProvider,
+  type TourContextProviderProps,
   TourElement,
   type TourElementProps,
 } from 'sentry/components/tours/components';
@@ -16,6 +21,7 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
+import type {Color} from 'sentry/utils/theme';
 
 const enum MyTour {
   NAME = 'my-tour-name',
@@ -40,13 +46,19 @@ function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
 }
 
 export default storyBook('Tours', story => {
-  story('Usage', () => (
+  story('Getting Started', () => (
     <Fragment>
       <p>
         Tours are a way to guide users through a series of steps around a page in the
-        product, with anchored tooltips which may jump all over the page.
+        product, with anchored tooltips which may jump all over the page. By default the
+        provider will blur everything on the page, only allowing the focused element and
+        tour step to be visible.
       </p>
-      <TourExample>
+      <p>
+        It can be closed with on each step, or with an 'escape' keypress. Using 'left/h'
+        and 'right/l' keys will navigate between steps.
+      </p>
+      <TourProvider>
         <MyTourElement
           id={MyTour.NAME}
           title={'Name Time!'}
@@ -61,7 +73,6 @@ export default storyBook('Tours', story => {
         >
           <Input placeholder="Step 2: Email" type="email" />
         </MyTourElement>
-        rdddf
         <MyTourElement
           id={MyTour.PASSWORD}
           title={'Password Time!'}
@@ -69,35 +80,204 @@ export default storyBook('Tours', story => {
         >
           <Input placeholder="Step 3: Password" type="password" />
         </MyTourElement>
-      </TourExample>
+      </TourProvider>
+    </Fragment>
+  ));
+
+  story('Setup', () => (
+    <Fragment>
+      <p>To setup a new tour, you need to do the following:</p>
+      <ol>
+        <li>Define the steps of the tour.</li>
+        <li>Define the order of the steps.</li>
+        <li>Create the context and usage hook.</li>
+        <li>
+          Create a custom <JSXNode name="TourElement" /> component.
+        </li>
+      </ol>
+      <p>
+        This is mostly configuration, and the custom <JSXNode name="TourElement" />{' '}
+        component is a drop-in replacement for the component you want to focus.
+      </p>
+      <CodeSnippet language="tsx">
+        {`import {createContext, useContext} from 'react';
+
+import {TourElement, type TourElementProps} from 'sentry/components/tours/components';
+import type {TourContextType} from 'sentry/components/tours/tourContext';
+
+// Step 1. Define the steps of the tour.
+const enum MyTour {
+  NAME = 'my-tour-name',
+  EMAIL = 'my-tour-email',
+  PASSWORD = 'my-tour-password',
+}
+
+// Step 2. Define the order of the steps.
+const ORDERED_MY_TOUR = [MyTour.NAME, MyTour.EMAIL, MyTour.PASSWORD];
+
+// Step 3. Create the context and usage hook.
+const MyTourContext = createContext<TourContextType<MyTour>>({
+  currentStepId: null,
+  isAvailable: true,
+  isRegistered: false,
+  orderedStepIds: ORDERED_MY_TOUR,
+  dispatch: () => {},
+  handleStepRegistration: () => () => {},
+});
+function useMyTour(): TourContextType<MyTour> {
+  return useContext(MyTourContext);
+}
+
+// Step 4. Create a custom TourElement component.
+function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
+  const tourContext = useMyTour();
+  return <TourElement tourContext={tourContext} {...props} />;
+}
+`}
+      </CodeSnippet>
+    </Fragment>
+  ));
+
+  story('Usage', () => (
+    <Fragment>
+      <p>
+        Now, to implement your tour, you need to wrap your components in the{' '}
+        <JSXNode name="TourContextProvider" /> and pass in the context, and ordered steps
+        you created earlier.
+      </p>
+      <CodeSnippet language="tsx">
+        {`<TourContextProvider
+  orderedStepIds={ORDERED_MY_TOUR}
+  tourContext={MyTourContext}
+>
+  {/* All focused elements in the tour should be within this provider */}
+</TourContextProvider>`}
+      </CodeSnippet>
+
+      <p>
+        Now, you can use the custom <JSXNode name="TourElement" /> component from earlier
+        to wrap the component you wish to highlight.
+      </p>
+      <CodeSnippet language="tsx">
+        {`// Before...
+<Input placeholder="Name" />
+
+// After...
+<MyTourElement
+  id={MyTour.NAME}
+  title={'Name Time!'}
+  description={'We need this to make your account :)'}
+>
+  <Input placeholder="Name" />
+</MyTourElement>
+`}
+      </CodeSnippet>
+
+      <p>
+        Then, whenever you'd like to start your tour, just import your context and
+        dispatch the <code>START_TOUR</code> action.
+      </p>
+      <Alert type="warning">
+        <strong>Note:</strong> The tour will not start until all of the steps are present
+        in the DOM! The <JSXNode name="TourContextProvider" /> component you created
+        earlier will be keeping track of this internally. You can check this with the
+        <code>isRegistered</code> property of the context.
+      </Alert>
+      <br />
+      <CodeSnippet language="tsx">
+        {`function StartMyTourButton() {
+  const {dispatch, isRegistered} = useMyTour();
+  return (
+    <Button
+      onClick={() => dispatch({type: 'START_TOUR'})}
+      disabled={!isRegistered}
+    >
+      Start Tour
+    </Button>
+  );
+}`}
+      </CodeSnippet>
+      <br />
+      <TourProvider>
+        <MyTourElement
+          id={MyTour.NAME}
+          title={'Name Time!'}
+          description={'This is the description of the name tour step.'}
+        >
+          <Input placeholder="Step 1: Name" />
+        </MyTourElement>
+        <MyTourElement
+          id={MyTour.EMAIL}
+          title={'Email Time!'}
+          description={'This is the description of the email tour step.'}
+        >
+          <Input placeholder="Step 2: Email" type="email" />
+        </MyTourElement>
+        <div style={{height: '30px'}}>
+          <LoadingIndicator mini />
+        </div>
+      </TourProvider>
+    </Fragment>
+  ));
+
+  story('Customization', () => (
+    <Fragment>
+      <p>
+        The default behavior is to blur the entire page, and only show the focused element
+        and the tour step. You can avoid this with the <code>omitBlur</code>
+        prop.
+      </p>
+      <p>You can also customize the look of the wrapper for the focused elements.</p>
+      <TourProvider tourProviderProps={{omitBlur: true}}>
+        <CustomMyTourElement
+          id={MyTour.NAME}
+          title={'Name Time!'}
+          description={'This is the description of the name tour step.'}
+          color="blue400"
+        >
+          <Input placeholder="Step 1: Name" />
+        </CustomMyTourElement>
+        <CustomMyTourElement
+          id={MyTour.EMAIL}
+          title={'Email Time!'}
+          description={'This is the description of the email tour step.'}
+          color="red400"
+        >
+          <Input placeholder="Step 2: Email" type="email" />
+        </CustomMyTourElement>
+        <CustomMyTourElement
+          id={MyTour.PASSWORD}
+          title={'Password Time!'}
+          description={'This is the description of the password tour step.'}
+          color="green400"
+        >
+          <Input placeholder="Step 3: Password" type="password" />
+        </CustomMyTourElement>
+      </TourProvider>
     </Fragment>
   ));
 });
 
-const BlurBoundary = styled('div')`
-  position: relative;
-  border: 1px dashed ${p => p.theme.purple400};
-  width: 100%;
-  padding: ${space(2)};
-  margin: ${space(1)} ${space(2)};
-`;
-
-const Image = styled('img')`
-  aspect-ratio: 1/1;
-  height: 100%;
-  object-fit: contain;
-`;
-
 function StartTourButton() {
-  const {dispatch} = useMyTour();
+  const {dispatch, isRegistered} = useMyTour();
   return (
-    <Button icon={<IconStar />} onClick={() => dispatch({type: 'START_TOUR'})}>
+    <Button
+      icon={<IconStar />}
+      onClick={() => dispatch({type: 'START_TOUR'})}
+      disabled={!isRegistered}
+    >
       Start Tour
     </Button>
   );
 }
 
-function TourExample({children}: {children: React.ReactNode}) {
+function TourProvider({
+  children,
+  tourProviderProps = {},
+}: {
+  children: React.ReactNode;
+  tourProviderProps?: Partial<TourContextProviderProps<MyTour>>;
+}) {
   return (
     <SizingWindow>
       <BlurBoundary>
@@ -105,6 +285,7 @@ function TourExample({children}: {children: React.ReactNode}) {
           isAvailable
           orderedStepIds={ORDERED_MY_TOUR}
           tourContext={MyTourContext}
+          {...tourProviderProps}
         >
           <Flex gap={space(2)} align="center">
             <Flex gap={space(2)} justify="space-between" column align="flex-start">
@@ -124,3 +305,22 @@ function TourExample({children}: {children: React.ReactNode}) {
     </SizingWindow>
   );
 }
+
+const BlurBoundary = styled('div')`
+  position: relative;
+  border: 1px dashed ${p => p.theme.purple400};
+  padding: ${space(2)};
+  margin: ${space(1)} ${space(2)};
+`;
+
+const Image = styled('img')`
+  aspect-ratio: 1/1;
+  height: 100%;
+  object-fit: contain;
+`;
+
+const CustomMyTourElement = styled(MyTourElement)<{color: Color}>`
+  &[aria-expanded='true']:after {
+    box-shadow: 0 0 0 2px ${p => p.theme[p.color]};
+  }
+`;
