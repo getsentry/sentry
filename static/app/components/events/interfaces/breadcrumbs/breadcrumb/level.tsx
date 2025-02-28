@@ -52,5 +52,4 @@ const LevelTag = styled(Tag)`
   align-items: center;
   /** Same height as menu item labels, to prevent vertical cropping */
   height: calc(${p => p.theme.fontSizeMedium} * 1.4);
-  overflow: hidden;
 `;

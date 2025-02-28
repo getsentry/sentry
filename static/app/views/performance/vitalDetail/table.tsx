@@ -419,30 +419,18 @@ const UniqueTagCell = styled('div')`
 `;
 
 const GoodTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme[vitalStateColors[VitalState.GOOD]]};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
+  background-color: ${p => p.theme[vitalStateColors[VitalState.GOOD]]};
+  color: ${p => p.theme.white};
 `;
 
 const MehTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme[vitalStateColors[VitalState.MEH]]};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
+  background-color: ${p => p.theme[vitalStateColors[VitalState.MEH]]};
+  color: ${p => p.theme.white};
 `;
 
 const PoorTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme[vitalStateColors[VitalState.POOR]]};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
+  background-color: ${p => p.theme[vitalStateColors[VitalState.POOR]]};
+  color: ${p => p.theme.white};
 `;
 
 export default Table;

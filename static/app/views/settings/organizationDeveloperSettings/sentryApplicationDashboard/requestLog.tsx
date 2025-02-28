@@ -328,5 +328,4 @@ const Tags = styled('div')`
 
 const StyledTag = styled(Tag)`
   padding: ${space(0.5)};
-  display: inline-flex;
 `;

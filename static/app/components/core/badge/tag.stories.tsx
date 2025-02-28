@@ -57,14 +57,14 @@ export default storyBook('Tag', (story, APIReference) => {
     );
   });
 
-  story('onDismiss', () => {
+  story('Dismissable tags', () => {
     const LOCAL_STORAGE_KEY = 'tag-stories-tag-dismissed';
     const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
     const [stateDismissed, setStateDismissed] = useState(false);
     return (
       <Fragment>
         <p>
-          You can make your tag dismissible too, by passing something into the{' '}
+          You can make your tag dismissible too, by passing into the{' '}
           <JSXProperty name="onDismiss" value /> prop.
         </p>
         {isDismissed ? null : (

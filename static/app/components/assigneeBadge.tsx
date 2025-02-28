@@ -129,7 +129,7 @@ export function AssigneeBadge({
         </TooltipWrapper>
       }
     >
-      <StyledTag icon={unassignedIcon} />
+      <UnassignedTag icon={unassignedIcon} />
     </Tooltip>
   );
 }
@@ -144,14 +144,15 @@ const TooltipWrapper = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  display: flex;
-  align-items: center;
   gap: ${space(0.5)};
   height: 24px;
-  border-style: dashed;
   padding: ${space(0.5)};
   padding-right: ${space(0.25)};
   color: ${p => p.theme.subText};
+`;
+
+const UnassignedTag = styled(Tag)`
+  border-style: dashed;
 `;
 
 const TooltipSubtext = styled('div')`

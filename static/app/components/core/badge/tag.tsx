@@ -43,7 +43,8 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
           </IconWrapper>
         )}
 
-        <Text>{children}</Text>
+        {/* @TODO(jonasbadalic): Can, and should we make children required? */}
+        {children && <Text>{children}</Text>}
 
         {onDismiss && (
           <DismissButton
@@ -88,11 +89,17 @@ const Text = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+
+  /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
+  display: flex;
+  align-items: center;
 `;
 
 const IconWrapper = styled('span')`
   margin-right: ${space(0.5)};
   display: inline-flex;
+  align-items: center;
+  gap: inherit;
 `;
 
 const DismissButton = styled(Button)`
