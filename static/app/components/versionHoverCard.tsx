@@ -160,9 +160,7 @@ function VersionHoverCard({
                     gap={space(1)}
                     justify="space-between"
                   >
-                    <Tag type="highlight" textMaxWidth={150}>
-                      {deploy.environment}
-                    </Tag>
+                    <Tag type="highlight">{deploy.environment}</Tag>
                     {deploy.dateFinished && (
                       <StyledTimeSince date={deploy.dateFinished} />
                     )}

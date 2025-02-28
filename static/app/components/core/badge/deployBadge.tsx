@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -25,10 +27,12 @@ export function DeployBadge(props: DeployBadgeProps) {
       }}
     >
       <Tooltip title={t('Open In Issues')} skipWrapper>
-        <Tag type="highlight" textMaxWidth={80}>
-          {props.deploy.environment}
-        </Tag>
+        <TruncatedTag type="highlight">{props.deploy.environment}</TruncatedTag>
       </Tooltip>
     </Link>
   );
 }
+
+const TruncatedTag = styled(Tag)`
+  max-width: 96px;
+`;

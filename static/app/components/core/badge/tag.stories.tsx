@@ -20,23 +20,7 @@ export default storyBook('Tag', (story, APIReference) => {
         <p>
           The <JSXNode name="Tag" /> component is a pill-shaped badge. Depending on the{' '}
           <JSXProperty name="type" value /> prop specified, it can be used as a success
-          indicator, an error or warning indidcator, and for various other use cases.
-        </p>
-        <p>
-          The default <JSXNode name="Tag" /> looks like this, with{' '}
-          <JSXProperty name="type" value="default" />:
-        </p>
-        <Tag>Default tag</Tag>
-      </Fragment>
-    );
-  });
-
-  story('type', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="type" value /> prop specifies the tag category, and
-          changes the color of the tag.
+          indicator, an error or warning indicator, and for various other use cases.
         </p>
         <SizingWindow display="block">
           <Tag type="default">Default</Tag>
@@ -52,7 +36,6 @@ export default storyBook('Tag', (story, APIReference) => {
       </Fragment>
     );
   });
-
   story('icon', () => {
     return (
       <Fragment>
@@ -69,29 +52,6 @@ export default storyBook('Tag', (story, APIReference) => {
         </Tag>
         <Tag type="success" icon={<IconCheckmark />}>
           Nice
-        </Tag>
-      </Fragment>
-    );
-  });
-
-  story('textMaxWidth', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="textMaxWidth" value /> prop specifies when the tag should
-          start text overflowing. By default,{' '}
-          <JSXProperty name="textMaxWidth" value={150} />.
-        </p>
-        <Tag type="promotion">Long text will get cut off like this</Tag>
-        <p>But you can change this value to be shorter or longer:</p>
-        <Tag type="promotion" textMaxWidth={30}>
-          Small tag
-        </Tag>
-        <br />
-        <br />
-        <Tag type="promotion" textMaxWidth={500}>
-          This is what happens when you have really long text but you increase the max
-          text width
         </Tag>
       </Fragment>
     );

@@ -47,13 +47,11 @@ export type NodeType = keyof ReturnType<typeof nodeColors>;
 
 export const EventNode = styled(Tag)<{type: NodeType}>`
   height: 20px;
+  background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
+  border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
-  }
-  & ${Tag.Background} {
-    background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
-    border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
 `;
 
