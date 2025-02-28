@@ -38,7 +38,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
-              {t('All')}
+              {t('Search')}
             </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
               {t('Feedback')}
@@ -81,15 +81,10 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               />
             </SecondaryNav.Section>
           )}
+          <SecondaryNav.Section title={t('Configure')}>
+            <SecondaryNav.Item to={`${baseUrl}/alerts/`}>{t('Alerts')}</SecondaryNav.Item>
+          </SecondaryNav.Section>
         </SecondaryNav.Body>
-        <SecondaryNav.Footer>
-          <SecondaryNav.Item
-            to={`${baseUrl}/alerts/rules/`}
-            activeTo={`${baseUrl}/alerts/`}
-          >
-            {t('Alerts')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Footer>
       </SecondaryNav>
       {children}
     </Fragment>
