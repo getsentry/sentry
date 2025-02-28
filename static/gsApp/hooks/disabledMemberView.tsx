@@ -58,11 +58,12 @@ class DisabledMemberView extends DeprecatedAsyncComponent<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     const {organization, subscription} = this.state;
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('disabled_member_view.loaded', {
         organization,
         subscription,
       });
+    }
   }
 
   handleUpgradeRequest = async () => {
