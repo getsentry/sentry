@@ -34,7 +34,6 @@ import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
@@ -190,10 +189,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'spend-visibility:spike-protection-project-settings': p => (
     <SpikeProtectionProjectSettings {...p} />
   ),
-  /**
-   *   Tracing units exceeded alerts
-   */
-  'component:performance-quota-exceeded-alert': () => QuotaExceededAlert,
+
   /**
    *   Given a module name, if applicable, displays the appropriate upsell page
    */
