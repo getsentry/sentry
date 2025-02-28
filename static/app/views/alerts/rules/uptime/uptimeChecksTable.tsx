@@ -52,7 +52,7 @@ export function UptimeChecksTable({uptimeRule}: UptimeChecksTableProps) {
       {isPending ? (
         <LoadingIndicator />
       ) : (
-        <UptimeChecksGrid uptimeChecks={uptimeChecks} />
+        <UptimeChecksGrid uptimeRule={uptimeRule} uptimeChecks={uptimeChecks} />
       )}
       <Pagination pageLinks={getResponseHeader?.('Link')} />
     </Fragment>
