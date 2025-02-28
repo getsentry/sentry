@@ -80,7 +80,7 @@ class ArgumentDefinition:
     default_arg: str | None = None
     # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
     is_attribute: bool = True
-    # Validator to check if the value is allowed for this argument, and transforms into correct type
+    # Validator to check if the value is allowed for this argument
     validator: Callable[[Any], Any] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
