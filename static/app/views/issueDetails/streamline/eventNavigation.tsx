@@ -256,7 +256,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.discover_clicked"
                 analyticsEventName="Issue Details: Discover Clicked"
               >
-                {t('Discover')}
+                {t('Open in Discover')}
               </LinkButton>
             )}
             <LinkButton
