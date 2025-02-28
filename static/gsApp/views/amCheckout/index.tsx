@@ -147,8 +147,9 @@ class AMCheckout extends Component<Props, State> {
       this.fetchBillingConfig();
     }
 
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
+    }
   }
 
   componentDidUpdate(prevProps: Props) {

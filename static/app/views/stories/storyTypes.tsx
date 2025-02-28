@@ -3,7 +3,7 @@ import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';

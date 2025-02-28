@@ -116,6 +116,9 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <UnreadIndicator data-test-id="unread-issue-indicator" />
+      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
         <Checkbox
           id={group.id}
@@ -737,7 +740,20 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 86px;
+
+      &:not(:hover):not(:focus-within):not(:has(input:checked)) {
+        ${CheckboxLabel} {
+          ${p.theme.visuallyHidden};
+        }
+      }
+
+      &:hover,
+      &:focus-within {
+        ${UnreadIndicator} {
+          ${p.theme.visuallyHidden};
+        }
+      }
 
       [data-issue-title-link] {
         &::before {
@@ -1047,4 +1063,13 @@ const ProgressColumn = styled('div')`
 // Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
+  margin-left: ${space(3)};
+  margin-top: ${space(1.5)};
 `;

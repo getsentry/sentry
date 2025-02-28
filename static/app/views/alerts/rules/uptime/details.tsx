@@ -23,11 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
-  CheckStatus,
-  type CheckStatusBucket,
-  type UptimeRule,
-} from 'sentry/views/alerts/rules/uptime/types';
-import {
   setUptimeRuleData,
   useUptimeRule,
 } from 'sentry/views/insights/uptime/utils/useUptimeRule';
@@ -35,6 +30,7 @@ import {
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
+import {CheckStatus, type CheckStatusBucket, type UptimeRule} from './types';
 import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
