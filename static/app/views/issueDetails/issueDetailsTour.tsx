@@ -1,6 +1,5 @@
 import {createContext, useContext} from 'react';
 
-import {TourElement, type TourElementProps} from 'sentry/components/tours/components';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 
 export const enum IssueDetailsTour {
@@ -33,12 +32,7 @@ export const IssueDetailsTourContext =
 export function useIssueDetailsTour(): TourContextType<IssueDetailsTour> {
   const tourContext = useContext(IssueDetailsTourContext);
   if (!tourContext) {
-    throw new Error('Must be used within a TourContextProvider');
+    throw new Error('Must be used within a TourContextProvider<IssueDetailsTour>');
   }
   return tourContext;
-}
-
-export function IssueDetailsTourElement(props: TourElementProps<IssueDetailsTour>) {
-  const tourContext = useIssueDetailsTour();
-  return <TourElement tourContext={tourContext} {...props} />;
 }

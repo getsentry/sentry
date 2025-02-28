@@ -6,7 +6,6 @@ import {
   ORDERED_TEST_TOUR,
   TestTour,
   TestTourContext,
-  TestTourElement,
 } from 'sentry/components/tours/testUtils';
 import {useTourReducer} from 'sentry/components/tours/tourContext';
 
@@ -85,52 +84,71 @@ describe('Tour Components', () => {
     it('renders children regardless of tour state', async () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
       const {container: inactiveContainer} = render(
-        <TourElement<TestTour>
-          id={TestTour.NAME}
-          title="Test Title"
-          description="Test Description"
-          tourContext={emptyTourContext}
+        <TourContextProvider
+          isAvailable
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
         >
-          <div>Child Element</div>
-        </TourElement>
+          <TourElement<TestTour>
+            id={TestTour.NAME}
+            title="Test Title"
+            description="Test Description"
+            tourContext={TestTourContext}
+          >
+            <div>Child Element</div>
+          </TourElement>
+        </TourContextProvider>
       );
 
       expect(within(inactiveContainer).getByText('Child Element')).toBeInTheDocument();
 
+      mockUseTourReducer.mockReturnValue({
+        ...emptyTourContext,
+        isRegistered: true,
+        currentStepId: TestTour.NAME,
+      });
       const {container: activeContainer} = render(
-        <TourElement<TestTour>
-          id={TestTour.NAME}
-          title="Test Title"
-          description="Test Description"
-          tourContext={{
-            ...emptyTourContext,
-            orderedStepIds: ORDERED_TEST_TOUR,
-            isRegistered: true,
-            currentStepId: TestTour.NAME,
-          }}
+        <TourContextProvider
+          isAvailable
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
         >
-          <div>Child Element</div>
-        </TourElement>
+          <TourElement<TestTour>
+            id={TestTour.NAME}
+            title="Test Title"
+            description="Test Description"
+            tourContext={TestTourContext}
+          >
+            <div>Child Element</div>
+          </TourElement>
+        </TourContextProvider>
       );
       expect(await within(activeContainer).findByText('Test Title')).toBeInTheDocument();
       expect(within(activeContainer).getByText('Child Element')).toBeInTheDocument();
     });
 
     it('renders overlay when step is active', async () => {
+      mockUseTourReducer.mockReturnValue({
+        ...emptyTourContext,
+        orderedStepIds: ORDERED_TEST_TOUR,
+        isRegistered: true,
+        currentStepId: TestTour.NAME,
+      });
       const {unmount: unmountFirstStep} = render(
-        <TourElement<TestTour>
-          id={TestTour.NAME}
-          title="Test Title"
-          description="Test Description"
-          tourContext={{
-            ...emptyTourContext,
-            orderedStepIds: ORDERED_TEST_TOUR,
-            isRegistered: true,
-            currentStepId: TestTour.NAME,
-          }}
+        <TourContextProvider
+          isAvailable
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
         >
-          <div>Child Element</div>
-        </TourElement>
+          <TourElement<TestTour>
+            id={TestTour.NAME}
+            title="Test Title"
+            description="Test Description"
+            tourContext={TestTourContext}
+          >
+            <div>Child Element</div>
+          </TourElement>
+        </TourContextProvider>
       );
 
       expect(await screen.findByText('Test Title')).toBeInTheDocument();
@@ -143,21 +161,28 @@ describe('Tour Components', () => {
       expect(screen.queryByRole('button', {name: 'Finish tour'})).not.toBeInTheDocument();
 
       unmountFirstStep();
+      mockUseTourReducer.mockReturnValue({
+        ...emptyTourContext,
+        orderedStepIds: ORDERED_TEST_TOUR,
+        isRegistered: true,
+        currentStepId: TestTour.EMAIL,
+      });
 
       const {unmount: unmountSecondStep} = render(
-        <TourElement<TestTour>
-          id={TestTour.EMAIL}
-          title="Test Title"
-          description="Test Description"
-          tourContext={{
-            ...emptyTourContext,
-            orderedStepIds: ORDERED_TEST_TOUR,
-            isRegistered: true,
-            currentStepId: TestTour.EMAIL,
-          }}
+        <TourContextProvider
+          isAvailable
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
         >
-          <div>Child Element</div>
-        </TourElement>
+          <TourElement<TestTour>
+            id={TestTour.EMAIL}
+            title="Test Title"
+            description="Test Description"
+            tourContext={TestTourContext}
+          >
+            <div>Child Element</div>
+          </TourElement>
+        </TourContextProvider>
       );
 
       expect(await screen.findByText('2/3')).toBeInTheDocument();
@@ -166,21 +191,28 @@ describe('Tour Components', () => {
       expect(screen.queryByRole('button', {name: 'Finish tour'})).not.toBeInTheDocument();
 
       unmountSecondStep();
+      mockUseTourReducer.mockReturnValue({
+        ...emptyTourContext,
+        orderedStepIds: ORDERED_TEST_TOUR,
+        isRegistered: true,
+        currentStepId: TestTour.PASSWORD,
+      });
 
       render(
-        <TourElement<TestTour>
-          id={TestTour.PASSWORD}
-          title="Test Title"
-          description="Test Description"
-          tourContext={{
-            ...emptyTourContext,
-            orderedStepIds: ORDERED_TEST_TOUR,
-            isRegistered: true,
-            currentStepId: TestTour.PASSWORD,
-          }}
+        <TourContextProvider
+          isAvailable
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
         >
-          <div>Child Element</div>
-        </TourElement>
+          <TourElement
+            id={TestTour.PASSWORD}
+            title="Test Title"
+            description="Test Description"
+            tourContext={TestTourContext}
+          >
+            <div>Child Element</div>
+          </TourElement>
+        </TourContextProvider>
       );
 
       expect(await screen.findByText('3/3')).toBeInTheDocument();
@@ -201,19 +233,30 @@ describe('Tour Components', () => {
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
-          <TestTourElement id={TestTour.NAME} title="Name" description="The name">
+          <TourElement
+            tourContext={TestTourContext}
+            id={TestTour.NAME}
+            title="Name"
+            description="The name"
+          >
             Name
-          </TestTourElement>
-          <TestTourElement id={TestTour.EMAIL} title="Email" description="The email">
+          </TourElement>
+          <TourElement
+            tourContext={TestTourContext}
+            id={TestTour.EMAIL}
+            title="Email"
+            description="The email"
+          >
             Email
-          </TestTourElement>
-          <TestTourElement
+          </TourElement>
+          <TourElement
+            tourContext={TestTourContext}
             id={TestTour.PASSWORD}
             title="Password"
             description="The password"
           >
             Password
-          </TestTourElement>
+          </TourElement>
         </TourContextProvider>
       );
       expect(mockHandleStepRegistration).toHaveBeenCalledWith({

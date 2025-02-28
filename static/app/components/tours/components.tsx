@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -34,10 +34,9 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * The React context (from createContext) containing the provider for the tour.
-   * The value for this prop comes from useTourReducer, to avoid extra steps.
+   * The React context (from React.createContext) containing the provider for the tour.
    */
-  tourContext: React.Context<TourContextType<T>>;
+  tourContext: React.Context<TourContextType<T> | null>;
   /**
    * Whether to omit the blurring window.
    */
@@ -78,7 +77,8 @@ export function TourContextProvider<T extends TourEnumType>({
   );
 }
 
-interface BaseTourElementProps<T extends TourEnumType> extends Partial<UseOverlayProps> {
+export interface TourElementProps<T extends TourEnumType>
+  extends Partial<UseOverlayProps> {
   /**
    * The content being focused during the tour.
    */
@@ -96,34 +96,43 @@ interface BaseTourElementProps<T extends TourEnumType> extends Partial<UseOverla
    */
   title: React.ReactNode;
   /**
-   * The relevant tour context
+   * The React context (from React.createContext) containing the provider for the tour.
    */
-  tourContext: TourContextType<T>;
+  tourContext: React.Context<TourContextType<T> | null>;
   /**
    * The className of the wrapper element.
    */
   className?: string;
 }
 
-/**
- * Most implementations of TourElementProps will hook in their own context.
- */
-export type TourElementProps<T extends TourEnumType> = Omit<
-  BaseTourElementProps<T>,
-  'tourContext'
->;
-
 export function TourElement<T extends TourEnumType>({
+  tourContext,
+  ...props
+}: TourElementProps<T>) {
+  const tourContextValue = useContext(tourContext);
+  if (!tourContextValue) {
+    throw new Error('Must be used within a TourContextProvider');
+  }
+  return <TourElementContent {...props} tourContextValue={tourContextValue} />;
+}
+
+interface TourElementContentProps<T extends TourEnumType>
+  extends Omit<TourElementProps<T>, 'tourContext'> {
+  tourContextValue: TourContextType<T>;
+}
+
+function TourElementContent<T extends TourEnumType>({
   children,
   id,
   title,
   description,
-  tourContext,
+  tourContextValue,
   position,
   className,
-}: BaseTourElementProps<T>) {
+}: TourElementContentProps<T>) {
   const theme = useTheme();
-  const {currentStepId, dispatch, orderedStepIds, handleStepRegistration} = tourContext;
+  const {currentStepId, dispatch, orderedStepIds, handleStepRegistration} =
+    tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
   const hasPreviousStep = stepCount > 1;

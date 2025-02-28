@@ -15,7 +15,6 @@ import {
   TourContextProvider,
   type TourContextProviderProps,
   TourElement,
-  type TourElementProps,
 } from 'sentry/components/tours/components';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
@@ -29,20 +28,14 @@ const enum MyTour {
   PASSWORD = 'my-tour-password',
 }
 const ORDERED_MY_TOUR = [MyTour.NAME, MyTour.EMAIL, MyTour.PASSWORD];
-const MyTourContext = createContext<TourContextType<MyTour>>({
-  currentStepId: null,
-  isAvailable: true,
-  isRegistered: false,
-  orderedStepIds: ORDERED_MY_TOUR,
-  dispatch: () => {},
-  handleStepRegistration: () => () => {},
-});
+const MyTourContext = createContext<TourContextType<MyTour> | null>(null);
+
 function useMyTour(): TourContextType<MyTour> {
-  return useContext(MyTourContext);
-}
-function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
-  const tourContext = useMyTour();
-  return <TourElement tourContext={tourContext} {...props} />;
+  const tourContext = useContext(MyTourContext);
+  if (!tourContext) {
+    throw new Error('Must be used within a TourContextProvider<MyTour>');
+  }
+  return tourContext;
 }
 
 export default storyBook('Tours', story => {
@@ -59,27 +52,30 @@ export default storyBook('Tours', story => {
         and 'right/l' keys will navigate between steps.
       </p>
       <TourProvider>
-        <MyTourElement
+        <TourElement
           id={MyTour.NAME}
           title={'Name Time!'}
           description={'This is the description of the name tour step.'}
+          tourContext={MyTourContext}
         >
           <Input placeholder="Step 1: Name" />
-        </MyTourElement>
-        <MyTourElement
+        </TourElement>
+        <TourElement
           id={MyTour.EMAIL}
           title={'Email Time!'}
           description={'This is the description of the email tour step.'}
+          tourContext={MyTourContext}
         >
           <Input placeholder="Step 2: Email" type="email" />
-        </MyTourElement>
-        <MyTourElement
+        </TourElement>
+        <TourElement
           id={MyTour.PASSWORD}
           title={'Password Time!'}
           description={'This is the description of the password tour step.'}
+          tourContext={MyTourContext}
         >
           <Input placeholder="Step 3: Password" type="password" />
-        </MyTourElement>
+        </TourElement>
       </TourProvider>
     </Fragment>
   ));
@@ -90,15 +86,9 @@ export default storyBook('Tours', story => {
       <ol>
         <li>Define the steps of the tour.</li>
         <li>Define the order of the steps.</li>
-        <li>Create the context and usage hook.</li>
-        <li>
-          Create a custom <JSXNode name="TourElement" /> component.
-        </li>
+        <li>Create the tour context for the components to use.</li>
+        <li>Create a usage hook to refine types.</li>
       </ol>
-      <p>
-        This is mostly configuration, and the custom <JSXNode name="TourElement" />{' '}
-        component is a drop-in replacement for the component you want to focus.
-      </p>
       <CodeSnippet language="tsx">
         {`import {createContext, useContext} from 'react';
 
@@ -115,23 +105,16 @@ const enum MyTour {
 // Step 2. Define the order of the steps.
 const ORDERED_MY_TOUR = [MyTour.NAME, MyTour.EMAIL, MyTour.PASSWORD];
 
-// Step 3. Create the context and usage hook.
-const MyTourContext = createContext<TourContextType<MyTour>>({
-  currentStepId: null,
-  isAvailable: true,
-  isRegistered: false,
-  orderedStepIds: ORDERED_MY_TOUR,
-  dispatch: () => {},
-  handleStepRegistration: () => () => {},
-});
-function useMyTour(): TourContextType<MyTour> {
-  return useContext(MyTourContext);
-}
+// Step 3. Create the tour context for the components to use.
+const MyTourContext = createContext<TourContextType<MyTour> | null>(null);
 
-// Step 4. Create a custom TourElement component.
-function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
-  const tourContext = useMyTour();
-  return <TourElement tourContext={tourContext} {...props} />;
+// Step 4. Create the usage hook to refine types.
+function useMyTour(): TourContextType<MyTour> {
+  const tourContext = useContext(MyTourContext);
+  if (!tourContext) {
+    throw new Error('Must be used within a TourContextProvider<MyTour>');
+  }
+  return tourContext;
 }
 `}
       </CodeSnippet>
@@ -155,21 +138,22 @@ function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
       </CodeSnippet>
 
       <p>
-        Now, you can use the custom <JSXNode name="TourElement" /> component from earlier
-        to wrap the component you wish to highlight.
+        Now, you can use the <JSXNode name="TourElement" /> component to wrap the
+        component you wish to highlight.
       </p>
       <CodeSnippet language="tsx">
         {`// Before...
 <Input placeholder="Name" />
 
 // After...
-<MyTourElement
+<TourElement
+  tourContext={MyTourContext}
   id={MyTour.NAME}
   title={'Name Time!'}
   description={'We need this to make your account :)'}
 >
   <Input placeholder="Name" />
-</MyTourElement>
+</TourElement>
 `}
       </CodeSnippet>
 
@@ -199,20 +183,22 @@ function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
       </CodeSnippet>
       <br />
       <TourProvider>
-        <MyTourElement
+        <TourElement
+          tourContext={MyTourContext}
           id={MyTour.NAME}
           title={'Name Time!'}
           description={'This is the description of the name tour step.'}
         >
           <Input placeholder="Step 1: Name" />
-        </MyTourElement>
-        <MyTourElement
+        </TourElement>
+        <TourElement
+          tourContext={MyTourContext}
           id={MyTour.EMAIL}
           title={'Email Time!'}
           description={'This is the description of the email tour step.'}
         >
           <Input placeholder="Step 2: Email" type="email" />
-        </MyTourElement>
+        </TourElement>
         <div style={{height: '30px'}}>
           <LoadingIndicator mini />
         </div>
@@ -222,37 +208,42 @@ function MyTourElement(props: Omit<TourElementProps<MyTour>, 'tourContext'>) {
 
   story('Customization', () => (
     <Fragment>
-      <p>
-        The default behavior is to blur the entire page, and only show the focused element
-        and the tour step. You can avoid this with the <code>omitBlur</code>
-        prop.
-      </p>
-      <p>You can also customize the look of the wrapper for the focused elements.</p>
+      <ul>
+        <li>
+          The default behavior is to blur the entire page, and only show the focused
+          element and the tour step. You can avoid this with the <code>omitBlur</code>
+          prop.
+        </li>
+        <li>You can also customize the look of the wrapper for the focused elements.</li>
+      </ul>
       <TourProvider tourProviderProps={{omitBlur: true}}>
-        <CustomMyTourElement
+        <CustomTourElement
+          tourContext={MyTourContext}
           id={MyTour.NAME}
           title={'Name Time!'}
           description={'This is the description of the name tour step.'}
           color="blue400"
         >
           <Input placeholder="Step 1: Name" />
-        </CustomMyTourElement>
-        <CustomMyTourElement
+        </CustomTourElement>
+        <CustomTourElement
+          tourContext={MyTourContext}
           id={MyTour.EMAIL}
           title={'Email Time!'}
           description={'This is the description of the email tour step.'}
           color="red400"
         >
           <Input placeholder="Step 2: Email" type="email" />
-        </CustomMyTourElement>
-        <CustomMyTourElement
+        </CustomTourElement>
+        <CustomTourElement
+          tourContext={MyTourContext}
           id={MyTour.PASSWORD}
           title={'Password Time!'}
           description={'This is the description of the password tour step.'}
           color="green400"
         >
           <Input placeholder="Step 3: Password" type="password" />
-        </CustomMyTourElement>
+        </CustomTourElement>
       </TourProvider>
     </Fragment>
   ));
@@ -319,7 +310,7 @@ const Image = styled('img')`
   object-fit: contain;
 `;
 
-const CustomMyTourElement = styled(MyTourElement)<{color: Color}>`
+const CustomTourElement = styled(TourElement<MyTour>)<{color: Color}>`
   &[aria-expanded='true']:after {
     box-shadow: 0 0 0 2px ${p => p.theme[p.color]};
   }
