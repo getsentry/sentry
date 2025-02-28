@@ -30,8 +30,7 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
         assert response.status_code == 204
 
         # Verify the view was deleted
-        with pytest.raises(GroupSearchView.DoesNotExist):
-            GroupSearchView.objects.get(id=self.view_id)
+        assert not GroupSearchView.objects.filter(id=self.view_id).exists()
 
         # Verify other views still exist
         remaining_views = GroupSearchView.objects.filter(
