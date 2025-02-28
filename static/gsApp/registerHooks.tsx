@@ -57,6 +57,7 @@ import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
 import legacyOrganizationRedirectRoutes from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
 import MemberListHeader from 'getsentry/hooks/memberListHeader';
 import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
+import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import hookRootRoutes from 'getsentry/hooks/rootRoutes';
 import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
@@ -173,6 +174,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Augment the onboarding wizard skip confirm help button
    */
   'onboarding-wizard:skip-help': () => OnboardingWizardHelp,
+
+  /**
+   * Get list of organization roles
+   */
+  'member-invite-modal:organization-roles': getOrgRoles,
 
   /**
    * Ensure we enable/disable Pendo when guides change
