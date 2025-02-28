@@ -126,7 +126,7 @@ function EventOrGroupHeader({
         level={'level' in data ? data.level : undefined}
         message={getMessage(data)}
         type={data.type}
-        levelIndicatorSize="9px"
+        levelIndicatorSize={9}
       />
     </div>
   );
