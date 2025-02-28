@@ -199,20 +199,6 @@ export default function SentryApplicationDetails(props: Props) {
   );
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
 
-  const hasTokenAccess = () => {
-    return organization.access.includes('org:write');
-  };
-
-  const isInternal = () => {
-    if (app) {
-      // if we are editing an existing app, check the status of the app
-      return app.status === 'internal';
-    }
-    return location.pathname.endsWith('new-internal/');
-  };
-
-  const showAuthInfo = !(app?.clientSecret && app.clientSecret[0] === '*');
-
   const headerTitle = () => {
     const action = app ? 'Edit' : 'Create';
     const type = isInternal() ? 'Internal' : 'Public';
@@ -259,7 +245,21 @@ export default function SentryApplicationDetails(props: Props) {
     }
   };
 
-  async function onAddToken(evt: React.MouseEvent): Promise<void> {
+  const hasTokenAccess = () => {
+    return organization.access.includes('org:write');
+  };
+
+  const isInternal = () => {
+    if (app) {
+      // if we are editing an existing app, check the status of the app
+      return app.status === 'internal';
+    }
+    return location.pathname.endsWith('new-internal/');
+  };
+
+  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
+
+  const onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
     if (!app) {
       return;
@@ -267,7 +267,7 @@ export default function SentryApplicationDetails(props: Props) {
     const token = await addSentryAppToken(api, app);
     const updatedNewTokens = newTokens.concat(token);
     setNewTokens(updatedNewTokens);
-  }
+  };
 
   const onRemoveToken = async (token: InternalAppApiToken) => {
     if (!app) {
@@ -316,7 +316,7 @@ export default function SentryApplicationDetails(props: Props) {
     return tokensToDisplay;
   };
 
-  async function rotateClientSecret() {
+  const rotateClientSecret = async () => {
     try {
       const rotateResponse = await api.requestPromise(
         `/sentry-apps/${appSlug}/rotate-secret/`,
@@ -342,7 +342,7 @@ export default function SentryApplicationDetails(props: Props) {
     } catch {
       addErrorMessage(t('Error rotating secret'));
     }
-  }
+  };
 
   const onFieldChange = (name: string, value: FieldValue): void => {
     if (name === 'webhookUrl' && !value && isInternal()) {
@@ -533,7 +533,7 @@ export default function SentryApplicationDetails(props: Props) {
                 {({value, id}: any) =>
                   value ? (
                     <Tooltip
-                      disabled={showAuthInfo}
+                      disabled={showAuthInfo()}
                       position="right"
                       containerDisplayMode="inline"
                       title={t(
