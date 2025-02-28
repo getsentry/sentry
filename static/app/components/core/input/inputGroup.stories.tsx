@@ -89,7 +89,7 @@ export default storyBook('InputGroup', (story, APIReference) => {
                 key="trailing-button"
                 borderless
                 icon={<IconSettings />}
-                size="sm"
+                size="zero"
                 aria-label="Toggle story representation"
               />,
             ],
