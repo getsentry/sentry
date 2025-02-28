@@ -1,4 +1,15 @@
-"""Session Replay recording consumer implementation."""
+"""Session Replay recording consumer implementation.
+
+This module has two parts. A processing component and a buffer flushing component. The processing
+component is straight-forward. It accepts a message and performs some work on it. After it
+completes it instructs the runtime to append the message to the buffer. This is abstracted by the
+buffering runtime library so we just return the transformed data in this module.
+
+The second part is the flushing of the buffer. The buffering runtime library has no idea when to
+flush this buffer so it constantly asks us if it can flush. We control flushing behavior through a
+stateful "BufferManager" class.  If we can_flush then we do_flush. After the flush completes the
+RunTime will commit the offsets.
+"""
 
 import contextlib
 import time
@@ -28,18 +39,9 @@ class Flags(TypedDict):
 class BufferManager:
     """Buffer manager.
 
-    Determines if and when a buffer should flush. The buffer accepts only one argument (`flags`)
-    which can contain any number of configuration options. Currently we only care about the time
-    the buffer has been active and the length of the buffer. But we could update this function to
-    extract an option thats concerned with the bytesize of the buffer if we thought that was a
-    useful metric for committing.
-
     The buffer manager is a class instance has a lifetime as long as the RunTime's. We pass its
     methods as callbacks to the Model. The state contained within the method's instance is implicit
-    and unknown to the RunTime. We could model this state inside the RunTime but the state is
-    simple enough that I don't feel the need to over-engineer the buffering RunTime. For more
-    complex use-cases you would want to formalize state transformations in the RunTime. Especially
-    if you wanted to expose the state across more locations in the application.
+    and unknown to the RunTime.
     """
 
     def __init__(self, flags: Flags) -> None:
@@ -50,6 +52,8 @@ class BufferManager:
         self.__last_flushed_at = time.time()
 
     def can_flush(self, model: Model[ProcessedRecordingMessage]) -> bool:
+        # TODO: time.time is stateful and hard to test. We should enable the RunTime to perform
+        #       managed effects so we can properly test this behavior.
         return (
             len(model.buffer) >= self.__max_buffer_length
             or (time.time() - self.__max_buffer_wait) >= self.__last_flushed_at
@@ -58,8 +62,7 @@ class BufferManager:
     def do_flush(self, model: Model[ProcessedRecordingMessage]) -> None:
         with sentry_tracing("replays.consumers.buffered.flush_buffer"):
             flush_buffer(model, max_workers=self.__max_workers)
-            # Update the buffer manager with the new time so we don't continuously commit in a
-            # loop!
+            # TODO: time.time again. Should be declarative for testing purposes.
             self.__last_flushed_at = time.time()
 
 
@@ -78,6 +81,8 @@ def flush_buffer(model: Model[ProcessedRecordingMessage], max_workers: int) -> N
         for future in done:
             exc = future.exception()
             if exc is not None:
+                # TODO: Why raise? Can I do something more meaningful here than reject the whole
+                #       batch? Raising is certainly the easiest way of handling failures...
                 raise exc
 
     # Recording metadata is not tracked in the threadpool. This is because this function will
