@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from 'sentry/components/button';
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 
 describe('InputGroup', function () {
   it('renders input', function () {

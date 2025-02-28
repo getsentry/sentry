@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';

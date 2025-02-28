@@ -6,6 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {InputProps} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -18,7 +19,6 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

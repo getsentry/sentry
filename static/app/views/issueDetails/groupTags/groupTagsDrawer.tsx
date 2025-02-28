@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -16,7 +17,6 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDownload, IconSearch} from 'sentry/icons';

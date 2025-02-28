@@ -6,6 +6,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -32,7 +33,6 @@ import {
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import useFocusControl from 'sentry/components/events/useFocusControl';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

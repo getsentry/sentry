@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import ButtonBar from 'sentry/components/buttonBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -22,7 +23,6 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
-import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
