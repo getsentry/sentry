@@ -58,6 +58,7 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
             onClick={handleDismiss}
             size="zero"
             priority="link"
+            borderless
             aria-label={t('Dismiss')}
             icon={<IconClose isCircled size="xs" />}
           />
@@ -80,11 +81,10 @@ const StyledTag = styled('div')<{
   padding: 0 ${space(1)};
   max-width: 166px;
 
-  /* Style text, button and icons elements */
   color: ${p => p.theme.tag[p.type].color};
-  button,
-  svg {
-    color: ${p => p.theme.tag[p.type].color};
+  /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
+  button {
+    color: currentColor;
   }
 `;
 
