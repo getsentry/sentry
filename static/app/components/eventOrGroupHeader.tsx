@@ -140,7 +140,7 @@ const truncateStyles = css`
 `;
 
 const Title = styled('div')<{extraMargin: boolean}>`
-  margin-bottom: ${p => (p.extraMargin ? space(0.75) : space(0.25))};
+  margin-bottom: ${p => (p.extraMargin ? space(0.5) : space(0.25))};
   font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
