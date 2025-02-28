@@ -18,7 +18,9 @@ type Params = DocsParams;
 
 type FeatureFlagConfiguration = {
   integrationName: string;
-  makeCodeSnippet: (dsn: string) => string;
+  makeConfigureCode: (dsn: string) => string;
+  makeVerifyCode: () => string;
+  packageName: string;
 };
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
@@ -27,7 +29,17 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
     integrationName: ``,
-    makeCodeSnippet: (_dsn: string) => `import sentry_sdk
+    packageName: 'sentry-sdk',
+    makeConfigureCode: (dsn: string) => `sentry_sdk.init(
+    dsn="${dsn}",
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        # your other integrations here
+    ],
+)`,
+    makeVerifyCode: () => `import sentry_sdk
 from sentry_sdk.feature_flags import add_feature_flag
 
 add_feature_flag('test-flag', False)  # Records an evaluation and its result.
@@ -36,7 +48,8 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
     integrationName: `LaunchDarklyIntegration`,
-    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+    packageName: "'sentry-sdk[launchdarkly]'",
+    makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.launchdarkly import LaunchDarklyIntegration
 import ldclient
 
@@ -48,16 +61,16 @@ sentry_sdk.init(
     integrations=[
         LaunchDarklyIntegration(),
     ],
-)
-
-client = ldclient.get()
+)`,
+    makeVerifyCode: () => `client = ldclient.get()
 client.variation("hello", Context.create("test-context"), False)  # Evaluate a flag with a default value.
 sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
     integrationName: `OpenFeatureIntegration`,
-    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+    packageName: "'sentry-sdk[openfeature]'",
+    makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.openfeature import OpenFeatureIntegration
 from openfeature import api
 
@@ -69,16 +82,16 @@ sentry_sdk.init(
     integrations=[
         OpenFeatureIntegration(),
     ],
-)
-
-client = api.get_client()
+)`,
+    makeVerifyCode: () => `client = api.get_client()
 client.get_boolean_value("hello", default_value=False)  # Evaluate a flag with a default value.
 sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.STATSIG]: {
     integrationName: `StatsigIntegration`,
-    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+    packageName: "'sentry-sdk[statsig]'",
+    makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.statsig import StatsigIntegration
 from statsig.statsig_user import StatsigUser
 from statsig import statsig
@@ -91,9 +104,8 @@ sentry_sdk.init(
     send_default_pii=True,
     integrations=[StatsigIntegration()],
 )
-
-statsig.initialize("server-secret-key")
-while not statsig.is_initialized():
+statsig.initialize("server-secret-key")`,
+    makeVerifyCode: () => `while not statsig.is_initialized():
     time.sleep(0.2)
 
 result = statsig.check_gate(StatsigUser("my-user-id"), "my-feature-gate")  # Evaluate a flag.
@@ -102,7 +114,8 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.UNLEASH]: {
     integrationName: `UnleashIntegration`,
-    makeCodeSnippet: (dsn: string) => `import sentry_sdk
+    packageName: "'sentry-sdk[unleash]'",
+    makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.unleash import UnleashIntegration
 from UnleashClient import UnleashClient
 
@@ -115,9 +128,9 @@ sentry_sdk.init(
 )
 
 unleash = UnleashClient(...)  # See Unleash quickstart.
-unleash.initialize_client()
-
-test_flag_enabled = unleash.is_enabled("test-flag")  # Evaluate a flag.
+unleash.initialize_client()`,
+    makeVerifyCode:
+      () => `test_flag_enabled = unleash.is_enabled("test-flag")  # Evaluate a flag.
 sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
@@ -274,7 +287,8 @@ export const performanceOnboarding: OnboardingConfig = {
           code: `
 import sentry_sdk
 
-sentry_sdk.init(
+sentry_sdk.initimport { Context } from '@dnd-kit/sortable/dist/components';
+(
   dsn="${params.dsn.public}",
   traces_sample_rate=1.0,
 )`,
@@ -338,11 +352,32 @@ export function AlternativeConfiguration() {
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
-    const {integrationName, makeCodeSnippet} =
+    const {integrationName, packageName, makeConfigureCode, makeVerifyCode} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
       ]!;
+
     return [
+      {
+        type: StepType.INSTALL,
+        description:
+          featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
+            ? t('Install the Sentry SDK.')
+            : t('Install the Sentry SDK with an extra.'),
+        configurations: [
+          {
+            language: 'bash',
+            code: [
+              {
+                label: 'pip',
+                value: 'pip',
+                language: 'bash',
+                code: `pip install --upgrade ${packageName}`,
+              },
+            ],
+          },
+        ],
+      },
       {
         type: StepType.CONFIGURE,
         description:
@@ -354,7 +389,19 @@ export const featureFlagOnboarding: OnboardingConfig = {
         configurations: [
           {
             language: 'python',
-            code: makeCodeSnippet(dsn.public),
+            code: makeConfigureCode(dsn.public),
+          },
+        ],
+      },
+      {
+        type: StepType.VERIFY,
+        description: t(
+          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+        ),
+        configurations: [
+          {
+            language: 'python',
+            code: makeVerifyCode(),
           },
         ],
       },
