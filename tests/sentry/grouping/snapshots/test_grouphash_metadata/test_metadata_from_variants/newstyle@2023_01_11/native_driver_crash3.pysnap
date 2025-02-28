@@ -1,5 +1,5 @@
 ---
-created: '2025-02-25T18:30:58.249951+00:00'
+created: '2025-02-26T00:32:20.975620+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,12 +30,12 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (category:system -app))
+            frame*
               function*
                 "CUseCountedObject<T>::UCDestroy"
             frame*
               function*
                 "destructor'"
-            frame* (marked out of app by stack trace rule (category:system -app))
+            frame*
               function*
                 "NOutermost::CDeviceChild::LUCBeginLayerDestruction"

@@ -137,6 +137,32 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+    @patch("sentry.analytics.record")
+    def test_project_created_with_origin(self, record_analytics):
+        project = self.create_project()
+        project_created.send(
+            project=project, user=self.user, default_rules=False, sender=type(project), origin="ui"
+        )
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.FIRST_PROJECT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
+
+        # Verify origin is passed to analytics event
+        record_analytics.assert_called_with(
+            "project.created",
+            user_id=self.user.id,
+            default_user_id=self.organization.default_owner_id,
+            organization_id=self.organization.id,
+            project_id=project.id,
+            platform=project.platform,
+            updated_empty_state=False,
+            origin="ui",
+        )
+
     def test_first_event_received(self):
         now = timezone.now()
         project = self.create_project(first_event=now, platform="javascript")
@@ -834,6 +860,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
             platform=project.platform,
             updated_empty_state=False,
+            origin=None,
         )
 
         # Set up tracing

@@ -224,7 +224,7 @@ system:
           frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
             function*
               "FWindowsPlatformApplicationMisc::PumpMessages"
-          frame* (marked out of app by stack trace rule (category:system -app))
+          frame*
             function*
               "DispatchMessageWorker"
           frame (ignored by stack trace rule (category:internals -group))
