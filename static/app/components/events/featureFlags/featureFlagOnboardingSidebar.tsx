@@ -88,8 +88,6 @@ function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 
 function SidebarContent() {
   const {
-    hasDocs,
-    projects,
     allProjects,
     currentProject,
     setCurrentProject,
@@ -139,12 +137,6 @@ function SidebarContent() {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
-  const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-
-  if (!selectedProject) {
-    return <LoadingIndicator />;
-  }
-
   return (
     <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
@@ -183,19 +175,13 @@ function SidebarContent() {
             />
           </div>
         </HeaderActions>
-        <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
+        {currentProject && <OnboardingContent currentProject={currentProject} />}
       </TaskList>
     </Fragment>
   );
 }
 
-function OnboardingContent({
-  currentProject,
-  hasDocs,
-}: {
-  currentProject: Project;
-  hasDocs: boolean;
-}) {
+function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
 
   // useMemo is needed to remember the original hash
@@ -372,14 +358,7 @@ function OnboardingContent({
   }
 
   // Platform is not supported, no platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (
-    doesNotSupportFeatureFlags ||
-    !currentPlatform ||
-    !docs ||
-    !dsn ||
-    !hasDocs ||
-    !projectKeyId
-  ) {
+  if (doesNotSupportFeatureFlags || !currentPlatform || !docs || !dsn || !projectKeyId) {
     return defaultMessage;
   }
 
