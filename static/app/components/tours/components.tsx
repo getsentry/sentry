@@ -72,7 +72,7 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <tourContext.Provider value={tourContextValue}>
-      {isTourActive && !omitBlur && <BlurWindow />}
+      {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
     </tourContext.Provider>
   );
