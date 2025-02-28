@@ -14,6 +14,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {
   getApiQueryData,
   setApiQueryData,
@@ -34,11 +35,14 @@ export function ApiTokens() {
   const queryClient = useQueryClient();
 
   const {
-    data: tokenList,
-    isPending,
+    data: tokenList = [],
+    isLoading,
     isError,
     refetch,
-  } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {
+    staleTime: 0,
+    enabled: !isDemoModeEnabled(),
+  });
 
   const {mutate: deleteToken} = useMutation({
     mutationFn: (token: InternalAppApiToken) => {
@@ -85,7 +89,7 @@ export function ApiTokens() {
     },
   });
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 

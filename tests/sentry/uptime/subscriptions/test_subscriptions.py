@@ -422,44 +422,6 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         assert prev_uptime_subscription.body == "a body"
         assert prev_uptime_subscription.subscription_id == prev_subscription_id
 
-    def test_removes_old(self):
-        with self.tasks():
-            proj_sub = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            prev_uptime_subscription = proj_sub.uptime_subscription
-            prev_uptime_subscription.update(migrated=False)
-            update_project_uptime_subscription(
-                proj_sub,
-                environment=self.environment,
-                url="https://santry.io",
-                interval_seconds=proj_sub.uptime_subscription.interval_seconds,
-                timeout_ms=1000,
-                method=proj_sub.uptime_subscription.method,
-                headers=proj_sub.uptime_subscription.headers,
-                body=proj_sub.uptime_subscription.body,
-                name=proj_sub.name,
-                owner=proj_sub.owner,
-                trace_sampling=proj_sub.uptime_subscription.trace_sampling,
-            )
-
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            prev_uptime_subscription.refresh_from_db()
-
-        assert ProjectUptimeSubscription.objects.filter(
-            project=self.project,
-            uptime_subscription__url="https://santry.io",
-            uptime_subscription__interval_seconds=3600,
-            uptime_subscription__timeout_ms=1000,
-            # Since we updated, should be marked as manual
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
-        ).exists()
-
     def test_already_exists(self):
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
@@ -568,50 +530,6 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 status=ObjectStatus.ACTIVE,
             )
         mock_enable_project_uptime_subscription.assert_called()
-
-    def test_migration_creates_new_migrated_row(self):
-        with self.tasks():
-            proj_sub = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            prev_uptime_subscription = proj_sub.uptime_subscription
-            prev_uptime_subscription.update(migrated=False)
-            update_project_uptime_subscription(
-                proj_sub,
-                environment=self.environment,
-                url="https://santry.io",
-                interval_seconds=60,
-                timeout_ms=1000,
-                method="POST",
-                headers=[("some", "header")],
-                body="a body",
-                name="New name",
-                owner=Actor.from_orm_user(self.user),
-                trace_sampling=False,
-            )
-
-        proj_sub.refresh_from_db()
-        assert proj_sub.name == "New name"
-        assert proj_sub.owner_user_id == self.user.id
-        assert proj_sub.owner_team_id is None
-        assert proj_sub.mode == ProjectUptimeSubscriptionMode.MANUAL
-        new_uptime_subscription = proj_sub.uptime_subscription
-        assert new_uptime_subscription.id != prev_uptime_subscription.id
-        assert new_uptime_subscription.subscription_id != prev_uptime_subscription.subscription_id
-        assert new_uptime_subscription.url == "https://santry.io"
-        assert new_uptime_subscription.interval_seconds == 60
-        assert new_uptime_subscription.timeout_ms == 1000
-        assert new_uptime_subscription.method == "POST"
-        assert new_uptime_subscription.headers == [["some", "header"]]
-        assert new_uptime_subscription.body == "a body"
-        assert new_uptime_subscription.migrated
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            prev_uptime_subscription.refresh_from_db()
 
     def test_migrated_does_not_violate_constraint(self):
         with self.tasks():

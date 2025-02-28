@@ -1901,6 +1901,30 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         assert data == [{"avg_if_process(span.duration)": 10.0}]
 
+    def test_filter_on_messaging_operation(self):
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.process"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if_process(span.duration)",
+                ],
+                "query": "span.op:queue.process OR messaging.operation.type:process OR messaging.operation.name:process",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [{"avg_if_process(span.duration)": 10.0}]
+
     def test_project_mapping(self):
         self.store_span_metric(
             1,
@@ -2377,3 +2401,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_if_process(self):
         super().test_avg_if_process()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_filter_on_messaging_operation(self):
+        super().test_filter_on_messaging_operation()

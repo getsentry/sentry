@@ -86,6 +86,7 @@ export function DomainViewHeader({
       .map(moduleName => ({
         key: moduleName,
         children: <TabLabel moduleName={moduleName} />,
+        textValue: moduleName,
         to: {
           pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
           query: globalQuery,
