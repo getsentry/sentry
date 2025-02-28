@@ -3,9 +3,10 @@
 
 Helpful commands:
 
+    - Run the consumer.
+        - `sentry run consumer ingest-replay-recordings --consumer-group 0`
     - Check if offsets are committed correctly.
-        - `docker exec -it kafka-kafka-1 kafka-get-offsets --bootstrap-server localhost:9092 --topic ingest-replay-recordings`
-        - Returns in the form of <topic>:<partition-id>:<offset>
+        - `docker exec -it kafka-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group 0`
 """
 from sentry.runner import configure
 
@@ -50,7 +51,7 @@ def main(organization_id: int, project_id: int) -> None:
     message: ReplayRecording = {
         "key_id": None,
         "org_id": organization_id,
-        "payload": b'{"segment_id":10}\n[]',
+        "payload": b'{"segment_id"',
         "project_id": project_id,
         "received": int(time.time()),
         "replay_event": None,
