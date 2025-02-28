@@ -39,10 +39,11 @@ class AddDataVolume extends Component<Props> {
       return;
     }
 
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('checkout.data_sliders_viewed', {
         organization,
       });
+    }
   }
 
   get title() {
@@ -54,12 +55,13 @@ class AddDataVolume extends Component<Props> {
 
     onUpdate({reserved: {...formData.reserved, [category]: value}});
 
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('checkout.data_slider_changed', {
         organization,
         data_type: category,
         quantity: value,
       });
+    }
   }
   renderLearnMore() {
     return (

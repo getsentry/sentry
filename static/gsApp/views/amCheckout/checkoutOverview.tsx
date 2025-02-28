@@ -57,10 +57,11 @@ class CheckoutOverview extends Component<Props> {
 
   handleChange = () => {
     const {onUpdate} = this.props;
-    this.nextPlan &&
+    if (this.nextPlan) {
       onUpdate({
         plan: this.nextPlan.id,
       });
+    }
   };
 
   renderDataOptions = () => {
