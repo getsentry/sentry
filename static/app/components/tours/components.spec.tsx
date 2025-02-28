@@ -1,44 +1,14 @@
-import {createContext, useContext} from 'react';
-
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {TourContextProvider, TourElement} from 'sentry/components/tours/components';
 import {
-  TourContextProvider,
-  TourElement,
-  type TourElementProps,
-} from 'sentry/components/tours/components';
-import {type TourContextType, useTourReducer} from 'sentry/components/tours/tourContext';
-
-const enum TestTour {
-  NAME = 'test-tour-name',
-  EMAIL = 'test-tour-email',
-  PASSWORD = 'test-tour-password',
-}
-const ORDERED_TEST_TOUR = [TestTour.NAME, TestTour.EMAIL, TestTour.PASSWORD];
-const TestTourContext = createContext<TourContextType<TestTour>>({
-  currentStepId: null,
-  isAvailable: true,
-  isRegistered: false,
-  orderedStepIds: ORDERED_TEST_TOUR,
-  dispatch: () => {},
-  handleStepRegistration: () => () => {},
-});
-function useTestTour(): TourContextType<TestTour> {
-  return useContext(TestTourContext);
-}
-function TestTourElement(props: TourElementProps<TestTour>) {
-  const tourContext = useTestTour();
-  return <TourElement tourContext={tourContext} {...props} />;
-}
-
-const emptyTourContext = {
-  currentStepId: null,
-  isAvailable: true,
-  isRegistered: false,
-  orderedStepIds: [],
-  dispatch: jest.fn(),
-  handleStepRegistration: jest.fn(),
-};
+  emptyTourContext,
+  ORDERED_TEST_TOUR,
+  TestTour,
+  TestTourContext,
+  TestTourElement,
+} from 'sentry/components/tours/testUtils';
+import {useTourReducer} from 'sentry/components/tours/tourContext';
 
 jest.mock('sentry/components/tours/tourContext', () => ({
   useTourReducer: jest.fn(),
