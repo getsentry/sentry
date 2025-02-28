@@ -62,9 +62,8 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
         response = self.client.delete(url)
         assert response.status_code == 404
 
-        # Verify the view still exists
-        view = GroupSearchView.objects.get(id=view_id)
-        assert view is not None
+        # Verify the view still exists (this will error out if not)
+        GroupSearchView.objects.get(id=view_id)
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_delete_starred_view(self) -> None:
@@ -83,6 +82,4 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
         response = self.client.delete(self.url)
         assert response.status_code == 404
 
-        # Verify the view still exists
-        view = GroupSearchView.objects.get(id=self.view_id)
-        assert view is not None
+        GroupSearchView.objects.get(id=self.view_id)
