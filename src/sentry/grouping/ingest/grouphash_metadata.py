@@ -151,6 +151,7 @@ def create_or_update_grouphash_metadata_if_needed(
                     "grouphash_is_new": grouphash_is_new,
                     "event_id": event.event_id,
                     "hash_basis": new_data["hash_basis"],
+                    "hash": grouphash.hash,
                 },
             )
             return
