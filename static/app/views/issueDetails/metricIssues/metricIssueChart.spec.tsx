@@ -5,10 +5,12 @@ import {IncidentFixture} from 'sentry-fixture/incident';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 
 describe('MetricIssueChart', () => {
@@ -28,19 +30,10 @@ describe('MetricIssueChart', () => {
       },
     },
   });
-
-  let mockRule: jest.Mock;
   let mockIncidents: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    mockRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
-      body: rule,
-      query: {
-        expand: 'latestIncident',
-      },
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: event,
@@ -52,6 +45,13 @@ describe('MetricIssueChart', () => {
   });
 
   it('renders the metric issue chart', async function () {
+    const mockRule = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      body: rule,
+      query: {
+        expand: 'latestIncident',
+      },
+    });
     const mockStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: EventsStatsFixture(),
@@ -75,6 +75,13 @@ describe('MetricIssueChart', () => {
   });
 
   it('displays error messages from bad queries', async function () {
+    const mockRule = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      body: rule,
+      query: {
+        expand: 'latestIncident',
+      },
+    });
     const mockStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {detail: 'timeout'},
@@ -87,5 +94,41 @@ describe('MetricIssueChart', () => {
     expect(mockStats).toHaveBeenCalled();
     expect(screen.getByText('Unable to load the metric history')).toBeInTheDocument();
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
+  });
+
+  it('renders the metric issue chart with session data', async function () {
+    const mockRule = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      body: {
+        ...rule,
+        dataset: Dataset.SESSIONS,
+        aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+        query: 'event.type:error',
+      },
+      query: {
+        expand: 'latestIncident',
+      },
+    });
+
+    const mockSessionStats = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sessions/`,
+      body: SessionsFieldFixture('sum(session)'),
+    });
+
+    render(<MetricIssueChart group={group} project={project} />, {organization});
+    await screen.findByTestId('metric-issue-chart-loading');
+    expect(await screen.findByRole('figure')).toBeInTheDocument();
+    expect(mockRule).toHaveBeenCalled();
+    expect(mockIncidents).toHaveBeenCalled();
+    expect(mockSessionStats).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [parseInt(project.id, 10)],
+          field: 'sum(session)',
+          groupBy: ['session.status'],
+        }),
+      })
+    );
   });
 });
