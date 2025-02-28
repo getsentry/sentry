@@ -5,7 +5,6 @@ import zlib
 import msgpack
 from arroyo.types import Partition
 from arroyo.types import Topic as ArroyoTopic
-from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -14,7 +13,7 @@ from sentry.replays.usecases.ingest import ProcessedRecordingMessage
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from tests.sentry.replays.unit.consumers.test_helpers import MockCommit, make_kafka_message
 
-RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
+RECORDINGS_CODEC = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
 
 def test_process_message():
@@ -72,7 +71,7 @@ def test_commit_invalid_message():
     message: ReplayRecording = {
         "key_id": None,
         "org_id": 1,
-        "payload": b"invalid",
+        "payload": b"invalid",  # type: ignore[typeddict-item]
         "project_id": 1,
         "received": int(time.time()),
         "replay_event": None,
@@ -83,8 +82,8 @@ def test_commit_invalid_message():
         "version": 1,
     }
 
-    message = RECORDINGS_CODEC.encode(message)
-    kafka_message = make_kafka_message(message)
+    message_bytes = RECORDINGS_CODEC.encode(message)
+    kafka_message = make_kafka_message(message_bytes)
 
     recording_runtime.submit(kafka_message)
     assert recording_runtime.model.offsets == {Partition(ArroyoTopic("a"), 1): 2}

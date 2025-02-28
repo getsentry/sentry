@@ -2,7 +2,7 @@ from sentry.replays.consumers.buffered.platform import Join, Poll, RunTime
 from tests.sentry.replays.unit.consumers.test_helpers import MockCommit, make_kafka_message
 
 
-def counter_runtime() -> RunTime[int, str]:
+def counter_runtime() -> RunTime[int, str, None]:
     def init(_):
         return (22, None)
 
@@ -42,14 +42,14 @@ def counter_runtime() -> RunTime[int, str]:
 
 def test_runtime_setup():
     runtime = counter_runtime()
-    runtime.setup({}, commit=MockCommit())
+    runtime.setup(None, commit=MockCommit())
     assert runtime.model == 22
 
 
 def test_runtime_submit():
     # RunTime defaults to a start point of 22.
     runtime = counter_runtime()
-    runtime.setup({}, commit=MockCommit())
+    runtime.setup(None, commit=MockCommit())
     assert runtime.model == 22
 
     # Two incr commands increase the count by 2.
@@ -72,7 +72,7 @@ def test_runtime_submit():
 def test_runtime_publish():
     # RunTime defaults to a start point of 22.
     runtime = counter_runtime()
-    runtime.setup({}, commit=MockCommit())
+    runtime.setup(None, commit=MockCommit())
     assert runtime.model == 22
 
     # A join event updates the model and sets it to -10.
