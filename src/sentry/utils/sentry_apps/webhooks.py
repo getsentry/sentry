@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
 
-from requests import Response
+from requests import RequestException, Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
@@ -166,6 +166,7 @@ def send_and_save_webhook_request(
                 headers=app_platform_event.headers,
             )
             record_timeout(sentry_app, org_id, e)
+            lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
 
@@ -187,13 +188,22 @@ def send_and_save_webhook_request(
             record_response_for_disabling_integration(sentry_app, org_id, response)
 
         if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+            lifecycle.record_halt(halt_reason="send_and_save_webhook_request.got-503")
             raise ApiHostError.from_request(response.request)
 
         elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
+            lifecycle.record_halt(halt_reason="send_and_save_webhook_request.got-504")
             raise ApiTimeoutError.from_request(response.request)
 
         elif 400 <= response.status_code < 500:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.got-{response.status_code}"
+            )
             raise ClientError(response.status_code, url, response=response)
 
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except RequestException as e:
+            lifecycle.record_halt(e)
+            raise
         return response

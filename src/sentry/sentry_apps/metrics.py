@@ -23,7 +23,7 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
     event_type: str
 
     def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
-        tokens = ("sentry_app", str(outcome))
+        tokens = ("sentry_app", self.operation_type, str(outcome))
         return ".".join(tokens)
 
     def get_event_type(self) -> str:
