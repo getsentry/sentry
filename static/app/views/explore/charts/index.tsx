@@ -288,7 +288,9 @@ export function ExploreCharts({
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
                     confidence={chartInfo.confidence}
-                    topEvents={topEvents}
+                    topEvents={
+                      topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
+                    }
                   />
                 )
               }
