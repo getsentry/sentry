@@ -5,8 +5,6 @@ from typing import ClassVar, Literal, Self, cast
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
-from django.db.models.expressions import Value
-from django.db.models.functions import MD5, Coalesce
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
@@ -90,8 +88,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
-    # Temporary column we'll use to migrate away from the url based unique constraint
-    migrated = models.BooleanField(db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -101,20 +97,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     class Meta:
         app_label = "uptime"
         db_table = "uptime_uptimesubscription"
-
-        constraints = [
-            models.UniqueConstraint(
-                "url",
-                "interval_seconds",
-                "timeout_ms",
-                "method",
-                "trace_sampling",
-                MD5("headers"),
-                Coalesce(MD5("body"), Value("")),
-                condition=Q(migrated=False),
-                name="uptime_uptimesubscription_unique_subscription_check_4",
-            ),
-        ]
 
 
 @region_silo_model
