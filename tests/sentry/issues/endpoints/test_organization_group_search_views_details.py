@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.models.groupsearchview import GroupSearchView
