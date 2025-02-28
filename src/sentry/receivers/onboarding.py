@@ -58,7 +58,7 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 @project_created.connect(weak=False)
-def record_new_project(project, user=None, user_id=None, **kwargs):
+def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
@@ -90,6 +90,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        origin=origin,
         project_id=project.id,
         platform=project.platform,
         updated_empty_state=features.has(

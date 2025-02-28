@@ -8,7 +8,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.signals import alert_rule_created
+from sentry.signals import alert_rule_created, project_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -356,6 +356,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry):
+        signal_handler = Mock()
+        project_created.connect(signal_handler)
+
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -379,3 +382,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
                 "origin": "ui",
             },
         )
+
+        # Verify origin is passed to project_created signal
+        assert signal_handler.call_count == 1
+        assert signal_handler.call_args[1]["origin"] == "ui"
+        project_created.disconnect(signal_handler)
