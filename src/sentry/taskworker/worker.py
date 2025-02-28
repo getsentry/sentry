@@ -337,6 +337,10 @@ class TaskWorker:
         except queue.Empty:
             return False
 
+        task_received = self._task_receive_timing.pop(result.task_id, None)
+        if task_received is not None:
+            metrics.distribution("taskworker.worker.complete_duration", time.time() - task_received)
+
         if fetch:
             fetch_next = None
             if not self._child_tasks.full():
@@ -349,11 +353,6 @@ class TaskWorker:
                     status=result.status,
                     fetch_next_task=fetch_next,
                 )
-                task_received = self._task_receive_timing.pop(result.task_id, None)
-                if task_received is not None:
-                    metrics.distribution(
-                        "taskworker.worker.complete_duration", time.time() - task_received
-                    )
             except grpc.RpcError as e:
                 logger.exception(
                     "taskworker.drain_result.update_task_failed",
