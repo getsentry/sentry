@@ -144,17 +144,13 @@ const TooltipWrapper = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.5)};
-  }
-  & > div {
-    height: 24px;
-    border-style: dashed;
-    padding: ${space(0.5)};
-    padding-right: ${space(0.25)};
-  }
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  height: 24px;
+  border-style: dashed;
+  padding: ${space(0.5)};
+  padding-right: ${space(0.25)};
   color: ${p => p.theme.subText};
 `;
 

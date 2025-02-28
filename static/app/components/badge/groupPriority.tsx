@@ -278,17 +278,12 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.25)};
-  }
-
-  & > div {
-    position: relative;
-    height: 24px;
-    overflow: hidden;
-  }
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  position: relative;
+  height: 24px;
+  overflow: hidden;
 `;
 
 const InlinePlaceholder = styled(Placeholder)`

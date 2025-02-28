@@ -39,8 +39,5 @@ function Status({status}: Props) {
 export default Status;
 
 const StyledTag = styled(Tag)`
-  &,
-  span div {
-    max-width: 100%;
-  }
+  max-width: 100%;
 `;

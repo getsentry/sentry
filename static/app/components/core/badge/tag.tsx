@@ -1,4 +1,4 @@
-import {forwardRef, useCallback} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -35,14 +35,6 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 export const Tag = forwardRef<HTMLDivElement, TagProps>(
   ({type = 'default', icon, onDismiss, children, ...props}: TagProps, ref) => {
-    const handleDismiss = useCallback<React.MouseEventHandler>(
-      event => {
-        event.preventDefault();
-        onDismiss?.();
-      },
-      [onDismiss]
-    );
-
     return (
       <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
         {icon && (
@@ -55,7 +47,10 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
 
         {onDismiss && (
           <DismissButton
-            onClick={handleDismiss}
+            onClick={event => {
+              event.preventDefault();
+              onDismiss?.();
+            }}
             size="zero"
             priority="link"
             borderless
@@ -83,7 +78,8 @@ const StyledTag = styled('div')<{
 
   color: ${p => p.theme.tag[p.type].color};
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
-  button {
+  button,
+  button:hover {
     color: currentColor;
   }
 `;
