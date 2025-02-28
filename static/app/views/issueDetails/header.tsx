@@ -251,7 +251,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
               data={group}
               message={message}
               level={group.level}
-              levelIndicatorSize="11px"
+              levelIndicatorSize={11}
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
