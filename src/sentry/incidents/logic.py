@@ -350,6 +350,10 @@ def get_incident_aggregates(
         snuba_query,
         incident.organization_id,
     )
+    project_ids = list(
+        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    )
+
     if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
         start, end = _calculate_incident_time_range(
             snuba_query,
@@ -358,9 +362,6 @@ def get_incident_aggregates(
             incident.organization,
             start,
             end,
-        )
-        project_ids = list(
-            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
         )
 
         params = SnubaParams(
@@ -395,9 +396,6 @@ def get_incident_aggregates(
             )
             raise
     else:
-        project_ids = list(
-            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
-        )
         query_builder = _build_metric_query_builder(
             snuba_query,
             incident.organization,
