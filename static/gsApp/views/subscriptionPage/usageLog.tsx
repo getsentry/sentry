@@ -5,8 +5,8 @@ import upperFirst from 'lodash/upperFirst';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Tag from 'sentry/components/badge/tag';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';

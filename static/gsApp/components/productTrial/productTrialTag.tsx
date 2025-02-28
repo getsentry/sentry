@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconFlag} from 'sentry/icons/iconFlag';

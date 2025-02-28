@@ -18,7 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Color} from 'sentry/utils/theme';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
-  borderStyle?: 'solid' | 'dashed' | 'dotted';
   /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -28,10 +27,6 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
    * Icon on the left side.
    */
   icon?: React.ReactNode;
-  /**
-   * Triggered when the item is clicked
-   */
-  onClick?: (eventKey: any) => void;
   /**
    * Shows clickable IconClose on the right side.
    */
@@ -60,7 +55,6 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 function BaseTag({
-  borderStyle = 'solid',
   type = 'default',
   icon,
   tooltipText,
@@ -82,8 +76,7 @@ function BaseTag({
   const isLink = href !== undefined || to !== undefined;
 
   // Links use the IconOpen by default
-  const linkIcon = isLink ? <IconOpen /> : null;
-  const tagIcon = icon || icon === null ? icon : linkIcon;
+  const tagIcon = icon || icon === null ? icon : isLink ? <IconOpen /> : null;
 
   const handleDismiss = useCallback<React.MouseEventHandler>(
     event => {
@@ -102,7 +95,7 @@ function BaseTag({
 
   const tag = (
     <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
-      <Background type={type} borderStyle={borderStyle} data-test-id="tag-background">
+      <Background type={type} data-test-id="tag-background">
         {tagIcon && (
           <IconWrapper>
             <IconDefaultsProvider {...iconsProps}>{tagIcon}</IconDefaultsProvider>
@@ -113,7 +106,7 @@ function BaseTag({
           {children}
         </Text>
 
-        {onDismiss !== undefined && (
+        {onDismiss && (
           <DismissButton
             onClick={handleDismiss}
             size="zero"
@@ -144,7 +137,7 @@ function BaseTag({
   );
 }
 
-const Tag = styled(BaseTag)`
+export const Tag = styled(BaseTag)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 export default Tag;
@@ -153,14 +146,13 @@ const TAG_HEIGHT = '20px';
 
 export const Background = styled('div')<{
   type: keyof Theme['tag'];
-  borderStyle?: TagProps['borderStyle'];
 }>`
   display: inline-flex;
   align-items: center;
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
-  border: ${p => p.borderStyle ?? 'solid'} 1px ${p => p.theme.tag[p.type].border};
+  border: solid 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
 

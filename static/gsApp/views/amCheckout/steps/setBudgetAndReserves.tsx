@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

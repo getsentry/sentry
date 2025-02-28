@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';

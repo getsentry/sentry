@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Radio from 'sentry/components/radio';
 import {IconBusiness, IconCheckmark} from 'sentry/icons';
