@@ -5,6 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import type {Subscription} from 'getsentry/types';
+
 import {QuotaExceededAlert} from './quotaExceededAlert';
 
 jest.mock('sentry/utils/useLocation');
@@ -24,7 +26,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
         usageExceeded: true,
       },
     },
-  });
+  } as Subscription);
   beforeEach(function () {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2024-12-14'));
