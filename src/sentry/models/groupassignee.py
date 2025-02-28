@@ -41,6 +41,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         data = {
             "assignee": str(assigned_to.id),
             "assigneeEmail": getattr(assigned_to, "email", None),
+            "assigneeName": getattr(assigned_to, "name", None),
             "assigneeType": assignee_type,
         }
         if extra:

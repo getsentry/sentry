@@ -506,12 +506,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert group_activity[0].data == {
             "assignee": str(user2.id),
             "assigneeEmail": user2.email,
+            "assigneeName": user2.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.SLACK.value,
         }
         assert group_activity[-1].data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
+            "assigneeName": self.team.name,
             "assigneeType": "team",
             "integration": ActivityIntegration.SLACK.value,
         }
@@ -547,6 +549,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert group_activity[0].data == {
             "assignee": str(user2.id),
             "assigneeEmail": user2.email,
+            "assigneeName": user2.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.SLACK.value,
         }
@@ -584,12 +587,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert group_activity[0].data == {
             "assignee": str(user2.id),
             "assigneeEmail": user2.email,
+            "assigneeName": user2.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.SLACK.value,
         }
         assert group_activity[-1].data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
+            "assigneeName": self.team.name,
             "assigneeType": "team",
             "integration": ActivityIntegration.SLACK.value,
         }
