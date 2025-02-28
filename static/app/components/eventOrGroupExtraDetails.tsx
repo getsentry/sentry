@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
@@ -20,7 +19,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {eventTypeHasLogLevel, getTitle} from 'sentry/utils/events';
+import {getTitle} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -86,10 +85,7 @@ function EventOrGroupExtraDetails({
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const {subtitle} = getTitle(data);
 
-  const level = eventTypeHasLogLevel(data.type) && 'level' in data ? data.level : null;
-
   const items = [
-    hasNewLayout && level ? <ErrorLevel level={level} size={'10px'} /> : null,
     shortId ? (
       <ShortId
         shortId={shortId}

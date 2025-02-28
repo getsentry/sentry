@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
-import {getMessage, getTitle, isTombstone} from 'sentry/utils/events';
+import {getTitle, isTombstone} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupPreviewTooltip from './groupPreviewTooltip';
@@ -31,7 +31,7 @@ function EventOrGroupTitle({
   const hasNewLayout =
     organization?.features.includes('issue-stream-table-layout') ?? false;
 
-  const secondaryTitle = hasNewLayout ? getMessage(data) : subtitle;
+  const secondaryTitle = hasNewLayout ? null : subtitle;
 
   if (hasNewLayout) {
     return (
