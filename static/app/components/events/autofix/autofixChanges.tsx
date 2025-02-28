@@ -280,7 +280,12 @@ function CreateBranchButton({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedPushToBranch(false);
+        onBusyStateChange(false);
+      }
       addSuccessMessage(t('Pushed to branches.'));
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       setHasClickedPushToBranch(false);
