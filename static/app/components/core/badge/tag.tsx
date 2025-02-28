@@ -73,13 +73,19 @@ const StyledTag = styled('div')<{
   font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${p => p.theme.tag[p.type].background};
   border: solid 1px ${p => p.theme.tag[p.type].border};
-  color: ${p => p.theme.tag[p.type].color};
   display: inline-flex;
   align-items: center;
   height: 20px;
   border-radius: 20px;
   padding: 0 ${space(1)};
   max-width: 166px;
+
+  /* Style text, button and icons elements */
+  color: ${p => p.theme.tag[p.type].color};
+  button,
+  svg {
+    color: ${p => p.theme.tag[p.type].color};
+  }
 `;
 
 const Text = styled('div')`
