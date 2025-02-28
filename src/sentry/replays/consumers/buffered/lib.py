@@ -43,6 +43,11 @@ class Append(Generic[Item]):
     offset: MutableMapping[Partition, int]
 
 
+@dataclass(frozen=True)
+class AppendOffset:
+    offset: MutableMapping[Partition, int]
+
+
 class Committed:
     """The platform committed offsets. Our buffer is now completely done."""
 
@@ -61,8 +66,12 @@ class Polled:
     pass
 
 
+class TryFlush:
+    pass
+
+
 # A "Msg" is the union of all application messages our RunTime will accept.
-Msg = Append[Item] | Committed | Flush | Polled
+Msg = Append[Item] | AppendOffset | Committed | Flush | Polled | TryFlush
 
 
 def process(
@@ -70,12 +79,12 @@ def process(
     model: Model[Item],
     message: bytes,
     offset: MutableMapping[Partition, int],
-) -> Msg[Item] | None:
+) -> Msg[Item]:
     item = process_fn(message)
     if item:
         return Append(item=item, offset=offset)
     else:
-        return None
+        return AppendOffset(offset=offset)
 
 
 def init(
@@ -90,22 +99,22 @@ def update(model: Model[Item], msg: Msg[Item]) -> tuple[Model[Item], Cmd[Msg[Ite
         case Append(item=item, offset=offset):
             model.buffer.append(item)
             model.offsets.update(offset)
+            return (model, Task(msg=TryFlush()))
+        case AppendOffset(offset=offset):
+            model.offsets.update(offset)
+            return (model, Task(msg=TryFlush()))
+        case Committed():
+            return (model, None)
+        case Flush():
+            model.do_flush(model)
+            model.buffer = []
+            return (model, Commit(msg=Committed(), offsets=model.offsets))
+        case Polled():
             if model.can_flush(model):
                 return (model, Task(msg=Flush()))
             else:
                 return (model, None)
-        case Flush():
-            # What should happen if we fail? If you raise an exception the platform will restart
-            # from the last checkpoint -- which is standard behavior. We could be more clever here
-            # and provide error handling facilities or we could accept that this problem gets too
-            # complicated to reasonably abstract and have developers implement their own buffering
-            # consumer.
-            model.do_flush(model)
-            model.buffer = []
-            return (model, Commit(msg=Committed(), offsets=model.offsets))
-        case Committed():
-            return (model, None)
-        case Polled():
+        case TryFlush():
             if model.can_flush(model):
                 return (model, Task(msg=Flush()))
             else:
