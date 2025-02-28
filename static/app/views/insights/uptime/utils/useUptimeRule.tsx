@@ -3,7 +3,6 @@ import {
   type QueryClient,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -13,16 +12,13 @@ interface UseUptimeRuleOptions {
   uptimeRuleId: string;
 }
 
-export function useUptimeRule(
-  {projectSlug, uptimeRuleId}: UseUptimeRuleOptions,
-  options: Partial<UseApiQueryOptions<UptimeRule>> = {}
-) {
+export function useUptimeRule({projectSlug, uptimeRuleId}: UseUptimeRuleOptions) {
   const organization = useOrganization();
 
   const queryKey: ApiQueryKey = [
     `/projects/${organization.slug}/${projectSlug}/uptime/${uptimeRuleId}/`,
   ];
-  return useApiQuery<UptimeRule>(queryKey, {staleTime: 0, ...options});
+  return useApiQuery<UptimeRule>(queryKey, {staleTime: 0});
 }
 
 interface SetUptimeRuleDataOptions {
