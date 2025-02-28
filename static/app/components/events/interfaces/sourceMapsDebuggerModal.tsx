@@ -164,7 +164,7 @@ const projectPlatformToDocsMap: Record<string, string> = {
   'node-awslambda': 'aws-lambda',
 };
 
-function useSourceMapsDocLinks({
+function getSourceMapsDocLinks({
   sdkName,
   projectPlatform,
 }: Pick<FrameSourceMapDebuggerData, 'sdkName' | 'projectPlatform'>) {
