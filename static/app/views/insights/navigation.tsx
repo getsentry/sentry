@@ -24,6 +24,8 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
+import {MODULE_BASE_URLS} from './common/utils/useModuleURL';
+
 type InsightsNavigationProps = {
   children: React.ReactNode;
 };
@@ -60,7 +62,9 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
             <SecondaryNav.Item to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}>
               {MOBILE_SIDEBAR_LABEL}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/${AI_LANDING_SUB_PATH}/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS.ai}/`}
+            >
               {AI_SIDEBAR_LABEL}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
