@@ -178,7 +178,9 @@ def test_buffering_runtime_committed_offsets():
 
     # Assert committed offsets are correct.
     runtime.submit(make_kafka_message(b"1"))
-    runtime.submit(make_kafka_message(b"1", topic="b"))
-    runtime.submit(make_kafka_message(b"1", offset=2))
+    runtime.submit(make_kafka_message(b"10", topic="b"))
+    runtime.submit(make_kafka_message(b"100", offset=2))
+    assert runtime.model.buffer == [1]
+    assert runtime.model.offsets == {Partition(Topic("a"), 1): 3, Partition(Topic("b"), 1): 2}
     runtime.publish("join")
     assert mock_commit.commit == {Partition(Topic("a"), 1): 3, Partition(Topic("b"), 1): 2}
