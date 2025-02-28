@@ -26,7 +26,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
         usageExceeded: true,
       },
     },
-  } as Subscription);
+  } as unknown as Subscription);
   beforeEach(function () {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2024-12-14'));
