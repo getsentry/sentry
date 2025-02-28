@@ -22,7 +22,7 @@ export function useReleaseStats({
   query,
 }: ReleaseConditions) {
   const organization = useOrganization();
-  const results = useApiQuery<ReleaseMetaBasic[]>(
+  const {isLoading, isPending, isError, error, data} = useApiQuery<ReleaseMetaBasic[]>(
     [
       `/organizations/${organization.slug}/releases/stats/`,
       {
@@ -40,10 +40,13 @@ export function useReleaseStats({
   );
 
   return {
-    ...results,
+    isLoading,
+    isPending,
+    isError,
+    error,
     releases:
-      !results.isLoading && results.data
-        ? results.data.map(release => ({
+      !isLoading && data
+        ? data.map(release => ({
             timestamp: release.date,
             version: release.version,
           }))
