@@ -7,7 +7,10 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer
+from sentry.incidents.endpoints.serializers.workflow_engine_alert_rule_trigger import (
+    WorkflowEngineAlertRuleTriggerSerializer,
+)
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -26,7 +29,6 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 
 
-@register(AlertRule)
 class WorkflowEngineAlertRuleSerializer(Serializer):
     """
     A temporary serializer to be used by the old alert rule endpoints to return data read from the new ACI models
@@ -98,6 +100,11 @@ class WorkflowEngineAlertRuleSerializer(Serializer):
         )
         actions = Action.objects.filter(
             id__in=[dcga.action_id for dcga in data_condition_group_actions]
+        )
+        data_conditions = list(detector_triggers)
+        data_conditions.append(action_filters)
+        serialized_triggers = serialize(
+            data_conditions, WorkflowEngineAlertRuleTriggerSerializer(), **kwargs
         )
 
         if self.prepare_component_fields:
