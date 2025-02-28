@@ -1,3 +1,9 @@
+"""Session Replay recording consumer strategy factory.
+
+This module exists solely to abstract the bootstraping process of the application and runtime in
+`sentry/consumers/__init__.py`.
+"""
+
 from collections.abc import Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
