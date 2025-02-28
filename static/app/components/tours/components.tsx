@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect, useMemo} from 'react';
+import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -78,7 +78,7 @@ export function TourContextProvider<T extends TourEnumType>({
 }
 
 export interface TourElementProps<T extends TourEnumType>
-  extends Partial<UseOverlayProps> {
+  extends Omit<HTMLAttributes<HTMLElement>, 'id' | 'title'> {
   /**
    * The content being focused during the tour.
    */
@@ -100,9 +100,9 @@ export interface TourElementProps<T extends TourEnumType>
    */
   tourContext: React.Context<TourContextType<T> | null>;
   /**
-   * The className of the wrapper element.
+   * The position of the tour element.
    */
-  className?: string;
+  position?: UseOverlayProps['position'];
 }
 
 export function TourElement<T extends TourEnumType>({
@@ -153,13 +153,13 @@ function TourElementContent<T extends TourEnumType>({
 
   return (
     <Fragment>
-      <ElementWrapper
+      <TourTriggerWrapper
         className={className}
         ref={triggerProps.ref}
         aria-expanded={triggerProps['aria-expanded']}
       >
         {children}
-      </ElementWrapper>
+      </TourTriggerWrapper>
       {isOpen ? (
         <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
           <TourOverlay animated>
@@ -210,7 +210,7 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
-const ElementWrapper = styled('div')`
+const TourTriggerWrapper = styled('div')`
   &[aria-expanded='true'] {
     position: relative;
     z-index: ${p => p.theme.zIndex.tour.element};
