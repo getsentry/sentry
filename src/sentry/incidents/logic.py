@@ -385,7 +385,7 @@ def get_metric_issue_aggregates(
             )
         )
 
-        params = SnubaParams(
+        snuba_params = SnubaParams(
             environments=[params.snuba_query.environment],
             projects=[
                 Project.objects.get_from_cache(id=project_id) for project_id in params.project_ids
@@ -397,7 +397,7 @@ def get_metric_issue_aggregates(
 
         try:
             results = spans_rpc.run_table_query(
-                params,
+                snuba_params,
                 query_string=params.snuba_query.query,
                 selected_columns=[entity_subscription.aggregate],
                 orderby=None,
