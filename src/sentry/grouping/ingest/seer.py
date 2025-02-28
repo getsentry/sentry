@@ -4,6 +4,7 @@ from typing import Any
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import features, options
 from sentry import ratelimits as ratelimiter
@@ -419,13 +420,20 @@ def maybe_check_seer_for_matching_grouphash(
                 )
                 return seer_matched_grouphash
 
+            timestamp = timezone.now()
+
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer
                 # request will be some milliseconds apart, but a) the difference isn't meaningful
                 # for us, and b) forcing them to be the same (rather than just close) lets us use
                 # their equality as a signal that the Seer call happened during ingest rather than
                 # during a backfill, without having to store that information separately.
-                seer_date_sent=gh_metadata.date_added,
+                #
+                # In rare race condition cases, `date_added` will be None (if different events win
+                # the race to create the relevant `GroupHash` and `GroupHashMetadata` records), so
+                # we set that if necessary here as well.
+                date_added=gh_metadata.date_added or timestamp,
+                seer_date_sent=gh_metadata.date_added or timestamp,
                 seer_event_sent=event.event_id,
                 seer_model=seer_response_data["similarity_model_version"],
                 seer_matched_grouphash=seer_matched_grouphash,
