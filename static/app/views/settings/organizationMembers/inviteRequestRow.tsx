@@ -60,11 +60,12 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <JoinRequestIndicator
-            tooltipProps={{title: t('This user has asked to join your organization.')}}
+          <Tooltip
+            title={t('This user has asked to join your organization.')}
+            skipWrapper
           >
-            {t('Join request')}
-          </JoinRequestIndicator>
+            <JoinRequestIndicator>{t('Join request')}</JoinRequestIndicator>
+          </Tooltip>
         )}
       </div>
 

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 
 interface GroupStatusBadgeProps {
   children: string;
@@ -24,20 +25,22 @@ export function GroupStatusTag({
   children,
 }: GroupStatusBadgeProps) {
   return (
-    <StyledTag type={type} tooltipProps={{title: tooltip}} fontSize={fontSize}>
-      {children}
-      {dateAdded && (
-        <Fragment>
-          <Separator type={type}>{' | '}</Separator>
-          <TimeSince
-            date={dateAdded}
-            suffix=""
-            unitStyle="extraShort"
-            disabledAbsoluteTooltip
-          />
-        </Fragment>
-      )}
-    </StyledTag>
+    <Tooltip title={tooltip} skipWrapper>
+      <StyledTag type={type} fontSize={fontSize}>
+        {children}
+        {dateAdded && (
+          <Fragment>
+            <Separator type={type}>{' | '}</Separator>
+            <TimeSince
+              date={dateAdded}
+              suffix=""
+              unitStyle="extraShort"
+              disabledAbsoluteTooltip
+            />
+          </Fragment>
+        )}
+      </StyledTag>
+    </Tooltip>
   );
 }
 

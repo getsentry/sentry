@@ -87,9 +87,9 @@ const STATUS_CONFIG = {
 function StatusTag({statusType, message}: StatusTagProps) {
   const config = STATUS_CONFIG[statusType];
   return (
-    <Tag type={config.type} tooltipProps={{title: message}}>
-      {config.label}
-    </Tag>
+    <Tooltip title={message} skipWrapper>
+      <Tag type={config.type}>{config.label}</Tag>
+    </Tooltip>
   );
 }
 

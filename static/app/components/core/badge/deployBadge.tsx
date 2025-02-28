@@ -1,5 +1,6 @@
 import {Tag} from 'sentry/components/core/badge/tag';
 import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types/release';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -23,9 +24,11 @@ export function DeployBadge(props: DeployBadgeProps) {
         },
       }}
     >
-      <Tag type="highlight" textMaxWidth={80} tooltipProps={{title: t('Open In Issues')}}>
-        {props.deploy.environment}
-      </Tag>
+      <Tooltip title={t('Open In Issues')} skipWrapper>
+        <Tag type="highlight" textMaxWidth={80}>
+          {props.deploy.environment}
+        </Tag>
+      </Tooltip>
     </Link>
   );
 }

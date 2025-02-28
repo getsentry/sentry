@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/tooltip';
 import type {CandidateDownload} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
 
@@ -32,13 +33,9 @@ function Features({download}: Props) {
         const isDisabled = !features.includes(imageFeature);
 
         return (
-          <StyledTag
-            key={label}
-            disabled={isDisabled}
-            tooltipProps={{title: isDisabled ? undefined : description}}
-          >
-            {label}
-          </StyledTag>
+          <Tooltip key={label} title={isDisabled ? undefined : description} skipWrapper>
+            <StyledTag disabled={isDisabled}>{label}</StyledTag>
+          </Tooltip>
         );
       })}
     </Fragment>

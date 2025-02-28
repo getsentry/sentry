@@ -122,9 +122,9 @@ function WidgetCardContextMenu({
         {({setData}) => (
           <ContextWrapper>
             {indexedEventsWarning ? (
-              <SampledTag tooltipProps={{title: indexedEventsWarning}}>
-                {t('Indexed')}
-              </SampledTag>
+              <Tooltip title={indexedEventsWarning} skipWrapper>
+                <SampledTag>{t('Indexed')}</SampledTag>
+              </Tooltip>
             ) : null}
             {title && (
               <Tooltip
@@ -211,9 +211,9 @@ function WidgetCardContextMenu({
       {({setData}) => (
         <ContextWrapper>
           {indexedEventsWarning ? (
-            <SampledTag tooltipProps={{title: indexedEventsWarning}}>
-              {t('Indexed')}
-            </SampledTag>
+            <Tooltip title={indexedEventsWarning} skipWrapper>
+              <SampledTag>{t('Indexed')}</SampledTag>
+            </Tooltip>
           ) : null}
           {title && (
             <Tooltip

@@ -19,18 +19,6 @@ describe('Tag', () => {
     expect(screen.getByTestId('icon-fire')).toBeInTheDocument();
   });
 
-  it('with tooltip', async () => {
-    render(
-      <Tag type="highlight" tooltipText="lorem ipsum">
-        Tooltip
-      </Tag>
-    );
-    expect(screen.getByText('Tooltip')).toBeInTheDocument();
-    expect(screen.queryByText('lorem ipsum')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByText('Tooltip'));
-    expect(await screen.findByText('lorem ipsum')).toBeInTheDocument();
-  });
-
   it('with dismiss', async () => {
     const mockCallback = jest.fn();
 

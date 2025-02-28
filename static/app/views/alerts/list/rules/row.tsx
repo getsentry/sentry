@@ -211,22 +211,20 @@ function RuleListRow({
     rule.mode === UptimeMonitorMode.AUTO_DETECTED_ACTIVE;
 
   const titleBadge = hasUptimeAutoconfigureBadge ? (
-    <Tag
-      type="info"
-      tooltipProps={{
-        isHoverable: true,
-        title: tct(
-          'This Uptime Monitoring alert was auto-detected. [learnMore: Learn more].',
-          {
-            learnMore: (
-              <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/" />
-            ),
-          }
-        ),
-      }}
+    <Tooltip
+      skipWrapper
+      isHoverable
+      title={tct(
+        'This Uptime Monitoring alert was auto-detected. [learnMore: Learn more].',
+        {
+          learnMore: (
+            <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/" />
+          ),
+        }
+      )}
     >
-      {t('Auto Detected')}
-    </Tag>
+      <Tag type="info">{t('Auto Detected')}</Tag>
+    </Tooltip>
   ) : null;
 
   function ruleUrl() {

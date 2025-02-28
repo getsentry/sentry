@@ -97,41 +97,6 @@ export default storyBook('Tag', (story, APIReference) => {
     );
   });
 
-  story('tooltip', () => {
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="tooltipText" value /> and{' '}
-          <JSXProperty name="tooltipProps" value /> props allow you to specify a tooltip
-          and any custom props you want to pass in. This is helpful to have if your tag
-          text overflows!
-        </p>
-        <Tag
-          type="info"
-          tooltipProps={{
-            title:
-              'Long text will get cut off like this, but thankfully we have this handy tooltip',
-          }}
-        >
-          Long text will get cut off like this, but thankfully we have this handy tooltip
-        </Tag>
-        <p>
-          All the typical <code>Tooltip</code> props, like <code>position</code>, apply
-          here:
-        </p>
-        <Tag
-          type="info"
-          tooltipProps={{
-            position: 'right',
-            title: 'This one has `position: right` specified',
-          }}
-        >
-          Tooltip on the right
-        </Tag>
-      </Fragment>
-    );
-  });
-
   story('onDismiss', () => {
     const LOCAL_STORAGE_KEY = 'tag-stories-tag-dismissed';
     const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
