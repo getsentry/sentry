@@ -1,5 +1,5 @@
 ---
-created: '2025-01-30T21:46:37.831164+00:00'
+created: '2025-02-26T00:32:03.705182+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -46,14 +46,14 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (function:handleRequest -app +group))
+            frame*
               filename*
                 "router.js"
               function*
                 "handleRequest"
               context-line*
                 "return handler(request);"
-            frame* (marked in-app by stack trace rule (function:playFetch +app +group))
+            frame*
               filename*
                 "dogpark.js"
               function*
