@@ -1,21 +1,16 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {
   reasonToText,
   statusToText,
@@ -24,7 +19,6 @@ import {
 
 type Props = {
   uptimeChecks: UptimeCheck[];
-  uptimeRule: UptimeRule;
 };
 
 /**
@@ -33,28 +27,7 @@ type Props = {
  */
 const EMPTY_TRACE = '00000000000000000000000000000000';
 
-export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
-  const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
-
-  const {data: spanCounts, isPending: spanCountLoading} = useEAPSpans(
-    {
-      limit: 10,
-      enabled: traceIds.length > 0,
-      search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
-      fields: ['trace', 'count()'],
-    },
-    'uptime_checks'
-  );
-
-  const traceSpanCounts = spanCountLoading
-    ? undefined
-    : Object.fromEntries(
-        traceIds.map(traceId => [
-          traceId,
-          Number(spanCounts.find(row => row.trace === traceId)?.['count()'] ?? 0),
-        ])
-      );
-
+export function UptimeChecksGrid({uptimeChecks}: Props) {
   return (
     <GridEditable
       emptyMessage={t('No matching uptime checks found')}
@@ -71,12 +44,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
       grid={{
         renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
-          <CheckInBodyCell
-            column={column}
-            uptimeRule={uptimeRule}
-            check={dataRow}
-            spanCount={traceSpanCounts?.[dataRow.traceId]}
-          />
+          <CheckInBodyCell column={column} check={dataRow} />
         ),
       }}
     />
@@ -86,13 +54,9 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
 function CheckInBodyCell({
   check,
   column,
-  spanCount,
-  uptimeRule,
 }: {
   check: UptimeCheck;
   column: GridColumnOrder<keyof UptimeCheck>;
-  spanCount: number | undefined;
-  uptimeRule: UptimeRule;
 }) {
   const theme = useTheme();
 
@@ -148,52 +112,15 @@ function CheckInBodyCell({
         </Cell>
       );
     }
-    case 'traceId': {
+    case 'traceId':
       if (traceId === EMPTY_TRACE) {
         return <Cell />;
       }
-
-      const learnMore = (
-        <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
-      );
-
-      const badge =
-        spanCount === undefined ? (
-          <Placeholder height="20px" width="70px" />
-        ) : spanCount === 0 ? (
-          <Tag
-            type="default"
-            borderStyle="dashed"
-            tooltipProps={{isHoverable: true}}
-            tooltipText={
-              uptimeRule.traceSampling
-                ? tct(
-                    'No spans found in this trace. Configure your SDKs to see correlated spans across services. [learnMore:Learn more].',
-                    {learnMore}
-                  )
-                : tct(
-                    'Span sampling is disabled. Enable sampling to collect trace data. [learnMore:Learn more].',
-                    {learnMore}
-                  )
-            }
-          >
-            {t('0 spans')}
-          </Tag>
-        ) : (
-          <Tag type="info">{t('%s spans', spanCount)}</Tag>
-        );
-
       return (
-        <TraceCell>
-          {spanCount ? (
-            <Link to={`/performance/trace/${traceId}/`}>{getShortEventId(traceId)}</Link>
-          ) : (
-            getShortEventId(traceId)
-          )}
-          {badge}
-        </TraceCell>
+        <LinkCell to={`/performance/trace/${traceId}/`}>
+          {getShortEventId(String(traceId))}
+        </LinkCell>
       );
-    }
     default:
       return <Cell>{check[column.key]}</Cell>;
   }
@@ -212,8 +139,9 @@ const TimeCell = styled(Cell)`
   text-decoration-style: dotted;
 `;
 
-const TraceCell = styled(Cell)`
-  display: grid;
-  grid-template-columns: 65px auto;
-  gap: ${space(1)};
+const LinkCell = styled(Link)`
+  text-decoration: underline;
+  text-decoration-color: ${p => p.theme.subText};
+  cursor: pointer;
+  text-decoration-style: dotted;
 `;
