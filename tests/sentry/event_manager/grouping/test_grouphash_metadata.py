@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from time import time
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
@@ -106,6 +107,58 @@ class GroupHashMetadataTest(TestCase):
                 "platform": "python",
             },
         )
+
+    @with_feature("organizations:grouphash-metadata-creation")
+    @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
+    def test_stores_expected_properties_for_secondary_hashes(self):
+        project = self.project
+
+        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+
+        # Ensure the legacy grouphash doesn't have metadata added when it's created as the primary
+        # grouphash, so we can test how the metadata code handles it when it's a seconary grouphash
+        with override_options({"grouping.grouphash_metadata.ingestion_writes_enabled": False}):
+            event1 = save_new_event(
+                {"message": "Dogs are great! 1231", "platform": "python"}, self.project
+            )
+            legacy_config_grouphash = GroupHash.objects.filter(
+                project=self.project, hash=event1.get_primary_hash()
+            ).first()
+            assert legacy_config_grouphash and not legacy_config_grouphash.metadata
+
+        # Update the project's grouping config, and set it in transition mode
+        project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+
+        event2 = save_new_event(
+            {"message": "Dogs are great! 1231", "platform": "python"}, self.project
+        )
+        default_config_grouphash = GroupHash.objects.filter(
+            project=self.project, hash=event2.get_primary_hash()
+        ).first()
+        # The events should end up in the same group, but their hashes should be different, because
+        # the legacy config won't parameterize the number in the message, while the new one will
+        assert event1.group_id == event2.group_id
+        assert (
+            default_config_grouphash
+            and default_config_grouphash.hash != legacy_config_grouphash.hash
+        )
+
+        # This time metadata was added
+        legacy_config_grouphash.refresh_from_db()
+        assert legacy_config_grouphash.metadata
+        self.assert_metadata_values(
+            legacy_config_grouphash,
+            {
+                "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+                "latest_grouping_config": LEGACY_GROUPING_CONFIG,
+                "platform": "python",
+            },
+        )
+        # No hash basis or hashing metadata because secondary grouphashes don't come with variants
+        assert legacy_config_grouphash.metadata.hash_basis is None
+        assert legacy_config_grouphash.metadata.hashing_metadata is None
 
     @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
