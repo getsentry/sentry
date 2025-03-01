@@ -457,6 +457,10 @@ class MaxUrlsForDomainReachedException(Exception):
 
 
 def check_url_limits(url):
+    """
+    Determines if a URL's domain has reached the global maximum (MAX_MONITORS_PER_DOMAIN).
+    In the case that it has a `MaxUrlsForDomainReachedException` will be raised.
+    """
     url_parts = extract_domain_parts(url)
     existing_count = ProjectUptimeSubscription.objects.filter(
         uptime_subscription__url_domain=url_parts.domain,

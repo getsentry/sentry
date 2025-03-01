@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("uptime", "0026_region_mode_col"),
+        ("uptime", "0028_drop_migrated_column"),
     ]
 
     operations = [
