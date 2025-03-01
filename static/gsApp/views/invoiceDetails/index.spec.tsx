@@ -217,6 +217,61 @@ describe('InvoiceDetails', function () {
     expect(screen.getByTestId('submit')).toBeInTheDocument();
   });
 
+  it('renders without pay now for self serve partner', async function () {
+    router.location = {
+      ...router.location,
+      query: {referrer: 'billing-failure'},
+    };
+
+    const pastDueInvoice = InvoiceFixture(
+      {
+        amount: 8900,
+        isClosed: false,
+        isPaid: false,
+        items: [
+          {
+            type: InvoiceItemType.SUBSCRIPTION,
+            description: 'Subscription to Business',
+            amount: 8900,
+            periodEnd: '2021-10-21',
+            periodStart: '2021-09-21',
+            data: {},
+          },
+        ],
+      },
+      organization
+    );
+
+    pastDueInvoice.customer = SubscriptionFixture({
+      organization,
+      isSelfServePartner: true,
+    });
+
+    const pastDueParams = {invoiceGuid: pastDueInvoice.id};
+    const mockapiInvoice = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${pastDueInvoice.id}/`,
+      method: 'GET',
+      body: pastDueInvoice,
+    });
+
+    render(
+      <InvoiceDetails
+        {...routerProps}
+        params={pastDueParams}
+        organization={organization}
+      />,
+      {
+        router,
+      }
+    );
+
+    await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
+
+    expect(screen.getByText(/Invoice Details/)).toBeInTheDocument();
+    expect(screen.getByText(/AWAITING PAYMENT/)).toBeInTheDocument();
+    expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
+  });
+
   describe('Invoice Details Attributes', function () {
     const billingDetails = BillingDetailsFixture({taxNumber: '123456789'});
     SubscriptionFixture({organization});
