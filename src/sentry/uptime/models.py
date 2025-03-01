@@ -100,6 +100,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 
         indexes = (models.Index(fields=("url_domain_suffix", "url_domain")),)
 
+
 @region_silo_model
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
