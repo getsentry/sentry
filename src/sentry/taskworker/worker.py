@@ -42,7 +42,10 @@ logger = logging.getLogger("sentry.taskworker.worker")
 class WaitResult:
     """Result structure that indicates a child is waiting for a task"""
 
-    channel: Connection
+    channel: Connection | None
+
+    def wants_tasks(self) -> bool:
+        return self.channel is not None
 
 
 @dataclasses.dataclass
@@ -84,13 +87,15 @@ def child_worker(
     shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
+    """
+    send_conn is given back to the parent, and it will be used to send the
+    next activation. The worker waits for those activations on recv_conn.
+    """
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
     current_task_id: str | None = None
     processed_task_count = 0
-    # send_conn is given back to the parent, and it will be used to send the
-    # next activation. The worker waits for those activations on recv_conn.
     recv_conn, send_conn = multiprocessing.Pipe()
 
     def handle_alarm(signum: int, frame: Any) -> None:
@@ -118,18 +123,7 @@ def child_worker(
     # Put initial result on the queue
     wait_queue.put(WaitResult(channel=send_conn))
 
-    def send_result(task_id: str, status: TaskActivationStatus.ValueType) -> None:
-        wait_queue.put(ProcessingResult(task_id=task_id, status=status, channel=send_conn))
-
     while True:
-        if max_task_count and processed_task_count >= max_task_count:
-            metrics.incr(
-                "taskworker.worker.max_task_count_reached",
-                tags={"count": processed_task_count},
-            )
-            logger.info("taskworker.max_task_count_reached", extra={"count": processed_task_count})
-            break
-
         if shutdown_event.is_set():
             logger.info("taskworker.worker.shutdown_event")
             break
@@ -146,8 +140,21 @@ def child_worker(
                 "taskworker.worker.unknown_task",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            send_result(activation.id, TASK_ACTIVATION_STATUS_FAILURE)
+            wait_queue.put(
+                ProcessingResult(
+                    task_id=activation.id, status=TASK_ACTIVATION_STATUS_FAILURE, channel=send_conn
+                )
+            )
             continue
+
+        is_last_task = False
+        if max_task_count and processed_task_count + 1 >= max_task_count:
+            metrics.incr(
+                "taskworker.worker.max_task_count_reached",
+                tags={"count": processed_task_count},
+            )
+            logger.info("taskworker.max_task_count_reached", extra={"count": processed_task_count})
+            is_last_task = True
 
         if task_func.at_most_once:
             key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
@@ -189,7 +196,12 @@ def child_worker(
 
         # Get completion time before pushing to queue to avoid inflating latency metrics.
         execution_complete_time = time.time()
-        send_result(activation.id, next_state)
+        if is_last_task:
+            wait_queue.put(ProcessingResult(task_id=activation.id, status=next_state, channel=None))
+        else:
+            wait_queue.put(
+                ProcessingResult(task_id=activation.id, status=next_state, channel=send_conn)
+            )
 
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = execution_complete_time - execution_start_time
@@ -221,6 +233,9 @@ def child_worker(
             execution_latency,
             tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
+
+        if is_last_task:
+            break
 
 
 def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
@@ -277,7 +292,7 @@ class TaskWorker:
         self._children: list[ForkProcess] = []
         self._shutdown_event = mp_context.Event()
         self._task_receive_timing: dict[str, float] = {}
-        self.backoff_sleep_seconds = 0
+        self._backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
         self._shutdown()
@@ -307,10 +322,12 @@ class TaskWorker:
             fetched_tasks, idle_workers = values
             if fetched_tasks == 0 and idle_workers == self._concurrency:
                 metrics.incr("taskworker.worker.no_work", tags=self._tags)
-                time.sleep(self.backoff_sleep_seconds)
-                self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
+                time.sleep(self._backoff_sleep_seconds)
+                self._backoff_sleep_seconds = min(self._backoff_sleep_seconds + 1, 10)
             else:
-                self.backoff_sleep_seconds = 0
+                self._backoff_sleep_seconds = 0
+
+            self._spawn_children()  # Make sure the children are running
 
     def run_once(self) -> tuple[int, int] | None:
         """Access point for tests to run a single worker loop"""
@@ -318,6 +335,7 @@ class TaskWorker:
         metrics.distribution(
             "taskworker.worker.results_drained", len(results_drained), tags=self._tags
         )
+
         results = self.update_results(results_drained)
         if results is None:
             # There were no results in the queue. Wait for the next loop.
@@ -338,9 +356,12 @@ class TaskWorker:
             len(results_drained) - len(next_tasks),
             tags=self._tags,
         )
+
         idle_workers = 0
         for result in results_drained:
-            if len(next_tasks) == 0:
+            if result.channel is None:
+                continue
+            elif len(next_tasks) == 0:
                 # Enqueue for the next pass
                 self._waiting_results.put(WaitResult(channel=result.channel))
                 idle_workers += 1
@@ -357,10 +378,11 @@ class TaskWorker:
         """
         results = []
         try:
-            results.append(self._waiting_results.get_nowait())
+            while not self._waiting_results.empty():
+                results.append(self._waiting_results.get_nowait())
+            return results
         except queue.Empty:
             return results
-        return results
 
     def update_results(
         self, results: list[WaitResult | ProcessingResult], fetch_next: bool = True
@@ -370,7 +392,7 @@ class TaskWorker:
             metrics.incr("taskworker.worker.no_results")
             return None
 
-        tasks_to_fetch = len(results)
+        tasks_to_fetch = len([r for r in results if r.wants_tasks()])
 
         processing_results = [r for r in results if isinstance(r, ProcessingResult)]
         next_tasks = self.send_task_results(processing_results, fetch_next)
@@ -386,7 +408,7 @@ class TaskWorker:
         next_tasks = []
         for result in results:
             fetch_next = None
-            if should_fetch_next:
+            if should_fetch_next and result.wants_tasks():
                 fetch_next = FetchNextTask(namespace=self._namespace)
                 metrics.incr("taskworker.worker.fetch_next", tags=self._tags)
 

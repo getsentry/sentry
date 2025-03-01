@@ -84,6 +84,7 @@ class TestTaskWorker(TestCase):
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
+        taskworker._spawn_children()
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
             # No next_task returned
@@ -109,6 +110,7 @@ class TestTaskWorker(TestCase):
         # be processed.
         max_runtime = 5
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
+        taskworker._spawn_children()
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):
@@ -122,6 +124,8 @@ class TestTaskWorker(TestCase):
             # Run until two tasks have been processed
             start = time.time()
             while True:
+                time.sleep(0.1)
+                taskworker._spawn_children()
                 taskworker.run_once()
                 if mock_client.update_task.call_count >= 2:
                     break
@@ -139,7 +143,6 @@ def test_child_worker_complete() -> None:
     wait_queue: queue.Queue[WaitResult | ProcessingResult] = queue.Queue()
     shutdown = Event()
 
-    todo.put(SIMPLE_TASK)
     child_worker(wait_queue, shutdown, max_task_count=1)
 
     assert todo.empty()
