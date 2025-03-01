@@ -66,6 +66,4 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
 
         response.raise_for_status()
 
-        return Response(
-            status=202,
-        )
+        return Response(status=202, data=response.json())
