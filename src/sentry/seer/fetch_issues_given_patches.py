@@ -373,6 +373,8 @@ def get_issues_related_to_file_patches(
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
 
     for file in pullrequest_files:
+        logger.info("Processing file", extra={"file": file.filename})
+
         projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
             organization_id, repo_id, file.filename
         )
@@ -382,13 +384,13 @@ def get_issues_related_to_file_patches(
 
         file_extension = file.filename.split(".")[-1]
         if file_extension not in patch_parsers:
-            logger.error("No language parser", extra={"file": file.filename})
+            logger.warning("No language parser", extra={"file": file.filename})
             continue
         language_parser = patch_parsers[file_extension]
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
         if not function_names:
-            logger.error("No function names", extra={"file": file.filename})
+            logger.warning("No function names", extra={"file": file.filename})
             continue
 
         issues = get_issues_with_event_details_for_file(
@@ -397,6 +399,10 @@ def get_issues_related_to_file_patches(
             list(function_names),
             max_num_issues_per_file=max_num_issues_per_file,
         )
+        if issues:
+            logger.info("Found issues", extra={"file": file.filename, "num_issues": len(issues)})
+        else:
+            logger.warning("No issues found", extra={"file": file.filename})
         filename_to_issues[file.filename] = issues
 
     return filename_to_issues
