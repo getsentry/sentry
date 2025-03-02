@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.functional import cached_property
-from psycopg2.errors import UniqueViolation
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
@@ -78,7 +78,7 @@ class Fixtures:
                 is_staff=True,
                 is_sentry_app=False,
             )
-        except UniqueViolation:
+        except IntegrityError:
             return User.objects.get(email="admin@localhost")
 
     @cached_property
