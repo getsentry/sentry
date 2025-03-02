@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -328,5 +328,4 @@ const Tags = styled('div')`
 
 const StyledTag = styled(Tag)`
   padding: ${space(0.5)};
-  display: inline-flex;
 `;

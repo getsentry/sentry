@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -72,10 +72,11 @@ class SetBudgetAndReserves extends Component<Props, State> {
       this.setState({isUpdated: true});
     }
 
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('checkout.data_sliders_viewed', {
         organization,
       });
+    }
   }
 
   get title() {
@@ -96,13 +97,14 @@ class SetBudgetAndReserves extends Component<Props, State> {
       onDemandMaxSpend: budget.sharedMaxBudget,
     });
 
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('checkout.payg_changed', {
         organization,
         subscription,
         plan: formData.plan,
         cents: budget.sharedMaxBudget || 0,
       });
+    }
   }
 
   handleReservedChange(value: number, category: string) {
@@ -110,12 +112,13 @@ class SetBudgetAndReserves extends Component<Props, State> {
 
     onUpdate({reserved: {...formData.reserved, [category]: value}});
 
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('checkout.data_slider_changed', {
         organization,
         data_type: category,
         quantity: value,
       });
+    }
   }
 
   renderBody = () => {
