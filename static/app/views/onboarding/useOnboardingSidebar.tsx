@@ -31,7 +31,8 @@ export function useOnboardingSidebar() {
         SidebarPanelStore.activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
       }, 0);
     },
-    [organization]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   return {activateSidebar};
