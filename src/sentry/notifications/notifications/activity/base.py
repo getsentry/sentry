@@ -128,10 +128,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         text_template, html_template, params = self.get_description()
         text_description = self.description_as_text(text_template, params)
         html_description = self.description_as_html(html_template or text_template, params)
+        enhanced_privacy = self.organization.flags.enhanced_privacy
         return {
             **self.get_base_context(),
             "text_description": text_description,
             "html_description": html_description,
+            "enhanced_privacy": enhanced_privacy,
         }
 
     def get_group_context(self) -> MutableMapping[str, Any]:
