@@ -31,6 +31,7 @@ export function useOnboardingSidebar() {
         SidebarPanelStore.activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
       }, 0);
     },
+    // Omitting the organization here as it causes the hook to re-run on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
