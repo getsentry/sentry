@@ -130,6 +130,9 @@ export function IssueViewNavItemContent({
         setIsDragging(false);
         endInteraction();
       }}
+      style={{
+        originY: '0px',
+      }}
     >
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
