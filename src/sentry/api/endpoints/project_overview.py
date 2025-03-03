@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -28,12 +29,6 @@ class RelaxedProjectPermission(ProjectPermission):
 
 class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermission):
     pass
-
-
-class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
 
 
 class ProjectOverviewResponse(TypedDict, total=False):
