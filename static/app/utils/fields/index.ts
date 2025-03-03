@@ -1180,7 +1180,7 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
-      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
+      "The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP client span. Primarily for use with Sentry's Insights modules"
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
