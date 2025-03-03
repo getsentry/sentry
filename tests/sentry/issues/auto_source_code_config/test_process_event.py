@@ -152,7 +152,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         file_in_repo = "src/foo/bar.py"
         with (
             patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
-            patch(f"{CODE_ROOT}.utils.DRY_RUN_PLATFORMS", ["other"]),
+            patch(f"{CODE_ROOT}.task.is_dry_run_platform", return_value=True),
         ):
             self.event = self.create_event([{"filename": frame_filename, "in_app": True}], "other")
             # No code mapping will be stored, however, we get what would have been created
