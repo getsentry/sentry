@@ -8,19 +8,10 @@ interface ReleaseMetaBasic {
   version: string;
 }
 
-interface ReleaseConditions extends PageFilters {
-  query?: string;
-}
-
 /**
  * Fetches *ALL* releases (e.g. all pages worth)
  */
-export function useReleaseStats({
-  datetime,
-  environments,
-  projects,
-  query,
-}: ReleaseConditions) {
+export function useReleaseStats({datetime, environments, projects}: PageFilters) {
   const organization = useOrganization();
 
   const {
@@ -39,8 +30,6 @@ export function useReleaseStats({
         query: {
           environment: environments,
           project: projects,
-          query,
-          cursor: undefined,
           ...normalizeDateTimeParams(datetime),
         },
       },
