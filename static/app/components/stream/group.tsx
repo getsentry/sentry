@@ -39,7 +39,7 @@ import type {
   PriorityLevel,
 } from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -55,7 +55,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -71,7 +70,6 @@ export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
 type Props = {
   id: string;
-  organization: Organization;
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
@@ -118,6 +116,9 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <UnreadIndicator data-test-id="unread-issue-indicator" />
+      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
         <Checkbox
           id={group.id}
@@ -147,9 +148,8 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
   );
 }
 
-function BaseGroupRow({
+function StreamGroup({
   id,
-  organization,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -168,6 +168,7 @@ function BaseGroupRow({
   showLastTriggered = false,
   onPriorityChange,
 }: Props) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const groups = useLegacyStore(GroupStore);
@@ -605,6 +606,17 @@ function BaseGroupRow({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('firstSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
+          <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
+        </TimestampWrapper>
+      )}
+      {withColumns.includes('lastSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+          <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
+        </TimestampWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -643,16 +655,6 @@ function BaseGroupRow({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
-          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
@@ -723,8 +725,6 @@ function BaseGroupRow({
   );
 }
 
-const StreamGroup = withOrganization(BaseGroupRow);
-
 export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
@@ -741,7 +741,20 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 86px;
+
+      &:not(:hover):not(:focus-within):not(:has(input:checked)) {
+        ${CheckboxLabel} {
+          ${p.theme.visuallyHidden};
+        }
+      }
+
+      &:hover,
+      &:focus-within {
+        ${UnreadIndicator} {
+          ${p.theme.visuallyHidden};
+        }
+      }
 
       [data-issue-title-link] {
         &::before {
@@ -1051,4 +1064,13 @@ const ProgressColumn = styled('div')`
 // Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
+  margin-left: ${space(3)};
+  margin-top: ${space(1.5)};
 `;

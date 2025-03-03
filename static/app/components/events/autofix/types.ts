@@ -47,12 +47,21 @@ export type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+export type AutofixUpdateEndpointResponse = {
+  run_id: number;
+  message?: string;
+  status?: 'success' | 'error';
+};
+
 export type AutofixRepository = {
   default_branch: string;
   external_id: string;
+  integration_id: string;
   name: string;
   provider: string;
   url: string;
+  is_readable?: boolean;
+  is_writeable?: boolean;
 };
 
 export type AutofixData = {

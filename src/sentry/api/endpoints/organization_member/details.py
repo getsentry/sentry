@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -9,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry import audit_log, features, ratelimits, roles
+from sentry import audit_log, features, quotas, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -105,7 +107,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         self,
         request: Request,
         organization: Organization,
-        member_id: int | str,
+        member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         try:
@@ -355,7 +357,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
                 return Response({"detail": message}, status=400)
 
+            previous_role = member.role
             self._change_org_role(member, assigned_org_role)
+
+            # Run any Subscription logic that needs to happen when a role is changed.
+            quotas.backend.on_role_change(
+                organization=organization,
+                organization_member=member,
+                previous_role=previous_role,
+                new_role=assigned_org_role,
+            )
 
         self.create_audit_entry(
             request=request,

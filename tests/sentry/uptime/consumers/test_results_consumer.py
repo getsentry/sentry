@@ -60,7 +60,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
         self.subscription = self.create_uptime_subscription(
-            subscription_id=uuid.uuid4().hex, interval_seconds=300
+            subscription_id=uuid.uuid4().hex, interval_seconds=300, region_slugs=["default"]
         )
         self.project_subscription = self.create_project_uptime_subscription(
             uptime_subscription=self.subscription,
@@ -155,46 +155,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
-
-    def test_no_uptime_region_default(self):
-        result = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-            uptime_region=None,
-        )
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=2,
-            ),
-        ):
-            self.send_result(result)
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "default",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                    call(
-                        "uptime.result_processor.active.under_threshold",
-                        sample_rate=1.0,
-                        tags={
-                            "host_provider": "TEST",
-                            "status": CHECKSTATUS_FAILURE,
-                            "uptime_region": "default",
-                        },
-                    ),
-                ]
-            )
 
     def test_restricted_host_provider_id(self):
         """
@@ -571,6 +531,38 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
+    def test_skip_shadow_region(self):
+        region_name = "shadow"
+        self.create_uptime_subscription_region(
+            self.subscription, region_name, UptimeSubscriptionRegion.RegionMode.SHADOW
+        )
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            uptime_region=region_name,
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+        ):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.dropped_shadow_result",
+                        sample_rate=1.0,
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "TEST",
+                            "uptime_region": "shadow",
+                        },
+                    ),
+                ]
+            )
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+
     def test_missed(self):
         result = self.create_uptime_result(
             self.subscription.subscription_id, status=CHECKSTATUS_MISSED_WINDOW
@@ -780,13 +772,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            uptime_subscription.refresh_from_db()
-        new_uptime_subscription = self.project_subscription.uptime_subscription
-        assert new_uptime_subscription.interval_seconds == int(
+        uptime_subscription.refresh_from_db()
+        assert uptime_subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
         )
-        assert uptime_subscription.url == new_uptime_subscription.url
+        assert uptime_subscription.url == uptime_subscription.url
 
     def test_parallel(self) -> None:
         """

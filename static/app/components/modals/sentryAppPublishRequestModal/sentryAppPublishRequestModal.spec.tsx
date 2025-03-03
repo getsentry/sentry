@@ -70,7 +70,7 @@ describe('SentryAppDetailsModal', function () {
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.'
+        'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
       )
     ).toBeInTheDocument();
 
@@ -131,9 +131,16 @@ describe('SentryAppDetailsModal', function () {
 
     await userEvent.type(
       screen.getByRole('textbox', {
-        name: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+        name: 'Link to a video showing installation, setup and user flow for your submission.',
       }),
       'https://example.com'
+    );
+
+    await userEvent.type(
+      screen.getByRole('textbox', {
+        name: 'Email address for user support.',
+      }),
+      'example@sentry.io'
     );
 
     const submitButton = screen.getByRole('button', {name: 'Request Publication'});
@@ -169,8 +176,12 @@ describe('SentryAppDetailsModal', function () {
           answer: 'http://example.com',
         },
         {
+          question: 'Email address for user support.',
+          answer: 'example@sentry.io',
+        },
+        {
           question:
-            'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+            'Link to a video showing installation, setup and user flow for your submission.',
           answer: 'https://example.com',
         },
       ]),
@@ -403,7 +414,7 @@ describe('SentryAppDetailsModal', function () {
 
     await userEvent.type(
       screen.getByRole('textbox', {
-        name: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+        name: 'Link to a video showing installation, setup and user flow for your submission.',
       }),
       'https://example.com'
     );

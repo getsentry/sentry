@@ -5,18 +5,26 @@ import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStat
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {LOGS_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconWarning} from 'sentry/icons';
+import {IconArrow, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tct} from 'sentry/locale';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {defined} from 'sentry/utils';
+import {
+  useLogsSearch,
+  useLogsSortBys,
+  useSetLogsSortBys,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   bodyRenderer,
   severityCircleRenderer,
   severityTextRenderer,
   TimestampRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
-import type {OurlogsFields} from 'sentry/views/insights/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {
@@ -27,56 +35,61 @@ import {
   DetailsValue,
   DetailsWrapper,
   getLogColors,
+  HeaderCell,
   LogPanelContent,
   StyledChevronButton,
   StyledPanel,
-  StyledPanelHeader,
   StyledPanelItem,
 } from './styles';
 import {getLogBodySearchTerms, getLogSeverityLevel} from './utils';
 
-export type LogsTableProps = {
-  search: MutableSearch;
-};
-
 type LogsRowProps = {
-  dataRow: OurlogsFields;
+  dataRow: OurLogsResponseItem;
   highlightTerms: string[];
 };
 
-const LOG_FIELDS: Array<keyof OurlogsFields> = [
-  'log.severity_text',
-  'log.severity_number',
-  'log.body',
-  'timestamp',
-];
-
-export function LogsTable(props: LogsTableProps) {
-  const {data, isError, isPending} = useOurlogs(
-    {
-      limit: 100,
-      sorts: [],
-      fields: LOG_FIELDS,
-      search: props.search,
-    },
-    'api.logs-tab.view'
-  );
+export function LogsTable() {
+  const search = useLogsSearch();
+  const {data, isError, isPending} = useExploreLogsTable({
+    limit: 100,
+    search,
+  });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
-  const highlightTerms = getLogBodySearchTerms(props.search);
+  const highlightTerms = getLogBodySearchTerms(search);
+  const sortBys = useLogsSortBys();
+  const setSortBys = useSetLogsSortBys();
+
+  const headers: Array<{align: 'left' | 'right'; field: string; label: string}> = [
+    {field: 'log.severity_number', label: t('Severity'), align: 'left'},
+    {field: 'log.body', label: t('Message'), align: 'left'},
+    {field: 'timestamp', label: t('Timestamp'), align: 'right'},
+  ];
 
   return (
     <StyledPanel>
       <LogPanelContent>
-        <StyledPanelHeader align="left" lightText>
-          {t('Severity')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="left" lightText>
-          {t('Message')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="right" lightText>
-          {t('Timestamp')}
-        </StyledPanelHeader>
+        {headers.map((header, index) => {
+          const direction = sortBys.find(s => s.field === header.field)?.kind;
+          return (
+            <HeaderCell
+              key={index}
+              align={header.align}
+              lightText
+              onClick={() => setSortBys([{field: header.field}])}
+            >
+              {header.label}
+              {defined(direction) && (
+                <IconArrow
+                  size="xs"
+                  direction={
+                    direction === 'desc' ? 'down' : direction === 'asc' ? 'up' : undefined
+                  }
+                />
+              )}
+            </HeaderCell>
+          );
+        })}
         {isPending && (
           <StyledPanelItem span={3} overflow>
             <LoadingIndicator />
@@ -120,8 +133,8 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
   const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
   const theme = useTheme();
   const level = getLogSeverityLevel(
-    dataRow['log.severity_number'],
-    dataRow['log.severity_text']
+    dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
+    dataRow[OurLogKnownFieldKey.SEVERITY_TEXT]
   );
   const logColors = getLogColors(level, theme);
 
@@ -136,18 +149,18 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
           borderless
         />
         {severityCircleRenderer(
-          dataRow['log.severity_number'],
-          dataRow['log.severity_text'],
+          dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
+          dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
           logColors
         )}
         {severityTextRenderer(
-          dataRow['log.severity_number'],
-          dataRow['log.severity_text'],
+          dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
+          dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
           logColors
         )}
       </StyledPanelItem>
       <StyledPanelItem overflow>
-        {bodyRenderer(dataRow['log.body'], highlightTerms)}
+        {bodyRenderer(dataRow[OurLogKnownFieldKey.BODY], highlightTerms)}
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <TimestampRenderer timestamp={dataRow.timestamp} />
@@ -161,12 +174,12 @@ function LogDetails({
   dataRow,
   highlightTerms,
 }: {
-  dataRow: OurlogsFields;
+  dataRow: OurLogsResponseItem;
   highlightTerms: string[];
 }) {
   const level = getLogSeverityLevel(
-    dataRow['log.severity_number'],
-    dataRow['log.severity_text']
+    dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
+    dataRow[OurLogKnownFieldKey.SEVERITY_TEXT]
   );
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
@@ -183,8 +196,8 @@ function LogDetails({
           <DetailsLabel>Severity</DetailsLabel>
           <DetailsValue>
             {severityTextRenderer(
-              dataRow['log.severity_number'],
-              dataRow['log.severity_text'],
+              dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
+              dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
               logColors,
               true
             )}

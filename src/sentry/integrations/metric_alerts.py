@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import TypedDict
 from urllib import parse
 
+import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -17,7 +18,9 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
 )
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
+from sentry.models.organization import Organization
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -48,12 +51,20 @@ class AttachmentInfo(TypedDict):
     date_started: datetime | None
 
 
+class TitleLinkParams(TypedDict, total=False):
+    alert: str
+    referrer: str
+    detection_type: str
+    notification_uuid: str
+
+
 def logo_url() -> str:
     return absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
 
 def get_metric_count_from_incident(incident: Incident) -> float | None:
     """Returns the current or last count of an incident aggregate."""
+    # TODO(iamrajjoshi): Hoist FK lookup up
     incident_trigger = (
         IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
     )
@@ -73,18 +84,23 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
     return get_incident_aggregates(incident=incident, start=start, end=end).get("count")
 
 
-def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
+def get_incident_status_text(
+    snuba_query: SnubaQuery,
+    threshold_type: AlertRuleThresholdType | None,
+    comparison_delta: int | None,
+    metric_value: str,
+) -> str:
     """Returns a human readable current status of an incident"""
-    agg_display_key = alert_rule.snuba_query.aggregate
+    agg_display_key = snuba_query.aggregate
 
-    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
     if is_mri_field(agg_display_key):
         metric_value = format_mri_field_value(agg_display_key, metric_value)
         agg_text = format_mri_field(agg_display_key)
     else:
-        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
 
     if agg_text.startswith("%"):
         if metric_value is not None:
@@ -94,14 +110,12 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
-    time_window = alert_rule.snuba_query.time_window // 60
+    time_window = snuba_query.time_window // 60
     # % change alerts have a comparison delta
-    if alert_rule.comparison_delta:
+    if comparison_delta:
         metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
-        higher_or_lower = (
-            "higher" if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else "lower"
-        )
-        comparison_delta_minutes = alert_rule.comparison_delta // 60
+        higher_or_lower = "higher" if threshold_type == AlertRuleThresholdType.ABOVE else "lower"
+        comparison_delta_minutes = comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
@@ -113,29 +127,70 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
 
 
+def get_status_text(status: IncidentStatus) -> str:
+    return INCIDENT_STATUS[status]
+
+
+def get_title(status: str, name: str) -> str:
+    return f"{status}: {name}"
+
+
+def build_title_link(
+    identifier_id: str, organization: Organization, params: TitleLinkParams
+) -> str:
+    """Builds the URL for an alert rule with the given parameters."""
+    return organization.absolute_url(
+        reverse(
+            "sentry-metric-alert-details",
+            kwargs={
+                "organization_slug": organization.slug,
+                "alert_rule_id": identifier_id,
+            },
+        ),
+        query=parse.urlencode(params),
+    )
+
+
 def incident_attachment_info(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value=None,
+    # WIP(iamrajjoshi): This should shouldn't be None, but it sometimes is. Working on figuring out why.
+    metric_value: float | None = None,
     notification_uuid=None,
     referrer="metric_alert",
 ) -> AttachmentInfo:
     alert_rule = incident.alert_rule
 
-    status = INCIDENT_STATUS[new_status]
-
     if metric_value is None:
+        sentry_sdk.capture_message(
+            "Metric value is None when building incident attachment info",
+            level="warning",
+        )
+        # TODO(iamrajjoshi): This should be fixed by the time we get rid of this function.
         metric_value = get_metric_count_from_incident(incident)
 
-    text = get_incident_status_text(alert_rule, metric_value)
+    status = get_status_text(new_status)
+
+    text = ""
+    if metric_value is not None:
+        text = get_incident_status_text(
+            alert_rule.snuba_query,
+            (
+                AlertRuleThresholdType(alert_rule.threshold_type)
+                if alert_rule.threshold_type is not None
+                else None
+            ),
+            alert_rule.comparison_delta,
+            str(metric_value),
+        )
     if features.has(
         "organizations:anomaly-detection-alerts", incident.organization
     ) and features.has("organizations:anomaly-detection-rollout", incident.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
-    title = f"{status}: {alert_rule.name}"
+    title = get_title(status, alert_rule.name)
 
-    title_link_params = {
+    title_link_params: TitleLinkParams = {
         "alert": str(incident.identifier),
         "referrer": referrer,
         "detection_type": alert_rule.detection_type,
@@ -143,16 +198,7 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    title_link = alert_rule.organization.absolute_url(
-        reverse(
-            "sentry-metric-alert-details",
-            kwargs={
-                "organization_slug": alert_rule.organization.slug,
-                "alert_rule_id": alert_rule.id,
-            },
-        ),
-        query=parse.urlencode(title_link_params),
-    )
+    title_link = build_title_link(alert_rule.id, alert_rule.organization, title_link_params)
 
     return AttachmentInfo(
         title=title,
@@ -164,7 +210,7 @@ def incident_attachment_info(
     )
 
 
-def metric_alert_attachment_info(
+def metric_alert_unfurl_attachment_info(
     alert_rule: AlertRule,
     selected_incident: Incident | None = None,
     new_status: IncidentStatus | None = None,
@@ -184,29 +230,20 @@ def metric_alert_attachment_info(
             latest_incident = None
 
     if new_status:
-        status = INCIDENT_STATUS[new_status]
+        status = get_status_text(new_status)
     elif selected_incident:
-        status = INCIDENT_STATUS[IncidentStatus(selected_incident.status)]
+        status = get_status_text(IncidentStatus(selected_incident.status))
     elif latest_incident:
-        status = INCIDENT_STATUS[IncidentStatus(latest_incident.status)]
+        status = get_status_text(IncidentStatus(latest_incident.status))
     else:
-        status = INCIDENT_STATUS[IncidentStatus.CLOSED]
+        status = get_status_text(IncidentStatus.CLOSED)
 
-    url_query = {"detection_type": alert_rule.detection_type}
+    title_link_params: TitleLinkParams = {"detection_type": alert_rule.detection_type}
     if selected_incident:
-        url_query["alert"] = str(selected_incident.identifier)
+        title_link_params["alert"] = str(selected_incident.identifier)
 
-    title = f"{status}: {alert_rule.name}"
-    title_link = alert_rule.organization.absolute_url(
-        reverse(
-            "sentry-metric-alert-details",
-            kwargs={
-                "organization_slug": alert_rule.organization.slug,
-                "alert_rule_id": alert_rule.id,
-            },
-        ),
-        query=parse.urlencode(url_query),
-    )
+    title = get_title(status, alert_rule.name)
+    title_link = build_title_link(alert_rule.id, alert_rule.organization, title_link_params)
 
     if metric_value is None:
         if (
@@ -220,11 +257,21 @@ def metric_alert_attachment_info(
             incident_info = selected_incident
 
         if incident_info:
+            # TODO(iamrajjoshi): Hoist FK lookup up
             metric_value = get_metric_count_from_incident(incident_info)
 
     text = ""
     if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
-        text = get_incident_status_text(alert_rule, metric_value)
+        text = get_incident_status_text(
+            alert_rule.snuba_query,
+            (
+                AlertRuleThresholdType(alert_rule.threshold_type)
+                if alert_rule.threshold_type is not None
+                else None
+            ),
+            alert_rule.comparison_delta,
+            str(metric_value),
+        )
 
     if features.has(
         "organizations:anomaly-detection-alerts", alert_rule.organization

@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -34,9 +35,7 @@ class AccountSettingsLayout extends Component<Props> {
   render() {
     const {organization} = this.props;
 
-    const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
-    if (hasNavigationV2) {
+    if (prefersStackedNav()) {
       return (
         <Fragment>
           <AccountSettingsNavigation organization={organization} />

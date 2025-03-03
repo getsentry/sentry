@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -23,15 +24,18 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
+import {MODULE_BASE_URLS} from './common/utils/useModuleURL';
+import {ModuleName} from './types';
+
 type InsightsNavigationProps = {
   children: React.ReactNode;
 };
 
 export default function InsightsNavigation({children}: InsightsNavigationProps) {
   const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!hasNavigationV2) {
+  if (!prefersStackedNav) {
     return children;
   }
 
@@ -59,7 +63,9 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
             <SecondaryNav.Item to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}>
               {MOBILE_SIDEBAR_LABEL}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/${AI_LANDING_SUB_PATH}/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+            >
               {AI_SIDEBAR_LABEL}
             </SecondaryNav.Item>
           </SecondaryNav.Section>

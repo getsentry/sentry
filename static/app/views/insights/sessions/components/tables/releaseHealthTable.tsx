@@ -18,13 +18,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
+  adoption_stage: string;
   crash_free_sessions: number;
   date: string;
   error_count: number;
   project_id: number;
   release: string;
   sessions: number;
-  stage: string;
 };
 
 interface Props {
@@ -40,7 +40,7 @@ type Column = GridColumnHeader<keyof ReleaseHealthItem>;
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'release', name: 'version'},
   {key: 'date', name: 'date created'},
-  {key: 'stage', name: 'stage'},
+  {key: 'adoption_stage', name: 'stage'},
   {key: 'crash_free_sessions', name: 'crash free rate'},
   {key: 'sessions', name: 'total sessions'},
   {key: 'error_count', name: 'new issues'},
@@ -61,6 +61,7 @@ export default function ReleaseHealthTable({
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
     location,
+    paramName: 'width_health_table',
   });
 
   const organization = useOrganization();
@@ -86,7 +87,7 @@ export default function ReleaseHealthTable({
       }
 
       if (column.key === 'error_count') {
-        return (
+        return (value as number) > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -98,6 +99,8 @@ export default function ReleaseHealthTable({
               <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {

@@ -5,13 +5,13 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Input} from 'sentry/components/core/input';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -59,8 +59,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {
     emphasis: <em />,
   }),
   value: NONE,
@@ -853,14 +853,14 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
       case 'boolean':
       case 'date':
       case 'string':
-        return <BaseTag type="highlight">{t('string')}</BaseTag>;
+        return <Tag type="highlight">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
       case 'number':
-        return <BaseTag type="success">{t('number')}</BaseTag>;
+        return <Tag type="success">{t('number')}</Tag>;
       default:
-        return <BaseTag>{dataType}</BaseTag>;
+        return <Tag>{dataType}</Tag>;
     }
   }
   let text, tagType;
@@ -894,7 +894,7 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
       text = kind;
   }
 
-  return <BaseTag type={tagType}>{text}</BaseTag>;
+  return <Tag type={tagType}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{

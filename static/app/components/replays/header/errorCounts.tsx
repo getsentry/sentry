@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 import Link from 'sentry/components/links/link';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
@@ -89,7 +89,9 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
               <IconFire />
             );
           })}
-          <Badge aria-label={t('hidden projects')}>+{extraProjectCount}</Badge>
+          <Badge aria-label={t('hidden projects')} type="default">
+            +{extraProjectCount}
+          </Badge>
         </StackedProjectBadges>
         <ErrorCount aria-label={t('total errors')}>{totalErrors}</ErrorCount>
       </StyledLink>

@@ -12,11 +12,11 @@ import type {DateString} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
-import type {Release, TimeSeries, TimeseriesSelection} from '../common/types';
-import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
+import type {LegendSelection, Release, TimeSeries} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {shiftTimeSeriesToNow} from './shiftTimeSeriesToNow';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -157,6 +157,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Basic Plotting', () => {
+    const millisecondsSeries = sampleDurationTimeSeries;
+
+    // Create a very similar series, but with a different unit to demonstrate automatic scaling
+    const secondsSeries = {
+      field: 'p99(span.self_time)',
+      data: sampleDurationTimeSeries.data.map(datum => {
+        return {
+          ...datum,
+          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+        };
+      }),
+      meta: {
+        fields: {
+          'p99(span.self_time)': 'duration',
+        },
+        units: {
+          'p99(span.self_time)': 'second',
+        },
+      },
+    };
+
     return (
       <Fragment>
         <p>
@@ -171,9 +192,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <SmallSizingWindow>
           <FillParent>
             <TimeSeriesWidgetVisualization
-              visualizationType="bar"
+              visualizationType="line"
               stacked
-              timeSeries={[sampleDurationTimeSeries]}
+              timeSeries={[millisecondsSeries, secondsSeries]}
             />
           </FillParent>
         </SmallSizingWindow>
@@ -205,6 +226,23 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <code>stacked</code> prop. Area charts are always stacked. Line charts are never
           stacked.
         </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
+              stacked
+            />
+          </MediumWidget>
+          <SmallWidget />
+        </SideBySide>
       </Fragment>
     );
   });
@@ -213,8 +251,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const props = {
       dataCompletenessDelay: 60 * 60 * 3,
       timeSeries: [
-        shiftTimeserieToNow(sampleDurationTimeSeries),
-        shiftTimeserieToNow(sampleDurationTimeSeries2),
+        shiftTimeSeriesToNow(sampleDurationTimeSeries),
+        shiftTimeSeriesToNow(sampleDurationTimeSeries2),
       ],
     };
     return (
@@ -248,11 +286,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       },
     });
 
-    const [timeseriesSelection, setTimeseriesSelection] = useState<TimeseriesSelection>({
-      'p50(span.duration)': true,
-      'p99(span.duration)': true,
-    });
-
     const durationTimeSeries1 = toTimeSeriesSelection(
       sampleDurationTimeSeries,
       start,
@@ -278,10 +311,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <TimeSeriesWidgetVisualization
             visualizationType="line"
             timeSeries={[durationTimeSeries1, durationTimeSeries2]}
-            timeseriesSelection={timeseriesSelection}
-            onTimeseriesSelectionChange={newSelection => {
-              setTimeseriesSelection(newSelection);
-            }}
           />
         </MediumWidget>
       </Fragment>
@@ -289,7 +318,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Legends', () => {
-    const [timeSeriesSelection, setTimeSeriesSelection] = useState<TimeseriesSelection>({
+    const [legendSelection, setLegendSelection] = useState<LegendSelection>({
       'p99(span.duration)': false,
     });
 
@@ -302,11 +331,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the charts.
         </p>
         <p>
-          You can control legend selection with the <code>timeseriesSelection</code> prop.
-          By default, all time series are shown. If any time series is set to{' '}
+          You can control legend selection with the <code>legendSelection</code> prop. By
+          default, all time series are shown. If any time series is set to{' '}
           <code>false</code> it will be hidden. The companion{' '}
-          <code>onTimeseriesSelectionChange</code> prop is a callback, it will tell you
-          when the user changes the legend selection by clicking on legend labels.
+          <code>onLegendSelectionChange</code> prop is a callback, it will tell you when
+          the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
           You can also provide aliases for legends to give them a friendlier name. In this
@@ -322,8 +351,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               'p99(span.duration)': 'p99',
               'p50(span.duration)': 'p50',
             }}
-            timeseriesSelection={timeSeriesSelection}
-            onTimeseriesSelectionChange={setTimeSeriesSelection}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={setLegendSelection}
           />
         </MediumWidget>
       </Fragment>
@@ -333,6 +362,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Colors', () => {
     const theme = useTheme();
 
+    const timeSeries = {
+      ...sampleThroughputTimeSeries,
+      field: 'error_rate()',
+      meta: {
+        fields: {
+          'error_rate()': 'rate',
+        },
+        units: {
+          'error_rate()': '1/second',
+        },
+      },
+      color: theme.error,
+    };
+
     return (
       <Fragment>
         {' '}
@@ -340,26 +383,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           You can control the color of each time series by setting the <code>color</code>{' '}
           attribute to a string that contains a valid hex color code.
         </p>
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={[
-              {
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-                meta: {
-                  fields: {
-                    'error_rate()': 'rate',
-                  },
-                  units: {
-                    'error_rate()': '1/second',
-                  },
-                },
-                color: theme.error,
-              },
-            ]}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="line"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="area"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+        </SideBySide>
       </Fragment>
     );
   });

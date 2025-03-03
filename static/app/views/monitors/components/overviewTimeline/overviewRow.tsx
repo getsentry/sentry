@@ -3,12 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -270,6 +270,7 @@ const DetailsContainer = styled('div')`
 
 const OwnershipDetails = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
@@ -397,14 +398,14 @@ const TimelineContainer = styled('div')`
 
 const TimelineEnvOuterContainer = styled('div')`
   position: relative;
+  display: flex;
+  align-items: center;
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
   opacity: var(--disabled-opacity);
 `;
 
 const TimelineEnvContainer = styled('div')`
-  position: absolute;
-  inset: 0;
+  width: 100%;
   opacity: 0;
   animation: ${fadeIn} 1.5s ease-out forwards;
-  contain: content;
 `;

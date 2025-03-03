@@ -28,12 +28,17 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
         navigate(
           {
             pathname: baseUrl,
-            query: location.query,
+            query: {
+              ...location.query,
+              filter: undefined,
+            },
           },
           {replace: true}
         );
       },
-      transitionProps: {stiffness: 1000},
+      shouldCloseOnLocationChange: newLocation => {
+        return !newLocation.pathname.includes('/activity/');
+      },
     });
   }, [openDrawer, baseUrl, navigate, location.query, group, project]);
 

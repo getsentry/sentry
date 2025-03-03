@@ -1,6 +1,7 @@
 import {Fragment, useRef} from 'react';
 
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -15,21 +16,16 @@ interface IssuesWrapperProps extends RouteComponentProps {
 
 export function IssueNavigation({children}: IssuesWrapperProps) {
   const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-  const hasIssueViewsInLeftNav = organization?.features.includes('left-nav-issue-views');
 
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews(
-    {
-      orgSlug: organization.slug,
-    },
-    {
-      enabled: hasIssueViewsInLeftNav,
-    }
-  );
+  const {data: groupSearchViews} = useFetchGroupSearchViews({
+    orgSlug: organization.slug,
+  });
 
-  if (!hasNavigationV2) {
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (!prefersStackedNav) {
     return children;
   }
 
@@ -42,13 +38,13 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
-              {t('All')}
+              {t('Search')}
             </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          {hasIssueViewsInLeftNav && groupSearchViews && (
+          {groupSearchViews && (
             <SecondaryNav.Section title={t('Views')}>
               <IssueViewNavItems
                 loadedViews={groupSearchViews.map(
@@ -85,15 +81,15 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               />
             </SecondaryNav.Section>
           )}
+          <SecondaryNav.Section title={t('Configure')}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/alerts/rules/`}
+              activeTo={`${baseUrl}/alerts/`}
+            >
+              {t('Alerts')}
+            </SecondaryNav.Item>
+          </SecondaryNav.Section>
         </SecondaryNav.Body>
-        <SecondaryNav.Footer>
-          <SecondaryNav.Item
-            to={`${baseUrl}/alerts/rules/`}
-            activeTo={`${baseUrl}/alerts/`}
-          >
-            {t('Alerts')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Footer>
       </SecondaryNav>
       {children}
     </Fragment>

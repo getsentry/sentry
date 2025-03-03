@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:08.420112+00:00'
+created: '2025-02-26T00:33:56.816485+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,7 +21,7 @@ app:
               "__kernel_rt_sigreturn"
           frame (non app frame)
           frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "kill"
         type (ignored because exception is synthetic)
@@ -46,7 +46,7 @@ system:
             function*
               "__kernel_rt_sigreturn"
           frame
-          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame
           frame*
             function*
               "kill"

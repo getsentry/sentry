@@ -15,12 +15,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0834_add_index_on_authidentity_last_synced
+sentry: 0836_create_groupsearchviewstarred_table
 
 social_auth: 0002_default_auto_field
 
-tempest: 0001_create_tempest_credentials_model
+tempest: 0002_make_message_type_nullable
 
-uptime: 0026_region_mode_col
+uptime: 0029_uptime_subscription_index_domain_cols
 
 workflow_engine: 0032_remove_data_source_query_id

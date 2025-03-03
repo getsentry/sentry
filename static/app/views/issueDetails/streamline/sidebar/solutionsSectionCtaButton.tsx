@@ -21,7 +21,6 @@ interface Props {
     hasResources: boolean;
     hasSummary: boolean;
     isAutofixSetupLoading: boolean;
-    needsAutofixSetup: boolean;
     needsGenAIConsent: boolean;
   };
   event: Event;
@@ -63,7 +62,6 @@ export function SolutionsSectionCtaButton({
           }
           return true;
         },
-        transitionProps: {stiffness: 1000},
       }
     );
   };
@@ -87,11 +85,9 @@ export function SolutionsSectionCtaButton({
     if (aiConfig.needsGenAIConsent) {
       return t('Set Up Seer');
     }
+
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
-    }
-    if (aiConfig.needsAutofixSetup) {
-      return t('Set Up Autofix');
     }
 
     if (!lastStep) {

@@ -477,6 +477,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate compute and IO.
+register(
+    "replay.consumer.separate-compute-and-io-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Used for internal dogfooding of a reduced timeout on rage/dead clicks.
 register(
     "replay.rage-click.experimental-timeout.org-id-list",
@@ -2150,6 +2157,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Determines how many check-ins per-minute will be allowed per monitor. This is
+# used when computing the QuotaConfig for the DataCategory.MONITOR (check-ins)
+#
+# See the sentry.monitors.rate_limt module for more details.
+#
+# XXX(epurkhiser): Remember a single check-in may often consist of two check-in
+# messages, one for IN_PROGRESS and another for OK.
+register(
+    "crons.per_monitor_rate_limit",
+    type=Int,
+    default=6,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(
@@ -2643,12 +2664,17 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.detect-performance-issues-consumer.enable",
+    "standalone-spans.process-segments-consumer.enable",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "standalone-spans.send-occurrence-to-platform.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.detect-performance-problems.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

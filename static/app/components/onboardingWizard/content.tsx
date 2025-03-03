@@ -579,7 +579,8 @@ interface OnboardingSidebarContentProps {
 }
 
 export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProps) {
-  const {gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks();
+  const {gettingStartedTasks, beyondBasicsTasks, allTasks, doneTasks} =
+    useOnboardingTasks();
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -599,7 +600,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
   return (
-    <Content>
+    <Content data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -625,9 +626,20 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
           group="beyond_basics"
         />
       )}
+      {allTasks.length === doneTasks.length && (
+        <CompletionCelebrationText>
+          <div>{t('Good job, you’re all done here!')}</div>
+          {t('Now get out of here and write some broken code.')}
+        </CompletionCelebrationText>
+      )}
     </Content>
   );
 }
+
+const CompletionCelebrationText = styled('div')`
+  margin-top: ${space(1.5)};
+  text-align: center;
+`;
 
 const Content = styled('div')`
   padding: ${space(3)};

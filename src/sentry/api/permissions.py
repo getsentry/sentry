@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
@@ -26,6 +26,8 @@ from sentry.organizations.services.organization import (
 from sentry.utils import auth, demo_mode
 
 if TYPE_CHECKING:
+    from rest_framework.views import APIView
+
     from sentry.models.organization import Organization
 
 
@@ -150,7 +152,7 @@ class ScopedPermission(BasePermission):
         "DELETE": (),
     }
 
-    def has_permission(self, request: Request, view: object) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
             return request.user.is_authenticated
@@ -166,7 +168,7 @@ class ScopedPermission(BasePermission):
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         return False
 
 
@@ -312,14 +314,14 @@ class DemoSafePermission(SentryPermission):
 
         return super().determine_access(request, org_context)
 
-    def has_permission(self, request: Request, view: object) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         if demo_mode.is_demo_user(request.user):
             if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
                 return False
 
         return super().has_permission(request, view)
 
-    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         if demo_mode.is_demo_user(request.user):
             if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
                 return False
@@ -328,13 +330,17 @@ class DemoSafePermission(SentryPermission):
 
 
 class SentryIsAuthenticated(IsAuthenticated):
-    def has_permission(self, request: Request, view: object) -> bool:
+    """
+    Used to deny access for demo users in both view and object permission checks.
+    """
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
         if demo_mode.is_demo_user(request.user):
             return False
 
         return super().has_permission(request, view)
 
-    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         if demo_mode.is_demo_user(request.user):
             return False
 

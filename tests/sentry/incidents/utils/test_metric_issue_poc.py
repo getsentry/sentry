@@ -1,11 +1,13 @@
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
+from sentry.incidents.utils.metric_issue_poc import construct_title, create_or_update_metric_issue
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase
 
@@ -16,10 +18,17 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
     def setUp(self):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+
+        self.user = self.create_user()
+        self.member = self.create_member(user=self.user, organization=self.organization)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.actor = Actor.from_identifier(self.user.id)
+
         self.alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[self.project],
             name="My Alert Rule",
+            owner=self.actor,
         )
 
         self.incident = self.create_incident(
@@ -56,6 +65,9 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.HIGH
+        assignee = group.get_assignee()
+        assert assignee is not None
+        assert Actor.from_identifier(assignee.id) == self.alert_rule.owner
 
     @django_db_all
     def test_resolved_incident(self):
@@ -77,3 +89,37 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert group.status == GroupStatus.RESOLVED
         assert group.substatus is None
         assert group.priority == PriorityLevel.MEDIUM
+
+    def test_construct_title(self):
+        title = construct_title(self.alert_rule)
+        assert title == "Number of events in the last 10 minutes above threshold"
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="some rule",
+            query="",
+            aggregate="count_unique(tags[sentry:user])",
+            time_window=10,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            comparison_delta=60,
+        )
+
+        title = construct_title(alert_rule)
+        assert (
+            title
+            == "Number of users affected in the last 10 minutes greater than same time one hour ago"
+        )
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="another rule",
+            query="",
+            aggregate="percentage(sessions_crashed, sessions)",
+            time_window=10,
+            threshold_type=AlertRuleThresholdType.BELOW,
+        )
+
+        title = construct_title(alert_rule)
+        assert title == "Crash free session rate in the last 10 minutes below threshold"

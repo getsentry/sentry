@@ -12,6 +12,7 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -79,6 +80,8 @@ export function OnboardingStatus({
     if (!demoMode && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization,
+        user_clicked: true,
+        source: 'onboarding_sidebar',
       });
     }
 
@@ -110,7 +113,7 @@ export function OnboardingStatus({
   ]);
 
   useEffect(() => {
-    if (skipQuickStart || quickStartDisplayStatus > 1) {
+    if (skipQuickStart || quickStartDisplayStatus > 1 || demoMode) {
       return;
     }
 
@@ -120,10 +123,14 @@ export function OnboardingStatus({
     mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
 
     if (quickStartDisplayStatus === 1) {
-      activateSidebar();
+      activateSidebar({
+        userClicked: false,
+        source: 'onboarding_sidebar_user_second_visit',
+      });
     }
+    // be careful when adding dependencies here as it can cause side-effects, e.g activateSidebar
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
+  }, [mutateUserOptions, orgId, skipQuickStart]);
 
   if (skipQuickStart) {
     return null;
@@ -147,7 +154,9 @@ export function OnboardingStatus({
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
           `}
-          text={doneTasks.length}
+          text={
+            doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+          }
           value={(doneTasks.length / allTasks.length) * 100}
           backgroundColor="rgba(255, 255, 255, 0.15)"
           progressEndcaps="round"

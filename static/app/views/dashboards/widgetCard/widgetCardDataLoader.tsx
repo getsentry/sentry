@@ -21,6 +21,7 @@ type Results = {
   confidence?: Confidence;
   errorMessage?: string;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -41,6 +42,7 @@ type Props = {
       | 'timeseriesResultsTypes'
       | 'totalIssuesCount'
       | 'confidence'
+      | 'sampleCount'
     >
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;

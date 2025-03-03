@@ -27,7 +27,7 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import connection, connections
+from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import RequestFactory
@@ -49,6 +49,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     REQUESTTYPE_HEAD,
     CheckResult,
     CheckStatus,
+    CheckStatusReason,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -105,6 +106,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.new_migrations.monkey.state import SentryProjectState
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
@@ -1252,7 +1254,7 @@ class SnubaTestCase(BaseTestCase):
     def store_ourlogs(self, ourlogs):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/ourlogs/insert",
+                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
                 data=json.dumps(ourlogs),
             ).status_code
             == 200
@@ -2060,7 +2062,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
@@ -2369,7 +2370,7 @@ class UptimeCheckSnubaTestCase(TestCase):
     def store_snuba_uptime_check(
         self,
         subscription_id: str | None,
-        check_status: str,
+        check_status: CheckStatus,
         check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
@@ -2381,6 +2382,10 @@ class UptimeCheckSnubaTestCase(TestCase):
             incident_status = IncidentStatus.NO_INCIDENT
         if check_id is None:
             check_id = uuid.uuid4()
+
+        check_status_reason: CheckStatusReason | None = None
+        if check_status == "failure":
+            check_status_reason = {"type": "failure", "description": "Mock failure"}
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
@@ -2402,7 +2407,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
                 "status": check_status,
-                "status_reason": None,
+                "status_reason": check_status_reason,
                 "trace_id": str(uuid.uuid4()),
                 "incident_status": incident_status.value,
                 "request_info": {
@@ -2675,9 +2680,8 @@ class TestMigrations(TransactionTestCase):
     Note that when running these tests locally you will need to use the `--migrations` flag
     """
 
-    @property
-    def app(self):
-        return "sentry"
+    app = "sentry"
+    connection = "default"
 
     @property
     def migrate_from(self):
@@ -2687,9 +2691,15 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @property
-    def connection(self):
-        return "default"
+    _project_state_cache: SentryProjectState | None = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        conn = connections[cls.connection]
+        executor = MigrationExecutor(conn)
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == cls.app]
+        cls.current_migration = [max(matching_migrations)]
 
     def setUp(self):
         super().setUp()
@@ -2697,32 +2707,38 @@ class TestMigrations(TransactionTestCase):
         migrate_from = [(self.app, self.migrate_from)]
         migrate_to = [(self.app, self.migrate_to)]
 
-        connection = connections[self.connection]
+        conn = connections[self.connection]
 
         self.setup_initial_state()
 
-        executor = MigrationExecutor(connection)
-        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
-        self.current_migration = [max(matching_migrations)]
+        executor = MigrationExecutor(conn)
         old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(migrate_from)
+        # XXX: We don't pass project state here, since Django doesn't use it when rolling back migrations.
+        self._project_state_cache = executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
-        executor = MigrationExecutor(connection)
+        executor = MigrationExecutor(conn)
         executor.loader.build_graph()  # reload.
-        executor.migrate(migrate_to)
+        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
         self.apps = executor.loader.project_state(migrate_to).apps
 
     def tearDown(self):
-        super().tearDown()
-        executor = MigrationExecutor(connection)
+        super().tearDownClass()
+        executor = MigrationExecutor(connections[self.connection])
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.current_migration)
+        self._project_state_cache = executor.migrate(
+            self.current_migration, state=self._project_state_cache
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls._project_state_cache = None
 
     def setup_initial_state(self):
         # Add code here that will run before we roll back the database to the `migrate_from`
@@ -3406,6 +3422,7 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
+        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3468,19 +3485,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
-                spans = []
+                spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"event_id": event.event_id})
-                        spans.append(
+                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
+                        spans_to_store.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                spans.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans)
+                spans_to_store.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans_to_store, is_eap=is_eap)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3496,15 +3513,17 @@ class TraceTestCase(SpanTestCase):
                 "span_id": trace_context["span_id"],
                 "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
-                "segment_id": uuid4().hex[:16],
+                "segment_id": event.event_id[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),
+                "start_timestamp_precise": start_ts,
+                "end_timestamp_precise": end_ts,
                 "received": start_ts,
-                "duration_ms": int(end_ts - start_ts),
+                "duration_ms": int((end_ts - start_ts) * 1000),
             }
         )
         if "parent_span_id" in trace_context:
@@ -3512,10 +3531,11 @@ class TraceTestCase(SpanTestCase):
         else:
             del span_data["parent_span_id"]
 
-        if "sentry_tags" in span_data:
-            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
-        else:
-            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
+        if "sentry_tags" not in span_data:
+            span_data["sentry_tags"] = {}
+
+        span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        span_data["sentry_tags"]["transaction"] = event.data["transaction"]
 
         return span_data
 

@@ -233,7 +233,7 @@ describe('SolutionsSection', () => {
       expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
     });
 
-    it('shows "Set Up Autofix" when autofix needs setup', async () => {
+    it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: {
@@ -261,7 +261,7 @@ describe('SolutionsSection', () => {
         expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
 
-      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" when autofix is available', async () => {

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -20,14 +20,19 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -188,10 +193,7 @@ export function LaravelOverviewPage() {
                       />
                     </CachesContainer>
                   </WidgetGrid>
-                  <PanelTable
-                    headers={['Method', 'Route', 'Throughput', 'AVG', 'P95']}
-                    isEmpty
-                  />
+                  <RoutesTable query={derivedQuery} />
                 </PerformanceDisplayProvider>
               )}
               {showOnboarding && (
@@ -247,7 +249,7 @@ const RequestsContainer = styled('div')`
   grid-area: requests;
   min-width: 0;
   & > * {
-    height: 100%;
+    height: 100% !important;
   }
 `;
 
@@ -274,7 +276,7 @@ const DurationContainer = styled('div')`
   grid-area: duration;
   min-width: 0;
   & > * {
-    height: 100%;
+    height: 100% !important;
   }
 `;
 
@@ -282,7 +284,7 @@ const JobsContainer = styled('div')`
   grid-area: jobs;
   min-width: 0;
   & > * {
-    height: 100%;
+    height: 100% !important;
   }
 `;
 
@@ -414,7 +416,7 @@ function RequestsWidget({query}: {query?: string}) {
           yAxis: 'count(span.duration)',
           orderby: '-count(span.duration)',
           partial: 1,
-          query: `has:http.status_code ${query}`.trim(),
+          query: `span.op:http.server ${query}`.trim(),
           useRpc: 1,
           topEvents: 10,
         },
@@ -493,7 +495,7 @@ function DurationWidget({query}: {query?: string}) {
           orderby: 'avg(span.duration)',
           partial: 1,
           useRpc: 1,
-          query: `has:http.status_code ${query}`.trim(),
+          query: `span.op:http.server ${query}`.trim(),
         },
       },
     ],
@@ -635,5 +637,241 @@ function JobsWidget({query}: {query?: string}) {
       error={error}
       series={timeSeries}
     />
+  );
+}
+
+interface DiscoverQueryResponse {
+  data: Array<{
+    'avg(transaction.duration)': number;
+    'count()': number;
+    'count_unique(user)': number;
+    'failure_rate()': number;
+    'http.method': string;
+    'p95()': number;
+    transaction: string;
+  }>;
+}
+
+interface RouteControllerMapping {
+  'count(span.duration)': number;
+  'span.description': string;
+  transaction: string;
+  'transaction.method': string;
+}
+
+const errorRateColorThreshold = {
+  danger: 0.1,
+  warning: 0.05,
+} as const;
+
+const getP95Threshold = (avg: number) => {
+  return {
+    danger: avg * 3,
+    warning: avg * 2,
+  };
+};
+
+const getCellColor = (value: number, thresholds: Record<string, number>) => {
+  return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
+};
+
+const PathCell = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding: ${space(1)} ${space(2)};
+  justify-content: center;
+  gap: ${space(0.5)};
+`;
+
+const ControllerText = styled('div')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  min-width: 0px;
+`;
+
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  overflow: hidden;
+  white-space: nowrap;
+  padding: ${space(1)} ${space(2)};
+
+  &[data-color='danger'] {
+    color: ${p => p.theme.red400};
+  }
+  &[data-color='warning'] {
+    color: ${p => p.theme.yellow400};
+  }
+  &[data-align='right'] {
+    text-align: right;
+    justify-content: flex-end;
+  }
+`;
+
+const HeaderCell = styled(Cell)`
+  padding: 0;
+`;
+
+function RoutesTable({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+  const theme = useTheme();
+
+  const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'metrics',
+          field: [
+            'http.method',
+            'transaction',
+            'avg(transaction.duration)',
+            'p95()',
+            'failure_rate()',
+            'count()',
+            'count_unique(user)',
+          ],
+          query: `(transaction.op:http.server) event.type:transaction ${query}`,
+          referrer: 'api.performance.landing-table',
+          orderby: '-count()',
+          per_page: 10,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  // Get the list of transactions from the first request
+  const transactionPaths = useMemo(() => {
+    return (
+      transactionsRequest.data?.data.map(transactions => transactions.transaction) ?? []
+    );
+  }, [transactionsRequest.data]);
+
+  // Add transaction filter to route controller request
+  const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spans',
+          field: [
+            'span.description',
+            'transaction',
+            'transaction.method',
+            'count(span.duration)',
+          ],
+          query: `transaction.op:http.server span.op:http.route transaction:[${
+            transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
+          }]`,
+          referrer: 'api.explore.spans-aggregates-table',
+          sort: '-transaction',
+          per_page: 25,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      // Only fetch after we have the transactions data and there are transactions to look up
+      enabled: !!transactionsRequest.data?.data && transactionPaths.length > 0,
+    }
+  );
+
+  const tableData = useMemo(() => {
+    if (!transactionsRequest.data?.data) {
+      return [];
+    }
+
+    // Create a mapping of transaction path to controller
+    const controllerMap = new Map(
+      routeControllersRequest.data?.data.map(item => [
+        item.transaction,
+        item['span.description'],
+      ])
+    );
+
+    return transactionsRequest.data.data.map(transaction => ({
+      method: transaction['http.method'],
+      path: transaction.transaction,
+      requests: transaction['count()'],
+      avg: transaction['avg(transaction.duration)'],
+      p95: transaction['p95()'],
+      errorRate: transaction['failure_rate()'],
+      users: transaction['count_unique(user)'],
+      controller: controllerMap.get(transaction.transaction),
+    }));
+  }, [transactionsRequest.data, routeControllersRequest.data]);
+
+  return (
+    <PanelTable
+      headers={[
+        'Method',
+        'Path',
+        <HeaderCell key="requests">
+          <IconArrow direction="down" />
+          Requests
+        </HeaderCell>,
+        'Error Rate',
+        'AVG',
+        'P95',
+        <HeaderCell key="users" data-align="right">
+          Users
+        </HeaderCell>,
+      ]}
+      isLoading={transactionsRequest.isLoading}
+      isEmpty={!tableData || tableData.length === 0}
+    >
+      {tableData?.map(transaction => {
+        const p95Color = getCellColor(transaction.p95, getP95Threshold(transaction.avg));
+        const errorRateColor = getCellColor(
+          transaction.errorRate,
+          errorRateColorThreshold
+        );
+
+        return (
+          <Fragment key={transaction.method + transaction.path}>
+            <Cell>{transaction.method}</Cell>
+            <PathCell>
+              {transaction.path}
+              {routeControllersRequest.isLoading ? (
+                <Placeholder height={theme.fontSizeSmall} width="200px" />
+              ) : (
+                transaction.controller && (
+                  <Tooltip
+                    title={transaction.controller}
+                    position="top"
+                    maxWidth={400}
+                    showOnlyOnOverflow
+                  >
+                    <ControllerText>{transaction.controller}</ControllerText>
+                  </Tooltip>
+                )
+              )}
+            </PathCell>
+            <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
+            <Cell data-color={errorRateColor}>
+              {(transaction.errorRate * 100).toFixed(2)}%
+            </Cell>
+            <Cell>{getDuration(transaction.avg / 1000, 2, true, true)}</Cell>
+            <Cell data-color={p95Color}>
+              {getDuration(transaction.p95 / 1000, 2, true, true)}
+            </Cell>
+            <Cell data-align="right">
+              {formatAbbreviatedNumber(transaction.users)}
+              <IconUser size="xs" />
+            </Cell>
+          </Fragment>
+        );
+      })}
+    </PanelTable>
   );
 }

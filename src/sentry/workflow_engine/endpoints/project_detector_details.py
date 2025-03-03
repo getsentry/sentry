@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -21,6 +22,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
 from sentry.models.project import Project
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.project_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
@@ -135,5 +137,11 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
             return Response(status=403)
 
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
-        # TODO add audit log entry
+        create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_REMOVE"),
+            data=detector.get_audit_log_data(),
+        )
         return Response(status=204)
