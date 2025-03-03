@@ -404,7 +404,7 @@ def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
         return SearchFilter(
             key=SearchKey(name=search_filter.key.name),
             operator=search_filter.operator,
-            value=SearchValue(raw_value=f"{search_filter.value.raw_value}"),
+            value=SearchValue(raw_value=f"*{search_filter.value.raw_value}*"),
         )
 
     # If we have `transaction.status:unknown_error` we convert it to `transaction.status:unknown` since we need to be
