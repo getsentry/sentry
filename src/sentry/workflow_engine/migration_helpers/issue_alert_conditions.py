@@ -266,9 +266,11 @@ def create_base_event_frequency_data_condition(
     comparison_type = data.get(
         "comparisonType", ComparisonType.COUNT
     )  # this is camelCase, age comparison is snake_case
+
+    value = max(int(data["value"]), 0)  # force to 0 if negative
     comparison = {
         "interval": data["interval"],
-        "value": int(data["value"]),
+        "value": value,
     }
 
     if comparison_type == ComparisonType.COUNT:
