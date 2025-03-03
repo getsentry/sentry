@@ -187,7 +187,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
-          {t('Sentry AI')}
+          {t('Seer')}
           <StyledFeatureBadge
             type="beta"
             tooltipProps={{

@@ -66,9 +66,7 @@ export default function SolutionsSection({
   const renderContent = () => {
     if (aiConfig.needsGenAIConsent) {
       return (
-        <Summary>
-          {t('Explore potential root causes and solutions with Sentry AI.')}
-        </Summary>
+        <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
       );
     }
 
