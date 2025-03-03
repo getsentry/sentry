@@ -2,13 +2,11 @@
 
 import contextlib
 import time
-from collections.abc import MutableMapping
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from typing import TypedDict
 
 import sentry_sdk
-from arroyo.types import Partition
 
 from sentry.replays.consumers.buffered.platform import (
     Cmd,
@@ -46,22 +44,13 @@ class Model:
     max_buffer_length: int
     max_buffer_wait: int
     max_workers: int
-    offsets: MutableMapping[Partition, int]
 
 
 @dataclass(frozen=True)
 class Append:
-    """Append the item to the buffer and update the offsets."""
+    """Append the item to the buffer."""
 
     item: ProcessedRecordingMessage
-    offset: MutableMapping[Partition, int]
-
-
-@dataclass(frozen=True)
-class AppendOffset:
-    """Update the offsets; no item needs to be appended to the buffer."""
-
-    offset: MutableMapping[Partition, int]
 
 
 class Committed:
@@ -79,6 +68,10 @@ class Flushed:
     now: float
 
 
+class Skip:
+    """Skip the message."""
+
+
 @dataclass(frozen=True)
 class TryFlush:
     """Instruct the application to flush the buffer if its time."""
@@ -87,13 +80,13 @@ class TryFlush:
 
 
 # A "Msg" is the union of all application messages our RunTime will accept.
-Msg = Append | AppendOffset | Committed | Flush | Flushed | TryFlush
+Msg = Append | Committed | Flush | Flushed | TryFlush
 
 
 # State machine functions.
 
 
-def init(flags: Flags) -> tuple[Model, Cmd[Msg] | None]:
+def init(flags: Flags) -> tuple[Model, Cmd[Msg]]:
     return (
         Model(
             buffer=[],
@@ -101,38 +94,35 @@ def init(flags: Flags) -> tuple[Model, Cmd[Msg] | None]:
             max_buffer_wait=flags["max_buffer_wait"],
             max_workers=flags["max_workers"],
             max_buffer_length=flags["max_buffer_length"],
-            offsets={},
         ),
-        None,
+        Nothing(),
     )
 
 
 @sentry_sdk.trace
-def process(_: Model, message: bytes, offset: MutableMapping[Partition, int]) -> Msg | None:
+def process(_: Model, message: bytes) -> Msg:
     try:
         item = process_recording_message(parse_recording_message(message))
-        return Append(item=item, offset=offset)
+        return Append(item=item)
     except Exception:
-        return AppendOffset(offset=offset)
+        return Skip()
 
 
-def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg] | None]:
+def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg]]:
     match msg:
-        case Append(item=item, offset=offset):
+        case Append(item=item):
             model.buffer.append(item)
-            model.offsets.update(offset)
             return (model, Effect(fun=time.time, msg=lambda now: TryFlush(now=now)))
-        case AppendOffset(offset=offset):
-            model.offsets.update(offset)
+        case Skip():
             return (model, Effect(fun=time.time, msg=lambda now: TryFlush(now=now)))
         case Committed():
-            return (model, None)
+            return (model, Nothing())
         case Flush():
             return (model, Effect(fun=FlushBuffer(model), msg=lambda now: Flushed(now=now)))
         case Flushed(now=now):
             model.buffer = []
             model.last_flushed_at = now
-            return (model, Commit(msg=Committed(), offsets=model.offsets))
+            return (model, Commit(msg=Committed()))
         case TryFlush(now=now):
             return (model, Task(msg=Flush())) if can_flush(model, now) else (model, Nothing())
 

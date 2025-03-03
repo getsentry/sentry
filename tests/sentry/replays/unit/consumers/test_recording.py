@@ -2,8 +2,6 @@ import time
 import uuid
 import zlib
 
-from arroyo.types import Partition
-from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -102,8 +100,6 @@ def test_end_to_end_message_processing():
     assert runtime.model.last_flushed_at == 1
     assert isinstance(cmd, Commit)
     assert isinstance(cmd.msg, Committed)
-    assert cmd.offsets == runtime.model.offsets
-    assert cmd.offsets == {Partition(topic=ArroyoTopic(name="a"), index=1): 2}
 
 
 def test_invalid_message_format():
@@ -114,7 +110,6 @@ def test_invalid_message_format():
     gen = runtime.submit(make_kafka_message(b"invalid"))
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
-    assert len(runtime.model.offsets) == 1
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
@@ -135,7 +130,6 @@ def test_invalid_message_format():
     cmd = gen.send(cmd.msg(1))
     assert runtime.model.last_flushed_at == 1
     assert len(runtime.model.buffer) == 0
-    assert len(runtime.model.offsets) == 1  # offsets are retained
 
 
 def test_invalid_recording_json():
@@ -162,7 +156,6 @@ def test_invalid_recording_json():
     gen = runtime.submit(kafka_message)
     cmd = next(gen)
     assert len(runtime.model.buffer) == 1
-    assert len(runtime.model.offsets) == 1
     assert isinstance(cmd, Effect)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
@@ -177,12 +170,10 @@ def test_invalid_recording_json():
     assert isinstance(cmd, Effect)
     assert cmd.fun == FlushBuffer(runtime.model)
 
-    # Send the `Flushed` message with an arbitrary timestamp. Offsets are retained so the invalid
-    # message is never revisited.
+    # Send the `Flushed` message with an arbitrary timestamp.
     cmd = gen.send(cmd.msg(1))
     assert runtime.model.last_flushed_at == 1
     assert len(runtime.model.buffer) == 0
-    assert len(runtime.model.offsets) == 1  # offsets are retained
 
 
 def test_missing_headers():
@@ -209,7 +200,6 @@ def test_missing_headers():
     gen = runtime.submit(kafka_message)
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
-    assert len(runtime.model.offsets) == 1
     assert isinstance(cmd, Effect)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
@@ -224,12 +214,10 @@ def test_missing_headers():
     assert isinstance(cmd, Effect)
     assert cmd.fun == FlushBuffer(runtime.model)
 
-    # Send the `Flushed` message with an arbitrary timestamp. Offsets are retained so the invalid
-    # message is never revisited.
+    # Send the `Flushed` message with an arbitrary timestamp.
     cmd = gen.send(cmd.msg(1))
     assert runtime.model.last_flushed_at == 1
     assert len(runtime.model.buffer) == 0
-    assert len(runtime.model.offsets) == 1  # offsets are retained
 
 
 def test_buffer_full_semantics():

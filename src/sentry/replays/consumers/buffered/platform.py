@@ -71,15 +71,9 @@ T = TypeVar("T")
 
 @dataclass(frozen=True)
 class Commit(Generic[Msg]):
-    """Instructs the RunTime to commit the message offsets.
-
-    Because the RunTime is based on a Kafka platform there is an expectation that the application
-    should trigger commits when necessary. While the application can't be sure its running Kafka
-    it can be sure its running on a Platform that requires offsets be committed.
-    """
+    """Instructs the RunTime to commit the message offsets."""
 
     msg: Msg
-    offsets: MutableMapping[Partition, int]
 
 
 @dataclass(frozen=True)
@@ -158,7 +152,7 @@ class RunTime(Generic[Model, Msg, Flags]):
     def __init__(
         self,
         init: Callable[[Flags], tuple[Model, Cmd[Msg] | None]],
-        process: Callable[[Model, bytes, MutableMapping[Partition, int]], Msg | None],
+        process: Callable[[Model, bytes], Msg | None],
         subscription: Callable[[Model], list[Sub[Msg]]],
         update: Callable[[Model, Msg], tuple[Model, Cmd[Msg] | None]],
     ) -> None:
@@ -169,6 +163,7 @@ class RunTime(Generic[Model, Msg, Flags]):
 
         self._commit: CommitProtocol | None = None
         self._model: Model | None = None
+        self._offsets: MutableMapping[Partition, int] = {}
         self._subscriptions: dict[str, Sub[Msg]] = {}
 
     @property
@@ -192,13 +187,8 @@ class RunTime(Generic[Model, Msg, Flags]):
         self._register_subscriptions()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        self._handle_msg(
-            self.process(
-                self.model,
-                message.payload.value,
-                cast(MutableMapping[Partition, int], message.committable),
-            )
-        )
+        self._handle_msg(self.process(self.model, message.payload.value))
+        self._offsets = cast(MutableMapping[Partition, int], message.committable)
 
     def publish(self, sub_name: str):
         # For each new subscription event we re-register the subscribers in case anything within
@@ -231,8 +221,8 @@ class RunTime(Generic[Model, Msg, Flags]):
             return None
 
         match cmd:
-            case Commit(msg=msg, offsets=offsets):
-                self.commit(offsets)
+            case Commit(msg=msg):
+                self.commit(self._offsets)
                 return self._handle_msg(msg)
             case Effect(msg=msg, fun=fun):
                 return self._handle_msg(msg(fun()))

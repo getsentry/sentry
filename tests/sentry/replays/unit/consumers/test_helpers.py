@@ -1,6 +1,5 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import datetime
-from typing import cast
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
@@ -24,13 +23,7 @@ class MockRunTime(RunTime[Model, Msg, Flags]):
             msg = yield cmd
 
     def submit(self, message):
-        yield from self._handle_msg(
-            self.process(
-                self.model,
-                message.payload.value,
-                cast(MutableMapping[Partition, int], message.committable),
-            )
-        )
+        yield from self._handle_msg(self.process(self.model, message.payload.value))
 
 
 class MockSink:
