@@ -12,7 +12,7 @@ def backfill_sentry_app_emails(apps: Apps, schema_editor: BaseDatabaseSchemaEdit
     User = apps.get_model("sentry", "User")
 
     for proxy_user in RangeQuerySetWrapperWithProgressBarApprox(
-        User.objects.get(is_sentry_app=True, email="")
+        User.objects.filter(is_sentry_app=True, email="")
     ):
         proxy_user.update(email=f"{proxy_user.id}@proxy-user.sentry.io")
 
