@@ -370,7 +370,13 @@ function formatList(items: Array<string | number | undefined>) {
 }
 
 export function computeEchartsAriaLabels(
-  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
+  {
+    series,
+    useUTC,
+  }: {
+    series: Series | Series[];
+    useUTC: boolean | undefined;
+  },
   isGroupedByDate: boolean
 ) {
   const filteredSeries = Array.isArray(series)
@@ -378,8 +384,8 @@ export function computeEchartsAriaLabels(
     : [series];
 
   const dateFormat = computeShortInterval({
-    start: filteredSeries[0]?.data?.[0][0],
-    end: filteredSeries[0]?.data?.slice(-1)[0][0],
+    start: filteredSeries[0]?.data?.[0]?.name?.toString(),
+    end: filteredSeries[0]?.data?.slice(-1)[0]?.name?.toString(),
   })
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
@@ -391,18 +397,24 @@ export function computeEchartsAriaLabels(
   }
 
   // Generate title (first sentence)
-  const chartTypes = new Set(filteredSeries.map(s => s.type));
+  const chartTypes = new Set(
+    filteredSeries
+      .map(s => (s as any).type)
+      .filter((type): type is string => typeof type === 'string')
+  );
   const title =
     filteredSeries.length > 0
       ? [
           `${formatList([...chartTypes])} chart`,
           isGroupedByDate
-            ? `with ${formatDate(filteredSeries[0].data?.[0][0])} to ${formatDate(
-                filteredSeries[0].data?.slice(-1)[0][0]
+            ? `with ${formatDate(filteredSeries[0]?.data?.[0]?.name)} to ${formatDate(
+                filteredSeries[0]?.data?.slice(-1)[0]?.name
               )}`
             : '',
           `featuring ${filteredSeries.length} data series: ${formatList(
-            filteredSeries.filter(s => s.data && s.data.length > 0).map(s => s.name)
+            filteredSeries
+              .filter(s => s.data && s.data.length > 0)
+              .map(s => (s as any).name)
           )}`,
         ].join(' ')
       : '';
@@ -414,33 +426,33 @@ export function computeEchartsAriaLabels(
         return '';
       }
 
-      let highestValue: [number, number] = [0, -Infinity];
-      let lowestValue: [number, number] = [0, Infinity];
+      let highestValue = {name: '', value: -Infinity};
+      let lowestValue = {name: '', value: Infinity};
 
       s.data.forEach((datum: any) => {
-        if (!Array.isArray(datum)) {
-          return;
+        if (datum.value < lowestValue.value) {
+          lowestValue = datum;
         }
-
-        if (datum[1] > highestValue[1]) {
-          highestValue = datum as [number, number];
-        }
-        if (datum[1] < lowestValue[1]) {
-          lowestValue = datum as [number, number];
+        if (datum.value > highestValue.value) {
+          highestValue = datum;
         }
       });
 
-      const lowestX = isGroupedByDate ? formatDate(lowestValue[0]) : lowestValue[0];
-      const highestX = isGroupedByDate ? formatDate(lowestValue[0]) : lowestValue[0];
+      const lowestX = isGroupedByDate ? formatDate(lowestValue.name) : lowestValue.name;
+      const highestX = isGroupedByDate
+        ? formatDate(highestValue.name)
+        : highestValue.name;
 
       const lowestY =
-        typeof lowestValue[1] === 'number' ? +lowestValue[1].toFixed(3) : lowestValue[1];
+        typeof lowestValue.value === 'number'
+          ? +lowestValue.value.toFixed(3)
+          : lowestValue.value;
       const highestY =
-        typeof highestValue[1] === 'number'
-          ? +highestValue[1].toFixed(3)
-          : lowestValue[1];
+        typeof highestValue.value === 'number'
+          ? +highestValue.value.toFixed(3)
+          : highestValue.value;
 
-      return `The ${s.name} series contains ${
+      return `The ${(s as any).name} series contains ${
         s.data?.length
       } data points. Its lowest value is ${lowestY} ${
         isGroupedByDate ? 'on' : 'at'

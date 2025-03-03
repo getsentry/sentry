@@ -237,11 +237,11 @@ describe('Chart Utils', function () {
 
       const result = computeEchartsAriaLabels({series, useUTC: undefined}, true);
 
-      expect(result).toBe({
+      expect(result).toEqual({
         enabled: true,
         label: {
           description:
-            ' chart with January 1st to January 2nd featuring 1 data series: Total Events. The Total Events series contains 2 data points. Its lowest value is 100 on January 1st and highest value is 300 on January 3rd.',
+            ' chart with January 1st to January 3rd featuring 1 data series: Total Events. The Total Events series contains 3 data points. Its lowest value is 100 on January 1st and highest value is 300 on January 3rd',
         },
       });
     });
@@ -266,11 +266,11 @@ describe('Chart Utils', function () {
 
       const result = computeEchartsAriaLabels({series, useUTC: undefined}, true);
 
-      expect(result).toBe({
+      expect(result).toEqual({
         enabled: true,
         label: {
           description:
-            ' chart with January 1st to January 2nd featuring 2 data series: Errors, Transactions. The Errors series contains 2 data points. Its lowest value is 10 on January 1st and highest value is 20 on January 2nd. The Transactions series contains 2 data points. Its lowest value is 100 on January 1st and highest value is 200 on January 2nd',
+            ' chart with January 1, 12:00 AM to January 2, 12:00 AM featuring 2 data series: Errors and Transactions. The Errors series contains 2 data points. Its lowest value is 10 on January 1, 12:00 AM and highest value is 20 on January 2, 12:00 AM. The Transactions series contains 2 data points. Its lowest value is 100 on January 1, 12:00 AM and highest value is 200 on January 2, 12:00 AM',
         },
       });
     });
