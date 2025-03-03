@@ -1,4 +1,4 @@
-import { Secret } from "sentry/views/settings/featureFlags";
+import { Secret } from "sentry/views/settings/featureFlags/changeTracking";
 
 
 export function SecretFixture(

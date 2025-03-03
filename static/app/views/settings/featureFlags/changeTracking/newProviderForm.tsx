@@ -26,7 +26,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
+import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags/changeTracking';
 
 export type CreateSecretQueryVariables = {
   provider: string;
@@ -54,7 +54,9 @@ export default function NewProviderForm({
   const [selectedProvider, setSelectedProvider] = useState('<provider_name>');
 
   const handleGoBack = useCallback(() => {
-    navigate(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
+    navigate(
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+    );
   }, [organization.slug, navigate]);
 
   const {mutate: submitSecret, isPending} = useMutation<
