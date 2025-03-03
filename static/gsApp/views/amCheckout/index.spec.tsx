@@ -14,15 +14,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
+import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
-
-import {PendingChangesFixture} from '../../__fixtures__/pendingChanges';
-import {PlanFixture} from '../../__fixtures__/plan';
 
 describe('AM1 Checkout', function () {
   let mockResponse: any;
