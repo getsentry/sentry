@@ -63,7 +63,13 @@ const tabConfig = [
   {
     key: 'details',
     name: t('Billing Details'),
-    show: requireBilling,
+    show: (
+      organization: Organization,
+      isDisabled: boolean,
+      subscription: Subscription
+    ) => {
+      return requireBilling(organization, isDisabled) && !subscription.isSelfServePartner;
+    },
   },
   {
     key: 'usage-log',
@@ -96,7 +102,7 @@ function SubscriptionHeader(props: Props) {
         tabs={
           <NavTabs underlined>
             {tabConfig.reduce((acc, {key, name, show}) => {
-              if (show(organization, isDisabled)) {
+              if (show(organization, isDisabled, subscription)) {
                 acc.push(
                   <ListLink
                     key={key}
