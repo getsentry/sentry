@@ -14,12 +14,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
 class TestAgeComparisonCondition(ConditionTestCase):
     condition = Condition.AGE_COMPARISON
-    payload = {
-        "id": AgeComparisonFilter.id,
-        "comparison_type": AgeComparisonType.OLDER,
-        "value": "10",
-        "time": "hour",
-    }
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
@@ -36,6 +30,12 @@ class TestAgeComparisonCondition(ConditionTestCase):
                 "event": self.group_event,
             }
         )
+        self.payload = {
+            "id": AgeComparisonFilter.id,
+            "comparison_type": AgeComparisonType.OLDER,
+            "value": "10",
+            "time": "hour",
+        }
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={"comparison_type": AgeComparisonType.OLDER, "value": 10, "time": "hour"},
@@ -49,6 +49,20 @@ class TestAgeComparisonCondition(ConditionTestCase):
         assert dc.type == self.condition
         assert dc.comparison == {
             "comparison_type": AgeComparisonType.OLDER,
+            "value": 10,
+            "time": "hour",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write__negative_value(self):
+        self.payload["value"] = "-10"
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "comparison_type": AgeComparisonType.NEWER,
             "value": 10,
             "time": "hour",
         }

@@ -9,8 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {Secret} from 'sentry/views/settings/featureFlags';
-import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/organizationFeatureFlagsProviderRow';
+import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
+import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
 describe('OrganizationFeatureFlagsProviderRow', function () {
   const {organization, router} = initializeOrg();
