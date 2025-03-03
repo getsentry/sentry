@@ -19,10 +19,11 @@ from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
-GET_TREES_FOR_ORG = (
-    "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
-)
 CODE_ROOT = "sentry.issues.auto_source_code_config"
+REPO_TREES_CODE = "sentry.integrations.source_code_management.repo_trees"
+REPO_TREES_GET_TREES_FOR_ORG = f"{REPO_TREES_CODE}.RepoTreesIntegration.get_trees_for_org"
+REPO_TREES_GET_REPOS = f"{REPO_TREES_CODE}.RepoTreesIntegration._populate_repositories"
+CLIENT = "sentry.integrations.github.client.GitHubBaseClient"
 
 
 class BaseDeriveCodeMappings(TestCase):
@@ -47,11 +48,19 @@ class BaseDeriveCodeMappings(TestCase):
     def _get_trees_for_org(self, files: Sequence[str]) -> dict[str, RepoTree]:
         return {"test-org/repo": RepoTree(RepoAndBranch("test-org/repo", "master"), files)}
 
+    def _repo_tree_files(self, files: Sequence[str]) -> list[dict[str, Any]]:
+        return [{"path": file, "type": "blob"} for file in files]
+
+    def _repo_info(self) -> dict[str, str]:
+        return {"full_name": "test-org/repo", "default_branch": "master"}
+
     def _process_and_assert_code_mapping(
         self, files: Sequence[str], stack_root: str, source_root: str
     ) -> None:
         with (
-            patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)),
+            patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(files)),
+            patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
+            patch(REPO_TREES_GET_REPOS, return_value=[self._repo_info()]),
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
@@ -65,7 +74,11 @@ class BaseDeriveCodeMappings(TestCase):
             )
 
     def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> list[CodeMapping]:
-        with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
+        with (
+            patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(files)),
+            patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
+            patch(REPO_TREES_GET_REPOS, return_value=[self._repo_info()]),
+        ):
             code_mappings = process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             return code_mappings
@@ -82,19 +95,19 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
-        with patch(GET_TREES_FOR_ORG, side_effect=error):
+        with patch(REPO_TREES_GET_TREES_FOR_ORG, side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_halt_metric(mock_record, error)
 
     def test_unable_to_get_lock_halts(self, mock_record: Any) -> None:
         error = UnableToAcquireLock()
-        with patch(GET_TREES_FOR_ORG, side_effect=error):
+        with patch(REPO_TREES_GET_TREES_FOR_ORG, side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_halt_metric(mock_record, error)
 
     def test_generic_errors_fail(self, mock_record: Any) -> None:
-        with patch(GET_TREES_FOR_ORG, side_effect=Exception("foo")):
+        with patch(REPO_TREES_GET_TREES_FOR_ORG, side_effect=Exception("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             # Failures require manual investigation.
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
@@ -154,7 +167,19 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             assert len(code_mappings) == 1
             assert code_mappings[0].stacktrace_root == "foo/"
             assert code_mappings[0].source_path == "src/foo/"
-            assert not RepositoryProjectPathConfig.objects.exists()
+
+    def test_extension_is_not_included(self) -> None:
+        frame_filename = "foo/bar.tbd"
+        file_in_repo = "src/foo/bar.tbd"
+        platform = "foo"
+        self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
+
+        with patch(f"{CODE_ROOT}.task.supported_platform", return_value=True):
+            # No extensions are supported, thus, we can't generate a code mapping
+            self._process_and_assert_no_code_mapping([file_in_repo])
+
+            with patch(f"{REPO_TREES_CODE}.SUPPORTED_EXTENSIONS", ["tbd"]):
+                self._process_and_assert_code_mapping([file_in_repo], "foo/", "src/foo/")
 
 
 class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):
