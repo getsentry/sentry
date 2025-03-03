@@ -22,6 +22,18 @@ class ProjectOverviewTest(APITestCase):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
 
+    def test_cross_org_403(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org, name="foo", slug="foo")
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=org, role="member", teams=[team])
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        self.login_as(user=user)
+        self.get_error_response(other_org.slug, other_project.slug, status_code=403)
+
     def test_superuser_simple(self):
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
