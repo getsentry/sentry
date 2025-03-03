@@ -378,6 +378,39 @@ DETAILED_PROJECT = {
     "highlightPreset": {"tags": [], "context": {}},
 }
 
+PROJECT_OVERVIEW = {
+    "id": "4505321021243392",
+    "slug": "the-spoiled-yoghurt",
+    "name": "The Spoiled Yoghurt",
+    "platform": "python",
+    "dateCreated": "2023-06-08T00:13:06.004534Z",
+    "firstEvent": None,
+    "firstTransactionEvent": False,
+    "hasAccess": True,
+    "hasMinifiedStackTrace": False,
+    "hasFeedbacks": False,
+    "hasMonitors": False,
+    "hasNewFeedbacks": False,
+    "hasProfiles": False,
+    "hasReplays": False,
+    "hasFlags": False,
+    "hasSessions": False,
+    "hasInsightsHttp": True,
+    "hasInsightsDb": False,
+    "hasInsightsAssets": True,
+    "hasInsightsAppStart": False,
+    "hasInsightsScreenLoad": False,
+    "hasInsightsVitals": False,
+    "hasInsightsCaches": False,
+    "hasInsightsQueues": False,
+    "hasInsightsLlmMonitoring": False,
+    "isInternal": False,
+    "isPublic": False,
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+    "color": "#3f70bf",
+    "status": "active",
+}
+
 SYMBOL_SOURCES = [
     {
         "id": "honk",
@@ -448,6 +481,15 @@ class ProjectExamples:
         OpenApiExample(
             "Get detailed view about a Project",
             value=DETAILED_PROJECT,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    OVERVIEW_PROJECT = [
+        OpenApiExample(
+            "Get an overview of a Project",
+            value=PROJECT_OVERVIEW,  # TODO: Update this to include more fields
             status_codes=["200"],
             response_only=True,
         ),
