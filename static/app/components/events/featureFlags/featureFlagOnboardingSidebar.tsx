@@ -34,6 +34,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
   const organization = useOrganization();
@@ -175,7 +176,13 @@ function SidebarContent() {
             />
           </div>
         </HeaderActions>
-        {currentProject && <OnboardingContent currentProject={currentProject} />}
+        {currentProject ? (
+          <OnboardingContent currentProject={currentProject} />
+        ) : (
+          <TextBlock>
+            {t('Select a project from the drop-down to view set up instructions.')}
+          </TextBlock>
+        )}
       </TaskList>
     </Fragment>
   );
