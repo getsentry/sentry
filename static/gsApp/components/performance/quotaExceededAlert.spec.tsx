@@ -1,17 +1,30 @@
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
+import {QuotaExceededAlert} from './quotaExceededAlert';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('Renders QuotaExceededAlert correctly', function () {
   const {organization} = initializeOrg();
-
+  const subscription = SubscriptionFixture({
+    organization,
+    renewalDate: '2024-12-31',
+    onDemandBudgets: {
+      enabled: true,
+    } as any,
+    planTier: 'am1' as any,
+    categories: {
+      spans: {
+        usageExceeded: true,
+      },
+    } as any,
+  });
   beforeEach(function () {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2024-12-14'));
@@ -66,25 +79,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
       },
     });
 
-    // Mock subscription details endpoint
-    MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
-      method: 'GET',
-      body: {
-        renewalDate: '2024-12-31',
-        onDemandBudgets: {
-          enabled: true,
-        },
-        planTier: 'am1',
-        categories: {
-          spans: {
-            usageExceeded: true,
-          },
-        },
-      },
-    });
-
-    render(<QuotaExceededAlert />, {
+    render(<QuotaExceededAlert subscription={subscription} referrer="trace-view" />, {
       organization,
     });
 
