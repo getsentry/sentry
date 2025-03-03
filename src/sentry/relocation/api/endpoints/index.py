@@ -156,7 +156,7 @@ def get_autopause_value(provenance: Relocation.Provenance) -> int | None:
 
 @region_silo_endpoint
 class RelocationIndexEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,

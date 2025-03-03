@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class OrganizationForkEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }

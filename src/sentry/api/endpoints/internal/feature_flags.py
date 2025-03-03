@@ -13,7 +13,7 @@ from sentry.runner.settings import configure, discover_configs
 @all_silo_endpoint
 class InternalFeatureFlagsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,

@@ -11,7 +11,7 @@ from sentry.tsdb.base import TSDBModel
 
 @region_silo_endpoint
 class InternalStatsEndpoint(Endpoint, StatsMixin):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
