@@ -37,9 +37,7 @@ def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
     if exceptions:
         return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
 
-    stacktrace = data.get("stacktrace")
-    if stacktrace and stacktrace.get("frames"):
-        logger.warning("Investigate if we use this code path in production.")
-        return [stacktrace]
+    if "stacktrace" in data:
+        return [data["stacktrace"]]
 
     return []
