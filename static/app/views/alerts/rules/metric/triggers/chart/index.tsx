@@ -58,6 +58,7 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {showConfidence} from 'sentry/views/explore/utils';
 
 import type {MetricRule, Trigger} from '../../types';
 import {
@@ -95,6 +96,7 @@ type Props = {
   includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  isSampled?: boolean | null;
   onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
@@ -490,7 +492,8 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+              showConfidence(this.props.isSampled) ? (
                 <ConfidenceFooter
                   sampleCount={extrapolationSampleCount ?? undefined}
                   confidence={confidence}

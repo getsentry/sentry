@@ -58,7 +58,8 @@ import {
 } from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
-import {QuotaExceededAlert} from 'sentry/views/performance/quotaExceededAlert';
+
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -225,7 +226,7 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {!hasResults && <QuotaExceededAlert />}
+        {!hasResults && <QuotaExceededAlert referrer="explore" />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
