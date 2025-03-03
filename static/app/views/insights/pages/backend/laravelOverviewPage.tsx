@@ -87,11 +87,7 @@ export function LaravelOverviewPage() {
   const navigate = useNavigate();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
 
   const showOnboarding = onboardingProject !== undefined;
 

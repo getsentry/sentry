@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import (
     NoProjects,
@@ -86,8 +87,8 @@ class PermissionBaseTestCase(TestCase):
         )
         drf_request = drf_request_from_request(request)
         result_with_obj = perm.has_permission(
-            request=drf_request, view=None
-        ) and perm.has_object_permission(request=drf_request, view=None, organization=obj)
+            drf_request, APIView()
+        ) and perm.has_object_permission(drf_request, APIView(), obj)
         if result_with_org_rpc is not None:
             return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
         return result_with_obj

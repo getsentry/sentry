@@ -74,6 +74,7 @@ OURLOG_VIRTUAL_CONTEXTS = {
 
 OURLOG_DEFINITIONS = ColumnDefinitions(
     functions={},
+    formulas={},
     columns=OURLOG_ATTRIBUTE_DEFINITIONS,
     contexts=OURLOG_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,

@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationFeatureFlagsNewSecet from 'sentry/views/settings/featureFlags/organizationFeatureFlagsNewSecret';
+import OrganizationFeatureFlagsNewSecet from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
 
 describe('OrganizationFeatureFlagsNewSecret', function () {
   const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
