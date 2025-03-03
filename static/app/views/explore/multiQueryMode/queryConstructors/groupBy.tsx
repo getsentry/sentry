@@ -49,7 +49,7 @@ export function GroupBySection({query, index}: Props) {
       <SectionHeader>
         <Tooltip
           title={t(
-            'Aggregated data by a key attribute to calculate averages, percentiles, count and more.'
+            'Aggregate data by a key attribute to calculate averages, percentiles, count and more.'
           )}
         >
           <SectionLabel>{t('Group By')}</SectionLabel>
