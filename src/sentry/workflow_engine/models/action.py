@@ -8,7 +8,10 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
@@ -76,3 +79,21 @@ class Action(DefaultFieldsModel):
         # get the handler for the action type
         handler = self.get_handler()
         handler.execute(job, self, detector)
+
+    @property
+    def target(self) -> RpcUser | Team | str | None:
+        if self.target_identifier is None:
+            return None
+
+        if self.target_type == ActionTarget.USER.value:
+            return user_service.get_user(user_id=int(self.target_identifier))
+        elif self.target_type == ActionTarget.TEAM.value:
+            try:
+                return Team.objects.get(id=int(self.target_identifier))
+            except Team.DoesNotExist:
+                pass
+        elif self.target_type == ActionTarget.SPECIFIC.value:
+            # TODO: This is only for email. We should have a way of validating that it's
+            # ok to contact this email.
+            return self.target_identifier
+        return None
