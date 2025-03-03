@@ -305,6 +305,7 @@ export function SourceMapsDebuggerModal({
               textValue={`${t('Debug IDs')} (${
                 sourceResolutionResults.debugIdProgress
               }/4)`}
+              hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
             >
               <StyledProgressRing
                 progressColor={
