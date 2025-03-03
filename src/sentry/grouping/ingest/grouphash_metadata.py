@@ -172,11 +172,12 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Keep track of the most recent config which computed this hash, so that once a config is
         # deprecated, we can clear out the GroupHash records which are no longer being produced
-        if grouphash.metadata.latest_grouping_config != grouping_config:
+        current_latest_config = grouphash.metadata.latest_grouping_config
+        if _is_incoming_config_newer_than_current_latest(grouping_config, current_latest_config):
             updated_data = {"latest_grouping_config": grouping_config}
             db_hit_metadata = {
                 "reason": "old_grouping_config",
-                "current_config": grouphash.metadata.latest_grouping_config,
+                "current_config": current_latest_config,
                 "new_config": grouping_config,
             }
 
