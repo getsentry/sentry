@@ -23,6 +23,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeValuesRequest,
     TraceItemAttributeValuesResponse,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
+    TraceItemDetailsRequest,
+    TraceItemDetailsResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
     TraceItemStatsResponse,
@@ -163,6 +167,18 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
 def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
     resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
     response = TraceItemStatsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResponse:
+    """
+    An RPC which requests all of the details about a specific trace item.
+    For example, you might say "give me all of the attributes for the log with id 1234" or
+    "give me all of the attributes for the span with id 12345 and trace_id 34567"
+    """
+    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
+    response = TraceItemDetailsResponse()
     response.ParseFromString(resp.data)
     return response
 
