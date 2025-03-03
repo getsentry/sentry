@@ -8,7 +8,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
@@ -199,21 +199,24 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             }}
           />
         </Header>
-        {autofixData && (
-          <ButtonBarWrapper>
+        {!aiConfig.needsGenAIConsent && (
+          <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
               <AutofixFeedback />
-              <Button
-                size="xs"
-                onClick={reset}
-                title={
-                  autofixData.created_at
-                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                    : null
-                }
-              >
-                {t('Start Over')}
-              </Button>
+              {aiConfig.hasAutofix && (
+                <Button
+                  size="xs"
+                  onClick={reset}
+                  title={
+                    autofixData?.created_at
+                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                      : null
+                  }
+                  disabled={!autofixData}
+                >
+                  {t('Start Over')}
+                </Button>
+              )}
             </ButtonBar>
           </ButtonBarWrapper>
         )}

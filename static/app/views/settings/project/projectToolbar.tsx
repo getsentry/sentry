@@ -78,7 +78,7 @@ export default function ProjectToolbarSettings({
       <SettingsPageHeader
         title={t('Dev Toolbar')}
         action={
-          <LinkButton href="https://docs.sentry.io/product/dev-toolbar/" external>
+          <LinkButton href="https://docs.sentry.io/product/sentry-toolbar/" external>
             {t('Read the Docs')}
           </LinkButton>
         }

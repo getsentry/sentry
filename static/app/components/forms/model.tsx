@@ -9,6 +9,7 @@ import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 
 export const fieldIsRequiredMessage = t('Field is required');
 
@@ -606,6 +607,10 @@ class FormModel {
     // Check if field needs to handle transforming request object
     const getDataFn = typeof getData === 'function' ? getData : (a: any) => a;
 
+    const defaultErrorMsg = isDemoModeEnabled()
+      ? t('Editing data is not allowed in demo mode.')
+      : t('Failed to save');
+
     const request = this.doApiRequest({
       data: getDataFn(
         {[id]: this.getTransformedValue(id)},
@@ -663,11 +668,11 @@ class FormModel {
           } else if (firstError) {
             this.setError(id, firstError);
           } else {
-            this.setError(id, 'Failed to save');
+            this.setError(id, defaultErrorMsg);
           }
         } else {
           // Default error behavior
-          this.setError(id, 'Failed to save');
+          this.setError(id, defaultErrorMsg);
         }
 
         // eslint-disable-next-line no-console

@@ -62,7 +62,6 @@ export function SolutionsSectionCtaButton({
           }
           return true;
         },
-        transitionProps: {stiffness: 1000},
       }
     );
   };

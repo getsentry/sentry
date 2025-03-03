@@ -1,5 +1,5 @@
 ---
-created: '2025-01-30T21:48:30.179389+00:00'
+created: '2025-02-26T00:33:18.156712+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -57,7 +57,7 @@ system:
               "runApp"
             context-line*
               "return server.serve(port);"
-          frame* (marked out of app by stack trace rule (function:handleRequest -app +group))
+          frame*
             filename*
               "router.js"
             function*
@@ -71,7 +71,7 @@ system:
               "recordMetrics"
             context-line*
               "return withMetrics(handler, metricName, tags);"
-          frame* (marked in-app by stack trace rule (function:playFetch +app +group))
+          frame*
             filename*
               "dogpark.js"
             function*

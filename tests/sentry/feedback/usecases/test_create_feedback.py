@@ -811,50 +811,32 @@ def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occur
 
 
 @django_db_all
-def test_create_feedback_large_message_truncated(
-    default_project, mock_produce_occurrence_to_kafka, set_sentry_option
+@pytest.mark.parametrize("spam_enabled", (True, False))
+def test_create_feedback_filters_large_message(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch, set_sentry_option, spam_enabled
 ):
-    """Large messages are truncated before producing to kafka."""
-    with set_sentry_option("feedback.message.max-size", 4096):
+    """Large messages are filtered before spam detection and producing to kafka."""
+    features = (
+        {
+            "organizations:user-feedback-spam-filter-actions": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
+        }
+        if spam_enabled
+        else {}
+    )
+
+    mock_complete_prompt = Mock()
+    monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
+
+    with Feature(features), set_sentry_option("feedback.message.max-size", 4096):
         event = mock_feedback_event(default_project.id, datetime.now(UTC))
         event["contexts"]["feedback"]["message"] = "a" * 7007
         create_feedback_issue(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-    kwargs = mock_produce_occurrence_to_kafka.call_args[1]
-    assert len(kwargs["occurrence"].subtitle) == 4096
-
-
-@django_db_all
-def test_create_feedback_large_message_skips_spam_detection(
-    default_project, set_sentry_option, monkeypatch
-):
-    """If spam is enabled, large messages are marked as spam without making an LLM request."""
-    with (
-        Feature(
-            {
-                "organizations:user-feedback-spam-filter-actions": True,
-                "organizations:user-feedback-spam-filter-ingest": True,
-            }
-        ),
-        set_sentry_option("feedback.message.max-size", 4096),
-    ):
-
-        event = mock_feedback_event(default_project.id, datetime.now(UTC))
-        event["contexts"]["feedback"]["message"] = "a" * 7007
-
-        mock_complete_prompt = Mock()
-        monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
-
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
-        assert mock_complete_prompt.call_count == 0
-
-        group = Group.objects.get()
-        assert group.status == GroupStatus.IGNORED
-        assert group.substatus == GroupSubStatus.FOREVER
+    assert mock_complete_prompt.call_count == 0
+    assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
 """

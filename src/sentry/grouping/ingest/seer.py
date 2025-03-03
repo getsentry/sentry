@@ -4,6 +4,7 @@ from typing import Any
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import features, options
 from sentry import ratelimits as ratelimiter
@@ -400,8 +401,8 @@ def maybe_check_seer_for_matching_grouphash(
         if gh_metadata:
 
             # TODO: This should never be true (anything created with `objects.create` should have an
-            # id), but it seems in some cases to happen anyway. This is an attempt to mitigate the
-            # problem.
+            # id), but it seems in some cases to happen anyway. While we debug the problem, to avoid
+            # errors, bail early.
             metadata_id: Any = (
                 gh_metadata.id
             )  # Even mypy knows this should never happen, hence the need for the Any
@@ -409,27 +410,17 @@ def maybe_check_seer_for_matching_grouphash(
                 logger.info(
                     "grouphash_metadata.none_id",
                     extra={
+                        "grouphash_id": event_grouphash.id,
+                        "hash": event_grouphash.hash,
                         "event_id": event.event_id,
-                        "grouphash": str(event_grouphash),
-                        "grouphash_metadata": str(gh_metadata),
-                        "project": str(event.project),
+                        "project_slug": event.project.slug,
+                        "project_id": event.project.id,
+                        "org_id": event.organization.id,
                     },
                 )
-                gh_metadata.save()
+                return seer_matched_grouphash
 
-                # If that didn't work, log it and bail
-                metadata_id = gh_metadata.id
-                if metadata_id is None:
-                    logger.error(
-                        "grouphash_metadata.none_id_fix_failed",
-                        extra={
-                            "event_id": event.event_id,
-                            "grouphash": str(event_grouphash),
-                            "grouphash_metadata": str(gh_metadata),
-                            "project": str(event.project),
-                        },
-                    )
-                    return seer_matched_grouphash
+            timestamp = timezone.now()
 
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer
@@ -437,7 +428,12 @@ def maybe_check_seer_for_matching_grouphash(
                 # for us, and b) forcing them to be the same (rather than just close) lets us use
                 # their equality as a signal that the Seer call happened during ingest rather than
                 # during a backfill, without having to store that information separately.
-                seer_date_sent=gh_metadata.date_added,
+                #
+                # In rare race condition cases, `date_added` will be None (if different events win
+                # the race to create the relevant `GroupHash` and `GroupHashMetadata` records), so
+                # we set that if necessary here as well.
+                date_added=gh_metadata.date_added or timestamp,
+                seer_date_sent=gh_metadata.date_added or timestamp,
                 seer_event_sent=event.event_id,
                 seer_model=seer_response_data["similarity_model_version"],
                 seer_matched_grouphash=seer_matched_grouphash,

@@ -328,11 +328,6 @@ const Wrapper = styled(Input.withComponent('div'))`
   position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: text;
-
-  :focus-within {
-    border: 1px solid ${p => p.theme.focusBorder};
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
-  }
 `;
 
 const ButtonsWrapper = styled('div')`

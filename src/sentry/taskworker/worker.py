@@ -117,6 +117,7 @@ def child_worker(
         try:
             activation = child_tasks.get(timeout=0.1)
         except queue.Empty:
+            metrics.incr("taskworker.worker.child_task_queue_empty")
             continue
 
         task_func = _get_known_task(activation)
@@ -238,7 +239,6 @@ class TaskWorker:
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
-        prefetch_multiplier: float = 1.0,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -248,13 +248,8 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        queuesize = int(concurrency * prefetch_multiplier)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
-            maxsize=queuesize
-        )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(
-            maxsize=queuesize
-        )
+        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(maxsize=1)
+        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(maxsize=1)
         self._children: list[ForkProcess] = []
         self._shutdown_event = mp_context.Event()
         self._task_receive_timing: dict[str, float] = {}
@@ -342,22 +337,22 @@ class TaskWorker:
         except queue.Empty:
             return False
 
+        task_received = self._task_receive_timing.pop(result.task_id, None)
+        if task_received is not None:
+            metrics.distribution("taskworker.worker.complete_duration", time.time() - task_received)
+
         if fetch:
             fetch_next = None
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
+            metrics.incr("taskworker.worker.fetch_next", tags={"next": fetch_next is not None})
             try:
                 next_task = self.client.update_task(
                     task_id=result.task_id,
                     status=result.status,
                     fetch_next_task=fetch_next,
                 )
-                task_received = self._task_receive_timing.pop(result.task_id, None)
-                if task_received is not None:
-                    metrics.distribution(
-                        "taskworker.worker.complete_duration", time.time() - task_received
-                    )
             except grpc.RpcError as e:
                 logger.exception(
                     "taskworker.drain_result.update_task_failed",

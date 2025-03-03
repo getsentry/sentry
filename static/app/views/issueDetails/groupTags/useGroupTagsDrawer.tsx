@@ -11,11 +11,11 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 export function useGroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
   const navigate = useNavigate();
-  const drawer = useDrawer();
+  const {openDrawer} = useDrawer();
   const {baseUrl} = useGroupDetailsRoute();
 
   const openTagsDrawer = useCallback(() => {
-    drawer.openDrawer(() => <GroupTagsDrawer group={group} />, {
+    openDrawer(() => <GroupTagsDrawer group={group} />, {
       ariaLabel: t('Tags Drawer'),
       onClose: () => {
         navigate(
@@ -33,7 +33,7 @@ export function useGroupTagsDrawer({group}: {group: Group}) {
         return !newLocation.pathname.includes('/tags/');
       },
     });
-  }, [location, navigate, drawer, group, baseUrl]);
+  }, [location, navigate, openDrawer, group, baseUrl]);
 
   return {openTagsDrawer};
 }

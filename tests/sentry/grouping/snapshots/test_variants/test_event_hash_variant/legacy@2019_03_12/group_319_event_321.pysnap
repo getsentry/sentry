@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.862292+00:00'
+created: '2025-02-26T00:33:47.256995+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -202,7 +202,7 @@ system:
     system*
       exception*
         stacktrace
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "start"
           frame
@@ -304,13 +304,13 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
           frame
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_sigtramp"
           frame
@@ -376,10 +376,10 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__pthread_kill"
         type*
