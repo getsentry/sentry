@@ -71,6 +71,8 @@ class IssueAlertMigrator:
         if self.should_create_actions:
             self._create_workflow_actions(if_dcg=if_dcg, actions=self.data["actions"])
 
+        return workflow
+
     def _create_detector_lookup(self) -> Detector:
         if self.is_dry_run:
             created = True

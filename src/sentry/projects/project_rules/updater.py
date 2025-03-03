@@ -48,10 +48,11 @@ class ProjectRuleUpdater:
             ):
                 # uncaught errors will rollback the transaction
                 workflow = update_migrated_issue_alert(self.rule)
-                logger.info(
-                    "workflow_engine.issue_alert.updated",
-                    extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
-                )
+                if workflow:
+                    logger.info(
+                        "workflow_engine.issue_alert.updated",
+                        extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                    )
             return self.rule
 
     def _update_name(self) -> None:

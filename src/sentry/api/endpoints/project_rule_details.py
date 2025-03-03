@@ -380,10 +380,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 "organizations:workflow-engine-issue-alert-dual-write", project.organization
             ):
                 workflow_id = delete_migrated_issue_alert(rule)
-                logger.info(
-                    "workflow_engine.issue_alert.deleted",
-                    extra={"rule_id": rule_id, "workflow_id": workflow_id},
-                )
+                if workflow_id:
+                    logger.info(
+                        "workflow_engine.issue_alert.deleted",
+                        extra={"rule_id": rule_id, "workflow_id": workflow_id},
+                    )
 
         self.create_audit_entry(
             request=request,
