@@ -12,7 +12,11 @@ def buffer(request):
         from sentry.testutils.helpers.redis import use_redis_cluster
 
         with use_redis_cluster("default"):
-            yield RedisSpansBufferV2()
+            buf = RedisSpansBufferV2()
+            # since we patch the default redis cluster only temporarily, we
+            # need to clean it up ourselves.
+            buf.client.flushall()
+            yield buf
     else:
         yield RedisSpansBufferV2()
 
@@ -34,7 +38,7 @@ def assert_clean(client: StrictRedis[bytes]):
     Note: CANNOT be done in pytest fixture as that one runs _after_ redis gets
     wiped by the test harness.
     """
-    assert not client.keys("*")
+    assert not [x for x in client.keys("*") if b":sr:" not in x]
 
 
 def test_basic(buffer: RedisSpansBufferV2):
@@ -120,6 +124,34 @@ def test_parent_middle(buffer: RedisSpansBufferV2):
     assert_clean(buffer.client)
 
 
+def test_parent_middle_deep(buffer: RedisSpansBufferV2):
+    spans = [
+        Span(
+            payload=b"B", trace_id="a" * 32, span_id="b" * 16, parent_span_id="a" * 16, project_id=1
+        ),
+        Span(
+            payload=b"D", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
+        ),
+        Span(payload=b"A", trace_id="a" * 32, span_id="a" * 16, parent_span_id=None, project_id=1),
+        Span(
+            payload=b"C", trace_id="a" * 32, span_id="c" * 16, parent_span_id="a" * 16, project_id=1
+        ),
+    ]
+
+    buffer.process_spans(spans, now=0)
+
+    assert_ttls(buffer.client)
+
+    assert buffer.flush_segments(now=10) == {}
+    assert buffer.flush_segments(now=20) == {}
+    rv = buffer.flush_segments(now=60)
+    assert rv == {buffer._segment_id(1, "a" * 32, "a" * 16): {b"D", b"B", b"A", b"C"}}
+
+    buffer.done_flush_segments(rv)
+
+    assert_clean(buffer.client)
+
+
 def test_parent_in_other_project(buffer: RedisSpansBufferV2):
     spans = [
         Span(
@@ -182,6 +214,3 @@ def test_parent_in_other_project_first(buffer: RedisSpansBufferV2):
     buffer.done_flush_segments(rv)
 
     assert_clean(buffer.client)
-
-
-# TODO: transitive parents

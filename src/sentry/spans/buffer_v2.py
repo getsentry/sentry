@@ -1,7 +1,57 @@
+"""
+Span buffer is a consumer that takes individual spans from snuba-spans (soon
+ingest-spans, anyway, from Relay) and assembles them to segments of this form:
+
+    {"spans": <span1>,<span2>,<span3>}
+
+We have to do this without having such a thing as segment ID:
+
+    span1 = {"span_id": "a...", "parent_span_id": "b..."}
+    span2 = {"span_id": "b...", "parent_span_id": "c..."}
+    span3 = {"span_id": "c...", "parent_span_id": "d..."}
+
+In other words, spans only know their parent spans' IDs, and the segment should
+be assembled according to those relationships and implied transitive ones.
+
+There are a few ways to detect when a span is a root span (aka segment span):
+
+1. It does not have a parent_span_id
+2. It has an explicit is_segment_span marker, or some attribute directly on the span.
+3. For some time, no span comes in that identifies itself as parent.
+4. The parent span exists in another project.
+
+We simplify this set of conditions for the span buffer:
+
+* Relay writes is_segment based on some other attributes for us, so that we don't have to look at N span-local attributes. This simplifies condition 2.
+* The span buffer is sharded by project. Therefore, condition 4 is handled by the code for condition 3, although with some delay.
+
+Segments are flushed out to `buffered-spans` topic under two conditions:
+
+* If the segment has a root span, it is flushed out after `span_buffer_root_timeout` seconds of inactivity.
+* Otherwise, it is flushed out after `span_buffer_timeout` seconds of inactivity.
+
+Now how does that look like in Redis? For each incoming span, we:
+
+1. Try to figure out what the name of the respective span buffer is (`set_key` in `add-buffer.lua`)
+  a. We look up any "redirects" from the span buffer's parent_span_id (key "span-buf:sr:{project_id:trace_id}:span_id") to another key.
+  b. Otherwise we use "span-buf:s:{project_id:trace_id}:span_id"
+2. Rename any span buffers keyed under the span's own span ID to `set_key`, merging their contents.
+3. Add the ingested span's payload to the set under `set_key`.
+4. To a "global queue", we write the set's key, sorted by timeout.
+
+Eventually, flushing cronjob looks at that global queue, and removes all timed
+out keys from it. Then fetches the sets associated with those keys, and deletes
+the sets.
+
+This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
+then the consumer produces them, then they are deleted from Redis
+(`done_flush_segments`)
+
+"""
+
 from __future__ import annotations
 
 from collections.abc import Collection, Sequence
-from functools import partial
 from typing import NamedTuple
 
 from django.conf import settings
@@ -22,6 +72,9 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
+add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
+
+
 # fun fact: namedtuples are faster to construct than dataclasses
 class Span(NamedTuple):
     trace_id: str
@@ -36,58 +89,65 @@ class RedisSpansBufferV2:
     def __init__(
         self,
         sharding_factor: int = 32,
-        span_buffer_timeout: int = 60,
-        span_buffer_root_timeout: int = 10,
+        span_buffer_timeout_secs: int = 60,
+        span_buffer_root_timeout_secs: int = 10,
         redis_ttl: int = 3600,
     ):
         self.client: RedisCluster[bytes] | StrictRedis[bytes] = get_redis_client()
         self.sharding_factor = sharding_factor
-        self.span_buffer_timeout = span_buffer_timeout
-        self.span_buffer_root_timeout = span_buffer_root_timeout
+        self.span_buffer_timeout = span_buffer_timeout_secs
+        self.span_buffer_root_timeout = span_buffer_root_timeout_secs
         self.max_timeout = redis_ttl
-
-    @staticmethod
-    def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
-        return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
     def _is_root_span(self, span: Span) -> bool:
         return span.parent_span_id is None or span.is_segment_span
 
     def process_spans(self, spans: Sequence[Span], now: int):
+        queue_keys = []
+        queue_items = []
+        queue_item_timeouts = []
+
         with self.client.pipeline(transaction=False) as p:
             for span in spans:
                 # (parent_span_id) -> [Span]
                 shard = int(span.trace_id, 16) % self.sharding_factor
                 queue_key = f"span-buf:q:{shard}"
-                _key = partial(self._segment_id, span.project_id, span.trace_id)
                 parent_span_id = span.parent_span_id or span.span_id
-                parent_key = _key(parent_span_id)
-                span_key = _key(span.span_id)
 
                 is_root_span = self._is_root_span(span)
 
-                if not is_root_span:
-                    # redis-py-cluster thinks that SUNIONSTORE is not safe to
-                    # run, but we know better. we can guarantee that all
-                    # affected keys are hashed into the same slot, as they all
-                    # have the same trace and project id
-                    p.pipeline_execute_command("SUNIONSTORE", parent_key, parent_key, span_key)
-                    p.delete(span_key)
-                    p.zrem(queue_key, span_key)
-
-                parent_span_id = span.parent_span_id or span.span_id
-                # TODO: shard this set?
-                # TODO: do we actually need set operations, maybe array is faster?
-                p.sadd(parent_key, span.payload)
-                p.expire(parent_key, self.max_timeout)
+                # hack to make redis-cluster-py pipelines work well with
+                # scripts. we cannot use EVALSHA or "the normal way to do
+                # scripts in sentry" easily until we get rid of
+                # redis-cluster-py sentrywide. this probably leaves a bit of
+                # perf on the table as we send the full lua sourcecode with every span.
+                p.eval(
+                    add_buffer_script.script,
+                    1,
+                    f"{span.project_id}:{span.trace_id}",
+                    span.payload,
+                    "true" if is_root_span else "false",
+                    span.span_id,
+                    parent_span_id,
+                    self.max_timeout,
+                )
 
                 if is_root_span:
                     pq_timestamp = now + self.span_buffer_root_timeout
                 else:
                     pq_timestamp = now + self.span_buffer_timeout
 
-                p.zadd(queue_key, {parent_key: pq_timestamp})
-                p.expire(queue_key, self.max_timeout)
+                queue_keys.append(queue_key)
+                queue_item_timeouts.append(pq_timestamp)
+
+            results = p.execute()
+            for result in results:
+                queue_items.append(result)
+
+        with self.client.pipeline(transaction=False) as p:
+            for key, item, timeout in zip(queue_keys, queue_items, queue_item_timeouts):
+                p.zadd(key, {item: timeout})
+                p.expire(key, self.max_timeout)
 
             p.execute()
 
