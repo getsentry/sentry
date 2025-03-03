@@ -11,7 +11,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useUserFromId from 'sentry/utils/useUserFromId';
-import type {Secret} from 'sentry/views/settings/featureFlags';
+import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 
 export function OrganizationFeatureFlagsProviderRow({
   isRemoving,

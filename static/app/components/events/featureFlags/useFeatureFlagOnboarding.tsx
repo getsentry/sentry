@@ -31,7 +31,7 @@ export function useFeatureFlagOnboarding() {
   }, []);
 
   // if we detect that event.contexts.flags is set, use this hook instead
-  // to skip the configure step
+  // to hide the eval tracking SDK configuration.
   const activateSidebarSkipConfigure = useCallback(
     (event: React.MouseEvent, projectId: string) => {
       event.preventDefault();
