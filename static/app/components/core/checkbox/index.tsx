@@ -1,5 +1,4 @@
-import {useLayoutEffect, useRef} from 'react';
-import {css} from '@emotion/react';
+import {forwardRef, useImperativeHandle, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -29,52 +28,55 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export function Checkbox({
-  className,
-  checked = false,
-  size = 'sm',
-  ...props
-}: CheckboxProps) {
-  const checkboxRef = useRef<HTMLInputElement>(null);
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+  ({checked = false, size = 'sm', className, ...props}, ref) => {
+    const nativeCheckboxRef = useRef<HTMLInputElement>(null);
+    useImperativeHandle(ref, () => nativeCheckboxRef.current as HTMLInputElement);
 
-  // indeterminate attribute can only be set through javascript
-  useLayoutEffect(() => {
-    if (checkboxRef.current) {
-      checkboxRef.current.indeterminate = checked === 'indeterminate';
+    if (nativeCheckboxRef.current) {
+      nativeCheckboxRef.current.indeterminate = checked === 'indeterminate';
     }
-  }, [checked]);
 
-  return (
-    <Wrapper className={className} checked={checked} size={size}>
-      <HiddenInput
-        ref={checkboxRef}
-        checked={checked !== 'indeterminate' && checked}
-        type="checkbox"
-        {...props}
-      />
+    const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
+      className,
+      style: props.style,
+    };
 
-      <StyledCheckbox aria-hidden checked={checked} size={size}>
-        {checked === true && (
-          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
-            <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
-          </VariableWeightIcon>
-        )}
-        {checked === 'indeterminate' && (
-          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
-            <path d="M3 8H13" />
-          </VariableWeightIcon>
-        )}
-      </StyledCheckbox>
-      {!props.disabled && (
-        <InteractionStateLayer
-          higherOpacity={checked === true || checked === 'indeterminate'}
+    return (
+      <CheckboxWrapper checked={checked} size={size} {...wrapperProps}>
+        <NativeHiddenCheckbox
+          ref={nativeCheckboxRef}
+          checked={checked !== 'indeterminate' && checked}
+          type="checkbox"
+          aria-checked={checked === 'indeterminate' ? 'mixed' : checked}
+          {...props}
         />
-      )}
-    </Wrapper>
-  );
-}
 
-const Wrapper = styled('div')<{checked: CheckboxProps['checked']; size: FormSize}>`
+        <FakeCheckbox aria-hidden checked={checked} size={size}>
+          {(checked === true || checked === 'indeterminate') && (
+            <CheckboxIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+              {checked === 'indeterminate' ? (
+                <path d="M3 8H13" />
+              ) : (
+                <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
+              )}
+            </CheckboxIcon>
+          )}
+        </FakeCheckbox>
+        {!props.disabled && (
+          <InteractionStateLayer
+            higherOpacity={checked === true || checked === 'indeterminate'}
+          />
+        )}
+      </CheckboxWrapper>
+    );
+  }
+);
+
+const CheckboxWrapper = styled('div')<{
+  checked: CheckboxProps['checked'];
+  size: FormSize;
+}>`
   position: relative;
   cursor: pointer;
   display: inline-flex;
@@ -83,7 +85,7 @@ const Wrapper = styled('div')<{checked: CheckboxProps['checked']; size: FormSize
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
 `;
 
-const HiddenInput = styled('input')`
+const NativeHiddenCheckbox = styled('input')`
   position: absolute;
   opacity: 0;
   top: 0;
@@ -95,31 +97,18 @@ const HiddenInput = styled('input')`
   cursor: pointer;
 
   &:focus-visible + * {
-    ${p =>
-      p.checked
-        ? css`
-            box-shadow: ${p.theme.focus} 0 0 0 3px;
-          `
-        : css`
-            border-color: ${p.theme.focusBorder};
-            box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
-          `}
+    box-shadow: ${p =>
+      p.checked ? `${p.theme.focus} 0 0 0 3px` : `${p.theme.focusBorder} 0 0 0 1px`};
+    border-color: ${p => (p.checked ? p.theme.focusBorder : 'none')};
   }
 
   &:disabled + * {
-    ${p =>
-      p.checked
-        ? css`
-            background: ${p.theme.disabled};
-          `
-        : css`
-            background: ${p.theme.backgroundSecondary};
-            border-color: ${p.theme.disabledBorder};
-          `}
+    background: ${p => (p.checked ? p.theme.disabled : p.theme.backgroundSecondary)};
+    border-color: ${p => (p.checked ? p.theme.disabledBorder : 'inherit')};
   }
 `;
 
-const StyledCheckbox = styled('div')<{
+const FakeCheckbox = styled('div')<{
   checked: CheckboxProps['checked'];
   size: FormSize;
 }>`
@@ -134,19 +123,11 @@ const StyledCheckbox = styled('div')<{
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
   pointer-events: none;
 
-  ${p =>
-    p.checked
-      ? css`
-          background: ${p.color ?? p.theme.active};
-          border: 0;
-        `
-      : css`
-          background: ${p.theme.background};
-          border: 1px solid ${p.theme.gray200};
-        `}
+  background: ${p => (p.checked ? p.color ?? p.theme.active : p.theme.background)};
+  border: ${p => (p.checked ? 'none' : `1px solid ${p.theme.gray200}`)};
 `;
 
-const VariableWeightIcon = styled('svg')<{size: string}>`
+const CheckboxIcon = styled('svg')<{size: string}>`
   width: ${p => p.size};
   height: ${p => p.size};
 

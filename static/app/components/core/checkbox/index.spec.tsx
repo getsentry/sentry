@@ -4,55 +4,43 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
 
+function ControlledCheckbox() {
+  const [checked, setChecked] = useState(false);
+
+  return (
+    <label>
+      <Checkbox checked={checked} onChange={e => setChecked(e.target.checked)} />
+      Custom Label
+    </label>
+  );
+}
+
 describe('Checkbox', function () {
-  const defaultProps = {
-    checked: false,
-    onChange: jest.fn(),
-  };
+  it('default is unchecked', function () {
+    render(<Checkbox checked={false} />);
 
-  describe('snapshots', function () {
-    it('unchecked state', async function () {
-      render(<Checkbox {...defaultProps} />);
-
-      expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-    });
-
-    it('checked state', async function () {
-      render(<Checkbox {...defaultProps} checked />);
-
-      expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-    });
-
-    it('indeterminate state', async function () {
-      render(<Checkbox {...defaultProps} checked="indeterminate" />);
-
-      expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-    });
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
-  describe('behavior', function () {
-    function CheckboxWithLabel() {
-      const [checked, setChecked] = useState(false);
+  it('checked', function () {
+    render(<Checkbox checked />);
+    expect(screen.getByRole('checkbox')).toBeChecked();
+  });
 
-      return (
-        <label>
-          <Checkbox
-            checked={checked}
-            onChange={e => {
-              setChecked(e.target.checked);
-            }}
-          />
-          Label text
-        </label>
-      );
-    }
+  it('indeterminate', function () {
+    render(<Checkbox checked="indeterminate" />);
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+  });
 
+  describe('controlled checkbox', function () {
     it('toggles on click', async function () {
-      render(<CheckboxWithLabel />);
+      render(<ControlledCheckbox />);
 
       expect(screen.getByRole('checkbox')).not.toBeChecked();
-      await userEvent.click(screen.getByLabelText('Label text'));
+      await userEvent.click(screen.getByLabelText('Custom Label'));
       expect(screen.getByRole('checkbox')).toBeChecked();
     });
   });
+
+  // @TODO(jonasbadalic): Checkbox should support uncontrolled state
 });
