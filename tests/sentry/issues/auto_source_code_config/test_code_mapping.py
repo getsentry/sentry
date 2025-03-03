@@ -146,8 +146,8 @@ class TestFrameInfo:
         ],
     )
     def test_straight_path_prefix(self, frame_filename: str, prefix: str) -> None:
-        frame_filename = FrameInfo({"filename": frame_filename})
-        assert frame_filename.stack_root == prefix
+        frame_info = FrameInfo({"filename": frame_filename})
+        assert frame_info.stack_root == prefix
 
 
 class TestDerivedCodeMappings(TestCase):
