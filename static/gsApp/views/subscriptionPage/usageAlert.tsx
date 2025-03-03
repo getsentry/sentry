@@ -60,6 +60,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
       plan: subscription.planDetails,
       category,
       capitalize: false,
+      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
     return category === DataCategory.ATTACHMENTS
@@ -169,6 +170,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
               plan: subscription.planDetails,
               category,
               capitalize: false,
+              hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
             })
           );
         }
@@ -184,6 +186,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
             plan: subscription.planDetails,
             category: DataCategory.ERRORS,
             capitalize: false,
+            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
           });
 
     return (
