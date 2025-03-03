@@ -192,6 +192,20 @@ function getRootDomain(url: string): string {
 }
 
 /**
+ * Extracts the protocol from a URL string (e.g. "https:" from "https://example.com")
+ *
+ * @param url The URL string to extract the protocol from
+ * @returns The protocol string (including the colon), or empty string if URL is invalid
+ */
+function getProtocol(url: string): string {
+  try {
+    return new URL(url).protocol;
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Determines whether to display the absolute path in the frame title
  *
  * This helps identify frames from external domains vs the application's domain.
@@ -214,5 +228,14 @@ export function shouldDisplayAbsPathInTitle(frame: Frame, event: Event): boolean
   const eventRootDomain = getRootDomain(eventOrigin);
   const frameRootDomain = getRootDomain(frame.absPath);
 
-  return eventRootDomain !== frameRootDomain;
+  // If domains are different, always show the absolute path
+  if (eventRootDomain !== frameRootDomain) {
+    return true;
+  }
+
+  // If domains match, check if protocols differ
+  const eventProtocol = getProtocol(eventOrigin);
+  const frameProtocol = getProtocol(frame.absPath);
+
+  return eventProtocol !== frameProtocol;
 }

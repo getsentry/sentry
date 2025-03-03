@@ -84,6 +84,17 @@ describe('shouldDisplayAbsPathInTitle', () => {
     expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
   });
 
+  it('returns true when script is from a different protocol', () => {
+    const event = {
+      tags: [{key: 'url', value: 'https://example.com/page'}],
+      platform: 'javascript',
+    } as Event;
+    const frame = {
+      absPath: 'http://example.com/script.js',
+    } as Frame;
+    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+  });
+
   it('returns false when platform is not js', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
@@ -97,7 +108,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
 
   it('returns false when event URL is an IP address', () => {
     const event = {
-      tags: [{key: 'url', value: 'http://192.168.1.1/page'}],
+      tags: [{key: 'url', value: 'https://192.168.1.1/page'}],
       platform: 'javascript',
     } as Event;
     const frame = {
@@ -119,7 +130,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
 
   it('returns true when script is from different IP than event', () => {
     const event = {
-      tags: [{key: 'url', value: 'http://192.168.1.1/page'}],
+      tags: [{key: 'url', value: 'https://192.168.1.1/page'}],
       platform: 'javascript',
     } as Event;
     const frame = {
