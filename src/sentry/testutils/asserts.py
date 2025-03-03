@@ -1,3 +1,5 @@
+from functools import reduce
+
 from django.http import StreamingHttpResponse
 
 from sentry.integrations.types import EventLifecycleOutcome
@@ -110,3 +112,12 @@ def assert_middleware_metrics(middleware_calls):
     assert end1.args[0] == EventLifecycleOutcome.SUCCESS
     assert start2.args[0] == EventLifecycleOutcome.STARTED
     assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+
+
+def assert_count_of_metric(mock_record, outcome, outcome_count):
+    calls = reduce(
+        lambda acc, calls: (acc + 1 if calls.args[0] == outcome else acc),
+        mock_record.mock_calls,
+        0,
+    )
+    assert calls == outcome_count

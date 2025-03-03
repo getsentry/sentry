@@ -1,6 +1,5 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
-from functools import reduce
 from unittest.mock import ANY, patch
 
 import pytest
@@ -39,7 +38,11 @@ from sentry.sentry_apps.tasks.sentry_apps import (
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_failure_metric,
+    assert_success_metric,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -347,25 +350,28 @@ class TestProcessResourceChange(TestCase):
             "Sentry-Hook-Signature",
         }
         assert_success_metric(mock_record)
-        started_calls = reduce(
-            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
-            mock_record.mock_calls,
-            0,
-        )
-        success_calls = reduce(
-            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
-            mock_record.mock_calls,
-            0,
-        )
 
-        assert started_calls == 3
-        assert success_calls == 3
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_disallowed_event(self, mock_record, safe_urlopen):
         process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
         assert_failure_metric(mock_record, "invalid_event")
+
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_sentry_apps_without_issue_webhooks(self, mock_record, safe_urlopen):
@@ -380,19 +386,14 @@ class TestProcessResourceChange(TestCase):
 
         assert len(safe_urlopen.mock_calls) == 0
         assert_success_metric(mock_record)
-        started_calls = reduce(
-            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
-            mock_record.mock_calls,
-            0,
-        )
-        success_calls = reduce(
-            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
-            mock_record.mock_calls,
-            0,
-        )
 
-        assert started_calls == 1
-        assert success_calls == 1
+        # PREPARE_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps._process_resource_change")
     def test_process_resource_change_bound_passes_retry_object(self, process, safe_urlopen):
@@ -453,19 +454,14 @@ class TestProcessResourceChange(TestCase):
         }
 
         assert_success_metric(mock_record)
-        started_calls = reduce(
-            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
-            mock_record.mock_calls,
-            0,
-        )
-        success_calls = reduce(
-            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
-            mock_record.mock_calls,
-            0,
-        )
 
-        assert started_calls == 3
-        assert success_calls == 3
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
 
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
     @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")
@@ -525,8 +521,9 @@ class TestSendResourceChangeWebhook(TestCase):
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:integrations-event-hooks")
-    def test_sends_webhooks_to_all_installs(self, safe_urlopen):
+    def test_sends_webhooks_to_all_installs(self, mock_record, safe_urlopen):
         one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -927,12 +924,12 @@ class TestWebhookRequests(TestCase):
         with assume_test_silo_mode_of(SentryApp):
             self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
-        # we don't raise errors for unpublished and internal apps
-        # with pytest.raises(SentryAppSentryError):
-        for i in range(3):
-            send_webhooks(
-                installation=self.install, event="event.alert", data=data, actor=self.user
-            )
+        # event.alert is not in the servicehook events
+        with pytest.raises(SentryAppSentryError):
+            for i in range(3):
+                send_webhooks(
+                    installation=self.install, event="event.alert", data=data, actor=self.user
+                )
         assert not safe_urlopen.called
         assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
         assert len(self.integration_buffer._get_all_from_buffer()) == 0
