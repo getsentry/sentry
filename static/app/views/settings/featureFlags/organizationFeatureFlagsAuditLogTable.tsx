@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
