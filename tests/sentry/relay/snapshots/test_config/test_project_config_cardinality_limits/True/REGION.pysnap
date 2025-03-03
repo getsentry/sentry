@@ -1,5 +1,5 @@
 ---
-created: '2024-05-03T06:37:35.696243+00:00'
+created: '2025-02-12T13:41:13.874417+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -28,22 +28,6 @@ cardinalityLimits:
   window:
     granularitySeconds: 300
     windowSeconds: 3000
-- id: custom
-  limit: 40
-  namespace: custom
-  passive: true
-  scope: organization
-  window:
-    granularitySeconds: 400
-    windowSeconds: 4000
-- id: profiles
-  limit: 60
-  namespace: profiles
-  passive: true
-  scope: organization
-  window:
-    granularitySeconds: 600
-    windowSeconds: 3600
 - id: test3
   limit: 90
   scope: name

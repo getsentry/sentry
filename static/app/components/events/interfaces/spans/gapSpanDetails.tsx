@@ -177,7 +177,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
     : undefined;
 
   const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectSlug: event?.projectSlug ?? '',
     profileId,
     query,
@@ -193,7 +193,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
   return (
     <HeaderContainer>
       <HeaderContainer>
-        <SectionHeading>{t('Related Profile')}</SectionHeading>
+        <SectionHeading>{t('Profile')}</SectionHeading>
         <QuestionTooltip
           position="top"
           size="sm"

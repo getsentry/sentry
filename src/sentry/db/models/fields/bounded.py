@@ -10,6 +10,7 @@ __all__ = (
     "BoundedIntegerField",
     "BoundedBigIntegerField",
     "BoundedPositiveIntegerField",
+    "BoundedPositiveBigIntegerField",
 )
 
 
@@ -59,6 +60,20 @@ if settings.SENTRY_USE_BIG_INTS:
                 assert value <= self.MAX_VALUE
             return super().get_prep_value(value)
 
+    class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField):
+        description = _("Positive big integer")
+
+        MAX_VALUE = 9223372036854775807
+
+        def get_internal_type(self) -> str:
+            return "PositiveBigIntegerField"
+
+        def get_prep_value(self, value: int) -> int:
+            if value:
+                value = int(value)
+                assert value <= self.MAX_VALUE
+            return super().get_prep_value(value)
+
     class BoundedBigAutoField(models.BigAutoField):
         description = _("Big Integer")
 
@@ -76,6 +91,9 @@ if settings.SENTRY_USE_BIG_INTS:
 else:
     # we want full on classes for these
     class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore[no-redef]
+        pass
+
+    class BoundedPositiveBigIntegerField(BoundedPositiveIntegerField):  # type: ignore[no-redef]
         pass
 
     class BoundedBigAutoField(BoundedAutoField):  # type: ignore[no-redef]

@@ -115,8 +115,9 @@ describe('CanvasView', () => {
       const canvas = makeCanvasMock({
         getContext: jest
           .fn()
-          // @ts-expect-error
-          .mockReturnValue(makeContextMock({canvas: {width: 1000, height: 2000}})),
+          .mockReturnValue(
+            makeContextMock({canvas: {width: 1000, height: 2000} as HTMLCanvasElement})
+          ),
       });
 
       const flamegraph = makeFlamegraph({startValue: 0, endValue: 100});
@@ -330,8 +331,8 @@ describe('CanvasView', () => {
         flamegraphCanvas
       );
       // 500 - 500 offset = 0
-      expect(cursor[0]).toEqual(0);
-      expect(cursor[1]).toEqual(25);
+      expect(cursor[0]).toBe(0);
+      expect(cursor[1]).toBe(25);
     });
     it('getTransformedConfigViewCursor', () => {
       const canvas = makeCanvasMock({width: 1000, height: 1000});
@@ -359,8 +360,8 @@ describe('CanvasView', () => {
         flamegraphCanvas
       );
 
-      expect(cursor[0]).toEqual(600);
-      expect(cursor[1]).toEqual(25);
+      expect(cursor[0]).toBe(600);
+      expect(cursor[1]).toBe(25);
     });
   });
 });

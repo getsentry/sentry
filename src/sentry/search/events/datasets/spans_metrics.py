@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import TypedDict
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
+from snuba_sdk import Column, Condition, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -16,7 +16,6 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import SnQLStringArg, get_function_alias
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
 
@@ -61,6 +60,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 self.builder, alias
             ),
             constants.PROJECT_NAME_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
+                self.builder, alias
+            ),
+            constants.MESSAGING_OPERATION_TYPE_ALIAS: lambda alias: field_aliases.resolve_column_if_exists(
+                self.builder, alias
+            ),
+            constants.MESSAGING_OPERATION_NAME_ALIAS: lambda alias: field_aliases.resolve_column_if_exists(
                 self.builder, alias
             ),
         }
@@ -180,6 +185,23 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "division",
+                    required_args=[
+                        fields.MetricArg(
+                            # the dividend, needs to be named column, otherwise the query builder won't be able to determine the correct target table
+                            "column",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "divisorColumn",
+                            allow_custom_measurements=False,
+                        ),
+                    ],
+                    snql_gauge=self._resolve_division,
+                    snql_distribution=self._resolve_division,
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
                     "division_if",
                     required_args=[
                         fields.MetricArg(
@@ -232,6 +254,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -627,6 +650,46 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count_publish",
+                    snql_distribution=self._resolve_count_publish,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count_process",
+                    snql_distribution=self._resolve_count_process,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "avg_if_publish",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.SPAN_METRIC_COUNT_COLUMNS,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_gauge=self._resolve_avg_if_publish,
+                    snql_distribution=self._resolve_avg_if_publish,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "avg_if_process",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.SPAN_METRIC_COUNT_COLUMNS,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_gauge=self._resolve_avg_if_process,
+                    snql_distribution=self._resolve_avg_if_process,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
                 ),
                 fields.MetricsFunction(
                     "trace_status_rate",
@@ -1027,18 +1090,22 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_epm(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: dict[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition)
 
     def _resolve_eps(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: dict[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(None, args, alias, extra_condition)
 
     def _resolve_rate(
@@ -1219,6 +1286,136 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _is_messaging_op(self, op: str, operation_name: str, operation_type: str) -> Function:
+        hasOperationNameColumn = self.builder.resolve_tag_key("messaging.operation.name")
+        hasOperationTypeColumn = self.builder.resolve_tag_key("messaging.operation.type")
+        return Function(
+            "or",
+            [
+                Function(
+                    "equals",
+                    [
+                        self.builder.column("span.op"),
+                        self.builder.resolve_tag_value(op),
+                    ],
+                ),
+                hasOperationTypeColumn
+                and Function(
+                    "equals",
+                    [
+                        self.builder.column("messaging.operation.type"),
+                        self.builder.resolve_tag_value(operation_type),
+                    ],
+                ),
+                hasOperationNameColumn
+                and Function(
+                    "equals",
+                    [
+                        self.builder.column("messaging.operation.name"),
+                        self.builder.resolve_tag_value(operation_name),
+                    ],
+                ),
+            ],
+        )
+
+    def _resolve_count_publish(self, args, alias):
+        op = "queue.publish"
+        operation_name = "publish"
+        operation_type = "create"
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            self._is_messaging_op(op, operation_name, operation_type),
+            alias,
+        )
+
+    def _resolve_count_process(self, args, alias):
+        op = "queue.process"
+        operation_name = "process"
+        operation_type = "process"
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            self._is_messaging_op(op, operation_name, operation_type),
+            alias,
+        )
+
+    def _resolve_avg_if_publish(self, args, alias):
+        op = "queue.publish"
+        operation_name = "publish"
+        operation_type = "create"
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                args["metric_id"],
+                            ],
+                        ),
+                        self._is_messaging_op(op, operation_name, operation_type),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg_if_process(self, args, alias):
+        op = "queue.process"
+        operation_name = "process"
+        operation_type = "process"
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                args["metric_id"],
+                            ],
+                        ),
+                        self._is_messaging_op(op, operation_name, operation_type),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_sum(self, metric_name: str, alias: str | None = None):
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        self.resolve_metric(metric_name),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
     def _resolve_avg(self, args, alias):
         return Function(
             "avgIf",
@@ -1296,6 +1493,17 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_division(
+        self,
+        args: Mapping[str, str | Column | SelectType],
+        alias: str,
+    ) -> SelectType:
+        return function_aliases.resolve_division(
+            self._resolve_sum(args["column"], None),
+            self._resolve_sum(args["divisorColumn"], None),
+            alias,
+        )
+
     def _resolve_avg_compare(self, args, alias):
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
 
@@ -1354,281 +1562,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ),
             alias,
         )
-
-    @property
-    def orderby_converter(self) -> Mapping[str, OrderBy]:
-        return {}
-
-
-class SpansMetricsLayerDatasetConfig(DatasetConfig):
-    missing_function_error = IncompatibleMetricsQuery
-
-    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
-        self.builder = builder
-        self.total_span_duration: float | None = None
-
-    def resolve_mri(self, value: str) -> Column:
-        """Given the public facing column name resolve it to the MRI and return a Column"""
-        # If the query builder has not detected a transaction use the light self time metric to get a performance boost
-        if value == "span.self_time" and not self.builder.has_transaction:
-            return Column(constants.SELF_TIME_LIGHT)
-        else:
-            return Column(constants.SPAN_METRICS_MAP[value])
-
-    @property
-    def search_filter_converter(
-        self,
-    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
-        return {}
-
-    @property
-    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        return {
-            constants.SPAN_MODULE_ALIAS: lambda alias: field_aliases.resolve_span_module(
-                self.builder, alias
-            )
-        }
-
-    @property
-    def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
-        """Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since
-        the Metric Layer will actually handle which dataset each function goes to
-        """
-
-        function_converter = {
-            function.name: function
-            for function in [
-                fields.MetricsFunction(
-                    "count_unique",
-                    required_args=[
-                        fields.MetricArg(
-                            "column",
-                            allowed_columns=["user"],
-                            allow_custom_measurements=False,
-                        )
-                    ],
-                    snql_metric_layer=lambda args, alias: Function(
-                        "count_unique",
-                        [self.resolve_mri("user")],
-                        alias,
-                    ),
-                    default_result_type="integer",
-                ),
-                fields.MetricsFunction(
-                    "epm",
-                    snql_metric_layer=lambda args, alias: Function(
-                        "rate",
-                        [
-                            self.resolve_mri("span.self_time"),
-                            args["interval"],
-                            60,
-                        ],
-                        alias,
-                    ),
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="rate",
-                ),
-                fields.MetricsFunction(
-                    "eps",
-                    snql_metric_layer=lambda args, alias: Function(
-                        "rate",
-                        [
-                            self.resolve_mri("span.self_time"),
-                            args["interval"],
-                            1,
-                        ],
-                        alias,
-                    ),
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="rate",
-                ),
-                fields.MetricsFunction(
-                    "count",
-                    snql_metric_layer=lambda args, alias: Function(
-                        "count",
-                        [
-                            self.resolve_mri("span.self_time"),
-                        ],
-                        alias,
-                    ),
-                    default_result_type="integer",
-                ),
-                fields.MetricsFunction(
-                    "sum",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_SUMMABLE_COLUMNS,
-                                allow_custom_measurements=False,
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: Function(
-                        "sum",
-                        [self.resolve_mri(args["column"])],
-                        alias,
-                    ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "avg",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
-                                    constants.SPAN_METRIC_BYTES_COLUMNS
-                                ),
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: Function(
-                        "avg",
-                        [self.resolve_mri(args["column"])],
-                        alias,
-                    ),
-                    result_type_fn=self.reflective_result_type(),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "percentile",
-                    required_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
-                            ),
-                        ),
-                        fields.NumberRange("percentile", 0, 1),
-                    ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
-                        args,
-                        alias,
-                        self.resolve_mri,
-                    ),
-                    result_type_fn=self.reflective_result_type(),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "p50",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=False,
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
-                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.50
-                    ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "p75",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=False,
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
-                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.75
-                    ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "p95",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=False,
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
-                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.95
-                    ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "p99",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=False,
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
-                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.99
-                    ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "p100",
-                    optional_args=[
-                        fields.with_default(
-                            "span.self_time",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=False,
-                            ),
-                        ),
-                    ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
-                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=1.0
-                    ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "http_error_count",
-                    snql_metric_layer=lambda args, alias: AliasedExpression(
-                        Column(
-                            SpanMRI.HTTP_ERROR_COUNT_LIGHT.value
-                            if not self.builder.has_transaction
-                            else SpanMRI.HTTP_ERROR_COUNT.value
-                        ),
-                        alias,
-                    ),
-                    default_result_type="integer",
-                ),
-                fields.MetricsFunction(
-                    "http_error_rate",
-                    snql_metric_layer=lambda args, alias: AliasedExpression(
-                        Column(
-                            SpanMRI.HTTP_ERROR_RATE_LIGHT.value
-                            if not self.builder.has_transaction
-                            else SpanMRI.HTTP_ERROR_RATE.value
-                        ),
-                        alias,
-                    ),
-                    default_result_type="percentage",
-                ),
-            ]
-        }
-
-        for alias, name in constants.SPAN_FUNCTION_ALIASES.items():
-            if name in function_converter:
-                function_converter[alias] = function_converter[name].alias_as(alias)
-
-        return function_converter
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:

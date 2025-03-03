@@ -147,7 +147,7 @@ describe('userDisplayName', function () {
         name: 'foo@bar.com',
         email: 'foo@bar.com',
       })
-    ).toEqual('foo@bar.com');
+    ).toBe('foo@bar.com');
   });
 
   it('should show name + email, if name and email differ', function () {
@@ -156,7 +156,7 @@ describe('userDisplayName', function () {
         name: 'user',
         email: 'foo@bar.com',
       })
-    ).toEqual('user (foo@bar.com)');
+    ).toBe('user (foo@bar.com)');
   });
 
   it('should show unknown author with email, if email is only provided', function () {
@@ -164,35 +164,33 @@ describe('userDisplayName', function () {
       userDisplayName({
         email: 'foo@bar.com',
       })
-    ).toEqual('Unknown author (foo@bar.com)');
+    ).toBe('Unknown author (foo@bar.com)');
   });
 
   it('should show unknown author, if author or email is just whitespace', function () {
     expect(
       userDisplayName({
-        // eslint-disable-next-line quotes
         name: `\t\n `,
       })
-    ).toEqual('Unknown author');
+    ).toBe('Unknown author');
 
     expect(
       userDisplayName({
-        // eslint-disable-next-line quotes
         email: `\t\n `,
       })
-    ).toEqual('Unknown author');
+    ).toBe('Unknown author');
   });
 
   it('should show unknown author, if user object is either not an object or incomplete', function () {
-    // @ts-expect-error
-    expect(userDisplayName()).toEqual('Unknown author');
-    expect(userDisplayName({})).toEqual('Unknown author');
+    // @ts-expect-error TS2554: Expected 1-2 arguments, but got 0
+    expect(userDisplayName()).toBe('Unknown author');
+    expect(userDisplayName({})).toBe('Unknown author');
   });
 });
 
 describe('formatSpanOperation', () => {
   it('falls back to "span"', () => {
-    expect(formatSpanOperation()).toEqual('span');
+    expect(formatSpanOperation()).toBe('span');
   });
 
   it.each([

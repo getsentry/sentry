@@ -8,7 +8,3 @@ class MetricsQueryExecutionError(Exception):
 
 class LatestReleaseNotFoundError(Exception):
     pass
-
-
-class CorrelationsQueryExecutionError(Exception):
-    pass

@@ -2,16 +2,20 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
@@ -27,7 +31,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
-  transformEventsResponseToSeries,
+  getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
@@ -38,17 +42,25 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
+
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['span.op', 'avg(span.duration)'],
-  columns: ['span.op'],
+  fields: ['count(span.duration)'],
+  columns: [],
   fieldAliases: [],
-  aggregates: ['avg(span.duration)'],
+  aggregates: ['count(span.duration)'],
   conditions: '',
-  orderby: '-avg(span.duration)',
+  orderby: '-count(span.duration)',
+};
+
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', 'span.duration', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[aggregate] = {
     isSortable: true,
     outputType: null,
@@ -64,20 +76,21 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
   return acc;
 }, {});
 
-// getTimeseriesSortOptions is undefined because we want to restrict the
-// sort options to the same behaviour as tables. i.e. we are only able
-// to sort by fields that have already been selected
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: SpansSearchBar,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
+  filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
-  getTableSortOptions: getTableSortOptions,
+  getTableSortOptions,
+  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
+    getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
@@ -113,8 +126,10 @@ export const SpansConfig: DatasetConfig<
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
-  filterTableOptions,
   filterAggregateParams,
+  getCustomFieldRenderer: (field, meta, _organization) => {
+    return getFieldRenderer(field, meta, false);
+  },
 };
 
 function getPrimaryFieldOptions(
@@ -150,7 +165,7 @@ function getPrimaryFieldOptions(
   return {...baseFieldOptions, ...spanTags};
 }
 
-function filterTableOptions(option: FieldValueOption) {
+function _isNotNumericTag(option: FieldValueOption) {
   // Filter out numeric tags from primary options, they only show up in
   // the parameter fields for aggregate functions
   if ('dataType' in option.value.meta) {
@@ -197,6 +212,7 @@ function getEventsRequest(
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
+    useRpc: '1',
     ...queryExtras,
   };
 
@@ -236,7 +252,7 @@ function getGroupByFieldOptions(
   // The only options that should be returned as valid group by options
   // are string tags
   const filterGroupByOptions = (option: FieldValueOption) =>
-    filterTableOptions(option) && !yAxisFilter(option);
+    _isNotNumericTag(option) && !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }
@@ -259,5 +275,20 @@ function getSeriesRequest(
     DiscoverDatasets.SPANS_EAP,
     referrer
   );
+
+  requestData.useRpc = true;
+  requestData.interval = getInterval(pageFilters.datetime, 'spans');
+
   return doEventsRequest<true>(api, requestData);
+}
+
+// Filters the primary options in the sort by selector
+export function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (option.value.kind === FieldValueKind.FUNCTION) {
+      return true;
+    }
+
+    return columns.has(option.value.meta.name);
+  };
 }

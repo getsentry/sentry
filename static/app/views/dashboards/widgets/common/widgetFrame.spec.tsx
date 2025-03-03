@@ -4,6 +4,14 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 describe('WidgetFrame', () => {
   describe('Layout', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.resetAllMocks();
+    });
+
     it('Renders the title and description', async () => {
       render(<WidgetFrame title="EPS" description="Number of events per second" />);
 
@@ -11,6 +19,18 @@ describe('WidgetFrame', () => {
 
       await userEvent.hover(screen.getByRole('button', {name: 'Widget description'}));
       expect(await screen.findByText('Number of events per second')).toBeInTheDocument();
+    });
+
+    it('Catches errors in the visualization', async () => {
+      render(
+        <WidgetFrame title="Uh Oh">
+          <UhOh />
+        </WidgetFrame>
+      );
+
+      expect(screen.getByText('Uh Oh')).toBeInTheDocument();
+
+      expect(await screen.findByText(/cannot read properties/i)).toBeInTheDocument();
     });
   });
 
@@ -32,14 +52,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
 
-      rerender(
-        <WidgetFrame
-          title="count()"
-          badgeProps={{
-            text: 'Sampled',
-          }}
-        />
-      );
+      rerender(<WidgetFrame title="count()" badgeProps={'Sampled'} />);
 
       expect(screen.getByText('Sampled')).toBeInTheDocument();
     });
@@ -49,19 +62,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
 
-      rerender(
-        <WidgetFrame
-          title="count()"
-          badgeProps={[
-            {
-              text: 'Sampled',
-            },
-            {
-              text: 'Extracted',
-            },
-          ]}
-        />
-      );
+      rerender(<WidgetFrame title="count()" badgeProps={['Sampled', 'Extracted']} />);
 
       expect(screen.getByText('Sampled')).toBeInTheDocument();
       expect(screen.getByText('Extracted')).toBeInTheDocument();
@@ -184,6 +185,41 @@ describe('WidgetFrame', () => {
       await userEvent.hover($trigger);
       expect(await screen.findByText('Actions are not supported')).toBeInTheDocument();
     });
+
+    it('Shows actions even in error state', async () => {
+      const onAction = jest.fn();
+      const error = new Error('Something is wrong');
+
+      render(
+        <WidgetFrame
+          title="EPS"
+          description="Number of events per second"
+          error={error}
+          actions={[
+            {
+              key: 'hello',
+              label: 'Make Go',
+              onAction,
+            },
+          ]}
+        />
+      );
+
+      const $button = screen.getByRole('button', {name: 'Make Go'});
+      expect($button).toBeInTheDocument();
+      await userEvent.click($button);
+
+      expect(onAction).toHaveBeenCalledTimes(1);
+    });
+
+    it('Shows a "Retry" action if a retry callback is provided', () => {
+      const onRetry = jest.fn();
+      const error = new Error('Something is wrong');
+
+      render(<WidgetFrame title="EPS" error={error} onRetry={onRetry} />);
+
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    });
   });
 
   describe('Full Screen View Button', () => {
@@ -205,5 +241,25 @@ describe('WidgetFrame', () => {
 
       expect(onFullScreenViewClick).toHaveBeenCalledTimes(1);
     });
+
+    it('Hides full screen button if the widget has an error', () => {
+      const onFullScreenViewClick = jest.fn();
+
+      render(
+        <WidgetFrame
+          title="count()"
+          onFullScreenViewClick={onFullScreenViewClick}
+          error={new Error('Something went wrong')}
+        />
+      );
+
+      const $button = screen.queryByRole('button', {name: 'Open Full-Screen View'});
+      expect($button).not.toBeInTheDocument();
+    });
   });
 });
+
+function UhOh() {
+  const items: string[] = [];
+  return <div>{items[0]!.toUpperCase()}</div>;
+}

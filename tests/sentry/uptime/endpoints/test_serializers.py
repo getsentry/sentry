@@ -12,7 +12,8 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "projectSlug": self.project.slug,
             "name": uptime_monitor.name,
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
-            "status": uptime_monitor.uptime_status,
+            "status": uptime_monitor.get_status_display(),
+            "uptimeStatus": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
             "method": uptime_monitor.uptime_subscription.method,
@@ -21,6 +22,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": None,
+            "traceSampling": False,
         }
 
     def test_default_name(self):
@@ -35,7 +37,8 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "projectSlug": self.project.slug,
             "name": f"Uptime Monitoring for {uptime_monitor.uptime_subscription.url}",
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
-            "status": uptime_monitor.uptime_status,
+            "status": uptime_monitor.get_status_display(),
+            "uptimeStatus": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
             "method": uptime_monitor.uptime_subscription.method,
@@ -44,6 +47,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": None,
+            "traceSampling": False,
         }
 
     def test_owner(self):
@@ -55,7 +59,8 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "projectSlug": self.project.slug,
             "name": uptime_monitor.name,
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
-            "status": uptime_monitor.uptime_status,
+            "status": uptime_monitor.get_status_display(),
+            "uptimeStatus": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
             "method": uptime_monitor.uptime_subscription.method,
@@ -69,7 +74,15 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
                 "name": self.user.get_username(),
                 "type": "user",
             },
+            "traceSampling": False,
         }
+
+    def test_trace_sampling(self):
+        subscription = self.create_uptime_subscription(trace_sampling=True)
+        uptime_monitor = self.create_project_uptime_subscription(uptime_subscription=subscription)
+        result = serialize(uptime_monitor)
+
+        assert result["traceSampling"] is True
 
     def test_header_translation(self):
         """

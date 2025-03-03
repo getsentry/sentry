@@ -31,7 +31,7 @@ export function RoleOverwritePanelAlert(props: Props) {
   }
 
   return (
-    <PanelAlert data-test-id="alert-role-overwrite">
+    <PanelAlert data-test-id="alert-role-overwrite" type="info">
       {getOverwriteString(props)}
     </PanelAlert>
   );
@@ -64,7 +64,7 @@ export function getOverwriteString(props: Props) {
     {
       selfNoun: isSelf ? 'Your' : "This user's",
       selfPronoun: isSelf ? 'you' : 'them',
-      article: 'AEIOU'.includes(orgRoleObj.name[0]) ? 'an' : 'a',
+      article: 'AEIOU'.includes(orgRoleObj.name[0]!) ? 'an' : 'a',
       orgRole: <strong>{orgRoleObj.name}</strong>,
       teamRole: <strong>{teamRoleObj.name}</strong>,
     }

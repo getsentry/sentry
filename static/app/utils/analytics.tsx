@@ -1,14 +1,19 @@
+import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import type {Span} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
+import {
+  alertsEventMap,
+  type AlertsEventParameters,
+} from 'sentry/utils/analytics/alertsAnalyticsEvents';
 import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -18,8 +23,6 @@ import {
   type StatsEventParameters,
 } from 'sentry/utils/analytics/statsAnalyticsEvents';
 
-import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
-import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -70,6 +73,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
+    AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DDMEventParameters,
@@ -89,7 +93,6 @@ interface EventParameters
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
     StackTraceEventParameters,
-    AiSuggestedSolutionEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
@@ -100,6 +103,7 @@ interface EventParameters
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...ddmEventMap,
@@ -121,7 +125,6 @@ const allEventMap: Record<string, string | null> = {
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
   ...stackTraceEventMap,
-  ...aiSuggestedSolutionEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
@@ -129,6 +132,7 @@ const allEventMap: Record<string, string | null> = {
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,
+  ...navigationAnalyticsEventMap,
 };
 
 /**
@@ -195,7 +199,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Additional data that will be sent with measure()
      * This is useful if you want to track initial state
      */
-    data?: object;
+    data?: Record<PropertyKey, unknown>;
   }) => void;
 
   measure: (opts: {
@@ -203,7 +207,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Additional data to send with metric event.
      * If a key collide with the data in mark(), this will overwrite them
      */
-    data?: object;
+    data?: Record<PropertyKey, unknown>;
     /**
      * Name of ending mark
      */
@@ -237,7 +241,7 @@ type RecordMetric = Hooks['metrics:event'] & {
 /**
  * Used to pass data between metric.mark() and metric.measure()
  */
-const metricDataStore = new Map<string, object>();
+const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
 
 /**
  * Record metrics.

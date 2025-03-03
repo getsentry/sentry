@@ -1,98 +1,39 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
-import {
-  replaceHeadersWithBold,
-  SuggestedFixSnippet,
-} from 'sentry/components/events/autofix/autofixRootCause';
-import type {
-  AutofixInsight,
-  AutofixRepository,
-  BreadcrumbContext,
-} from 'sentry/components/events/autofix/types';
-import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
-import {
-  BreadcrumbIcon,
-  BreadcrumbLevel,
-  getBreadcrumbColorConfig,
-  getBreadcrumbTitle,
-} from 'sentry/components/events/breadcrumbs/utils';
-import Input from 'sentry/components/input';
-import StructuredEventData from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
-import {
-  IconArrow,
-  IconChevron,
-  IconCode,
-  IconEdit,
-  IconFire,
-  IconRefresh,
-  IconSpan,
-  IconUser,
-} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import ButtonBar from 'sentry/components/buttonBar';
+import {Input} from 'sentry/components/core/input';
+import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
+import type {AutofixInsight} from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {singleLineRenderer} from 'sentry/utils/marked';
-import {useMutation} from 'sentry/utils/queryClient';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
-interface AutofixBreadcrumbSnippetProps {
-  breadcrumb: BreadcrumbContext;
-}
-
-function AutofixBreadcrumbSnippet({breadcrumb}: AutofixBreadcrumbSnippetProps) {
-  const type = BreadcrumbType[breadcrumb.category.toUpperCase()];
-  const level = BreadcrumbLevelType[breadcrumb.level.toUpperCase()];
-  const rawCrumb = {
-    message: breadcrumb.body,
-    category: breadcrumb.category,
-    type: type,
-    level: level,
-  };
-
-  return (
-    <BackgroundPanel>
-      <BreadcrumbItem
-        title={
-          <Header>
-            <div>
-              <TextBreak>{getBreadcrumbTitle(rawCrumb)}</TextBreak>
-            </div>
-            <BreadcrumbLevel level={level}>{level}</BreadcrumbLevel>
-          </Header>
-        }
-        colorConfig={getBreadcrumbColorConfig(type)}
-        icon={<BreadcrumbIcon type={type} />}
-        isActive
-        showLastLine
-      >
-        <ContentWrapper>
-          <BreadcrumbItemContent breadcrumb={rawCrumb} meta={{}} fullyExpanded />
-        </ContentWrapper>
-      </BreadcrumbItem>
-    </BackgroundPanel>
-  );
-}
+import AutofixHighlightPopup from './autofixHighlightPopup';
+import {useTextSelection} from './useTextSelection';
 
 export function ExpandableInsightContext({
   children,
   title,
   icon,
   rounded,
+  expandByDefault = false,
 }: {
   children: React.ReactNode;
   title: string;
+  expandByDefault?: boolean;
   icon?: React.ReactNode;
   rounded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(expandByDefault);
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
@@ -121,10 +62,24 @@ export function ExpandableInsightContext({
 }
 
 const animationProps: AnimationProps = {
-  exit: {opacity: 0},
-  initial: {opacity: 0, y: 20},
-  animate: {opacity: 1, y: 0},
-  transition: testableTransition({duration: 0.3}),
+  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
+  initial: {opacity: 0, height: 0, scale: 0.8},
+  animate: {opacity: 1, height: 'auto', scale: 1},
+  transition: testableTransition({
+    duration: 1.0,
+    height: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    scale: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    y: {
+      type: 'tween',
+      ease: 'easeOut',
+    },
+  }),
 };
 
 interface AutofixInsightCardProps {
@@ -133,7 +88,7 @@ interface AutofixInsightCardProps {
   hasCardBelow: boolean;
   index: number;
   insight: AutofixInsight;
-  repos: AutofixRepository[];
+  insightCount: number;
   runId: string;
   stepIndex: number;
 }
@@ -142,153 +97,194 @@ function AutofixInsightCard({
   insight,
   hasCardBelow,
   hasCardAbove,
-  repos,
   index,
   stepIndex,
   groupId,
   runId,
+  insightCount,
 }: AutofixInsightCardProps) {
+  const isLastInsightInStep = index === insightCount - 1;
+  const headerRef = useRef<HTMLDivElement>(null);
+  const justificationRef = useRef<HTMLDivElement>(null);
+  const headerSelection = useTextSelection(headerRef);
+  const justificationSelection = useTextSelection(justificationRef);
   const isUserMessage = insight.justification === 'USER';
-
   const [expanded, setExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setEditText('');
+    setExpanded(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditText('');
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEditing(false);
+    updateInsight({
+      message: editText,
+      step_index: stepIndex,
+      retain_insight_card_index: index,
+    });
+  };
+
+  const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
+
   return (
     <ContentWrapper>
+      <AnimatePresence>
+        {headerSelection && (
+          <AutofixHighlightPopup
+            selectedText={headerSelection.selectedText}
+            referenceElement={headerSelection.referenceElement}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={stepIndex}
+            retainInsightCardIndex={insightCardAboveIndex}
+          />
+        )}
+        {justificationSelection && (
+          <AutofixHighlightPopup
+            selectedText={justificationSelection.selectedText}
+            referenceElement={justificationSelection.referenceElement}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={stepIndex}
+            retainInsightCardIndex={insightCardAboveIndex}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence initial>
         <AnimationWrapper key="content" {...animationProps}>
           {hasCardAbove && (
             <ChainLink
-              insightCardAboveIndex={index - 1}
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              insightCount={insightCount}
             />
           )}
-          {!isUserMessage && (
-            <InsightContainer>
-              <InsightCardRow onClick={toggleExpand}>
+          <InsightContainer>
+            {isEditing ? (
+              <EditContainer>
+                <form onSubmit={handleSubmit}>
+                  <EditFormRow>
+                    <EditInput
+                      type="text"
+                      value={editText}
+                      onChange={e => setEditText(e.target.value)}
+                      placeholder={t('Share your own insight here...')}
+                      autoFocus
+                    />
+                    <ButtonBar merged>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleCancel}
+                        title={t('Cancel')}
+                        aria-label={t('Cancel')}
+                      >
+                        <IconClose size="sm" />
+                      </Button>
+                      <Button
+                        type="submit"
+                        priority="primary"
+                        size="sm"
+                        title={t('Rethink from here using your insight')}
+                        aria-label={t('Rethink from here using your insight')}
+                      >
+                        <IconRefresh size="sm" />
+                      </Button>
+                    </ButtonBar>
+                  </EditFormRow>
+                </form>
+              </EditContainer>
+            ) : (
+              <InsightCardRow
+                onClick={!isUserMessage ? toggleExpand : undefined}
+                isUserMessage={isUserMessage}
+              >
                 <MiniHeader
+                  ref={headerRef}
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(insight.insight),
                   }}
                 />
-                <StyledIconChevron direction={expanded ? 'down' : 'right'} size="xs" />
-              </InsightCardRow>
-
-              {expanded && (
-                <ContextBody>
-                  <p
-                    dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(
-                        replaceHeadersWithBold(insight.justification)
-                      ),
-                    }}
-                  />
-                  {insight.stacktrace_context &&
-                    insight.stacktrace_context.length > 0 && (
-                      <div>
-                        <ContextSectionTitle>
-                          <IconFire color="red400" />
-                          {t(
-                            'Stacktrace%s and Variables:',
-                            insight.stacktrace_context.length > 1 ? 's' : ''
-                          )}
-                        </ContextSectionTitle>
-                        {insight.stacktrace_context
-                          .map((stacktrace, i) => {
-                            let vars: any = {};
-                            try {
-                              vars = JSON.parse(stacktrace.vars_as_json);
-                            } catch {
-                              vars = {vars: stacktrace.vars_as_json};
-                            }
-                            return (
-                              <div key={i}>
-                                <SuggestedFixSnippet
-                                  snippet={{
-                                    snippet: stacktrace.code_snippet,
-                                    repo_name: stacktrace.repo_name,
-                                    file_path: stacktrace.file_name,
-                                  }}
-                                  linesToHighlight={[]}
-                                  repos={repos}
-                                />
-                                <StyledStructuredEventData
-                                  data={vars}
-                                  maxDefaultDepth={1}
-                                />
-                              </div>
-                            );
-                          })
-                          .reverse()}
-                      </div>
-                    )}
-                  {insight.breadcrumb_context &&
-                    insight.breadcrumb_context.length > 0 && (
-                      <div>
-                        <ContextSectionTitle>
-                          <IconSpan color="green400" />
-                          {t(
-                            'Breadcrumb%s:',
-                            insight.breadcrumb_context.length > 1 ? 's' : ''
-                          )}
-                        </ContextSectionTitle>
-                        {insight.breadcrumb_context
-                          .map((breadcrumb, i) => {
-                            return (
-                              <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />
-                            );
-                          })
-                          .reverse()}
-                      </div>
-                    )}
-                  {insight.codebase_context && insight.codebase_context.length > 0 && (
-                    <div>
-                      <ContextSectionTitle>
-                        <IconCode color="purple400" />
-                        {t(
-                          'Code Snippet%s:',
-                          insight.codebase_context.length > 1 ? 's' : ''
-                        )}
-                      </ContextSectionTitle>
-                      {insight.codebase_context
-                        .map((code, i) => {
-                          return (
-                            <SuggestedFixSnippet
-                              key={i}
-                              snippet={code}
-                              linesToHighlight={[]}
-                              repos={repos}
-                            />
-                          );
-                        })
-                        .reverse()}
-                    </div>
+                <RightSection>
+                  {!isUserMessage && (
+                    <Button
+                      size="zero"
+                      borderless
+                      title={expanded ? t('Hide evidence') : t('Show evidence')}
+                      icon={
+                        <StyledIconChevron
+                          direction={expanded ? 'down' : 'right'}
+                          size="sm"
+                        />
+                      }
+                      aria-label={expanded ? t('Hide evidence') : t('Show evidence')}
+                    />
                   )}
-                </ContextBody>
+                  <EditButton
+                    size="zero"
+                    borderless
+                    onClick={handleEdit}
+                    icon={<IconRefresh size="sm" />}
+                    aria-label={t('Edit insight')}
+                    title={t('Replace insight and rethink')}
+                  />
+                </RightSection>
+              </InsightCardRow>
+            )}
+
+            <AnimatePresence>
+              {expanded && !isUserMessage && (
+                <motion.div
+                  initial={{height: 0, opacity: 0}}
+                  animate={{height: 'auto', opacity: 1}}
+                  exit={{height: 0, opacity: 0}}
+                  transition={{
+                    type: 'spring',
+                    duration: 0.4,
+                    bounce: 0.1,
+                  }}
+                >
+                  <ContextBody>
+                    <p
+                      ref={justificationRef}
+                      dangerouslySetInnerHTML={{
+                        __html: marked(
+                          replaceHeadersWithBold(
+                            insight.justification || t('No details here.')
+                          )
+                        ),
+                      }}
+                    />
+                  </ContextBody>
+                </motion.div>
               )}
-            </InsightContainer>
-          )}
-          {isUserMessage && (
-            <UserMessageContainer>
-              <IconUser />
-              <UserMessage
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(insight.insight),
-                }}
-              />
-            </UserMessageContainer>
-          )}
+            </AnimatePresence>
+          </InsightContainer>
+
           {hasCardBelow && (
             <ChainLink
-              insightCardAboveIndex={index}
+              isLastCard={isLastInsightInStep}
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              insightCount={insightCount}
             />
           )}
         </AnimationWrapper>
@@ -302,48 +298,125 @@ interface AutofixInsightCardsProps {
   hasStepAbove: boolean;
   hasStepBelow: boolean;
   insights: AutofixInsight[];
-  repos: AutofixRepository[];
   runId: string;
   stepIndex: number;
+  shouldCollapseByDefault?: boolean;
+}
+
+function CollapsibleChainLink({
+  isEmpty,
+  isCollapsed,
+  onToggleCollapse,
+  insightCount,
+}: {
+  insightCount?: number;
+  isCollapsed?: boolean;
+  isEmpty?: boolean;
+  onToggleCollapse?: () => void;
+}) {
+  return (
+    <VerticalLineContainer isEmpty={isEmpty}>
+      <VerticalLine />
+      <RethinkButtonContainer className="rethink-button-container">
+        {onToggleCollapse && (
+          <CollapseButtonWrapper>
+            {isCollapsed && insightCount && insightCount > 0 && (
+              <CollapsedCount>
+                {tn('%s insight hidden', '%s insights hidden', insightCount)}
+              </CollapsedCount>
+            )}
+            <CollapseButton
+              size="zero"
+              borderless
+              onClick={onToggleCollapse}
+              icon={
+                <CollapseIconChevron
+                  direction={isCollapsed ? 'right' : 'down'}
+                  size="sm"
+                />
+              }
+              title={isCollapsed ? t('Show reasoning') : t('Hide reasoning')}
+              aria-label={isCollapsed ? t('Show reasoning') : t('Hide reasoning')}
+            />
+          </CollapseButtonWrapper>
+        )}
+      </RethinkButtonContainer>
+    </VerticalLineContainer>
+  );
 }
 
 function AutofixInsightCards({
   insights,
-  repos,
   hasStepBelow,
   hasStepAbove,
   stepIndex,
   groupId,
   runId,
+  shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
+  const [isCollapsed, setIsCollapsed] = useState(!!shouldCollapseByDefault);
+
+  useEffect(() => {
+    setIsCollapsed(!!shouldCollapseByDefault);
+  }, [shouldCollapseByDefault]);
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
+  const validInsightCount = insights.filter(insight => insight).length;
+
   return (
     <InsightsContainer>
       {insights.length > 0 ? (
-        insights.map((insight, index) =>
-          !insight ? null : (
-            <AutofixInsightCard
-              key={index}
-              insight={insight}
-              hasCardBelow={index < insights.length - 1 || hasStepBelow}
-              hasCardAbove={hasStepAbove && index === 0}
-              repos={repos}
-              index={index}
-              stepIndex={stepIndex}
-              groupId={groupId}
-              runId={runId}
+        <Fragment>
+          {hasStepAbove && (
+            <CollapsibleChainLink
+              isCollapsed={isCollapsed}
+              onToggleCollapse={handleToggleCollapse}
+              insightCount={validInsightCount}
             />
-          )
-        )
-      ) : !hasStepAbove && !hasStepBelow ? (
-        <NoInsightsYet>
-          <p>
-            Autofix will share important conclusions here as it discovers them, building a
-            line of reasoning up to the root cause.
-          </p>
-          <IllustrationContainer>
-            <Illustration src={bannerImage} />
-          </IllustrationContainer>
-        </NoInsightsYet>
+          )}
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div
+                initial={{height: 0, opacity: 0}}
+                animate={{height: 'auto', opacity: 1}}
+                exit={{height: 0, opacity: 0}}
+                transition={{duration: 0.3}}
+              >
+                {insights.map((insight, index) =>
+                  !insight ? null : (
+                    <AutofixInsightCard
+                      key={index}
+                      insight={insight}
+                      hasCardBelow={index < insights.length - 1 || hasStepBelow}
+                      hasCardAbove={false}
+                      index={index}
+                      stepIndex={stepIndex}
+                      groupId={groupId}
+                      runId={runId}
+                      insightCount={validInsightCount}
+                    />
+                  )
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Fragment>
+      ) : stepIndex === 0 && !hasStepBelow ? (
+        <NoInsightsYet />
+      ) : hasStepBelow ? (
+        <EmptyResultsContainer>
+          <ChainLink
+            isLastCard
+            isEmpty
+            stepIndex={stepIndex}
+            groupId={groupId}
+            runId={runId}
+            insightCount={validInsightCount}
+          />
+        </EmptyResultsContainer>
       ) : null}
     </InsightsContainer>
   );
@@ -351,6 +424,7 @@ function AutofixInsightCards({
 
 export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: {
@@ -372,6 +446,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       });
     },
     onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       addSuccessMessage(t('Thanks, rethinking this...'));
     },
     onError: () => {
@@ -380,248 +455,185 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
   });
 }
 
-function ChainLink({
-  groupId,
-  runId,
-  stepIndex,
-  insightCardAboveIndex,
-}: {
+interface ChainLinkProps {
   groupId: string;
-  insightCardAboveIndex: number | null;
+  insightCount: number;
   runId: string;
   stepIndex: number;
-}) {
-  const [showOverlay, setShowOverlay] = useState(false);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const [comment, setComment] = useState('');
-  const {mutate: send} = useUpdateInsightCard({groupId, runId});
+  isEmpty?: boolean;
+  isLastCard?: boolean;
+}
 
-  const handleClickOutside = event => {
-    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
-      setShowOverlay(false);
-    }
+function ChainLink({
+  isLastCard,
+  isEmpty,
+  stepIndex,
+  groupId,
+  runId,
+  insightCount,
+}: ChainLinkProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newInsightText, setNewInsightText] = useState('');
+  const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAdding(false);
+    updateInsight({
+      message: newInsightText,
+      step_index: stepIndex,
+      retain_insight_card_index: insightCount,
+    });
+    setNewInsightText('');
   };
 
-  useEffect(() => {
-    if (showOverlay) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showOverlay]);
-
-  // Determine if this is the first chain link (before first insight)
-  const isFirstLink = insightCardAboveIndex === null || insightCardAboveIndex < 0;
+  const handleCancel = () => {
+    setIsAdding(false);
+    setNewInsightText('');
+  };
 
   return (
-    <ArrowContainer>
-      <IconArrow direction={'down'} className="arrow-icon" />
-      <RethinkButton
-        icon={<IconEdit size="xs" />}
-        size="zero"
-        className="rethink-button"
-        title={t('Rethink from here')}
-        aria-label={t('Rethink from here')}
-        onClick={() => setShowOverlay(true)}
-      />
-
-      {showOverlay && (
-        <RethinkInput $isFirstLink={isFirstLink} ref={overlayRef}>
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              setShowOverlay(false);
-              setComment('');
-              send({
-                message: comment,
-                step_index: stepIndex,
-                retain_insight_card_index: insightCardAboveIndex,
-              });
-            }}
-            className="row-form"
-          >
-            <Input
-              type="text"
-              placeholder="Say something..."
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              size="md"
-              autoFocus
+    <VerticalLineContainer isEmpty={isEmpty}>
+      <VerticalLine />
+      <RethinkButtonContainer className="rethink-button-container">
+        {isLastCard &&
+          (isAdding ? (
+            <EditContainer>
+              <form onSubmit={handleSubmit}>
+                <EditFormRow>
+                  <EditInput
+                    type="text"
+                    value={newInsightText}
+                    onChange={e => setNewInsightText(e.target.value)}
+                    placeholder={t('Share your own insight here...')}
+                    autoFocus
+                  />
+                  <ButtonBar merged>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCancel}
+                      title={t('Cancel')}
+                    >
+                      <IconClose size="sm" />
+                    </Button>
+                    <Button
+                      type="submit"
+                      priority="primary"
+                      size="sm"
+                      title={t('Add insight and rethink')}
+                      aria-label={t('Add insight and rethink')}
+                    >
+                      <IconRefresh size="sm" />
+                    </Button>
+                  </ButtonBar>
+                </EditFormRow>
+              </form>
+            </EditContainer>
+          ) : (
+            <AddButton
+              size="zero"
+              borderless
+              onClick={() => setIsAdding(true)}
+              icon={<IconRefresh size="sm" />}
+              title={t('Add insight and rethink')}
+              aria-label={t('Add insight and rethink')}
             />
-            <Button
-              type="submit"
-              icon={<IconRefresh />}
-              title="Restart analysis from this point in the chain"
-              aria-label="Restart analysis from this point in the chain"
-              priority="primary"
-              size="md"
-            />
-          </form>
-        </RethinkInput>
-      )}
-    </ArrowContainer>
+          ))}
+      </RethinkButtonContainer>
+    </VerticalLineContainer>
   );
 }
 
-const ContextSectionTitle = styled('p')`
-  font-weight: bold;
-  margin-bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const InsightCardRow = styled('div')`
+const InsightCardRow = styled('div')<{isUserMessage?: boolean}>`
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
+  align-items: stretch;
+  cursor: ${p => (p.isUserMessage ? 'default' : 'pointer')};
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      !p.isUserMessage ? p.theme.backgroundSecondary : 'inherit'};
   }
-`;
-
-const UserMessageContainer = styled('div')`
-  color: ${p => p.theme.subText};
-  display: flex;
-  padding: ${space(2)};
-  align-items: center;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
-  margin-left: ${space(4)};
-  margin-right: ${space(4)};
-`;
-
-const UserMessage = styled('div')`
-  margin-left: ${space(2)};
-  flex-shrink: 100;
-`;
-
-const IllustrationContainer = styled('div')`
-  padding-top: ${space(4)};
-`;
-
-const Illustration = styled('img')`
-  height: 100%;
 `;
 
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
   flex-direction: column;
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
-  text-align: center;
+  color: ${p => p.theme.subText};
 `;
 
-const InsightsContainer = styled('div')``;
+const EmptyResultsContainer = styled('div')`
+  position: relative;
+  min-height: ${space(2)};
+`;
+
+const InsightsContainer = styled('div')`
+  z-index: 0;
+`;
 
 const InsightContainer = styled(motion.div)`
-  border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
-`;
+  animation: fadeFromActive 1.2s ease-out;
 
-const ArrowContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  color: ${p => p.theme.subText};
-  align-items: center;
-  position: relative;
-  z-index: 0;
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
-
-  .arrow-icon {
-    grid-column: 2 / 3;
-    justify-self: center;
-    align-self: center;
-  }
-
-  .rethink-button {
-    grid-column: 3 / 4;
-    justify-self: end;
-    align-self: center;
-  }
-
-  &:hover {
-    .rethink-button {
-      color: ${p => p.theme.subText};
+  @keyframes fadeFromActive {
+    from {
+      background-color: ${p => p.theme.active};
+      border-color: ${p => p.theme.active};
+    }
+    to {
+      background-color: ${p => p.theme.background};
+      border-color: ${p => p.theme.innerBorder};
     }
   }
 `;
 
-const RethinkButton = styled(Button)`
-  font-weight: normal;
-  font-size: small;
-  border: none;
-  color: ${p => p.theme.subText};
-  transition: color 0.2s ease-in-out;
+const VerticalLineContainer = styled('div')<{isEmpty?: boolean}>`
+  display: grid;
+  grid-template-columns: 32px auto 1fr;
+  position: relative;
+  z-index: 0;
+  min-height: ${p => (p.isEmpty ? space(4) : space(2))};
+  width: 100%;
+
+  .rethink-button-container {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    align-self: center;
+    position: relative;
+    padding-right: ${space(1)};
+  }
 `;
 
-const RethinkInput = styled('div')<{$isFirstLink: boolean}>`
+const VerticalLine = styled('div')`
   position: absolute;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  border: 1px solid ${p => p.theme.border};
-  width: 95%;
-  background: ${p => p.theme.backgroundElevated};
-  padding: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
-  margin: 0 ${space(1.5)} 0 ${space(1.5)};
-  z-index: 10000;
-  transform: translateY(${p => (p.$isFirstLink ? '25%' : '-25%')});
-
-  .row-form {
-    display: flex;
-    gap: ${space(1)};
-  }
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: ${p => p.theme.subText};
+  grid-column: 2 / 3;
+  transition: background-color 0.2s ease;
 `;
 
-const BreadcrumbItem = styled(Timeline.Item)`
-  border-bottom: 1px solid transparent;
-  &:not(:last-child) {
-    border-image: linear-gradient(
-        to right,
-        transparent 20px,
-        ${p => p.theme.translucentInnerBorder} 20px
-      )
-      100% 1;
-  }
+const RethinkButtonContainer = styled('div')`
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  width: calc(100% + ${space(1)});
 `;
 
 const ContentWrapper = styled('div')``;
 
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-`;
-
-const TextBreak = styled('span')`
-  word-wrap: break-word;
-  word-break: break-all;
-`;
-
-const BackgroundPanel = styled('div')`
-  padding: ${space(1)};
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
 const MiniHeader = styled('p')`
-  padding-top: ${space(2)};
+  padding-top: ${space(0.75)};
+  padding-bottom: ${space(0.75)};
+  padding-left: ${space(1)};
   padding-right: ${space(2)};
-  padding-left: ${space(2)};
-  width: 95%;
+  margin: 0;
+  flex: 1;
+  word-break: break-word;
 `;
 
 const ExpandableContext = styled('div')<{isRounded?: boolean}>`
@@ -665,27 +677,93 @@ const ContextHeaderText = styled('p')`
 `;
 
 const ContextBody = styled('div')`
-  padding: ${space(2)};
-  background: ${p => p.theme.alert.info.backgroundLight};
+  padding: ${space(2)} ${space(2)} 0;
+  background: ${p => p.theme.background}
+    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
 
-const StyledStructuredEventData = styled(StructuredEventData)`
-  border-top: solid 1px ${p => p.theme.border};
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+const AnimationWrapper = styled(motion.div)`
+  transform-origin: top center;
+
+  &.new-insight {
+    animation: textFadeFromActive 1.2s ease-out;
+  }
+
+  @keyframes textFadeFromActive {
+    from {
+      color: ${p => p.theme.white};
+    }
+    to {
+      color: inherit;
+    }
+  }
 `;
 
-const AnimationWrapper = styled(motion.div)``;
-
 const StyledIconChevron = styled(IconChevron)`
-  width: 5%;
-  flex-shrink: 0;
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.pink400};
+  }
+`;
+
+const RightSection = styled('div')`
   display: flex;
-  justify-content: center;
   align-items: center;
+  padding-right: ${space(1)};
+`;
+
+const EditContainer = styled('div')`
+  padding: ${space(1)};
+  width: 100%;
+`;
+
+const EditFormRow = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  width: 100%;
+`;
+
+const EditInput = styled(Input)`
+  flex: 1;
+`;
+
+const EditButton = styled(Button)`
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.pink400};
+  }
+`;
+
+const CollapseButton = styled(Button)`
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const CollapseIconChevron = styled(IconChevron)`
   color: ${p => p.theme.subText};
+`;
+
+const CollapseButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CollapsedCount = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const AddButton = styled(Button)`
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.pink400};
+  }
+  margin-right: ${space(1)};
 `;
 
 export default AutofixInsightCards;

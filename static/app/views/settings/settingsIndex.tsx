@@ -4,16 +4,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,6 +22,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -30,7 +33,7 @@ const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
   DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/platforms/',
   DOCUMENTATION_QUICKSTART: 'https://docs.sentry.io/platform-redirect/?next=/',
-  DOCUMENTATION_CLI: 'https://docs.sentry.io/product/cli/',
+  DOCUMENTATION_CLI: 'https://docs.sentry.io/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/api/',
   API: '/settings/account/api/',
   MANAGE: '/manage/',
@@ -41,7 +44,7 @@ const LINKS = {
 
 const HOME_ICON_SIZE = 56;
 
-interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
+interface SettingsIndexProps extends RouteComponentProps {
   organization: Organization;
 }
 
@@ -70,6 +73,19 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     isSelfHosted,
     organizationSettingsUrl,
   };
+
+  // For the new navigation, we are removing this page. The default base route should
+  // be the organization settings page.
+  // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
+  if (prefersStackedNav()) {
+    return (
+      <Redirect
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/settings/${organization.slug}/`
+        )}
+      />
+    );
+  }
 
   const myAccount = (
     <GridPanel>
@@ -249,11 +265,11 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     >
       <SettingsLayout {...props}>
         <GridLayout>
-          <DemoModeGate>{myAccount}</DemoModeGate>
+          {myAccount}
           {orgSettings}
           {documentation}
           {support}
-          <DemoModeGate>{apiKeys} </DemoModeGate>
+          {apiKeys}
         </GridLayout>
       </SettingsLayout>
     </SentryDocumentTitle>
@@ -297,7 +313,7 @@ const HomePanelBody = styled(PanelBody)`
   }
 `;
 
-const HomeIconContainer = styled('div')<{color?: string}>`
+const HomeIconContainer = styled('div')<{color?: ColorOrAlias}>`
   background: ${p => p.theme[p.color || 'gray300']};
   color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;

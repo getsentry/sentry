@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import isEqual from 'lodash/isEqual';
 
 interface FormState<
   FormFields extends PlainValue,
@@ -46,11 +54,29 @@ export type FormValidators<
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
 > = {
-  [K in keyof FormFields]?: (value: FormFields[K]) => FieldErrors[K];
+  [K in keyof FormFields]?: (value: FormFields[K]) => FieldErrors[K] | undefined;
 };
 
 type InitialValues<FormFields extends Record<string, any>> = {
   [K in keyof FormFields]: FormFields[K];
+};
+
+type FormStateConfig<
+  FormFields extends Record<string, PlainValue>,
+  FieldErrors extends Record<keyof FormFields, any>,
+> = {
+  /**
+   * The initial values for the form fields.
+   */
+  initialValues: InitialValues<FormFields>;
+  /**
+   * Whether to re-initialize the form state when the initial values change.
+   */
+  enableReInitialize?: boolean;
+  /**
+   * Validator functions for the form fields.
+   */
+  validators?: FormValidators<FormFields, FieldErrors>;
 };
 
 /**
@@ -59,14 +85,21 @@ type InitialValues<FormFields extends Record<string, any>> = {
 export const useFormState = <
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
->(config: {
-  initialValues: InitialValues<FormFields>;
-  validators?: FormValidators<FormFields, FieldErrors>;
-}): FormState<FormFields, FieldErrors> => {
+>(
+  config: FormStateConfig<FormFields, FieldErrors>
+): FormState<FormFields, FieldErrors> => {
   const [initialValues, setInitialValues] = useState(config.initialValues);
   const [validators] = useState(config.validators);
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<{[K in keyof FormFields]?: FieldErrors[K]}>({});
+
+  useEffect(() => {
+    if (config.enableReInitialize) {
+      setInitialValues(config.initialValues);
+      setValues(config.initialValues);
+      setErrors({});
+    }
+  }, [config.enableReInitialize, config.initialValues]);
 
   const setValue = useCallback(
     <K extends keyof FormFields>(name: K, value: React.SetStateAction<FormFields[K]>) => {
@@ -141,7 +174,7 @@ export const useFormState = <
     fields,
     isValid: Object.values(errors).every(error => !error),
     hasChanged: Object.entries(values).some(
-      ([name, value]) => value !== initialValues[name]
+      ([name, value]) => !isEqual(value, initialValues[name])
     ),
     save: () => {
       setInitialValues(values);
@@ -191,8 +224,9 @@ export const createForm = <
   };
 
   return {
-    useFormState: (initialValues: InitialValues<FormFields>) =>
-      useFormState<FormFields, FieldErrors>({initialValues, validators}),
+    useFormState: (
+      config: Omit<FormStateConfig<FormFields, FieldErrors>, 'validators'>
+    ) => useFormState<FormFields, FieldErrors>({...config, validators}),
     FormProvider,
     useFormField,
   };

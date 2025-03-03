@@ -10,8 +10,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getAndroidMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -19,6 +17,7 @@ import {
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -66,6 +65,9 @@ const getConfigurationSnippet = (params: Params) => `
   <!-- Required: set your sentry.io project identifier (DSN) -->
   <meta-data android:name="io.sentry.dsn" android:value="${params.dsn.public}" />
 
+  <!-- Add data like request headers, user ip adress and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info -->
+  <meta-data android:name="io.sentry.send-default-pii" android:value="true" />
+
   <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
   <meta-data android:name="io.sentry.traces.user-interaction.enable" android:value="true" />
   <!-- enable screenshot for crashes -->
@@ -82,6 +84,8 @@ const getConfigurationSnippet = (params: Params) => `
     params.isProfilingSelected
       ? `
   <!-- enable profiling when starting transactions, adjust in production env -->
+  <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
+  <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
   <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
       : ''
   }
@@ -103,9 +107,8 @@ SentryAndroid.init(context) { options ->
   options.dsn = "${params.dsn.public}"
   options.isDebug = true
 
-  // Currently under experimental options:
-  options.experimental.sessionReplay.onErrorSampleRate = 1.0
-  options.experimental.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.onErrorSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 }`;
 
 const getReplaySetupSnippetXml = () => `
@@ -113,8 +116,8 @@ const getReplaySetupSnippetXml = () => `
 <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="1.0" />`;
 
 const getReplayConfigurationSnippet = () => `
-options.experimental.sessionReplay.redactAllText = true
-options.experimental.sessionReplay.redactAllImages = true`;
+options.sessionReplay.redactAllText = true
+options.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -132,8 +135,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i android`,
+                code: getWizardInstallSnippet({
+                  platform: 'android',
+                  params,
+                }),
               },
               {
                 description: (
@@ -173,14 +178,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </ListItem>
                     </List>
                   </Fragment>
-                ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
-                    ),
-                  }
                 ),
               },
             ],
@@ -305,14 +302,11 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
-        "Make sure your Sentry Android SDK version is at least 7.12.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
+        "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
         {code: <code />}
       ),
       configurations: [
@@ -433,10 +427,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };
@@ -445,7 +437,6 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  customMetricsOnboarding: getAndroidMetricsOnboarding(),
   platformOptions,
   replayOnboarding,
 };

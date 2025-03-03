@@ -544,6 +544,16 @@ class SentryAppStatus:
         else:
             raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
+    @classmethod
+    def as_int_choices(cls) -> Sequence[int]:
+        return [
+            cls.UNPUBLISHED,
+            cls.PUBLISHED,
+            cls.INTERNAL,
+            cls.PUBLISH_REQUEST_INPROGRESS,
+            cls.DELETION_IN_PROGRESS,
+        ]
+
 
 class SentryAppInstallationStatus:
     PENDING = 0
@@ -706,17 +716,16 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
-AI_SUGGESTED_SOLUTION = True
+HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
-METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
-METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
+STREAMLINE_UI_ONLY = None
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -778,17 +787,18 @@ DS_DENYLIST = frozenset(
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
     "*heartbeat*",
-    "*/health",
-    "*/healthy",
-    "*/healthz",
-    "*/_health",
-    r"*/\[_health\]",
-    "*/live",
-    "*/livez",
-    "*/ready",
-    "*/readyz",
-    "*/ping",
-    "*/up",
+    "*/health{/,}",
+    "*/healthy{/,}",
+    "*/healthz{/,}",
+    "*/health_check{/,}",
+    "*/_health{/,}",
+    r"*/\[_health\]{/,}",
+    "*/live{/,}",
+    "*/livez{/,}",
+    "*/ready{/,}",
+    "*/readyz{/,}",
+    "*/ping{/,}",
+    "*/up{/,}",
 ]
 
 

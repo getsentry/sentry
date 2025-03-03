@@ -6,9 +6,10 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import Tag from 'sentry/components/badge/tag';
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {Button, LinkButton} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -16,7 +17,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
-import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -278,15 +278,12 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.25)};
-  }
-
-  & > div {
-    height: 24px;
-  }
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  position: relative;
+  height: 24px;
+  overflow: hidden;
 `;
 
 const InlinePlaceholder = styled(Placeholder)`

@@ -26,7 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
@@ -109,7 +109,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
 
-  let emptyComponent;
+  let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
     emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
   } else if (
@@ -132,7 +132,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       : WidgetEmptyStateWarning;
   }
 
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   if (props.fields.length !== 1 && !canHaveIntegrationEmptyState) {
     throw new Error(
@@ -422,7 +422,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 SpanMetricsField.SPAN_DOMAIN,
                 provided.widgetData.list.data[selectedListIndex][
                   SpanMetricsField.SPAN_DOMAIN
-                ].toString(),
+                ]!.toString(),
                 false
               );
             } else {
@@ -430,7 +430,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 SpanMetricsField.SPAN_GROUP,
                 provided.widgetData.list.data[selectedListIndex][
                   SpanMetricsField.SPAN_GROUP
-                ].toString()
+                ]!.toString()
               );
             }
 
@@ -539,7 +539,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             location,
           })
         : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             projectID: listItem['project.id'] as string,
             transaction,
             query: props.eventView.getPageFiltersQuery(),
@@ -579,7 +579,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -596,14 +596,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               </GrowLink>
               <RightAlignedCell>
                 {tct('[count] errors', {
-                  count: <Count value={rightValue} />,
+                  count: <Count value={rightValue!} />,
                 })}
               </RightAlignedCell>
               {!props.withStaticFilters && (
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -617,7 +617,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <StyledTextOverflow>
                 <DomainCell
-                  projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
+                  projectId={listItem[SpanMetricsField.PROJECT_ID]!.toString()}
                   domain={listItem[SpanMetricsField.SPAN_DOMAIN] as any}
                 />
               </StyledTextOverflow>
@@ -634,7 +634,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -644,7 +644,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             </Fragment>
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
+        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
           const description = listItem[SpanMetricsField.SPAN_DESCRIPTION] as string;
           const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
@@ -677,7 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -686,11 +686,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
-        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
+        }
+        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS: {
+          const moduleRoute = moduleURLBuilder('cache', 'backend');
           const cacheMissRate = listItem[fieldString] as any;
+
           const target = normalizeUrl(
-            `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
+            `${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
+
           return (
             <Fragment>
               <GrowLink to={target}>
@@ -701,7 +705,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -710,6 +714,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
+        }
         default:
           if (typeof rightValue === 'number') {
             return (
@@ -724,7 +729,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   <ListClose
                     setSelectListIndex={setSelectListIndex}
                     onClick={() =>
-                      excludeTransaction(listItem.transaction, {
+                      excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
                       })
@@ -744,7 +749,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -799,7 +804,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           },
         ];
 
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder();
 
   const getContainerActions = (provided: ComponentData) => {
     const route: string =
@@ -823,7 +828,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton to={`/${route}/`} size="sm">
+          <LinkButton to={`${route}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

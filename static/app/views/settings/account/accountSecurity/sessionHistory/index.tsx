@@ -11,6 +11,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -18,22 +19,25 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import SessionRow from './sessionRow';
 import {tableLayout} from './utils';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
-type IpListType = Array<InternetProtocol> | null;
+type IpListType = InternetProtocol[] | null;
 
 function SessionHistory({routes, params, location}: Props) {
   const {
-    data: ipList,
-    isPending,
+    data: ipList = [],
+    isLoading,
     isError,
-  } = useApiQuery<IpListType>(['/users/me/ips/'], {staleTime: 0});
+  } = useApiQuery<IpListType>(['/users/me/ips/'], {
+    staleTime: 0,
+    enabled: !isDemoModeEnabled(),
+  });
 
   if (isError) {
     return <LoadingError />;
   }
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 

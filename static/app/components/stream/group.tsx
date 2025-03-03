@@ -39,7 +39,7 @@ import type {
   PriorityLevel,
 } from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -55,7 +55,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -71,7 +70,6 @@ export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
 type Props = {
   id: string;
-  organization: Organization;
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
@@ -118,6 +116,9 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <UnreadIndicator data-test-id="unread-issue-indicator" />
+      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
         <Checkbox
           id={group.id}
@@ -142,14 +143,13 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
       tooltipPrefix={label}
       date={date}
       suffix="ago"
-      unitStyle="extraShort"
+      unitStyle="short"
     />
   );
 }
 
-function BaseGroupRow({
+function StreamGroup({
   id,
-  organization,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -168,6 +168,7 @@ function BaseGroupRow({
   showLastTriggered = false,
   onPriorityChange,
 }: Props) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const groups = useLegacyStore(GroupStore);
@@ -184,7 +185,7 @@ function BaseGroupRow({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label.toLowerCase() ??
+    customStatsPeriod?.label?.toLowerCase() ??
     (!!start && !!end
       ? 'time range'
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
@@ -264,22 +265,22 @@ function BaseGroupRow({
     [group]
   );
 
-  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
 
     return group.filtered
-      ? group.filtered.stats?.[statsPeriod]
-      : group.stats?.[statsPeriod];
+      ? group.filtered.stats?.[statsPeriod]!
+      : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
-  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupSecondaryStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
 
-    return group.filtered ? group.stats?.[statsPeriod] : [];
+    return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
   if (!group) {
@@ -325,7 +326,7 @@ function BaseGroupRow({
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
       return discoverView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
       );
@@ -386,7 +387,7 @@ function BaseGroupRow({
     // Original state had an inbox reason
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
-    !group!.inbox &&
+    !group.inbox &&
     // Only apply reviewed on the "for review" tab
     isForReviewQuery(query);
 
@@ -410,6 +411,7 @@ function BaseGroupRow({
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
     [IssueCategory.UPTIME]: t('Uptime Events'),
+    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -604,6 +606,17 @@ function BaseGroupRow({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('firstSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
+          <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
+        </TimestampWrapper>
+      )}
+      {withColumns.includes('lastSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+          <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
+        </TimestampWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -642,16 +655,6 @@ function BaseGroupRow({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
-          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
@@ -722,8 +725,6 @@ function BaseGroupRow({
   );
 }
 
-const StreamGroup = withOrganization(BaseGroupRow);
-
 export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
@@ -740,7 +741,20 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 86px;
+
+      &:not(:hover):not(:focus-within):not(:has(input:checked)) {
+        ${CheckboxLabel} {
+          ${p.theme.visuallyHidden};
+        }
+      }
+
+      &:hover,
+      &:focus-within {
+        ${UnreadIndicator} {
+          ${p.theme.visuallyHidden};
+        }
+      }
 
       [data-issue-title-link] {
         &::before {
@@ -844,6 +858,7 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
 `;
 
 const CountsWrapper = styled('div')`
+  position: relative;
   display: flex;
   flex-direction: column;
 `;
@@ -852,15 +867,15 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   ${p =>
     p.hasNewLayout &&
-    `
-    display: flex;
-    justify-content: right;
-    margin-bottom: ${space(0.25)};
-  `}
+    css`
+      display: flex;
+      justify-content: right;
+      margin-bottom: ${space(0.25)};
+    `}
   font-variant-numeric: tabular-nums;
 `;
 
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)<{
   hasNewLayout?: boolean;
 }>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
@@ -1049,4 +1064,13 @@ const ProgressColumn = styled('div')`
 // Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
+  margin-left: ${space(3)};
+  margin-top: ${space(1.5)};
 `;

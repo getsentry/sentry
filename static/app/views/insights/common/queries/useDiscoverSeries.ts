@@ -1,11 +1,21 @@
-import keyBy from 'lodash/keyBy';
+import moment from 'moment-timezone';
 
 import type {Series} from 'sentry/types/echarts';
+import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
+import {
+  type DiscoverQueryProps,
+  useGenericDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/insights/common/utils/retryHandlers';
 import type {
   MetricsProperty,
   SpanFunctions,
@@ -13,10 +23,16 @@ import type {
   SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
+import {DATE_FORMAT} from './useSpansQuery';
+
 export interface MetricTimeseriesRow {
   [key: string]: number;
   interval: number;
 }
+
+export type DiscoverSeries = Series & {
+  meta: EventsMetaType;
+};
 
 interface UseMetricsSeriesOptions<Fields> {
   enabled?: boolean;
@@ -24,6 +40,7 @@ interface UseMetricsSeriesOptions<Fields> {
   overriddenRoute?: string;
   referrer?: string;
   search?: MutableSearch;
+  transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
 
@@ -66,6 +83,8 @@ const useDiscoverSeries = <T extends string[]>(
   const {search = undefined, yAxis = [], interval = undefined} = options;
 
   const pageFilters = usePageFilters();
+  const location = useLocation();
+  const organization = useOrganization();
 
   const eventView = getSeriesEventView(
     search,
@@ -80,28 +99,59 @@ const useDiscoverSeries = <T extends string[]>(
     eventView.interval = interval;
   }
 
-  const result = useWrappedDiscoverTimeseriesQuery<MetricTimeseriesRow[]>({
+  const result = useGenericDiscoverQuery<
+    {
+      data: any[];
+      meta: EventsMetaType;
+    },
+    DiscoverQueryProps
+  >({
+    route: 'events-stats',
     eventView,
-    initialData: [],
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...eventView.getEventsAPIPayload(location),
+      yAxis: eventView.yAxis,
+      topEvents: eventView.topEvents,
+      excludeOther: 0,
+      partial: 1,
+      orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
+      interval: eventView.interval,
+      transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
+    }),
+    options: {
+      enabled: options.enabled && pageFilters.isReady,
+      refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
+    },
     referrer,
-    enabled: options.enabled,
-    overriddenRoute: options.overriddenRoute,
   });
 
-  const parsedData = keyBy(
-    yAxis.map(seriesName => {
-      const series: Series = {
-        seriesName,
-        data: (result?.data ?? []).map(datum => ({
-          value: datum[seriesName],
-          name: datum?.interval,
-        })),
-      };
+  const parsedData: Record<string, DiscoverSeries> = {};
 
-      return series;
-    }),
-    'seriesName'
-  ) as Record<T[number], Series>;
+  yAxis.forEach(seriesName => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const dataSeries = result.data?.[seriesName] ?? result?.data ?? {};
+    const convertedSeries: DiscoverSeries = {
+      seriesName,
+      data: convertDiscoverTimeseriesResponse(dataSeries?.data ?? []),
+      meta: dataSeries?.meta,
+    };
 
-  return {...result, data: parsedData};
+    parsedData[seriesName] = convertedSeries;
+  });
+
+  return {...result, data: parsedData as Record<T[number], DiscoverSeries>};
 };
+
+function convertDiscoverTimeseriesResponse(data: any[]): DiscoverSeries['data'] {
+  return data.map(([timestamp, [{count: value}]]) => {
+    return {
+      name: moment(parseInt(timestamp, 10) * 1000).format(DATE_FORMAT),
+      value,
+    };
+  });
+}

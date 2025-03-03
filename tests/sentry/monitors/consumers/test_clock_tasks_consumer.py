@@ -68,3 +68,23 @@ def test_dispatch_mark_timeout(mock_mark_checkin_timeout):
 
     assert mock_mark_checkin_timeout.call_count == 1
     assert mock_mark_checkin_timeout.mock_calls[0] == mock.call(1, ts)
+
+
+@mock.patch("sentry.monitors.consumers.clock_tasks_consumer.mark_checkin_unknown")
+def test_dispatch_mark_unknown(mock_mark_checkin_unknown):
+    ts = timezone.now().replace(second=0, microsecond=0)
+
+    consumer = create_consumer()
+    send_task(
+        consumer,
+        ts,
+        {
+            "type": "mark_unknown",
+            "ts": ts.timestamp(),
+            "monitor_environment_id": 1,
+            "checkin_id": 1,
+        },
+    )
+
+    assert mock_mark_checkin_unknown.call_count == 1
+    assert mock_mark_checkin_unknown.mock_calls[0] == mock.call(1, ts)

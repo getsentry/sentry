@@ -1,6 +1,8 @@
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
+import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/account';
@@ -10,6 +12,10 @@ type ConfigParams = {
 };
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
+  if (organization && prefersStackedNav()) {
+    return getUserOrgNavigationConfiguration({organization});
+  }
+
   return [
     {
       name: t('Account'),

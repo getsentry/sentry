@@ -148,7 +148,7 @@ export function DeprecatedAggregateFlamegraph(
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [flamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
@@ -172,7 +172,6 @@ export function DeprecatedAggregateFlamegraph(
     });
 
     // We skip `flamegraphCanvas` as it causes an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flamegraph, setFlamegraphThemeMutation, flamegraphCanvas?.logicalSpace.height]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
@@ -295,6 +294,7 @@ export function DeprecatedAggregateFlamegraph(
     <Fragment>
       {props.children ? props.children({canvasPoolManager, scheduler, flamegraph}) : null}
       <FlamegraphZoomView
+        scheduler={scheduler}
         profileGroup={profileGroup}
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}

@@ -31,7 +31,7 @@ PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
+    metric_value: float,
     notification_uuid: str | None = None,
 ) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
@@ -54,7 +54,7 @@ def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
+    metric_value: float,
     notification_uuid: str | None = None,
 ) -> bool:
     """
@@ -62,7 +62,7 @@ def send_incident_alert_notification(
     :param action: The triggered `AlertRuleTriggerAction`.
     :param incident: The `Incident` for which to build a payload.
     :param metric_value: The value of the metric that triggered this alert to
-    fire. If not provided we'll attempt to calculate this ourselves.
+    fire.
     :return:
     """
     organization = serialize_rpc_organization(incident.organization)
@@ -119,7 +119,6 @@ class NotifyEventServiceAction(EventAction):
     """Used for notifying a *specific* plugin/sentry app with a generic webhook payload."""
 
     id = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
-    form_cls = NotifyEventServiceForm
     label = "Send a notification via {service}"
     prompt = "Send a notification via an integration"
 
@@ -197,5 +196,5 @@ class NotifyEventServiceAction(EventAction):
     def get_services(self) -> Sequence[Any]:
         return [*self.get_plugins(), *self.get_sentry_app_services()]
 
-    def get_form_instance(self) -> forms.Form:
-        return self.form_cls(self.data, services=self.get_services())
+    def get_form_instance(self) -> NotifyEventServiceForm:
+        return NotifyEventServiceForm(self.data, services=self.get_services())

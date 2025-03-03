@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -7,6 +6,7 @@ import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
@@ -66,9 +66,8 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const {setPageError} = usePageAlert();
-  const theme = useTheme();
 
-  const colors = [...theme.charts.getColorPalette(5)].reverse();
+  const colors = [...getChartColorPalette(5)].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -237,7 +236,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             location,
           })
         : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             projectID: listItem['project.id'] as string,
             transaction,
             query: props.eventView.generateQueryStringObject(),
@@ -245,7 +244,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           });
 
       const displayedField = 'count()';
-      const rightValue = listItem[displayedField];
+      const rightValue = listItem[displayedField]!;
 
       return (
         <Fragment key={i}>

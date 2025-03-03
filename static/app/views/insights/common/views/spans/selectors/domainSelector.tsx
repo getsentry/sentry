@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -8,11 +7,11 @@ import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect'
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -24,10 +23,9 @@ import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors
 import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 type Props = {
+  domainAlias: string;
   moduleName: ModuleName;
   additionalQuery?: string[];
-  // Optional prop to override the default name of the selector label
-  domainAlias?: string;
   emptyOptionLocation?: 'top' | 'bottom';
   spanCategory?: string;
   value?: string;
@@ -45,6 +43,7 @@ export function DomainSelector({
   emptyOptionLocation = 'bottom',
   domainAlias,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -117,15 +116,11 @@ export function DomainSelector({
 
   const emptyOption: SelectOption<string> = {
     value: EMPTY_OPTION_VALUE,
-    label: (
-      <EmptyContainer>
-        {t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName])}
-      </EmptyContainer>
-    ),
-    textValue: t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]),
+    label: <EmptyContainer>{t('(No %s)', domainAlias)}</EmptyContainer>,
+    textValue: t('(No %s)', domainAlias),
   };
 
-  const options: SelectOption<string>[] = [
+  const options: Array<SelectOption<string>> = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
     ...domainOptions,
@@ -140,7 +135,7 @@ export function DomainSelector({
       emptyMessage={t('No results')}
       loading={isPending}
       searchable
-      menuTitle={domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]}
+      menuTitle={domainAlias}
       maxMenuWidth={'500px'}
       data-test-id="domain-selector"
       onSearch={newValue => {
@@ -149,14 +144,14 @@ export function DomainSelector({
         }
       }}
       triggerProps={{
-        prefix: domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName],
+        prefix: domainAlias,
       }}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {
           organization,
           source: moduleName,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
@@ -170,22 +165,6 @@ export function DomainSelector({
 }
 
 const LIMIT = 100;
-
-const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
-  http: t('Host'),
-  db: t('Table'),
-  cache: t('Domain'),
-  vital: t('Domain'),
-  queue: t('Domain'),
-  screen_load: t('Domain'),
-  app_start: t('Domain'),
-  resource: t('Resource'),
-  other: t('Domain'),
-  ai: t('Domain'),
-  'screen-rendering': t('Domain'),
-  'mobile-ui': t('Domain'),
-  'mobile-screens': t('Domain'),
-};
 
 function getEventView(
   location: Location,

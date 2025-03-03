@@ -5,6 +5,7 @@ from sentry import options
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     CHANNEL_URL,
+    DISCORD_BASE_URL,
     GUILD_URL,
     MESSAGE_URL,
     USERS_GUILD_URL,
@@ -13,8 +14,6 @@ from sentry.integrations.discord.client import (
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.flags import (
     EPHEMERAL_FLAG,
-    LOADING_FLAG,
-    SUPPRESS_NOTIFICATIONS_FLAG,
     DiscordMessageFlags,
 )
 from sentry.testutils.cases import TestCase
@@ -88,7 +87,7 @@ class DiscordClientTest(TestCase):
     def test_get_access_token(self):
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=f"{DISCORD_BASE_URL}/oauth2/token",
             json={
                 "access_token": "access_token",
             },
@@ -100,7 +99,9 @@ class DiscordClientTest(TestCase):
     @responses.activate
     def test_get_user_id(self):
         responses.add(
-            responses.GET, url="https://discord.com/api/v10/users/@me", json={"id": "user_id"}
+            responses.GET,
+            url=f"{DISCORD_BASE_URL}/users/@me",
+            json={"id": "user_id"},
         )
 
         user_id = self.discord_client.get_user_id("access_token")
@@ -148,7 +149,7 @@ class DiscordClientTest(TestCase):
                         "components": [],
                         "content": "test",
                         "embeds": [],
-                        "flags": EPHEMERAL_FLAG | LOADING_FLAG | SUPPRESS_NOTIFICATIONS_FLAG,
+                        "flags": EPHEMERAL_FLAG,
                     }
                 ),
             ],
@@ -156,8 +157,8 @@ class DiscordClientTest(TestCase):
 
         message = DiscordMessageBuilder(
             content="test",
-            flags=DiscordMessageFlags().set_loading().set_ephemeral().set_suppress_notifications(),
-        )
+            flags=DiscordMessageFlags().set_ephemeral(),
+        ).build(notification_uuid=None)
 
         self.discord_client.send_message(
             channel_id=channel_id,

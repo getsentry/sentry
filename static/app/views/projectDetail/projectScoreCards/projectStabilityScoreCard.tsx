@@ -1,7 +1,4 @@
-import {
-  getDiffInMinutes,
-  shouldFetchPreviousPeriod,
-} from 'sentry/components/charts/utils';
+import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -13,7 +10,7 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -50,7 +47,7 @@ const useCrashFreeRate = (props: Props) => {
   const commonQuery = {
     environment,
     project: projects[0],
-    interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
+    interval: getInterval(selection.datetime),
     query,
     field,
   };
@@ -68,7 +65,7 @@ const useCrashFreeRate = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -89,7 +86,7 @@ const useCrashFreeRate = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -128,23 +125,27 @@ function ProjectStabilityScoreCard(props: Props) {
 
   const score = !crashFreeRate
     ? undefined
-    : crashFreeRate?.groups[0]?.totals[props.field] * 100;
+    : crashFreeRate?.groups[0]?.totals[props.field]! * 100;
 
   const previousScore = !previousCrashFreeRate
     ? undefined
-    : previousCrashFreeRate?.groups[0]?.totals[props.field] * 100;
+    : previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100;
 
   if (hasSessions === false) {
     return (
-      <WidgetFrame title={cardTitle} description={cardHelp}>
-        <ActionWrapper>
-          <MissingReleasesButtons
-            organization={organization}
-            health
-            platform={props.project?.platform}
-          />
-        </ActionWrapper>
-      </WidgetFrame>
+      <Widget
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={<Widget.WidgetDescription description={cardHelp} />}
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons
+              organization={organization}
+              health
+              platform={props.project?.platform}
+            />
+          </ActionWrapper>
+        }
+      />
     );
   }
 
@@ -159,6 +160,7 @@ function ProjectStabilityScoreCard(props: Props) {
         fields: {
           [`${props.field}()`]: 'percentage',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}

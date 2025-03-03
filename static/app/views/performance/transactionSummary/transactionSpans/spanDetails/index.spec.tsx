@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
@@ -12,11 +14,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
-function initializeData(settings) {
+function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
   act(() => void ProjectsStore.loadInitialData(data.projects));
   return data;
@@ -38,8 +39,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    // need to typecast to any to be able to call mockReset
-    (browserHistory.push as any).mockReset();
   });
 
   describe('Without Span Data', function () {
@@ -147,7 +146,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
       // just want to get one span in the response
       const badExamples = [generateSuspectSpansResponse({examplesOnly: true})[0]];
-      for (const example of badExamples[0].examples) {
+      for (const example of badExamples[0]!.examples) {
         // make sure that the spans array is empty
         example.spans = [];
       }
@@ -446,7 +445,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           name: /reset view/i,
         });
         await userEvent.click(resetButton);
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(data.router.push).toHaveBeenCalledWith(
           expect.not.objectContaining({min: expect.any(String), max: expect.any(String)})
         );
       });
@@ -466,7 +465,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         await userEvent.click(searchBarNode);
         await userEvent.paste('count():>3');
         expect(searchBarNode).toHaveTextContent('count():>3');
-        expect(browserHistory.push).not.toHaveBeenCalled();
+        expect(data.router.push).not.toHaveBeenCalled();
       });
 
       it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
@@ -507,7 +506,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           })
         );
 
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(data.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: {
               display: 'histogram',
@@ -651,8 +650,9 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
 describe('spanDetailsRouteWithQuery', function () {
   it('should encode slashes in span op', function () {
+    const organization = OrganizationFixture();
     const target = spanDetailsRouteWithQuery({
-      orgSlug: 'org-slug',
+      organization,
       transaction: 'transaction',
       query: {},
       spanSlug: {op: 'o/p', group: 'aaaaaaaaaaaaaaaa'},

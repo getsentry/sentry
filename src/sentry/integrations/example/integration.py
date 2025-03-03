@@ -4,7 +4,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -22,7 +23,7 @@ from sentry.integrations.source_code_management.issues import SourceCodeIssueInt
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.plugins.migrator import Migrator
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.users.services.user import RpcUser
@@ -39,7 +40,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -143,7 +144,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):
@@ -158,7 +159,9 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     ) -> None:
         pass
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         pass
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
@@ -214,7 +217,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [ExampleSetupView()]
 
     def get_config(self):

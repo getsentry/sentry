@@ -6,11 +6,11 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Badge} from 'sentry/components/core/badge';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
@@ -109,7 +109,9 @@ function NotificationActionItem({
           <Fragment>
             <div>{t('Send an email notification to the following roles')}</div>
             {recipientRoles?.map(role => (
-              <NotificationRecipient key={role}>{role}</NotificationRecipient>
+              <NotificationRecipientBadge type="default" key={role}>
+                {role}
+              </NotificationRecipientBadge>
             ))}
           </Fragment>
         );
@@ -117,7 +119,9 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <NotificationRecipientBadge type="default">
+              {action.targetDisplay}
+            </NotificationRecipientBadge>
             <div>{t('channel')}</div>
           </Fragment>
         );
@@ -125,7 +129,9 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <NotificationRecipientBadge type="default">
+              {action.targetDisplay}
+            </NotificationRecipientBadge>
             <div>{t('service')}</div>
           </Fragment>
         );
@@ -133,7 +139,9 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <NotificationRecipientBadge type="default">
+              {action.targetDisplay}
+            </NotificationRecipientBadge>
             <div>{t('team')}</div>
           </Fragment>
         );
@@ -175,7 +183,9 @@ function NotificationActionItem({
 
     // Remove keys from the data if they are falsy
     Object.keys(data).forEach(key => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (!data[key]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         delete data[key];
       }
     });
@@ -199,6 +209,7 @@ function NotificationActionItem({
     const updatedAction = {...editedAction};
     names.forEach((name, i) => {
       const value = values[i];
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       updatedAction[name] = value;
     });
     setEditedAction(updatedAction);
@@ -377,7 +388,7 @@ export const NotificationActionFormContainer = styled('div')`
   width: 100%;
 `;
 
-const NotificationRecipient = styled(Badge)`
+const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.borderRadius};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;

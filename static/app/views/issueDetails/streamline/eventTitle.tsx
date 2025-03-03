@@ -1,15 +1,14 @@
 import {type CSSProperties, forwardRef, Fragment} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,7 +19,6 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -29,7 +27,7 @@ import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
   type SectionConfig,
   SectionKey,
-  useEventDetails,
+  useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -44,16 +42,17 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
-const sectionLabels = {
+const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
-  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
+  [SectionKey.THREADS]: t('Stack Trace'),
+  [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
+  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
-  [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
 
@@ -64,7 +63,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
     const organization = useOrganization();
     const theme = useTheme();
 
-    const {sectionData} = useEventDetails();
+    const {sectionData} = useIssueDetails();
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
       config => sectionLabels[config.key]
     );
@@ -73,100 +72,70 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       true
     );
 
-    const {data: actionableItems} = useActionableItems({
-      eventId: event.id,
-      orgSlug: organization.slug,
-      projectSlug: group.project.slug,
+    const actionableItems = useActionableItemsWithProguardErrors({
+      event,
+      project: group.project,
+      isShare: false,
     });
-
-    const hasEventError = actionableItems?.errors && actionableItems.errors.length > 0;
-
-    const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
     const grayText = css`
       color: ${theme.subText};
       font-weight: ${theme.fontWeightNormal};
     `;
 
-    const downloadJson = () => {
-      const host = organization.links.regionUrl;
-      const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
-      window.open(jsonUrl);
-      trackAnalytics('issue_details.event_json_clicked', {
-        organization,
-        group_id: parseInt(`${event.groupID}`, 10),
-      });
-    };
-
-    const {onClick: copyLink} = useCopyToClipboard({
-      successMessage: t('Event URL copied to clipboard'),
-      text: window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`),
-      onCopy: () =>
-        trackAnalytics('issue_details.copy_event_link_clicked', {
-          organization,
-          ...getAnalyticsDataForGroup(group),
-          ...getAnalyticsDataForEvent(event),
-        }),
-    });
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
 
     const {onClick: copyEventId} = useCopyToClipboard({
       successMessage: t('Event ID copied to clipboard'),
       text: event.id,
+      onCopy: () =>
+        trackAnalytics('issue_details.copy_event_id_clicked', {
+          organization,
+          ...getAnalyticsDataForGroup(group),
+          ...getAnalyticsDataForEvent(event),
+          streamline: true,
+        }),
     });
 
     return (
       <div {...props} ref={ref}>
         <EventInfoJumpToWrapper>
           <EventInfo>
-            <EventIdInfo>
-              <DropdownMenu
-                trigger={(triggerProps, isOpen) => (
-                  // Tooltip split from button to prevent re-opening w/ focus event on close
-                  <Tooltip
-                    title={event.id}
-                    delay={500}
-                    overlayStyle={{maxWidth: 'max-content'}}
-                    disabled={isOpen}
-                  >
-                    <DropdownButton
-                      {...triggerProps}
-                      aria-label={t('Event actions')}
-                      size="zero"
-                      borderless
-                      isOpen={isOpen}
-                    >
-                      {getShortEventId(event.id)}
-                    </DropdownButton>
-                  </Tooltip>
-                )}
-                position="bottom"
-                size="xs"
-                items={[
-                  {
-                    key: 'copy-event-id',
-                    label: t('Copy Event ID'),
-                    onAction: copyEventId,
-                  },
-                  {
-                    key: 'copy-event-link',
-                    label: t('Copy Event Link'),
-                    onAction: copyLink,
-                  },
-                  {
-                    key: 'view-json',
-                    label: t('View JSON'),
-                    onAction: downloadJson,
-                  },
-                ]}
+            <EventIdWrapper>
+              <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
+              <Button
+                aria-label={t('Copy Event ID')}
+                title={t('Copy Event ID')}
+                onClick={copyEventId}
+                size="zero"
+                borderless
+                icon={<IconCopy size="xs" color="subText" />}
               />
-            </EventIdInfo>
+            </EventIdWrapper>
             <StyledTimeSince
               tooltipBody={<EventCreatedTooltip event={event} />}
-              tooltipProps={{overlayStyle: {maxWidth: 300}}}
+              tooltipProps={{maxWidth: 300, isHoverable: true}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
+              aria-label={t('Event timestamp')}
             />
-            {hasEventError && (
+            <JsonLinkWrapper className="hidden-xs">
+              <Divider />
+              <JsonLink
+                href={jsonUrl}
+                onClick={() =>
+                  trackAnalytics('issue_details.event_json_clicked', {
+                    organization,
+                    group_id: parseInt(`${event.groupID}`, 10),
+                    streamline: true,
+                  })
+                }
+              >
+                {t('JSON')}
+              </JsonLink>
+            </JsonLinkWrapper>
+            {actionableItems && actionableItems.length > 0 && (
               <Fragment>
                 <Divider />
                 <ProcessingErrorButton
@@ -190,8 +159,8 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           {eventSectionConfigs.length > 0 && (
             <JumpTo>
-              <div>{t('Jump to:')}</div>
-              <ScrollCarousel gap={0.25}>
+              <div aria-hidden>{t('Jump to:')}</div>
+              <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
                 {eventSectionConfigs.map(config => (
                   <EventNavigationLink
                     key={config.key}
@@ -235,6 +204,9 @@ function EventNavigationLink({
       borderless
       size="xs"
       css={propCss}
+      analyticsEventName="Issue Details: Jump To Clicked"
+      analyticsEventKey="issue_details.jump_to_clicked"
+      analyticsParams={{section: config.key}}
     >
       {sectionLabels[config.key]}
     </LinkButton>
@@ -253,18 +225,18 @@ const EventInfoJumpToWrapper = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: 0 ${space(2)} 0 ${space(0.5)};
   flex-wrap: wrap;
   min-height: ${MIN_NAV_HEIGHT}px;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: nowrap;
   }
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const EventInfo = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   flex-direction: row;
   align-items: center;
   line-height: 1.2;
@@ -284,18 +256,44 @@ const JumpTo = styled('div')`
   }
 `;
 
-const EventIdInfo = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-  line-height: 1.2;
-`;
-
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   :hover {
     color: ${p => p.theme.red300};
+  }
+`;
+
+const JsonLinkWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
+
+const JsonLink = styled(ExternalLink)`
+  color: ${p => p.theme.gray300};
+  text-decoration: underline;
+  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+
+  :hover {
+    color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.gray300};
+  }
+`;
+
+const EventIdWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.25)};
+  align-items: center;
+  margin-left: ${space(1.5)};
+  font-weight: ${p => p.theme.fontWeightBold};
+
+  button {
+    visibility: hidden;
+  }
+
+  &:hover button {
+    visibility: visible;
   }
 `;

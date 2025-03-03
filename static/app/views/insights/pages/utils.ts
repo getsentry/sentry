@@ -1,16 +1,21 @@
 import type {Organization} from 'sentry/types/organization';
 import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {MODULE_FEATURE_MAP} from 'sentry/views/insights/settings';
+import {
+  MODULE_FEATURE_MAP,
+  MODULE_FEATURE_VISIBLE_MAP,
+  MODULES_CONSIDERED_NEW,
+} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export const isModuleEnabled = (module: ModuleName, organization: Organization) => {
-  const moduleFeatures: string[] | undefined = MODULE_FEATURE_MAP[module];
-  if (!moduleFeatures) {
-    return false;
-  }
-  return moduleFeatures.every(feature => organization.features.includes(feature));
-};
+export const isModuleEnabled = (module: ModuleName, organization: Organization) =>
+  MODULE_FEATURE_MAP[module].every(f => organization.features.includes(f));
+
+export const isModuleVisible = (module: ModuleName, organization: Organization) =>
+  MODULE_FEATURE_VISIBLE_MAP[module].every(f => organization.features.includes(f));
+
+export const isModuleConsideredNew = (module: ModuleName) =>
+  MODULES_CONSIDERED_NEW.has(module);
 
 export const getModuleView = (module: ModuleName): DomainView => {
   if (DOMAIN_VIEW_MODULES.backend.includes(module)) {

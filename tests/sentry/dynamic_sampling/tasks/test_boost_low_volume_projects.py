@@ -1,11 +1,13 @@
 from datetime import timedelta
 from typing import cast
+from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
-    SamplingMeasure,
+    boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
@@ -16,6 +18,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -57,6 +60,36 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             project_id=p1.id,
             org_id=org1.id,
         )
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
+        )
+        assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
+
+    def test_deleted_projects_are_not_queried(self):
+        context = TaskContext("rebalancing", 20)
+        org1 = self.create_organization("test-org")
+        p1 = self.create_project(organization=org1)
+        p2 = self.create_project(organization=org1)
+
+        for p in [p1, p2]:
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": "keep"},
+                minutes_before_now=30,
+                value=1,
+                project_id=p.id,
+                org_id=org1.id,
+            )
+
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": "drop"},
+                minutes_before_now=30,
+                value=3,
+                project_id=p.id,
+                org_id=org1.id,
+            )
+        p2.delete()
         results = fetch_projects_with_total_root_transaction_count_and_rates(
             context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
@@ -133,9 +166,69 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
             org1.id, p1.id, error_sample_rate_fallback=None
         )
+        assert (sample_rate, got_value) == (0.5, True)
 
-        assert got_value
-        assert sample_rate == 0.5
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_project_mode_sampling_with_query(self):
+        org1 = self.create_organization("test-org")
+        p1 = self.create_project(organization=org1)
+
+        org1.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        p1.update_option("sentry:target_sample_rate", 0.2)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=30,
+            value=1,
+            project_id=p1.id,
+            org_id=org1.id,
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop"},
+            minutes_before_now=30,
+            value=3,
+            project_id=p1.id,
+            org_id=org1.id,
+        )
+
+        # bulk task
+        with self.tasks():
+            boost_low_volume_projects.delay()
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org1.id, p1.id, error_sample_rate_fallback=None
+        )
+        assert (sample_rate, got_value) == (None, False)
+
+        # single-org task
+        with self.tasks():
+            boost_low_volume_projects_of_org_with_query.delay(org1.id)
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org1.id, p1.id, error_sample_rate_fallback=None
+        )
+        assert (sample_rate, got_value) == (None, False)
+
+        assert get_guarded_project_sample_rate(org1, p1) == 0.2
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_project_mode_sampling_with_query_zero_metrics(self):
+        organization = self.create_organization("test-org")
+        project = self.create_project(organization=organization)
+
+        organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        project.update_option("sentry:target_sample_rate", 0.2)
+
+        # make sure that no rebalancing is actually run
+        with patch(
+            "sentry.dynamic_sampling.models.projects_rebalancing.ProjectsRebalancingModel._run"
+        ) as mock_run:
+            with self.tasks():
+                boost_low_volume_projects.delay()
+            assert not mock_run.called
 
     def test_complex(self):
         context = TaskContext("rebalancing", 20)

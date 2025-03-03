@@ -1,22 +1,17 @@
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {
-  DAY,
-  formatAbbreviatedNumber,
-  formatRate,
-  HOUR,
-  MINUTE,
-  SECOND,
-  WEEK,
-} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+
+import {axisDuration} from '../duration/axisDuration';
+
+import {categorizeDuration} from './categorizeDuration';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
@@ -64,7 +59,7 @@ export function tooltipFormatterUsingAggregateOutputType(
 export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
-  abbreviation: boolean = false,
+  abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
   decimalPlaces?: number
@@ -85,10 +80,10 @@ export function axisLabelFormatter(
 export function axisLabelFormatterUsingAggregateOutputType(
   value: number,
   type: string,
-  abbreviation: boolean = false,
+  abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces: number = 0
+  decimalPlaces = 0
 ): string {
   switch (type) {
     case 'integer':
@@ -104,45 +99,6 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return formatRate(value, rateUnit);
     default:
       return value.toString();
-  }
-}
-
-/**
- * Specialized duration formatting for axis labels.
- * In that context we are ok sacrificing accuracy for more
- * consistent sizing.
- *
- * @param value Number of milliseconds to format.
- */
-export function axisDuration(value: number, durationUnit?: number): string {
-  durationUnit ??= categorizeDuration(value);
-  if (value === 0) {
-    return '0';
-  }
-  switch (durationUnit) {
-    case WEEK: {
-      const label = (value / WEEK).toFixed(0);
-      return t('%swk', label);
-    }
-    case DAY: {
-      const label = (value / DAY).toFixed(0);
-      return t('%sd', label);
-    }
-    case HOUR: {
-      const label = (value / HOUR).toFixed(0);
-      return t('%shr', label);
-    }
-    case MINUTE: {
-      const label = (value / MINUTE).toFixed(0);
-      return t('%smin', label);
-    }
-    case SECOND: {
-      const label = (value / SECOND).toFixed(0);
-      return t('%ss', label);
-    }
-    default:
-      const label = value.toFixed(0);
-      return t('%sms', label);
   }
 }
 
@@ -213,28 +169,4 @@ export function getDurationUnit(
     }
   }
   return durationUnit;
-}
-
-/**
- * Categorizes the duration by Second, Minute, Hour, etc
- * Ex) categorizeDuration(1200) = MINUTE
- * @param value Duration in ms
- */
-export function categorizeDuration(value): number {
-  if (value >= WEEK) {
-    return WEEK;
-  }
-  if (value >= DAY) {
-    return DAY;
-  }
-  if (value >= HOUR) {
-    return HOUR;
-  }
-  if (value >= MINUTE) {
-    return MINUTE;
-  }
-  if (value >= SECOND) {
-    return SECOND;
-  }
-  return 1;
 }

@@ -10,6 +10,7 @@ import {
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {
   SessionApiResponse,
@@ -29,7 +30,7 @@ export function getCount(
   groups: SessionApiResponse['groups'] = [],
   field: SessionFieldWithOperation
 ) {
-  return groups.reduce((acc, group) => acc + group.totals[field], 0);
+  return groups.reduce((acc, group) => acc + group.totals[field]!, 0);
 }
 
 export function getCountAtIndex(
@@ -37,7 +38,7 @@ export function getCountAtIndex(
   field: SessionFieldWithOperation,
   index: number
 ) {
-  return groups.reduce((acc, group) => acc + group.series[field][index], 0);
+  return groups.reduce((acc, group) => acc + group.series[field]![index]!, 0);
 }
 
 export function getCrashFreeRate(
@@ -71,7 +72,7 @@ export function getSeriesSum(
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {
-    series.forEach((dataPoint, idx) => (dataPointsSums[idx] += dataPoint));
+    series!.forEach((dataPoint, idx) => (dataPointsSums[idx]! += dataPoint));
   });
 
   return dataPointsSums;
@@ -136,12 +137,12 @@ export function getSessionStatusRateSeries(
   return compact(
     intervals.map((interval, i) => {
       const intervalTotalSessions = groups.reduce(
-        (acc, group) => acc + group.series[field][i],
+        (acc, group) => acc + group.series[field]![i]!,
         0
       );
 
       const intervalStatusSessions =
-        groups.find(group => group.by['session.status'] === status)?.series[field][i] ??
+        groups.find(group => group.by['session.status'] === status)?.series[field]![i] ??
         0;
 
       const statusSessionsPercent = percent(
@@ -193,12 +194,12 @@ export function getCountSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, index) => ({
     name: interval,
-    value: group?.series[field][index] ?? 0,
+    value: group?.series[field]![index] ?? 0,
   }));
 }
 
 export function initSessionsChart(theme: Theme) {
-  const colors = theme.charts.getColorPalette(14);
+  const colors = getChartColorPalette(14);
   return {
     [SessionStatus.HEALTHY]: {
       seriesName: sessionTerm.healthy,
@@ -216,9 +217,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ERRORED]: {
       seriesName: sessionTerm.errored,
       data: [],
-      color: colors[12],
+      color: colors[12]!,
       areaStyle: {
-        color: colors[12],
+        color: colors[12]!,
         opacity: 1,
       },
       lineStyle: {
@@ -229,9 +230,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ABNORMAL]: {
       seriesName: sessionTerm.abnormal,
       data: [],
-      color: colors[15],
+      color: colors[15]!,
       areaStyle: {
-        color: colors[15],
+        color: colors[15]!,
         opacity: 1,
       },
       lineStyle: {
@@ -334,7 +335,7 @@ export function filterSessionsInTimeWindow(
     const totals: Record<string, number> = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
-      series[field] = group.series[field].filter((value, index) => {
+      series[field] = group.series[field]!.filter((value, index) => {
         const isBetween = filteredIndexes.includes(index);
         if (isBetween) {
           totals[field] = (totals[field] ?? 0) + value;
@@ -352,15 +353,15 @@ export function filterSessionsInTimeWindow(
         // We cannot sum here because users would not be unique anymore.
         // User can be repeated and part of multiple buckets in series but it's still that one user so totals would be wrong.
         // This operation is not 100% correct, because we are filtering series in time window but the total is for unfiltered series (it's the closest thing we can do right now)
-        totals[field] = group.totals[field];
+        totals[field] = group.totals[field]!;
       }
     });
     return {...group, series, totals};
   });
 
   return {
-    start: intervals[0],
-    end: intervals[intervals.length - 1],
+    start: intervals[0]!,
+    end: intervals[intervals.length - 1]!,
     query: sessions.query,
     intervals,
     groups,

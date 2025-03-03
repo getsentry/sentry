@@ -1,6 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,10 +13,18 @@ describe('GroupUserFeedback', () => {
   const group = GroupFixture();
   const organization = OrganizationFixture();
   const project = ProjectFixture();
+  const router = RouterFixture({
+    params: {groupId: group.id},
+  });
 
   beforeEach(() => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: group,
+    });
   });
 
   it('renders empty state', async () => {
@@ -24,7 +33,7 @@ describe('GroupUserFeedback', () => {
       body: [],
     });
 
-    render(<GroupUserFeedback group={group} />);
+    render(<GroupUserFeedback />, {organization, router});
     expect(
       await screen.findByRole('heading', {
         name: 'What do users think?',
@@ -59,7 +68,7 @@ describe('GroupUserFeedback', () => {
       ],
     });
 
-    render(<GroupUserFeedback group={group} />);
+    render(<GroupUserFeedback />, {organization, router});
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(await screen.findByText('custom comment')).toBeInTheDocument();
   });

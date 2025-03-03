@@ -23,12 +23,16 @@ describe('EventGraph', () => {
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
   const persistantQuery = `issue:${group.shortId}`;
-  const defaultProps = {group, event};
+  const defaultProps = {group, event, project};
 
   let mockEventStats: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
@@ -37,6 +41,10 @@ describe('EventGraph', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
     });
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -115,7 +123,7 @@ describe('EventGraph', () => {
     );
   });
 
-  it('allows filtering by environment', async function () {
+  it('allows filtering by environment, and shows unfiltered stats', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization});
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
@@ -127,6 +135,15 @@ describe('EventGraph', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['production'],
+        }),
+      })
+    );
+    // Also makes request without environment filter
+    expect(mockEventStats).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
         }),
       })
     );
@@ -151,6 +168,15 @@ describe('EventGraph', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: [persistantQuery, locationQuery.query.query].join(' '),
+        }),
+      })
+    );
+    // Also makes request without tag filter
+    expect(mockEventStats).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: persistantQuery,
         }),
       })
     );

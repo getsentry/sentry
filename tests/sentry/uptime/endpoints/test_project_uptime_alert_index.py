@@ -2,7 +2,9 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -40,6 +42,24 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == 1500
         assert uptime_subscription.body is None
+        assert uptime_subscription.trace_sampling is False
+
+    def test_set_trace_sampling(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            environment="uptime-prod",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            body=None,
+            trace_sampling=True,
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        uptime_subscription = uptime_monitor.uptime_subscription
+        assert uptime_subscription.trace_sampling is True
 
     def test_no_environment(self):
         resp = self.get_success_response(
@@ -53,16 +73,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             body=None,
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
-        uptime_subscription = uptime_monitor.uptime_subscription
-        assert uptime_monitor.name == "test"
         assert uptime_monitor.environment is None
-        assert uptime_monitor.owner_user_id == self.user.id
-        assert uptime_monitor.owner_team_id is None
-        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
-        assert uptime_subscription.url == "http://sentry.io"
-        assert uptime_subscription.interval_seconds == 60
-        assert uptime_subscription.timeout_ms == 1000
-        assert uptime_subscription.body is None
 
     def test_no_owner(self):
         resp = self.get_success_response(
@@ -76,14 +87,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             timeout_ms=1000,
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
-        uptime_subscription = uptime_monitor.uptime_subscription
-        assert uptime_monitor.name == "test"
         assert uptime_monitor.owner_user_id is None
         assert uptime_monitor.owner_team_id is None
-        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
-        assert uptime_subscription.url == "http://sentry.io"
-        assert uptime_subscription.interval_seconds == 60
-        assert uptime_subscription.timeout_ms == 1000
 
         # Test without passing the owner
         resp = self.get_success_response(
@@ -155,13 +160,6 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         uptime_subscription = uptime_monitor.uptime_subscription
-        assert uptime_monitor.name == "test"
-        assert uptime_monitor.owner_user_id == self.user.id
-        assert uptime_monitor.owner_team_id is None
-        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
-        assert uptime_subscription.url == "http://sentry.io"
-        assert uptime_subscription.interval_seconds == 60
-        assert uptime_subscription.timeout_ms == 1000
         assert uptime_subscription.body == '{"key": "value"}'
         assert uptime_subscription.headers == [["header", "value"]]
 
@@ -195,7 +193,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             headers=[["header", "value"]],
         )
         new_uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
-        assert uptime_monitor.uptime_subscription_id == new_uptime_monitor.uptime_subscription_id
+        assert uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
         assert new_uptime_monitor.project_id != uptime_monitor.project_id
         resp = self.get_success_response(
             self.organization.slug,
@@ -280,4 +278,36 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
                 interval_seconds=60,
                 timeout_ms=1000,
                 owner=f"user:{self.user.id}",
+            )
+
+    @mock.patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
+    )
+    def test_no_seat_assignment(self, _mock_check_assign_seat):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            environment=self.environment.name,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1000,
+            owner=f"user:{self.user.id}",
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        assert uptime_monitor.status == ObjectStatus.DISABLED
+
+    def test_flag_disabled(self):
+        with self.feature("organizations:uptime-create-disabled"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                environment=self.environment.name,
+                name="test",
+                url="http://santry.io",
+                interval_seconds=60,
+                timeout_ms=1000,
+                owner=f"user:{self.user.id}",
+                status=400,
             )

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
@@ -100,7 +100,7 @@ export interface DeprecatedLineProps {
 }
 
 interface Props extends DeprecatedLineProps {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
 }
 
 type State = {
@@ -143,7 +143,7 @@ export class DeprecatedLine extends Component<Props, State> {
     this.setState({isHovering: false});
   };
 
-  toggleContext = evt => {
+  toggleContext = (evt: any) => {
     evt?.preventDefault();
 
     this.setState({
@@ -195,7 +195,7 @@ export class DeprecatedLine extends Component<Props, State> {
     }
   }
 
-  scrollToImage = event => {
+  scrollToImage = (event: any) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     const {instructionAddr, addrMode} = this.props.data;
@@ -210,20 +210,20 @@ export class DeprecatedLine extends Component<Props, State> {
       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
-  scrollToSuspectRootCause = event => {
+  scrollToSuspectRootCause = (event: any) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
     document
       .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
-  preventCollapse = evt => {
+  preventCollapse = (evt: any) => {
     evt.stopPropagation();
   };
 
   renderExpander() {
     if (!this.isExpandable()) {
-      return null;
+      return <div style={{width: 20, height: 20}} />;
     }
 
     const {isExpanded} = this.state;
@@ -290,7 +290,7 @@ export class DeprecatedLine extends Component<Props, State> {
             frame_count: hiddenFrameCount,
             is_frame_expanded: isShowFramesToggleExpanded,
           }}
-          size="xs"
+          size="zero"
           borderless
           onClick={e => {
             this.props.onShowFramesToggle?.(e);
@@ -378,7 +378,7 @@ export class DeprecatedLine extends Component<Props, State> {
           <DefaultLineTagWrapper>
             {this.renderRepeats()}
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+              <Tag type="warning" onClick={this.scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
@@ -568,6 +568,7 @@ const StyledLi = styled('li')`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};

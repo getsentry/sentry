@@ -8,88 +8,93 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
-import {
-  useSpanFieldStaticTags,
-  useSpanFieldSupportedTags,
-} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import usePrevious from 'sentry/utils/usePrevious';
+import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {SENTRY_SPAN_NUMBER_TAGS, SENTRY_SPAN_STRING_TAGS} from '../constants';
 
 type TypedSpanTags = {
   number: TagCollection;
   string: TagCollection;
 };
 
-const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefined);
+export const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefined);
 
 interface SpanTagsProviderProps {
   children: React.ReactNode;
   dataset: DiscoverDatasets;
+  enabled: boolean;
 }
 
-export function SpanTagsProvider({children, dataset}: SpanTagsProviderProps) {
-  const numericSpanFields: Set<string> = useMemo(() => {
-    return new Set([
-      SpanIndexedField.SPAN_DURATION,
-      SpanIndexedField.SPAN_SELF_TIME,
-      SpanIndexedField.INP,
-      SpanIndexedField.INP_SCORE,
-      SpanIndexedField.INP_SCORE_WEIGHT,
-      SpanIndexedField.TOTAL_SCORE,
-      SpanIndexedField.CACHE_ITEM_SIZE,
-      SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
-      SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
-      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-    ]);
-  }, []);
+export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderProps) {
+  const {data: indexedTags} = useSpanFieldCustomTags({
+    enabled: dataset === DiscoverDatasets.SPANS_INDEXED && enabled,
+  });
 
-  const supportedTags = useSpanFieldSupportedTags();
+  const isEAP =
+    dataset === DiscoverDatasets.SPANS_EAP || dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
-  const numberTags: TagCollection = useTypedSpanTags({
-    enabled: dataset === DiscoverDatasets.SPANS_EAP,
+  const numberTags = useTypedSpanTags({
+    enabled: isEAP && enabled,
     type: 'number',
   });
 
-  const stringTags: TagCollection = useTypedSpanTags({
-    enabled: dataset === DiscoverDatasets.SPANS_EAP,
+  const stringTags = useTypedSpanTags({
+    enabled: isEAP && enabled,
     type: 'string',
   });
 
-  const staticTags = useSpanFieldStaticTags();
-
   const allNumberTags = useMemo(() => {
+    const measurements = SENTRY_SPAN_NUMBER_TAGS.map(measurement => [
+      measurement,
+      {
+        key: measurement,
+        name: measurement,
+        kind: FieldKind.MEASUREMENT,
+      },
+    ]);
+
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-      return {};
+      return {
+        ...Object.fromEntries(measurements),
+      };
     }
 
     return {
       ...numberTags,
-      ...Object.fromEntries(
-        Object.entries(staticTags)
-          .filter(([key, _]) => numericSpanFields.has(key))
-          .map(([key, tag]) => [key, {...tag, kind: FieldKind.MEASUREMENT}])
-      ),
+      ...Object.fromEntries(measurements),
     };
-  }, [dataset, numberTags, numericSpanFields, staticTags]);
+  }, [dataset, numberTags]);
 
   const allStringTags = useMemo(() => {
+    const tags = SENTRY_SPAN_STRING_TAGS.map(tag => [
+      tag,
+      {
+        key: tag,
+        name: tag,
+        kind: FieldKind.TAG,
+      },
+    ]);
+
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-      return supportedTags.data;
+      return {
+        ...indexedTags,
+        ...Object.fromEntries(tags),
+      };
     }
 
     return {
       ...stringTags,
-      ...Object.fromEntries(
-        Object.entries(staticTags)
-          .filter(([key, _]) => !numericSpanFields.has(key))
-          .map(([key, tag]) => [key, {...tag, kind: FieldKind.TAG}])
-      ),
+      ...Object.fromEntries(tags),
     };
-  }, [dataset, supportedTags, stringTags, staticTags, numericSpanFields]);
+  }, [dataset, indexedTags, stringTags]);
 
-  const tags = {
-    number: allNumberTags,
-    string: allStringTags,
-  };
+  const tags = useMemo(() => {
+    return {
+      number: allNumberTags,
+      string: allStringTags,
+    };
+  }, [allNumberTags, allStringTags]);
 
   return <SpanTagsContext.Provider value={tags}>{children}</SpanTagsContext.Provider>;
 }
@@ -149,26 +154,30 @@ function useTypedSpanTags({
       // For now, skip all the sentry. prefixed tags as they
       // should be covered by the static tags that will be
       // merged with these results.
-      if (tag.key.startsWith('sentry.')) {
+      if (tag.key.startsWith('sentry.') || tag.key.startsWith('tags[sentry.')) {
         continue;
       }
 
       // EAP spans contain tags with illegal characters
-      if (!/^[a-zA-Z0-9_.:-]+$/.test(tag.key)) {
+      // SnQL forbids `-` but is allowed in RPC. So add it back later
+      if (
+        !/^[a-zA-Z0-9_.:]+$/.test(tag.key) &&
+        !/^tags\[[a-zA-Z0-9_.:]+,number\]$/.test(tag.key)
+      ) {
         continue;
       }
 
-      const key = type === 'number' ? `tags[${tag.key},number]` : tag.key;
-
-      allTags[key] = {
-        key,
-        name: tag.key,
+      allTags[tag.key] = {
+        key: tag.key,
+        name: tag.name,
         kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
       };
     }
 
     return allTags;
-  }, [result, type]);
+  }, [result.data, type]);
 
-  return tags;
+  const previousTags = usePrevious(tags, result.isLoading);
+
+  return result.isLoading ? previousTags : tags;
 }

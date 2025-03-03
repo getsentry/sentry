@@ -28,6 +28,7 @@ function getSearchConfigFromKeys(
     dateKeys: new Set<string>(),
     durationKeys: new Set<string>(),
     percentageKeys: new Set<string>(),
+    sizeKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
@@ -55,6 +56,9 @@ function getSearchConfigFromKeys(
       case FieldValueType.DURATION:
         config.durationKeys.add(key);
         break;
+      case FieldValueType.SIZE:
+        config.sizeKeys.add(key);
+        break;
       default:
         break;
     }
@@ -72,6 +76,7 @@ export function parseQueryBuilderValue(
     disallowLogicalOperators?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
@@ -79,6 +84,7 @@ export function parseQueryBuilderValue(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
       disallowFreeText: options?.disallowFreeText,
+      getFilterTokenWarning: options?.getFilterTokenWarning,
       validateKeys: options?.disallowUnsupportedFilters,
       disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
@@ -109,6 +115,12 @@ export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | n
   return `${token.type}:${tokenTypeIndex}`;
 }
 
+export function parseTokenKey(key: string) {
+  const [tokenType, indexStr] = key.split(':');
+  const index = parseInt(indexStr!, 10);
+  return {tokenType, index};
+}
+
 const isSimpleTextToken = (
   token: ParseResultToken
 ): token is TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES> => {
@@ -119,7 +131,7 @@ const isSimpleTextToken = (
  * Collapse adjacent FREE_TEXT and SPACES tokens into a single token.
  * This is useful for rendering the minimum number of inputs in the UI.
  */
-function collapseTextTokens(tokens: ParseResult | null) {
+export function collapseTextTokens(tokens: ParseResult | null) {
   if (!tokens) {
     return null;
   }
@@ -136,7 +148,7 @@ function collapseTextTokens(tokens: ParseResult | null) {
       return [token];
     }
 
-    const lastToken = acc[acc.length - 1];
+    const lastToken = acc[acc.length - 1]!;
 
     if (isSimpleTextToken(token) && isSimpleTextToken(lastToken)) {
       const freeTextToken = lastToken as TokenResult<Token.FREE_TEXT>;

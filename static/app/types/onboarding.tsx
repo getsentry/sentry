@@ -4,7 +4,6 @@ import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardi
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
-import type {Group} from './group';
 import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
@@ -19,20 +18,12 @@ export enum OnboardingTaskKey {
   FIRST_EVENT = 'send_first_event',
   INVITE_MEMBER = 'invite_member',
   SECOND_PLATFORM = 'setup_second_platform',
-  USER_CONTEXT = 'setup_user_context',
   RELEASE_TRACKING = 'setup_release_tracking',
   SOURCEMAPS = 'setup_sourcemaps',
-  USER_REPORTS = 'setup_user_reports',
   ALERT_RULE = 'setup_alert_rules',
   FIRST_TRANSACTION = 'setup_transactions',
-  METRIC_ALERT = 'setup_metric_alert_rules',
-  USER_SELECTED_PROJECTS = 'setup_userselected_projects',
   REAL_TIME_NOTIFICATIONS = 'setup_real_time_notifications',
   LINK_SENTRY_TO_SOURCE_CODE = 'link_sentry_to_source_code',
-  /// Customized card that shows the selected integrations during onboarding
-  INTEGRATIONS = 'integrations',
-  /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
-  FIRST_INTEGRATION = 'setup_integrations',
   SESSION_REPLAY = 'setup_session_replay',
   /// Demo New Walkthrough Tasks
   SIDEBAR_GUIDE = 'sidebar_guide',
@@ -59,11 +50,6 @@ interface OnboardingTaskDescriptorBase {
    * Should the onboarding task currently be displayed
    */
   display: boolean;
-  /**
-   * A list of require task keys that must have been completed before these
-   * tasks may be completed.
-   */
-  requisites: OnboardingTaskKey[];
   /**
    * Can this task be skipped?
    */
@@ -118,34 +104,29 @@ export interface OnboardingTaskStatus {
 
 interface OnboardingTaskWithAction
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAction {
-  /**
-   * Onboarding tasks that are currently incomplete and must be completed
-   * before this task should be completed.
-   */
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithAction {}
 
 interface OnboardingTaskWithExternal
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithExternal {
-  /**
-   * Onboarding tasks that are currently incomplete and must be completed
-   * before this task should be completed.
-   */
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithExternal {}
 
 interface OnboardingTaskWithAppLink
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAppLink {
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithAppLink {}
 
 export type OnboardingTask =
   | OnboardingTaskWithAction
   | OnboardingTaskWithExternal
   | OnboardingTaskWithAppLink;
+
+export interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
+  task: OnboardingTask['task'];
+  /**
+   * Marks completion seen. This differs from the OnboardingTask
+   * completionSeen type as that returns the date completion was seen.
+   */
+  completionSeen?: boolean;
+}
 
 export enum OnboardingProjectStatus {
   WAITING = 'waiting',
@@ -159,13 +140,9 @@ export interface OnboardingSelectedSDK
   key: PlatformKey;
 }
 
-export type OnboardingRecentCreatedProject = Project & {
-  firstError: boolean;
-  firstTransaction: boolean;
-  hasReplays: boolean;
-  hasSessions: boolean;
-  olderThanOneHour: boolean;
-  firstIssue?: Group;
+export type OnboardingRecentCreatedProject = {
+  isProjectActive: boolean | undefined;
+  project: Project | undefined;
 };
 
 export type OnboardingPlatformDoc = {html: string; link: string};

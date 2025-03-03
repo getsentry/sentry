@@ -4,12 +4,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import App from 'sentry/views/app';
 
-function HookWrapper(props) {
+function HookWrapper(props: any) {
   return (
     <div data-test-id="hook-wrapper">
       {props.children}
@@ -62,7 +63,7 @@ describe('App', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders', async function () {
@@ -210,7 +211,7 @@ describe('App', function () {
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
-    expect(sentryUrl).toEqual('https://sentry.io');
+    expect(sentryUrl).toBe('https://sentry.io');
     expect(window.location.replace).toHaveBeenCalledWith('https://sentry.io');
     expect(window.location.replace).toHaveBeenCalledTimes(1);
   });
@@ -242,8 +243,16 @@ describe('App', function () {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     expect(getMock).toHaveBeenCalled();
-    expect(
-      await screen.findByText(/Celery workers have not checked in/)
-    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(AlertStore.getState()).toEqual([
+        expect.objectContaining({
+          id: 'abc123',
+          message: 'Celery workers have not checked in',
+          opaque: true,
+          type: 'error',
+        }),
+      ]);
+    });
   });
 });

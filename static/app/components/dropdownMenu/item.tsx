@@ -6,6 +6,7 @@ import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import type {MenuListItemProps} from 'sentry/components/menuListItem';
 import MenuListItem, {
@@ -33,6 +34,10 @@ export interface MenuItemProps extends MenuListItemProps {
    * Pass a class name to the menu item.
    */
   className?: string;
+  /**
+   * Destination if this menu item is an external link.
+   */
+  externalHref?: string;
   /**
    * Hide item from the dropdown menu. Note: this will also remove the item
    * from the selection manager.
@@ -116,14 +121,14 @@ function BaseDropdownMenuItem(
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, trailingItems, ...itemProps} =
+  const {key, onAction, to, label, isSubmenu, trailingItems, externalHref, ...itemProps} =
     node.value ?? {};
   const {size} = node.props;
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const navigate = useNavigate();
 
   const actionHandler = () => {
-    if (to) {
+    if (to || externalHref) {
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
       if (closeOnSelect) {
@@ -167,9 +172,9 @@ function BaseDropdownMenuItem(
   // Open submenu on arrow right key press
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      if (e.key === 'Enter' && to) {
+      if (e.key === 'Enter' && (to || externalHref)) {
         // If the user is holding down the meta key, we want to dispatch a mouse event
-        if (e.metaKey || e.ctrlKey) {
+        if (e.metaKey || e.ctrlKey || externalHref) {
           const mouseEvent = new MouseEvent('click', {
             ctrlKey: e.ctrlKey,
             metaKey: e.metaKey,
@@ -180,7 +185,9 @@ function BaseDropdownMenuItem(
           return;
         }
 
-        navigate(to);
+        if (to) {
+          navigate(to);
+        }
         return;
       }
 
@@ -202,7 +209,7 @@ function BaseDropdownMenuItem(
         onClose?.();
         rootOverlayState?.close();
       },
-      closeOnSelect: to ? false : closeOnSelect,
+      closeOnSelect: to || externalHref ? false : closeOnSelect,
       isDisabled,
     },
     state,
@@ -213,7 +220,17 @@ function BaseDropdownMenuItem(
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const mergedProps = mergeProps(props, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
-  const innerWrapProps = {as: to ? Link : 'div', to};
+  const makeInnerWrapProps = () => {
+    if (to) {
+      return {as: Link, to};
+    }
+
+    if (externalHref) {
+      return {as: ExternalLink, href: externalHref};
+    }
+
+    return {as: 'div' as const};
+  };
 
   return (
     <MenuListItem
@@ -224,7 +241,7 @@ function BaseDropdownMenuItem(
       disabled={isDisabled}
       isFocused={isFocused}
       showDivider={showDivider}
-      innerWrapProps={innerWrapProps}
+      innerWrapProps={makeInnerWrapProps()}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingItems={

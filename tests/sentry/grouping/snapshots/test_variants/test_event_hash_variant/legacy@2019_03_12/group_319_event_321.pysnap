@@ -1,10 +1,11 @@
 ---
-created: '2021-04-02T09:10:50.851227Z'
+created: '2025-02-26T00:33:47.256995+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
@@ -196,11 +197,12 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "a3ce3ffb7077f57549483112e3dcf68c"
+  contributing component: exception
   component:
     system*
       exception*
         stacktrace
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "start"
           frame
@@ -302,13 +304,13 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
           frame
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_sigtramp"
           frame
@@ -374,10 +376,10 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__pthread_kill"
         type*

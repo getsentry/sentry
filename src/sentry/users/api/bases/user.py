@@ -5,10 +5,11 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -21,10 +22,12 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class UserPermission(SentryPermission):
+class UserPermission(DemoSafePermission):
+
     def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
+        self, request: Request, view: APIView, user: User | RpcUser | None = None
     ) -> bool:
+
         if user is None or request.user.id == user.id:
             return True
         if is_system_auth(request.auth):
@@ -91,7 +94,7 @@ class OrganizationUserPermission(UserAndStaffPermission):
         return org_mapping.organization_id
 
     def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
+        self, request: Request, view: APIView, user: User | RpcUser | None = None
     ) -> bool:
         if super().has_object_permission(request, view, user):
             return True
@@ -139,7 +142,7 @@ class RegionSiloUserEndpoint(Endpoint):
     permission_classes = (UserPermission,)
 
     def convert_args(
-        self, request: Request, user_id: str | None = None, *args: Any, **kwargs: Any
+        self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
         user: RpcUser | User | None = None
 

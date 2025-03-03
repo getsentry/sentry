@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import (
     NoProjects,
@@ -36,6 +37,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
@@ -83,9 +85,10 @@ class PermissionBaseTestCase(TestCase):
         request = self.make_request(
             user=user, auth=auth, method=method, is_superuser=is_superuser, is_staff=is_staff
         )
+        drf_request = drf_request_from_request(request)
         result_with_obj = perm.has_permission(
-            request=request, view=None
-        ) and perm.has_object_permission(request=request, view=None, organization=obj)
+            drf_request, APIView()
+        ) and perm.has_object_permission(drf_request, APIView(), obj)
         if result_with_org_rpc is not None:
             return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
         return result_with_obj
@@ -237,11 +240,12 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     def test_staff_passes_2FA(self):
         staff_user = self.create_user(is_staff=True)
         request = self.make_request(user=serialize_rpc_user(staff_user), is_staff=True)
+        drf_request = drf_request_from_request(request)
         permission = self.permission_cls()
         self.org.flags.require_2fa = True
         self.org.save()
 
-        assert not permission.is_not_2fa_compliant(request=request, organization=self.org)
+        assert not permission.is_not_2fa_compliant(request=drf_request, organization=self.org)
 
 
 class BaseOrganizationEndpointTest(TestCase):
@@ -276,6 +280,7 @@ class BaseOrganizationEndpointTest(TestCase):
         if user is None:
             user = self.user
         request.user = user
+        request.auth = None
         request.access = from_request(request, self.org)
         return request
 
@@ -380,6 +385,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         request = RequestFactory().get("/")
         request.session = SessionBase()
         request.access = NoAccess()
+        request.auth = None
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 

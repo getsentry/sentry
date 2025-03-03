@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
-from django.db.models import Func, Max
+from django.db.models import Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -53,6 +53,7 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
@@ -70,8 +71,10 @@ from sentry.grouping.ingest.utils import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.transaction_clusterer.datasource.redis import (
+    record_transaction_name as record_transaction_name_for_clustering,
+)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -99,6 +102,8 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
+from sentry.receivers.features import record_event_processed
+from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
@@ -131,6 +136,8 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+
+from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -175,10 +182,6 @@ def get_tag(data: dict[str, Any], key: str) -> Any | None:
         if k == key:
             return v
     return None
-
-
-def is_sample_event(job):
-    return get_tag(job["data"], "sample_event") == "yes"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -306,44 +309,6 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     return query[:max_crashreports].count()
 
 
-class ScoreClause(Func):
-    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-        self.group = group
-        self.last_seen = last_seen
-        self.times_seen = times_seen
-        # times_seen is likely an F-object that needs the value extracted
-        if hasattr(self.times_seen, "rhs"):
-            self.times_seen = self.times_seen.rhs.value
-        super().__init__(*args, **kwargs)
-
-    def __int__(self):
-        # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
-
-        # XXX: Since removing the 'score' column from 'Group', this now always returns 0.
-        return 0
-
-    def as_sql(
-        self,
-        compiler,
-        connection,
-        function=None,
-        template=None,
-        arg_joiner: str | None = None,
-        **extra_context,
-    ) -> tuple[str, list[str | int]]:
-        has_values = self.last_seen is not None and self.times_seen is not None
-        if has_values:
-            sql = "log(times_seen + %d) * 600 + %d" % (
-                self.times_seen,
-                self.last_seen.timestamp(),
-            )
-        else:
-            sql = "log(times_seen) * 600 + last_seen::abstime::int"
-
-        return (sql, [])
-
-
 ProjectsMapping = Mapping[int, Project]
 
 Job = MutableMapping[str, Any]
@@ -380,7 +345,7 @@ class EventManager:
             grouping_config = config.get("grouping_config")
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
-            grouping_config = get_grouping_config_dict_for_project(self._project)
+            grouping_config = get_grouping_config_dict_for_project(project)
         self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
@@ -1322,7 +1287,7 @@ def assign_event_to_group(
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
-                event, primary.variants, all_grouphashes
+                event, primary.grouphashes[0], primary.variants, all_grouphashes
             )
 
             if seer_matched_grouphash:
@@ -2149,14 +2114,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             reason = "microservice_max_retry"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+            logger.exception("Seer severity microservice max retries exceeded")
         except TimeoutError:
             reason = "microservice_timeout"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+            logger.exception("Seer severity microservice timeout")
         except Exception:
             reason = "microservice_error"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            logger.exception("Seer severity microservice error")
             sentry_sdk.capture_exception()
         else:
             update_severity_error_count(reset=True)
@@ -2407,7 +2375,7 @@ def save_attachment(
         return
     from sentry import ratelimits as ratelimiter
 
-    is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
         key="event_attachment.save_per_sec",
         limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
         project=project,
@@ -2415,7 +2383,7 @@ def save_attachment(
     )
     rate_limit_tag = "per_sec"
     if not is_limited:
-        is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+        is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
             key="event_attachment.save_5_min",
             limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
             project=project,
@@ -2550,6 +2518,26 @@ def _detect_performance_problems(
         )
 
 
+@sentry_sdk.tracing.trace
+def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        try:
+            event = job["event"]
+
+            project = event.project
+            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+                record_transaction_name_for_clustering(project, event.data)
+
+            # these are what the "transaction_processed" signal hooked into
+            # we should not use signals here, so call the recievers directly
+            # instead of sending a signal. we should consider potentially
+            # deleting these
+            record_event_processed(project, event)
+            record_release_received(project, event)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
 class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
@@ -2615,6 +2603,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
 @sentry_sdk.tracing.trace
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    from .ingest.types import ConsumerType
+
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
@@ -2630,50 +2620,32 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     set_measurement(measurement_name="jobs", value=len(jobs))
     set_measurement(measurement_name="projects", value=len(projects))
 
-    with metrics.timer("save_transaction_events.get_or_create_release_many"):
-        _get_or_create_release_many(jobs, projects)
+    # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 
-    with metrics.timer("save_transaction_events.get_event_user_many"):
-        _get_event_user_many(jobs, projects)
+    _get_or_create_release_many(jobs, projects)
+    _get_event_user_many(jobs, projects)
+    _derive_plugin_tags_many(jobs, projects)
+    _derive_interface_tags_many(jobs)
+    _calculate_span_grouping(jobs, projects)
+    _materialize_metadata_many(jobs)
+    _get_or_create_environment_many(jobs, projects)
+    _get_or_create_release_associated_models(jobs, projects)
+    _tsdb_record_all_metrics(jobs)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
+    _eventstream_insert_many(jobs)
 
-    with metrics.timer("save_transaction_events.derive_plugin_tags_many"):
-        _derive_plugin_tags_many(jobs, projects)
+    for job in jobs:
+        track_sampled_event(
+            job["event"].event_id,
+            ConsumerType.Transactions,
+            TransactionStageStatus.SNUBA_TOPIC_PUT,
+        )
 
-    with metrics.timer("save_transaction_events.derive_interface_tags_many"):
-        _derive_interface_tags_many(jobs)
-
-    with metrics.timer("save_transaction_events.calculate_span_grouping"):
-        _calculate_span_grouping(jobs, projects)
-
-    with metrics.timer("save_transaction_events.materialize_metadata_many"):
-        _materialize_metadata_many(jobs)
-
-    with metrics.timer("save_transaction_events.get_or_create_environment_many"):
-        _get_or_create_environment_many(jobs, projects)
-
-    with metrics.timer("save_transaction_events.get_or_create_release_associated_models"):
-        _get_or_create_release_associated_models(jobs, projects)
-
-    with metrics.timer("save_transaction_events.tsdb_record_all_metrics"):
-        _tsdb_record_all_metrics(jobs)
-
-    with metrics.timer("save_transaction_events.materialize_event_metrics"):
-        _materialize_event_metrics(jobs)
-
-    with metrics.timer("save_transaction_events.nodestore_save_many"):
-        _nodestore_save_many(jobs=jobs, app_feature="transactions")
-
-    with metrics.timer("save_transaction_events.eventstream_insert_many"):
-        _eventstream_insert_many(jobs)
-
-    with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
-        _track_outcome_accepted_many(jobs)
-
-    with metrics.timer("save_transaction_events.detect_performance_problems"):
-        _detect_performance_problems(jobs, projects)
-
-    with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
-        _send_occurrence_to_platform(jobs, projects)
+    _track_outcome_accepted_many(jobs)
+    _detect_performance_problems(jobs, projects)
+    _send_occurrence_to_platform(jobs, projects)
+    _record_transaction_info(jobs, projects)
 
     return jobs
 

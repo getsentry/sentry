@@ -103,7 +103,7 @@ describe('GroupHeader', () => {
         query: {},
       });
 
-      expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
   });
 
@@ -243,7 +243,6 @@ describe('GroupHeader', () => {
             issueCategory: IssueCategory.UPTIME,
           })}
           project={ProjectFixture()}
-          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
           event={null}
         />
       );
@@ -265,7 +264,6 @@ describe('GroupHeader', () => {
           organization={OrganizationFixture()}
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
-          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
           event={null}
         />
       );

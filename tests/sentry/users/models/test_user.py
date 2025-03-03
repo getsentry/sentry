@@ -7,14 +7,15 @@ from sentry.backup.dependencies import NormalizedModelName, dependencies, get_mo
 from sentry.db.models.base import Model
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
@@ -325,14 +326,15 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         AlertRuleActivity,
         CustomDynamicSamplingRule,
         Dashboard,
+        DashboardFavoriteUser,
         GroupAssignee,
         GroupBookmark,
         GroupSeen,
         GroupShare,
         GroupSearchView,
+        GroupSearchViewStarred,
         GroupSubscription,
         IncidentActivity,
-        IncidentSubscription,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,
@@ -365,14 +367,15 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         AlertRuleActivity,
         CustomDynamicSamplingRule,
         Dashboard,
+        DashboardFavoriteUser,
         GroupAssignee,
         GroupBookmark,
         GroupSeen,
         GroupShare,
         GroupSearchView,
+        GroupSearchViewStarred,
         GroupSubscription,
         IncidentActivity,
-        IncidentSubscription,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,

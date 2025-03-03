@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, useEffect} from 'react';
+import {Component, Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
@@ -44,7 +44,7 @@ type Props = {
 };
 
 function ScrollToGuide({children}: {children: React.ReactNode}) {
-  const containerElement = createRef<HTMLSpanElement>();
+  const containerElement = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (containerElement.current) {
@@ -95,8 +95,7 @@ class BaseGuideAnchor extends Component<Props, State> {
     this.unsubscribe?.();
   }
 
-  // TODO(TS): Reflux returns "Function" instead of () => void
-  unsubscribe: Function | undefined;
+  unsubscribe: ReturnType<typeof GuideStore.listen> | undefined;
 
   onGuideStateChange(data: GuideStoreState) {
     const active =
@@ -155,7 +154,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     const totalStepCount = currentGuide.steps.length;
     const currentStepCount = step + 1;
-    const currentStep = currentGuide.steps[step];
+    const currentStep = currentGuide.steps[step]!;
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 

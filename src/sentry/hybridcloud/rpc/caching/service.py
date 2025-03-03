@@ -43,6 +43,8 @@ class SiloCacheBackedCallable(Generic[_R]):
 
     When cache read returns no data, the wrapped function will be
     invoked. The result of the wrapped function is then stored in cache.
+
+    Ideal for 'get by id' style methods
     """
 
     silo_mode: SiloMode
@@ -107,12 +109,87 @@ class SiloCacheBackedCallable(Generic[_R]):
         return _consume_generator(self.resolve_from(object_id, values))
 
 
+class SiloCacheBackedListCallable(Generic[_R]):
+    """
+    Get a list of results from cache or wrapped function.
+
+    When cache read returns no data, the wrapped function will be
+    invoked. The result of the wrapped function is then stored in cache.
+
+    Ideal for 'get many X for organization' style methods
+    """
+
+    silo_mode: SiloMode
+    base_key: str
+    cb: Callable[[int], list[_R]]
+    type_: type[_R]
+    timeout: int | None
+
+    def __init__(
+        self,
+        base_key: str,
+        silo_mode: SiloMode,
+        cb: Callable[[int], list[_R]],
+        t: type[_R],
+        timeout: int | None = None,
+    ):
+        self.base_key = base_key
+        self.silo_mode = silo_mode
+        self.cb = cb
+        self.type_ = t
+        self.timeout = timeout
+
+    def __call__(self, object_id: int) -> list[_R]:
+        if (
+            SiloMode.get_current_mode() != self.silo_mode
+            and SiloMode.get_current_mode() != SiloMode.MONOLITH
+        ):
+            return self.cb(object_id)
+        return self.get_results(object_id)
+
+    def key_from(self, object_id: int) -> str:
+        return f"{self.base_key}:{object_id}"
+
+    def resolve_from(
+        self, object_id: int, values: Mapping[str, int | str]
+    ) -> Generator[None, None, list[_R]]:
+        from .impl import _consume_generator, _delete_cache, _set_cache
+
+        key = self.key_from(object_id)
+        value = values[key]
+        version: int
+        if isinstance(value, str):
+            try:
+                metrics.incr("hybridcloud.caching.list.cached", tags={"base_key": self.base_key})
+                return [self.type_(**item) for item in json.loads(value)]
+            except (pydantic.ValidationError, JSONDecodeError, TypeError):
+                version = yield from _delete_cache(key, self.silo_mode)
+        else:
+            version = value
+
+        metrics.incr("hybridcloud.caching.list.rpc", tags={"base_key": self.base_key})
+        result = self.cb(object_id)
+        if result is not None:
+            cache_value = json.dumps([item.json() for item in result])
+            _consume_generator(_set_cache(key, cache_value, version, self.timeout))
+        return result
+
+    def get_results(self, object_id: int) -> list[_R]:
+        from .impl import _consume_generator, _get_cache
+
+        key = self.key_from(object_id)
+        values = _consume_generator(_get_cache([key], self.silo_mode))
+        return _consume_generator(self.resolve_from(object_id, values))
+
+
 class SiloCacheManyBackedCallable(Generic[_R]):
     """
     Get a multiple records from cache or wrapped function.
 
     When cache read returns no or partial data, the wrapped function will be invoked
     with keys missing data. The result of the wrapped function will then be stored in cache.
+
+    Ideal for 'get many by id' style methods.
     """
 
     silo_mode: SiloMode
@@ -234,6 +311,30 @@ def back_with_silo_cache_many(
 
     def wrapper(cb: Callable[[list[int]], list[_R]]) -> "SiloCacheManyBackedCallable[_R]":
         return SiloCacheManyBackedCallable(base_key, silo_mode, cb, t, timeout)
+
+    return wrapper
+
+
+def back_with_silo_cache_list(
+    base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
+) -> Callable[[Callable[[int], list[_R]]], "SiloCacheBackedListCallable[_R]"]:
+    """
+    Decorator for adding local caching to RPC operations for list results
+
+    This decorator can be applied to RPC methods that fetch a list of results
+    based on a single input id. This works well with methods that get a list
+    of results based on an organization or user id.
+
+    If the cache read for the id value fails, the decorated function will be called and
+    its result will be stored in cache. The decorator also adds method on the wrapped
+    function for generating keys to clear cache entires with
+    with region_caching_service and control_caching_service.
+
+    See app_service.installations_for_organization() for an example usage.
+    """
+
+    def wrapper(cb: Callable[[int], list[_R]]) -> "SiloCacheBackedListCallable[_R]":
+        return SiloCacheBackedListCallable(base_key, silo_mode, cb, t, timeout)
 
     return wrapper
 

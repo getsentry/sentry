@@ -30,7 +30,7 @@ import useOrganization from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
+function withDomainRedirect<P extends RouteComponentProps>(
   WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {

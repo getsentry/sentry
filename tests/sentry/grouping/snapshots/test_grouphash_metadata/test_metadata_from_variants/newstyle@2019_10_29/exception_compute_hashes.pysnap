@@ -1,19 +1,33 @@
 ---
-created: '2024-10-28T14:02:30.410549+00:00'
+created: '2024-12-17T22:50:19.161785+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
-hash_basis: stacktrace
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
 ---
 contributing variants:
-  system*
-    hash: "9509e122c6175606d52862fa4f64853c"
+  app*
+    hash: "b23ee1963904c2ca87b145febf94b66c"
+    contributing component: exception
     component:
-      system*
+      app*
         exception*
-          stacktrace*
-            frame*
-              filename*
-                "baz.py"
           type*
             "ValueError"
+          value*
+            "hello world"

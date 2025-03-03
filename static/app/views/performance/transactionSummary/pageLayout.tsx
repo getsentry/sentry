@@ -1,11 +1,11 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {isString} from '@sentry/utils';
+import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -30,6 +30,7 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
 import {
@@ -38,7 +39,6 @@ import {
   getTransactionName,
 } from '../utils';
 
-import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
@@ -120,6 +120,8 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
+  const {isInDomainView} = useDomainViewFilters();
+
   const getNewRoute = useCallback(
     (newTab: Tab) => {
       if (!transactionName) {
@@ -127,7 +129,7 @@ function PageLayout(props: Props) {
       }
 
       const routeQuery = {
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: projectId,
         query: location.query,
@@ -140,8 +142,6 @@ function PageLayout(props: Props) {
           return eventsRouteWithQuery(routeQuery);
         case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.ANOMALIES:
-          return anomaliesRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -151,7 +151,7 @@ function PageLayout(props: Props) {
           return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             projectID: decodeScalar(location.query.project),
             query: location.query,
@@ -161,7 +161,7 @@ function PageLayout(props: Props) {
           return transactionSummaryRouteWithQuery(routeQuery);
       }
     },
-    [location.query, organization.slug, projectId, transactionName]
+    [location.query, organization, projectId, transactionName]
   );
 
   const onTabChange = useCallback(
@@ -237,7 +237,7 @@ function PageLayout(props: Props) {
                 projects={selectableProjects}
                 router={router}
                 nextPath={{
-                  pathname: generateTransactionSummaryRoute({orgSlug: organization.slug}),
+                  pathname: generateTransactionSummaryRoute({organization}),
                   query: {
                     project: projectId,
                     transaction: transactionName,
@@ -260,7 +260,7 @@ function PageLayout(props: Props) {
 
   let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
     tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-  if (organization.features.includes('insights-domain-view')) {
+  if (isInDomainView) {
     hasWebVitals = 'no';
   }
 
@@ -328,12 +328,15 @@ function PageLayout(props: Props) {
 }
 
 export function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  return (
+    <Alert.Container>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Alert.Container>
+  );
 }
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
-  margin: 0;
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`
@@ -356,10 +359,15 @@ export function redirectToPerformanceHomepage(
   organization: Organization,
   location: Location
 ) {
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug),
+      pathname: hasPerfLandingRemovalFlag
+        ? getPerformanceBaseUrl(organization.slug, 'backend')
+        : getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

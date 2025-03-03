@@ -44,7 +44,9 @@ describe('TraceDetailsContent', () => {
         projects: 1,
         transactions: 0,
         performance_issues: 1,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       };
 
       render(
@@ -64,17 +66,17 @@ describe('TraceDetailsContent', () => {
 
       const errorList = await screen.findByTestId('trace-view-errors');
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].title)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0]!.title)
       ).toBeInTheDocument();
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].title)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1]!.title)
       ).toBeInTheDocument();
 
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].level)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0]!.level)
       ).toBeInTheDocument();
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].level)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1]!.level)
       ).toBeInTheDocument();
     });
 
@@ -92,7 +94,9 @@ describe('TraceDetailsContent', () => {
         projects: 1,
         transactions: 0,
         performance_issues: 0,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       };
 
       render(

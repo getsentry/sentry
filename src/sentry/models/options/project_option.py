@@ -56,10 +56,11 @@ OPTION_KEYS = frozenset(
         "sentry:similarity_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
-        "sentry:metrics_extraction_rules",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
         "sentry:target_sample_rate",
+        "sentry:tempest_fetch_screenshots",
+        "sentry:tempest_fetch_dumps",
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:uptime_autodetection",
@@ -83,6 +84,13 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         result = {i: None for i in instances}
         for obj in queryset:
             result[instance_map[obj.project_id]] = obj.value
+        return result
+
+    def get_value_bulk_id(self, ids: Sequence[int], key: str) -> Mapping[int, Any]:
+        queryset = self.filter(project_id__in=ids, key=key)
+        result = {i: None for i in ids}
+        for obj in queryset:
+            result[obj.project_id] = obj.value
         return result
 
     def get_value(

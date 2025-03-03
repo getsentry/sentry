@@ -44,7 +44,7 @@ const PAGE_QUERY_PARAMS = [
   'environment',
 ];
 
-type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'location'> & {
+type Props = Pick<RouteComponentProps, 'router' | 'location'> & {
   currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
   showEnvironment?: boolean;
@@ -140,9 +140,9 @@ function TeamStatsControls({
         name="select-team"
         inFieldLabel={t('Team: ')}
         value={currentTeam?.slug}
-        onChange={choice => handleChangeTeam(choice.actor.id)}
+        onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
         teamFilter={
-          isSuperuser || isOrgOwner ? undefined : filterTeam => filterTeam.isMember
+          isSuperuser || isOrgOwner ? undefined : (filterTeam: any) => filterTeam.isMember
         }
         styles={{
           singleValue(provided: any) {
@@ -229,6 +229,7 @@ function TeamStatsControls({
         onChange={handleUpdateDatetime}
         showAbsolute={false}
         relativeOptions={relativeOptions}
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         triggerLabel={period && relativeOptions[period]}
         triggerProps={{prefix: t('Date Range')}}
       />

@@ -68,7 +68,6 @@ for cmd in map(
         "sentry.runner.commands.performance.performance",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.openai.openai",
         "sentry.runner.commands.llm.llm",
         "sentry.runner.commands.workstations.workstations",
     ),
@@ -131,10 +130,6 @@ def main() -> None:
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
 
-        logger.info(
-            "The Sentry runner will report development issues to Sentry.io. "
-            "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
-        )
         try:
             func(**kwargs)
         except Exception as e:

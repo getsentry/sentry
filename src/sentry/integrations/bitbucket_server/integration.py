@@ -7,11 +7,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -32,7 +33,7 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
@@ -140,7 +141,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -165,7 +166,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_LOGIN,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -185,19 +186,17 @@ class OAuthLoginView(PipelineView):
             try:
                 request_token = client.get_request_token()
             except ApiError as error:
-                lifecycle.record_failure({"failure_reason": str(error), "url": config.get("url")})
+                lifecycle.record_failure(str(error), extra={"url": config.get("url")})
                 return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
             pipeline.bind_state("request_token", request_token)
             if not request_token.get("oauth_token"):
-                lifecycle.record_failure(
-                    {"failure_reason": "missing oauth_token", "url": config.get("url")}
-                )
+                lifecycle.record_failure("missing oauth_token", extra={"url": config.get("url")})
                 return pipeline.error("Missing oauth_token")
 
             authorize_url = client.get_authorize_url(request_token)
 
-            return self.redirect(authorize_url)
+            return HttpResponseRedirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -207,7 +206,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_CALLBACK,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -230,7 +229,7 @@ class OAuthCallbackView(PipelineView):
 
                 return pipeline.next_step()
             except ApiError as error:
-                lifecycle.record_failure({"failure_reason": str(error)})
+                lifecycle.record_failure(str(error))
                 return pipeline.error(
                     f"Could not fetch an access token from Bitbucket. {str(error)}"
                 )
@@ -266,7 +265,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         if not query:
             resp = self.get_client().get_repos()
 
@@ -336,7 +335,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.COMMITS])
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def post_install(

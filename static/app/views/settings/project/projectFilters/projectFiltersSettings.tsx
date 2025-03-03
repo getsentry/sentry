@@ -1,4 +1,5 @@
 import {Component, Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
@@ -14,8 +15,8 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
-import FieldLabel from 'sentry/components/forms/fieldGroup/fieldLabel';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -82,7 +83,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 62 and lower',
+    helpText: 'Version 63 and lower',
     legacy: false,
   },
   safari: {
@@ -207,7 +208,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   constructor(props: RowProps) {
     super(props);
 
-    let initialSubfilters;
+    let initialSubfilters: any;
     if (props.data.active === true) {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
@@ -295,12 +296,14 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
                 return true;
               }
               return this.state.subfilters.has(key);
             })
             .map(key => {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
               return (
                 <FilterGridItem key={key}>
@@ -313,7 +316,10 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
                     isActive={this.state.subfilters.has(key)}
                     isDisabled={disabled}
-                    css={{flexShrink: 0, marginLeft: 6}}
+                    css={css`
+                      flex-shrink: 0;
+                      margin-left: 6;
+                    `}
                     toggle={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />
@@ -375,7 +381,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">
               {t(
-                "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+                "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
             </PanelAlert>
           )}
@@ -456,6 +462,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                 const fieldProps = {
                   name: filter.id,
                   disabled: !hasAccess,
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   ...filterDescriptions[filter.id],
                 };
 
@@ -473,7 +480,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       onFieldChange={(name, value) => {
                         trackAnalytics('settings.inbound_filter_updated', {
                           organization,
-                          project_id: parseInt(project.id as string, 10),
+                          project_id: parseInt(project.id, 10),
                           filter: name,
                           new_state:
                             filter.id === 'legacy-browsers' && value instanceof Set
@@ -497,9 +504,11 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         <FormField
                           inline={false}
                           {...fieldProps}
-                          getData={data => ({subfilters: [...data[filter.id]]})}
+                          getData={(data: any) => ({
+                            subfilters: [...data[filter.id]],
+                          })}
                         >
-                          {({onChange, onBlur}) => (
+                          {({onChange, onBlur}: any) => (
                             <LegacyBrowserFilterRow
                               key={filter.id}
                               data={filter}
@@ -527,7 +536,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });
@@ -569,7 +578,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });

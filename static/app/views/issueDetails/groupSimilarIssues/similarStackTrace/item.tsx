@@ -23,6 +23,7 @@ import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
+  hasSimilarityEmbeddingsFeature: boolean;
   issue: Group;
   location: Location;
   orgId: Organization['id'];
@@ -51,7 +52,7 @@ class Item extends Component<Props, State> {
     this.listener?.();
   }
 
-  listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
+  listener = GroupingStore.listen((data: any) => this.onGroupChange(data), undefined);
 
   handleToggle = () => {
     const {issue} = this.props;
@@ -81,7 +82,7 @@ class Item extends Component<Props, State> {
     // This is controlled via row click instead of only Checkbox
   };
 
-  onGroupChange = ({mergeState}) => {
+  onGroupChange = ({mergeState}: any) => {
     if (!mergeState) {
       return;
     }
@@ -95,6 +96,7 @@ class Item extends Component<Props, State> {
     }
 
     Object.keys(stateForId).forEach(key => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (stateForId[key] === this.state[key]) {
         return;
       }
@@ -106,11 +108,9 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, project, location} = this.props;
+    const {aggregate, scoresByInterface, issue, hasSimilarityEmbeddingsFeature} =
+      this.props;
     const {visible, busy} = this.state;
-    const hasSimilarityEmbeddingsFeature =
-      project.features.includes('similarity-embeddings') ||
-      location.query.similarityEmbeddings === '1';
     const similarInterfaces = hasSimilarityEmbeddingsFeature
       ? ['exception']
       : ['exception', 'message'];
@@ -152,7 +152,9 @@ class Item extends Component<Props, State> {
         <Columns>
           <StyledCount value={issue.count} />
           {similarInterfaces.map(interfaceName => {
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             const avgScore = aggregate?.[interfaceName];
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             const scoreList = scoresByInterface?.[interfaceName] || [];
 
             // Check for valid number (and not NaN)
@@ -161,7 +163,7 @@ class Item extends Component<Props, State> {
             // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
             if (hasSimilarityEmbeddingsFeature) {
               for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
-                if (scoreValue <= similarityEmbeddingScoreValues[i]) {
+                if (scoreValue <= similarityEmbeddingScoreValues[i]!) {
                   scoreValue = i;
                   break;
                 }

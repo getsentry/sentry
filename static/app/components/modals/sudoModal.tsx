@@ -4,8 +4,8 @@ import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
@@ -30,7 +30,7 @@ type DefaultProps = {
 };
 
 type State = {
-  authenticators: Array<Authenticator>;
+  authenticators: Authenticator[];
   error: boolean;
   errorType: string;
   isLoading: boolean;
@@ -84,17 +84,20 @@ function SudoModal({
     superuserReason,
   } = state;
 
-  const {organizationPromise} = useContext(OrganizationLoaderContext);
+  const {bootstrapIsPending} = useContext(OrganizationLoaderContext);
   const location = useLocation();
 
   useEffect(() => {
     const getAuthenticators = async () => {
+      // We have to wait for these requests to finish before we can sudo, otherwise
+      // we'll overwrite the session cookie with a stale one.
+      if (bootstrapIsPending) {
+        return;
+      }
+
       try {
         // Await all preload requests
-        await Promise.allSettled([
-          organizationPromise,
-          ...Object.values(window.__sentry_preload),
-        ]);
+        await Promise.allSettled(Object.values(window.__sentry_preload ?? {}));
       } catch {
         // ignore errors
       }
@@ -116,7 +119,7 @@ function SudoModal({
     };
 
     getAuthenticators();
-  }, [api, organizationPromise]);
+  }, [api, bootstrapIsPending]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -126,7 +129,7 @@ function SudoModal({
     }));
   };
 
-  const handleSubmit = async data => {
+  const handleSubmit = async (data: any) => {
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
@@ -178,7 +181,7 @@ function SudoModal({
     });
   };
 
-  const handleError = err => {
+  const handleError = (err: any) => {
     let newErrorType = ''; // Create a new variable to store the error type
 
     if (err.status === 403) {
@@ -206,16 +209,12 @@ function SudoModal({
   };
 
   const handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
-    try {
-      data.isSuperuserModal = isSuperuser;
-      data.superuserAccessCategory = state.superuserAccessCategory;
-      data.superuserReason = state.superuserReason;
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-      handleSuccess();
-    } catch (err) {
-      // u2fInterface relies on this
-      throw err;
-    }
+    data.isSuperuserModal = isSuperuser;
+    data.superuserAccessCategory = state.superuserAccessCategory;
+    data.superuserReason = state.superuserReason;
+    // It's ok to throw from here, u2fInterface will handle it.
+    await api.requestPromise('/auth/', {method: 'PUT', data});
+    handleSuccess();
   };
 
   const getAuthLoginPath = (): string => {
@@ -254,9 +253,9 @@ function SudoModal({
               : t('You will need to reauthenticate to continue')}
           </StyledTextBlock>
           {error && (
-            <StyledAlert type="error" showIcon>
+            <Alert type="error" showIcon>
               {errorType}
-            </StyledAlert>
+            </Alert>
           )}
           {isSuperuser ? (
             <Form
@@ -307,9 +306,9 @@ function SudoModal({
         </StyledTextBlock>
 
         {error && (
-          <StyledAlert type="error" showIcon>
+          <Alert type="error" showIcon>
             {errorType}
-          </StyledAlert>
+          </Alert>
         )}
 
         <Form
@@ -358,10 +357,6 @@ const StyledTextBlock = styled(TextBlock)`
 
 const StyledSecretField = styled(SecretField)`
   padding-left: 0;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const BackWrapper = styled('div')`

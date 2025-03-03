@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -13,7 +14,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconDiamond, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {Actor} from 'sentry/types/core';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
@@ -89,12 +89,12 @@ function TriggerDescription({
           timeWindow,
           comparisonDelta: (
             COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta) ??
-            COMPARISON_DELTA_OPTIONS[0]
+            COMPARISON_DELTA_OPTIONS[0]!
           ).label,
         }
       )
     : rule.detectionType === AlertRuleComparisonType.DYNAMIC
-      ? 'Dynamic threshold is reached'
+      ? 'Anomaly detection threshold is reached'
       : tct('[metric] is [condition] in [timeWindow]', {
           metric: metricName,
           condition: `${thresholdTypeText} ${threshold}`,
@@ -110,7 +110,20 @@ function TriggerDescription({
       <TriggerStep>
         <TriggerTitleText>{t('When')}</TriggerTitleText>
         <TriggerActions>
-          <TriggerText>{thresholdText}</TriggerText>
+          <TriggerText>
+            {thresholdText}
+            {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
+              <FeatureBadge
+                type="alpha"
+                tooltipProps={{
+                  title: t(
+                    'Anomaly detection is in alpha and may produce inaccurate results'
+                  ),
+                  isHoverable: true,
+                }}
+              />
+            ) : null}
+          </TriggerText>
         </TriggerActions>
       </TriggerStep>
       <TriggerStep>
@@ -146,22 +159,6 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
-  let conditionType: React.ReactNode;
-  const activationCondition =
-    rule.monitorType === MonitorType.ACTIVATED &&
-    typeof rule.activationCondition !== 'undefined' &&
-    rule.activationCondition;
-  switch (activationCondition) {
-    case ActivationConditionType.DEPLOY_CREATION:
-      conditionType = t('New Deploy');
-      break;
-    case ActivationConditionType.RELEASE_CREATION:
-      conditionType = t('New Release');
-      break;
-    default:
-      break;
-  }
-
   const openForm = useFeedbackForm();
 
   const feedbackButton = openForm ? (
@@ -189,13 +186,13 @@ export function MetricDetailsSidebar({
     <Fragment>
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Alert Status')}</Heading>
+          <SectionHeading>{t('Alert Status')}</SectionHeading>
           <Status>
             <AlertBadge status={status} withText />
           </Status>
         </HeaderItem>
         <HeaderItem>
-          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <SectionHeading>{t('Last Triggered')}</SectionHeading>
           <Status>
             {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
           </Status>
@@ -229,7 +226,7 @@ export function MetricDetailsSidebar({
       </SidebarGroup>
       {showOnDemandMetricAlertUI && (
         <SidebarGroup>
-          <Heading>{t('Filters Used')}</Heading>
+          <SectionHeading>{t('Filters Used')}</SectionHeading>
           <KeyValueTable>
             {getSearchFilters(rule.query).map(({key, operator, value}) => (
               <FilterKeyValueTableRow
@@ -243,19 +240,12 @@ export function MetricDetailsSidebar({
         </SidebarGroup>
       )}
       <SidebarGroup>
-        <Heading>{t('Alert Rule Details')}</Heading>
+        <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
         <KeyValueTable>
           <KeyValueTableRow
             keyName={t('Environment')}
             value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
           />
-          {rule.monitorType === MonitorType.ACTIVATED &&
-            rule.activationCondition !== undefined && (
-              <KeyValueTableRow
-                keyName={t('Activated by')}
-                value={<OverflowTableValue>{conditionType}</OverflowTableValue>}
-              />
-            )}
           <KeyValueTableRow
             keyName={t('Date created')}
             value={
@@ -391,12 +381,11 @@ const Status = styled('div')`
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(1)};
-`;
+  margin-bottom: ${space(2)};
 
-const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const OverflowTableValue = styled('div')`

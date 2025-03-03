@@ -83,9 +83,11 @@ describe('useTraceTree', () => {
           performance_issues: 2,
           projects: 1,
           transactions: 1,
-          transactiontoSpanChildrenCount: {
+          transaction_child_count_map: {
             '1': 1,
           },
+          span_count: 0,
+          span_count_map: {},
         }),
         traceSlug: 'test-trace',
         replay: null,
@@ -138,9 +140,11 @@ describe('useTraceTree', () => {
       performance_issues: 2,
       projects: 1,
       transactions: 1,
-      transactiontoSpanChildrenCount: {
+      transaction_child_count_map: {
         '1': 1,
       },
+      span_count: 0,
+      span_count_map: {},
     };
 
     const {result} = renderHook(() =>
@@ -154,7 +158,7 @@ describe('useTraceTree', () => {
 
     await waitFor(() => {
       expect(result.current.type).toBe('trace');
-      expect(result.current.list).toHaveLength(7);
     });
+    expect(result.current.list).toHaveLength(7);
   });
 });

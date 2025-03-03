@@ -5,15 +5,14 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import type {Client} from 'sentry/api';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -21,8 +20,7 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {
   onRenderCallback,
@@ -30,23 +28,19 @@ import {
   setGroupedEntityTag,
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withTeamsForUser from 'sentry/utils/withTeamsForUser';
+import useProjects from 'sentry/utils/useProjects';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
 import {getTeamParams} from './utils';
-
-type Props = {
-  api: Client;
-  error: Error | null;
-  loadingTeams: boolean;
-  organization: Organization;
-  teams: TeamWithProjects[];
-} & RouteComponentProps<{}, {}>;
 
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();
@@ -79,59 +73,95 @@ function ProjectCardList({projects}: {projects: Project[]}) {
   );
 }
 
-function Dashboard({teams, organization, loadingTeams, error, router, location}: Props) {
+function addProjectsToTeams(teams: Team[], projects: Project[]): TeamWithProjects[] {
+  return teams.map(team => ({
+    ...team,
+    projects: projects.filter(project => project.teams.some(tm => tm.id === team.id)),
+  }));
+}
+
+function Dashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
+  const prefersStackedNav = usePrefersStackedNav();
+
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
     };
   }, []);
+  const {teams: userTeams, isLoading: loadingTeams, isError} = useUserTeams();
+  const isAllTeams = location.query.team === '';
+  const selectedTeams = getTeamParams(location.query.team ?? 'myteams');
+  const {teams: allTeams} = useTeamsById({
+    ids: selectedTeams.filter(team => team !== 'myteams'),
+  });
+  const user = useUser();
   const [projectQuery, setProjectQuery] = useState('');
   const debouncedSearchQuery = useMemo(
     () => debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
     []
   );
+  const {projects, fetching, fetchError} = useProjects();
+  const canUserCreateProject = useCanCreateProject();
 
-  const canUserCreateProject = canCreateProject(organization);
-  if (loadingTeams) {
+  const showNonMemberProjects = useMemo(() => {
+    const isOrgAdminOrManager =
+      organization.orgRole === 'owner' || organization.orgRole === 'manager';
+    const isOpenMembership = organization.features.includes('open-membership');
+
+    return user.isSuperuser || isOrgAdminOrManager || isOpenMembership;
+  }, [user, organization.orgRole, organization.features]);
+
+  if (loadingTeams || fetching) {
     return <LoadingIndicator />;
   }
 
-  if (error) {
+  if (isError || fetchError) {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
-  const canJoinTeam = organization.access.includes('team:read');
 
-  const selectedTeams = getTeamParams(location ? location.query.team : '');
-  const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
+  const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
+  const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
+  const myTeams = includeMyTeams ? userTeams : [];
+  const otherTeams = isAllTeams
+    ? allTeams
+    : hasOtherTeams
+      ? allTeams.filter(team => selectedTeams.includes(`${team.id}`))
+      : [];
+  const filteredTeams = [...myTeams, ...otherTeams].filter(team => {
+    if (showNonMemberProjects) {
+      return true;
+    }
 
-  const filteredTeamProjects = uniqBy(
-    (filteredTeams ?? teams).flatMap(team => team.projects),
-    'id'
-  );
-  const projects = uniqBy(
-    teams.flatMap(teamObj => teamObj.projects),
+    return team.isMember;
+  });
+  const filteredTeamsWithProjects = addProjectsToTeams(filteredTeams, projects);
+
+  const currentProjects = uniqBy(
+    filteredTeamsWithProjects.flatMap(team => team.projects),
     'id'
   );
   setGroupedEntityTag('projects.total', 1000, projects.length);
 
-  const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
-  const filteredProjects = (currentProjects ?? projects).filter(project =>
+  const filteredProjects = currentProjects.filter(project =>
     project.slug.includes(projectQuery)
   );
 
-  const showResources = projects.length === 1 && !projects[0].firstEvent;
+  const showResources = projects.length === 1 && !projects[0]!.firstEvent;
+
+  const canJoinTeam = organization.access.includes('team:read');
 
   function handleSearch(searchQuery: string) {
     setProjectQuery(searchQuery);
   }
 
   function handleChangeFilter(activeFilters: string[]) {
-    const {...currentQuery} = location.query;
-
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
-        ...currentQuery,
+        ...location.query,
         team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
@@ -140,8 +170,8 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Header>
-        <Layout.HeaderContent>
+      <Layout.Header unified={prefersStackedNav}>
+        <Layout.HeaderContent unified={prefersStackedNav}>
           <Layout.Title>
             {t('Projects')}
             <PageHeadingQuestionTooltip
@@ -190,9 +220,8 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
             <TeamFilter
               selectedTeams={selectedTeams}
               handleChangeFilter={handleChangeFilter}
-              showIsMemberTeams
-              showSuggestedOptions={false}
-              showMyTeamsDescription
+              hideUnassigned
+              hideOtherTeams={!showNonMemberProjects}
             />
             <StyledSearchBar
               defaultQuery=""
@@ -212,11 +241,12 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   );
 }
 
-function OrganizationDashboard(props: Props) {
+function OrganizationDashboard() {
+  const organization = useOrganization();
   return (
     <Layout.Page>
-      <NoProjectMessage organization={props.organization}>
-        <Dashboard {...props} />
+      <NoProjectMessage organization={organization}>
+        <Dashboard />
       </NoProjectMessage>
     </Layout.Page>
   );
@@ -260,7 +290,4 @@ const ProjectCards = styled('div')`
   }
 `;
 
-export {Dashboard};
-export default withApi(
-  withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)))
-);
+export default withProfiler(OrganizationDashboard);

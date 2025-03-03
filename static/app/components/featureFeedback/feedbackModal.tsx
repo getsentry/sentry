@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Event} from '@sentry/core';
 import {
   BrowserClient,
   captureFeedback,
@@ -8,14 +9,13 @@ import {
   getDefaultIntegrations,
   makeFetchTransport,
 } from '@sentry/react';
-import type {Event} from '@sentry/types';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -255,14 +255,16 @@ export function FeedbackModal<T extends Data>({
         <Body>
           {bodyChildren}
           {isSelfHosted && showSelfHostedMessage && (
-            <Alert type="info">
-              {tct(
-                "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
-                {
-                  privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
-                }
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info">
+                {tct(
+                  "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
+                  {
+                    privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
           )}
         </Body>
       );
@@ -293,7 +295,7 @@ export function FeedbackModal<T extends Data>({
             }))}
             placeholder={t('Select type of feedback')}
             value={state.subject}
-            onChange={value => setState({...state, subject: value})}
+            onChange={(value: any) => setState({...state, subject: value})}
             flexibleControlStateSize
             stacked
             required

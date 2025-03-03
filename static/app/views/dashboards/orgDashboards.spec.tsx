@@ -1,11 +1,12 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -16,7 +17,7 @@ describe('OrgDashboards', () => {
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 
-  let initialData;
+  let initialData!: ReturnType<typeof initializeOrg>;
   beforeEach(() => {
     initialData = initializeOrg({
       organization,
@@ -53,6 +54,10 @@ describe('OrgDashboards', () => {
   });
 
   it('redirects to add query params for page filters if any are saved', async () => {
+    const router = RouterFixture({
+      location: LocationFixture(),
+      params: {orgId: 'org-slug', dashboardId: '1'},
+    });
     const mockDashboardWithFilters = {
       dateCreated: '2021-08-10T21:20:46.798237Z',
       id: '1',
@@ -73,33 +78,26 @@ describe('OrgDashboards', () => {
       body: [mockDashboardWithFilters],
     });
     render(
-      <OrgDashboards
-        api={api}
-        location={LocationFixture()}
-        organization={initialData.organization}
-        params={{orgId: 'org-slug', dashboardId: '1'}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
           );
         }}
       </OrgDashboards>,
-      {router: initialData.router}
+      {router, organization}
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: [1, 2],
@@ -131,41 +129,38 @@ describe('OrgDashboards', () => {
       url: '/organizations/org-slug/dashboards/',
       body: [mockDashboardWithFilters],
     });
+    const router = RouterFixture({
+      location: {
+        ...LocationFixture(),
+        query: {
+          // This query param is not a page filter, so it should not interfere
+          // with the redirect logic
+          sort: 'recentlyViewed',
+        },
+      },
+      params: {orgId: 'org-slug', dashboardId: '1'},
+    });
     render(
-      <OrgDashboards
-        api={api}
-        location={{
-          ...LocationFixture(),
-          query: {
-            // This query param is not a page filter, so it should not interfere
-            // with the redirect logic
-            sort: 'recentlyViewed',
-          },
-        }}
-        organization={initialData.organization}
-        params={{orgId: 'org-slug', dashboardId: '1'}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
           );
         }}
       </OrgDashboards>,
-      {router: initialData.router}
+      {router, organization}
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: [1, 2],
@@ -211,63 +206,61 @@ describe('OrgDashboards', () => {
       url: '/organizations/org-slug/dashboards/',
       body: [mockDashboardWithFilters],
     });
+
+    const router = RouterFixture({
+      location: LocationFixture(),
+      params: {orgId: 'org-slug', dashboardId: '1'},
+    });
+
     render(
-      <OrgDashboards
-        api={api}
-        location={initialData.router.location}
-        organization={initialData.organization}
-        params={{orgId: 'org-slug', dashboardId: '1'}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
           );
         }}
       </OrgDashboards>,
-      {router: initialData.router}
+      {router, organization}
     );
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    // The first call is done by the page filters
+    expect(router.replace).not.toHaveBeenCalledTimes(2);
   });
 
   it('does not add query params for page filters if none are saved', () => {
+    const router = RouterFixture({
+      location: LocationFixture(),
+      params: {orgId: 'org-slug', dashboardId: '1'},
+    });
+
     render(
-      <OrgDashboards
-        api={api}
-        location={LocationFixture()}
-        organization={initialData.organization}
-        params={{orgId: 'org-slug', dashboardId: '1'}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
           );
         }}
       </OrgDashboards>,
-      {router: initialData.router}
+      {router, organization}
     );
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('does not redirect to add query params if location is cleared manually', async () => {
@@ -288,51 +281,43 @@ describe('OrgDashboards', () => {
       url: '/organizations/org-slug/dashboards/',
       body: [mockDashboardWithFilters],
     });
+
+    const router = RouterFixture({
+      location: LocationFixture(),
+      params: {orgId: 'org-slug', dashboardId: '1'},
+    });
+
     const {rerender} = render(
-      <OrgDashboards
-        api={api}
-        location={LocationFixture()}
-        organization={initialData.organization}
-        params={{orgId: 'org-slug', dashboardId: '1'}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
           );
         }}
       </OrgDashboards>,
-      {router: initialData.router}
+      {router, organization}
     );
 
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledTimes(1));
 
     rerender(
-      <OrgDashboards
-        api={api}
-        location={{...initialData.router.location, query: {}}}
-        organization={initialData.organization}
-        params={{orgId: 'org-slug', dashboardId: '1'}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
@@ -342,6 +327,6 @@ describe('OrgDashboards', () => {
     );
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(browserHistory.replace).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledTimes(1);
   });
 });

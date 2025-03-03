@@ -13,11 +13,11 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
-import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,13 +35,18 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {
+  handleAddQueryToDashboard,
+  SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
+} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -49,7 +54,7 @@ import {
   handleUpdateQuery,
 } from './utils';
 
-const renderDisabled = p => (
+const renderDisabled = (p: any) => (
   <Hovercard
     body={
       <FeatureDisabled
@@ -264,9 +269,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         Banner.dismiss('discover');
         this.setState({queryName: ''});
-        browserHistory.push(
-          normalizeUrl(view.getResultsViewUrlTarget(organization.slug))
-        );
+        browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
       }
     );
   };
@@ -283,7 +286,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
         setSavedQuery(savedQuery);
         this.setState({queryName: ''});
-        browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
+        browserHistory.push(view.getResultsViewShortUrlTarget(organization));
         updateCallback();
       }
     );
@@ -397,11 +400,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       savedQuery?.queryDataset
     );
 
-    let alertType;
+    let alertType: any;
     let buttonEventView = eventView;
     if (hasDatasetSelector(organization)) {
       alertType = defined(currentDataset)
-        ? {
+        ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
+          {
             [DiscoverDatasets.TRANSACTIONS]: 'throughput',
             [DiscoverDatasets.ERRORS]: 'num_errors',
           }[currentDataset]
@@ -449,6 +453,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             query: savedQuery,
             yAxis,
             router,
+            widgetType: hasDatasetSelector(organization)
+              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                  getSavedQueryDataset(organization, location, savedQuery)
+                ]
+              : undefined,
+            source: DashboardWidgetSource.DISCOVERV2,
           })
         }
       >
@@ -568,6 +579,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             query: savedQuery,
             yAxis,
             router,
+            widgetType: hasDatasetSelector(organization)
+              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                  getSavedQueryDataset(organization, location, savedQuery)
+                ]
+              : undefined,
+            source: DashboardWidgetSource.DISCOVERV2,
           });
         },
       });
@@ -633,7 +651,7 @@ const SaveAsButton = styled(Button)`
   width: 100%;
 `;
 
-const SaveAsInput = styled(InputControl)`
+const SaveAsInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 

@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:22:49.499654+00:00'
+created: '2025-02-26T00:33:26.345486+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -96,6 +97,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "94d5c188bc82790c397f7f97d5239ee0"
+  contributing component: exception
   component:
     system*
       exception*
@@ -105,10 +107,10 @@ system:
               "thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "thread_start"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_pthread_start"
           frame*
@@ -171,13 +173,13 @@ system:
           frame*
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "__abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

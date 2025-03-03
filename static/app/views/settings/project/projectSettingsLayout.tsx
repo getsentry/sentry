@@ -1,5 +1,6 @@
-import {cloneElement, isValidElement} from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -12,7 +13,7 @@ import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSett
 type Props = {
   children: React.ReactNode;
   organization: Organization;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 type InnerProps = Props & {project: Project};
 
@@ -29,6 +30,22 @@ function InnerProjectSettingsLayout({
     project_id: project.id,
     project_platform: project.platform,
   });
+
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (prefersStackedNav) {
+    return (
+      <Fragment>
+        <ProjectSettingsNavigation organization={organization} />
+        <SettingsLayout params={params} routes={routes} {...props}>
+          {children && isValidElement(children)
+            ? cloneElement<any>(children, {organization, project})
+            : children}
+        </SettingsLayout>
+      </Fragment>
+    );
+  }
+
   return (
     <SettingsLayout
       params={params}

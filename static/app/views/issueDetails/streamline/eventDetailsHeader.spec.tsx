@@ -11,6 +11,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -26,13 +27,17 @@ describe('EventDetailsHeader', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const defaultProps = {group, event};
+  const defaultProps = {group, event, project};
   const router = RouterFixture({
     location: LocationFixture({query: {streamline: '1'}}),
   });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
@@ -53,6 +58,10 @@ describe('EventDetailsHeader', () => {
     );
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
@@ -69,7 +78,7 @@ describe('EventDetailsHeader', () => {
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '14D'})).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Filter events...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Filter events\u2026')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {
         name: 'Toggle graph series - Events',
@@ -79,7 +88,7 @@ describe('EventDetailsHeader', () => {
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close sidebar'})).toBeInTheDocument();
   });
 
   it('updates the query params with search tokens', async function () {
@@ -105,11 +114,46 @@ describe('EventDetailsHeader', () => {
     render(<EventDetailsHeader {...defaultProps} />, {organization, router});
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
-    const search = screen.getByPlaceholderText('Filter events...');
+    const search = screen.getByPlaceholderText('Filter events\u2026');
     await userEvent.type(search, `${tagKey}:`);
     await userEvent.keyboard(`${tagValue}{enter}{enter}`);
     expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
       replace: true,
     });
+  });
+
+  it('does not render timeline summary if disabled', async function () {
+    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    expect(screen.queryByText('Duration')).not.toBeInTheDocument();
+  });
+
+  it('renders occurrence summary if enabled', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: {data: event},
+    });
+    render(
+      <EventDetailsHeader
+        {...defaultProps}
+        group={GroupFixture({
+          issueCategory: IssueCategory.UPTIME,
+          issueType: IssueType.UPTIME_DOMAIN_FAILURE,
+        })}
+        event={EventFixture({
+          occurrence: {
+            evidenceDisplay: [
+              {name: 'Status Code', value: '500'},
+              {name: 'Failure reason', value: 'bad things'},
+            ],
+          },
+        })}
+      />,
+      {organization, router}
+    );
+    expect(await screen.findByText('Status Code')).toBeInTheDocument();
+    expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('Reason')).toBeInTheDocument();
+    expect(screen.getByText('bad things')).toBeInTheDocument();
   });
 });

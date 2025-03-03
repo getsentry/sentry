@@ -8,19 +8,82 @@ x-sentry-service-config:
       remote:
         repo_name: snuba
         branch: master
-        repo_link: git@github.com:getsentry/snuba.git
+        repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
     relay:
       description: Service event forwarding and ingestion service
       remote:
         repo_name: relay
         branch: master
-        repo_link: git@github.com:getsentry/relay.git
+        repo_link: https://github.com/getsentry/relay.git
         mode: containerized
     postgres:
       description: Database used to store Sentry data
+    redis:
+      description: Shared instance of redis used by sentry services
+      remote:
+        repo_name: sentry-shared-redis
+        branch: main
+        repo_link: https://github.com/getsentry/sentry-shared-redis.git
+    symbolicator:
+      description: A symbolication service for native stacktraces and minidumps with symbol server support
+      remote:
+        repo_name: symbolicator
+        branch: master
+        repo_link: https://github.com/getsentry/symbolicator.git
+        mode: default
+    vroom:
+      description: Sentry's profiling service, processing and deriving data about your profiles
+      remote:
+        repo_name: vroom
+        branch: main
+        repo_link: https://github.com/getsentry/vroom.git
+        mode: default
+    bigtable:
+      description: Bigtable emulator
+    redis-cluster:
+      description: Redis cluster used for testing
+    chartcuterie:
+      description: Chartcuterie is a service that generates charts
+      remote:
+        repo_name: chartcuterie
+        branch: master
+        repo_link: https://github.com/getsentry/chartcuterie.git
+    taskbroker:
+      description: Service used to process asynchronous tasks
+      remote:
+        repo_name: taskbroker
+        branch: main
+        repo_link: https://github.com/getsentry/taskbroker.git
+        mode: containerized
+    rabbitmq:
+      description: Messaging and streaming broker
+    memcached:
+      description: Memcached used for caching
+
   modes:
     default: [snuba, postgres, relay]
+    migrations: [postgres, redis]
+    acceptance-ci: [postgres, snuba, chartcuterie]
+    taskbroker: [snuba, postgres, relay, taskbroker]
+    backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
+    rabbitmq: [postgres, snuba, rabbitmq]
+    symbolicator: [postgres, snuba, symbolicator]
+    memcached: [postgres, snuba, memcached]
+    profiling: [postgres, snuba, vroom]
+    minimal: [postgres, snuba]
+    full:
+      [
+        postgres,
+        snuba,
+        relay,
+        redis,
+        redis-cluster,
+        symbolicator,
+        taskbroker,
+        rabbitmq,
+        vroom,
+      ]
 
 services:
   postgres:
@@ -38,18 +101,69 @@ services:
         -c,
         max_wal_senders=1,
       ]
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 5s
+      timeout: 5s
+      retries: 3
     networks:
       - devservices
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
+  bigtable:
+    image: 'ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04'
+    ports:
+      - '127.0.0.1:8086:8086'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+  redis-cluster:
+    image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+    ports:
+      - '127.0.0.1:7000:7000'
+      - '127.0.0.1:7001:7001'
+      - '127.0.0.1:7002:7002'
+      - '127.0.0.1:7003:7003'
+      - '127.0.0.1:7004:7004'
+      - '127.0.0.1:7005:7005'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      - IP=0.0.0.0
+  rabbitmq:
+    image: ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management
+    ports:
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      - IP=0.0.0.0
+  memcached:
+    image: ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine
+    ports:
+      - '127.0.0.1:11211:11211'
+    networks:
+      - devservices
     extra_hosts:
       - host.docker.internal:host-gateway
 
 networks:
   devservices:
     name: devservices
+    external: true
 
 volumes:
   postgres-data:

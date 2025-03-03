@@ -27,12 +27,12 @@ export function transformToAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
-        color: colors?.[i],
+        color: (colors as any)?.[i],
         opacity: 1,
         width: 0.4,
       },
       areaStyle: {
-        color: colors?.[i],
+        color: (colors as any)?.[i],
         opacity: 1.0,
       },
       // Define the z level so that the series remain stacked in the correct order

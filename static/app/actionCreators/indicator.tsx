@@ -8,6 +8,7 @@ import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
@@ -51,12 +52,9 @@ export function addMessage(
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
-    // @ts-expect-error
-    typeof msg?.message !== 'undefined' &&
-    // @ts-expect-error
-    typeof msg?.code !== 'undefined' &&
-    // @ts-expect-error
-    typeof msg?.extra !== 'undefined'
+    typeof (msg as any)?.message !== 'undefined' &&
+    typeof (msg as any)?.code !== 'undefined' &&
+    typeof (msg as any)?.extra !== 'undefined'
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
   }
@@ -84,6 +82,12 @@ export function addLoadingMessage(
 }
 
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
+  if (isDemoModeEnabled()) {
+    return addMessageWithType('error')(
+      t('This action is not allowed in demo mode.'),
+      options
+    );
+  }
   if (typeof msg === 'string' || isValidElement(msg)) {
     return addMessageWithType('error')(msg, options);
   }

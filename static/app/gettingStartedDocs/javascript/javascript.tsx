@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 
+import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -19,7 +20,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -29,7 +29,10 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,6 +64,130 @@ const platformOptions = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
+
+type FeatureFlagConfiguration = {
+  integrationName: string;
+  makeConfigureCode: (dsn: string) => string;
+  makeVerifyCode: () => string;
+  packageName: string;
+};
+
+const FEATURE_FLAG_CONFIGURATION_MAP: Record<
+  FeatureFlagProviderEnum,
+  FeatureFlagConfiguration
+> = {
+  [FeatureFlagProviderEnum.GENERIC]: {
+    integrationName: `featureFlagsIntegration`,
+    packageName: '',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [Sentry.featureFlagsIntegration()],
+});`,
+    makeVerifyCode:
+      () => `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
+if (flagsIntegration) {
+  flagsIntegration.addFeatureFlag("test-flag", false);
+} else {
+  // Something went wrong, check your DSN and/or integrations
+}
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
+
+  [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
+    integrationName: `launchDarklyIntegration`,
+    packageName: 'launchdarkly-js-client-sdk',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import * as LaunchDarkly from "launchdarkly-js-client-sdk";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [Sentry.launchDarklyIntegration()],
+});
+
+const ldClient = LaunchDarkly.initialize(
+  "my-client-ID",
+  { kind: "user", key: "my-user-context-key" },
+  { inspectors: [Sentry.buildLaunchDarklyFlagUsedHandler()] },
+);`,
+
+    makeVerifyCode: () => `// You may have to wait for your client to initialize first.
+ldClient?.variation("test-flag", false);
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
+
+  [FeatureFlagProviderEnum.OPENFEATURE]: {
+    integrationName: `openFeatureIntegration`,
+    packageName: '@openfeature/web-sdk',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import { OpenFeature } from "@openfeature/web-sdk";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [Sentry.openFeatureIntegration()],
+});
+
+OpenFeature.setProvider(new MyProviderOfChoice());
+OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());`,
+
+    makeVerifyCode: () => `const client = OpenFeature.getClient();
+const result = client.getBooleanValue("test-flag", false);
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
+
+  [FeatureFlagProviderEnum.STATSIG]: {
+    integrationName: `statsigIntegration`,
+    packageName: '@statsig/js-client',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import { StatsigClient } from "@statsig/js-client";
+
+const statsigClient = new StatsigClient(
+  YOUR_SDK_KEY,
+  { userID: "my-user-id" },
+  {},
+); // see Statsig SDK reference.
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [
+    Sentry.statsigIntegration({ featureFlagClient: statsigClient }),
+  ],
+});`,
+
+    makeVerifyCode:
+      () => `await statsigClient.initializeAsync(); // or statsigClient.initializeSync();
+
+const result = statsigClient.checkGate("my-feature-gate");
+Sentry.captureException(new Error("something went wrong"));`,
+  },
+
+  [FeatureFlagProviderEnum.UNLEASH]: {
+    integrationName: `unleashIntegration`,
+    packageName: 'unleash-proxy-client',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import { UnleashClient } from "unleash-proxy-client";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [
+    Sentry.unleashIntegration({ featureFlagClientClass: UnleashClient }),
+  ],
+});
+
+const unleash = new UnleashClient({
+  url: "https://<your-unleash-instance>/api/frontend",
+  clientKey: "<your-client-side-token>",
+  appName: "my-webapp",
+});
+
+unleash.start();`,
+
+    makeVerifyCode: () => `// You may have to wait for your client to synchronize first.
+unleash.isEnabled("test-flag");
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
+};
 
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
@@ -532,12 +659,12 @@ const performanceOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
       configurations: [
         {
           language: 'javascript',
+          description: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
           code: `
 import * as Sentry from "@sentry/browser";
 
@@ -554,7 +681,7 @@ Sentry.init({
 });
 `,
           additionalInfo: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
@@ -568,6 +695,25 @@ Sentry.init({
               ),
             }
           ),
+        },
+        {
+          language: 'javascript',
+          description: tct(
+            "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" />
+              ),
+            }
+          ),
+          code: `
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+  tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+});
+`,
         },
       ],
     },
@@ -583,25 +729,6 @@ Sentry.init({
           ),
         }
       ),
-      configurations: [
-        {
-          description: tct(
-            'You have the option to manually construct a transaction using [link:custom instrumentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/custom-instrumentation/" />
-              ),
-            }
-          ),
-          language: 'javascript',
-          code: `
-const transaction = Sentry.startTransaction({ name: "test-transaction" });
-const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
-// exampleFunctionCall();
-span.finish(); // Remember that only finished spans will be sent with the transaction
-transaction.finish(); // Finishing the transaction will send it to Sentry`,
-        },
-      ],
     },
   ],
   nextSteps: () => [],
@@ -612,16 +739,85 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
 };
 
+export const featureFlagOnboarding: OnboardingConfig = {
+  install: () => [],
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
+    const {integrationName, makeConfigureCode, makeVerifyCode, packageName} =
+      FEATURE_FLAG_CONFIGURATION_MAP[
+        featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
+      ]!;
+
+    const installConfig = [
+      {
+        language: 'bash',
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: `npm install --save @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `yarn add @sentry/browser ${packageName}`,
+          },
+        ],
+      },
+    ];
+
+    return [
+      {
+        type: StepType.INSTALL,
+        description: t('Install Sentry and the selected feature flag SDK.'),
+        configurations: installConfig,
+      },
+      {
+        type: StepType.CONFIGURE,
+        description: tct(
+          'Add [name] to your integrations list, and initialize your feature flag SDK.',
+          {
+            name: <code>{integrationName}</code>,
+          }
+        ),
+        configurations: [
+          {
+            language: 'JavaScript',
+            code: makeConfigureCode(dsn.public),
+          },
+        ],
+      },
+      {
+        type: StepType.VERIFY,
+        description: t(
+          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+        ),
+        configurations: [
+          {
+            language: 'JavaScript',
+            code: makeVerifyCode(),
+          },
+        ],
+      },
+    ];
+  },
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
+  feedbackOnboardingJsLoader,
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

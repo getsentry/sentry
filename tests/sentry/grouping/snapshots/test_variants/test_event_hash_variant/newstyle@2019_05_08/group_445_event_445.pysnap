@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:22:50.140412+00:00'
+created: '2025-02-26T00:33:27.567589+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -151,6 +152,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "2fa6bd4588d2ae97b62ef1f8db5b12bf"
+  contributing component: exception
   component:
     system*
       exception*
@@ -174,22 +176,22 @@ system:
               "winmain.cpp"
             function*
               "wWinMain"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "xstring"
             function*
@@ -212,7 +214,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "functional"
             function*

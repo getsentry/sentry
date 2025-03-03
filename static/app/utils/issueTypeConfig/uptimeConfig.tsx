@@ -1,4 +1,6 @@
+import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const uptimeConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -8,20 +10,43 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},
-      resolveInRelease: {enabled: true},
+      resolve: {enabled: false},
+      resolveInRelease: {enabled: false},
       share: {enabled: true},
     },
-    attachments: {enabled: false},
+    header: {
+      filterBar: {enabled: true, fixedEnvironment: true},
+      graph: {enabled: true, type: 'uptime-checks'},
+      tagDistribution: {enabled: false},
+      occurrenceSummary: {enabled: true, downtime: true},
+    },
+    detector: {
+      enabled: true,
+      title: t('Uptime Monitor'),
+      ctaText: t('View alert details'),
+    },
+    customCopy: {
+      eventUnits: t('Events'),
+      resolution: t('Resolved'),
+    },
+    pages: {
+      landingPage: Tab.EVENTS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: true},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     resources: null,
     autofix: false,
-    aiSuggestedSolution: false,
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
     similarIssues: {enabled: false},
-    userFeedback: {enabled: false},
     usesIssuePlatform: true,
     stats: {enabled: false},
-    tags: {enabled: false},
+    issueSummary: {enabled: false},
   },
 };
 

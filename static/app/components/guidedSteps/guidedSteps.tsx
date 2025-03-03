@@ -34,7 +34,7 @@ interface GuidedStepsContextState {
 interface StepProps {
   children: React.ReactNode;
   stepKey: string;
-  title: string;
+  title: React.ReactNode;
   isCompleted?: boolean;
   optional?: boolean;
 }
@@ -67,7 +67,7 @@ function useGuidedStepsContentValue({
   // render and that step order does not change.
   const registerStep = useCallback((props: RegisterStepInfo) => {
     if (registeredStepsRef.current[props.stepKey]) {
-      registeredStepsRef.current[props.stepKey].isCompleted = props.isCompleted;
+      registeredStepsRef.current[props.stepKey]!.isCompleted = props.isCompleted;
       return;
     }
     const numRegisteredSteps = Object.keys(registeredStepsRef.current).length + 1;

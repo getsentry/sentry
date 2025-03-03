@@ -23,7 +23,10 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
+function initializeData(options: {
+  query: Record<string, unknown>;
+  additionalFeatures?: string[];
+}) {
   const {query, additionalFeatures} = options;
 
   const defaultFeatures = ['performance-view'];
@@ -85,6 +88,10 @@ describe('Performance > Transaction Spans', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
   });
@@ -208,13 +215,18 @@ describe('Performance > Transaction Spans', function () {
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-      const searchTokens = await screen.findAllByTestId('filter-token');
-      expect(searchTokens).toHaveLength(2);
-      expect(searchTokens[0]).toHaveTextContent('span.op:db');
-      expect(searchTokens[1]).toHaveTextContent('span.action:SELECT');
-      expect(await screen.findByTestId('smart-search-bar')).not.toHaveTextContent(
-        'http.method:POST'
-      );
+      const searchBar = await screen.findByTestId('search-query-builder');
+
+      expect(
+        within(searchBar).getByRole('row', {name: 'span.op:db'})
+      ).toBeInTheDocument();
+      expect(
+        within(searchBar).getByRole('row', {name: 'span.action:SELECT'})
+      ).toBeInTheDocument();
+
+      expect(
+        within(searchBar).queryByRole('row', {name: 'http.method:POST'})
+      ).not.toBeInTheDocument();
     });
   });
 });

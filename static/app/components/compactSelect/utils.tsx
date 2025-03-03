@@ -16,6 +16,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSection,
+  SelectSectionWithKey,
 } from './types';
 
 export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
@@ -23,14 +24,14 @@ export function getEscapedKey<Value extends SelectKey | undefined>(value: Value)
 }
 
 export function getItemsWithKeys<Value extends SelectKey>(
-  options: SelectOption<Value>[]
-): SelectOptionWithKey<Value>[];
+  options: Array<SelectOption<Value>>
+): Array<SelectOptionWithKey<Value>>;
 export function getItemsWithKeys<Value extends SelectKey>(
-  options: SelectOptionOrSection<Value>[]
-): SelectOptionOrSectionWithKey<Value>[];
+  options: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSectionWithKey<Value>>;
 export function getItemsWithKeys<Value extends SelectKey>(
-  options: SelectOptionOrSection<Value>[]
-): SelectOptionOrSectionWithKey<Value>[] {
+  options: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSectionWithKey<Value>> {
   return options.map((item, i) => {
     if ('options' in item) {
       return {
@@ -52,10 +53,10 @@ export function getItemsWithKeys<Value extends SelectKey>(
  * non-flat arrays that contain sections (groups of options).
  */
 export function getSelectedOptions<Value extends SelectKey>(
-  items: SelectOptionOrSectionWithKey<Value>[],
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
   selection: Selection
-): SelectOption<Value>[] {
-  return items.reduce<SelectOption<Value>[]>((acc, cur) => {
+): Array<SelectOption<Value>> {
+  return items.reduce<Array<SelectOption<Value>>>((acc, cur) => {
     // If this is a section
     if ('options' in cur) {
       return acc.concat(getSelectedOptions(cur.options, selection));
@@ -76,7 +77,7 @@ export function getSelectedOptions<Value extends SelectKey>(
  * were removed.
  */
 export function getDisabledOptions<Value extends SelectKey>(
-  items: SelectOptionOrSectionWithKey<Value>[],
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
   isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean
 ): SelectKey[] {
   return items.reduce((acc: SelectKey[], cur) => {
@@ -102,9 +103,9 @@ export function getDisabledOptions<Value extends SelectKey>(
  * outside the list box's count limit.
  */
 export function getHiddenOptions<Value extends SelectKey>(
-  items: SelectOptionOrSectionWithKey<Value>[],
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit: number = Infinity,
+  limit = Infinity,
   filterOption?: (opt: SelectOption<Value>, search: string) => boolean
 ): Set<SelectKey> {
   //
@@ -152,7 +153,7 @@ export function getHiddenOptions<Value extends SelectKey>(
   let currentIndex = 0;
 
   while (currentIndex < remainingItems.length) {
-    const item = remainingItems[currentIndex];
+    const item = remainingItems[currentIndex]!;
     const delta = 'options' in item ? item.options.length : 1;
 
     if (accumulator + delta > limit) {
@@ -164,12 +165,12 @@ export function getHiddenOptions<Value extends SelectKey>(
     currentIndex += 1;
   }
 
-  for (let i = threshold[0]; i < remainingItems.length; i++) {
-    const item = remainingItems[i];
+  for (let i = threshold[0]!; i < remainingItems.length; i++) {
+    const item = remainingItems[i]!;
     if ('options' in item) {
-      const startingIndex = i === threshold[0] ? threshold[1] : 0;
+      const startingIndex = i === threshold[0] ? threshold[1]! : 0;
       for (let j = startingIndex; j < item.options.length; j++) {
-        hiddenOptionsSet.add(item.options[j].key);
+        hiddenOptionsSet.add(item.options[j]!.key);
       }
     } else {
       hiddenOptionsSet.add(item.key);
@@ -322,4 +323,10 @@ export function HiddenSectionToggle({
       </button>
     </VisuallyHidden>
   );
+}
+
+export function itemIsSectionWithKey<T extends SelectKey>(
+  item: SelectOptionOrSectionWithKey<T>
+): item is SelectSectionWithKey<T> {
+  return 'options' in item;
 }

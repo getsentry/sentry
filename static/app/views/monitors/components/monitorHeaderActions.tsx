@@ -8,7 +8,9 @@ import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import type {Monitor} from '../types';
 
@@ -18,10 +20,15 @@ type Props = {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
   orgSlug: string;
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
 };
 
-function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
+function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
   const api = useApi();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const endpointOptions = {
@@ -35,7 +42,9 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgSlug}/crons/`,
+        pathname: linkToAlerts
+          ? `/organizations/${orgSlug}/insights/backend/crons/`
+          : `/organizations/${orgSlug}/crons/`,
         query: endpointOptions.query,
       })
     );
@@ -71,11 +80,15 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
         <Button size="sm" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
       </Confirm>
       <LinkButton
-        priority="primary"
         size="sm"
         icon={<IconEdit />}
         to={{
-          pathname: `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
+          pathname: linkToAlerts
+            ? makeAlertsPathname({
+                path: `/crons-rules/${monitor.project.slug}/${monitor.slug}/`,
+                organization,
+              })
+            : `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend
@@ -86,7 +99,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
           },
         }}
       >
-        {t('Edit')}
+        {t('Edit Monitor')}
       </LinkButton>
     </ButtonBar>
   );

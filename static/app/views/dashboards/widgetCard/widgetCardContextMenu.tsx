@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
@@ -28,11 +28,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  getWidgetMetricsUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 
 import type {Widget} from '../types';
 import {WidgetType} from '../types';
@@ -48,6 +48,7 @@ type Props = {
   widget: Widget;
   widgetLimitReached: boolean;
   description?: string;
+  hasEditAccess?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -80,6 +81,7 @@ function WidgetCardContextMenu({
   selection,
   widget,
   widgetLimitReached,
+  hasEditAccess,
   onDelete,
   onDuplicate,
   onEdit,
@@ -120,7 +122,9 @@ function WidgetCardContextMenu({
         {({setData}) => (
           <ContextWrapper>
             {indexedEventsWarning ? (
-              <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+              <Tooltip title={indexedEventsWarning} skipWrapper>
+                <SampledTag>{t('Indexed')}</SampledTag>
+              </Tooltip>
             ) : null}
             {title && (
               <Tooltip
@@ -168,7 +172,7 @@ function WidgetCardContextMenu({
               size="xs"
               icon={<IconExpand />}
               onClick={() => {
-                (seriesData || tableData) &&
+                if (seriesData || tableData) {
                   setData({
                     seriesData,
                     tableData,
@@ -176,6 +180,7 @@ function WidgetCardContextMenu({
                     totalIssuesCount,
                     seriesResultsType,
                   });
+                }
                 openWidgetViewerPath(index);
               }}
             />
@@ -191,6 +196,7 @@ function WidgetCardContextMenu({
     widget,
     Boolean(isMetricsData),
     widgetLimitReached,
+    hasEditAccess,
     onDelete,
     onDuplicate,
     onEdit
@@ -205,7 +211,9 @@ function WidgetCardContextMenu({
       {({setData}) => (
         <ContextWrapper>
           {indexedEventsWarning ? (
-            <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+            <Tooltip title={indexedEventsWarning} skipWrapper>
+              <SampledTag>{t('Indexed')}</SampledTag>
+            </Tooltip>
           ) : null}
           {title && (
             <Tooltip
@@ -267,6 +275,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
+  hasEditAccess = true,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -327,6 +336,14 @@ export function getMenuOptions(
     }
   }
 
+  if (widget.widgetType === WidgetType.SPANS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetExploreUrl(widget, selection, organization),
+    });
+  }
+
   if (widget.widgetType === WidgetType.ISSUE) {
     const issuesLocation = getWidgetIssueUrl(widget, selection, organization);
 
@@ -337,28 +354,19 @@ export function getMenuOptions(
     });
   }
 
-  if (widget.widgetType === WidgetType.METRICS) {
-    const metricsLocation = getWidgetMetricsUrl(widget, selection, organization);
-
-    menuOptions.push({
-      key: 'open-in-metrics',
-      label: t('Open in Metrics'),
-      to: metricsLocation,
-    });
-  }
-
   if (organization.features.includes('dashboards-edit')) {
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      disabled: widgetLimitReached,
+      disabled: widgetLimitReached || !hasEditAccess,
     });
 
     menuOptions.push({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
+      disabled: !hasEditAccess,
     });
 
     menuOptions.push({
@@ -372,6 +380,7 @@ export function getMenuOptions(
           onConfirm: () => onDelete?.(),
         });
       },
+      disabled: !hasEditAccess,
     });
   }
 

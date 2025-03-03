@@ -1,12 +1,11 @@
-import type {Series} from 'sentry/types/echarts';
+import {useMemo} from 'react';
+
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -16,13 +15,20 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from '../../../dashboards/utils/isEventsStats';
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
 type SeriesMap = {
-  [seriesName: string]: Series[];
+  [seriesName: string]: TimeSeries[];
 };
 
 interface Options<Fields> {
@@ -102,9 +108,9 @@ export const useSortedTimeSeries = <
 
   const isFetchingOrLoading = result.isPending || result.isFetching;
 
-  const data: SeriesMap = isFetchingOrLoading
-    ? {}
-    : transformToSeriesMap(result.data, yAxis);
+  const data: SeriesMap = useMemo(() => {
+    return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis);
+  }, [isFetchingOrLoading, result.data, yAxis]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -116,23 +122,7 @@ export const useSortedTimeSeries = <
   };
 };
 
-function isEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is EventsStats {
-  return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
-}
-
-function isMultiSeriesEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is MultiSeriesEventsStats {
-  if (typeof obj !== 'object' || obj === null) {
-    return false;
-  }
-
-  return Object.values(obj).every(series => isEventsStats(series));
-}
-
-function transformToSeriesMap(
+export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[]
 ): SeriesMap {
@@ -143,7 +133,7 @@ function transformToSeriesMap(
   // Single series, applies to single axis queries
   const firstYAxis = yAxis[0] || '';
   if (isEventsStats(result)) {
-    const [, series] = processSingleEventStats(firstYAxis, result);
+    const [, series] = convertEventsStatsToTimeSeriesData(firstYAxis, result);
     return {
       [firstYAxis]: [series],
     };
@@ -152,8 +142,18 @@ function transformToSeriesMap(
   // Multiple series, applies to multi axis or topN events queries
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
-    const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-      processSingleEventStats(seriesName, result[seriesName])
+    const processedResults: Array<[number, TimeSeries]> = Object.keys(result).map(
+      seriesOrGroupName => {
+        // If this is a single-axis top N result, the keys in the response are
+        // group names. The field name is the first (and only) Y axis. If it's a
+        // multi-axis non-top-N result, the keys are the axis names. Figure out
+        // the field name and the group name (if different) and format accordingly
+        return convertEventsStatsToTimeSeriesData(
+          hasMultipleYAxes ? seriesOrGroupName : yAxis[0]!,
+          result[seriesOrGroupName]!,
+          hasMultipleYAxes ? undefined : seriesOrGroupName
+        );
+      }
     );
 
     if (!hasMultipleYAxes) {
@@ -167,57 +167,69 @@ function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
-        acc[series.seriesName] = [series];
+        acc[series.field] = [series];
         return acc;
-      }, {});
+      }, {} as SeriesMap);
   }
 
   // Grouped multi series, applies to topN events queries with multiple y-axes
   // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
   // to enable sorting.
-  const processedResults: [string, number, MultiSeriesEventsStats][] = [];
-  Object.keys(result).forEach(seriesName => {
-    const {order: groupOrder, ...groupData} = result[seriesName];
-    processedResults.push([seriesName, groupOrder || 0, groupData]);
+  const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
+  Object.keys(result).forEach(groupName => {
+    const {order: groupOrder, ...groupData} = result[groupName]!;
+    processedResults.push([
+      groupName,
+      groupOrder || 0,
+      groupData as MultiSeriesEventsStats,
+    ]);
   });
 
   return processedResults
     .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .reduce((acc, [seriesName, , groupData]) => {
-      Object.keys(groupData).forEach(aggFunctionAlias => {
-        const [, series] = processSingleEventStats(
+    .reduce((acc, [groupName, , groupData]) => {
+      Object.keys(groupData).forEach(seriesName => {
+        const [, series] = convertEventsStatsToTimeSeriesData(
           seriesName,
-          groupData[aggFunctionAlias]
+          groupData[seriesName]!,
+          groupName
         );
 
-        if (!acc[aggFunctionAlias]) {
-          acc[aggFunctionAlias] = [series];
+        if (!acc[seriesName]) {
+          acc[seriesName] = [series];
         } else {
-          acc[aggFunctionAlias].push(series);
+          acc[seriesName].push(series);
         }
       });
       return acc;
     }, {} as SeriesMap);
 }
 
-function processSingleEventStats(
+export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
-  seriesData: EventsStats
-): [number, Series] {
-  let scale = 1;
-  if (seriesName) {
-    const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
-    // Scale series values to milliseconds or bytes depending on units from meta
-    scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
-  }
+  seriesData: EventsStats,
+  alias?: string
+): [number, TimeSeries] {
+  const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
-  const processsedData: Series = {
-    seriesName: seriesName || '(empty string)',
+  const serie: TimeSeries = {
+    field: label,
     data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-      name: timestamp * 1000,
-      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
+      timestamp: new Date(timestamp * 1000).toISOString(),
+      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
+    meta: {
+      fields: {
+        [label]: seriesData.meta?.fields?.[seriesName]!,
+      },
+      units: {
+        [label]: seriesData.meta?.units?.[seriesName]!,
+      },
+    },
+    confidence: determineSeriesConfidence(seriesData),
+    sampleCount: seriesData.meta?.accuracy?.sampleCount,
+    samplingRate: seriesData.meta?.accuracy?.samplingRate,
   };
 
-  return [seriesData.order || 0, processsedData];
+  return [seriesData.order ?? 0, serie];
 }

@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel, region_silo_model
@@ -19,3 +20,6 @@ class RollbackOrganization(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_rollbackorganization"
+        constraints = [
+            UniqueConstraint(fields=["organization_id"], name="unique_org"),
+        ]

@@ -4,8 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Flex} from 'sentry/components/container/flex';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -198,19 +198,29 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" variant={variant} title={badgeTitle} />}
-      {isBeta && <FeatureBadge type="beta" variant={variant} title={badgeTitle} />}
-      {isAlpha && <FeatureBadge type="alpha" variant={variant} title={badgeTitle} />}
+      {showIsNew && (
+        <FeatureBadge type="new" variant={variant} tooltipProps={{title: badgeTitle}} />
+      )}
+      {isBeta && (
+        <FeatureBadge type="beta" variant={variant} tooltipProps={{title: badgeTitle}} />
+      )}
+      {isAlpha && (
+        <FeatureBadge type="alpha" variant={variant} tooltipProps={{title: badgeTitle}} />
+      )}
     </Fragment>
   );
 
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       setExpandedItemId(null);
-      !(to || href) && event.preventDefault();
+      if (!to && !href) {
+        event.preventDefault();
+      }
       recordAnalytics();
       onClick?.(id, event);
-      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+      if (showIsNew) {
+        localStorage.setItem(isNewSeenKey, 'true');
+      }
     },
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
@@ -308,11 +318,15 @@ function SidebarItem({
     </Tooltip>
   );
 }
+SidebarItem.displayName = 'SidebarItem';
 
 export function isItemActive(
-  item: Pick<SidebarItemProps, 'to' | 'label'>,
+  item: Pick<SidebarItemProps, 'to' | 'label' | 'active'>,
   exact?: boolean
 ): boolean {
+  if (typeof item.active === 'boolean') {
+    return item.active;
+  }
   // take off the query params for matching
   const toPathWithoutReferrer = item?.to?.split('?')[0];
   if (!toPathWithoutReferrer) {
@@ -335,7 +349,7 @@ export function isItemActive(
       !location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
     (item?.label === 'Performance' &&
-      location.pathname.includes('/performance/') &&
+      location.pathname.startsWith('/performance/') &&
       !location.pathname.startsWith('/settings/'))
   );
 }
@@ -390,7 +404,8 @@ const getActiveStyle = ({
 };
 
 const StyledSidebarItem = styled(Link, {
-  shouldForwardProp: p => !['isInFloatingAccordion', 'hasNewNav', 'index'].includes(p),
+  shouldForwardProp: p =>
+    !['isInFloatingAccordion', 'hasNewNav', 'index', 'organization'].includes(p),
 })`
   display: flex;
   color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
@@ -520,7 +535,7 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}) => {
+const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   if (!collapsed) {
     return '';
   }
@@ -531,24 +546,25 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
     right: 0;
     top: 1px;
     background: ${theme.red300};
-    width: ${theme.sidebar.smallBadgeSize};
-    height: ${theme.sidebar.smallBadgeSize};
-    border-radius: ${theme.sidebar.smallBadgeSize};
-    line-height: ${theme.sidebar.smallBadgeSize};
-    box-shadow: ${theme.sidebar.boxShadow};
+    width: 11px;
+    height: 11px;
+    border-radius: 11px;
+    line-height: 11px;
+    box-shadow: 0 3px 3px #2f2936;
   `;
 };
 
+// @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
   font-size: 12px;
   background: ${p => p.theme.red300};
-  width: ${p => p.theme.sidebar.badgeSize};
-  height: ${p => p.theme.sidebar.badgeSize};
-  border-radius: ${p => p.theme.sidebar.badgeSize};
-  line-height: ${p => p.theme.sidebar.badgeSize};
+  width: 22px;
+  height: 22px;
+  border-radius: 22px;
+  line-height: 22px;
 
   ${getCollapsedBadgeStyle};
 `;

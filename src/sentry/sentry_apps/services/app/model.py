@@ -7,19 +7,19 @@ import datetime
 import hmac
 from collections.abc import MutableMapping
 from hashlib import sha256
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 
 
 class RpcApiApplication(RpcModel):
     id: int = -1
-    client_id: str = ""
-    client_secret: str = ""
+    client_id: str = Field(repr=False, default="")
+    client_secret: str = Field(repr=False, default="")
 
 
 class RpcSentryAppService(RpcModel):
@@ -100,6 +100,10 @@ class RpcSentryAppComponentContext(RpcModel):
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
+    error_type: SentryAppErrorType | None
+    webhook_context: dict[str, Any] | None
+    public_context: dict[str, Any] | None
+    status_code: int | None
 
 
 class SentryAppEventDataInterface(Protocol):

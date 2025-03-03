@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
@@ -10,10 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
-import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -24,12 +22,11 @@ import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: string; value: AlertType};
-type GroupedMenuOption = {label: string; options: Array<MenuOption>};
+type MenuOption = {label: React.ReactNode; value: AlertType};
+type GroupedMenuOption = {label: string; options: MenuOption[]};
 
 type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
@@ -47,7 +44,6 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
-  project,
   ...fieldProps
 }: Props) {
   const menuOptions: GroupedMenuOption[] = [
@@ -112,26 +108,23 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
-        ...(hasCustomMetrics(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.custom_transactions,
-                value: 'custom_transactions' as const,
-              },
-            ]
-          : []),
-        ...(hasInsightsAlerts(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.insights_metrics,
-                value: 'insights_metrics' as const,
-              },
-            ]
-          : []),
+
         ...(hasEAPAlerts(organization)
           ? [
               {
-                label: AlertWizardAlertNames.eap_metrics,
+                label: (
+                  <span>
+                    {AlertWizardAlertNames.eap_metrics}
+                    <FeatureBadge
+                      type="beta"
+                      tooltipProps={{
+                        title: t(
+                          'This feature is available for early adopters and the UX may change'
+                        ),
+                      }}
+                    />
+                  </span>
+                ),
                 value: 'eap_metrics' as const,
               },
             ]
@@ -139,31 +132,26 @@ export default function WizardField({
       ],
     },
     {
-      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
+      label: t('CUSTOM'),
       options: [
-        hasCustomMetrics(organization)
-          ? {
-              label: AlertWizardAlertNames.custom_metrics,
-              value: 'custom_metrics',
-            }
-          : {
-              label: AlertWizardAlertNames.custom_transactions,
-              value: 'custom_transactions',
-            },
+        {
+          label: AlertWizardAlertNames.custom_transactions,
+          value: 'custom_transactions',
+        },
       ],
     },
   ];
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, model, disabled}) => {
+      {({onChange, model, disabled}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
-        const selectedTemplate: AlertType = alertType || 'custom_metrics';
+        const selectedTemplate: AlertType = alertType || 'eap_metrics';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
-            dataset: dataset as Dataset,
+            dataset,
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
@@ -193,6 +181,7 @@ export default function WizardField({
               options={menuOptions}
               disabled={disabled}
               onChange={(option: MenuOption) => {
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);
@@ -202,23 +191,8 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {alertType === 'custom_metrics' ? (
-              <MriField
-                project={project}
-                aggregate={aggregate}
-                onChange={newAggregate => onChange(newAggregate, {})}
-              />
-            ) : alertType === 'insights_metrics' ? (
-              <InsightsMetricField
-                project={project}
-                aggregate={aggregate}
-                onChange={newAggregate => {
-                  return onChange(newAggregate, {});
-                }}
-              />
-            ) : alertType === 'eap_metrics' ? (
+            {alertType === 'eap_metrics' ? (
               <EAPField
-                project={project}
                 aggregate={aggregate}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
@@ -250,7 +224,7 @@ export default function WizardField({
 
 // swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
 // TODO(telemetry-experience): remove once we migrate all custom percentile alerts
-const getFieldValue = (aggregate: string | undefined, model) => {
+const getFieldValue = (aggregate: string | undefined, model: any) => {
   const fieldValue = explodeFieldString(aggregate ?? '');
 
   if (fieldValue?.kind !== FieldValueKind.FUNCTION) {

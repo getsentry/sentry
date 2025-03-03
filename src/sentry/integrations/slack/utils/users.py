@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, MutableMapping
+from collections.abc import Generator, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -21,7 +21,6 @@ from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
-SLACK_GET_USERS_PAGE_LIMIT = 100
 SLACK_GET_USERS_PAGE_SIZE = 200
 
 
@@ -32,7 +31,7 @@ class SlackUserData:
     slack_id: str
 
 
-def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData]:
+def format_slack_info_by_email(users: list[dict[str, Any]]) -> dict[str, SlackUserData]:
     return {
         member["profile"]["email"]: SlackUserData(
             email=member["profile"]["email"], team_id=member["team_id"], slack_id=member["id"]
@@ -43,7 +42,7 @@ def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData
 
 
 def format_slack_data_by_user(
-    emails_by_user: Mapping[User, Iterable[str]], users: dict[str, Any]
+    emails_by_user: Mapping[User, Iterable[str]], users: list[dict[str, Any]]
 ) -> Mapping[User, SlackUserData]:
     slack_info_by_email = format_slack_info_by_email(users)
 
@@ -60,7 +59,7 @@ def get_slack_user_list(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization | None = None,
     kwargs: dict[str, Any] | None = None,
-) -> Iterable[dict[str, Any]]:
+) -> Generator[list[dict[str, Any]]]:
     sdk_client = SlackSdkClient(integration_id=integration.id)
     try:
         users_list = (
@@ -71,9 +70,7 @@ def get_slack_user_list(
         metrics.incr(SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
 
         for page in users_list:
-            users: dict[str, Any] = page.get("members")
-
-            yield users
+            yield page["members"]
     except SlackApiError as e:
         metrics.incr(SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC, sample_rate=1.0)
         _logger.info(

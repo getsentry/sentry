@@ -1,3 +1,6 @@
+from datetime import datetime
+from datetime import timezone as tz
+
 from django.db import models
 from django.utils import timezone
 
@@ -5,6 +8,25 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.base import sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.jsonfield import JSONField
+from sentry.types.grouphash_metadata import HashingMetadata
+
+# The current version of the metadata schema. Any record encountered whose schema version is earlier
+# than this will have its data updated and its version set to this value. Stored as a string for
+# flexibility, in case we ever want to switch the way we denote versions.
+#
+# Schema history:
+#
+# 0 -> table creation/initial schema, with grouphash and date added fields (2024-09-09)
+# 1 -> add seer data (2024-10-01)
+# 2 -> add grouping config (2024-10-03)
+# 3 -> add hash basis (2024-11-01)
+# 4 -> add hashing metadata (2024-11-18)
+# 5 -> store resolved fingerprint as JSON rather than string (2025-01-24)
+# 6 -> store client fingerprint as JSON rather than string (2025-02-07)
+# 7 -> add platform (2025-02-11)
+# 8 -> add schema version (2025-02-24)
+GROUPHASH_METADATA_SCHEMA_VERSION = "8"
 
 
 # The overall grouping method used
@@ -43,19 +65,40 @@ class HashBasis(models.TextChoices):
 class GroupHashMetadata(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
+    # IMPORTANT:
+    # If you make changes to this schema, increment GROUPHASH_METADATA_SCHEMA_VERSION above so
+    # existing records will get updated with the new data.
+
     # GENERAL
 
     grouphash = models.OneToOneField(
         "sentry.GroupHash", related_name="_metadata", on_delete=models.CASCADE
     )
-    date_added = models.DateTimeField(default=timezone.now)
+    # When the grouphash was created. Will be null for grouphashes created before we started
+    # collecting metadata.
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+    # The version of the metadata schema which produced the data. Useful for backfilling when we add
+    # to or change the data we collect and want to update existing records.
+    schema_version = models.CharField(null=True)
+    # The platform of the event when generated the metadata. Likely different than the project
+    # platform, as event platforms are normalized to a handful of known values, whereas project
+    # platforms are all over the place.
+    platform = models.CharField(null=True)
 
     # HASHING
 
     # Most recent config to produce this hash
     latest_grouping_config = models.CharField(null=True)
     # The primary grouping method (message, stacktrace, fingerprint, etc.)
-    hash_basis = models.CharField(choices=HashBasis, null=True)
+    hash_basis: models.Field[HashBasis | None, HashBasis | None] = models.CharField(
+        choices=HashBasis, null=True
+    )
+    # Metadata about the inputs to the hashing process and the hashing process itself (what
+    # fingerprinting rules were matched? did we parameterize the message? etc.). For the specific
+    # data stored, see the class definitions of the `HashingMetadata` subtypes.
+    hashing_metadata: models.Field[HashingMetadata | None, HashingMetadata | None] = JSONField(
+        null=True
+    )
 
     # SEER
 
@@ -68,7 +111,7 @@ class GroupHashMetadata(Model):
     seer_model = models.CharField(null=True)
     # The `GroupHash` record representing the match Seer sent back as a match (if any)
     seer_matched_grouphash = FlexibleForeignKey(
-        "sentry.GroupHash", related_name="seer_matchees", on_delete=models.DO_NOTHING, null=True
+        "sentry.GroupHash", related_name="seer_matchees", on_delete=models.SET_NULL, null=True
     )
     # The similarity between this hash's stacktrace and the parent (matched) hash's stacktrace
     seer_match_distance = models.FloatField(null=True)
@@ -86,3 +129,41 @@ class GroupHashMetadata(Model):
         return self.grouphash.hash
 
     __repr__ = sane_repr("grouphash_id", "group_id", "hash")
+
+    def get_best_guess_schema_version(self) -> str:
+        """
+        Temporary hack to let us record metrics for grouphash metadata records created before we
+        were storing schema version. Once we hit May of 2025 or so, we should have backfilled or
+        aged out any such records, and can probably delete this.
+
+        Note: This is "best guess" because the schema transitions didn't happen right at midnight on
+        the dates in question, even though the logic below implies that they did. For our purposes
+        it's close enough, though, especially since this isn't sticking around forever.
+        """
+        if self.schema_version:
+            return self.schema_version
+
+        # Any metadata record without a creation date is one created between the time we enabled
+        # backfill for existing grouphashes and the time we added schema versioning, which was
+        # during the version 7 era.
+        if not self.date_added:
+            return "7"
+
+        if self.date_added < datetime(2024, 10, 1, tzinfo=tz.utc):
+            return "0"
+        elif self.date_added < datetime(2024, 10, 3, tzinfo=tz.utc):
+            return "1"
+        elif self.date_added < datetime(2024, 11, 1, tzinfo=tz.utc):
+            return "2"
+        elif self.date_added < datetime(2024, 11, 18, tzinfo=tz.utc):
+            return "3"
+        elif self.date_added < datetime(2025, 1, 24, tzinfo=tz.utc):
+            return "4"
+        elif self.date_added < datetime(2025, 2, 7, tzinfo=tz.utc):
+            return "5"
+        elif self.date_added < datetime(2025, 2, 11, tzinfo=tz.utc):
+            return "6"
+        # Schema version 8 introduced schema versioning, so anything that version or above will know
+        # its version and have short-circuited at the top of this function
+        else:
+            return "7"

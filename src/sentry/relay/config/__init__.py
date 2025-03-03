@@ -39,7 +39,6 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
-from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -47,11 +46,10 @@ from sentry.utils.options import sample_modulo
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 # These features will be listed in the project config.
-#
-# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:custom-metrics",
+    "organizations:continuous-profiling-beta",
+    "organizations:continuous-profiling-beta-ingest",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
@@ -67,6 +65,9 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
+    "organizations:ourlogs-ingestion",
+    "organizations:view-hierarchy-scrubbing",
+    "projects:ourlogs-breadcrumb-extraction",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -271,11 +272,6 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             pass
 
     metrics_config["cardinalityLimits"] = cardinality_limits
-
-    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
-    timeout.check()
-    if metrics_blocking_state is not None:
-        metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 

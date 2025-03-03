@@ -10,11 +10,13 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
@@ -47,7 +49,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
 };
 
@@ -73,6 +75,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
+  const prefersStackedNav = usePrefersStackedNav();
 
   const visibleCharts = useMemo(() => {
     if (hasTransactions || hasSessions) {
@@ -82,7 +85,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId, true, false);
+    fetchOrganizationDetails(api, params.orgId!, true, false);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
@@ -101,7 +104,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
       return fetchTagValues({
-        api: api,
+        api,
         orgSlug: organization.slug,
         tagKey: key,
         search,
@@ -150,8 +153,8 @@ export default function ProjectDetail({router, location, organization}: Props) {
       >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
+            <Layout.Header unified={prefersStackedNav}>
+              <Layout.HeaderContent unified={prefersStackedNav}>
                 <Breadcrumbs
                   crumbs={[
                     {
@@ -206,7 +209,9 @@ export default function ProjectDetail({router, location, organization}: Props) {
             </Layout.Header>
 
             <Layout.Body noRowGap>
-              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
+              <ErrorBoundary customComponent={null}>
+                {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
+              </ErrorBoundary>
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters
@@ -234,25 +239,26 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 {isProjectStabilized && (
                   <Fragment>
                     {visibleCharts.map((id, index) => (
-                      <ProjectCharts
-                        location={location}
-                        organization={organization}
-                        router={router}
-                        key={`project-charts-${id}`}
-                        chartId={id}
-                        chartIndex={index}
-                        projectId={project?.id}
-                        hasSessions={hasSessions}
-                        hasTransactions={!!hasTransactions}
-                        visibleCharts={visibleCharts}
-                        query={query}
-                        project={project}
-                      />
+                      <ErrorBoundary mini key={`project-charts-${id}`}>
+                        <ProjectCharts
+                          location={location}
+                          organization={organization}
+                          router={router}
+                          chartId={id}
+                          chartIndex={index}
+                          projectId={project?.id}
+                          hasSessions={hasSessions}
+                          hasTransactions={!!hasTransactions}
+                          visibleCharts={visibleCharts}
+                          query={query}
+                          project={project}
+                        />
+                      </ErrorBoundary>
                     ))}
                     <ProjectIssues
                       organization={organization}
                       location={location}
-                      projectId={selection.projects[0]}
+                      projectId={selection.projects[0]!}
                       query={query}
                       api={api}
                     />
@@ -264,14 +270,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Feature features="incidents" organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
-                    projectSlug={params.projectId}
+                    projectSlug={params.projectId!}
                     location={location}
                     isProjectStabilized={isProjectStabilized}
                   />
                 </Feature>
                 <ProjectLatestReleases
                   organization={organization}
-                  projectSlug={params.projectId}
+                  projectSlug={params.projectId!}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
                   project={project}

@@ -41,7 +41,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get plugin() {
-    return this.state.plugins[0];
+    return this.state.plugins[0]!;
   }
 
   get description() {
@@ -81,11 +81,11 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     projectList.splice(index, 1);
     // update state
     this.setState({
-      plugins: [{...this.state.plugins[0], projectList}],
+      plugins: [{...this.state.plugins[0]!, projectList}],
     });
   };
 
-  handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
+  handlePluginEnableStatus = (projectId: string, enable = true) => {
     // make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     // find the index of the project
@@ -97,13 +97,13 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
     // update item in array
     projectList[index] = {
-      ...projectList[index],
+      ...projectList[index]!,
       enabled: enable,
     };
 
     // update state
     this.setState({
-      plugins: [{...this.state.plugins[0], projectList}],
+      plugins: [{...this.state.plugins[0]!, projectList}],
     });
   };
 

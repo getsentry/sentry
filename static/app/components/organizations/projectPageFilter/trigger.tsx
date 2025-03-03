@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PlatformList from 'sentry/components/platformList';
@@ -54,7 +54,7 @@ function BaseProjectPageFilterTrigger(
   // Show 2 projects only if the combined string does not exceed maxTitleLength.
   // Otherwise show only 1 project.
   const projectsToShow =
-    selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <= 23
+    selectedProjects[0]?.slug?.length! + selectedProjects[1]?.slug?.length! <= 23
       ? selectedProjects.slice(0, 2)
       : selectedProjects.slice(0, 1);
 
@@ -93,7 +93,9 @@ function BaseProjectPageFilterTrigger(
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
-      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+      {remainingCount > 0 && (
+        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+      )}
     </DropdownButton>
   );
 }

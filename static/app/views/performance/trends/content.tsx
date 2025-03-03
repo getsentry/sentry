@@ -2,8 +2,8 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -127,9 +127,11 @@ class TrendsContent extends Component<Props, State> {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -230,7 +232,7 @@ class TrendsContent extends Component<Props, State> {
                     organization={organization}
                     eventView={trendView}
                     onSearch={this.handleSearch}
-                    query={this.getFreeTextFromQuery(query)}
+                    query={this.getFreeTextFromQuery(query)!}
                   />
                 ) : (
                   <StyledSearchBar

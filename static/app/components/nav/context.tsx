@@ -1,61 +1,88 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
-import {createNavConfig} from 'sentry/components/nav/config';
-import type {
-  NavConfig,
-  NavItemLayout,
-  NavSidebarItem,
-  NavSubmenuItem,
-} from 'sentry/components/nav/utils';
-import {isNavItemActive, isSubmenuItemActive} from 'sentry/components/nav/utils';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
+import {NavLayout, type PrimaryNavGroup} from 'sentry/components/nav/types';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMedia from 'sentry/utils/useMedia';
 
 export interface NavContext {
-  /** Raw config for entire nav items */
-  config: Readonly<NavConfig>;
-  /** Currently active submenu items, if any */
-  submenu?: Readonly<NavItemLayout<NavSubmenuItem>>;
+  activeGroup: PrimaryNavGroup | null;
+  endInteraction: () => void;
+  isCollapsed: boolean;
+  isInteractingRef: React.RefObject<boolean>;
+  layout: NavLayout;
+  navParentRef: React.RefObject<HTMLDivElement>;
+  secondaryNavEl: HTMLElement | null;
+  setActiveGroup: (group: PrimaryNavGroup | null) => void;
+  setIsCollapsed: (isCollapsed: boolean) => void;
+  setSecondaryNavEl: (el: HTMLElement | null) => void;
+  startInteraction: () => void;
 }
 
-const NavContext = createContext<NavContext>({config: {main: []}});
+const NavContext = createContext<NavContext>({
+  navParentRef: {current: null},
+  secondaryNavEl: null,
+  setSecondaryNavEl: () => {},
+  layout: NavLayout.SIDEBAR,
+  isCollapsed: false,
+  setIsCollapsed: () => {},
+  activeGroup: null,
+  setActiveGroup: () => {},
+  isInteractingRef: {current: false},
+  startInteraction: () => {},
+  endInteraction: () => {},
+});
 
 export function useNavContext(): NavContext {
-  const navContext = useContext(NavContext);
-  return navContext;
+  return useContext(NavContext);
 }
 
-export function NavContextProvider({children}) {
-  const organization = useOrganization();
-  const location = useLocation();
-  /** Raw nav configuration values */
-  const config = useMemo(() => createNavConfig({organization}), [organization]);
-  /**
-   * Active submenu items derived from the nav config and current `location`.
-   * These are returned in a normalized layout format for ease of use.
-   */
-  const submenu = useMemo<NavContext['submenu']>(() => {
-    for (const item of config.main) {
-      if (isNavItemActive(item, location) || isSubmenuItemActive(item, location)) {
-        return normalizeSubmenu(item.submenu);
-      }
-    }
-    if (config.footer) {
-      for (const item of config.footer) {
-        if (isNavItemActive(item, location) || isSubmenuItemActive(item, location)) {
-          return normalizeSubmenu(item.submenu);
-        }
-      }
-    }
-    return undefined;
-  }, [config, location]);
+export function NavContextProvider({children}: {children: React.ReactNode}) {
+  const navParentRef = useRef<HTMLDivElement>(null);
+  const isInteractingRef = useRef(false);
+  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
+    NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
+    false
+  );
+  const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
+  const [activeGroup, setActiveGroup] = useState<PrimaryNavGroup | null>(null);
 
-  return <NavContext.Provider value={{config, submenu}}>{children}</NavContext.Provider>;
+  const theme = useTheme();
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+
+  const startInteraction = useCallback(() => {
+    isInteractingRef.current = true;
+  }, []);
+
+  const endInteraction = useCallback(() => {
+    isInteractingRef.current = false;
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      navParentRef,
+      secondaryNavEl,
+      setSecondaryNavEl,
+      layout: isMobile ? NavLayout.MOBILE : NavLayout.SIDEBAR,
+      isCollapsed,
+      setIsCollapsed,
+      activeGroup,
+      setActiveGroup,
+      isInteractingRef,
+      startInteraction,
+      endInteraction,
+    }),
+    [
+      secondaryNavEl,
+      isMobile,
+      isCollapsed,
+      setIsCollapsed,
+      activeGroup,
+      startInteraction,
+      endInteraction,
+    ]
+  );
+
+  return <NavContext.Provider value={value}>{children}</NavContext.Provider>;
 }
-
-const normalizeSubmenu = (submenu: NavSidebarItem['submenu']): NavContext['submenu'] => {
-  if (Array.isArray(submenu)) {
-    return {main: submenu};
-  }
-  return submenu;
-};

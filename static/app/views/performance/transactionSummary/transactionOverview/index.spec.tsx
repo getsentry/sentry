@@ -9,6 +9,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -16,7 +17,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -71,7 +71,7 @@ function initializeData({
 function TestComponent({
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
-  router: InjectedRouter<Record<string, string>, any>;
+  router: InjectedRouter;
 }) {
   if (!props.organization) {
     throw new Error('Missing organization');
@@ -90,8 +90,10 @@ function TestComponent({
 describe('Performance > TransactionSummary', function () {
   let eventStatsMock: jest.Mock;
   beforeEach(function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
+    // Small screen size will hide search bar trailing items like warning icon
+    Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -263,8 +265,7 @@ describe('Performance > TransactionSummary', function () {
       match: [
         (_url, options) => {
           return (
-            options.query?.field?.includes('count()') &&
-            !options.query?.field?.includes('p95()')
+            options.query?.field?.length === 1 && options.query?.field[0] === 'count()'
           );
         },
       ],
@@ -429,10 +430,6 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/profiling/functions/`,
-      body: {functions: []},
-    });
-    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics-compatibility/`,
       body: {
@@ -453,6 +450,78 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
+    // Events Mock slowest functions
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            function: 'string',
+            package: 'string',
+            'p75()': 'duration',
+            'count()': 'integer',
+            'sum()': 'duration',
+            'all_examples()': 'string',
+          },
+        },
+        data: [],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.indexOf('all_examples()') !== -1;
+        },
+      ],
+    });
+
+    // Flamegraph mock
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/profiling/flamegraph/',
+      body: {
+        activeProfileIndex: 0,
+        metadata: {
+          deviceClassification: '',
+          deviceLocale: '',
+          deviceManufacturer: '',
+          deviceModel: '',
+          deviceOSName: '',
+          deviceOSVersion: '',
+          durationNS: 0,
+          organizationID: 0,
+          platform: '',
+          profileID: '',
+          projectID: 0,
+          received: '0001-01-01T00:00:00Z',
+          sampled: false,
+          timestamp: '0001-01-01T00:00:00Z',
+          traceID: '',
+          transactionID: '',
+          transactionName: '',
+          version: '',
+        },
+        platform: '',
+        profiles: [
+          {
+            endValue: 0,
+            isMainThread: true,
+            name: '',
+            samples: [],
+            startValue: 0,
+            threadID: 0,
+            type: 'sampled',
+            unit: 'count',
+            weights: [],
+            sample_durations_ns: null,
+          },
+        ],
+        projectID: 0,
+        shared: {
+          frames: [],
+        },
+        transactionName: '',
+        metrics: [],
+      },
+    });
+
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
@@ -460,6 +529,9 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
+
+    // @ts-expect-error Cleanup clientWidth mock
+    delete HTMLElement.prototype.clientWidth;
   });
 
   describe('with events', function () {
@@ -480,7 +552,7 @@ describe('Performance > TransactionSummary', function () {
 
       //  It shows the header
       await screen.findByText('Transaction Summary');
-      expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+      expect(screen.getByText('/performance')).toBeInTheDocument();
 
       // It shows a chart
       expect(
@@ -488,7 +560,9 @@ describe('Performance > TransactionSummary', function () {
       ).toBeInTheDocument();
 
       // It shows a searchbar
-      expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      ).toBeInTheDocument();
 
       // It shows a table
       expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
@@ -752,14 +826,18 @@ describe('Performance > TransactionSummary', function () {
       );
 
       // Fill out the search box, and submit it.
-      await userEvent.type(
-        screen.getByLabelText('Search events'),
-        'user.email:uhoh*{enter}'
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
+      await userEvent.paste('user.email:uhoh*');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledTimes(1);
+      });
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -828,10 +906,10 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
+      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]!);
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -859,13 +937,15 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Transaction Summary');
 
-      expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
+      const pagination = await screen.findByTestId('pagination');
+      expect(await within(pagination).findByLabelText('Previous')).toBeInTheDocument();
+      expect(await within(pagination).findByLabelText('Next')).toBeInTheDocument();
 
       // Click the 'next' button
-      await userEvent.click(screen.getByLabelText('Next'));
+      await userEvent.click(await within(pagination).findByLabelText('Next'));
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -977,8 +1057,8 @@ describe('Performance > TransactionSummary', function () {
 
       await userEvent.click(screen.getByTestId('status-ok'));
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('transaction.status:ok'),
@@ -1272,7 +1352,9 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-      expect(screen.getByTestId('search-metrics-fallback-warning')).toBeInTheDocument();
+      expect(
+        await screen.findByTestId('search-metrics-fallback-warning')
+      ).toBeInTheDocument();
     });
   });
 });

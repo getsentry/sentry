@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
@@ -16,20 +16,17 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import GroupEventDetails, {
-  type GroupEventDetailsProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {useParams} from 'sentry/utils/useParams';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-type GroupTagsProps = {
-  baseUrl: string;
-  environments: string[];
-  group: Group;
-};
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type SimpleTag = {
   key: string;
@@ -42,8 +39,18 @@ type SimpleTag = {
   totalValues: number;
 };
 
-export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
+export function GroupTagsTab() {
   const location = useLocation();
+  const environments = useEnvironmentsFromUrl();
+  const {baseUrl} = useGroupDetailsRoute();
+  const params = useParams<{groupId: string}>();
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
 
   const {
     data = [],
@@ -51,21 +58,24 @@ export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
     isError,
     refetch,
   } = useGroupTags({
-    groupId: group.id,
+    groupId: group?.id,
     environment: environments,
   });
 
   const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
-  if (isPending) {
+  if (isPending || isGroupPending) {
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || isGroupError) {
     return (
       <LoadingError
         message={t('There was an error loading issue tags.')}
-        onRetry={refetch}
+        onRetry={() => {
+          refetch();
+          refetchGroup();
+        }}
       />
     );
   }
@@ -80,14 +90,16 @@ export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="info">
-          {tct(
-            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-            {
-              link: <ExternalLink href={TAGS_DOCS_LINK} />,
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            {tct(
+              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+              {
+                link: <ExternalLink href={TAGS_DOCS_LINK} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
         <Container>
           {alphabeticalTags.map((tag, tagIdx) => (
             <TagItem key={tagIdx}>
@@ -136,17 +148,15 @@ export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
   );
 }
 
-function GroupTagsRoute(
-  props: GroupEventDetailsProps & {baseUrl: string; environments: string[]}
-) {
+function GroupTagsRoute() {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // TODO(streamlined-ui): Point the router to group event details
   if (hasStreamlinedUI) {
-    return <GroupEventDetails {...props} />;
+    return <GroupEventDetails />;
   }
 
-  return <GroupTagsTab {...props} />;
+  return <GroupTagsTab />;
 }
 
 export default GroupTagsRoute;

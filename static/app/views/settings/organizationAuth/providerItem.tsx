@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
@@ -70,7 +70,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
 
   const featureProps = hookName ? {hookName} : {};
 
-  const getProviderDescription = providerName => {
+  const getProviderDescription = (providerName: any) => {
     if (providerName === 'SAML2') {
       return t(
         'your preferred SAML2 compliant provider like Ping Identity, Google SAML, Keycloak, or VMware Identity Manager'
@@ -122,7 +122,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
 
           <div>
             {active ? (
-              <ActiveIndicator />
+              <ActiveIndicator>{t('Active')}</ActiveIndicator>
             ) : (
               // renderInstallButton is overridden by renderDisabled above
               (
@@ -174,10 +174,6 @@ const ActiveIndicator = styled('div')`
   border-radius: 2px;
   font-size: 0.8em;
 `;
-
-ActiveIndicator.defaultProps = {
-  children: t('Active'),
-};
 
 const DisabledHovercard = styled(Hovercard)`
   width: 350px;

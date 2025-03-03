@@ -24,7 +24,7 @@ interface PartialInjectedRouter<P>
 interface InitializeOrgOptions<RouterParams> {
   organization?: Partial<Organization>;
   project?: Partial<Project>;
-  projects?: Partial<Project>[];
+  projects?: Array<Partial<Project>>;
   router?: PartialInjectedRouter<RouterParams>;
 }
 
@@ -64,18 +64,18 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
    * initializeOrg({router: {params: {alertId: '123'}}})
    * ```
    */
-  const routerProps: RouteComponentProps<RouterParams, {}> = {
+  const routerProps: RouteComponentProps<RouterParams> = {
     params: router.params as any,
-    routeParams: router.params,
+    routeParams: router.params as any,
     router,
-    route: router.routes[0],
+    route: router.routes[0]!,
     routes: router.routes,
     location: router.location,
   };
 
   return {
     organization,
-    project,
+    project: project!,
     projects,
     router,
     routerProps,

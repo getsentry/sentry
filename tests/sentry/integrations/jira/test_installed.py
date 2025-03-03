@@ -10,6 +10,8 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_query_hash,
@@ -72,10 +74,15 @@ class JiraInstalledTest(APITestCase):
             body=RS256_PUB_KEY,
         )
 
-    def test_missing_body(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    def test_missing_body(self, mock_record_failure):
         self.get_error_response(
             extra_headers=dict(HTTP_AUTHORIZATION="JWT anexampletoken"),
             status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        mock_record_failure.assert_called_with(
+            ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
         )
 
     def test_missing_token(self):
@@ -102,8 +109,9 @@ class JiraInstalledTest(APITestCase):
             status_code=status.HTTP_409_CONFLICT,
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry_sdk.set_tag")
-    def test_with_shared_secret(self, mock_set_tag: MagicMock):
+    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event):
         self.get_success_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
@@ -112,6 +120,7 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
 
     @patch("sentry_sdk.set_tag")
     @responses.activate

@@ -1,14 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -18,14 +11,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -34,10 +26,11 @@ import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQue
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 function DestinationSummaryPage() {
-  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -50,44 +43,23 @@ function DestinationSummaryPage() {
   });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
 
-  const crumbs = useModuleBreadcrumbs('queue');
+  useSamplesDrawer({
+    Component: <MessageSpanSamplesPanel />,
+    moduleName: ModuleName.QUEUE,
+    requiredParams: ['transaction'],
+  });
 
   return (
     <Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: DESTINATION_TITLE,
-                },
-              ]}
-            />
-
-            <Layout.Title>{destination}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <BackendHeader
-          headerTitle={destination}
-          breadcrumbs={[
-            {
-              label: DESTINATION_TITLE,
-            },
-          ]}
-          module={ModuleName.QUEUE}
-        />
-      )}
-
+      <BackendHeader
+        headerTitle={destination}
+        breadcrumbs={[
+          {
+            label: DESTINATION_TITLE,
+          },
+        ]}
+        module={ModuleName.QUEUE}
+      />
       <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -95,11 +67,7 @@ function DestinationSummaryPage() {
               <ModuleLayout.Full>
                 <HeaderContainer>
                   <ToolRibbon>
-                    <PageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </PageFilterBar>
+                    <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
                   </ToolRibbon>
 
                   {!onboardingProject && (
@@ -139,7 +107,7 @@ function DestinationSummaryPage() {
                         value={data[0]?.['sum(span.duration)']}
                         unit={DurationUnit.MILLISECOND}
                         tooltip={getTimeSpentExplanation(
-                          data[0]?.['time_spent_percentage(app,span.duration)']
+                          data[0]?.['time_spent_percentage(app,span.duration)']!
                         )}
                         isLoading={isPending}
                       />
@@ -149,7 +117,10 @@ function DestinationSummaryPage() {
               </ModuleLayout.Full>
 
               {onboardingProject && (
-                <Onboarding organization={organization} project={onboardingProject} />
+                <LegacyOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                />
               )}
 
               {!onboardingProject && (
@@ -179,18 +150,13 @@ function DestinationSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-      <MessageSpanSamplesPanel />
     </Fragment>
   );
 }
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="queue"
-      pageTitle={t('Destination Summary')}
-      features="insights-addon-modules"
-    >
+    <ModulePageProviders moduleName="queue" pageTitle={t('Destination Summary')}>
       <DestinationSummaryPage />
     </ModulePageProviders>
   );

@@ -45,14 +45,7 @@ describe('Project Ownership', () => {
 
   describe('without codeowners', () => {
     it('renders', async () => {
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />
-      );
+      render(<ProjectOwnership {...routerProps} project={project} />);
       expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
@@ -61,19 +54,13 @@ describe('Project Ownership', () => {
     });
 
     it('renders allows users to edit ownership rules', async () => {
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />,
-        {organization: OrganizationFixture({access: ['project:read']})}
-      );
+      render(<ProjectOwnership {...routerProps} project={project} />, {
+        organization: OrganizationFixture({access: ['project:read']}),
+      });
 
       expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit Rules'})).toBeEnabled();
-      // eslint-disable-next-line jest-dom/prefer-in-document
+
       expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);
     });
   });
@@ -84,14 +71,9 @@ describe('Project Ownership', () => {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={org}
-          project={project}
-        />
-      );
+      render(<ProjectOwnership {...routerProps} project={project} />, {
+        organization: org,
+      });
 
       // Renders button
       expect(
@@ -116,14 +98,7 @@ describe('Project Ownership', () => {
         },
       });
 
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />
-      );
+      render(<ProjectOwnership {...routerProps} project={project} />);
 
       // Switch to Assign To Issue Owner
       await userEvent.click(await screen.findByText('Auto-assign to suspect commits'));

@@ -150,7 +150,9 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # the upcoming checkin. Testing like this to validate any kind of
         # strange timezone related issues.
         for hour in range(24):
-            dispatch_check_missing(ts - timedelta(days=1) + timedelta(hours=hour + 1))
+            dispatch_check_missing(
+                ts - timedelta(days=1) + timedelta(hours=hour + 1),
+            )
 
         assert mock_produce_task.call_count == 0
 
@@ -510,7 +512,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             },
         )
         # Expected checkin is this minute
-        MonitorEnvironment.objects.create(
+        env = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=self.environment.id,
             last_checkin=last_checkin_ts,
@@ -521,6 +523,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # Last checkin was a minute ago
         MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=env,
             project_id=project.id,
             status=CheckInStatus.OK,
             date_added=last_checkin_ts,

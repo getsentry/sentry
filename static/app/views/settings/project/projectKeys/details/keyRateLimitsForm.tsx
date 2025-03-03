@@ -3,10 +3,10 @@ import sortBy from 'lodash/sortBy';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Input} from 'sentry/components/core/input';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import InputControl from 'sentry/components/input';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -33,13 +33,10 @@ type Props = {
   disabled: boolean;
   organization: Organization;
 } & Pick<
-  RouteComponentProps<
-    {
-      keyId: string;
-      projectId: string;
-    },
-    {}
-  >,
+  RouteComponentProps<{
+    keyId: string;
+    projectId: string;
+  }>,
   'params'
 >;
 
@@ -94,7 +91,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
   const {keyId, projectId} = params;
   const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
-  const disabledAlert = ({features}) => (
+  const disabledAlert = ({features}: any) => (
     <FeatureDisabled
       alert={PanelAlert}
       features={features}
@@ -140,7 +137,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                 name="rateLimit"
                 label={t('Rate Limit')}
                 disabled={disabled || !hasFeature}
-                validate={({form}) => {
+                validate={({form}: any) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
                     form?.rateLimit &&
@@ -165,11 +162,11 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                 )}
                 inline={false}
               >
-                {({onChange, onBlur, value}) => {
+                {({onChange, onBlur, value}: any) => {
                   const window = typeof value === 'object' ? value.window : undefined;
                   return (
                     <RateLimitRow>
-                      <InputControl
+                      <Input
                         type="number"
                         name="rateLimit.count"
                         min={0}

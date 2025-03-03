@@ -2,7 +2,7 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LineSeriesOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import type {
   MarkLineOption,
@@ -33,7 +33,7 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -52,10 +52,11 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
+
+type PairOfSeries = [Series[], Series[]];
 
 export enum ChartType {
   BAR = 0,
@@ -75,7 +76,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[];
+  chartColors?: string[] | readonly string[];
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;
@@ -88,6 +89,7 @@ type Props = {
   hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
   legendFormatter?: (name: string) => string;
+  legendOptions?: LegendComponentOption;
   log?: boolean;
   markLine?: MarkLineOption;
   onClick?: EChartClickHandler;
@@ -105,7 +107,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 
@@ -139,11 +141,8 @@ function Chart({
   error,
   onLegendSelectChanged,
   onDataZoom,
-  /**
-   * Setting a default formatter for some reason causes `>` to
-   * render correctly instead of rendering as `&gt;` in the legend.
-   */
-  legendFormatter = name => name,
+  legendOptions,
+  legendFormatter,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -163,7 +162,7 @@ function Chart({
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4);
+  const colors = chartColors ?? getChartColorPalette(4);
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||
@@ -227,10 +226,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]?.data[1]?.name).getTime() -
-    new Date(series[0]?.data[0]?.name).getTime();
+    new Date(series[0]?.data[1]?.name!).getTime() -
+    new Date(series[0]?.data[0]?.name!).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]?.data?.[series[0]?.data?.length - 1]?.name
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name!
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
@@ -239,26 +238,33 @@ function Chart({
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
   }, [bucketSize, lastBucketTimestamp]);
 
-  // TODO: Support area and bar charts
+  // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
-    const metricChartType =
-      type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
-    const seriesToShow = series.map(serie =>
-      createIngestionSeries(serie as MetricSeries, ingestionBuckets, metricChartType)
-    );
-    [series, incompleteSeries] = seriesToShow.reduce(
-      (acc, serie, index) => {
+    const seriesToShow = series.map(serie => {
+      const ingestionSeries = createIngestionSeries(serie, ingestionBuckets, type);
+      // this helper causes all the incomplete series to stack, here we remove the stacking
+      if (!stacked) {
+        for (const s of ingestionSeries) {
+          delete s.stack;
+        }
+      }
+      return ingestionSeries;
+    });
+
+    [series, incompleteSeries] = seriesToShow.reduce<PairOfSeries>(
+      (acc: PairOfSeries, serie: Series[], index: number) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
+
         return [
-          [...trimmed, {...serie[0], color: colors[index]}],
+          [...trimmed, {...serie[0]!, color: colors[index]!}],
           [
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
           ],
-        ];
+        ] as PairOfSeries;
       },
-      [[], []] as [MetricSeries[], MetricSeries[]]
+      [[], []] as PairOfSeries
     );
   }
 
@@ -273,8 +279,8 @@ function Chart({
         formatter(value: number) {
           return axisLabelFormatter(
             value,
-            aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-            undefined,
+            aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
+            true,
             durationUnit ?? getDurationUnit(data),
             rateUnit
           );
@@ -307,13 +313,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -322,6 +331,7 @@ function Chart({
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      truncate: true,
       utc: utc ?? false,
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
@@ -333,6 +343,16 @@ function Chart({
     })(deDupedParams, asyncTicket);
   };
 
+  const legend = isLegendVisible
+    ? {
+        top: 0,
+        right: 10,
+        truncate: true,
+        formatter: legendFormatter,
+        ...legendOptions,
+      }
+    : undefined;
+
   const areaChartProps = {
     seriesOptions: {
       showSymbol: false,
@@ -340,7 +360,7 @@ function Chart({
     grid,
     yAxes,
     utc,
-    legend: isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined,
+    legend,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     tooltip: {
@@ -354,7 +374,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -388,9 +408,7 @@ function Chart({
           tooltip={areaChartProps.tooltip}
           colors={colors}
           grid={grid}
-          legend={
-            isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-          }
+          legend={legend}
           onClick={onClick}
           onMouseOut={onMouseOut}
           onMouseOver={onMouseOver}
@@ -442,16 +460,10 @@ function Chart({
     if (type === ChartType.BAR) {
       return (
         <BarChart
+          {...zoomRenderProps}
           height={height}
           series={series}
-          xAxis={{
-            type: 'category',
-            axisTick: {show: true},
-            truncate: Infinity, // Show axis labels
-            axisLabel: {
-              interval: 0, // Show _all_ axis labels
-            },
-          }}
+          xAxis={xAxis}
           yAxis={{
             minInterval: durationUnit ?? getDurationUnit(data),
             splitNumber: definedAxisTicks,
@@ -461,8 +473,8 @@ function Chart({
               formatter(value: number) {
                 return axisLabelFormatter(
                   value,
-                  aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-                  undefined,
+                  aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
+                  true,
                   durationUnit ?? getDurationUnit(data),
                   rateUnit
                 );
@@ -474,15 +486,13 @@ function Chart({
               return tooltipFormatter(
                 value,
                 aggregateOutputFormat ??
-                  aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+                  aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
               );
             },
           }}
           colors={colors}
           grid={grid}
-          legend={
-            isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-          }
+          legend={legend}
           onClick={onClick}
         />
       );
@@ -579,8 +589,8 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
-    for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i].data.map(point => point.value)) as number;
+    for (const serie of data) {
+      maxValue += max(serie.data.map(point => point.value)) as number;
     }
   } else {
     maxValue = computeMax(data);
@@ -631,7 +641,7 @@ export function useSynchronizeCharts(
   ]);
 }
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;

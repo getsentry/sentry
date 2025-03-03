@@ -17,13 +17,14 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
@@ -46,7 +47,6 @@ from sentry.organizations.services.organization import (
     OrganizationSignalService,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
-    RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
@@ -502,10 +502,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
         model.save()
 
-    @classmethod
-    def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
-        return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
-
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
         org.default_role = default_role
@@ -590,14 +586,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 AlertRuleActivity,
                 CustomDynamicSamplingRule,
                 Dashboard,
+                DashboardFavoriteUser,
                 GroupAssignee,
                 GroupBookmark,
                 GroupSeen,
                 GroupShare,
                 GroupSearchView,
+                GroupSearchViewStarred,
                 GroupSubscription,
                 IncidentActivity,
-                IncidentSubscription,
                 OrganizationAccessRequest,
                 ProjectBookmark,
                 RecentSearch,

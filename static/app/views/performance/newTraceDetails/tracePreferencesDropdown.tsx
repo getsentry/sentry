@@ -19,34 +19,31 @@ interface TracePreferencesDropdownProps {
   onMissingInstrumentationChange: () => void;
 }
 
-export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
-  const options: SelectOption<string>[] = useMemo(
-    () => [
-      {
-        label: t('Autogrouping'),
-        value: 'autogroup',
-        details: t(
-          'Collapses 5 or more sibling spans with the same description or any spans with 2 or more descendants with the same operation.'
-        ),
-      },
-      {
-        label: t('Missing Instrumentation'),
-        value: 'missing-instrumentation',
-        details: t(
-          'Shows when there is more than 100ms of unaccounted elapsed time between two spans.'
-        ),
-      },
-    ],
-    []
-  );
+const TRACE_PREFERENCES_DROPDOWN_OPTIONS: Array<SelectOption<string>> = [
+  {
+    label: t('Autogrouping'),
+    value: 'autogroup',
+    details: t(
+      'Collapses 5 or more sibling spans with the same description or any spans with 2 or more descendants with the same operation.'
+    ),
+  },
+  {
+    label: t('No Instrumentation'),
+    value: 'no-instrumentation',
+    details: t(
+      'Shows when there is more than 100ms of unaccounted elapsed time between two spans.'
+    ),
+  },
+];
 
+export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
   const values = useMemo(() => {
     const value: string[] = [];
     if (props.autogroup) {
       value.push('autogroup');
     }
     if (props.missingInstrumentation) {
-      value.push('missing-instrumentation');
+      value.push('no-instrumentation');
     }
     return value;
   }, [props.autogroup, props.missingInstrumentation]);
@@ -55,7 +52,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
 
   const onChange = useCallback(
-    (newValues: SelectOption<string>[]) => {
+    (newValues: Array<SelectOption<string>>) => {
       const newValuesArray = newValues.map(v => v.value);
 
       if (values.length < newValuesArray.length) {
@@ -63,7 +60,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (newOption === 'autogroup') {
           onAutogroupChange();
         }
-        if (newOption === 'missing-instrumentation') {
+        if (newOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
       }
@@ -73,7 +70,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (removedOption === 'autogroup') {
           onAutogroupChange();
         }
-        if (removedOption === 'missing-instrumentation') {
+        if (removedOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
       }
@@ -88,8 +85,9 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       // Force the trigger to be so that we only render the icon
       triggerLabel=""
       triggerProps={CompactSelectTriggerProps}
-      options={options}
+      options={TRACE_PREFERENCES_DROPDOWN_OPTIONS}
       onChange={onChange}
+      menuWidth={300}
     />
   );
 }

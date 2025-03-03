@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import AlertLink from 'sentry/components/alertLink';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 import type {
@@ -41,7 +41,7 @@ export default function IssueTrackingSection({group, event, project}: Props) {
     return <Placeholder height="42px" width="500px" />;
   }
 
-  const renderers: Record<ExternalIssueType, (props) => ReactNode> = {
+  const renderers: Record<ExternalIssueType, (props: any) => ReactNode> = {
     'sentry-app-issue': ({sentryApp, ...props}: SentryAppIssueComponent['props']) => (
       <ErrorBoundary key={sentryApp.slug} mini>
         <SentryAppExternalIssueActions {...props} />
@@ -51,8 +51,8 @@ export default function IssueTrackingSection({group, event, project}: Props) {
       <ExternalIssueActions {...props} />
     ),
     'plugin-action': ({plugin}: PluginActionComponent['props']) => (
-      <IssueSyncListElement externalIssueLink={plugin[1]}>
-        {plugin[0]}
+      <IssueSyncListElement externalIssueLink={(plugin as any)[1]}>
+        {(plugin as any)[0]}
       </IssueSyncListElement>
     ),
     'plugin-issue': (props: PluginIssueComponent['props']) => (
@@ -77,13 +77,13 @@ export default function IssueTrackingSection({group, event, project}: Props) {
       ))}
     </Fragment>
   ) : (
-    <AlertLink
-      priority="muted"
-      size="small"
-      to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-      withoutMarginBottom
-    >
-      {t('Track this issue in Jira, GitHub, etc.')}
-    </AlertLink>
+    <AlertLink.Container>
+      <AlertLink
+        type="muted"
+        to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
+      >
+        {t('Track this issue in Jira, GitHub, etc.')}
+      </AlertLink>
+    </AlertLink.Container>
   );
 }

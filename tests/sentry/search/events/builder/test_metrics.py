@@ -1208,7 +1208,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_multiple_entity_query_fails(self):
         with pytest.raises(IncompatibleMetricsQuery):
-            query = MetricsQueryBuilder(
+            MetricsQueryBuilder(
                 self.params,
                 query="p95(transaction.duration):>5s AND count_unique(user):>0",
                 dataset=Dataset.PerformanceMetrics,
@@ -1222,11 +1222,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     use_aggregate_conditions=True,
                 ),
             )
-            query.run_query("test_query")
 
     def test_query_entity_does_not_match_orderby(self):
         with pytest.raises(IncompatibleMetricsQuery):
-            query = MetricsQueryBuilder(
+            MetricsQueryBuilder(
                 self.params,
                 query="count_unique(user):>0",
                 dataset=Dataset.PerformanceMetrics,
@@ -1241,7 +1240,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     use_aggregate_conditions=True,
                 ),
             )
-            query.run_query("test_query")
 
     def test_aggregate_query_with_multiple_entities_without_orderby(self):
         self.store_transaction_metric(
@@ -2593,8 +2591,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
-        assert query._on_demand_metric_spec_map[field]
-        assert query._on_demand_metric_spec_map[field_two]
+        spec_map = query._on_demand_metric_spec_map
+        assert spec_map is not None
+        assert spec_map[field]
+        assert spec_map[field_two]
 
         mep_query = TopMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
@@ -3525,265 +3525,3 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             ],
             snql_query.select,
         )
-
-
-class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
-    def setUp(self):
-        super().setUp()
-
-    def test_count_metrics_query(self):
-        mri = "c:custom/website_click@none"
-        aggregate = f"sum({mri})"
-
-        for index, value in enumerate((10, 20)):
-            self.store_transaction_metric(
-                value=value,
-                metric=mri,
-                internal_metric=mri,
-                entity="metrics_counters",
-                tags={},
-                timestamp=self.start + datetime.timedelta(hours=index),
-                use_case_id=UseCaseID.CUSTOM,
-            )
-
-        series_query = TimeseriesMetricQueryBuilder(
-            self.params,
-            interval=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[aggregate],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                use_metrics_layer=True,
-            ),
-        )
-
-        result = series_query.run_query("test_query")
-        assert result["data"][:2] == [
-            {
-                "sum_c_custom_website_click_none": 10.0,
-                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
-            },
-            {
-                "sum_c_custom_website_click_none": 20.0,
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-            },
-        ]
-        meta = result["meta"]
-        assert len(meta) == 2
-        assert meta[1]["name"] == "sum_c_custom_website_click_none"
-
-        totals_query = MetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[aggregate],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                use_metrics_layer=True,
-            ),
-        )
-        result = totals_query.run_query("test_query")
-        assert result["data"] == [{"sum_c_custom_website_click_none": 30.0}]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "sum_c_custom_website_click_none"
-
-    def test_distribution_metrics_query(self):
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-        aggregate = f"sum({mri})"
-
-        for index, (value, phone) in enumerate(((10, "iPhone"), (20, "OnePlus"))):
-            for multiplier in (1, 2, 3):
-                self.store_transaction_metric(
-                    value=value * multiplier,
-                    metric=mri,
-                    internal_metric=mri,
-                    entity="metrics_distributions",
-                    tags={"phone": phone},
-                    timestamp=self.start + datetime.timedelta(hours=index),
-                    use_case_id=UseCaseID.CUSTOM,
-                )
-
-        series_query = TimeseriesMetricQueryBuilder(
-            self.params,
-            interval=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[aggregate],
-            query="phone:iPhone OR phone:OnePlus",
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                use_metrics_layer=True,
-            ),
-        )
-
-        result = series_query.run_query("test_query")
-        assert result["data"][:2] == [
-            {
-                "sum_d_custom_sentry_process_profile_track_outcome_second": 60.0,
-                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
-            },
-            {
-                "sum_d_custom_sentry_process_profile_track_outcome_second": 120.0,
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-            },
-        ]
-        meta = result["meta"]
-        assert len(meta) == 2
-        assert meta[1]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
-
-        totals_query = MetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[aggregate],
-            query="phone:iPhone OR phone:OnePlus",
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                use_metrics_layer=True,
-            ),
-        )
-        result = totals_query.run_query("test_query")
-        assert result["data"] == [
-            {"sum_d_custom_sentry_process_profile_track_outcome_second": 180.0}
-        ]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
-
-    def test_set_metrics_query(self):
-        mri = "s:custom/user_click@none"
-        aggregate = f"count_unique({mri})"
-
-        for index, (user, country) in enumerate((("Marco", "IT"), ("Andrea", "DE"))):
-            # We store the same value two times to check for uniqueness in the result.
-            for i in range(0, 2):
-                self.store_transaction_metric(
-                    value=user,
-                    metric=mri,
-                    internal_metric=mri,
-                    entity="metrics_sets",
-                    tags={"country": country},
-                    timestamp=self.start + datetime.timedelta(hours=index),
-                    use_case_id=UseCaseID.CUSTOM,
-                )
-
-        series_query = TimeseriesMetricQueryBuilder(
-            self.params,
-            interval=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[aggregate],
-            query="country:IT",
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                use_metrics_layer=True,
-            ),
-        )
-        result = series_query.run_query("test_query")
-        assert result["data"][:2] == [
-            {
-                "count_unique_s_custom_user_click_none": 1,
-                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
-            },
-            {
-                "count_unique_s_custom_user_click_none": 0,
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-            },
-        ]
-        meta = result["meta"]
-        assert len(meta) == 2
-        assert meta[1]["name"] == "count_unique_s_custom_user_click_none"
-
-        totals_query = MetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[aggregate],
-            query="country:IT",
-            config=QueryBuilderConfig(
-                use_metrics_layer=True,
-            ),
-        )
-        result = totals_query.run_query("test_query")
-        assert result["data"] == [{"count_unique_s_custom_user_click_none": 1}]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "count_unique_s_custom_user_click_none"
-
-    def test_custom_metric_query_generation(self):
-        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="phone")
-
-        for aggregate, expected_aggregate, mri, expected_alias in (
-            ("sum", "sumIf", "c:custom/user.click@none", "sum_c_custom_user_click_none"),
-            (
-                "max",
-                "maxIf",
-                "d:custom/sentry.process_profile.track_outcome@second",
-                "max_d_custom_sentry_process_profile_track_outcome_second",
-            ),
-            ("count_unique", "uniqIf", "s:custom/user@none", "count_unique_s_custom_user_none"),
-        ):
-            indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
-
-            query = AlertMetricsQueryBuilder(
-                {**self.params, "environment": self.environment.name},
-                granularity=3600,
-                time_range_window=3600,
-                query="phone:iPhone",
-                dataset=Dataset.PerformanceMetrics,
-                selected_columns=[f"{aggregate}({mri})"],
-                config=QueryBuilderConfig(
-                    on_demand_metrics_enabled=True,
-                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                    # We want to replicate the condition for the alerts in production, which has to coexist
-                    # with on demand metrics.
-                    skip_time_conditions=True,
-                    use_metrics_layer=True,
-                ),
-            )
-
-            snql_request = query.get_snql_query()
-            assert snql_request.dataset == "generic_metrics"
-
-            snql_query = snql_request.query
-            self.assertCountEqual(
-                [
-                    Function(
-                        expected_aggregate,
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    indexer.resolve(
-                                        UseCaseID.CUSTOM,
-                                        self.organization.id,
-                                        mri,
-                                    ),
-                                ],
-                            ),
-                        ],
-                        expected_alias,
-                    )
-                ],
-                snql_query.select,
-            )
-
-            for expected_tag_key, expected_tag_value in (
-                ("environment", "development"),
-                ("phone", "iPhone"),
-            ):
-                tag_key_indexed = indexer.resolve(
-                    UseCaseID.CUSTOM, self.organization.id, expected_tag_key
-                )
-                tag_condition = Condition(
-                    lhs=Column(name=f"tags_raw[{tag_key_indexed}]"),
-                    op=Op.EQ,
-                    rhs=expected_tag_value,
-                )
-                assert tag_condition in snql_query.where

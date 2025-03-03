@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import importlib
+import importlib.metadata
 import os
 import shlex
 import subprocess
@@ -72,31 +72,32 @@ failed command (code {p.returncode}):
 
 
 # Temporary, see https://github.com/getsentry/sentry/pull/78881
-def check_minimum_version(minimum_version: str):
+def check_minimum_version(minimum_version: str) -> bool:
     version = importlib.metadata.version("sentry-devenv")
 
     parsed_version = tuple(map(int, version.split(".")))
     parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
 
-    if parsed_version < parsed_minimum_version:
+    return parsed_version >= parsed_minimum_version
+
+
+def main(context: dict[str, str]) -> int:
+    minimum_version = "1.14.2"
+    if not check_minimum_version(minimum_version):
         raise SystemExit(
             f"""
 Hi! To reduce potential breakage we've defined a minimum
 devenv version ({minimum_version}) to run sync.
 
-Please run the following to update your global devenv to the minimum:
+Please run the following to update your global devenv:
 
-{constants.root}/venv/bin/pip install -U 'sentry-devenv=={minimum_version}'
+devenv update
 
 Then, use it to run sync this one time.
 
 {constants.root}/bin/devenv sync
 """
         )
-
-
-def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.13.0")
 
     repo = context["repo"]
     reporoot = context["reporoot"]
@@ -106,9 +107,15 @@ def main(context: dict[str, str]) -> int:
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+    SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
 
-    # repo-local devenv needs to update itself first with a successful sync
-    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
+    USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
+
+    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
+        binroot = f"{reporoot}/.devenv/bin"
+        colima.uninstall(binroot)
+        limactl.uninstall(binroot)
+
     from devenv.lib import node
 
     node.install(
@@ -129,20 +136,6 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    if constants.DARWIN:
-        colima.install(
-            repo_config["colima"]["version"],
-            repo_config["colima"][constants.SYSTEM_MACHINE],
-            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        limactl.install(
-            repo_config["lima"]["version"],
-            repo_config["lima"][constants.SYSTEM_MACHINE],
-            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-
     if not run_procs(
         repo,
         reporoot,
@@ -150,7 +143,7 @@ def main(context: dict[str, str]) -> int:
         (
             # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
             (
-                "python dependencies (1/4)",
+                "python dependencies (1/3)",
                 (
                     # upgrading pip first
                     "pip",
@@ -166,7 +159,7 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    if not run_procs(
+    if not SKIP_FRONTEND and not run_procs(
         repo,
         reporoot,
         venv_dir,
@@ -186,17 +179,6 @@ def main(context: dict[str, str]) -> int:
                     "NODE_ENV": "development",
                 },
             ),
-            (
-                "python dependencies (2/4)",
-                (
-                    "pip",
-                    "uninstall",
-                    "-qqy",
-                    "djangorestframework-stubs",
-                    "django-stubs",
-                ),
-                {},
-            ),
         ),
         verbose,
     ):
@@ -210,7 +192,7 @@ def main(context: dict[str, str]) -> int:
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
-                "python dependencies (3/4)",
+                "python dependencies (2/3)",
                 (
                     "pip",
                     "install",
@@ -232,7 +214,7 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             (
-                "python dependencies (4/4)",
+                "python dependencies (3/3)",
                 ("python3", "-m", "tools.fast_editable", "--path", "."),
                 {},
             ),
@@ -244,8 +226,10 @@ def main(context: dict[str, str]) -> int:
 
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
-    if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
-        f"{constants.home}/.sentry/sentry.conf.py"
+    sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
+
+    if not os.path.exists(f"{sentry_conf}/config.yml") or not os.path.exists(
+        f"{sentry_conf}/sentry.conf.py"
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
@@ -255,18 +239,41 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    # TODO: check healthchecks for redis and postgres to short circuit this
-    proc.run(
-        (
-            f"{venv_dir}/bin/{repo}",
-            "devservices",
-            "up",
-            "redis",
-            "postgres",
-        ),
-        pathprepend=f"{reporoot}/.devenv/bin",
-        exit=True,
-    )
+    if USE_OLD_DEVSERVICES:
+        # Ensure new devservices is not being used, otherwise ports will conflict
+        proc.run(
+            (f"{venv_dir}/bin/devservices", "down"),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+        # TODO: check healthchecks for redis and postgres to short circuit this
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "up",
+                "redis",
+                "postgres",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+    else:
+        # Ensure old sentry devservices is not being used, otherwise ports will conflict
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "down",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+        proc.run(
+            (f"{venv_dir}/bin/devservices", "up", "--mode", "migrations"),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
 
     if not run_procs(
         repo,
@@ -283,12 +290,16 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    postgres_container = (
+        "sentry_postgres" if os.environ.get("USE_OLD_DEVSERVICES") == "1" else "sentry-postgres-1"
+    )
+
     # faster prerequisite check than starting up sentry and running createuser idempotently
     stdout = proc.run(
         (
             "docker",
             "exec",
-            "sentry_postgres",
+            postgres_container,
             "psql",
             "sentry",
             "postgres",

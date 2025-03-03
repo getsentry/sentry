@@ -23,7 +23,7 @@ function handleChange(
 function RadioField(props: RadioFieldProps) {
   return (
     <FormField {...props}>
-      {({id, onChange, onBlur, value, disabled, orientInline, ...fieldProps}) => (
+      {({id, onChange, onBlur, value, disabled, orientInline, ...fieldProps}: any) => (
         // XXX: The label must be present on the role="radiogroup" element. The
         // `htmlFor` attribute on the Field label does NOT link to the group.
         <RadioGroup

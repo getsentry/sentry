@@ -13,6 +13,13 @@ export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';
 export const CONSUMER_QUERY_FILTER = 'span.op:queue.process';
 export const PRODUCER_QUERY_FILTER = 'span.op:queue.publish';
 
+export const FIELD_ALIASES = {
+  'spm() span.op:queue.publish': 'Published',
+  'spm() span.op:queue.process': 'Processed',
+  'avg(messaging.message.receive.latency)': t('Average Time in Queue'),
+  'avg(span.duration)': t('Average Processing Time'),
+};
+
 export const TRACE_STATUS_OPTIONS = [
   'ok',
   'cancelled',
@@ -44,7 +51,7 @@ export const MODULE_DESCRIPTION = t(
   'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/insights/queue-monitoring/';
+  'https://docs.sentry.io/product/insights/backend/queue-monitoring/';
 
 export const TABLE_ROWS_LIMIT = 25;
 

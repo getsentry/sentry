@@ -1,10 +1,10 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
@@ -16,7 +16,6 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
@@ -54,7 +53,7 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location'> & {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
@@ -79,7 +78,7 @@ function EventHeader({event}: {event: Event}) {
 
 function EventDetailsContent(props: Props) {
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
-  const projectId = props.eventSlug.split(':')[0];
+  const projectId = props.eventSlug.split(':')[0]!;
 
   const {
     data: event,
@@ -101,7 +100,7 @@ function EventDetailsContent(props: Props) {
     }
     const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
-    return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
+    return nextView.getResultsViewUrlTarget(organization, isHomepage);
   };
 
   function renderContent() {
@@ -115,7 +114,7 @@ function EventDetailsContent(props: Props) {
     const transactionSummaryTarget =
       event.type === 'transaction' && transactionName
         ? transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             projectID: event.projectID,
             query: location.query,
@@ -133,11 +132,7 @@ function EventDetailsContent(props: Props) {
       metaResults?: TraceMetaQueryChildrenProps
     ) => {
       return (
-        <TransactionProfileIdProvider
-          projectId={event.projectID}
-          transactionId={event.type === 'transaction' ? event.id : undefined}
-          timestamp={event.dateReceived}
-        >
+        <Fragment>
           <Layout.Header>
             <Layout.HeaderContent>
               <DiscoverBreadcrumb
@@ -209,7 +204,7 @@ function EventDetailsContent(props: Props) {
                         getViewChildTransactionTarget: childTransactionProps => {
                           const childTransactionLink = eventDetailsRoute({
                             eventSlug: childTransactionProps.eventSlug,
-                            orgSlug: organization.slug,
+                            organization,
                           });
 
                           return {
@@ -224,7 +219,7 @@ function EventDetailsContent(props: Props) {
                           <ProfilesProvider
                             orgSlug={organization.slug}
                             projectSlug={projectId}
-                            profileId={profileId || ''}
+                            profileMeta={profileId || ''}
                           >
                             <ProfileContext.Consumer>
                               {profiles => (
@@ -281,7 +276,7 @@ function EventDetailsContent(props: Props) {
               </Layout.Side>
             )}
           </Layout.Body>
-        </TransactionProfileIdProvider>
+        </Fragment>
       );
     };
 
@@ -336,9 +331,11 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error.message}
+        </Alert>
+      </Alert.Container>
     );
   }
 

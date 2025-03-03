@@ -15,7 +15,6 @@ class PreSaveIncidentTriggerTest(TestCase):
     def test_update_date_modified(self):
         org = Organization.objects.create(name="chris' test org")
         alert_rule = self.create_alert_rule()
-        alert_rule.query = "event.type:error"
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule,
             label="warning",

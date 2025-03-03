@@ -5,10 +5,9 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.hybridcloud.rpc import DEFAULT_DATE, RpcModel
 
@@ -86,6 +85,9 @@ class RpcUser(RpcUserProfile):
 
     def has_verified_emails(self) -> bool:
         return len(self.get_verified_emails()) > 0
+
+    def has_verified_primary_email(self) -> bool:
+        return bool([e for e in self.useremails if e.is_verified and e.email == self.email])
 
     def get_unverified_emails(self) -> list[RpcUserEmail]:
         return [e for e in self.useremails if not e.is_verified]

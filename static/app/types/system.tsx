@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
+import type {ApiResult} from 'sentry/api';
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
 import type {ParntershipAgreementType} from './hooks';
@@ -74,10 +75,6 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
-    /**
-     * Is populated with promises/strings of commonly used data.
-     */
-    __sentry_preload: Record<string, any>;
 
     // typing currently used for demo add on
     // TODO: improve typing
@@ -99,6 +96,18 @@ declare global {
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
+    /**
+     * Is populated with promises/strings of commonly used data.
+     */
+    __sentry_preload?: {
+      orgSlug?: string;
+      organization?: Promise<ApiResult>;
+      organization_fallback?: Promise<ApiResult>;
+      projects?: Promise<ApiResult>;
+      projects_fallback?: Promise<ApiResult>;
+      teams?: Promise<ApiResult>;
+      teams_fallback?: Promise<ApiResult>;
+    };
     /**
      * Set to true if adblock could be installed.
      * See sentry/js/ads.js for how this global is disabled.
@@ -164,7 +173,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: {level: keyof Theme['alert']; message: string}[];
+  messages: Array<{level: keyof Theme['alert']; message: string}>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
   // The list of regions the user has has access to.
@@ -177,6 +186,9 @@ export interface Config {
     environment?: string;
     profilesSampleRate?: number;
   };
+  // sentryMode intends to supersede isSelfHosted,
+  // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
+  sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
@@ -205,7 +217,7 @@ export interface Config {
     upgradeAvailable: boolean;
   };
   partnershipAgreementPrompt?: {
-    agreements: Array<ParntershipAgreementType>;
+    agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   relocationConfig?: {

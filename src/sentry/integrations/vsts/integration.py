@@ -8,7 +8,7 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
-from django.http import HttpRequest
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
 
@@ -20,6 +20,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -31,6 +32,10 @@ from sentry.integrations.services.integration import RpcOrganizationIntegration,
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
@@ -293,7 +298,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
@@ -429,12 +434,20 @@ class VstsIntegrationProvider(IntegrationProvider):
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
+            logger.info(
+                "vsts.get_scopes.new_scopes",
+                extra={"organization_id": self.pipeline.organization.id},
+            )
             # This is the new way we need to pass scopes to the OAuth flow
             # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
             return VstsIntegrationProvider.NEW_SCOPES
+        logger.info(
+            "vsts.get_scopes.old_scopes",
+            extra={"organization_id": self.pipeline.organization.id},
+        )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),
@@ -456,6 +469,11 @@ class VstsIntegrationProvider(IntegrationProvider):
         user = get_user_info(data["access_token"])
         scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
+
+        logger.info(
+            "vsts.build_integration.base_config",
+            extra={"scopes": scopes, "organization_id": self.pipeline.organization.id},
+        )
 
         integration: MutableMapping[str, Any] = {
             "name": account["accountName"],
@@ -533,7 +551,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 sample_rate=1.0,
             )
 
+        # Assertion error happens when org_integration does not exist
+        # KeyError happens when subscription is not found
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            if features.has(
+                "organizations:migrate-azure-devops-integration", self.pipeline.organization
+            ):
+                # If there is a new integration, we need to set the migration version to 1
+                integration["metadata"][
+                    "integration_migration_version"
+                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+
             logger.warning(
                 "vsts.build_integration.error",
                 extra={
@@ -631,43 +659,46 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 class AccountConfigView(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        account_id = request.POST.get("account")
-        if account_id is not None:
-            state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
-                key="accounts"
-            )
-            account = self.get_account_from_id(account_id, state_accounts or [])
-            if account is not None:
-                pipeline.bind_state("account", account)
-                return pipeline.next_step()
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.ACCOUNT_CONFIG,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            VstsIntegrationProvider.key,
+        ).capture() as lifecycle:
+            account_id = request.POST.get("account")
+            if account_id is not None:
+                state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
+                    key="accounts"
+                )
+                account = self.get_account_from_id(account_id, state_accounts or [])
+                if account is not None:
+                    pipeline.bind_state("account", account)
+                    return pipeline.next_step()
 
-        state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
-        access_token = (state or {}).get("data", {}).get("access_token")
-        user = get_user_info(access_token)
+            state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
+            access_token = (state or {}).get("data", {}).get("access_token")
+            user = get_user_info(access_token)
 
-        accounts = self.get_accounts(access_token, user["uuid"])
-        logger.info(
-            "vsts.get_accounts",
-            extra={
+            accounts = self.get_accounts(access_token, user["uuid"])
+            extra = {
                 "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
                 "accounts": accounts,
-            },
-        )
-        if not accounts or not accounts.get("value"):
+            }
+            if not accounts or not accounts.get("value"):
+                lifecycle.record_failure("no_accounts", extra=extra)
+                return render_to_response(
+                    template="sentry/integrations/vsts-config.html",
+                    context={"no_accounts": True},
+                    request=request,
+                )
+            accounts = accounts["value"]
+            pipeline.bind_state("accounts", accounts)
+            account_form = AccountForm(accounts)
             return render_to_response(
                 template="sentry/integrations/vsts-config.html",
-                context={"no_accounts": True},
+                context={"form": account_form, "no_accounts": False},
                 request=request,
             )
-        accounts = accounts["value"]
-        pipeline.bind_state("accounts", accounts)
-        account_form = AccountForm(accounts)
-        return render_to_response(
-            template="sentry/integrations/vsts-config.html",
-            context={"form": account_form, "no_accounts": False},
-            request=request,
-        )
 
     def get_account_from_id(
         self, account_id: int, accounts: Sequence[Mapping[str, Any]]

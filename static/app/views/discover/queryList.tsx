@@ -23,9 +23,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
+  getSavedQueryDataset,
   getSavedQueryWithDataset,
   handleCreateQuery,
   handleDeleteQuery,
@@ -33,7 +35,11 @@ import {
 } from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
-import {getPrebuiltQueries, handleAddQueryToDashboard} from './utils';
+import {
+  getPrebuiltQueries,
+  handleAddQueryToDashboard,
+  SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
+} from './utils';
 
 type Props = {
   api: Client;
@@ -168,7 +174,7 @@ class QueryList extends Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? view.queryDataset : undefined
       );
@@ -185,6 +191,13 @@ class QueryList extends Component<Props> {
               organization,
               yAxis: view?.yAxis,
               router,
+              widgetType: hasDatasetSelector(organization)
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                    getSavedQueryDataset(organization, location, newQuery)
+                  ]
+                : undefined,
+              source: DashboardWidgetSource.DISCOVERV2,
             }),
         },
         {
@@ -257,7 +270,7 @@ class QueryList extends Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getResultsViewShortUrlTarget(organization.slug);
+      const to = eventView.getResultsViewShortUrlTarget(organization);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
@@ -275,6 +288,13 @@ class QueryList extends Component<Props> {
                     organization,
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
                     router,
+                    widgetType: hasDatasetSelector(organization)
+                      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                          getSavedQueryDataset(organization, location, savedQuery)
+                        ]
+                      : undefined,
+                    source: DashboardWidgetSource.DISCOVERV2,
                   }),
               },
             ]

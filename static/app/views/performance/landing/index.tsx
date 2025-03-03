@@ -1,5 +1,5 @@
 import type {FC} from 'react';
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -32,13 +33,16 @@ import {
   MEPConsumer,
   MEPSettingProvider,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
+import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
+import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
 
-import Onboarding from '../onboarding';
+import {LegacyOnboarding} from '../onboarding';
 import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
-import {getTransactionSearchQuery} from '../utils';
+import {getPerformanceBaseUrl, getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
 import {BackendView} from './views/backendView';
@@ -87,8 +91,34 @@ export function PerformanceLanding(props: Props) {
     handleTrendsClick,
     onboardingProject,
   } = props;
-
+  const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {slug} = organization;
+
+  const performanceMovingAlert = useMemo(() => {
+    if (!slug) {
+      return undefined;
+    }
+    return (
+      <Fragment>
+        {t(
+          `To make it easier to see what's relevant for you, Sentry's Performance landing page is now being split into separate `
+        )}
+        <Link to={`${getPerformanceBaseUrl(slug, 'frontend')}/`}>
+          {FRONTEND_SIDEBAR_LABEL}
+        </Link>
+        {`, `}
+        <Link to={`${getPerformanceBaseUrl(slug, 'backend')}/`}>
+          {BACKEND_SIDEBAR_LABEL}
+        </Link>
+        {t(', and ')}
+        <Link to={`${getPerformanceBaseUrl(slug, 'mobile')}/`}>
+          {MOBILE_SIDEBAR_LABEL}
+        </Link>
+        {t(' performance pages. They can all be found in the Insights tab.')}
+      </Fragment>
+    );
+  }, [slug]);
 
   const hasMounted = useRef(false);
   const paramLandingDisplay = getLandingDisplayFromParam(location);
@@ -98,6 +128,12 @@ export function PerformanceLanding(props: Props) {
   );
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
   const showOnboarding = onboardingProject !== undefined;
+
+  useEffect(() => {
+    if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
+      setPageError(performanceMovingAlert);
+    }
+  }, [pageAlert?.message, performanceMovingAlert, setPageError]);
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -162,135 +198,133 @@ export function PerformanceLanding(props: Props) {
 
   return (
     <Layout.Page data-test-id="performance-landing-v3">
-      <PageAlertProvider>
-        <Tabs
-          value={landingDisplay.field}
-          onChange={field =>
-            handleLandingDisplayChange(field, location, projects, organization, eventView)
-          }
-        >
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Performance')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/performance/"
-                  title={t(
-                    'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions.'
-                  )}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              {!showOnboarding && (
-                <ButtonBar gap={1}>
-                  <Button
-                    size="sm"
-                    priority="primary"
-                    data-test-id="landing-header-trends"
-                    onClick={() => handleTrendsClick()}
-                  >
-                    {t('View Trends')}
-                  </Button>
-                  <FeedbackWidgetButton />
-                </ButtonBar>
-              )}
-            </Layout.HeaderActions>
+      <Tabs
+        value={landingDisplay.field}
+        onChange={field =>
+          handleLandingDisplayChange(field, location, projects, organization, eventView)
+        }
+      >
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>
+              {t('Performance')}
+              <PageHeadingQuestionTooltip
+                docsUrl="https://docs.sentry.io/product/performance/"
+                title={t(
+                  'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions.'
+                )}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            {!showOnboarding && (
+              <ButtonBar gap={1}>
+                <Button
+                  size="sm"
+                  priority="primary"
+                  data-test-id="landing-header-trends"
+                  onClick={() => handleTrendsClick()}
+                >
+                  {t('View Trends')}
+                </Button>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            )}
+          </Layout.HeaderActions>
 
-            <TabList hideBorder>
-              {LANDING_DISPLAYS.map(({label, field}) => (
-                <TabList.Item key={field}>{label}</TabList.Item>
-              ))}
-            </TabList>
-          </Layout.Header>
+          <TabList hideBorder>
+            {LANDING_DISPLAYS.map(({label, field}) => (
+              <TabList.Item key={field}>{label}</TabList.Item>
+            ))}
+          </TabList>
+        </Layout.Header>
 
-          <Layout.Body data-test-id="performance-landing-body">
-            <Layout.Main fullWidth>
-              <TabPanels>
-                <TabPanels.Item key={landingDisplay.field}>
-                  <MetricsCardinalityProvider
-                    sendOutcomeAnalytics
+        <Layout.Body data-test-id="performance-landing-body">
+          <Layout.Main fullWidth>
+            <TabPanels>
+              <TabPanels.Item key={landingDisplay.field}>
+                <MetricsCardinalityProvider
+                  sendOutcomeAnalytics
+                  organization={organization}
+                  location={location}
+                >
+                  <MetricsDataSwitcher
                     organization={organization}
+                    eventView={eventView}
                     location={location}
                   >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                    >
-                      {metricsDataSide => {
-                        return (
-                          <MEPSettingProvider
+                    {metricsDataSide => {
+                      return (
+                        <MEPSettingProvider
+                          location={location}
+                          forceTransactions={metricsDataSide.forceTransactionsOnly}
+                        >
+                          <MetricsDataSwitcherAlert
+                            organization={organization}
+                            eventView={eventView}
+                            projects={projects}
                             location={location}
-                            forceTransactions={metricsDataSide.forceTransactionsOnly}
-                          >
-                            <MetricsDataSwitcherAlert
-                              organization={organization}
-                              eventView={eventView}
-                              projects={projects}
-                              location={location}
-                              router={props.router}
-                              {...metricsDataSide}
-                            />
-                            <PageAlert />
-                            {showOnboarding ? (
-                              <Fragment>
+                            router={props.router}
+                            {...metricsDataSide}
+                          />
+                          <PageAlert />
+                          {showOnboarding ? (
+                            <Fragment>
+                              {pageFilters}
+                              <LegacyOnboarding
+                                organization={organization}
+                                project={onboardingProject}
+                              />
+                            </Fragment>
+                          ) : (
+                            <Fragment>
+                              <SearchFilterContainer>
                                 {pageFilters}
-                                <Onboarding
+                                <MEPConsumer>
+                                  {({metricSettingState}) => (
+                                    // TODO replace `handleSearch prop` with transaction name search once
+                                    // transaction name search becomes the default search bar
+                                    <TransactionNameSearchBar
+                                      organization={organization}
+                                      eventView={eventView}
+                                      onSearch={(query: string) => {
+                                        handleSearch(
+                                          query,
+                                          metricSettingState ?? undefined
+                                        );
+                                      }}
+                                      query={getFreeTextFromQuery(derivedQuery)!}
+                                    />
+                                  )}
+                                </MEPConsumer>
+                                <MetricsEventsDropdown />
+                              </SearchFilterContainer>
+                              {initiallyLoaded ? (
+                                <TeamKeyTransactionManager.Provider
                                   organization={organization}
-                                  project={onboardingProject}
-                                />
-                              </Fragment>
-                            ) : (
-                              <Fragment>
-                                <SearchFilterContainer>
-                                  {pageFilters}
-                                  <MEPConsumer>
-                                    {({metricSettingState}) => (
-                                      // TODO replace `handleSearch prop` with transaction name search once
-                                      // transaction name search becomes the default search bar
-                                      <TransactionNameSearchBar
-                                        organization={organization}
-                                        eventView={eventView}
-                                        onSearch={(query: string) => {
-                                          handleSearch(
-                                            query,
-                                            metricSettingState ?? undefined
-                                          );
-                                        }}
-                                        query={getFreeTextFromQuery(derivedQuery)}
-                                      />
-                                    )}
-                                  </MEPConsumer>
-                                  <MetricsEventsDropdown />
-                                </SearchFilterContainer>
-                                {initiallyLoaded ? (
-                                  <TeamKeyTransactionManager.Provider
-                                    organization={organization}
-                                    teams={teams}
-                                    selectedTeams={['myteams']}
-                                    selectedProjects={eventView.project.map(String)}
-                                  >
-                                    <GenericQueryBatcher>
-                                      <ViewComponent {...props} />
-                                    </GenericQueryBatcher>
-                                  </TeamKeyTransactionManager.Provider>
-                                ) : (
-                                  <LoadingIndicator />
-                                )}
-                              </Fragment>
-                            )}
-                          </MEPSettingProvider>
-                        );
-                      }}
-                    </MetricsDataSwitcher>
-                  </MetricsCardinalityProvider>
-                </TabPanels.Item>
-              </TabPanels>
-            </Layout.Main>
-          </Layout.Body>
-        </Tabs>
-      </PageAlertProvider>
+                                  teams={teams}
+                                  selectedTeams={['myteams']}
+                                  selectedProjects={eventView.project.map(String)}
+                                >
+                                  <GenericQueryBatcher>
+                                    <ViewComponent {...props} />
+                                  </GenericQueryBatcher>
+                                </TeamKeyTransactionManager.Provider>
+                              ) : (
+                                <LoadingIndicator />
+                              )}
+                            </Fragment>
+                          )}
+                        </MEPSettingProvider>
+                      );
+                    }}
+                  </MetricsDataSwitcher>
+                </MetricsCardinalityProvider>
+              </TabPanels.Item>
+            </TabPanels>
+          </Layout.Main>
+        </Layout.Body>
+      </Tabs>
     </Layout.Page>
   );
 }

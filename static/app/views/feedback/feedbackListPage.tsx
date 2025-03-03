@@ -17,21 +17,19 @@ import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {feedbackWidgetPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
-interface Props extends RouteComponentProps<{}, {}, {}> {}
-
-export default function FeedbackListPage({}: Props) {
+export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const {hasSetupNewFeedback} = useHaveSelectedProjectsSetupNewFeedback();
@@ -45,6 +43,7 @@ export default function FeedbackListPage({}: Props) {
 
   const pageFilters = usePageFilters();
   const projects = useProjects();
+  const prefersStackedNav = usePrefersStackedNav();
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -56,13 +55,12 @@ export default function FeedbackListPage({}: Props) {
   );
 
   const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
-
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <FeedbackQueryKeys organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip
@@ -88,7 +86,9 @@ export default function FeedbackListPage({}: Props) {
                     <Container style={{gridArea: 'list'}}>
                       <FeedbackList />
                     </Container>
-                    <FeedbackSearch />
+                    <SearchContainer>
+                      <FeedbackSearch />
+                    </SearchContainer>
                     <Container style={{gridArea: 'details'}}>
                       <FeedbackItemLoader />
                     </Container>
@@ -171,4 +171,9 @@ const Container = styled(FluidHeight)`
 const SetupContainer = styled('div')`
   overflow: hidden;
   grid-column: 1 / -1;
+`;
+
+const SearchContainer = styled('div')`
+  flex-grow: 1;
+  min-width: 0;
 `;

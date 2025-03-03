@@ -1,25 +1,23 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ALERTS} from 'sentry/views/insights/browser/webVitals/alerts';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -27,12 +25,11 @@ type Props = {
   transaction?: string;
 };
 
-export const formatTimeSeriesResultsToChartData = (
+export function formatTimeSeriesResultsToChartData(
   data: WebVitalsScoreBreakdown,
   segmentColors: string[],
-  useWeights = true,
-  order = ORDER
-): Series[] => {
+  order: WebVitals[] = ORDER
+): Series[] {
   return order.map((webVital, index) => {
     const series = data[webVital];
     const color = segmentColors[index];
@@ -40,22 +37,19 @@ export const formatTimeSeriesResultsToChartData = (
       seriesName: webVital.toUpperCase(),
       data: series.map(({name, value}) => ({
         name,
-        value: Math.round(
-          value * (useWeights ? PERFORMANCE_SCORE_WEIGHTS[webVital] : 100) * 0.01
-        ),
+        value: Math.round(value),
       })),
       color,
     };
   });
-};
+}
 
 export function PerformanceScoreBreakdownChart({
   transaction,
   browserTypes,
   subregions,
 }: Props) {
-  const theme = useTheme();
-  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
+  const segmentColors = getChartColorPalette(3).slice(0, 5);
 
   const pageFilters = usePageFilters();
 
@@ -63,6 +57,7 @@ export function PerformanceScoreBreakdownChart({
     useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
 
   const period = pageFilters.selection.datetime.period;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
@@ -71,47 +66,28 @@ export function PerformanceScoreBreakdownChart({
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
     weightedTimeseriesData,
     segmentColors,
-    false,
     chartSeriesOrder
   );
 
-  const unweightedTimeseries = formatTimeSeriesResultsToChartData(
+  const timeseries = formatTimeSeriesResultsToChartData(
     {
-      lcp: timeseriesData.unweightedLcp,
-      fcp: timeseriesData.unweightedFcp,
-      cls: timeseriesData.unweightedCls,
-      ttfb: timeseriesData.unweightedTtfb,
-      inp: timeseriesData.unweightedInp,
+      lcp: timeseriesData.lcp,
+      fcp: timeseriesData.fcp,
+      cls: timeseriesData.cls,
+      ttfb: timeseriesData.ttfb,
+      inp: timeseriesData.inp,
       total: timeseriesData.total,
     },
     segmentColors,
-    false,
     chartSeriesOrder
   );
 
-  const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
-    const value = PERFORMANCE_SCORE_WEIGHTS;
-    return {name, value};
-  });
-
-  // We need to reproduce the same query filters that were used to fetch the timeseries data so that they can be propagated to the alerts
-  const search = new MutableSearch(ALERTS.total.query ?? '');
-  if (transaction) {
-    search.addFilterValue('transaction', transaction);
-  }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
-  }
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
-  }
-  const query = [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim();
+  const weights = getWeights(
+    ORDER.filter(webVital => timeseriesData[webVital].some(series => series.value > 0))
+  );
 
   return (
-    <StyledChartPanel
-      title={t('Score Breakdown')}
-      alertConfigs={Object.values(ALERTS).map(alertConfig => ({...alertConfig, query}))}
-    >
+    <StyledChartPanel title={t('Score Breakdown')}>
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
       <Chart
         stacked
@@ -130,27 +106,24 @@ export function PerformanceScoreBreakdownChart({
         dataMax={100}
         chartColors={segmentColors}
         tooltipFormatterOptions={{
-          nameFormatter: (name, seriesParams: any) => {
-            const timestamp = seriesParams?.data[0];
-            const weights = weightsSeries.find(
-              series => series.name === timestamp
-            )?.value;
+          nameFormatter: name => {
             // nameFormatter expects a string an will wrap the output in an html string.
             // Kind of a hack, but we can inject some html to escape styling for the subLabel.
             const subLabel =
               weights !== undefined
-                ? ` </strong>(${
-                    weights[name.toLocaleLowerCase()]
-                  }% of Perf Score)<strong>`
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  ` </strong>(${weights[name.toLocaleLowerCase()].toFixed(
+                    0
+                  )}% of Perf Score)<strong>`
                 : '';
             return `${name} Score${subLabel}`;
           },
           valueFormatter: (_value, _label, seriesParams: any) => {
             const timestamp = seriesParams?.data[0];
-            const unweightedValue = unweightedTimeseries
+            const value = timeseries
               .find(series => series.seriesName === seriesParams?.seriesName)
               ?.data.find(dataPoint => dataPoint.name === timestamp)?.value;
-            return `<span class="tooltip-label-value">${unweightedValue}</span>`;
+            return `<span class="tooltip-label-value">${value}</span>`;
           },
         }}
       />

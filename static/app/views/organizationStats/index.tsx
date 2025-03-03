@@ -11,6 +11,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -30,6 +31,7 @@ import {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -64,7 +66,7 @@ export const PAGE_QUERY_PARAMS = [
 export type OrganizationStatsProps = {
   organization: Organization;
   selection: PageFilters;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 export class OrganizationStats extends Component<OrganizationStatsProps> {
   get dataCategoryInfo(): DataCategoryInfo {
@@ -75,7 +77,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     if (
       info?.name === DataCategoryExact.SPAN &&
-      this.props.organization.features.includes('spans-usage-tracking')
+      this.props.organization.features.includes('spans-usage-tracking') &&
+      !hasDynamicSamplingCustomFeature(this.props.organization)
     ) {
       return {
         ...info,
@@ -257,7 +260,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if (DATA_CATEGORY_INFO.profileDuration.plural === opt.value) {
-        return organization.features.includes('continuous-profiling-stats');
+        return (
+          organization.features.includes('continuous-profiling-stats') ||
+          organization.features.includes('continuous-profiling')
+        );
       }
       if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
         return !organization.features.includes('continuous-profiling-stats');
@@ -311,50 +317,54 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
-      <SentryDocumentTitle title="Usage Stats">
-        <PageFiltersContainer>
-          {hasTeamInsights ? (
-            <HeaderTabs organization={organization} activeTab="stats" />
-          ) : (
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
-                <HeadingSubtitle>
-                  {tct(
-                    'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/product/stats/" />,
-                    }
-                  )}
-                </HeadingSubtitle>
-              </Layout.HeaderContent>
-            </Layout.Header>
-          )}
-          <Body>
-            <Layout.Main fullWidth>
-              <HookHeader organization={organization} />
-              {this.renderProjectPageControl()}
-              <div>
-                <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
-              </div>
-              <ErrorBoundary mini>
-                <UsageStatsProjects
-                  organization={organization}
-                  dataCategory={this.dataCategoryInfo}
-                  dataCategoryName={this.dataCategoryInfo.titleName}
-                  isSingleProject={this.isSingleProject}
-                  projectIds={this.projectIds}
-                  dataDatetime={this.dataDatetime}
-                  tableSort={this.tableSort}
-                  tableQuery={this.tableQuery}
-                  tableCursor={this.tableCursor}
-                  handleChangeState={this.setStateOnUrl}
-                  getNextLocations={this.getNextLocations}
-                />
-              </ErrorBoundary>
-            </Layout.Main>
-          </Body>
-        </PageFiltersContainer>
+      <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
+        <NoProjectMessage organization={organization}>
+          <PageFiltersContainer>
+            {hasTeamInsights ? (
+              <HeaderTabs organization={organization} activeTab="stats" />
+            ) : (
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
+                  <HeadingSubtitle>
+                    {tct(
+                      'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/stats/" />
+                        ),
+                      }
+                    )}
+                  </HeadingSubtitle>
+                </Layout.HeaderContent>
+              </Layout.Header>
+            )}
+            <Body>
+              <Layout.Main fullWidth>
+                <HookHeader organization={organization} />
+                {this.renderProjectPageControl()}
+                <div>
+                  <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
+                </div>
+                <ErrorBoundary mini>
+                  <UsageStatsProjects
+                    organization={organization}
+                    dataCategory={this.dataCategoryInfo}
+                    dataCategoryName={this.dataCategoryInfo.titleName}
+                    isSingleProject={this.isSingleProject}
+                    projectIds={this.projectIds}
+                    dataDatetime={this.dataDatetime}
+                    tableSort={this.tableSort}
+                    tableQuery={this.tableQuery}
+                    tableCursor={this.tableCursor}
+                    handleChangeState={this.setStateOnUrl}
+                    getNextLocations={this.getNextLocations}
+                  />
+                </ErrorBoundary>
+              </Layout.Main>
+            </Body>
+          </PageFiltersContainer>
+        </NoProjectMessage>
       </SentryDocumentTitle>
     );
   }

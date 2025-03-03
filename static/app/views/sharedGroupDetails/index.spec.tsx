@@ -6,7 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
@@ -17,6 +17,11 @@ describe('SharedGroupDetails', function () {
   const router = RouterFixture({params});
 
   beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/test-org/projects/`,
+      method: 'GET',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shared/issues/a/',
       body: GroupFixture({
@@ -61,7 +66,7 @@ describe('SharedGroupDetails', function () {
       />,
       {router}
     );
-    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
+    await screen.findByText('Details');
   });
 
   it('renders with org slug in path', async function () {
@@ -78,7 +83,7 @@ describe('SharedGroupDetails', function () {
       />,
       {router}
     );
-    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByTestId('sgh-timestamp')).toBeInTheDocument());
+    await screen.findByText('Details');
+    await screen.findByTestId('sgh-timestamp');
   });
 });

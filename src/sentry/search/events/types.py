@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, NotRequired, Optional, TypedDict, Union
 
 from django.utils import timezone as django_timezone
+from google.protobuf.timestamp_pb2 import Timestamp
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import BooleanCondition, Condition
@@ -28,13 +29,13 @@ WhereType = Union[Condition, BooleanCondition]
 
 # Replaced by SnubaParams
 class ParamsType(TypedDict, total=False):
-    project_id: list[int]
+    project_id: Sequence[int]
     projects: list[Project]
     project_objects: list[Project]
     start: datetime
     end: datetime
     environment: NotRequired[str | list[str]]
-    organization_id: NotRequired[int]
+    organization_id: NotRequired[int | None]
     use_case_id: NotRequired[str]
     team_id: NotRequired[list[int]]
     environment_objects: NotRequired[list[Environment]]
@@ -64,9 +65,12 @@ SnubaData = list[SnubaRow]
 
 
 class EventsMeta(TypedDict):
+    datasetReason: NotRequired[str]
     fields: dict[str, str]
     tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[str]
 
 
 class EventsResponse(TypedDict):
@@ -99,6 +103,9 @@ class SnubaParams:
         # Only used in the trend query builder
         self.aliases: dict[str, Alias] | None = {}
 
+    def __repr__(self) -> str:
+        return f"<SnubaParams: start={self.start},end={self.end},environments={self.environment_ids},projects={self.project_ids}>"
+
     def parse_stats_period(self) -> None:
         if self.stats_period is not None:
             self.end = django_timezone.now()
@@ -114,10 +121,22 @@ class SnubaParams:
         return self.start
 
     @property
+    def rpc_start_date(self) -> Timestamp:
+        timestamp = Timestamp()
+        timestamp.FromDatetime(self.start_date)
+        return timestamp
+
+    @property
     def end_date(self) -> datetime:
         if self.end is None:
             raise InvalidSearchQuery("end is required")
         return self.end
+
+    @property
+    def rpc_end_date(self) -> Timestamp:
+        timestamp = Timestamp()
+        timestamp.FromDatetime(self.end_date)
+        return timestamp
 
     @property
     def date_range(self) -> timedelta:
@@ -218,6 +237,8 @@ class QueryBuilderConfig:
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
     insights_metrics_override_metric_layer: bool = False
+    # Allow the errors query builder to use the entity prefix for fields
+    use_entity_prefix_for_fields: bool = False
 
 
 @dataclass(frozen=True)

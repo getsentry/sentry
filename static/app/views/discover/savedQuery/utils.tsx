@@ -33,7 +33,7 @@ export function handleCreateQuery(
   yAxis: string[],
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
-  isNewQuery: boolean = true
+  isNewQuery = true
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;
@@ -243,10 +243,15 @@ export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery
 
 export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType {
   switch (displayMode) {
+    case DisplayModes.DAILYTOP5:
+    case DisplayModes.DAILY:
     case DisplayModes.BAR:
       return DisplayType.BAR;
     case DisplayModes.TOP5:
       return DisplayType.TOP_N;
+    case DisplayModes.PREVIOUS:
+    case DisplayModes.DEFAULT:
+      return DisplayType.AREA;
     default:
       return DisplayType.LINE;
   }

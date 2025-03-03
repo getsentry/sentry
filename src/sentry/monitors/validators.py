@@ -2,7 +2,7 @@ import re
 from typing import Literal
 
 import sentry_sdk
-from croniter import CroniterBadDateError, croniter
+from cronsim import CronSimError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -222,18 +222,17 @@ class ConfigValidator(serializers.Serializer):
                     schedule = NONSTANDARD_CRONTAB_SCHEDULES[schedule]
                 except KeyError:
                     raise ValidationError({"schedule": "Schedule was not parseable"})
-            # crontab schedule must be valid
-            if not croniter.is_valid(schedule):
-                raise ValidationError({"schedule": "Schedule was not parseable"})
 
-            # XXX(epurkhiser): Make sure we can traverse forward and back in
-            # the schedule. croniter is good, but there are some very edge case
-            # schedules that give it trouble
+            # Do not support 6 or 7 field crontabs
+            if len(schedule.split()) > 5:
+                raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
+
+            # Validate the expression and ensure we can traverse forward / back
             now = timezone.now()
             try:
                 get_next_schedule(now, CrontabSchedule(schedule))
                 get_prev_schedule(now, now, CrontabSchedule(schedule))
-            except CroniterBadDateError:
+            except CronSimError:
                 raise ValidationError({"schedule": "Schedule is invalid"})
 
             # Do not support 6 or 7 field crontabs
@@ -245,12 +244,16 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-@extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
+@extend_schema_serializer(exclude_fields=["alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
-    project = ProjectField(scope="project:read")
+    project = ProjectField(
+        scope="project:read",
+        required=True,
+        help_text="The project to associate the monitor to.",
+    )
     name = serializers.CharField(
         max_length=128,
-        help_text="Name of the monitor. Used for notifications.",
+        help_text="Name of the monitor. Used for notifications. If not set the slug will be derived from your monitor name.",
     )
     slug = SentrySerializerSlugField(
         max_length=DEFAULT_SLUG_MAX_LENGTH,
@@ -271,8 +274,12 @@ class MonitorValidator(CamelSnakeSerializer):
         required=False,
         help_text="Disable creation of monitor incidents",
     )
-    type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
-    config = ConfigValidator()
+    type = serializers.ChoiceField(
+        choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())),
+        required=False,
+        default="cron_job",
+    )
+    config = ConfigValidator(help_text="The configuration for the monitor.")
     alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):

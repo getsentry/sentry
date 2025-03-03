@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -31,74 +32,7 @@ class ProviderMixin:
         rpc_organization = serialize_rpc_organization(org=organization)
         usersocialauth_service.link_auth(usa=usa, organization=rpc_organization)
 
-    def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
-        if self.auth_provider is None:
-            return []
-
-        social_auths_by_id = {usa.id: usa for usa in social_auths}
-        linked_social_auths = set()
-
-        auths = []
-        for i in integrations:
-            associated_auth = i.default_auth_id and social_auths_by_id[i.default_auth_id]
-            if associated_auth:
-                linked_social_auths.add(associated_auth.id)
-            auths.append(
-                {
-                    "defaultAuthId": i.default_auth_id,
-                    "user": associated_auth and {"email": associated_auth.user.email},
-                    "externalId": i.external_id,
-                    "integrationId": str(i.id),
-                    "linked": True,
-                }
-            )
-        auths.extend(
-            [
-                {
-                    "defaultAuthId": sa.id,
-                    "user": {"email": sa.user.email},
-                    "externalId": sa.uid,
-                    "integrationId": None,
-                    "linked": False,
-                }
-                for sa in social_auths
-                if sa.id not in linked_social_auths
-            ]
-        )
-        return auths
-
-    def get_auth_url(self, user, **kwargs):
-        if self.auth_provider is None:
-            return
-
-        return reverse("socialauth_associate", args=[self.auth_provider])
-
-    def needs_auth(self, user, **kwargs):
-        """
-        Return ``True`` if the authenticated user needs to associate an auth
-        service before performing actions with this provider.
-        """
-        if self.auth_provider is None:
-            return False
-
-        organization = kwargs.get("organization")
-        if organization:
-            ois = integration_service.get_organization_integrations(
-                providers=[self.auth_provider], organization_id=organization.id
-            )
-            has_auth = len(ois) > 0
-            if has_auth:
-                return False
-
-        if not user.is_authenticated:
-            return True
-
-        auths = usersocialauth_service.get_many(
-            filter={"user_id": user.id, "provider": self.auth_provider}
-        )
-        return len(auths) == 0
-
-    def get_auth(self, user: RpcUser, **kwargs) -> RpcUserSocialAuth | None:
+    def get_auth(self, user: RpcUser | User, **kwargs) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None
 

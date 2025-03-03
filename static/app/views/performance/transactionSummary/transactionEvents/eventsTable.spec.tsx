@@ -50,7 +50,7 @@ describe('Performance GridEditable Table', function () {
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
   const organization = OrganizationFixture();
   const transactionName = 'transactionName';
-  let data;
+  let data: typeof MOCK_EVENTS_TABLE_DATA;
 
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
@@ -179,14 +179,6 @@ describe('Performance GridEditable Table', function () {
       'spans.http',
     ];
 
-    data.forEach(result => {
-      delete result['span_ops_breakdown.relative'];
-      delete result['spans.resource'];
-      delete result['spans.browser'];
-      delete result['spans.db'];
-      delete result['spans.total.time'];
-    });
-
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -254,7 +246,7 @@ describe('Performance GridEditable Table', function () {
 
     expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/traces/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
   });
 
@@ -267,9 +259,6 @@ describe('Performance GridEditable Table', function () {
     const initialData = initializeData();
 
     fields = [...fields, 'replayId'];
-    data.forEach(result => {
-      result.replayId = 'mock_replay_id';
-    });
 
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -305,9 +294,6 @@ describe('Performance GridEditable Table', function () {
     const initialData = initializeData();
 
     fields = [...fields, 'profile.id'];
-    data.forEach(result => {
-      result['profile.id'] = 'mock_profile_id';
-    });
 
     const eventView = EventView.fromNewQueryWithLocation(
       {

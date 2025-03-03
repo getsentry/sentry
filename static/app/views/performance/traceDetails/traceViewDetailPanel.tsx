@@ -1,13 +1,12 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
-import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
   isNotMarkMeasurement,
@@ -36,7 +35,6 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -57,7 +55,6 @@ import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -138,7 +135,7 @@ function BreadCrumbsSection({
   organization: Organization;
 }) {
   const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
-  const breadCrumbsContainerRef = createRef<HTMLDivElement>();
+  const breadCrumbsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -191,8 +188,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     return <LoadingIndicator />;
   }
 
-  const {user, contexts, projectSlug} = detail.event;
-  const {feedback} = contexts ?? {};
+  const {projectSlug} = detail.event;
+
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${detail.traceFullDetailedEvent.project_slug}/events/${detail.traceFullDetailedEvent.event_id}/json/`;
   const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
   const {errors, performance_issues} = detail.traceFullDetailedEvent;
@@ -223,6 +220,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     const {measurements} = detail.event;
 
     const measurementKeys = Object.keys(measurements ?? {})
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -235,10 +233,11 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
               abbreviation
             />
           </Row>
@@ -253,7 +252,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: detail.traceFullDetailedEvent.project_slug,
       profileId: detail.traceFullDetailedEvent.profile_id,
     });
@@ -310,34 +309,36 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       </Title>
 
       {hasIssues && (
-        <Alert
-          system
-          defaultExpanded
-          type="error"
-          expand={[
-            ...detail.traceFullDetailedEvent.errors,
-            ...detail.traceFullDetailedEvent.performance_issues,
-          ].map(error => (
-            <ErrorMessageContent key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        >
-          <ErrorMessageTitle>
-            {tn(
-              '%s issue occurred in this transaction.',
-              '%s issues occurred in this transaction.',
-              detail.traceFullDetailedEvent.errors.length +
-                detail.traceFullDetailedEvent.performance_issues.length
-            )}
-          </ErrorMessageTitle>
-        </Alert>
+        <Alert.Container>
+          <Alert
+            system
+            defaultExpanded
+            type="error"
+            expand={[
+              ...detail.traceFullDetailedEvent.errors,
+              ...detail.traceFullDetailedEvent.performance_issues,
+            ].map(error => (
+              <ErrorMessageContent key={error.event_id}>
+                <ErrorDot level={error.level} />
+                <ErrorLevel>{error.level}</ErrorLevel>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </ErrorMessageContent>
+            ))}
+          >
+            <ErrorMessageTitle>
+              {tn(
+                '%s issue occurred in this transaction.',
+                '%s issues occurred in this transaction.',
+                detail.traceFullDetailedEvent.errors.length +
+                  detail.traceFullDetailedEvent.performance_issues.length
+              )}
+            </ErrorMessageTitle>
+          </Alert>
+        </Alert.Container>
       )}
 
       <StyledTable className="table key-value">
@@ -356,7 +357,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           <Row title={t('Description')}>
             <Link
               to={transactionSummaryRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 transaction: detail.traceFullDetailedEvent.transaction,
                 query: omit(location.query, Object.values(PAGE_URL_PARAM)),
                 projectID: String(detail.traceFullDetailedEvent.project_id),
@@ -443,35 +444,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           hideBreadCrumbs
         />
       )}
-      {!isEmptyObject(feedback) && (
-        <Chunk
-          key="feedback"
-          type="feedback"
-          alias="feedback"
-          group={undefined}
-          event={detail.event}
-          value={feedback}
-        />
-      )}
-      {user && !isEmptyObject(user) && (
-        <Chunk
-          key="user"
-          type="user"
-          alias="user"
-          group={undefined}
-          event={detail.event}
-          value={user}
-        />
-      )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
-      {detail.event._metrics_summary ? (
-        <CustomMetricsEventData
-          projectId={detail.event.projectID}
-          metricsSummary={detail.event._metrics_summary}
-          startTimestamp={detail.event.startTimestamp}
-        />
-      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {project && (
         <EventAttachments event={detail.event} project={project} group={undefined} />
@@ -518,7 +492,7 @@ function SpanDetailsBody({
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={detail.event.projectSlug}
-          profileId={profileId || ''}
+          profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
             {profiles => (

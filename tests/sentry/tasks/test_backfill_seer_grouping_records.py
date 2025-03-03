@@ -8,38 +8,38 @@ from typing import Any
 from unittest.mock import ANY, call, patch
 
 import pytest
+from django.db import connection
 from django.db.models import Q
-from django.test import override_settings
-from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
+from google.api_core.exceptions import ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 from urllib3.response import HTTPResponse
 
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
     backfill_seer_grouping_records_for_project,
 )
+from sentry.tasks.embeddings_grouping.constants import PROJECT_BACKFILL_COMPLETED
 from sentry.tasks.embeddings_grouping.utils import (
     _make_postgres_call_with_filter,
     get_data_from_snuba,
     get_events_from_nodestore,
-    lookup_event,
-    lookup_group_data_stacktrace_bulk,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -47,7 +47,7 @@ from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
-EXCEPTION = {
+EXCEPTION: dict[str, Any] = {
     "values": [
         {
             "stacktrace": {
@@ -153,10 +153,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
                 "title": "title",
             }
-            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+            event = self.create_event(self.project.id, data, times_seen=5)
+            assert event.group is not None
             events.append(event)
-            event.group.times_seen = 5
-            event.group.save()
             rows.append(
                 {
                     "event_id": event.event_id,
@@ -172,43 +171,62 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         return {"rows": rows, "events": events}
 
-    def setUp(self):
-        super().setUp()
-        bulk_data = self.create_group_event_rows(5)
-        self.bulk_rows, self.bulk_events = (
-            bulk_data["rows"],
-            bulk_data["events"],
-        )
-        self.event = self.store_event(
-            data={
+    def create_event(
+        self, project_id: int, data: Mapping[str, Any] | None = None, times_seen: int = 1
+    ) -> Event:
+        _data = (
+            {
                 "exception": EXCEPTION,
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
-            },
-            project_id=self.project.id,
+            }
+            if data is None
+            else data
+        )
+        event = self.store_event(
+            data=_data,
+            project_id=project_id,
             assert_no_errors=False,
         )
-        self.event.group.times_seen = 5
-        self.event.group.save()
+        assert event.group is not None
+        if times_seen > 1:
+            event.group.times_seen = times_seen
+            event.group.save()
+        return event
 
-        self.wait_for_event_count(self.project.id, 6)
+    def assert_groups_metadata_updated(self, groups: BaseQuerySet[Group, Group]) -> None:
+        for group in groups:
+            hashes = self.group_hashes.get(group.id)
+            if not hashes:
+                hashes = GroupHash.objects.get(group_id=group.id).hash
+            self.assert_group_metadata_updated(group, hashes)
+
+    def assert_group_metadata_updated(self, group: Group, hashes: str) -> None:
+        assert group.data["metadata"].get("seer_similarity") == {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "request_hash": hashes,
+        }
+
+    def assert_groups_metadata_not_updated(self, groups: BaseQuerySet[Group, Group]) -> None:
+        for group in groups:
+            self.assert_group_metadata_not_updated(group)
+
+    def assert_group_metadata_not_updated(self, group: Group) -> None:
+        assert group.data["metadata"].get("seer_similarity") is None
+
+    def get_worker_number_for_project(self, project: Project, num_workers: int) -> int:
+        cursor = connection.cursor()
+        cursor.execute("select abs(hashtext(cast(%s as varchar))) %% %s", [project.id, num_workers])
+        return cursor.fetchone()[0]
+
+    def setUp(self):
+        super().setUp()
+        bulk_data = self.create_group_event_rows(5)
+        self.event = bulk_data["events"][0]
+        self.bulk_rows, self.bulk_events = (bulk_data["rows"], bulk_data["events"])
 
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
-
-    def tearDown(self):
-        super().tearDown()
-
-    def test_lookup_event_success(self):
-        """Test single event lookup is successful"""
-        found_event = lookup_event(self.project.id, self.event.event_id, self.event.group_id)
-
-        assert self.event.event_id == found_event.event_id
-
-    def test_lookup_event_event_lookup_error(self):
-        """Test that EventLookupError is raised when an event does not exist"""
-        with pytest.raises(EventLookupError):
-            lookup_event(self.project.id, "1000000", 1000000)
 
     @patch("sentry.tasks.embeddings_grouping.utils.metrics")
     def test_lookup_group_data_stacktrace_bulk_success(self, mock_metrics):
@@ -265,36 +283,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
 
-    @patch("time.sleep", return_value=None)
-    @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch("sentry.nodestore.backend.get_multi")
-    def test_lookup_group_data_stacktrace_bulk_exceptions(
-        self, mock_get_multi, mock_logger, mock_sleep
-    ):
-        """
-        Test cases where ServiceUnavailable or DeadlineExceeded exceptions occur in bulk data
-        lookup, that the backfill stops
-        """
-        exceptions = [
-            ServiceUnavailable(message="Service Unavailable"),
-            DeadlineExceeded(message="Deadline Exceeded"),
-        ]
-        rows = self.bulk_rows
-
-        for exception in exceptions:
-            mock_get_multi.side_effect = exception
-            with pytest.raises(Exception):
-                lookup_group_data_stacktrace_bulk(self.project, rows)
-            mock_logger.exception.assert_called_with(
-                "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-                extra={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "node_keys": ANY,
-                    "error": exception.message,
-                },
-            )
-
     def test_lookup_group_data_stacktrace_bulk_not_stacktrace_grouping(self):
         """
         Test that if a group does not use the stacktrace for grouping, its data is not included in
@@ -303,11 +291,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Use 2 events
         rows, events, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}
         # Add one event where the stacktrace is not used for grouping
-        event = self.store_event(
+        event = self.create_event(
+            self.project.id,
             data={"exception": EXCEPTION, "title": "title", "fingerprint": ["2"]},
-            project_id=self.project.id,
-            assert_no_errors=False,
         )
+        assert event.group is not None
         group_ids = [row["group_id"] for row in rows]
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
@@ -344,7 +332,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has no exception
-        event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
+        event = self.create_event(self.project.id, data={})
+        assert event.group is not None
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
@@ -364,6 +353,74 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_lookup_group_data_stacktrace_bulk_invalid_stacktrace_exception(self, mock_metrics):
+        """
+        Test that if a group has over MAX_FRAME_COUNT frames, its data is not included in
+        the bulk lookup result
+        """
+        # Use 2 events
+        rows, events, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}
+        group_ids = [row["group_id"] for row in rows]
+        for group_id in group_ids:
+            hashes.update({group_id: self.group_hashes[group_id]})
+        # Create one event where the stacktrace has over MAX_FRAME_COUNT frames
+        exception = copy.deepcopy(EXCEPTION)
+        exception["values"][0]["stacktrace"]["frames"] = [
+            {
+                "function": f"divide_by_zero_{i}",
+                "module": "__main__",
+                "filename": "java_onboarding_{i}.java",
+                "abs_path": "/Users/user/java_onboarding/java_onboarding_{i}.java",
+                "lineno": i,
+                "in_app": False,
+            }
+            for i in range(MAX_FRAME_COUNT + 1)
+        ]
+        event = self.create_event(
+            self.project.id,
+            data={
+                "platform": "java",
+                "exception": exception,
+                "title": "title",
+                "timestamp": before_now(seconds=10).isoformat(),
+            },
+        )
+        assert event.group is not None
+        rows.append({"event_id": event.event_id, "group_id": event.group_id})
+        group_hash = GroupHash.objects.filter(group_id=event.group.id).first()
+        assert group_hash
+        hashes.update({event.group_id: group_hash.hash})
+
+        bulk_group_data_stacktraces, _ = get_events_from_nodestore(self.project, rows, group_ids)
+        expected_group_data = [
+            CreateGroupingRecordData(
+                group_id=event.group.id,
+                hash=hashes[event.group.id],
+                project_id=self.project.id,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
+            )
+            for event in events
+        ]
+        expected_stacktraces = [
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            for i in range(2)
+        ]
+        assert bulk_group_data_stacktraces["data"] == expected_group_data
+        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_called_with(
+            "grouping.similarity.frame_count_filter",
+            sample_rate=sample_rate,
+            tags={
+                "platform": "java",
+                "referrer": "backfill",
+                "stacktrace_type": "system",
+                "outcome": "block",
+            },
+        )
 
     def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):
         """Test successful bulk lookup with fallback, where the fallback isn't used"""
@@ -463,12 +520,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
         mock_logger.error.assert_called_with(
-            "tasks.backfill_seer_grouping_records.event_lookup_error",
+            "backfill_seer_grouping_records.event_lookup_error",
             extra={
                 "organization_id": self.project.organization.id,
                 "project_id": self.project.id,
                 "group_id": rows[-1]["group_id"],
                 "event_id": 10000,
+                "worker_number": None,
             },
         )
 
@@ -498,11 +556,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with pytest.raises(Exception):
             get_data_from_snuba(self.project, group_ids_last_seen)
         mock_logger.exception.assert_called_with(
-            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
+            "backfill_seer_grouping_records.snuba_query_limit_exceeded",
             extra={
                 "organization_id": self.project.organization.id,
                 "project_id": self.project.id,
                 "error": "Snuba Rate Limit Exceeded",
+                "worker_number": None,
             },
         )
 
@@ -521,154 +580,57 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with pytest.raises(Exception):
             get_data_from_snuba(self.project, group_ids_last_seen)
         mock_logger.exception.assert_called_with(
-            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
+            "backfill_seer_grouping_records.snuba_query_limit_exceeded",
             extra={
                 "organization_id": self.project.organization.id,
                 "project_id": self.project.id,
                 "error": "Too Many Simultaneous Snuba Queries",
+                "worker_number": None,
             },
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_success_simple(self, mock_post_bulk_grouping_records):
+    def test_success_simple(self, mock_post_bulk_grouping_records):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
+        self.assert_groups_metadata_updated(groups)
 
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
         {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
     )
-    def test_backfill_seer_grouping_records_success_cohorts_simple(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_success_cohorts_simple(self, mock_post_bulk_grouping_records):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         project2 = self.create_project(organization=self.organization)
-        event2 = self.store_event(
-            data={
-                "exception": EXCEPTION,
-                "title": "title",
-                "timestamp": before_now(seconds=10).isoformat(),
-            },
-            project_id=project2.id,
-            assert_no_errors=False,
-        )
-        event2.group.times_seen = 5
-        event2.group.save()
+        self.create_event(project2.id, times_seen=5)
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
                 cohort=[self.project.id, project2.id],
-                last_processed_project_index_input=0,
             )
 
         groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
+        self.assert_groups_metadata_updated(groups)
 
-        project_group_ids = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )
-        project2_group_ids = sorted(
-            [group.id for group in Group.objects.filter(project_id=project2.id)]
-        )
-        expected_call_args_list = [
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": [self.project.id, project2.id],
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[0],
-                    "cohort": [self.project.id, project2.id],
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project2.id,
-                    "last_processed_group_id": None,
-                    "cohort": [self.project.id, project2.id],
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project2.id,
-                    "last_processed_group_id": project2_group_ids[0],
-                    "cohort": [self.project.id, project2.id],
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "reached the end of the project list",
-                extra={
-                    "cohort_name": [self.project.id, project2.id],
-                    "last_processed_project_index": None,
-                },
-            ),
-        ]
-        assert mock_logger.info.call_args_list == expected_call_args_list
-
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
         {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
     )
-    def test_backfill_seer_grouping_records_success_cohorts_project_does_not_exist(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_success_cohorts_project_does_not_exist(self, mock_post_bulk_grouping_records):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
@@ -677,222 +639,29 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=99999999999999,
-                last_processed_group_id_input=None,
                 cohort=[99999999999999, self.project.id],
-                last_processed_project_index_input=0,
             )
 
-        last_processed_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )[0]
-
-        expected_call_args_list = [
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": 99999999999999,
-                    "last_processed_group_id": None,
-                    "cohort": [99999999999999, self.project.id],
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records.project_does_not_exist",
-                extra={"current_project_id": 99999999999999},
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": [99999999999999, self.project.id],
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": last_processed_group_id,
-                    "cohort": [99999999999999, self.project.id],
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "reached the end of the project list",
-                extra={
-                    "cohort_name": [99999999999999, self.project.id],
-                    "last_processed_project_index": None,
-                },
-            ),
-        ]
-        assert mock_logger.info.call_args_list == expected_call_args_list
-
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_success_cohorts_setting_defined(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
-        """
-        Test that the metadata is set for all groups showing that the record has been created.
-        """
-        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-
-        project2 = self.create_project(organization=self.organization)
-        event2 = self.store_event(
-            data={
-                "exception": EXCEPTION,
-                "title": "title",
-                "timestamp": before_now(seconds=10).isoformat(),
-            },
-            project_id=project2.id,
-            assert_no_errors=False,
-        )
-        event2.group.times_seen = 5
-        event2.group.save()
-        group_hashes = GroupHash.objects.all().distinct("group_id")
-        self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
-
-        with (
-            TaskRunner(),
-            override_settings(
-                SIMILARITY_BACKFILL_COHORT_MAP={"test": [self.project.id, project2.id]}
-            ),
-        ):
-            backfill_seer_grouping_records_for_project(
-                current_project_id=self.project.id,
-                last_processed_group_id_input=None,
-                cohort="test",
-                last_processed_project_index_input=0,
-            )
-
-        groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
-
-        project_group_ids = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )
-        project2_group_ids = sorted(
-            [group.id for group in Group.objects.filter(project_id=project2.id)]
-        )
-        expected_call_args_list = [
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": "test",
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[0],
-                    "cohort": "test",
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project2.id,
-                    "last_processed_group_id": None,
-                    "cohort": "test",
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project2.id,
-                    "last_processed_group_id": project2_group_ids[0],
-                    "cohort": "test",
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "reached the end of the project list",
-                extra={
-                    "cohort_name": "test",
-                    "last_processed_project_index": None,
-                },
-            ),
-        ]
-        assert mock_logger.info.call_args_list == expected_call_args_list
+        groups = Group.objects.filter(project_id__in=[99999999999999, self.project.id])
+        self.assert_groups_metadata_updated(groups)
 
     @patch("time.sleep", return_value=None)
     @patch(
         "sentry.nodestore.backend.get_multi",
         side_effect=ServiceUnavailable(message="Service Unavailable"),
     )
-    @patch(
-        "sentry.tasks.embeddings_grouping.utils.lookup_event",
-        side_effect=ServiceUnavailable(message="Service Unavailable"),
-    )
-    def test_backfill_seer_grouping_records_failure(
-        self, mock_lookup_event, mock_get_multi, mock_sleep
-    ):
+    def test_failure(self, mock_get_multi, mock_sleep):
         """
         Test that the group metadata isn't updated on a failure.
         """
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
-        for group in Group.objects.filter(project_id=self.project.id):
-            assert not group.data["metadata"].get("seer_similarity")
+        groups = Group.objects.filter(project_id=self.project.id)
+        self.assert_groups_metadata_not_updated(groups)
 
-    def test_backfill_seer_grouping_records_no_feature(self):
-        """
-        Test that the function does not create records when there is no feature flag
-        """
-        project = self.create_project(organization=self.organization)
-
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(project, None)
-
-        for group in Group.objects.filter(project_id=self.project.id):
-            assert not group.data["metadata"].get("seer_similarity")
-
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_groups_1_times_seen(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_groups_1_times_seen(self, mock_post_bulk_grouping_records):
         """
         Test that groups where times_seen == 1 are not included.
         """
@@ -901,7 +670,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         function_names = [f"new_function_{str(i)}" for i in range(5)]
         type_names = [f"NewError{str(i)}" for i in range(5)]
         value_names = ["error with value" for _ in range(5)]
-        groups_seen_once = []
         for i in range(5):
             data = {
                 "exception": self.create_exception_values(
@@ -910,100 +678,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
-            groups_seen_once.append(event.group)
+            self.create_event(self.project.id, data)
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
-
-        groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            if group not in groups_seen_once:
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": self.group_hashes[group.id],
-                }
-            else:
-                assert group.data["metadata"].get("seer_similarity") is None
-
-    @pytest.mark.skip(
-        "this test is flakey in production; trying to replicate locally and skipping it for now"
-    )
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_groups_have_neighbor(
-        self, mock_post_bulk_grouping_records
-    ):
-        """
-        Test that groups that have nearest neighbors, do not get records created for them in
-        grouping_records.
-        Test that the metadata of groups that have nearest neighbors and those that have records
-        created are different.
-        """
-        # Create groups with 1 < times_seen < 5
-        # The groups that will be similar to these groups, have times_seen = 5
-        function_names = [f"another_function_{str(i)}" for i in range(5)]
-        type_names = [f"AnotherError{str(i)}" for i in range(5)]
-        value_names = ["error with value" for _ in range(5)]
-        groups_with_neighbor = {}
-        for i in range(5):
-            data = {
-                "exception": self.create_exception_values(
-                    function_names[i], type_names[i], value_names[i]
-                ),
-                "title": "title",
-                "timestamp": before_now(seconds=10),
-            }
-            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
-            event.group.times_seen = 2
-            event.group.save()
-            # Arbitrarily choose a parent group's hash that has times_seen = 5
-            parent_group = Group.objects.get(times_seen__gt=2)
-            parent_group_hash = GroupHash.objects.get(group_id=parent_group.id)
-            groups_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
-                stacktrace_distance=0.01,
-                message_distance=0.01,
-                should_group=True,
-                parent_hash=parent_group_hash.hash,
-            )
-
-        mock_post_bulk_grouping_records.return_value = {
-            "success": True,
-            "groups_with_neighbor": groups_with_neighbor,
-        }
-
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
-        for group in groups:
-            if str(group.id) not in groups_with_neighbor:
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": self.group_hashes[group.id],
-                }
-            else:
-                request_hash = GroupHash.objects.get(group_id=group.id).hash
-                parent_group_id = Group.objects.get(times_seen__gt=2).id
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": request_hash,
-                    "results": [
-                        {
-                            "stacktrace_distance": 0.01,
-                            "message_distance": 0.01,
-                            "should_group": True,
-                            "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
-                            "parent_group_id": parent_group_id,
-                        }
-                    ],
-                }
+        self.assert_groups_metadata_updated(groups)
+        groups_seen_once = Group.objects.filter(project_id=self.project.id, times_seen=1)
+        self.assert_groups_metadata_not_updated(groups_seen_once)
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_seer_grouping_records_by_hash")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_groups_has_invalid_neighbor(
+    def test_groups_has_invalid_neighbor(
         self, mock_post_bulk_grouping_records, mock_logger, mock_seer_deletion_request
     ):
         """
@@ -1019,13 +707,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "title": "title",
             "timestamp": before_now(seconds=10).isoformat(),
         }
-        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
-        event.group.times_seen = 2
-        event.group.save()
+        event = self.create_event(self.project.id, data, times_seen=2)
+        assert event.group is not None
+
         # Make the similar group a hash that does not exist
         group_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
             stacktrace_distance=0.01,
-            message_distance=0.01,
             should_group=True,
             parent_hash="00000000000000000000000000000000",
         )
@@ -1036,34 +723,32 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         }
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         for group in groups:
             if str(group.id) not in group_with_neighbor:
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": self.group_hashes[group.id],
-                }
+                self.assert_group_metadata_updated(group, self.group_hashes[group.id])
             else:
-                assert group.data["metadata"].get("seer_similarity") is None
+                self.assert_group_metadata_not_updated(group)
                 mock_logger.exception.assert_called_with(
-                    "tasks.backfill_seer_grouping_records.invalid_parent_group",
+                    "backfill_seer_grouping_records.invalid_parent_group",
                     extra={
                         "project_id": self.project.id,
                         "group_id": group.id,
                         "parent_hash": "00000000000000000000000000000000",
+                        "worker_number": None,
+                        "project_index_in_cohort": 0,
                     },
                 )
                 mock_seer_deletion_request.delay.assert_called_with(
                     self.project.id, ["00000000000000000000000000000000"]
                 )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_multiple_batches(
+    def test_multiple_batches(
         self, mock_post_bulk_grouping_records, mock_backfill_logger, mock_utils_logger
     ):
         """
@@ -1081,35 +766,27 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
-            event.group.times_seen = 2
-            event.group.save()
+            self.create_event(self.project.id, data, times_seen=2)
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
                 cohort=None,
-                last_processed_project_index_input=0,
-                skip_processed_projects=True,
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") is not None
+        self.assert_groups_metadata_updated(groups)
 
         batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
         project_group_ids = sorted([group.id for group in groups], reverse=True)
         expected_backfill_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
+                    "project_id": self.project.id,
                     "cohort": None,
-                    "last_processed_project_index": 0,
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
@@ -1117,76 +794,57 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.project_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[batch_size - 1],
-                    "cohort": None,
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": True,
-                    "skip_project_ids": None,
+                    "project_id": self.project.id,
                     "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[-1],
-                    "cohort": None,
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": True,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
+                "backfill_seer_grouping_records.single_project_backfill_finished",
+                extra={"project_id": self.project.id},
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
         ]
         assert mock_backfill_logger.info.call_args_list == expected_backfill_call_args_list
 
         expected_utils_call_args_list = [
-            call(
-                "backfill_seer_grouping_records.start",
-                extra={"project_id": self.project.id, "last_processed_index": None},
-            ),
             call(
                 "backfill_seer_grouping_records.batch",
                 extra={
                     "project_id": self.project.id,
                     "batch_len": 10,
                     "last_processed_group_id": project_group_ids[batch_size - 1],
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.bulk_update",
-                extra={"project_id": self.project.id, "num_updated": 10},
-            ),
-            call(
-                "backfill_seer_grouping_records.start",
                 extra={
                     "project_id": self.project.id,
-                    "last_processed_index": project_group_ids[batch_size - 1],
+                    "num_updated": 10,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.batch",
                 extra={
                     "project_id": self.project.id,
-                    "batch_len": 6,
+                    "batch_len": 5,
                     "last_processed_group_id": project_group_ids[-1],
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.bulk_update",
-                extra={"project_id": self.project.id, "num_updated": 6},
-            ),
-            call(
-                "backfill_seer_grouping_records.start",
                 extra={
                     "project_id": self.project.id,
-                    "last_processed_index": project_group_ids[-1],
+                    "num_updated": 5,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1195,18 +853,23 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": self.project.id,
                     "batch_len": 0,
                     "last_processed_group_id": None,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.no_more_groups",
-                extra={"project_id": self.project.id},
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
             ),
         ]
         assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
-    def test_backfill_seer_grouping_records_only_delete(self, mock_project_delete_grouping_records):
+    def test_only_delete(self, mock_project_delete_grouping_records):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
         if it exists
@@ -1225,8 +888,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
-            event.group.times_seen = 2
+            event = self.create_event(self.project.id, data, times_seen=2)
+            assert event.group is not None
             event.group.data["metadata"] = copy.deepcopy(default_metadata)
             if i < 3:
                 event.group.data["metadata"].update(
@@ -1243,17 +906,15 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in groups:
             assert group.data["metadata"] == default_metadata
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
-    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_cohort_only_delete(
-        self, mock_logger, mock_delete_grouping_records
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_cohort_only_delete(
+        self, mock_post_bulk_grouping_records, mock_delete_grouping_records
     ):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
         if it exists
         """
-
         project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
             data={
@@ -1268,65 +929,32 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event2.group.save()
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
+        projects = [self.project.id, project2.id]
 
+        # First generate all data - not using only_delete
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(
+                current_project_id=self.project.id,
+                cohort=projects,
+            )
+        groups = Group.objects.filter(project_id__in=projects)
+        self.assert_groups_metadata_updated(groups)
+
+        # Now delete the data
         mock_delete_grouping_records.return_value = True
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
-                cohort=[self.project.id, project2.id],
-                last_processed_project_index_input=0,
+                cohort=projects,
                 only_delete=True,
             )
-        assert mock_logger.info.call_args_list == [
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": [self.project.id, project2.id],
-                    "last_processed_project_index": 0,
-                    "only_delete": True,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records.deleted_all_records",
-                extra={"current_project_id": self.project.id},
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project2.id,
-                    "last_processed_group_id": None,
-                    "cohort": [self.project.id, project2.id],
-                    "last_processed_project_index": 1,
-                    "only_delete": True,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records.deleted_all_records",
-                extra={"current_project_id": project2.id},
-            ),
-            call(
-                "reached the end of the project list",
-                extra={
-                    "cohort_name": [self.project.id, project2.id],
-                    "last_processed_project_index": None,
-                },
-            ),
-        ]
 
-    @with_feature("projects:similarity-embeddings-backfill")
+        groups = Group.objects.filter(project_id__in=projects)
+        self.assert_groups_metadata_not_updated(groups)
+
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_exclude_deleted_groups(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_exclude_groups_pending_deletion(self, mock_post_bulk_grouping_records):
         """
         Test that groups that are pending deletion/in the process of being deleted are not included.
         """
@@ -1359,26 +987,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         deleted_group_ids.append(event.group.id)
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id).exclude(id__in=deleted_group_ids)
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
+        self.assert_groups_metadata_updated(groups)
+        groups = Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids)
+        self.assert_groups_metadata_not_updated(groups)
 
-        # Assert metadata was not set for groups that will be deleted
-        for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
-            assert group.data["metadata"].get("seer_similarity") is None
-
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_no_events(
-        self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger
-    ):
+    def test_no_events(self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger):
         """
         Test that groups that have no events in snuba are excluded.
         """
@@ -1430,7 +1049,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_snuba_queries.return_value = result
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         for group in Group.objects.filter(project_id=self.project.id).order_by("id")[1:]:
             assert group.data["metadata"].get("seer_similarity") is not None
@@ -1440,21 +1059,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert group_no_events.data["metadata"].get("seer_similarity") is None
         assert (
             call(
-                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                "backfill_seer_grouping_records.no_snuba_event",
                 extra={
                     "organization_id": self.project.organization.id,
                     "project_id": self.project.id,
                     "group_id": group_no_events.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             )
             in mock_logger.info.call_args_list
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_exclude_90_day_old_groups(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_exclude_90_day_old_groups(self, mock_post_bulk_grouping_records):
         """
         Test that groups that are over 90 days old are excluded.
         """
@@ -1473,7 +1091,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         old_group_id = event.group.id
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id).exclude(id=old_group_id)
         for group in groups:
@@ -1486,13 +1104,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
         assert old_group.data["metadata"].get("seer_similarity") is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.lookup_group_data_stacktrace_bulk")
     @patch(
         "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.call_next_backfill"
     )
-    def test_backfill_seer_grouping_records_empty_nodestore(
+    def test_empty_nodestore(
         self,
         mock_call_next_backfill,
         mock_lookup_group_data_stacktrace_bulk,
@@ -1501,39 +1118,37 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_lookup_group_data_stacktrace_bulk.return_value = []
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.all()
         group_ids_sorted = sorted([group.id for group in groups], reverse=True)
         mock_logger.info.assert_called_with(
-            "tasks.backfill_seer_grouping_records.no_data",
+            "backfill_seer_grouping_records.no_nodestore_events",
             extra={
                 "project_id": self.project.id,
                 "group_id_batch": json.dumps(group_ids_sorted),
+                "worker_number": None,
+                "project_index_in_cohort": 0,
             },
         )
         mock_call_next_backfill.assert_called_with(
             last_processed_group_id=group_ids_sorted[-1],
             project_id=self.project.id,
-            last_processed_project_index=0,
+            current_project_index_in_cohort=0,
             cohort=None,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
             worker_number=None,
+            last_processed_project_id=self.project.id,
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.lookup_group_data_stacktrace_bulk")
     @patch(
         "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.call_next_backfill"
     )
-    def test_backfill_seer_grouping_records_nodestore_grouping_config_not_found(
-        self,
-        mock_call_next_backfill,
-        mock_lookup_group_data_stacktrace_bulk,
-        mock_logger,
+    def test_nodestore_grouping_config_not_found(
+        self, mock_call_next_backfill, mock_lookup_group_data_stacktrace_bulk
     ):
         exceptions = (GroupingConfigNotFound(), ResourceDoesNotExist(), InvalidEnhancerConfig())
 
@@ -1541,27 +1156,25 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             mock_lookup_group_data_stacktrace_bulk.side_effect = exception
 
             with TaskRunner():
-                backfill_seer_grouping_records_for_project(self.project.id, None)
+                backfill_seer_grouping_records_for_project(self.project.id)
 
             groups = Group.objects.all()
             group_ids_sorted = sorted([group.id for group in groups], reverse=True)
             mock_call_next_backfill.assert_called_with(
                 last_processed_group_id=group_ids_sorted[-1],
                 project_id=self.project.id,
-                last_processed_project_index=0,
+                current_project_index_in_cohort=0,
                 cohort=None,
                 enable_ingestion=False,
-                skip_processed_projects=False,
+                skip_processed_projects=True,
                 skip_project_ids=None,
                 worker_number=None,
+                last_processed_project_id=self.project.id,
             )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_exclude_invalid_groups(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_exclude_invalid_groups(self, mock_post_bulk_grouping_records, mock_logger):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         # Add one event where the stacktrace is not used for grouping
@@ -1574,7 +1187,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event.group.save()
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id).exclude(id=event.group.id)
         for group in groups:
@@ -1586,29 +1199,31 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @override_options({"seer.similarity-backfill-killswitch.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_killswitch_enabled(self, mock_logger):
+    def test_killswitch_enabled(self, mock_logger):
         """
         Test that the metadata is not set for groups when the backfill killswitch is true.
         """
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
             assert not group.data["metadata"].get("seer_similarity")
         mock_logger.info.assert_called_with(
             "backfill_seer_grouping_records.killswitch_enabled",
+            extra={
+                "project_id": self.project.id,
+                "last_processed_group_id": None,
+                "worker_number": None,
+                "project_index_in_cohort": None,
+            },
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_enable_ingestion(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_enable_ingestion(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that when the enable_ingestion flag is True, the project option is set and the
         log is called.
@@ -1616,7 +1231,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None, enable_ingestion=True)
+            backfill_seer_grouping_records_for_project(self.project.id, enable_ingestion=True)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1627,22 +1242,23 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         mock_logger.info.assert_called_with(
             "backfill_seer_grouping_records.enable_ingestion",
-            extra={"project_id": self.project.id},
+            extra={
+                "project_id": self.project.id,
+                "worker_number": None,
+                "project_index_in_cohort": 0,
+            },
         )
-        assert self.project.get_option("sentry:similarity_backfill_completed") is not None
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_no_enable_ingestion(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_no_enable_ingestion(self, mock_post_bulk_grouping_records):
         """
         Test that when the enable_ingestion flag is False, the project option is not set.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1651,33 +1267,35 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
 
-        assert self.project.get_option("sentry:similarity_backfill_completed") is None
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
+    def test_skip_project_already_processed(self, mock_logger):
         """
-        Test that projects that have a backfill completed project option are skipped when passed
-        the skip_processed_projects flag.
+        Test that projects that have a backfill completed project option are skipped.
         """
-        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(
-                self.project.id, None, skip_processed_projects=True
-            )
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
+                    "project_id": self.project.id,
                     "cohort": None,
-                    "last_processed_project_index": None,
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1686,84 +1304,109 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": self.project.id,
                     "project_already_processed": True,
                     "project_manually_skipped": None,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+            call(
+                "backfill_seer_grouping_records.single_project_backfill_finished",
+                extra={"project_id": self.project.id},
+            ),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
+    @override_options({"similarity.backfill_total_worker_count": 1})
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_reprocess_project_already_processed(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_typical_backfill_request(self, mock_post_bulk_grouping_records, mock_logger):
         """
-        Test that projects that have a backfill completed project option are not skipped when not
-        passed the skip_processed_projects flag.
+        Test that projects that have the backfill completed option set are skipped when we backfill
+        all projects.
         """
-        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+        # Create two more projects and one of them is already backfilled
+        project2 = self.create_project(organization=self.organization)
+        project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+        project3 = self.create_project(organization=self.organization)
 
-        last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )[0]
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        with TaskRunner():
+            # This is the typical way of backfilling all projects
+            backfill_seer_grouping_records_for_project(
+                current_project_id=None,
+                enable_ingestion=True,
+                worker_number=0,
+            )
+
+        # Since we set the total worker count to 1, the project cohort will have all projects
+        # except the one that has already been backfilled
+        cohort = [self.project.id, project3.id]
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
+                    "project_id": None,
                     "cohort": None,
-                    "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
-                    "worker_number": None,
+                    "worker_number": 0,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.cohort_created",
+                extra={"cohort": cohort, "worker_number": 0},
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": last_group_id,
-                    "cohort": None,
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
+                    "project_id": self.project.id,
+                    "worker_number": 0,
+                    "project_index_in_cohort": 0,
                 },
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={"project_id": project3.id, "worker_number": 0, "project_index_in_cohort": 1},
+            ),
+            call(
+                "backfill_seer_grouping_records.cohort_finished",
+                extra={"cohort": cohort, "worker_number": 0},
+            ),
+            call("backfill_seer_grouping_records.backfill_finished", extra={"worker_number": 0}),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
+        assert project3.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_manually_skip_project(self, mock_logger):
+    def test_manually_skip_project(self, mock_logger):
         """
         Test that project ids that are included in the skip_project_ids field are skipped.
         """
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
-                self.project.id, None, skip_project_ids=[self.project.id]
+                self.project.id, skip_project_ids=[self.project.id]
             )
 
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
+                    "project_id": self.project.id,
                     "cohort": None,
-                    "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": [self.project.id],
                     "worker_number": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1772,18 +1415,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": self.project.id,
                     "project_already_processed": False,
                     "project_manually_skipped": True,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+            call(
+                "backfill_seer_grouping_records.single_project_backfill_finished",
+                extra={"project_id": self.project.id},
+            ),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_empty_batch(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_empty_batch(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that if a backfill batch is empty due to the filtering of invalid groups, the backfill
         task continues and calls the next batch.
@@ -1840,26 +1485,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_ids_invalid.sort()
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(project_invalid_batch.id, None)
+            backfill_seer_grouping_records_for_project(project_invalid_batch.id)
 
         expected_call_args_list = [
-            call(
-                "backfill_seer_grouping_records.start",
-                extra={"project_id": project_invalid_batch.id, "last_processed_index": None},
-            ),
             call(
                 "backfill_seer_grouping_records.batch",
                 extra={
                     "project_id": project_invalid_batch.id,
                     "batch_len": 0,
                     "last_processed_group_id": group_ids_invalid[0],
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records.start",
-                extra={
-                    "project_id": project_invalid_batch.id,
-                    "last_processed_index": group_ids_invalid[0],
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1868,17 +1504,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": project_invalid_batch.id,
                     "batch_len": batch_size,
                     "last_processed_group_id": group_ids[0],
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.bulk_update",
-                extra={"project_id": project_invalid_batch.id, "num_updated": batch_size},
-            ),
-            call(
-                "backfill_seer_grouping_records.start",
                 extra={
                     "project_id": project_invalid_batch.id,
-                    "last_processed_index": group_ids[0],
+                    "num_updated": batch_size,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
@@ -1887,11 +1523,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "project_id": project_invalid_batch.id,
                     "batch_len": 0,
                     "last_processed_group_id": None,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.no_more_groups",
-                extra={"project_id": project_invalid_batch.id},
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
+                },
             ),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
@@ -1925,10 +1567,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert batch_end_group_id == deleted_group.id
         assert backfill_batch_raw_length == 1
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
-    def test_backfill_seer_grouping_records_gateway_timeout(self, mock_seer_request, mock_logger):
+    def test_gateway_timeout(self, mock_seer_request, mock_logger):
         """
         Test that if the backfill fails due to a Seer Gateway Timeout error, that the backfill continues.
         """
@@ -1938,56 +1579,48 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             status=500,
         )
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
-        project_group_ids = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)], reverse=True
-        )
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
+                    "project_id": self.project.id,
                     "cohort": None,
-                    "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.seer_failed",
                 extra={
                     "reason": "Gateway Timeout",
-                    "current_project_id": self.project.id,
-                    "last_processed_project_index": 0,
+                    "project_id": self.project.id,
+                    "project_index_in_cohort": 0,
                     "worker_number": None,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[-1],
-                    "cohort": None,
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
+                "backfill_seer_grouping_records.single_project_backfill_finished",
+                extra={"project_id": self.project.id},
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
         ]
 
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
-    def test_backfill_seer_grouping_records_internal_error(self, mock_seer_request, mock_logger):
+    def test_internal_error(self, mock_seer_request, mock_logger):
         """
         Test that if the backfill fails due to a non-Gateway Timeout error, that the backfill stops.
         """
@@ -1997,28 +1630,34 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             status=500,
         )
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
+                    "project_id": self.project.id,
                     "cohort": None,
-                    "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
+                extra={
+                    "project_id": self.project.id,
+                    "worker_number": None,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
                 "backfill_seer_grouping_records.seer_failed",
                 extra={
                     "reason": "Internal Error",
-                    "current_project_id": self.project.id,
-                    "last_processed_project_index": 0,
+                    "project_id": self.project.id,
+                    "project_index_in_cohort": 0,
                     "worker_number": None,
                 },
             ),
@@ -2027,27 +1666,27 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_creation(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_cohort_creation(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that when no cohort or current project id is provided, cohorts of project ids are generated where \
         project_id % thread_number == worker_number
         """
-        # Create 2 seer eligible projects that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_total_worker_count")
-        worker_number = self.project.id % thread_number
-        self.project.platform = "python"
-        self.project.save()
+        total_workers = options.get("similarity.backfill_total_worker_count")
+        worker_number = self.get_worker_number_for_project(self.project, total_workers)
 
-        project_same_cohort = self.create_project(
-            organization=self.organization, id=self.project.id + thread_number
-        )
-        project_same_cohort.platform = "javascript"
-        project_same_cohort.save()
+        # Create a project whose worker number matches that of `self.project`, to prove they both
+        # end up in the same cohort. Regenerate the project if necessary until the worker numbers
+        # are the same. (We have to do it this way - rather than forcing a return value - because we
+        # can't mock a function that's run inside the DB.)
+        project_same_cohort = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_same_cohort, total_workers) != worker_number
+        ):
+            project_same_cohort.delete()
+            project_same_cohort = self.create_project(organization=self.organization)
+
         event_same_cohort = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -2060,180 +1699,65 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event_same_cohort.group.times_seen = 5
         event_same_cohort.group.save()
 
-        # Create one project where project_id % thread_number != worker_number
-        self.create_project(organization=self.organization, id=self.project.id + 1)
+        # Create one project whose worker number is different from the other two, to prove that it
+        # won't get included in the cohort. Regenerate the project if necessary until the worker
+        # numbers are different.
+        project_different_cohort = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_different_cohort, total_workers)
+            == worker_number
+        ):
+            project_different_cohort.delete()
+            project_different_cohort = self.create_project(organization=self.organization)
+
+        assert len(Project.objects.all()) == 3
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
-                current_project_id=None,
-                last_processed_group_id_input=None,
-                worker_number=worker_number,
+                current_project_id=None, worker_number=worker_number
             )
 
-        project_last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )[0]
-        project_same_cohort_last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=project_same_cohort.id)]
-        )[0]
         expected_cohort = [self.project.id, project_same_cohort.id]
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": None,
+                    "project_id": None,
+                    "cohort": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.cohort_created",
+                extra={"cohort": expected_cohort, "worker_number": worker_number},
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_last_group_id,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
+                    "project_id": self.project.id,
                     "worker_number": worker_number,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.project_start",
                 extra={
-                    "current_project_id": project_same_cohort.id,
-                    "last_processed_group_id": None,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
+                    "project_id": project_same_cohort.id,
                     "worker_number": worker_number,
+                    "project_index_in_cohort": 1,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project_same_cohort.id,
-                    "last_processed_group_id": project_same_cohort_last_group_id,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": worker_number,
-                },
+                "backfill_seer_grouping_records.cohort_finished",
+                extra={"cohort": expected_cohort, "worker_number": worker_number},
             ),
             call(
-                "reached the end of the projects in cohort", extra={"worker_number": worker_number}
-            ),
-        ]
-
-        assert mock_logger.info.call_args_list == expected_call_args_list
-
-    @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_creation_not_seer_eligible(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
-        """
-        Test that non Seer eligible projects are not processed when worker_number is provided.
-        """
-        # Create 1 seer eligible project that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_total_worker_count")
-        worker_number = self.project.id % thread_number
-        self.project.platform = "python"
-        self.project.save()
-
-        # Create 1 non seer eligible project that project_id % thread_number != worker_number
-        project_same_cohort_not_eligible = self.create_project(
-            organization=self.organization, id=self.project.id + thread_number
-        )
-        project_same_cohort_not_eligible.platform = "not_eligible_platform"
-        project_same_cohort_not_eligible.save()
-        event_same_cohort = self.store_event(
-            data={
-                "exception": EXCEPTION,
-                "title": "title",
-                "timestamp": before_now(seconds=10).isoformat(),
-            },
-            project_id=project_same_cohort_not_eligible.id,
-            assert_no_errors=False,
-        )
-        event_same_cohort.group.times_seen = 5
-        event_same_cohort.group.save()
-
-        # Create one project where project_id % thread_number != worker_number
-        self.create_project(organization=self.organization, id=self.project.id + 1)
-
-        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(
-                current_project_id=None,
-                last_processed_group_id_input=None,
-                worker_number=worker_number,
-            )
-
-        project_last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )[0]
-
-        expected_cohort = [self.project.id, project_same_cohort_not_eligible.id]
-        expected_call_args_list = [
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": None,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": worker_number,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_last_group_id,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": worker_number,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project_same_cohort_not_eligible.id,
-                    "last_processed_group_id": None,
-                    "cohort": expected_cohort,
-                    "last_processed_project_index": 1,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": worker_number,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records.project_is_not_seer_eligible",
-                extra={"project_id": project_same_cohort_not_eligible.id},
-            ),
-            call(
-                "reached the end of the projects in cohort", extra={"worker_number": worker_number}
+                "backfill_seer_grouping_records.backfill_finished",
+                extra={"worker_number": worker_number},
             ),
         ]
 
@@ -2241,26 +1765,26 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @override_options({"similarity.backfill_project_cohort_size": 1})
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_creation_multiple_batches(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_cohort_creation_multiple_batches(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that when the cohort size is 1, multiple cohorts of size 1 are created and processed.
         """
-        # Create 2 seer eligible projects that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_total_worker_count")
-        worker_number = self.project.id % thread_number
-        self.project.platform = "python"
-        self.project.save()
+        total_workers = options.get("similarity.backfill_total_worker_count")
+        worker_number = self.get_worker_number_for_project(self.project, total_workers)
 
-        project_same_worker = self.create_project(
-            organization=self.organization, id=self.project.id + thread_number
-        )
-        project_same_worker.platform = "javascript"
-        project_same_worker.save()
+        # Create a project whose worker number matches that of `self.project`, to prove they
+        # nonetheless end up in different cohorts. Regenerate the project if necessary until the
+        # worker numbers are the same. (We have to do it this way - rather than forcing a return
+        # value - because we can't mock a function that's run inside the DB.)
+        project_same_worker = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_same_worker, total_workers) != worker_number
+        ):
+            project_same_worker.delete()
+            project_same_worker = self.create_project(organization=self.organization)
+
         event_same_worker = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -2273,86 +1797,80 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event_same_worker.group.times_seen = 5
         event_same_worker.group.save()
 
-        # Create one project where project_id % thread_number != worker_number
-        self.create_project(organization=self.organization, id=self.project.id + 1)
+        # Create one project whose worker number is different from the other two, to prove that it
+        # won't get included in a cohort. Regenerate the project if necessary until the worker
+        # numbers are different.
+        project_different_cohort = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_different_cohort, total_workers)
+            == worker_number
+        ):
+            project_different_cohort.delete()
+            project_different_cohort = self.create_project(organization=self.organization)
+
+        assert len(Project.objects.all()) == 3
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=None,
-                last_processed_group_id_input=None,
                 worker_number=worker_number,
             )
 
-        project_last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )[0]
-        project_same_cohort_last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=project_same_worker.id)]
-        )[0]
         expected_call_args_list = [
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.backfill_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": [self.project.id],
-                    "last_processed_project_index": None,
+                    "project_id": None,
+                    "cohort": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.cohort_created",
+                extra={"cohort": [self.project.id], "worker_number": worker_number},
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": project_last_group_id,
-                    "cohort": [self.project.id],
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
+                    "project_id": self.project.id,
                     "worker_number": worker_number,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
+                "backfill_seer_grouping_records.cohort_finished",
+                extra={"cohort": [self.project.id], "worker_number": worker_number},
+            ),
+            call(
+                "backfill_seer_grouping_records.cohort_created",
+                extra={"cohort": [project_same_worker.id], "worker_number": worker_number},
+            ),
+            call(
+                "backfill_seer_grouping_records.project_start",
                 extra={
-                    "current_project_id": project_same_worker.id,
-                    "last_processed_group_id": None,
-                    "cohort": [project_same_worker.id],
-                    "last_processed_project_index": None,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
+                    "project_id": project_same_worker.id,
                     "worker_number": worker_number,
+                    "project_index_in_cohort": 0,
                 },
             ),
             call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": project_same_worker.id,
-                    "last_processed_group_id": project_same_cohort_last_group_id,
-                    "cohort": [project_same_worker.id],
-                    "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": worker_number,
-                },
+                "backfill_seer_grouping_records.cohort_finished",
+                extra={"cohort": [project_same_worker.id], "worker_number": worker_number},
             ),
             call(
-                "reached the end of the projects in cohort", extra={"worker_number": worker_number}
+                "backfill_seer_grouping_records.backfill_finished",
+                extra={"worker_number": worker_number},
             ),
         ]
 
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
+    def test_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
         project = self.create_project(organization=self.organization)
         data = {
             **ONLY_STACKTRACE,
@@ -2371,9 +1889,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "request_hash": ANY,
         }
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_for_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
+    def test_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
         project = self.create_project(organization=self.organization)
         data = {
             **EVENT_WITH_THREADS_STACKTRACE,
@@ -2384,7 +1901,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event.group.save()
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(project.id, None)
+            backfill_seer_grouping_records_for_project(project.id)
 
         group = Group.objects.get(id=event.group.id)
         assert group.data["metadata"].get("seer_similarity") == {

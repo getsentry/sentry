@@ -11,8 +11,10 @@ import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
@@ -30,19 +32,22 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
   'performance-view',
   'performance-trace-explorer',
-  'starfish-mobile-ui-module',
   'profiling',
 ];
+
+jest.mock('sentry/utils/demoMode');
 
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
-  const user = UserFixture();
+  const userMock = UserFixture();
+  const user = UserFixture({
+    options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
+  });
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),
@@ -68,6 +73,7 @@ describe('Sidebar', function () {
   };
 
   beforeEach(function () {
+    ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
     jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
       () =>
@@ -87,6 +93,13 @@ describe('Sidebar', function () {
     apiMocks.sdkUpdates = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'GET',
+      body: {
+        onboardingTasks: [],
+      },
     });
   });
 
@@ -109,20 +122,6 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
-  it('does not render collapse with navigation-sidebar-v2 flag', async function () {
-    renderSidebar({
-      organization: {...organization, features: ['navigation-sidebar-v2']},
-    });
-
-    // await for the page to be rendered
-    expect(await screen.findByText('Issues')).toBeInTheDocument();
-    // Check that the user name is no longer visible
-    expect(screen.queryByText(user.name)).not.toBeInTheDocument();
-    // Check that the organization name is no longer visible
-    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
-    expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
-  });
-
   it('has can logout', async function () {
     renderSidebar({
       organization: OrganizationFixture({access: ['member:read']}),
@@ -139,6 +138,17 @@ describe('Sidebar', function () {
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
+  });
+
+  it('does not render help center in demo mode', async () => {
+    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+
+    renderSidebar({organization});
+    await userEvent.click(await screen.findByText('Help'));
+
+    expect(screen.queryByText('Visit Help Center')).not.toBeInTheDocument();
+
+    (isDemoModeEnabled as jest.Mock).mockReset();
   });
 
   describe('SidebarDropdown', function () {
@@ -195,7 +205,7 @@ describe('Sidebar', function () {
         organization: {...organization, features: ['onboarding']},
       });
 
-      const quickStart = await screen.findByText('Quick Start');
+      const quickStart = await screen.findByText('Onboarding');
 
       expect(quickStart).toBeInTheDocument();
       await userEvent.click(quickStart);
@@ -313,7 +323,6 @@ describe('Sidebar', function () {
     beforeEach(function () {
       ConfigStore.init();
       ConfigStore.set('features', new Set([]));
-      ConfigStore.set('user', user);
 
       mockUseLocation.mockReturnValue({...LocationFixture()});
     });
@@ -368,28 +377,21 @@ describe('Sidebar', function () {
       });
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(31);
+      expect(links).toHaveLength(24);
 
       [
         'Issues',
         'Projects',
         /Explore/,
         /Traces/,
-        /Metrics/,
         'Profiles',
         'Replays',
         'Discover',
         /Insights/,
-        'Requests',
-        'Queries',
-        'Assets',
-        'App Starts',
-        'Screen Loads',
-        'Web Vitals',
-        /Caches/,
-        /Queues/,
-        /Mobile UI/,
-        /LLM Monitoring/,
+        'Frontend',
+        'Backend',
+        'Mobile',
+        'AI',
         'Performance',
         'User Feedback',
         'Crons',
@@ -406,36 +408,82 @@ describe('Sidebar', function () {
       });
     });
 
-    it('mobile screens module hides all other mobile modules', async function () {
-      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
-      renderSidebarWithFeatures([
-        'insights-entry-points',
-        'starfish-mobile-ui-module',
-        'insights-mobile-screens-module',
-      ]);
-
-      await waitFor(function () {
-        expect(apiMocks.broadcasts).toHaveBeenCalled();
-      });
-
-      ['App Starts', 'Screen Loads', /Mobile UI/].forEach(title => {
-        expect(screen.queryByText(title)).not.toBeInTheDocument();
-      });
-
-      expect(screen.getByText(/Mobile Screens/)).toBeInTheDocument();
-    });
-
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
-      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
+      await userEvent.click(
+        screen.getByTestId('sidebar-accordion-insights-domains-item')
+      );
       expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
     });
 
     it('should render floating accordion when collapsed', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
-      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
+      await userEvent.click(
+        screen.getByTestId('sidebar-accordion-insights-domains-item')
+      );
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
+    });
+  });
+
+  describe('New navigation UI prompts', () => {
+    beforeEach(() => {
+      PreferenceStore.showSidebar();
+    });
+
+    it('should render the sidebar banner with no dismissed prompts and the feature flag enabled', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+
+      expect(await screen.findByText(/Try New Navigation/)).toBeInTheDocument();
+    });
+
+    it('will not render sidebar banner when collapsed', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+
+      await userEvent.click(screen.getByTestId('sidebar-collapse'));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Try New Navigation/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show dot on help menu after dismissing sidebar banner', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      const dismissMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+
+      await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
+
+      expect(await screen.findByTestId('help-menu-dot')).toBeInTheDocument();
+      expect(screen.queryByText(/Try New Navigation/)).not.toBeInTheDocument();
+      expect(dismissMock).toHaveBeenCalled();
+
+      // Opening the help dropdown will remove the dot
+      await userEvent.click(screen.getByRole('link', {name: /Help/}));
+      await waitFor(() => {
+        expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
+      });
+
+      expect(dismissMock).toHaveBeenCalledTimes(2);
     });
   });
 });

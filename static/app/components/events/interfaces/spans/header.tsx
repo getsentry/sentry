@@ -1,4 +1,5 @@
 import {Component, Fragment, PureComponent} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -23,9 +24,7 @@ import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import toPercent from 'sentry/utils/number/toPercent';
-import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import {
@@ -56,6 +55,7 @@ type PropType = {
   organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
   trace: ParsedTraceType;
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
@@ -83,7 +83,6 @@ class TraceViewHeader extends Component<PropType, State> {
     if (minimapInteractiveRef.current) {
       const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
       if (minimapWidth !== this.state.minimapWidth) {
-        // eslint-disable-next-line react/no-did-update-set-state
         this.setState({
           minimapWidth,
         });
@@ -176,10 +175,7 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(
-    dragProps: DragManagerChildrenProps,
-    hasProfileMeasurementsChart: boolean = false
-  ) {
+  renderFog(dragProps: DragManagerChildrenProps, hasProfileMeasurementsChart = false) {
     return (
       <Fragment>
         <Fog
@@ -378,7 +374,7 @@ class TraceViewHeader extends Component<PropType, State> {
     });
   }
 
-  renderSecondaryHeader(hasProfileMeasurementsChart: boolean = false) {
+  renderSecondaryHeader(hasProfileMeasurementsChart = false) {
     const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
@@ -464,11 +460,11 @@ class TraceViewHeader extends Component<PropType, State> {
             'metadata' in profiles.data &&
             profiles.data.metadata.platform === 'android' &&
             // Check that this profile has measurements
-            'measurements' in profiles?.data &&
+            'measurements' in profiles.data &&
             defined(profiles.data.measurements?.cpu_usage) &&
             // Check that this profile has enough data points
             getDataPoints(
-              profiles.data.measurements!.cpu_usage,
+              profiles.data.measurements.cpu_usage,
               transactionDuration * MS_PER_S
             ).length >= MIN_DATA_POINTS;
 
@@ -506,6 +502,7 @@ class TraceViewHeader extends Component<PropType, State> {
                         }}
                       />
                       <ActualMinimap
+                        theme={this.props.theme}
                         spans={this.props.spans}
                         generateBounds={this.props.generateBounds}
                         dividerPosition={dividerPosition}
@@ -586,6 +583,7 @@ class ActualMinimap extends PureComponent<{
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
 }> {
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
@@ -610,7 +608,9 @@ class ActualMinimap extends PureComponent<{
               key={`${payload.type}-${i}`}
               style={{
                 backgroundColor:
-                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
+                  payload.type === 'span_group_chain'
+                    ? this.props.theme.blue300
+                    : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
               }}
@@ -635,7 +635,7 @@ class ActualMinimap extends PureComponent<{
                 return (
                   <MinimapSpanBar
                     style={{
-                      backgroundColor: theme.blue300,
+                      backgroundColor: this.props.theme.blue300,
                       left: spanLeft,
                       width: spanWidth,
                       minWidth: 0,
@@ -810,7 +810,7 @@ export const HeaderContainer = styled('div')<{
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: 0;
   z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

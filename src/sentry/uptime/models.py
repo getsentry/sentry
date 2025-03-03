@@ -1,26 +1,28 @@
 import enum
 from datetime import timedelta
-from typing import ClassVar, Self
+from typing import ClassVar, Literal, Self, cast
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
-from django.db.models.expressions import Value
-from django.db.models.functions import MD5, Coalesce
+from django.db.models import Count, Q
+from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
+    DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
     JSONField,
     region_silo_model,
 )
+from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
-from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
 
 headers_json_encoder = JSONEncoder(
@@ -29,12 +31,32 @@ headers_json_encoder = JSONEncoder(
     sort_keys=True,
 ).encode
 
+SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
+IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
+
 
 @region_silo_model
 class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
+
+    class SupportedHTTPMethods(models.TextChoices):
+        GET = "GET", "GET"
+        POST = "POST", "POST"
+        HEAD = "HEAD", "HEAD"
+        PUT = "PUT", "PUT"
+        DELETE = "DELETE", "DELETE"
+        PATCH = "PATCH", "PATCH"
+        OPTIONS = "OPTIONS", "OPTIONS"
+
+    class IntervalSeconds(models.IntegerChoices):
+        ONE_MINUTE = 60, "1 minute"
+        FIVE_MINUTES = 300, "5 minutes"
+        TEN_MINUTES = 600, "10 minutes"
+        TWENTY_MINUTES = 1200, "20 minutes"
+        THIRTY_MINUTES = 1800, "30 minutes"
+        ONE_HOUR = 3600, "1 hour"
 
     # The url to check
     url = models.CharField(max_length=255)
@@ -48,15 +70,24 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The name of the provider hosting this domain
     host_provider_name = models.CharField(max_length=255, db_index=True, null=True)
     # How frequently to run the check in seconds
-    interval_seconds = models.IntegerField()
+    interval_seconds: models.IntegerField[IntervalSecondsLiteral, IntervalSecondsLiteral] = (
+        models.IntegerField(choices=IntervalSeconds)
+    )
     # How long to wait for a response from the url before we assume a timeout
     timeout_ms = models.IntegerField()
     # HTTP method to perform the check with
-    method = models.CharField(max_length=20, db_default="GET")
+    method: models.CharField[SupportedHTTPMethodsLiteral, SupportedHTTPMethodsLiteral] = (
+        models.CharField(max_length=20, choices=SupportedHTTPMethods, db_default="GET")
+    )
+    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
     headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
+    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
+    # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
+    # be associated, this just controls the span sampling.
+    trace_sampling = models.BooleanField(default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -67,15 +98,35 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         app_label = "uptime"
         db_table = "uptime_uptimesubscription"
 
+        indexes = (models.Index(fields=("url_domain_suffix", "url_domain")),)
+
+
+@region_silo_model
+class UptimeSubscriptionRegion(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    class RegionMode(enum.StrEnum):
+        # Region is running as usual
+        ACTIVE = "active"
+        # Region is disabled and not running
+        INACTIVE = "inactive"
+        # Region is running in shadow mode. This means it is performing checks, but results are
+        # ignored.
+        SHADOW = "shadow"
+
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
+    region_slug = models.CharField(max_length=255, db_index=True, db_default="")
+    mode = models.CharField(max_length=32, db_default=RegionMode.ACTIVE)
+
+    class Meta:
+        app_label = "uptime"
+        db_table = "uptime_uptimesubscriptionregion"
+
         constraints = [
             models.UniqueConstraint(
-                "url",
-                "interval_seconds",
-                "timeout_ms",
-                "method",
-                MD5("headers"),
-                Coalesce(MD5("body"), Value("")),
-                name="uptime_uptimesubscription_unique_subscription_check",
+                "uptime_subscription",
+                "region_slug",
+                name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
 
@@ -98,6 +149,7 @@ class UptimeStatus(enum.IntEnum):
 class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
+
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
@@ -105,6 +157,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         "sentry.Environment", db_index=True, db_constraint=False, null=True
     )
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
+    status = BoundedPositiveBigIntegerField(
+        choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
+    )
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
@@ -177,3 +232,48 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+@cache_func(cache_ttl=timedelta(hours=1))
+def get_top_hosting_provider_names(limit: int) -> set[str]:
+    return set(
+        cast(
+            list[str],
+            UptimeSubscription.objects.filter(status=UptimeSubscription.Status.ACTIVE.value)
+            .values("host_provider_name")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .values_list("host_provider_name", flat=True)[:limit],
+        )
+    )
+
+
+@cache_func_for_models(
+    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
+    recalculate=False,
+    cache_ttl=timedelta(hours=4),
+)
+def get_project_subscriptions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[ProjectUptimeSubscription]:
+    return list(
+        ProjectUptimeSubscription.objects.filter(
+            uptime_subscription_id=uptime_subscription_id
+        ).select_related("project", "project__organization")
+    )
+
+
+@cache_func_for_models(
+    [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
+    recalculate=False,
+)
+def load_regions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[UptimeSubscriptionRegion]:
+    return list(
+        UptimeSubscriptionRegion.objects.filter(uptime_subscription_id=uptime_subscription_id)
+    )
+
+
+class UptimeRegionScheduleMode(enum.StrEnum):
+    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN

@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {Location, Query} from 'history';
 import * as qs from 'query-string';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -10,7 +11,6 @@ import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -18,10 +18,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
 
-type Props = Pick<
-  RouteComponentProps<{groupId: Group['id']}, {}>,
-  'params' | 'location'
-> & {
+type Props = {
+  groupId: Group['id'];
+  location: Location<Query>;
   organization: Organization;
   project: Project;
 };
@@ -29,7 +28,7 @@ type Props = Pick<
 type State = {
   error: boolean;
   loading: boolean;
-  mergedItems: Array<Fingerprint>;
+  mergedItems: Fingerprint[];
   query: string;
   mergedLinks?: string;
 };
@@ -39,7 +38,7 @@ class GroupMergedView extends Component<Props, State> {
     mergedItems: [],
     loading: true,
     error: false,
-    query: this.props.location.query.query || '',
+    query: (this.props.location.query.query ?? '') as string,
   };
 
   componentDidMount() {
@@ -48,13 +47,12 @@ class GroupMergedView extends Component<Props, State> {
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
-      nextProps.params.groupId !== this.props.params.groupId ||
+      nextProps.groupId !== this.props.groupId ||
       nextProps.location.search !== this.props.location.search
     ) {
-      const queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query,
+          query: (nextProps.location.query.query ?? '') as string,
         },
         this.fetchData
       );
@@ -65,7 +63,7 @@ class GroupMergedView extends Component<Props, State> {
     this.listener?.();
   }
 
-  onGroupingChange = ({mergedItems, mergedLinks, loading, error}) => {
+  onGroupingChange = ({mergedItems, mergedLinks, loading, error}: any) => {
     if (mergedItems) {
       this.setState({
         mergedItems,
@@ -79,8 +77,7 @@ class GroupMergedView extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params, location, organization} = this.props;
-    const {groupId} = params;
+    const {groupId, location, organization} = this.props;
 
     const queryParams = {
       ...location.query,
@@ -104,9 +101,9 @@ class GroupMergedView extends Component<Props, State> {
   };
 
   handleUnmerge = () => {
-    const {organization, params} = this.props;
+    const {organization, groupId} = this.props;
     GroupingStore.onUnmerge({
-      groupId: params.groupId,
+      groupId,
       orgSlug: organization.slug,
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
@@ -115,15 +112,14 @@ class GroupMergedView extends Component<Props, State> {
     const unmergeKeys = [...GroupingStore.getState().unmergeList.values()];
     trackAnalytics('issue_details.merged_tab.unmerge_clicked', {
       organization,
-      group_id: params.groupId,
+      group_id: groupId,
       event_ids_unmerged: unmergeKeys.join(','),
       total_unmerged: unmergeKeys.length,
     });
   };
 
   render() {
-    const {project, organization, params} = this.props;
-    const {groupId} = params;
+    const {project, organization, groupId} = this.props;
     const {loading: isLoading, error, mergedItems, mergedLinks} = this.state;
     const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;

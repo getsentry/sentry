@@ -18,6 +18,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {AlertType, AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
@@ -70,11 +71,15 @@ function CreateAlertFromViewButton({
   }
 
   const alertTemplate = alertType
-    ? AlertWizardRuleTemplates[alertType]
+    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
   const to = {
-    pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+    pathname: makeAlertsPathname({
+      path: '/new/metric/',
+      organization,
+    }),
     query: {
       ...queryParams,
       createFromDiscover: true,
@@ -142,7 +147,12 @@ export default function CreateAlertButton({
     if (alertOption) {
       params.append('alert_option', alertOption);
     }
-    return `/organizations/${organization.slug}/alerts/wizard/?${params.toString()}`;
+    return (
+      makeAlertsPathname({
+        path: '/wizard/',
+        organization,
+      }) + `?${params.toString()}`
+    );
   };
 
   function handleClickWithoutProject(event: React.MouseEvent) {

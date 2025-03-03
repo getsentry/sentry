@@ -67,9 +67,9 @@ export function InviteMissingMembersModal({
     (role: string, index: number) => {
       setMemberInvites(prevInvites => {
         const invites = prevInvites.map(i => ({...i}));
-        invites[index].role = role;
-        if (!allowedRolesMap[role].isTeamRolesAllowed) {
-          invites[index].teamSlugs = new Set([]);
+        invites[index]!.role = role;
+        if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
+          invites[index]!.teamSlugs = new Set([]);
         }
         return invites;
       });
@@ -80,7 +80,7 @@ export function InviteMissingMembersModal({
   const setTeams = useCallback((teamSlugs: string[], index: number) => {
     setMemberInvites(prevInvites => {
       const invites = prevInvites.map(i => ({...i}));
-      invites[index].teamSlugs = new Set(teamSlugs);
+      invites[index]!.teamSlugs = new Set(teamSlugs);
       return invites;
     });
   }, []);
@@ -96,7 +96,7 @@ export function InviteMissingMembersModal({
   const toggleCheckbox = useCallback(
     (checked: boolean, index: number) => {
       const selectedMembers = [...memberInvites];
-      selectedMembers[index].selected = checked;
+      selectedMembers[index]!.selected = checked;
       setMemberInvites(selectedMembers);
     },
     [memberInvites]
@@ -234,7 +234,7 @@ export function InviteMissingMembersModal({
         stickyHeaders
       >
         {memberInvites?.map((member, i) => {
-          const checked = memberInvites[i].selected;
+          const checked = memberInvites[i]!.selected;
           const username = member.externalId.split(':').pop();
           const isTeamRolesAllowed =
             allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
@@ -277,7 +277,9 @@ export function InviteMissingMembersModal({
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}
                 placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
-                onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
+                onChange={(opts: any) =>
+                  setTeams(opts ? opts.map((v: any) => v.value) : [], i)
+                }
                 multiple
                 clearable
                 menuPortalTarget={modalContainerRef?.current}

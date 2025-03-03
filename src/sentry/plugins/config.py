@@ -10,8 +10,6 @@ from sentry.utils.forms import form_to_config
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
 
-VALIDATOR_ERRORS = (forms.ValidationError, serializers.ValidationError, PluginError)
-
 ERR_FIELD_REQUIRED = "This field is required."
 
 
@@ -83,12 +81,6 @@ class ConfigValidator:
 
 
 class PluginConfigMixin(ProviderMixin):
-    asset_key = None
-    assets = []
-
-    def get_assets(self):
-        return self.assets
-
     def get_metadata(self):
         """
         Return extra metadata which is used to represent this plugin.

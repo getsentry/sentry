@@ -1,13 +1,12 @@
 import {useContext, useState} from 'react';
 import {css} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import AnalyticsProvider, {
   AnalyticsContext,
 } from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import useReplayRecorder from 'sentry/components/devtoolbar/hooks/useReplayRecorder';
-import {resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
+import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconPause, IconPlay} from 'sentry/icons';
 import type {PlatformKey} from 'sentry/types/project';
@@ -37,32 +36,45 @@ export default function ReplayPanel() {
   const [buttonLoading, setButtonLoading] = useState(false);
   return (
     <PanelLayout title="Session Replay" showProjectBadge link={{url: '/replays/'}}>
-      <Button
-        size="sm"
-        icon={isDisabled ? undefined : isRecordingSession ? <IconPause /> : <IconPlay />}
-        disabled={isDisabled || buttonLoading}
-        onClick={async () => {
-          setButtonLoading(true);
-          isRecordingSession ? await stopRecording() : await startRecordingSession();
-          setButtonLoading(false);
-          const type = isRecordingSession ? 'stop' : 'start';
-          trackAnalytics?.({
-            eventKey: eventKey + `.${type}-button-click`,
-            eventName: eventName + `${type} button clicked`,
-          });
-        }}
-      >
-        {isDisabled
-          ? disabledReason
-          : isRecordingSession
+      {isDisabled ? (
+        <p css={[panelInsetContentCss]}>{disabledReason}</p>
+      ) : (
+        <button
+          css={[resetButtonCss]}
+          disabled={isDisabled || buttonLoading}
+          onClick={async () => {
+            setButtonLoading(true);
+            if (isRecordingSession) {
+              await stopRecording();
+            } else {
+              await startRecordingSession();
+            }
+            setButtonLoading(false);
+            const type = isRecordingSession ? 'stop' : 'start';
+            trackAnalytics?.({
+              eventKey: eventKey + `.${type}-button-click`,
+              eventName: eventName + `${type} button clicked`,
+            });
+          }}
+        >
+          {isRecordingSession ? <IconPause /> : <IconPlay />}
+          {isRecordingSession
             ? 'Recording in progress, click to stop'
             : isRecording
               ? 'Replay buffering, click to flush and record'
               : 'Start recording the current session'}
-      </Button>
+        </button>
+      )}
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         {lastReplayId ? (
-          <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
+          <span
+            css={[
+              resetFlexRowCss,
+              css`
+                gap: var(--space50);
+              `,
+            ]}
+          >
             {isRecording ? 'Current replay: ' : 'Last recorded replay: '}
             <AnalyticsProvider keyVal="replay-details-link" nameVal="replay details link">
               <ReplayLink lastReplayId={lastReplayId} />
@@ -88,15 +100,19 @@ function ReplayLink({lastReplayId}: {lastReplayId: string}) {
       <div
         css={[
           resetFlexRowCss,
-          {
-            display: 'inline-flex',
-            gap: 'var(--space50)',
-            alignItems: 'center',
-          },
+          css`
+            display: inline-flex;
+            gap: var(--space50);
+            align-items: center;
+          `,
         ]}
       >
         <ProjectBadge
-          css={css({'&& img': {boxShadow: 'none'}})}
+          css={css`
+            && img {
+              box-shadow: none;
+            }
+          `}
           project={{
             slug: projectSlug,
             id: projectId,

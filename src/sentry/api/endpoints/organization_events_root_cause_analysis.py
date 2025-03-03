@@ -16,7 +16,6 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
-QUERY_LIMIT = 10000 // 2
 BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS_SCORE_THRESHOLD = 0

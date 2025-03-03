@@ -9,14 +9,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 jest.mock('sentry/actionCreators/indicator');
 
 describe('InvestigationRule', function () {
-  let context;
-  let organization;
-  let project;
-  let eventView;
+  let context: any;
+  let organization: any;
+  let project: any;
+  let eventView: any;
 
   const buttonText = /Get Samples/i;
   const labelText = /Collecting samples/i;
-  let getRuleMock; // the endpoint that checks if a rule exists
+  let getRuleMock: any; // the endpoint that checks if a rule exists
 
   function initialize(config = {}) {
     context = initializeOrg(config);
@@ -164,7 +164,7 @@ describe('InvestigationRule', function () {
     expect(getRule).toHaveBeenCalledTimes(0);
   });
 
-  it('does not render when there is an unknown error but shows an error', async function () {
+  it('does not render when there is an unknown error', async function () {
     initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -178,7 +178,7 @@ describe('InvestigationRule', function () {
     );
     await expectNotToRender();
 
-    expect(addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(addErrorMessage).toHaveBeenCalledTimes(0);
     // check we did call the endpoint to check if a rule exists
     expect(getRule).toHaveBeenCalledTimes(1);
   });

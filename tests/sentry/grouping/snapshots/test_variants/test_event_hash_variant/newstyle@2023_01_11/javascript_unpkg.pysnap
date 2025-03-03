@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:20:35.288899+00:00'
+created: '2025-02-26T00:34:09.069606+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -38,28 +39,29 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "6ab78545e13144405fb21dadb9045b91"
+  contributing component: exception
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (path:**https://unpkg.com/** -app))
+          frame*
             module*
               "react-dom@16.13.1/umd/react-dom.production"
             filename (ignored because frame points to a URL)
               "react-dom.production.min.js"
             function*
               "unpkg"
-          frame* (marked out of app by stack trace rule (path:**https://cdnjs.cloudflare.com/** -app))
+          frame*
             filename (ignored because frame points to a URL)
               "react-dom.production.min.js"
             function*
               "cdnjs"
-          frame* (marked out of app by stack trace rule (path:**https://cdn.jsdelivr.net/** -app))
+          frame*
             filename (ignored because frame points to a URL)
               "jquery.min.js"
             function*
               "jsdelivr"
-          frame* (marked out of app by stack trace rule (path:**https://esm.run/** -app))
+          frame*
             filename (ignored because frame points to a URL)
               "d3@7.6.1"
             function* (trimmed javascript function)

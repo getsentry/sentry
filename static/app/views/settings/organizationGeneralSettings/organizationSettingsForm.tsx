@@ -7,23 +7,35 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
+import organizationGeneralSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
+import organizationMembershipSettingsFields from 'sentry/data/forms/organizationMembershipSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
 });
+
+const HookOrganizationMembershipSettings = HookOrDefault({
+  hookName: 'component:organization-membership-settings',
+  defaultComponent: defaultMembershipSettings,
+});
+
+function defaultMembershipSettings({jsonFormSettings, forms}: MembershipSettingsProps) {
+  return <JsonForm {...jsonFormSettings} forms={forms} />;
+}
 
 interface Props {
   initialData: Organization;
@@ -47,8 +59,8 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     [access, location, organization]
   );
 
-  const forms = useMemo(() => {
-    const formsConfig = cloneDeep(organizationSettingsFields);
+  const generalForms = useMemo(() => {
+    const formsConfig = cloneDeep(organizationGeneralSettingsFields);
     const organizationIdField: FieldObject = {
       name: 'organizationId',
       type: 'string',
@@ -60,10 +72,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       help: `The unique identifier for this organization. It cannot be modified.`,
     };
 
-    formsConfig[0].fields = [
-      ...formsConfig[0].fields.slice(0, 2),
+    formsConfig[0]!.fields = [
+      ...formsConfig[0]!.fields.slice(0, 2),
       organizationIdField,
-      ...formsConfig[0].fields.slice(2),
+      ...formsConfig[0]!.fields.slice(2),
+      makeHideAiFeaturesField(organization),
       {
         name: 'codecovAccess',
         type: 'boolean',
@@ -127,7 +140,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       }}
       onSubmitError={() => addErrorMessage('Unable to save change')}
     >
-      <JsonForm {...jsonFormSettings} forms={forms} />
+      <JsonForm {...jsonFormSettings} forms={generalForms} />
+      <HookOrganizationMembershipSettings
+        jsonFormSettings={jsonFormSettings}
+        forms={organizationMembershipSettingsFields}
+      />
       <AvatarChooser
         type="organization"
         allowGravatar={false}

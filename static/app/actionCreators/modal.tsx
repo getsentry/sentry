@@ -4,9 +4,11 @@ import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
@@ -16,7 +18,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group, IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -45,7 +46,7 @@ type EmailVerificationModalOptions = {
 };
 
 type InviteMembersModalOptions = {
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   onClose?: () => void;
   source?: string;
 };
@@ -245,7 +246,7 @@ export async function openWidgetBuilderOverwriteModal(
   });
 }
 
-export async function openAddToDashboardModal(options) {
+export async function openAddToDashboardModal(options: AddToDashboardModalProps) {
   const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   const {default: Modal, modalCss} = mod;
 
@@ -255,18 +256,10 @@ export async function openAddToDashboardModal(options) {
   });
 }
 
-export async function openImportDashboardFromFileModal(options) {
+export async function openImportDashboardFromFileModal(
+  options: ImportDashboardFromFileModalProps
+) {
   const mod = await import('sentry/components/modals/importDashboardFromFileModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
-    modalCss,
-  });
-}
-
-export async function openCreateDashboardFromMetrics(options) {
-  const mod = await import('sentry/components/modals/createDashboardFromMetricsModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
@@ -305,6 +298,18 @@ export async function demoEndModal(options: DemoEndModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
+export type DemoEmailModalOptions = {
+  onAddedEmail: (email: string) => void;
+  onFailure: () => void;
+};
+
+export async function demoEmailModal(options: DemoEmailModalOptions) {
+  const mod = await import('sentry/components/modals/demoEmailModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {closeEvents: 'none', modalCss});
+}
+
 export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {
@@ -321,12 +326,7 @@ export async function openWidgetViewerModal({
   onClose,
   ...options
 }: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const modalPromise =
-    options.widget.widgetType === WidgetType.METRICS
-      ? import('sentry/components/modals/metricWidgetViewerModal')
-      : import('sentry/components/modals/widgetViewerModal');
-
-  const mod = await modalPromise;
+  const mod = await import('sentry/components/modals/widgetViewerModal');
 
   const {default: Modal, modalCss} = mod;
 
@@ -387,4 +387,14 @@ export async function openInsightChartModal(options: InsightChartModalOptions) {
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+export async function openAddTempestCredentialsModal(options: {
+  organization: Organization;
+  project: Project;
+}) {
+  const mod = await import('sentry/components/modals/addTempestCredentialsModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
 }

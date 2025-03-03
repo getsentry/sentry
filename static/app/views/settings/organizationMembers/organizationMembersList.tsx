@@ -25,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -64,7 +65,7 @@ const getMembersQueryKey = ({
   query: Record<string, string>;
 }): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query}];
 
-const getInviteRequestsQueryKey = ({organization}): ApiQueryKey => [
+const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
   `/organizations/${organization.slug}/invite-requests/`,
 ];
 
@@ -145,13 +146,14 @@ function OrganizationMembersList() {
     }
 
     redirectToRemainingOrganization({
+      navigate,
       orgId: organization.slug,
       removeOrg: true,
     });
     addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
   };
 
-  const handleSendInvite = async ({id, expired}) => {
+  const handleSendInvite = async ({id, expired}: any) => {
     setInvited(state => ({...state, [id]: 'loading'}));
 
     try {
@@ -201,7 +203,7 @@ function OrganizationMembersList() {
     successMessage,
     errorMessage,
     eventKey,
-  }) => {
+  }: any) => {
     try {
       await api.requestPromise(
         `/organizations/${organization.slug}/invite-requests/${inviteRequest.id}/`,
@@ -277,6 +279,11 @@ function OrganizationMembersList() {
 
   const membersPageLinks = getResponseHeader?.('Link');
 
+  // hides other users in demo mode
+  const membersToShow = isDemoModeEnabled()
+    ? members.filter(({email}) => email === currentUser.email)
+    : members;
+
   const action = (
     <InviteMembersButtonHook
       organization={organization}
@@ -311,7 +318,7 @@ function OrganizationMembersList() {
           refetchInviteRequests();
           refetchMembers();
         }}
-        allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
+        allowedRoles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
       />
       {inviteRequests.length > 0 && (
         <Panel>
@@ -329,7 +336,7 @@ function OrganizationMembersList() {
                 organization={organization}
                 inviteRequest={inviteRequest}
                 inviteRequestBusy={{}}
-                allRoles={currentMember?.roles ?? ORG_ROLES}
+                allRoles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
                 onApprove={handleInviteRequestApprove}
                 onDeny={handleInviteRequestDeny}
                 onUpdate={data => updateInviteRequest(inviteRequest.id, data)}
@@ -340,7 +347,7 @@ function OrganizationMembersList() {
       )}
       <SearchWrapperWithFilter>
         <MembersFilter
-          roles={currentMember?.roles ?? ORG_ROLES}
+          roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
           query={searchQuery}
           onChange={handleQueryChange}
         />
@@ -351,18 +358,18 @@ function OrganizationMembersList() {
         />
       </SearchWrapperWithFilter>
       <Panel data-test-id="org-member-list">
-        <MemberListHeader members={members} organization={organization} />
+        <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
           {isLoadingMembers ? (
             <LoadingIndicator />
           ) : (
             <Fragment>
-              {members.map(member => (
+              {membersToShow.map(member => (
                 <OrganizationMemberRow
                   key={member.id}
                   organization={organization}
                   member={member}
-                  status={invited[member.id]}
+                  status={invited[member.id]!}
                   memberCanLeave={
                     !(
                       isOnlyOwner ||
@@ -379,7 +386,7 @@ function OrganizationMembersList() {
                   onLeave={handleLeave}
                 />
               ))}
-              {members.length === 0 && (
+              {membersToShow.length === 0 && (
                 <EmptyMessage>{t('No members found.')}</EmptyMessage>
               )}
             </Fragment>

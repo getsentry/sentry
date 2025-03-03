@@ -120,3 +120,7 @@ class RedisRateLimiter(RateLimiter):
             return False, 0, reset_time
 
         return result > limit, result, reset_time
+
+    def reset(self, key: str, project: Project | None = None, window: int | None = None) -> None:
+        redis_key = self._construct_redis_key(key, project=project, window=window)
+        self.client.delete(redis_key)

@@ -13,7 +13,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconToggle} from 'sentry/icons';
+import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -105,7 +105,7 @@ function AccountSubscriptions() {
     }, {})
   );
 
-  subGroups.sort(([a], [b]) => a[0]?.localeCompare(b[0]));
+  subGroups.sort(([a], [b]) => a[0]?.localeCompare(b[0]!)!);
 
   const handleToggle = (subscription: Subscription) => {
     const subscribed = !subscription.subscribed;
@@ -144,7 +144,7 @@ function AccountSubscriptions() {
                 <Fragment key={email}>
                   {subGroups.length > 1 && (
                     <Heading>
-                      <IconToggle /> {t('Subscriptions for %s', email)}
+                      <IconSliders /> {t('Subscriptions for %s', email)}
                     </Heading>
                   )}
 
@@ -167,7 +167,7 @@ function AccountSubscriptions() {
                                   email: subscription.email,
                                   date: (
                                     <DateTime
-                                      date={moment(subscription.subscribedDate!)}
+                                      date={moment(subscription.subscribedDate)}
                                     />
                                   ),
                                 })}

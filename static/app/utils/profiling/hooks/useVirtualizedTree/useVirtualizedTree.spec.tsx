@@ -2,7 +2,7 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
-const n = d => {
+const n = (d: any) => {
   return {...d, children: []};
 };
 
@@ -32,7 +32,10 @@ class ResizeObserver {
 }
 
 window.ResizeObserver = ResizeObserver;
-window.requestAnimationFrame = (cb: Function) => cb();
+window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+  cb(performance.now());
+  return 0;
+};
 
 const makeScrollContainerMock = ({height}: {height: number}) => {
   return {
@@ -75,7 +78,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    expect(result.current.items.length).toBe(5);
+    expect(result.current.items).toHaveLength(5);
   });
 
   it('shows first 10 items', () => {
@@ -95,8 +98,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -104,9 +107,9 @@ describe('useVirtualizedTree', () => {
     });
 
     for (let i = 0; i < 10; i++) {
-      expect(result.current.items[i].item.node.id).toEqual(`child-${i}`);
+      expect(result.current.items[i]!.item.node.id).toBe(`child-${i}`);
     }
-    expect(result.current.items.length).toBe(10);
+    expect(result.current.items).toHaveLength(10);
   });
 
   it('shows 5-15 items', async () => {
@@ -126,8 +129,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -136,12 +139,12 @@ describe('useVirtualizedTree', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.items.length).toBe(10);
+      expect(result.current.items).toHaveLength(10);
     });
     for (let i = 0; i < 10; i++) {
-      expect(result.current.items[i].item.node.id).toEqual(`child-${i + 5}`);
+      expect(result.current.items[i]!.item.node.id).toBe(`child-${i + 5}`);
     }
-    expect(result.current.items.length).toBe(10);
+    expect(result.current.items).toHaveLength(10);
   });
 
   it('shows last 10 items', async () => {
@@ -161,8 +164,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -171,12 +174,12 @@ describe('useVirtualizedTree', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.items.length).toBe(10);
+      expect(result.current.items).toHaveLength(10);
     });
     for (let i = 0; i < 10; i++) {
-      expect(result.current.items[i].item.node.id).toEqual(`child-${i + 10}`);
+      expect(result.current.items[i]!.item.node.id).toBe(`child-${i + 10}`);
     }
-    expect(result.current.items.length).toBe(10);
+    expect(result.current.items).toHaveLength(10);
   });
 
   it('shows overscroll items', () => {
@@ -196,8 +199,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -207,9 +210,9 @@ describe('useVirtualizedTree', () => {
 
     for (let i = 3; i < 17; i++) {
       // Should display nodes 5-15, but since we use overscroll, it should display nodes 3-17
-      expect(result.current.items[i - 3].item.node.id).toEqual(`child-${i}`);
+      expect(result.current.items[i - 3]!.item.node.id).toBe(`child-${i}`);
     }
-    expect(result.current.items.length).toBe(14);
+    expect(result.current.items).toHaveLength(14);
   });
 
   it('items have a stable key', () => {
@@ -229,8 +232,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -246,12 +249,12 @@ describe('useVirtualizedTree', () => {
 
     // First 9 items should be the same, the last item should be different
     for (let i = 1; i < stableKeys.length; i++) {
-      expect(stableKeys[i]).toBe(result.current.items[i - 1].key);
+      expect(stableKeys[i]!).toBe(result.current.items[i - 1]!.key);
     }
 
     // Last item should be different
-    expect(result.current.items[result.current.items.length - 1].key).toBe(
-      stableKeys[stableKeys.length - 1] + 1
+    expect(result.current.items[result.current.items.length - 1]!.key).toBe(
+      stableKeys[stableKeys.length - 1]! + 1
     );
   });
 });

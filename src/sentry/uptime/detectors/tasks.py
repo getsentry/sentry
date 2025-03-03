@@ -6,7 +6,7 @@ from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -22,14 +22,15 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
+    create_project_uptime_subscription,
     delete_uptime_subscriptions_for_project,
     get_auto_monitored_subscriptions_for_project,
-    get_or_create_project_uptime_subscription,
     is_url_auto_monitored_for_project,
 )
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -145,7 +146,7 @@ def process_project_url_ranking(project: Project, project_url_count: int) -> boo
 
     found_url = False
 
-    for url, url_count in get_candidate_urls_for_project(project)[:5]:
+    for url, url_count in get_candidate_urls_for_project(project, limit=5):
         if process_candidate_url(project, project_url_count, url, url_count):
             found_url = True
             break
@@ -219,18 +220,28 @@ def process_candidate_url(
             "project": project.id,
         },
     )
-    if features.has("organizations:uptime-automatic-subscription-creation", project.organization):
+    if (
+        features.has("organizations:uptime-automatic-subscription-creation", project.organization)
+        and features.has("organizations:uptime", project.organization)
+        and not features.has("organizations:uptime-create-disabled", project.organization)
+    ):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
-        monitor_url_for_project(project, url)
+        uptime_monitor = monitor_url_for_project(project, url)
         # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
         project.organization.update_option("sentry:uptime_autodetection", False)
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=uptime_monitor.id,
+            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+            data=uptime_monitor.get_audit_log_data(),
+        )
 
     metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
 
 
-def monitor_url_for_project(project: Project, url: str):
+def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscription:
     """
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
     it. Also deletes any other auto-detected monitors since this one should replace them.
@@ -244,7 +255,8 @@ def monitor_url_for_project(project: Project, url: str):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ],
         )
-    get_or_create_project_uptime_subscription(
+    metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
+    return create_project_uptime_subscription(
         project,
         # TODO(epurkhiser): This is where we would put the environment object
         # from autodetection if we decide to do that.
@@ -254,7 +266,6 @@ def monitor_url_for_project(project: Project, url: str):
         timeout_ms=ONBOARDING_SUBSCRIPTION_TIMEOUT_MS,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
     )
-    metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
 
 
 def is_failed_url(url: str) -> bool:

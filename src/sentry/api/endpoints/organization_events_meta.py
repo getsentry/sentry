@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options, search
+from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.middleware import is_frontend_request
+from sentry.models.organization import Organization
 from sentry.snuba import spans_indexed, spans_metrics
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
@@ -25,7 +26,36 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
+
+    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
+        feature_names = [
+            "organizations:dashboards-mep",
+            "organizations:mep-rollout-flag",
+            "organizations:performance-use-metrics",
+            "organizations:profiling",
+            "organizations:dynamic-sampling",
+            "organizations:use-metrics-layer",
+            "organizations:starfish-view",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+
+        all_features = (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {}
+        )
+
+        for feature_name in feature_names:
+            if feature_name not in all_features:
+                all_features[feature_name] = features.has(
+                    feature_name, organization=organization, actor=request.user
+                )
+
+        return all_features
 
     def get(self, request: Request, organization) -> Response:
         try:
@@ -35,16 +65,34 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         dataset = self.get_dataset(request)
 
+        batch_features = self.get_features(organization, request)
+
+        use_metrics = (
+            (
+                batch_features.get("organizations:mep-rollout-flag", False)
+                and batch_features.get("organizations:dynamic-sampling", False)
+            )
+            or batch_features.get("organizations:performance-use-metrics", False)
+            or batch_features.get("organizations:dashboards-mep", False)
+        )
+
         with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
+                has_metrics=use_metrics,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 # TODO: @athena - add query_source when all datasets support it
                 # query_source=(
                 #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
                 # ),
+                fallback_to_transactions=features.has(
+                    "organizations:performance-discover-dataset-selector",
+                    organization,
+                    actor=request.user,
+                ),
             )
 
         return Response({"count": result["data"][0]["count"]})
@@ -121,7 +169,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         is_frontend = is_frontend_request(request)

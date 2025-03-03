@@ -20,7 +20,7 @@ import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrat
 export type CreateNewIntegrationModalOptions = {organization: Organization};
 type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;
 
-const analyticsView = 'new_integration_modal' as const;
+const analyticsView = 'new_integration_modal';
 
 function CreateNewIntegrationModal({
   Body,
@@ -83,7 +83,7 @@ function CreateNewIntegrationModal({
         )}
       </RadioChoiceDescription>,
     ],
-  ] as [string, ReactNode, ReactNode][];
+  ] as Array<[string, ReactNode, ReactNode]>;
 
   return (
     <Fragment>

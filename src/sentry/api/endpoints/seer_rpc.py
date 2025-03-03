@@ -1,5 +1,7 @@
 import hashlib
 import hmac
+import logging
+from collections.abc import Callable
 from typing import Any
 
 import orjson
@@ -25,8 +27,11 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
+from sentry.seer.fetch_issues_given_patches import get_issues_related_to_file_patches
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
+
+logger = logging.getLogger(__name__)
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -153,16 +158,17 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
-    consent = org.get_option("sentry:gen_ai_consent", False)
+    consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
     github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
     return {
         "consent": consent or github_extension_enabled,
     }
 
 
-seer_method_registry = {
+seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
+    "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
 }
 
 

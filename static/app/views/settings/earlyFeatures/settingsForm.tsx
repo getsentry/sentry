@@ -13,7 +13,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props extends RouteComponentProps<{}, {}> {
+interface Props extends RouteComponentProps {
   access: Set<Scope>;
   location: Location;
 }
@@ -39,7 +39,7 @@ export default function EarlyFeaturesSettingsForm({access, location}: Props) {
   const initialData: Record<string, boolean> = {};
   for (const flag in featureFlags) {
     if (featureFlags.hasOwnProperty(flag)) {
-      const obj = featureFlags[flag];
+      const obj = featureFlags[flag]!;
       initialData[flag] = obj.value;
     }
   }

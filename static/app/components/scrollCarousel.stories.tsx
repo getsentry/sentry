@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 
 import {ScrollCarousel} from './scrollCarousel';
 
-export default storyBook(ScrollCarousel, story => {
+export default storyBook('ScrollCarousel', story => {
   story('Default', () => (
     <Fragment>
       <p>
@@ -17,6 +17,7 @@ export default storyBook(ScrollCarousel, story => {
       </p>
       <div style={{width: '375px', display: 'block'}}>
         <ScrollCarousel
+          aria-label="example"
           css={css`
             gap: ${space(1)};
           `}

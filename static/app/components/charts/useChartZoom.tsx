@@ -1,15 +1,9 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import type {
-  DataZoomComponentOption,
-  ECharts,
-  InsideDataZoomComponentOption,
-  ToolboxComponentOption,
-} from 'echarts';
+import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -43,7 +37,6 @@ interface ZoomRenderProps {
 
 interface Props {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  chartZoomOptions?: DataZoomComponentOption;
   /**
    * Disables saving changes to the current period
    */
@@ -54,7 +47,6 @@ interface Props {
    * Will persist zoom state to page filters
    */
   saveOnZoom?: boolean;
-  showSlider?: boolean;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Persists zoom state to query params without updating page filters.
@@ -135,8 +127,6 @@ export function useChartZoom({
   usePageDate,
   saveOnZoom,
   xAxisIndex,
-  showSlider,
-  chartZoomOptions,
 }: Omit<Props, 'children'>): ZoomRenderProps {
   const {handleChartReady} = useChartZoomCancel();
   const location = useLocation();
@@ -209,8 +199,7 @@ export function useChartZoom({
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      // @ts-expect-error weirdly evt.startValue and evt.endValue do not exist
-      const {startValue, endValue} = evt.batch[0] as {
+      const {startValue, endValue} = (evt as any).batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
@@ -241,8 +230,7 @@ export function useChartZoom({
     }
 
     // This attempts to activate the area zoom toolbox feature
-    // @ts-expect-error _componentsViews is private
-    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
+    const zoom = (chart as any)._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -256,12 +244,9 @@ export function useChartZoom({
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     const zoomInside = DataZoomInside({
       xAxisIndex,
-      ...(chartZoomOptions as InsideDataZoomComponentOption),
     });
-    return showSlider
-      ? [...DataZoomSlider({xAxisIndex, ...chartZoomOptions}), ...zoomInside]
-      : zoomInside;
-  }, [chartZoomOptions, showSlider, xAxisIndex]);
+    return zoomInside;
+  }, [xAxisIndex]);
 
   const toolBox = useMemo<ToolboxComponentOption>(
     () =>

@@ -12,7 +12,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {
   type Category,
@@ -88,6 +88,7 @@ export default function ProjectCreationModal({
           name: projectName,
           platform: platform.key,
           default_rules: defaultRules ?? true,
+          origin: 'ui',
         },
       });
 
@@ -182,7 +183,7 @@ export default function ProjectCreationModal({
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}
-                onChange={choice => setTeam(choice.value)}
+                onChange={(choice: any) => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
             </div>

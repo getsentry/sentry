@@ -18,7 +18,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -28,6 +27,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -310,12 +310,12 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
       configurations: [
         {
           language: 'javascript',
+          description: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
           code: `
 import React from "react";
 import ReactDOM from "react-dom";
@@ -340,7 +340,7 @@ ReactDOM.render(<App />, document.getElementById("root"));
 // ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 `,
           additionalInfo: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
@@ -354,6 +354,25 @@ ReactDOM.render(<App />, document.getElementById("root"));
               ),
             }
           ),
+        },
+        {
+          language: 'javascript',
+          description: tct(
+            "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" />
+              ),
+            }
+          ),
+          code: `
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+  tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+});
+`,
         },
       ],
     },
@@ -369,49 +388,6 @@ ReactDOM.render(<App />, document.getElementById("root"));
           ),
         }
       ),
-      configurations: [
-        {
-          description: tct(
-            'You have the option to manually construct a transaction using [link:custom instrumentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/custom-instrumentation/" />
-              ),
-            }
-          ),
-          language: 'javascript',
-          code: `
-const transaction = Sentry.startTransaction({ name: "test-transaction" });
-const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
-// exampleFunctionCall();
-span.finish(); // Remember that only finished spans will be sent with the transaction
-transaction.finish(); // Finishing the transaction will send it to Sentry`,
-        },
-        {
-          description: tct(
-            'In addition, [code:@sentry/react] exports a [code:withProfiler] higher order component that can be used to capture React-related spans for specific React components:',
-            {code: <code />}
-          ),
-          language: 'javascript',
-          code: `
-import * as Sentry from "@sentry/react";
-
-function App(props) {
-  return <div />;
-}
-
-export default Sentry.withProfiler(App);
-`,
-          additionalInfo: tct(
-            'Learn more about the profiler in [link:React Component Tracking].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/features/component-tracking/" />
-              ),
-            }
-          ),
-        },
-      ],
     },
   ],
   nextSteps: () => [],
@@ -426,10 +402,11 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

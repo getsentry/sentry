@@ -18,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
@@ -114,7 +115,10 @@ class ProjectLatestReleases extends DeprecatedAsyncComponent<Props, State> {
 
     // as this is a link to latest releases, we want to only preserve project and environment
     return {
-      pathname: `/organizations/${organization.slug}/releases/`,
+      pathname: makeReleasesPathname({
+        organization,
+        path: '/',
+      }),
       query: {
         statsPeriod: undefined,
         start: undefined,

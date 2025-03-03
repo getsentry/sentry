@@ -31,6 +31,7 @@ from sentry.backup.dependencies import (
     sorted_dependencies,
 )
 from sentry.backup.exports import (
+    ExportCheckpointer,
     export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
@@ -43,20 +44,13 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import (
-    AlertRuleExcludedProjects,
-    AlertRuleMonitorTypeInt,
-    AlertRuleTriggerExclusion,
-)
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
-    IncidentSubscription,
     IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.project_integration import ProjectIntegration
@@ -68,7 +62,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -79,7 +73,8 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
@@ -105,6 +100,7 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
@@ -116,7 +112,13 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    DataConditionGroup,
+)
+from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -147,7 +149,12 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> Any:
+def export_to_file(
+    path: Path,
+    scope: ExportScope,
+    filter_by: set[str] | None = None,
+    checkpointer: ExportCheckpointer | None = None,
+) -> Any:
     """
     Helper function that exports the current state of the database to the specified file.
     """
@@ -157,13 +164,31 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_global_scope(
+                tmp_file,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.Config:
-            export_in_config_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_config_scope(
+                tmp_file,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
+            export_in_organization_scope(
+                tmp_file,
+                org_filter=filter_by,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
+            export_in_user_scope(
+                tmp_file,
+                user_filter=filter_by,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -193,7 +218,9 @@ def export_to_encrypted_tarball(
     path: Path,
     scope: ExportScope,
     *,
+    rsa_key_pair: tuple[bytes, bytes],
     filter_by: set[str] | None = None,
+    checkpointer: ExportCheckpointer | None = None,
 ) -> Any:
     """
     Helper function that exports the current state of the database to the specified encrypted
@@ -201,7 +228,7 @@ def export_to_encrypted_tarball(
     """
 
     # Generate a public-private key pair.
-    (private_key_pem, public_key_pem) = generate_rsa_key_pair()
+    (private_key_pem, public_key_pem) = rsa_key_pair
     public_key_fp = io.BytesIO(public_key_pem)
 
     # Run the appropriate `export_in_...` command with encryption enabled.
@@ -211,11 +238,17 @@ def export_to_encrypted_tarball(
         # case that ever changes.
         if scope == ExportScope.Global:
             export_in_global_scope(
-                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.Config:
             export_in_config_scope(
-                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.Organization:
             export_in_organization_scope(
@@ -223,6 +256,7 @@ def export_to_encrypted_tarball(
                 encryptor=LocalFileEncryptor(public_key_fp),
                 org_filter=filter_by,
                 printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.User:
             export_in_user_scope(
@@ -230,6 +264,7 @@ def export_to_encrypted_tarball(
                 encryptor=LocalFileEncryptor(public_key_fp),
                 user_filter=filter_by,
                 printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
@@ -477,35 +512,15 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # AlertRule*
-        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
             user=owner,
         )
-        AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
-        AlertRuleTriggerExclusion.objects.create(
-            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.first()
-        )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        activated_alert = self.create_alert_rule(
-            organization=org,
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        self.create_alert_rule_activation(
-            alert_rule=activated_alert,
-            project=project,
-            metric_value=100,
-            activator="testing exhaustive",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -526,7 +541,6 @@ class ExhaustiveFixtures(Fixtures):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
@@ -544,7 +558,14 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=owner.id,
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
@@ -591,7 +612,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Group*
         group = self.create_group(project=project)
-        GroupSearchView.objects.create(
+        group_search_view = GroupSearchView.objects.create(
             name=f"View 1 for {slug}",
             user_id=owner_id,
             organization=org,
@@ -599,6 +620,17 @@ class ExhaustiveFixtures(Fixtures):
             query_sort="date",
             position=0,
         )
+        GroupSearchViewProject.objects.create(
+            group_search_view=group_search_view,
+            project=project,
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=org,
+            user_id=owner_id,
+            group_search_view=group_search_view,
+            position=0,
+        )
+
         Activity.objects.create(
             project=project,
             group=group,
@@ -621,7 +653,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
-        detector = self.create_detector(organization=org)
+        detector = self.create_detector(project=project)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
 
@@ -630,18 +662,9 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
-            condition_group=notification_condition_group,
-        )
-
-        # TODO @saponifi3d: Update comparison to be DetectorState.Critical
-        self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="WorkflowCondition",
-            condition_result="True",
             condition_group=notification_condition_group,
         )
 
@@ -657,19 +680,29 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        # TODO @saponifi3d: Create or define trigger workflow action type
-        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
         self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="DetectorCondition",
-            condition_result="True",
+            comparison=75,
+            condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
+
+        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+
+        TempestCredentials.objects.create(
+            project=project,
+            created_by_id=owner_id,
+            client_id="test_client_id",
+            client_secret="test_client_secret",
+            message="test_message",
+            latest_fetched_item_id="test_latest_fetched_item_id",
+        )
 
         return org
 

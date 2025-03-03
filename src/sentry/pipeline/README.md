@@ -82,7 +82,7 @@ An example pipeline view might be a form that asks the user for some input.
 
 ```python
 class GetUserInput(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         # The pipeline supports a generic error method that will render a
         # pipeline error view
         if 'my_data' not in request.POST:
@@ -102,7 +102,7 @@ The pipeline views are declared within the executing pipeline provider's
 `get_pipeline_views` method, for example it could look like:
 
 ```python
-def get_pipeline_views(self):
+def get_pipeline_views(self) -> list[PipelineView]:
     return [GetUserInput(), RequestApiTokenStep()]
 ```
 

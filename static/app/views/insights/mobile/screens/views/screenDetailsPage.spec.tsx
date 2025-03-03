@@ -13,11 +13,7 @@ jest.mock('sentry/utils/useLocation');
 
 describe('ScreenDetailsPage', function () {
   const organization = OrganizationFixture({
-    features: [
-      'insights-addon-modules',
-      'insights-mobile-screens-module',
-      'starfish-mobile-ui-module',
-    ],
+    features: ['insights-addon-modules', 'insights-mobile-screens-module'],
   });
   const project = ProjectFixture();
 
@@ -25,7 +21,7 @@ describe('ScreenDetailsPage', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals/details',
     query: {
       project: project.id,
       transaction: 'HomeActivity',
@@ -76,7 +72,7 @@ describe('ScreenDetailsPage', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
+        pathname: '/organizations/org-slug/performance/mobile/mobile-vitals/details',
         query: {
           project: project.id,
         },

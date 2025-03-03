@@ -1,24 +1,52 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSorts} from 'sentry/views/explore/hooks/useSorts';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
+import {
+  PageParamsProvider,
+  useExploreDataset,
+  useExploreFields,
+  useExploreGroupBys,
+  useExploreMode,
+  useExplorePageParams,
+  useExploreSortBys,
+  useExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
+jest.mock('sentry/actionCreators/modal');
+
 describe('ExploreToolbar', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit', 'explore-multi-query'],
+  });
 
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
+
+    const project = ProjectFixture({
+      id: '1',
+      slug: 'proj-slug',
+      organization,
+    });
+
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -27,80 +55,164 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('allows changing results mode', async function () {
-    let resultMode, sampleFields, groupBys;
-
+  it('should not render dataset selector', function () {
     function Component() {
-      [resultMode] = useResultMode();
-      [sampleFields] = useSampleFields();
-      ({groupBys} = useGroupBys());
       return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+    const section = screen.queryByTestId('section-dataset');
+    expect(section).not.toBeInTheDocument();
+  });
+
+  it('allows changing datasets', async function () {
+    let dataset: any;
+    function Component() {
+      dataset = useExploreDataset();
+      return <ExploreToolbar extras={['dataset toggle']} />;
     }
 
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-        <Component />
-      </SpanTagsProvider>,
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
       {disableRouterMocks: true}
     );
 
-    const section = screen.getByTestId('section-result-mode');
+    const section = screen.getByTestId('section-dataset');
+
+    const eapSpans = within(section).getByRole('radio', {name: 'EAP Spans'});
+    const rpcSpans = within(section).getByRole('radio', {name: 'EAP RPC Spans'});
+    const indexedSpans = within(section).getByRole('radio', {name: 'Indexed Spans'});
+
+    expect(eapSpans).toBeChecked();
+    expect(rpcSpans).not.toBeChecked();
+    expect(indexedSpans).not.toBeChecked();
+    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP);
+
+    await userEvent.click(rpcSpans);
+    expect(eapSpans).not.toBeChecked();
+    expect(rpcSpans).toBeChecked();
+    expect(indexedSpans).not.toBeChecked();
+    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP_RPC);
+
+    await userEvent.click(indexedSpans);
+    expect(eapSpans).not.toBeChecked();
+    expect(rpcSpans).not.toBeChecked();
+    expect(indexedSpans).toBeChecked();
+    expect(dataset).toEqual(DiscoverDatasets.SPANS_INDEXED);
+  });
+
+  it('allows changing mode', async function () {
+    let mode: any;
+    function Component() {
+      mode = useExploreMode();
+      return <ExploreToolbar extras={['dataset toggle']} />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-mode');
+
     const samples = within(section).getByRole('radio', {name: 'Samples'});
     const aggregates = within(section).getByRole('radio', {name: 'Aggregates'});
 
     expect(samples).toBeChecked();
     expect(aggregates).not.toBeChecked();
-    expect(resultMode).toEqual('samples');
-
-    expect(sampleFields).toEqual([
-      'span_id',
-      'project',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'timestamp',
-    ]); // default
+    expect(mode).toEqual(Mode.SAMPLES);
 
     await userEvent.click(aggregates);
     expect(samples).not.toBeChecked();
     expect(aggregates).toBeChecked();
-    expect(resultMode).toEqual('aggregate');
+    expect(mode).toEqual(Mode.AGGREGATE);
+
+    await userEvent.click(samples);
+    expect(samples).toBeChecked();
+    expect(aggregates).not.toBeChecked();
+    expect(mode).toEqual(Mode.SAMPLES);
+  });
+
+  it('inserts group bys from aggregate mode as fields in samples mode', async function () {
+    let fields, groupBys;
+    function Component() {
+      fields = useExploreFields();
+      groupBys = useExploreGroupBys();
+      return <ExploreToolbar extras={['dataset toggle']} />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-mode');
+
+    const samples = within(section).getByRole('radio', {name: 'Samples'});
+    const aggregates = within(section).getByRole('radio', {name: 'Aggregates'});
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+    ]); // default
 
     // Add a group by, and leave one unselected
+    await userEvent.click(aggregates);
     const groupBy = screen.getByTestId('section-group-by');
-    await userEvent.click(within(groupBy).getByRole('button', {name: 'None'}));
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'span.op'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
     expect(groupBys).toEqual(['release']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['release', '']);
 
     await userEvent.click(samples);
-    expect(samples).toBeChecked();
-    expect(aggregates).not.toBeChecked();
-    expect(resultMode).toEqual('samples');
-
-    expect(sampleFields).toEqual([
-      'span_id',
-      'project',
+    expect(fields).toEqual([
+      'id',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
       'release',
     ]);
   });
 
   it('allows changing visualizes', async function () {
-    let visualizes;
-
+    let fields, visualizes: any;
     function Component() {
-      [visualizes] = useVisualizes();
+      fields = useExploreFields();
+      visualizes = useExploreVisualizes();
       return <ExploreToolbar />;
     }
+
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-        <Component />
-      </SpanTagsProvider>,
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
       {disableRouterMocks: true}
     );
 
@@ -108,31 +220,63 @@ describe('ExploreToolbar', function () {
 
     // this is the default
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.duration)'],
+      },
     ]);
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+    ]); // default
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+    ]);
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+      'span.self_time',
     ]);
 
     // try changing the aggregate
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
     expect(visualizes).toEqual([
-      {yAxes: ['avg(span.self_time)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)'],
+      },
     ]);
 
     // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Overlay'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
       {
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
         chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
     ]);
 
@@ -140,41 +284,253 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
       {
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
         chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
-      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
     ]);
 
     // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
-      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
     ]);
 
     // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
     ]);
 
     // only one left so cant be deleted
     expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
   });
 
-  it('allows changing sort by', async function () {
-    let sorts;
+  it('allows changing visualizes equations', async function () {
+    let fields, visualizes: any;
+    function Component() {
+      fields = useExploreFields();
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar extras={['equations']} />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+    ]); // default
+
+    let input;
+
+    // try changing the field
+    input = within(section).getByRole('combobox', {
+      name: 'Select an attribute',
+    });
+    await userEvent.click(input);
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+      'span.self_time',
+    ]);
+
+    await userEvent.click(input);
+    await userEvent.keyboard('{Backspace}');
+
+    await userEvent.click(within(section).getByRole('option', {name: 'count(\u2026)'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)'],
+      },
+    ]);
+
+    await userEvent.keyboard('{Escape}');
+
+    // try adding an overlay
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
+    input = within(section)
+      .getAllByRole('combobox', {
+        name: 'Select an attribute',
+      })
+      .at(-1)!;
+    await userEvent.click(input);
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+      },
+    ]);
+
+    await userEvent.keyboard('{Escape}');
+
+    // try adding a new chart
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
+    // delete first overlay
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
+    // delete second chart
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+    ]);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
+  });
+
+  it('allows changing group bys', async function () {
+    let groupBys: any;
 
     function Component() {
-      const [sampleFields] = useSampleFields();
-      [sorts] = useSorts({fields: sampleFields});
+      groupBys = useExploreGroupBys();
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-        <Component />
-      </SpanTagsProvider>,
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
+
+    // click the aggregates mode to enable
+    await userEvent.click(
+      within(screen.getByTestId('section-mode')).getByRole('radio', {
+        name: 'Aggregates',
+      })
+    );
+
+    const section = screen.getByTestId('section-group-by');
+
+    expect(within(section).getByRole('button', {name: 'span.op'})).toBeEnabled();
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    const groupByOptions1 = await within(section).findAllByRole('option');
+    expect(groupByOptions1.length).toBeGreaterThan(0);
+
+    await userEvent.click(within(section).getByRole('option', {name: 'project'}));
+    expect(groupBys).toEqual(['project']);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
+    expect(groupBys).toEqual(['project', '']);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
+    const groupByOptions2 = await within(section).findAllByRole('option');
+    expect(groupByOptions2.length).toBeGreaterThan(0);
+
+    await userEvent.click(
+      within(section).getByRole('option', {name: 'span.description'})
+    );
+    expect(groupBys).toEqual(['project', 'span.description']);
+
+    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
+    expect(groupBys).toEqual(['span.description']);
+
+    // only 1 left but it's not empty
+    expect(within(section).getByLabelText('Remove Column')).toBeEnabled();
+
+    await userEvent.click(within(section).getByLabelText('Remove Column'));
+    expect(groupBys).toEqual(['']);
+
+    // last one and it's empty
+    expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
+  });
+
+  it('allows changing sort by', async function () {
+    let sortBys: any;
+    function Component() {
+      sortBys = useExploreSortBys();
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
       {disableRouterMocks: true}
     );
 
@@ -183,29 +539,29 @@ describe('ExploreToolbar', function () {
     // this is the default
     expect(within(section).getByRole('button', {name: 'timestamp'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
-    expect(sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
+    expect(sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
 
     // check the default field options
     const fields = [
-      'span_id',
-      'project',
-      'span.op',
+      'id',
       'span.description',
       'span.duration',
+      'span.op',
       'timestamp',
+      'transaction',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
     const fieldOptions = await within(section).findAllByRole('option');
     expect(fieldOptions).toHaveLength(fields.length);
     fieldOptions.forEach((option, i) => {
-      expect(option).toHaveTextContent(fields[i]);
+      expect(option).toHaveTextContent(fields[i]!);
     });
 
     // try changing the field
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
-    expect(sorts).toEqual([{field: 'span.op', kind: 'desc'}]);
+    expect(sortBys).toEqual([{field: 'span.op', kind: 'desc'}]);
 
     // check the kind options
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
@@ -218,68 +574,203 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
-    expect(sorts).toEqual([{field: 'span.op', kind: 'asc'}]);
+    expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
-  it('allows changing group bys', async function () {
-    let groupBys;
-
+  it('takes you to suggested query', async function () {
+    let pageParams: any;
     function Component() {
-      ({groupBys} = useGroupBys());
+      pageParams = useExplorePageParams();
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-        <Component />
-      </SpanTagsProvider>,
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
       {disableRouterMocks: true}
     );
 
-    const section = screen.getByTestId('section-group-by');
+    const section = screen.getByTestId('section-suggested-queries');
 
-    expect(within(section).getByRole('button', {name: 'None'})).toBeInTheDocument();
-    expect(groupBys).toEqual(['']);
-
-    // disabled in the samples mode
-    expect(within(section).getByRole('button', {name: 'None'})).toBeDisabled();
-
-    // click the aggregates mode to enable
-    await userEvent.click(
-      within(screen.getByTestId('section-result-mode')).getByRole('radio', {
-        name: 'Aggregates',
+    await userEvent.click(within(section).getByText('Slowest Ops'));
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: [
+          'id',
+          'project',
+          'span.op',
+          'span.description',
+          'span.duration',
+          'timestamp',
+        ],
+        groupBys: ['span.op'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
+        visualizes: [
+          {
+            chartType: ChartType.LINE,
+            label: 'A',
+            yAxes: ['avg(span.duration)'],
+          },
+          {
+            chartType: ChartType.LINE,
+            label: 'B',
+            yAxes: ['p50(span.duration)'],
+          },
+        ],
       })
     );
+  });
 
-    expect(within(section).getByRole('button', {name: 'None'})).toBeEnabled();
-    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
-    const groupByOptions1 = await within(section).findAllByRole('option');
-    expect(groupByOptions1.length).toBeGreaterThan(0);
+  it('opens compare queries', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["p95(span.duration)"]}'),
+        },
+      },
+    });
 
-    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(groupBys).toEqual(['span.op']);
-
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['span.op', '']);
-
-    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
-    const groupByOptions2 = await within(section).findAllByRole('option');
-    expect(groupByOptions2.length).toBeGreaterThan(0);
-
-    await userEvent.click(
-      within(section).getByRole('option', {name: 'span.description'})
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
     );
-    expect(groupBys).toEqual(['span.op', 'span.description']);
 
-    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]);
-    expect(groupBys).toEqual(['span.description']);
+    const section = screen.getByTestId('section-save-as');
 
-    // only 1 left but it's not empty
-    expect(within(section).getByLabelText('Remove Column')).toBeEnabled();
+    await userEvent.click(within(section).getByText(/Compare/));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/traces/compare/',
+      query: expect.objectContaining({
+        queries: [
+          '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["avg(span.duration)"]}',
+        ],
+      }),
+    });
+  });
 
-    await userEvent.click(within(section).getByLabelText('Remove Column'));
-    expect(groupBys).toEqual(['']);
+  it('opens the right alert', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+        },
+      },
+    });
 
-    // last one and it's empty
-    expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.hover(within(section).getByText('An Alert for'));
+    await userEvent.click(screen.getByText('avg(span.duration)'));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/metric/',
+      query: expect.objectContaining({
+        aggregate: 'avg(span.duration)',
+        dataset: 'events_analytics_platform',
+      }),
+    });
+  });
+
+  it('add to dashboard options correctly', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByText('A Dashboard widget'));
+    await waitFor(() => {
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: expect.objectContaining({
+            displayType: 'line',
+            queries: [
+              {
+                aggregates: ['avg(span.duration)'],
+                columns: [],
+                conditions: '',
+                fields: ['avg(span.duration)'],
+                name: '',
+                orderby: '-timestamp',
+              },
+            ],
+            title: 'Custom Widget',
+            widgetType: 'spans',
+          }),
+          widgetAsQueryParams: expect.objectContaining({
+            dataset: 'spans',
+            defaultTableColumns: [
+              'id',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'transaction',
+              'timestamp',
+            ],
+            defaultTitle: 'Custom Widget',
+            defaultWidgetQuery:
+              'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
+            displayType: 'line',
+            end: undefined,
+            field: [
+              'id',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'transaction',
+              'timestamp',
+            ],
+            limit: undefined,
+            source: 'traceExplorer',
+            start: undefined,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+    });
   });
 });

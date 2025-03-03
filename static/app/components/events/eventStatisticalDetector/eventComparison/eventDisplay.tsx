@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -142,6 +143,7 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -163,7 +165,7 @@ function EventDisplay({
 
   useEffect(() => {
     if (defined(eventIds) && eventIds.length > 0 && !selectedEventId) {
-      setSelectedEventId(eventIds[0]);
+      setSelectedEventId(eventIds[0]!);
     }
   }, [eventIds, selectedEventId]);
 
@@ -242,7 +244,7 @@ function EventDisplay({
                 icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
                 onPaginate={() => {
                   if (hasPrev) {
-                    setSelectedEventId(eventIds[eventIdIndex - 1]);
+                    setSelectedEventId(eventIds[eventIdIndex - 1]!);
                   }
                 }}
               />
@@ -252,7 +254,7 @@ function EventDisplay({
                 icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
                 onPaginate={() => {
                   if (hasNext) {
-                    setSelectedEventId(eventIds[eventIdIndex + 1]);
+                    setSelectedEventId(eventIds[eventIdIndex + 1]!);
                   }
                 }}
               />
@@ -264,6 +266,7 @@ function EventDisplay({
             <MinimapContainer>
               <MinimapPositioningContainer>
                 <ActualMinimap
+                  theme={theme}
                   spans={waterfallModel.getWaterfall({
                     viewStart: 0,
                     viewEnd: 1,
@@ -334,14 +337,14 @@ const MinimapContainer = styled('div')`
 `;
 
 const ComparisonContentWrapper = styled('div')`
-  border: ${({theme}) => `1px solid ${theme.border}`};
-  border-radius: ${({theme}) => theme.borderRadius};
+  border: ${p => `1px solid ${p.theme.border}`};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
 
 const EmptyStateWrapper = styled('div')`
-  border: ${({theme}) => `1px solid ${theme.border}`};
-  border-radius: ${({theme}) => theme.borderRadius};
+  border: ${p => `1px solid ${p.theme.border}`};
+  border-radius: ${p => p.theme.borderRadius};
   display: flex;
   justify-content: center;
   align-items: center;

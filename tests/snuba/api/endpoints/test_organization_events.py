@@ -30,15 +30,15 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.testutils.cases import (
     APITransactionTestCase,
+    OurLogTestCase,
     PerformanceIssueTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
-from sentry.testutils.skips import requires_not_arm64
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -46,8 +46,12 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
+pytestmark = pytest.mark.sentry_metrics
 
-class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+
+class OrganizationEventsEndpointTestBase(
+    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -55,7 +59,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
+        self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -196,6 +200,26 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             response.data["detail"]
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
+
+    def test_invalid_field(self):
+        self.features["organizations:performance-discover-dataset-selector"] = True
+        self.create_project()
+        query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+        query["discoverSavedQueryId"] = model.id
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid characters in field foo[…]bar"
 
     def test_invalid_trace_span(self):
         self.create_project()
@@ -3040,9 +3064,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         result = {r["any(user.display)"] for r in data}
         assert result == {"cathy@example.com"}
         result = {r["any(timestamp.to_day)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
         result = {r["any(timestamp.to_hour)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
 
     def test_field_aliases_in_conflicting_functions(self):
         self.store_event(
@@ -3333,7 +3361,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert self.ten_mins_ago_iso[:-5] in data[0]["last_seen()"]
+        assert self.ten_mins_ago_iso == data[0]["last_seen()"]
         assert data[0]["latest_event()"] == event.event_id
 
         query = {
@@ -3371,7 +3399,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
-    @requires_not_arm64
     def test_null_user_misery_returns_zero(self):
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
@@ -3391,7 +3418,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert data[0]["user_misery(300)"] == 0
 
-    @requires_not_arm64
     def test_null_user_misery_new_returns_zero(self):
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
@@ -5912,6 +5938,93 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["issue"] == "unknown"
         assert response.data["data"][0]["count()"] == 1
 
+    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self):
+        # Store an error
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "timestamp": self.ten_mins_ago_iso,
+                "user": {"email": self.user.email},
+                "tags": {"notMetrics": "this makes it not metrics"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store a transaction
+        self.store_event(
+            {**self.transaction_data, "tags": {"notMetrics": "this makes it not metrics"}},
+            project_id=self.project.id,
+        )
+        features = {
+            "organizations:performance-discover-dataset-selector": True,
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["count()"],
+            "query": 'notMetrics:"this makes it not metrics"',
+            "statsPeriod": "14d",
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+
+        # count() is 1 because it falls back to transactions
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_profiled_transaction_condition(self):
+        no_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        self.store_event(no_profile, project_id=self.project.id)
+
+        profile_id = uuid.uuid4().hex
+        transaction_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})[
+            "profile_id"
+        ] = profile_id
+        transaction_profile["event_id"] = uuid.uuid4().hex
+        self.store_event(transaction_profile, project_id=self.project.id)
+
+        profiler_id = uuid.uuid4().hex
+        continuous_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})[
+            "profiler_id"
+        ] = profiler_id
+        continuous_profile.setdefault("contexts", {}).setdefault("trace", {}).setdefault(
+            "data", {}
+        )["thread.id"] = "12345"
+        continuous_profile["event_id"] = uuid.uuid4().hex
+        self.store_event(continuous_profile, project_id=self.project.id)
+        query = {
+            "field": ["id", "profile.id", "profiler.id"],
+            "query": "has:profile.id OR (has:profiler.id has:thread.id)",
+            "dataset": "discover",
+            "orderby": "id",
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["data"] == sorted(
+            [
+                {
+                    "id": transaction_profile["event_id"],
+                    "profile.id": profile_id,
+                    "profiler.id": None,
+                    "project.name": self.project.slug,
+                },
+                {
+                    "id": continuous_profile["event_id"],
+                    "profile.id": None,
+                    "profiler.id": profiler_id,
+                    "project.name": self.project.slug,
+                },
+            ],
+            key=lambda row: row["id"],
+        )
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
@@ -6018,29 +6131,58 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
 ):
     def test_functions_dataset_simple(self):
-        self.store_functions(
+        one_hour_ago = before_now(hours=1)
+        three_hours_ago = before_now(hours=3)
+
+        stored_1 = self.store_functions(
             [
                 {
-                    "self_times_ns": [100 for _ in range(100)],
+                    "self_times_ns": [100_000_000 for _ in range(100)],
                     "package": "foo",
-                    "function": "bar",
+                    "function": "foo",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=before_now(hours=3),
+            timestamp=three_hours_ago,
         )
-        self.store_functions(
+        stored_2 = self.store_functions(
             [
                 {
-                    "self_times_ns": [150 for _ in range(100)],
+                    "self_times_ns": [150_000_000 for _ in range(100)],
                     "package": "foo",
-                    "function": "bar",
+                    "function": "foo",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=before_now(hours=1),
+            timestamp=one_hour_ago,
+        )
+        stored_3 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [200_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=three_hours_ago,
+        )
+        stored_4 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [250_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=one_hour_ago,
         )
 
         mid = before_now(hours=2)
@@ -6056,6 +6198,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "release",
             "count()",
             "examples()",
+            "all_examples()",
             "p50()",
             "p75()",
             "p95()",
@@ -6071,6 +6214,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
                 "statsPeriod": "4h",
                 "project": [self.project.id],
                 "dataset": "profileFunctions",
+                "orderby": "transaction",
             },
             features={"organizations:profiling": True},
         )
@@ -6094,6 +6238,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "release": None,
             "count()": None,
             "examples()": None,
+            "all_examples()": None,
             "p50()": "nanosecond",
             "p75()": "nanosecond",
             "p95()": "nanosecond",
@@ -6102,6 +6247,87 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "sum()": "nanosecond",
             f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
+
+        def all_examples_sort_key(example):
+            return example.get("profile_id") or example.get("profiler_id")
+
+        for row in response.data["data"]:
+            row["examples()"].sort()
+            row["all_examples()"].sort(key=all_examples_sort_key)
+
+        transaction_examples = [
+            stored_1["transaction"]["contexts"]["profile"]["profile_id"],
+            stored_2["transaction"]["contexts"]["profile"]["profile_id"],
+        ]
+        transaction_examples.sort()
+
+        transaction_all_examples = [
+            {"profile_id": stored_1["transaction"]["contexts"]["profile"]["profile_id"]},
+            {"profile_id": stored_2["transaction"]["contexts"]["profile"]["profile_id"]},
+        ]
+        transaction_all_examples.sort(key=all_examples_sort_key)
+
+        continuous_examples = [stored_3["profiler_id"], stored_4["profiler_id"]]
+        continuous_examples.sort()
+
+        continuous_all_examples = [
+            {
+                "profiler_id": stored_3["profiler_id"],
+                "thread_id": "1",
+                "start": three_hours_ago.timestamp(),
+                "end": (three_hours_ago + timedelta(microseconds=200_000)).timestamp(),
+            },
+            {
+                "profiler_id": stored_4["profiler_id"],
+                "thread_id": "1",
+                "start": one_hour_ago.timestamp(),
+                "end": (one_hour_ago + timedelta(microseconds=250_000)).timestamp(),
+            },
+        ]
+        continuous_all_examples.sort(key=all_examples_sort_key)
+
+        assert response.data["data"] == [
+            {
+                "transaction": "",
+                "project": self.project.slug,
+                "function": "bar",
+                "package": "bar",
+                "is_application": 1,
+                "platform.name": "",
+                "environment": None,
+                "release": None,
+                "count()": 200,
+                "examples()": continuous_examples,
+                "all_examples()": continuous_all_examples,
+                "p50()": 225_000_000.0,
+                "p75()": 250_000_000.0,
+                "p95()": 250_000_000.0,
+                "p99()": 250_000_000.0,
+                "avg()": 225_000_000.0,
+                "sum()": 45_000_000_000.0,
+                f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": mock.ANY,
+            },
+            {
+                "transaction": "/country_by_code/",
+                "project": self.project.slug,
+                "function": "foo",
+                "package": "foo",
+                "is_application": 1,
+                "platform.name": "transaction",
+                "environment": None,
+                "release": None,
+                "count()": 200,
+                "examples()": transaction_examples,
+                "all_examples()": transaction_all_examples,
+                "p50()": 125_000_000.0,
+                "p75()": 150_000_000.0,
+                "p95()": 150_000_000.0,
+                "p99()": 150_000_000.0,
+                "avg()": 125_000_000.0,
+                "sum()": 25_000_000_000.0,
+                f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": mock.ANY,
+            },
+        ]
 
 
 class OrganizationEventsIssuePlatformDatasetEndpointTest(
@@ -6474,35 +6700,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "performance_score(measurements.score.lcp)": 0.7923076923076923,
         }
 
-    def test_weighted_performance_score(self):
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 0.03},
-            "score.weight.lcp": {"value": 0.3},
-            "score.total": {"value": 0.03},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 1.0},
-            "score.weight.lcp": {"value": 1.0},
-            "score.total": {"value": 1.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.lcp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0] == {
-            "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
-        }
-
     def test_invalid_performance_score_column(self):
         self.transaction_data["measurements"] = {
             "score.total": {"value": 0.0},
@@ -6511,19 +6708,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         query = {
             "field": [
                 "performance_score(measurements.score.fp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_invalid_weighted_performance_score_column(self):
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.fp)",
             ]
         }
         response = self.do_request(query)
@@ -6580,16 +6764,16 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         data = response.data["data"][0]
         assert data == {
             "id": event.event_id,
-            "events.transaction": "",
+            "transaction": "",
             "project.name": event.project.name.lower(),
-            "events.title": event.group.title,
+            "title": event.group.title,
             "release": event.release,
-            "events.environment": None,
+            "environment": None,
             "user.display": user_data["email"],
             "device": "Mac",
             "replayId": replay_id,
             "os": "",
-            "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
 
     def test_opportunity_score(self):

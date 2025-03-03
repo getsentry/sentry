@@ -321,7 +321,6 @@ describe('VisualizationStep', function () {
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <VisualizationStep
-            organization={organization}
             pageFilters={PageFiltersFixture()}
             displayType={DisplayType.TABLE}
             error={undefined}

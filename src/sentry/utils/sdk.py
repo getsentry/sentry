@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 import sys
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
@@ -15,6 +14,7 @@ from rest_framework.request import Request
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
 from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -23,10 +23,9 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
-from sentry.features.rollout import in_random_rollout
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-from sentry.utils.flag import get_flags_serialized
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -40,7 +39,7 @@ logger = logging.getLogger(__name__)
 UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/detect_performance_issues/factory.py",
+    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -50,6 +49,7 @@ UNSAFE_FILES = (
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
+    "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
@@ -72,14 +72,10 @@ SAMPLED_TASKS = {
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
@@ -87,6 +83,11 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
+}
+
+SAMPLED_ROUTES = {
+    "/_warmup/": 0.0,
+    "/api/0/auth/validate/": 0.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -178,9 +179,9 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    # dont sample warmup requests
-    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
-        return 0.0
+    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+        return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
@@ -227,7 +228,16 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         return None
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    num_of_spans = len(event["spans"])
+    if isinstance(event["spans"], AnnotatedValue):
+        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
+        # complain. The TypeError should be unreachable.
+        if isinstance(event["spans"].value, Sized):
+            num_of_spans = len(event["spans"].value)
+        else:
+            raise TypeError("Expected a list of spans.")
+    else:
+        num_of_spans = len(event["spans"])
+
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
@@ -244,11 +254,6 @@ def before_send(event: Event, _: Hint) -> Event | None:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
-
-    if "contexts" not in event:
-        event["contexts"] = {}
-    event["contexts"]["flags"] = {"values": get_flags_serialized()}
-
     return event
 
 
@@ -451,10 +456,7 @@ def configure_sdk():
         "sync-options",
         "sync-options-control",
         "schedule-digests",
-        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
-
-    enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
@@ -463,7 +465,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False, cache_spans=enable_cache_spans),
+            DjangoIntegration(signals_spans=False, cache_spans=True),
             CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`

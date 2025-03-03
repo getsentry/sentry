@@ -8,7 +8,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
@@ -21,6 +20,10 @@ describe('GroupDetailsLayout', () => {
   beforeEach(() => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'GET',
@@ -85,16 +88,15 @@ describe('GroupDetailsLayout', () => {
         githubWriteIntegration: {ok: true},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
   });
 
   it('renders children, can collapse sidebar', async () => {
     render(
-      <GroupDetailsLayout
-        group={group}
-        event={event}
-        project={project}
-        groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
-      >
+      <GroupDetailsLayout group={group} event={event} project={project}>
         <div data-test-id="children" />
       </GroupDetailsLayout>
     );
@@ -104,7 +106,7 @@ describe('GroupDetailsLayout', () => {
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Close Sidebar'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
       screen.queryByText('Track this issue in Jira, GitHub, etc.')

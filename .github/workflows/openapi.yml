@@ -10,7 +10,7 @@ env:
 
 jobs:
   build_and_deref_json:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - name: Getsentry Token
@@ -31,6 +31,8 @@ jobs:
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Checkout getsentry/sentry-api-schema

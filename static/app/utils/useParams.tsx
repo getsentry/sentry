@@ -3,20 +3,64 @@ import {useParams as useReactRouter6Params} from 'react-router-dom';
 
 import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 
-import {useRouteContext} from './useRouteContext';
+import {useTestRouteContext} from './useRouteContext';
 
-export function useParams<P = Record<string, string>>(): P {
+/**
+ * List of keys used in routes.tsx `/example/:paramKey/...`
+ *
+ * Prevents misspelling of param keys
+ */
+type ParamKeys =
+  | 'apiKey'
+  | 'appId'
+  | 'appSlug'
+  | 'authId'
+  | 'codeId'
+  | 'dataExportId'
+  | 'dashboardId'
+  | 'docIntegrationSlug'
+  | 'eventId'
+  | 'fineTuneType'
+  | 'groupId'
+  | 'id'
+  | 'installationId'
+  | 'integrationSlug'
+  | 'issueId'
+  | 'memberId'
+  | 'orgId'
+  | 'projectId'
+  | 'release'
+  | 'scrubbingId'
+  | 'searchId'
+  | 'sentryAppSlug'
+  | 'shareId'
+  | 'spanSlug'
+  | 'tagKey'
+  | 'teamId'
+  | 'traceSlug'
+  | 'viewId'
+  | 'widgetIndex';
+
+/**
+ * Get params from the current route. Param availability depends on the current route.
+ *
+ * @example
+ * ```tsx
+ * const params = useParams<{projectId: string}>();
+ * ```
+ */
+export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const legacyRouterContext = useRouteContext();
+  const testRouteContext = useTestRouteContext();
 
   let contextParams: any;
 
-  if (!legacyRouterContext) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  if (!testRouteContext) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     contextParams = useReactRouter6Params();
   } else {
-    contextParams = legacyRouterContext.params;
+    contextParams = testRouteContext.params;
   }
 
   // Memoize params as mutating for customer domains causes other hooks

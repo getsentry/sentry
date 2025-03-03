@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Input} from 'sentry/components/core/input';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -92,7 +92,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             aria-label={t('region')}
             placeholder="Select Location"
             options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
-            onChange={opt => {
+            onChange={(opt: any) => {
               onUpdateRelocationState({regionUrl: opt.value});
             }}
           />

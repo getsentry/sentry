@@ -3,22 +3,23 @@ import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {TabList} from 'sentry/components/tabs';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = {
   activeTab: 'stream' | 'rules';
-  router: InjectedRouter;
 };
 
-function AlertHeader({router, activeTab}: Props) {
+function AlertHeader({activeTab}: Props) {
+  const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   /**
@@ -31,11 +32,15 @@ function AlertHeader({router, activeTab}: Props) {
   };
 
   const alertRulesLink = (
-    <li className={activeTab === 'rules' ? 'active' : ''}>
-      <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/rules/`}>
-        {t('Alert Rules')}
-      </GlobalSelectionLink>
-    </li>
+    <TabList.Item
+      key="rules"
+      to={makeAlertsPathname({
+        path: '/rules/',
+        organization,
+      })}
+    >
+      {t('Alert Rules')}
+    </TabList.Item>
   );
 
   return (
@@ -78,14 +83,20 @@ function AlertHeader({router, activeTab}: Props) {
           />
         </ButtonBar>
       </Layout.HeaderActions>
-      <Layout.HeaderNavTabs underlined>
-        {alertRulesLink}
-        <li className={activeTab === 'stream' ? 'active' : ''}>
-          <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
+      <Layout.HeaderTabs value={activeTab}>
+        <TabList hideBorder>
+          {alertRulesLink}
+          <TabList.Item
+            key="stream"
+            to={makeAlertsPathname({
+              path: '/',
+              organization,
+            })}
+          >
             {t('History')}
-          </GlobalSelectionLink>
-        </li>
-      </Layout.HeaderNavTabs>
+          </TabList.Item>
+        </TabList>
+      </Layout.HeaderTabs>
     </Layout.Header>
   );
 }

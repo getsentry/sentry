@@ -23,7 +23,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 
 
@@ -76,12 +75,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["version"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
-        tagvalue1 = tagstore.backend.get_tag_value(
-            project.id,
-            None,
-            "sentry:release",
-            release_version,
-            tenant_ids={"organization_id": 1, "referrer": "r"},
+        (tagvalue1,) = tagstore.backend.get_release_tags(
+            1, [project.id], environment_id=None, versions=[release_version]
         )
         assert result["lastEvent"] == tagvalue1.last_seen
         assert result["commitCount"] == 1
@@ -450,16 +445,19 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         user = self.create_user(email="chrib@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
-        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        author = CommitAuthor(
+            email="chrib@sentry.io", name="Chrib", organization_id=project.organization_id
+        )
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
         assert len(users) == 1
-        assert users[str(user.id)]["email"] == user.email
+        assert users[str(author.id)]["email"] == author.email
 
     def test_get_user_for_authors_no_user(self):
-        user = User(email="notactuallyauser@sentry.io")
+        author = CommitAuthor(email="notactuallyauser@sentry.io")
         project = self.create_project()
-        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
         assert len(users) == 1
-        assert users[str(user.id)]["email"] == user.email
+        assert users[str(author.id)]["email"] == author.email
 
     @patch("sentry.api.serializers.models.release.serialize")
     def test_get_user_for_authors_caching(self, patched_serialize_base):

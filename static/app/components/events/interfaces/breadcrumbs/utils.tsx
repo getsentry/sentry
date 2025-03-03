@@ -124,7 +124,7 @@ export function getCrumbDescriptionAndColor(
   }
 }
 
-export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
+export function transformCrumbs(breadcrumbs: RawCrumb[]): Crumb[] {
   return breadcrumbs.map((breadcrumb, index) => {
     const convertedCrumbType = convertCrumbType(breadcrumb);
     const {color, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);

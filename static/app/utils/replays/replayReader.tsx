@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
-import extractHtmlandSelector from 'sentry/utils/replays/extractHtml';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -28,7 +28,6 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
-  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -38,13 +37,17 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
-  getNodeIds,
   IncrementalSource,
   isCLSFrame,
+  isConsoleFrame,
   isDeadClick,
   isDeadRageClick,
+  isMetaFrame,
   isPaintFrame,
+  isTouchEndFrame,
+  isTouchStartFrame,
   isWebVitalFrame,
+  NodeType,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -90,7 +93,7 @@ type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
-const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+const sortFrames = (a: any, b: any) => a.timestampMs - b.timestampMs;
 
 function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   const slowClickFrames = frames.filter(
@@ -147,24 +150,6 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
-
-const extractDomNodes = {
-  shouldVisitFrame: frame => {
-    const nodeIds = getNodeIds(frame);
-    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
-  },
-  onVisitFrame: (frame, collection, replayer) => {
-    const mirror = replayer.getMirror();
-    const nodeIds = getNodeIds(frame);
-    const {html, selectors} = extractHtmlandSelector((nodeIds ?? []) as number[], mirror);
-    collection.set(frame as ReplayFrame, {
-      frame,
-      html,
-      selectors,
-      timestamp: frame.timestampMs,
-    });
-  },
-};
 
 export default class ReplayReader {
   static factory({
@@ -264,7 +249,7 @@ export default class ReplayReader {
     this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
-    this._videoEvents = videoFrames;
+    this._videoEvents = videoFrames.sort((a, b) => a.timestamp - b.timestamp);
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
@@ -315,7 +300,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _featureFlags: string[] | undefined = [];
-  private _fetching: boolean = true;
+  private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -353,9 +338,7 @@ export default class ReplayReader {
       // Do this in here since we bypass setting the global offset
       // Eventually when we have video breadcrumbs we'll probably need to trim them here too
 
-      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
-        frames: Array<T>
-      ) => {
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
         const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
 
         return frames.map(frame => ({
@@ -411,7 +394,7 @@ export default class ReplayReader {
    * Filters out frames that are outside of the supplied window
    */
   _trimFramesToClipWindow = <T extends {timestampMs: number}>(
-    frames: Array<T>,
+    frames: T[],
     startTimestampMs: number,
     endTimestampMs: number
   ) => {
@@ -424,7 +407,7 @@ export default class ReplayReader {
   /**
    * Updates the offsetMs of all frames to be relative to the start of the clip window
    */
-  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: Array<T>) => {
+  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
     return frames.map(frame => ({
       ...frame,
       offsetMs: frame.offsetMs - this.getStartOffsetMs(),
@@ -447,22 +430,26 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getExtractDomNodes = memoize(async () => {
-    if (this._fetching) {
-      return null;
+  getExtractDomNodes = memoize(
+    async ({withoutStyles}: {withoutStyles?: boolean} = {}) => {
+      if (this._fetching) {
+        return null;
+      }
+      const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+      const results = await replayerStepper({
+        frames: this.getDOMFrames(),
+        rrwebEvents: withoutStyles
+          ? this.getRRWebFramesWithoutStyles()
+          : this.getRRWebFrames(),
+        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+        onVisitFrame,
+        shouldVisitFrame,
+      });
+
+      return results;
     }
-    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
-
-    const results = await replayerStepper({
-      frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFrames(),
-      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-      onVisitFrame,
-      shouldVisitFrame,
-    });
-
-    return results;
-  });
+  );
 
   getClipWindow = () => this._clipWindow;
 
@@ -493,6 +480,97 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getRRWebFramesWithSnapshots = memoize(() => {
+    const eventsWithSnapshots: RecordingFrame[] = [];
+    const events = this._sortedRRWebEvents;
+    events.forEach((e, index) => {
+      // For taps, sometimes the timestamp difference between TouchStart
+      // and TouchEnd is too small. This clamps the tap to a min time
+      // if the difference is less, so that the rrweb tap is visible and obvious.
+      if (isTouchStartFrame(e) && index < events.length - 2) {
+        const nextEvent = events[index + 1]!;
+        if (isTouchEndFrame(nextEvent)) {
+          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
+        }
+      }
+      eventsWithSnapshots.push(e);
+      if (isMetaFrame(e)) {
+        // Create a mock full snapshot event, in order to render rrweb gestures properly
+        // Need to add one for every meta event we see
+        // The hardcoded data.node.id here should match the ID of the data being sent
+        // in the `positions` arrays
+        eventsWithSnapshots.push({
+          type: EventType.FullSnapshot,
+          data: {
+            node: {
+              type: NodeType.Document,
+              childNodes: [
+                {
+                  type: NodeType.DocumentType,
+                  id: 1,
+                  name: 'html',
+                  publicId: '',
+                  systemId: '',
+                },
+                {
+                  type: NodeType.Element,
+                  id: 2,
+                  tagName: 'html',
+                  attributes: {
+                    lang: 'en',
+                  },
+                  childNodes: [],
+                },
+              ],
+              id: 0,
+            },
+            initialOffset: {
+              top: 0,
+              left: 0,
+            },
+          },
+          timestamp: e.timestamp,
+        });
+      }
+    });
+    return eventsWithSnapshots;
+  });
+
+  /**
+   * Filter out style mutations as they can cause perf problems especially when
+   * used in replayStepper
+   */
+  getRRWebFramesWithoutStyles = memoize(() => {
+    return this.getRRWebFrames().map(e => {
+      if (
+        e.type === EventType.IncrementalSnapshot &&
+        'source' in e.data &&
+        e.data.source === IncrementalSource.Mutation
+      ) {
+        return {
+          ...e,
+          data: {
+            ...e.data,
+            adds: e.data.adds.filter(
+              add =>
+                !(
+                  (add.node.type === 3 && add.node.isStyle) ||
+                  (add.node.type === 2 && add.node.tagName === 'style')
+                )
+            ),
+          },
+        };
+      }
+      return e;
+    });
+  });
+
+  getRRwebTouchEvents = memoize(() =>
+    this.getRRWebFramesWithSnapshots().filter(
+      e => isTouchEndFrame(e) || isTouchStartFrame(e)
+    )
+  );
+
   getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
 
   getRRWebMutations = () =>
@@ -507,7 +585,7 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(frame => isConsoleFrame(frame))
   );
 
   getNavigationFrames = memoize(() =>
@@ -591,7 +669,9 @@ export default class ReplayReader {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(
         frame =>
-          ['navigation', 'ui.click', 'ui.tap'].includes(frame.category) ||
+          ['navigation', 'ui.click', 'ui.tap', 'ui.swipe', 'ui.scroll'].includes(
+            frame.category
+          ) ||
           (frame.category === 'ui.slowClickDetected' &&
             (isDeadClick(frame as SlowClickFrame) ||
               isDeadRageClick(frame as SlowClickFrame)))
@@ -644,7 +724,9 @@ export default class ReplayReader {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
 
-  isVideoReplay = memoize(() => this.getVideoEvents().length > 0);
+  isVideoReplay = () => this.getVideoEvents().length > 0;
+
+  isNetworkCaptureBodySetup = () => Boolean(this.getSDKOptions()?.networkCaptureBodies);
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();
@@ -658,9 +740,9 @@ export default class ReplayReader {
     return this.getNetworkFrames().some(
       frame =>
         // We'd need to `filter()` before calling `some()` in order for TS to be happy
-        // @ts-expect-error
+        // @ts-expect-error TS(2339): Property 'request' does not exist on type 'WebVita... Remove this comment to see the full error message
         Object.keys(frame?.data?.request?.headers ?? {}).length ||
-        // @ts-expect-error
+        // @ts-expect-error TS(2339): Property 'response' does not exist on type 'WebVit... Remove this comment to see the full error message
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
@@ -688,6 +770,7 @@ function findCanvasInMutation(event: incrementalSnapshotEvent) {
   );
 }
 
+// @ts-expect-error TS(7023): 'findCanvasInChildNodes' implicitly has return typ... Remove this comment to see the full error message
 function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
   return nodes.find(
     node =>

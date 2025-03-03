@@ -26,7 +26,7 @@ describe('ProjectHpkpReports', function () {
 
     // Heading
     expect(
-      await screen.findByText('HTTP Public Key Pinning', {selector: 'h4'})
+      await screen.findByText('HTTP Public Key Pinning', {selector: 'h1'})
     ).toBeInTheDocument();
   });
 

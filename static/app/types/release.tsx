@@ -19,7 +19,7 @@ export type SourceMapsArchive = {
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
-  headers: {'Content-Type': string} | {};
+  headers: {'Content-Type': string} | Record<string, unknown>;
   id: string;
   name: string;
   sha1: string;
@@ -72,11 +72,11 @@ export interface Release extends BaseRelease, ReleaseData {
 }
 
 export interface ReleaseWithHealth extends BaseRelease, ReleaseData {
-  projects: Required<ReleaseProject>[];
+  projects: Array<Required<ReleaseProject>>;
 }
 
 interface ReleaseData {
-  authors: User[];
+  authors: Array<User | {email: string; name: string}>;
   commitCount: number;
   currentProjectMeta: {
     firstReleaseVersion: string | null;
@@ -86,7 +86,7 @@ interface ReleaseData {
     sessionsLowerBound: string | null;
     sessionsUpperBound: string | null;
   };
-  data: {};
+  data: Record<string, unknown>;
   deployCount: number;
   fileCount: number | null;
   firstEvent: string;
@@ -191,10 +191,10 @@ export enum HealthStatsPeriodOption {
   TWENTY_FOUR_HOURS = '24h',
 }
 
-export type CrashFreeTimeBreakdown = {
+export type CrashFreeTimeBreakdown = Array<{
   crashFreeSessions: number | null;
   crashFreeUsers: number | null;
   date: string;
   totalSessions: number;
   totalUsers: number;
-}[];
+}>;

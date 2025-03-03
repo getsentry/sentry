@@ -85,15 +85,15 @@ export function TraceProfiles({
         const link =
           'profiler_id' in profile
             ? generateContinuousProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 profilerId: profile.profiler_id,
                 start: new Date(node.space[0]).toISOString(),
                 end: new Date(node.space[0] + node.space[1]).toISOString(),
                 projectSlug: node.metadata.project_slug as string,
-                query: query,
+                query,
               })
             : generateProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 projectSlug: node.metadata.project_slug as string,
                 profileId: profile.profile_id,
                 query,

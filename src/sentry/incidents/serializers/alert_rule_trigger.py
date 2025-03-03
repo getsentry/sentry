@@ -1,6 +1,8 @@
 from django import forms
+from django.db import router, transaction
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
@@ -11,7 +13,15 @@ from sentry.incidents.logic import (
     rewrite_trigger_action_fields,
     update_alert_rule_trigger,
 )
-from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule_trigger_action,
+    migrate_metric_data_conditions,
+)
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 
@@ -38,19 +48,32 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
-        try:
-            actions = validated_data.pop("actions", None)
-            alert_rule_trigger = create_alert_rule_trigger(
-                alert_rule=self.context["alert_rule"], **validated_data
-            )
-            self._handle_actions(alert_rule_trigger, actions)
+        with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
+            try:
+                actions = validated_data.pop("actions", None)
+                alert_rule_trigger = create_alert_rule_trigger(
+                    alert_rule=self.context["alert_rule"], **validated_data
+                )
 
-            return alert_rule_trigger
-        except forms.ValidationError as e:
-            # if we fail in create_alert_rule_trigger, then only one message is ever returned
-            raise serializers.ValidationError(e.error_list[0].message)
-        except AlertRuleTriggerLabelAlreadyUsedError:
-            raise serializers.ValidationError("This label is already in use for this alert rule")
+            except forms.ValidationError as e:
+                # if we fail in create_alert_rule_trigger, then only one message is ever returned
+                raise serializers.ValidationError(e.error_list[0].message)
+            except AlertRuleTriggerLabelAlreadyUsedError:
+                raise serializers.ValidationError(
+                    "This label is already in use for this alert rule"
+                )
+
+            # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
+            if (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-dual-write",
+                    alert_rule_trigger.alert_rule.organization,
+                )
+                and alert_rule_trigger.alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
+            ):
+                migrate_metric_data_conditions(alert_rule_trigger)
+        self._handle_actions(alert_rule_trigger, actions)
+        return alert_rule_trigger
 
     def update(self, instance, validated_data):
         actions = validated_data.pop("actions")
@@ -75,7 +98,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 alert_rule_trigger=alert_rule_trigger
             ).exclude(id__in=action_ids)
             for action in actions_to_delete:
-                delete_alert_rule_trigger_action(action)
+                with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+                    dual_delete_migrated_alert_rule_trigger_action(action)
+                    delete_alert_rule_trigger_action(action)
 
             for action_data in actions:
                 action_data = rewrite_trigger_action_fields(action_data)

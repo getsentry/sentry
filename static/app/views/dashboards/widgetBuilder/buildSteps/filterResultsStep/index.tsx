@@ -4,8 +4,8 @@ import type {Location} from 'history';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -14,7 +14,6 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {
   createOnDemandFilterWarning,
   isOnDemandQueryString,
@@ -48,14 +47,13 @@ interface Props {
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onQueryConditionChange: (isQueryConditionValid: boolean) => void;
   onQueryRemove: (queryIndex: number) => void;
-  organization: Organization;
   queries: WidgetQuery[];
   selection: PageFilters;
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   widgetType: WidgetType;
   dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
 }
 
 export function FilterResultsStep({
@@ -66,7 +64,6 @@ export function FilterResultsStep({
   onQueryRemove,
   onAddSearchConditions,
   onQueryChange,
-  organization,
   hideLegendAlias,
   queryErrors,
   widgetType,
@@ -74,13 +71,14 @@ export function FilterResultsStep({
   onQueryConditionChange,
   validatedWidgetResponse,
 }: Props) {
+  const organization = useOrganization();
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>([]);
 
   const handleSearch = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
         const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
+          ...queries[queryIndex]!,
           conditions: field,
         };
 
@@ -97,7 +95,7 @@ export function FilterResultsStep({
         setQueryConditionValidity(queryConditionValidity);
         onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
         const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
+          ...queries[queryIndex]!,
           conditions: field,
         };
         onQueryChange(queryIndex, newQuery);
@@ -174,7 +172,6 @@ export function FilterResultsStep({
                       ? getOnDemandFilterWarning
                       : undefined
                   }
-                  organization={organization}
                   pageFilters={selection}
                   onClose={handleClose(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
@@ -196,7 +193,7 @@ export function FilterResultsStep({
                     placeholder={t('Legend Alias')}
                     onChange={event => {
                       const newQuery: WidgetQuery = {
-                        ...queries[queryIndex],
+                        ...queries[queryIndex]!,
                         name: event.target.value,
                       };
                       onQueryChange(queryIndex, newQuery);
@@ -227,7 +224,7 @@ export function FilterResultsStep({
   );
 }
 
-function WidgetOnDemandQueryWarning(props: {
+export function WidgetOnDemandQueryWarning(props: {
   query: WidgetQuery;
   queryIndex: number;
   validatedWidgetResponse: Props['validatedWidgetResponse'];
@@ -261,6 +258,11 @@ function WidgetOnDemandQueryWarning(props: {
         'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
         {strong: <strong />}
       )}
+      color={
+        organization.features.includes('dashboards-widget-builder-redesign')
+          ? 'yellow300'
+          : undefined
+      }
     />
   );
 }

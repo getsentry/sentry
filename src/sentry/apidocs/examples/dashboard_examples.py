@@ -61,14 +61,18 @@ DASHBOARD_OBJECT = {
                 }
             ],
             "limit": None,
-            "widgetType": "discover",
+            "widgetType": "transaction-like",
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
         }
     ],
     "projects": [1],
     "filters": {},
     "period": "7d",
-    "permissions": {"is_creator_only_editable": False},
+    "permissions": {
+        "isEditableByEveryone": True,
+        "teamsWithEditAccess": [],
+    },
+    "isFavorited": False,
 }
 
 DASHBOARDS_OBJECT = [
@@ -101,6 +105,8 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
+        "isFavorited": False,
     },
     {
         "id": "2",
@@ -131,6 +137,8 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": None,
+        "isFavorited": False,
     },
 ]
 

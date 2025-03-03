@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,21 +6,23 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import theme from 'sentry/utils/theme';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useMedia from 'sentry/utils/useMedia';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  IssueDetailsContext,
+  useIssueDetailsReducer,
+} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
-import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
+import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {getGroupReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
   event: Event | undefined;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   project: Project;
 }
 
@@ -28,36 +30,45 @@ export function GroupDetailsLayout({
   group,
   event,
   project,
-  groupReprocessingStatus,
   children,
 }: GroupDetailsLayoutProps) {
-  const searchQuery = useEventQuery({group});
-  const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
+  const theme = useTheme();
+  const {issueDetails, dispatch} = useIssueDetailsReducer();
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
+  const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
+
+  const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
+
   return (
-    <Fragment>
+    <IssueDetailsContext.Provider value={{...issueDetails, dispatch}}>
       <StreamlinedGroupHeader
         group={group}
         event={event ?? null}
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
       />
-      <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={sidebarOpen}>
+      <StyledLayoutBody
+        data-test-id="group-event-details"
+        sidebarOpen={issueDetails.isSidebarOpen}
+      >
         <div>
-          <EventDetailsHeader event={event} group={group} />
+          <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
-            <div>
-              <IssueEventNavigation event={event} group={group} query={searchQuery} />
-              {children}
-            </div>
+            <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+              <IssueEventNavigation event={event} group={group} />
+              {/* Since the event details header is disabled, display the sidebar toggle here */}
+              {!hasFilterBar && <ToggleSidebar size="sm" />}
+            </NavigationSidebarWrapper>
+            <ContentPadding>{children}</ContentPadding>
           </GroupContent>
         </div>
         {shouldDisplaySidebar ? (
           <StreamlinedSidebar group={group} event={event} project={project} />
         ) : null}
       </StyledLayoutBody>
-    </Fragment>
+    </IssueDetailsContext.Provider>
   );
 }
 
@@ -72,10 +83,8 @@ const StyledLayoutBody = styled(Layout.Body)<{
   }
 `;
 
-const GroupContent = styled(Layout.Main)`
+const GroupContent = styled('section')`
   background: ${p => p.theme.backgroundSecondary};
-  min-height: 100vh;
-  padding: 10px ${space(1.5)} ${space(1.5)};
   display: flex;
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -84,4 +93,20 @@ const GroupContent = styled(Layout.Main)`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
   }
+`;
+
+const NavigationSidebarWrapper = styled('div')<{
+  hasToggleSidebar: boolean;
+}>`
+  position: relative;
+  display: flex;
+  padding: ${p =>
+    p.hasToggleSidebar
+      ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
+      : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+`;
+
+const ContentPadding = styled('div')`
+  min-height: 100vh;
+  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
 `;

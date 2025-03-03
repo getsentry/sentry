@@ -54,18 +54,6 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def page_organization_integrations_ids(
-        self,
-        *,
-        organization_id: int,
-        statuses: list[int],
-        provider_key: str | None = None,
-        args: RpcPaginationArgs,
-    ) -> RpcPaginationResult:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_integrations(
         self,
         *,
@@ -240,7 +228,7 @@ class IntegrationService(RpcService):
         new_status: int,
         incident_attachment_json: str,
         organization_id: int,
-        metric_value: str | None = None,
+        metric_value: float,
         notification_uuid: str | None = None,
     ) -> bool:
         pass

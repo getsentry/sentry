@@ -15,6 +15,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/persistence';
 import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {
   ALL_ACCESS_PROJECTS,
   DATE_TIME_KEYS,
@@ -28,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {DAY} from 'sentry/utils/formatters';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
@@ -121,6 +123,10 @@ export type InitializeUrlStateParams = {
   shouldEnforceSingleProject: boolean;
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
+  /**
+   * When set, the stats period will fallback to the `maxPickableDays` days if the stored selection exceeds the limit.
+   */
+  maxPickableDays?: number;
   shouldForceProject?: boolean;
   /**
    * Whether to save changes to local storage. This setting should be page-specific:
@@ -163,6 +169,7 @@ export function initializeUrlState({
   nonMemberProjects,
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
+  maxPickableDays,
   shouldPersist = true,
   shouldForceProject,
   shouldEnforceSingleProject,
@@ -312,7 +319,7 @@ export function initializeUrlState({
     if (projects && projects.length > 0) {
       // If there is a list of projects from URL params, select first project
       // from that list
-      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
+      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]!];
     } else {
       // When we have finished loading the organization into the props,  i.e.
       // the organization slug is consistent with the URL param--Sentry will
@@ -325,6 +332,31 @@ export function initializeUrlState({
   if (newProject) {
     pageFilters.projects = newProject;
     project = newProject;
+  }
+
+  let shouldUseMaxPickableDays = false;
+
+  if (maxPickableDays && pageFilters.datetime) {
+    let {start, end} = pageFilters.datetime;
+
+    if (pageFilters.datetime.period) {
+      const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
+      start = parsedPeriod.start;
+      end = parsedPeriod.end;
+    }
+
+    if (start && end) {
+      const difference = new Date(end).getTime() - new Date(start).getTime();
+      if (difference > maxPickableDays * DAY) {
+        shouldUseMaxPickableDays = true;
+        pageFilters.datetime = {
+          period: `${maxPickableDays}d`,
+          start: null,
+          end: null,
+          utc: datetime.utc,
+        };
+      }
+    }
   }
 
   const pinnedFilters = organization.features.includes('new-page-filter')
@@ -343,14 +375,21 @@ export function initializeUrlState({
     PageFiltersStore.updateDesyncedFilters(new Set());
   }
 
-  const newDatetime = {
-    ...datetime,
-    period:
-      parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
-        ? datetime.period
-        : null,
-    utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
-  };
+  const newDatetime = shouldUseMaxPickableDays
+    ? {
+        period: `${maxPickableDays}d`,
+        start: null,
+        end: null,
+        utc: datetime.utc,
+      }
+    : {
+        ...datetime,
+        period:
+          parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
+            ? datetime.period
+            : null,
+        utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
+      };
 
   if (!skipInitializeUrlParams) {
     updateParams({project, environment, ...newDatetime}, router, {

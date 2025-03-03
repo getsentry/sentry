@@ -1,5 +1,5 @@
-from unittest import TestCase
-from unittest.mock import Mock
+from unittest import TestCase, mock
+from unittest.mock import Mock, patch
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
@@ -8,7 +8,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.signals import alert_rule_created
+from sentry.signals import alert_rule_created, project_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -141,9 +141,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
-        # Ensure that creating the default alert rule does not trigger the
-        # alert_rule_created signal to avoid fake recording fake analytics.
-        assert signal_handler.call_count == 0
+        # Ensure that creating the default alert rule does trigger the
+        # alert_rule_created signal
+        assert signal_handler.call_count == 1
         alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules_disable_member_project_creation(self):
@@ -161,8 +161,15 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)
 
+        # org member cannot create project when they are not a team admin of the team
         test_member = self.create_user(is_superuser=False)
-        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
+        self.create_member(
+            user=test_member,
+            organization=test_org,
+            role="admin",
+            teams=[test_team],
+            team_roles=[(test_team, "contributor")],
+        )
         self.login_as(user=test_member)
         response = self.get_error_response(
             test_org.slug,
@@ -172,14 +179,35 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
 
+        # org member can create project when they are a team admin of the team
+        test_team_admin = self.create_user(is_superuser=False)
+        self.create_member(
+            user=test_team_admin,
+            organization=test_org,
+            role="member",
+            team_roles=[(test_team, "admin")],
+        )
+        self.login_as(user=test_team_admin)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            status_code=201,
+            name="test",
+            slug="test-1",
+            platform="python",
+        )
+
+        # org manager can create project
         test_manager = self.create_user(is_superuser=False)
         self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
         self.login_as(user=test_manager)
         self.get_success_response(
             test_org.slug,
             test_team.slug,
-            **self.data,
             status_code=201,
+            name="test",
+            slug="test-2",
+            platform="python",
         )
 
     def test_default_inbound_filters(self):
@@ -284,3 +312,78 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             )
             is None
         )
+
+    def test_builtin_symbol_sources_electron(self):
+        """
+        Test that project option for builtin symbol sources contains ["electron"] when creating
+        an Electron project, but uses defaults for other platforms.
+        """
+        # Test Electron project
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="electron-app",
+            slug="electron-app",
+            platform="electron",
+            status_code=201,
+        )
+
+        electron_project = Project.objects.get(id=response.data["id"])
+        assert electron_project.platform == "electron"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=electron_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["ios", "microsoft", "electron"]
+
+    def test_builtin_symbol_sources_not_electron(self):
+        # Test non-Electron project (e.g. Python)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="python-app",
+            slug="python-app",
+            platform="python",
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=response.data["id"])
+        assert python_project.platform == "python"
+        # Should use default value, not ["electron"]
+        symbol_sources = ProjectOption.objects.get_value(
+            project=python_project, key="sentry:builtin_symbol_sources"
+        )
+        assert "electron" not in symbol_sources
+
+    @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
+    def test_create_project_with_origin(self, create_audit_entry):
+        signal_handler = Mock()
+        project_created.connect(signal_handler)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            default_rules=False,
+            status_code=201,
+            origin="ui",
+        )
+        project = Project.objects.get(id=response.data["id"])
+
+        assert create_audit_entry.call_count == 1
+
+        # Verify audit log
+        create_audit_entry.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=project.id,
+            event=1154,
+            data={
+                **project.get_audit_log_data(),
+                "origin": "ui",
+            },
+        )
+
+        # Verify origin is passed to project_created signal
+        assert signal_handler.call_count == 1
+        assert signal_handler.call_args[1]["origin"] == "ui"
+        project_created.disconnect(signal_handler)

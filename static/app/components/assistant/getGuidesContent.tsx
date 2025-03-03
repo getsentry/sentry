@@ -4,7 +4,7 @@ import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
-import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
 
 export default function getGuidesContent(
   organization: Organization | null
@@ -41,6 +41,7 @@ export default function getGuidesContent(
           ),
         },
         {
+          // TODO(streamline-ui): Remove from guides on GA, tag sidebar is gone
           title: t('Pinpoint hotspots'),
           target: 'issue_sidebar_tags',
           description: t(
@@ -62,6 +63,13 @@ export default function getGuidesContent(
             `Automatically assign issues to the person who introduced the commit,
               notify them over notification tools like Slack,
               and triage through issue management tools like Jira. `
+          ),
+        },
+        {
+          title: t('Onboarding'),
+          target: 'onboarding_sidebar',
+          description: t(
+            'Walk through this guide to get the most out of Sentry right away.'
           ),
         },
       ],
@@ -183,249 +191,36 @@ export default function getGuidesContent(
       ],
     },
     {
-      guide: 'metrics_onboarding',
-      requiredTargets: ['metrics_onboarding'],
+      guide: 'crons_backend_insights',
+      requiredTargets: ['crons_backend_insights'],
       steps: [
         {
-          title: t('Metrics Selector'),
-          target: 'metrics_selector',
-          description: t('Your metrics are available here.'),
-        },
-        {
-          title: t('Aggregate Metrics'),
-          target: 'metrics_aggregate',
-          description: t('See different facets of your metric through aggregations.'),
-        },
-        ...(organization && hasMetricsNewInputs(organization)
-          ? [
-              {
-                title: t('Grouping'),
-                target: 'metrics_groupby',
-                description: t('Segment your data by the tags you’ve attached.'),
-              },
-              {
-                title: t('Filtering'),
-                target: 'metrics_filterby',
-                description: t('Filter your data by the tags you’ve attached.'),
-              },
-            ]
-          : [
-              {
-                title: t('Grouping & Filtering'),
-                target: 'metrics_groupby',
-                description: t(
-                  'Segment or filter your data by the tags you’ve attached.'
-                ),
-              },
-            ]),
-        {
-          title: t('Multiple Metrics'),
-          target: 'add_metric_query',
-          description: t('Plot a second metric to see correlations.'),
-        },
-        {
-          title: t('Visualization'),
-          target: 'metrics_chart',
-          description: t(
-            'View plotted metrics, dots on the chart represent associated sample spans.'
-          ),
-        },
-        {
-          title: t('Span Samples'),
-          target: 'metrics_table',
+          title: t('Crons are now Alerts'),
+          target: 'crons_backend_insights',
           description: tct(
-            'See sample spans summarized in a table format. [openInTraces]',
+            'Crons are now a type of Sentry Alert and can be managed there. The detailed timeline is now here under Insights\u00A0→\u00A0Backend. [link:Learn more].',
             {
-              openInTraces:
-                organization?.features.includes(
-                  'performance-trace-explorer-with-metrics'
-                ) && organization?.features.includes('performance-trace-explorer')
-                  ? t('To filter by tags found only on spans, click "Open in Traces".')
-                  : '',
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/crons/alerts-backend-insights-migration/" />
+              ),
             }
           ),
         },
       ],
     },
-  ];
-}
-
-function getDemoModeGuides(): GuidesContent {
-  return [
     {
-      guide: 'sidebar_v2',
-      requiredTargets: ['projects'],
-      priority: 1,
-      markOthersAsSeen: true,
+      guide: 'issue_views_page_filters_persistence',
+      requiredTargets: ['issue_views_page_filters_persistence'],
       steps: [
         {
-          title: t('Projects'),
-          target: 'projects',
+          title: t('Save Filters to Issue Views'),
+          target: 'issue_views_page_filters_persistence',
           description: t(
-            `Create a project for any type of application you want to monitor.`
-          ),
-        },
-        {
-          title: t('Issues'),
-          target: 'issues',
-          description: t(
-            `Here's a list of what's broken and slow. Sentry automatically groups similar events together into an issue.`
-          ),
-        },
-        {
-          title: t('Performance'),
-          target: 'performance',
-          description: t(
-            `Keep a pulse on crash rates, throughput, and latency issues across projects.`
-          ),
-        },
-        {
-          title: t('Releases'),
-          target: 'releases',
-          description: t(
-            `Track the health of every release, see differences between releases from crash analytics to adoption rates.`
-          ),
-        },
-        {
-          title: t('Discover'),
-          target: 'discover',
-          description: t(
-            `Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.`
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'issue_stream_v3',
-      requiredTargets: ['issue_stream'],
-      steps: [
-        {
-          title: t('Issues'),
-          target: 'issue_stream',
-          description: t(
-            `Sentry automatically groups similar events together into an issue. Similarity is
-            determined by stack trace and other factors. Click on an issue to learn more.`
+            'We heard your feedback — Issue Views now save project, environment, and time range filters.'
           ),
         },
       ],
-    },
-    {
-      guide: 'issues_v3',
-      requiredTargets: ['tags'],
-      steps: [
-        {
-          title: t('Metadata and metrics'),
-          target: 'tags',
-          description: t(
-            `See tags like specific users affected by the event, device, OS, and browser type.
-            On the right side of the page you can view the number of affected users and exception frequency overtime.`
-          ),
-        },
-        {
-          title: t('Find your broken code'),
-          target: 'stack_trace',
-          description: t(
-            `View the stack trace to see the exact sequence of function calls leading to the error in question.`
-          ),
-        },
-        {
-          title: t('Retrace your steps'),
-          target: 'breadcrumbs',
-          description: t(
-            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events leading up to the error.`
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'releases_v2',
-      requiredTargets: ['release_projects'],
-      priority: 1,
-      steps: [
-        {
-          title: t('Compare releases'),
-          target: 'release_projects',
-          description: t(
-            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'react-native-release',
-      requiredTargets: ['release_version'],
-      steps: [
-        {
-          title: t('Release-specfic trends'),
-          target: 'release_version',
-          description: t(
-            `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'release-details_v2',
-      requiredTargets: ['release_states'],
-      steps: [
-        {
-          title: t('New and regressed issues'),
-          target: 'release_states',
-          description: t(
-            `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'performance',
-      requiredTargets: ['performance_table'],
-      steps: [
-        {
-          title: t('See slow transactions'),
-          target: 'performance_table',
-          description: t(
-            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select a transaction to see more details.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'transaction_summary',
-      requiredTargets: ['user_misery', 'transactions_table'],
-      steps: [
-        {
-          title: t('Identify the root cause'),
-          target: 'user_misery',
-          description: t(
-            'Dive into the details behind a slow transaction. See User Misery, Apdex, and more metrics, along with related events and suspect spans.'
-          ),
-        },
-        {
-          title: t('Breakdown event spans'),
-          target: 'transactions_table',
-          description: t(
-            'Select an Event ID from a list of slow transactions to uncover slow spans.'
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'transaction_details_v2',
-      requiredTargets: ['span_tree'],
-      steps: [
-        {
-          title: t('See slow fast'),
-          target: 'span_tree',
-          description: t(
-            `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
-            did before encountering the performance issue.`
-          ),
-        },
-      ],
+      dateThreshold: new Date('2025-02-11'),
     },
   ];
 }

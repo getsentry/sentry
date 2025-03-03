@@ -5,6 +5,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {
   MOCK_DATA_SECTION_PROPS,
+  MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
 } from 'sentry/components/events/featureFlags/testUtils';
 
@@ -23,13 +24,21 @@ async function renderFlagDrawer() {
       bottom: 0,
       toJSON: jest.fn(),
     }));
-  render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
-  await userEvent.click(screen.getByRole('button', {name: 'View All'}));
-  return within(screen.getByRole('complementary', {name: 'Feature flags drawer'}));
+  render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
+  await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
+  return screen.getByRole('complementary', {name: 'Feature flags drawer'});
 }
 
 describe('FeatureFlagDrawer', function () {
   beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/events/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
       body: TagsFixture(),
@@ -37,28 +46,33 @@ describe('FeatureFlagDrawer', function () {
   });
   it('renders the drawer as expected', async function () {
     const drawerScreen = await renderFlagDrawer();
-    expect(drawerScreen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
+    expect(
+      within(drawerScreen).getByRole('button', {name: 'Close Drawer'})
+    ).toBeInTheDocument();
 
     // Inner drawer flags
     const {event, group} = MOCK_DATA_SECTION_PROPS;
-    expect(drawerScreen.getByText(group.shortId)).toBeInTheDocument();
-    expect(drawerScreen.getByText(event.id.slice(0, 8))).toBeInTheDocument();
+    expect(within(drawerScreen).getByText(group.shortId)).toBeInTheDocument();
+    expect(within(drawerScreen).getByText(event.id.slice(0, 8))).toBeInTheDocument();
     expect(
-      drawerScreen.getByText('Feature Flags', {selector: 'span'})
+      within(drawerScreen).getByText('Feature Flags', {selector: 'span'})
     ).toBeInTheDocument();
 
     // Header & Controls
-    expect(drawerScreen.getByText('Feature Flags', {selector: 'h3'})).toBeInTheDocument();
-    expect(drawerScreen.getByRole('textbox', {name: 'Search Flags'})).toBeInTheDocument();
-    expect(drawerScreen.getByRole('button', {name: 'Newest'})).toBeInTheDocument();
     expect(
-      drawerScreen.getByRole('button', {name: 'Evaluation Order'})
+      within(drawerScreen).getByText('Feature Flags', {selector: 'h3'})
+    ).toBeInTheDocument();
+    expect(
+      within(drawerScreen).getByRole('textbox', {name: 'Search Flags'})
+    ).toBeInTheDocument();
+    expect(
+      within(drawerScreen).getByRole('button', {name: 'Sort Flags'})
     ).toBeInTheDocument();
 
     // Contents
     for (const {flag, result} of MOCK_FLAGS) {
-      expect(drawerScreen.getByText(flag)).toBeInTheDocument();
-      expect(drawerScreen.getAllByText(result.toString())[0]).toBeInTheDocument();
+      expect(within(drawerScreen).getByText(flag)).toBeInTheDocument();
+      expect(within(drawerScreen).getAllByText(result.toString())[0]).toBeInTheDocument();
     }
   });
 
@@ -66,16 +80,16 @@ describe('FeatureFlagDrawer', function () {
     const drawerScreen = await renderFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
-    expect(drawerScreen.getByText(webVitalsFlag.flag)).toBeInTheDocument();
-    expect(drawerScreen.getByText(enableReplay.flag)).toBeInTheDocument();
+    expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
+    expect(within(drawerScreen).getByText(enableReplay!.flag)).toBeInTheDocument();
 
-    const searchInput = drawerScreen.getByRole('textbox', {
+    const searchInput = within(drawerScreen).getByRole('textbox', {
       name: 'Search Flags',
     });
-    await userEvent.type(searchInput, webVitalsFlag.flag);
+    await userEvent.type(searchInput, webVitalsFlag!.flag);
 
-    expect(drawerScreen.getByText(webVitalsFlag.flag)).toBeInTheDocument();
-    expect(drawerScreen.queryByText(enableReplay.flag)).not.toBeInTheDocument();
+    expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
+    expect(within(drawerScreen).queryByText(enableReplay!.flag)).not.toBeInTheDocument();
   });
 
   it('allows sort dropdown to affect displayed flags', async function () {
@@ -85,37 +99,108 @@ describe('FeatureFlagDrawer', function () {
 
     // the flags are reversed by default, so webVitalsFlag should be following enableReplay
     expect(
-      drawerScreen
-        .getByText(enableReplay.flag)
-        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
+      within(drawerScreen)
+        .getByText(enableReplay!.flag)
+        .compareDocumentPosition(within(drawerScreen).getByText(webVitalsFlag!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
-    const sortControl = drawerScreen.getByRole('button', {
-      name: 'Newest',
+    const sortControl = within(drawerScreen).getByRole('button', {
+      name: 'Sort Flags',
     });
     await userEvent.click(sortControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest'}));
+    await userEvent.click(
+      within(drawerScreen).getByRole('option', {name: 'Oldest First'})
+    );
 
     // expect webVitalsFlag to be preceding enableReplay
     expect(
-      drawerScreen
-        .getByText(enableReplay.flag)
-        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
+      within(drawerScreen)
+        .getByText(enableReplay!.flag)
+        .compareDocumentPosition(within(drawerScreen).getByText(webVitalsFlag!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
-    const sortGroupControl = drawerScreen.getByRole('button', {
-      name: 'Evaluation Order',
-    });
-    await userEvent.click(sortGroupControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Alphabetical'}));
     await userEvent.click(sortControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Z-A'}));
+    await userEvent.click(
+      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
+    );
+    await userEvent.click(sortControl);
+    await userEvent.click(within(drawerScreen).getByRole('option', {name: 'Z-A'}));
 
     // enableReplay follows webVitalsFlag in Z-A sort
     expect(
-      drawerScreen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
+      within(drawerScreen)
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(within(drawerScreen).getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('renders a sort dropdown with Evaluation Order as the default', async function () {
+    const drawerScreen = await renderFlagDrawer();
+
+    const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
+    ).toBeInTheDocument();
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders a sort dropdown which affects the granular sort dropdown', async function () {
+    const drawerScreen = await renderFlagDrawer();
+
+    const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
+    await userEvent.click(
+      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
+    );
+    await userEvent.click(control);
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(within(drawerScreen).getByRole('option', {name: 'A-Z'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('renders a sort dropdown which disables the appropriate options', async function () {
+    const drawerScreen = await renderFlagDrawer();
+
+    const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
+    await userEvent.click(
+      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
+    );
+    await userEvent.click(control);
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Newest First'})
+    ).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Oldest First'})
+    ).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.click(
+      within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
+    );
+    await userEvent.click(control);
+    expect(
+      within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(within(drawerScreen).getByRole('option', {name: 'Z-A'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(within(drawerScreen).getByRole('option', {name: 'A-Z'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

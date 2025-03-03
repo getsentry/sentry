@@ -2,6 +2,8 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import type {Monitor} from '../types';
 
@@ -11,17 +13,27 @@ interface Props {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
   orgSlug: string;
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
 }
 
-function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
+export function MonitorHeader({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
+  const organization = useOrganization();
   const crumbs = [
     {
-      label: t('Crons'),
-      to: `/organizations/${orgSlug}/crons/`,
+      label: linkToAlerts ? t('Alerts') : t('Crons'),
+      to: linkToAlerts
+        ? makeAlertsPathname({
+            path: `/rules/`,
+            organization,
+          })
+        : `/organizations/${orgSlug}/crons/`,
       preservePageFilters: true,
     },
     {
-      label: t('Cron Monitor Details'),
+      label: t('Cron Monitor'),
     },
   ];
 
@@ -40,10 +52,13 @@ function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
+        <MonitorHeaderActions
+          linkToAlerts={linkToAlerts}
+          orgSlug={orgSlug}
+          monitor={monitor}
+          onUpdate={onUpdate}
+        />
       </Layout.HeaderActions>
     </Layout.Header>
   );
 }
-
-export default MonitorHeader;

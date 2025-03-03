@@ -5,8 +5,8 @@ import {FocusScope} from '@react-aria/focus';
 import moment from 'moment-timezone';
 
 import {DatePicker} from 'sentry/components/calendar';
+import {Input} from 'sentry/components/core/input';
 import FormField from 'sentry/components/forms/formField';
-import Input from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -20,7 +20,7 @@ function handleChangeDate(
   onChange: OnEvent,
   onBlur: OnEvent,
   date: Date,
-  close: Function
+  close: () => void
 ) {
   onChange(date);
   onBlur(date);
@@ -40,7 +40,7 @@ export default function DatePickerField(props: DatePickerFieldProps) {
 
   return (
     <FormField {...props}>
-      {({children: _children, onChange, onBlur, value, id, size, ...inputProps}) => {
+      {({children: _children, onChange, onBlur, value, id, size, ...inputProps}: any) => {
         const dateObj = new Date(value);
         const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
         const dateString = moment(inputValue).format('LL');

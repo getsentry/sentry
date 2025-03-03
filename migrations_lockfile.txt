@@ -6,11 +6,21 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 feedback: 0004_index_together
-hybridcloud: 0016_add_control_cacheversion
+
+hybridcloud: 0018_add_alert_and_member_invite_scopes_to_sentry_apps
+
 nodestore: 0002_nodestore_no_dictfield
+
 remote_subscriptions: 0003_drop_remote_subscription
+
 replays: 0004_index_together
-sentry: 0782_align_deletedproject_slug_length
+
+sentry: 0836_create_groupsearchviewstarred_table
+
 social_auth: 0002_default_auto_field
-uptime: 0017_unique_on_timeout
-workflow_engine: 0010_detector_state_unique_group
+
+tempest: 0002_make_message_type_nullable
+
+uptime: 0029_uptime_subscription_index_domain_cols
+
+workflow_engine: 0032_remove_data_source_query_id

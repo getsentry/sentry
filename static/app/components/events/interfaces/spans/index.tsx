@@ -1,10 +1,9 @@
 import {Fragment, useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -49,7 +48,7 @@ function TraceErrorAlerts({
     return null;
   }
 
-  const traceErrors: (TraceError | TracePerformanceIssue)[] = [];
+  const traceErrors: Array<TraceError | TracePerformanceIssue> = [];
   if (errors && errors.length > 0) {
     traceErrors.push(...errors);
   }
@@ -72,7 +71,7 @@ function TraceErrorAlerts({
 
   return (
     <AlertContainer>
-      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors)}>
+      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors) ?? 'info'}>
         <ErrorLabel>{label}</ErrorLabel>
 
         <TraceErrorList

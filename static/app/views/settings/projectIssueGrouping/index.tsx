@@ -16,9 +16,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type Props = RouteComponentProps<{}, {projectId: string}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
@@ -79,7 +79,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
         )}
       </TextBlock>
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <Form
         saveOnBlur
@@ -92,13 +92,13 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
         <JsonForm
           {...jsonFormProps}
           title={t('Fingerprint Rules')}
-          fields={[fields.fingerprintingRules]}
+          fields={[fields.fingerprintingRules!]}
         />
 
         <JsonForm
           {...jsonFormProps}
           title={t('Stack Trace Rules')}
-          fields={[fields.groupingEnhancements]}
+          fields={[fields.groupingEnhancements!]}
         />
       </Form>
     </SentryDocumentTitle>

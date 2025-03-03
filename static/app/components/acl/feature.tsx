@@ -105,9 +105,9 @@ interface ChildRenderProps extends FeatureRenderProps {
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
-  configFeatures: ReadonlyArray<string>;
-  organization: ReadonlyArray<string>;
-  project: ReadonlyArray<string>;
+  configFeatures: readonly string[];
+  organization: readonly string[];
+  project: readonly string[];
 };
 
 /**
@@ -141,12 +141,12 @@ class Feature extends Component<Props> {
 
     const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
     if (shouldMatchOnlyProject) {
-      return project.includes(shouldMatchOnlyProject[1]);
+      return project.includes(shouldMatchOnlyProject[1]!);
     }
 
     const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
     if (shouldMatchOnlyOrg) {
-      return organization.includes(shouldMatchOnlyOrg[1]);
+      return organization.includes(shouldMatchOnlyOrg[1]!);
     }
 
     // default, check all feature arrays
@@ -186,7 +186,7 @@ class Feature extends Component<Props> {
       const hooks = HookStore.get(hookName);
 
       if (hooks.length > 0) {
-        customDisabledRender = hooks[0];
+        customDisabledRender = hooks[0]!;
       }
     }
     const renderProps = {
@@ -200,7 +200,7 @@ class Feature extends Component<Props> {
       return customDisabledRender({children, ...renderProps});
     }
 
-    if (isRenderFunc<ChildrenRenderFn>(children)) {
+    if (isRenderFunc(children)) {
       return children({renderDisabled, ...renderProps});
     }
 

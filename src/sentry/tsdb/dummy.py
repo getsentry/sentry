@@ -72,39 +72,10 @@ class DummyTSDB(BaseTSDB):
         jitter_value=None,
         tenant_ids=None,
         referrer_suffix=None,
-    ):
-        self.validate_arguments([model], [environment_id])
-        return {k: 0 for k in keys}
-
-    def get_distinct_counts_totals_with_conditions(
-        self,
-        model,
-        keys: Sequence[int],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
         conditions=None,
     ):
         self.validate_arguments([model], [environment_id])
-        return 0
-
-    def get_distinct_counts_union(
-        self,
-        model: TSDBModel,
-        keys: list[int] | None,
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> int:
-        self.validate_arguments([model], [environment_id])
-        return 0
+        return {k: 0 for k in keys}
 
     def merge_distinct_counts(
         self, model, destination, sources, timestamp=None, environment_ids=None
@@ -124,35 +95,6 @@ class DummyTSDB(BaseTSDB):
     ):
         self.validate_arguments([model for model, request in requests], [environment_id])
 
-    def get_most_frequent(
-        self,
-        model: TSDBModel,
-        keys: Sequence[TSDBKey],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        limit: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[TSDBKey, list[tuple[str, float]]]:
-        self.validate_arguments([model], [environment_id])
-        return {key: [] for key in keys}
-
-    def get_most_frequent_series(
-        self,
-        model: TSDBModel,
-        keys: Iterable[str],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        limit: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, list[tuple[int, dict[str, float]]]]:
-        self.validate_arguments([model], [environment_id])
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-        return {key: [(timestamp, {}) for timestamp in series] for key in keys}
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -170,22 +112,6 @@ class DummyTSDB(BaseTSDB):
             key: [(timestamp, {k: 0.0 for k in members}) for timestamp in series]
             for key, members in items.items()
         }
-
-    def get_frequency_totals(
-        self,
-        model: TSDBModel,
-        items: Mapping[TSDBKey, Sequence[TSDBItem]],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
-        self.validate_arguments([model], [environment_id])
-        results = {}
-        for key, members in items.items():
-            results[key] = {member: 0.0 for member in members}
-        return results
 
     def merge_frequencies(
         self,

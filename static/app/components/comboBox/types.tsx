@@ -14,7 +14,7 @@ export interface ComboBoxOption<Value extends SelectKey> extends SelectValue<Val
 }
 
 export interface ComboBoxSection<Value extends SelectKey> {
-  options: ComboBoxOption<Value>[];
+  options: Array<ComboBoxOption<Value>>;
   /**
    * When true, all options inside this section will be disabled.
    */
@@ -55,7 +55,7 @@ export interface ComboBoxSectionWithKey<Value extends SelectKey>
    * be used.
    */
   key: SelectKey;
-  options: ComboBoxOptionWithKey<Value>[];
+  options: Array<ComboBoxOptionWithKey<Value>>;
 }
 
 /**

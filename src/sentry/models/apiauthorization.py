@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -35,7 +36,18 @@ class ApiAuthorization(Model, HasApiScopes):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apiauthorization"
-        unique_together = (("user", "application"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "application"],
+                name="apiauthorization_user_app",
+                condition=Q(organization_id__isnull=True),
+            ),
+            models.UniqueConstraint(
+                fields=["user", "application", "organization_id"],
+                name="apiauthorization_user_app_org",
+                condition=Q(organization_id__isnull=False),
+            ),
+        ]
 
     __repr__ = sane_repr("user_id", "application_id")
 

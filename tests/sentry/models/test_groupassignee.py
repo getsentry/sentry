@@ -44,6 +44,7 @@ class GroupAssigneeTestCase(TestCase):
 
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
     def test_assign_team(self):
@@ -59,6 +60,7 @@ class GroupAssigneeTestCase(TestCase):
 
         assert activity.data["assignee"] == str(self.team.id)
         assert activity.data["assigneeEmail"] is None
+        assert activity.data["assigneeName"] == self.team.name
         assert activity.data["assigneeType"] == "team"
 
     def test_create_only(self):
@@ -73,6 +75,7 @@ class GroupAssigneeTestCase(TestCase):
         )
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
         other_user = self.create_user()
@@ -88,6 +91,7 @@ class GroupAssigneeTestCase(TestCase):
         )
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
     def test_reassign_user_to_team(self):
@@ -111,10 +115,12 @@ class GroupAssigneeTestCase(TestCase):
 
         assert activity[0].data["assignee"] == str(self.user.id)
         assert activity[0].data["assigneeEmail"] == self.user.email
+        assert activity[0].data["assigneeName"] == self.user.name
         assert activity[0].data["assigneeType"] == "user"
 
         assert activity[1].data["assignee"] == str(self.team.id)
         assert activity[1].data["assigneeEmail"] is None
+        assert activity[1].data["assigneeName"] == self.team.name
         assert activity[1].data["assigneeType"] == "team"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -174,6 +180,7 @@ class GroupAssigneeTestCase(TestCase):
 
                 assert activity.data["assignee"] == str(self.user.id)
                 assert activity.data["assigneeEmail"] == self.user.email
+                assert activity.data["assigneeName"] == self.user.name
                 assert activity.data["assigneeType"] == "user"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -233,6 +240,7 @@ class GroupAssigneeTestCase(TestCase):
 
                 assert activity.data["assignee"] == str(self.user.id)
                 assert activity.data["assigneeEmail"] == self.user.email
+                assert activity.data["assigneeName"] == self.user.name
                 assert activity.data["assigneeType"] == "user"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -270,7 +278,7 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():
-                GroupAssignee.objects.deassign(self.group)
+                GroupAssignee.objects.deassign(self.group, self.user)
                 mock_sync_assignee_outbound.assert_called_with(
                     external_issue, None, assign=False, assignment_source=None
                 )

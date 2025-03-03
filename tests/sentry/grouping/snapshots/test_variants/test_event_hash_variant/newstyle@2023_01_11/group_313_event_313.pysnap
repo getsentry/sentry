@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:19:54.964615+00:00'
+created: '2025-02-26T00:34:06.338424+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -193,6 +194,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "8be5979a334287a1b47457228f1d4612"
+  contributing component: exception
   component:
     system*
       exception*
@@ -200,7 +202,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored due to recursion)
             function*
               "start"
           frame*
@@ -346,26 +348,26 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "dlopen"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "dlopen_internal"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__report_load"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "__report_load.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
           frame (ignored by stack trace rule (category:throw ^-group))

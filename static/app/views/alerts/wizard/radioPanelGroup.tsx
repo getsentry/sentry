@@ -7,7 +7,7 @@ type RadioPanelGroupProps<C extends string> = {
   /**
    * An array of [id, name]
    */
-  choices: [C, React.ReactNode, React.ReactNode?][];
+  choices: Array<[C, React.ReactNode, React.ReactNode?]>;
   label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   value: string | null;

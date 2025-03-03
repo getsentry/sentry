@@ -288,8 +288,10 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")
         self.organization = self.create_organization(owner=self.user)
-        team = self.create_team(organization=self.organization)
-        self.project = self.create_project(teams=[team], organization=self.organization, name="foo")
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(
+            teams=[self.team], organization=self.organization, name="foo"
+        )
         self.project.flags.has_releases = True
         self.project.save()
 
@@ -335,14 +337,17 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["environments"] == ["production", "staging"]
 
     def test_first_event_properties(self):
-        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        project = self.create_project(
+            teams=[self.team], organization=self.organization, name="foobar", flags=None
+        )
+        result = serialize(project, self.user, ProjectSummarySerializer())
         assert result["firstEvent"] is None
         assert result["firstTransactionEvent"] is False
 
-        self.project.first_event = timezone.now()
-        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        project.first_event = timezone.now()
+        project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
-        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        result = serialize(project, self.user, ProjectSummarySerializer())
         assert result["firstEvent"]
         assert result["firstTransactionEvent"] is True
 
@@ -418,16 +423,6 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasNewFeedbacks"] is True
 
-    def test_has_custom_metrics_flag(self):
-        result = serialize(self.project, self.user, ProjectSummarySerializer())
-        assert result["hasCustomMetrics"] is False
-
-        self.project.first_event = timezone.now()
-        self.project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
-
-        result = serialize(self.project, self.user, ProjectSummarySerializer())
-        assert result["hasCustomMetrics"] is True
-
     def test_has_monitors_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasMonitors"] is False
@@ -482,6 +477,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["hasInsightsCaches"] is True
         assert result["hasInsightsQueues"] is True
         assert result["hasInsightsLlmMonitoring"] is True
+
+    def test_has_flags_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFlags"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_flags))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFlags"] is True
 
     def test_no_environments(self):
         # remove environments and related models

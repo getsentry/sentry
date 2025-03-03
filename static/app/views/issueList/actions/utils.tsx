@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import commonTheme from 'sentry/utils/theme';
 
@@ -55,9 +54,11 @@ function PerformanceIssueAlert({
   }
 
   return (
-    <Alert type="info" showIcon>
-      {children}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info" showIcon>
+        {children}
+      </Alert>
+    </Alert.Container>
   );
 }
 
@@ -155,12 +156,6 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 
     return text + append;
   };
-}
-
-export function performanceIssuesSupportsIgnoreAction(
-  statusDetails: IgnoredStatusDetails
-) {
-  return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }
 
 // A mapping of which screen sizes will trigger the column to disappear

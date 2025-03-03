@@ -8,6 +8,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
+import ConfigureMobileReplayCard from 'sentry/components/replays/configureMobileReplayCard';
 import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
@@ -75,19 +76,11 @@ export default function Page({
 
   const header = replayRecord?.is_archived ? (
     <Header>
-      <DetailsPageBreadcrumbs
-        orgSlug={orgSlug}
-        replayRecord={replayRecord}
-        isVideoReplay={isVideoReplay}
-      />
+      <DetailsPageBreadcrumbs replayRecord={replayRecord} />
     </Header>
   ) : (
     <Header>
-      <DetailsPageBreadcrumbs
-        orgSlug={orgSlug}
-        replayRecord={replayRecord}
-        isVideoReplay={isVideoReplay}
-      />
+      <DetailsPageBreadcrumbs replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
         {isLoading ? (
@@ -95,7 +88,11 @@ export default function Page({
         ) : (
           <Fragment>
             {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
-            {isVideoReplay ? null : <ConfigureReplayCard />}
+            {isVideoReplay ? (
+              <ConfigureMobileReplayCard replayRecord={replayRecord} />
+            ) : (
+              <ConfigureReplayCard />
+            )}
           </Fragment>
         )}
 
@@ -115,7 +112,9 @@ export default function Page({
           avatarSize={24}
           displayName={
             <DisplayHeader>
-              <Title>{replayRecord.user.display_name || t('Anonymous User')}</Title>
+              <Layout.Title>
+                {replayRecord.user.display_name || t('Anonymous User')}
+              </Layout.Title>
               {replayRecord && (
                 <TimeContainer>
                   <IconCalendar color="gray300" size="xs" />
@@ -183,15 +182,6 @@ const ItemSpacer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const Title = styled('h1')`
-  ${p => p.theme.overflowEllipsis};
-  ${p => p.theme.text.pageTitle};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.headingColor};
-  margin: 0;
-  line-height: 1.4;
 `;
 
 const TimeContainer = styled('div')`

@@ -17,6 +17,24 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 metric that is queryable by the API.
 """
 
+import re
+from dataclasses import dataclass
+from enum import Enum
+from typing import cast
+
+from sentry_kafka_schemas.codecs import ValidationError
+
+from sentry.exceptions import InvalidParams
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.units import format_value_using_unit_and_op
+from sentry.snuba.metrics.utils import (
+    AVAILABLE_GENERIC_OPERATIONS,
+    AVAILABLE_OPERATIONS,
+    OP_REGEX,
+    MetricEntity,
+    MetricOperationType,
+)
+
 __all__ = (
     "SessionMRI",
     "TransactionMRI",
@@ -30,26 +48,6 @@ __all__ = (
     "parse_mri_field",
     "format_mri_field",
     "format_mri_field_value",
-)
-
-import re
-from collections.abc import Sequence
-from dataclasses import dataclass
-from enum import Enum
-from typing import cast
-
-from sentry_kafka_schemas.codecs import ValidationError
-
-from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.units import format_value_using_unit_and_op
-from sentry.snuba.metrics.utils import (
-    AVAILABLE_GENERIC_OPERATIONS,
-    AVAILABLE_OPERATIONS,
-    OP_REGEX,
-    MetricOperationType,
-    MetricUnit,
 )
 
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
@@ -247,7 +245,7 @@ def format_mri_field(field: str) -> str:
     """
     Format a metric field to be used in a metric expression.
 
-    For example, if the field is `avg(c:custom/foo@none)`, it will be returned as `avg(foo)`.
+    For example, if the field is `avg(c:transactions/foo@none)`, it will be returned as `avg(foo)`.
     """
     try:
         parsed = parse_mri_field(field)
@@ -266,7 +264,7 @@ def format_mri_field_value(field: str, value: str) -> str:
     """
     Formats MRI field value to a human-readable format using unit.
 
-    For example, if the value of avg(c:custom/duration@second) is 60,
+    For example, if the value of avg(c:transactions/duration@second) is 60,
     it will be returned as 1 minute.
 
     """
@@ -275,8 +273,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+        return format_value_using_unit_and_op(
+            float(value), parsed_mri_field.mri.unit, parsed_mri_field.op
+        )
 
     except InvalidParams:
         return value
@@ -335,28 +334,27 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def get_entity_key_from_entity_type(entity_type: str, generic_metrics: bool) -> EntityKey:
-    entity_name_suffixes = {
-        "c": "counters",
-        "s": "sets",
-        "d": "distributions",
-        "g": "gauges",
-    }
+_ENTITY_KEY_MAPPING_GENERIC: dict[str, MetricEntity] = {
+    "c": "generic_metrics_counters",
+    "s": "generic_metrics_sets",
+    "d": "generic_metrics_distributions",
+    "g": "generic_metrics_gauges",
+}
+_ENTITY_KEY_MAPPING_NON_GENERIC: dict[str, MetricEntity] = {
+    "c": "metrics_counters",
+    "s": "metrics_sets",
+    "d": "metrics_distributions",
+}
 
-    if generic_metrics:
-        return EntityKey(f"generic_metrics_{entity_name_suffixes[entity_type]}")
-    else:
-        return EntityKey(f"metrics_{entity_name_suffixes[entity_type]}")
 
-
-def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
+def get_available_operations(parsed_mri: ParsedMRI) -> list[MetricOperationType]:
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, False).value
+        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC[parsed_mri.entity]
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
+        entity_key = _ENTITY_KEY_MAPPING_GENERIC[parsed_mri.entity]
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
 
 

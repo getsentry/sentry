@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
+from datetime import datetime
 from logging import Logger, getLogger
 from typing import Any
 
 import orjson
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -30,14 +32,17 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 from sentry.integrations.slack.metrics import (
     SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
+    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
@@ -48,7 +53,6 @@ _default_logger: Logger = getLogger(__name__)
 
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
-    form_cls = SlackNotifyServiceForm
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -64,10 +68,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "e.g., #critical, Jane Schmidt"},
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
-        }
-        self.form_fields["notes"] = {
-            "type": "string",
-            "placeholder": "e.g. @jane, @on-call-team",
+            "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
         self._repository: IssueAlertNotificationMessageRepository = (
@@ -128,6 +129,16 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 rule_action_uuid=rule_action_uuid,
             )
 
+            open_period_start: datetime | None = None
+            if (
+                features.has(
+                    "organizations:slack-threads-refactor-uptime", self.project.organization
+                )
+                and event.group.issue_category == GroupCategory.UPTIME
+            ):
+                open_period_start = open_period_start_for_group(event.group)
+                new_notification_message_object.open_period_start = open_period_start
+
             def get_thread_ts(lifecycle: EventLifecycle) -> str | None:
                 """Find the thread in which to post this notification as a reply.
 
@@ -151,6 +162,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         rule_id=rule_id,
                         group_id=event.group.id,
                         rule_action_uuid=rule_action_uuid,
+                        open_period_start=open_period_start,
                     )
                 except Exception as e:
                     lifecycle.record_halt(e)
@@ -181,57 +193,46 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             client = SlackSdkClient(integration_id=integration.id)
             text = str(blocks.get("text"))
-            try:
-                response = client.chat_postMessage(
-                    blocks=json_blocks,
-                    text=text,
-                    channel=channel,
-                    unfurl_links=False,
-                    unfurl_media=False,
-                    thread_ts=thread_ts,
-                    reply_broadcast=reply_broadcast,
-                )
-                metrics.incr(
-                    SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"action": "send_notification"},
-                )
-            except SlackApiError as e:
-                # Record the error code and details from the exception
-                new_notification_message_object.error_code = e.response.status_code
-                new_notification_message_object.error_details = {
-                    "msg": str(e),
-                    "data": e.response.data,
-                    "url": e.response.api_url,
-                }
+            # Wrap the Slack API call with lifecycle tracking
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                try:
+                    response = client.chat_postMessage(
+                        blocks=json_blocks,
+                        text=text,
+                        channel=channel,
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        thread_ts=thread_ts,
+                        reply_broadcast=reply_broadcast,
+                    )
+                except SlackApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.response.status_code
+                    new_notification_message_object.error_details = {
+                        "msg": str(e),
+                        "data": e.response.data,
+                        "url": e.response.api_url,
+                    }
 
-                log_params = {
-                    "error": str(e),
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                    "channel_name": self.get_option("channel"),
-                }
-                # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json_blocks
+                    log_params: dict[str, str | int] = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "payload": json_blocks,
+                    }
+                    if self.get_option("channel"):
+                        log_params["channel_name"] = self.get_option("channel")
 
-                self.logger.info(
-                    "slack.issue_alert.error",
-                    extra=log_params,
-                )
-                metrics.incr(
-                    SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={
-                        "action": "send_notification",
-                        "ok": e.response.get("ok", False),
-                        "status": e.response.status_code,
-                    },
-                )
-            else:
-                ts = response.get("ts")
-                new_notification_message_object.message_identifier = (
-                    str(ts) if ts is not None else None
-                )
+                    lifecycle.add_extras(log_params)
+                    record_lifecycle_termination_level(lifecycle, e)
+                else:
+                    ts = response.get("ts")
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
 
             if rule_action_uuid and rule_id:
                 try:
@@ -333,8 +334,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(
+    def get_form_instance(self) -> SlackNotifyServiceForm:
+        return SlackNotifyServiceForm(
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 

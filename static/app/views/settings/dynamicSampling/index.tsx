@@ -1,37 +1,73 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
+  const hasWriteAccess = useHasDynamicSamplingWriteAccess();
 
   if (!hasDynamicSamplingCustomFeature(organization)) {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
+    );
   }
 
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
-      <div>
-        <SettingsPageHeader title={t('Dynamic Sampling')} />
-        <p>
-          {t(
-            'Dynamic sampling allows you to send more traces within your budget by retaining the most relevant traces and reducing redundant data. Additionally, it ensures that high-level metrics and insights remain accurate. With these settings you can customize and fine-tune the sampling behavior to prioritize what matters most.'
-          )}
-        </p>
-        {organization.samplingMode === 'organization' ? (
-          <OrganizationSampling />
-        ) : (
-          <ProjectSampling />
+      <SettingsPageHeader
+        title={
+          <Fragment>
+            {t('Dynamic Sampling')}
+            <FeatureBadge type="new" />
+          </Fragment>
+        }
+        action={
+          <LinkButton
+            external
+            href="https://docs.sentry.io/organization/dynamic-sampling/"
+          >
+            {t('Read the docs')}
+          </LinkButton>
+        }
+      />
+      {!hasWriteAccess && (
+        <Alert.Container>
+          <Alert type="warning">
+            {t(
+              'These settings can only be edited by users with the organization owner or manager role.'
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
+      <Paragraph>
+        {t(
+          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
         )}
-      </div>
+      </Paragraph>
+      {organization.samplingMode === 'organization' ? (
+        <OrganizationSampling />
+      ) : (
+        <ProjectSampling />
+      )}
     </Fragment>
   );
 }
+
+const Paragraph = styled('p')`
+  margin-bottom: ${space(1.5)};
+`;

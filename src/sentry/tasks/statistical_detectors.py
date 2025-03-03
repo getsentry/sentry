@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import sentry_sdk
@@ -25,6 +25,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
     Request,
+    Storage,
 )
 
 from sentry import features, options, projectoptions
@@ -34,12 +35,13 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -235,6 +237,10 @@ class EndpointRegressionDetector(RegressionDetector):
     escalation_rel_threshold = 0.75
 
     @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.transactions")
+
+    @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
@@ -275,6 +281,10 @@ class FunctionRegressionDetector(RegressionDetector):
     buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
+
+    @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.functions")
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -521,7 +531,7 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "examples()"],
+        selected_columns=["project.id", "fingerprint", "all_examples()"],
         query="is_application:1",
         snuba_params=params,
         orderby=["project.id"],
@@ -533,30 +543,46 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {
-        (row["project.id"], row["fingerprint"]): row["examples()"][0]
-        for row in result["data"]
-        if row["examples()"]
-    }
+    transaction_examples = {}
+    raw_continuous_examples = {}
+    for row in result["data"]:
+        # Split this into 2 loops here to bias towards transaction based profiles
+
+        key = (row["project.id"], row["fingerprint"])
+        for example in row["all_examples()"]:
+            if "profile_id" in example:
+                transaction_examples[key] = example
+
+        if key in transaction_examples:
+            continue
+
+        for example in row["all_examples()"]:
+            if "profiler_id" in example:
+                raw_continuous_examples[key] = example
+
+    continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
     payloads = []
 
     for regression in regressions:
         project_id = int(regression["project"])
         fingerprint = int(regression["transaction"])
-        example = examples.get((project_id, fingerprint))
-        if example is None:
-            continue
 
         project = projects_by_id.get(project_id)
         if project is None:
+            continue
+
+        key = (project_id, fingerprint)
+        example = transaction_examples.get(key) or continuous_examples.get(key)
+
+        if example is None:
             continue
 
         payloads.append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
-                "profile_id": example,
+                "example": example,
                 "fingerprint": fingerprint,
                 "absolute_percentage_change": regression["absolute_percentage_change"],
                 "aggregate_range_1": regression["aggregate_range_1"],
@@ -569,12 +595,105 @@ def emit_function_regression_issue(
             }
         )
 
+    if not payloads:
+        return 0
+
     response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
     if response.status != 200:
         return 0
 
     data = json.loads(response.data)
     return data.get("occurrences")
+
+
+def fetch_continuous_examples(raw_examples):
+    if not raw_examples:
+        return raw_examples
+
+    project_condition = Condition(
+        Column("project_id"),
+        Op.IN,
+        list({project_id for project_id, _ in raw_examples.keys()}),
+    )
+
+    conditions = [project_condition]
+
+    example_conditions: list[BooleanCondition | Condition] = []
+
+    for (project_id, _), example in raw_examples.items():
+        example_conditions.append(
+            And(
+                [
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("profiler_id"), Op.EQ, example["profiler_id"]),
+                    Condition(
+                        Column("start_timestamp"), Op.LTE, resolve_datetime64(example["end"])
+                    ),
+                    Condition(
+                        Column("end_timestamp"), Op.GTE, resolve_datetime64(example["start"])
+                    ),
+                ]
+            )
+        )
+
+    if len(example_conditions) >= 2:
+        conditions.append(Or(example_conditions))
+    else:
+        conditions.extend(example_conditions)
+
+    query = Query(
+        match=Storage(StorageKey.ProfileChunks.value),
+        select=[
+            Column("project_id"),
+            Column("profiler_id"),
+            Column("chunk_id"),
+            Column("start_timestamp"),
+            Column("end_timestamp"),
+        ],
+        where=conditions,
+        limit=Limit(len(raw_examples)),
+    )
+
+    request = Request(
+        dataset=Dataset.Profiles.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
+            "cross_org_query": 1,
+        },
+    )
+
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
+    )["data"]
+
+    for row in data:
+        row["start"] = (
+            datetime.fromisoformat(row["start_timestamp"]).replace(tzinfo=UTC).timestamp()
+        )
+        row["end"] = datetime.fromisoformat(row["end_timestamp"]).replace(tzinfo=UTC).timestamp()
+
+    examples = {}
+
+    for key, example in raw_examples.items():
+        for row in data:
+            if example["profiler_id"] != row["profiler_id"]:
+                continue
+            if example["start"] > row["end"]:
+                continue
+            if example["end"] < row["start"]:
+                continue
+            examples[key] = {
+                "profiler_id": row["profiler_id"],
+                "chunk_id": row["chunk_id"],
+                "thread_id": example["thread_id"],
+                "start": row["start"],
+                "end": row["end"],
+            }
+
+    return examples
 
 
 BACKEND_TRANSACTION_OPS = [

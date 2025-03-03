@@ -51,8 +51,8 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       size="xs"
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-        replace: true,
       }}
+      replace
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >
@@ -65,10 +65,13 @@ export function ReplayClipSection({event, group, replayId}: Props) {
     replayCount && replayCount > 1 ? (
       <Fragment>
         <div>
-          {t(
-            'There are %s for this issue.',
-            tn('%s replay', '%s replays', replayCount ?? 0)
-          )}
+          {replayCount > 50
+            ? t('There are 50+ replays for this issue.')
+            : tn(
+                'There is %s replay for this issue.',
+                'there are %s replays for this issue.',
+                replayCount ?? 0
+              )}
         </div>
         {allReplaysButton}
       </Fragment>

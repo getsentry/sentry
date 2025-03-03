@@ -20,9 +20,6 @@ export type Project = {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
-  eventProcessing: {
-    symbolicationDegraded: boolean;
-  };
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -30,6 +27,7 @@ export type Project = {
   hasAccess: boolean;
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
+  hasFlags: boolean;
   hasInsightsAppStart: boolean;
   hasInsightsAssets: boolean;
   hasInsightsCaches: boolean;
@@ -61,12 +59,16 @@ export type Project = {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  storeCrashReports: number | null;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
   verifySSL: boolean;
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
+  eventProcessing?: {
+    symbolicationDegraded?: boolean;
+  };
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
@@ -87,6 +89,8 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchDumps?: boolean;
+  tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 
@@ -95,7 +99,7 @@ export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 // Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
-    choices: [key: string, value: string][];
+    choices: Array<[key: string, value: string]>;
   };
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
@@ -236,6 +240,8 @@ export type PlatformKey =
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
+  | 'node-cloudflare-pages'
+  | 'node-cloudflare-workers'
   | 'node-connect'
   | 'node-express'
   | 'node-fastify'

@@ -121,6 +121,67 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0][fieldRelease2] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_division(self):
+        # 10 slow frames, 20 frozen frames, 100 total frames
+        self.store_span_metric(
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 10,
+                "count": 10,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.three_days_ago,
+        )
+        self.store_span_metric(
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 20,
+                "count": 20,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frozen_frames",
+            timestamp=self.three_days_ago,
+        )
+        self.store_span_metric(
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 100,
+                "count": 100,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.total_frames",
+            timestamp=self.three_days_ago,
+        )
+
+        slow_frame_rate = "division(mobile.slow_frames,mobile.total_frames)"
+        frozen_frame_rate = "division(mobile.frozen_frames,mobile.total_frames)"
+
+        response = self.do_request(
+            {
+                "field": [slow_frame_rate, frozen_frame_rate],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "7d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+
+        assert data[0][slow_frame_rate] == 10 / 100
+        assert data[0][frozen_frame_rate] == 20 / 100
+
+        assert meta["dataset"] == "spansMetrics"
+
     def test_division_if(self):
         self.store_span_metric(
             {
@@ -340,6 +401,56 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert len(data) == 1
         assert data[0]["avg()"] == 1
+        assert meta["dataset"] == "spansMetrics"
+
+    def test_avg_on_http_response(self):
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["http.response_content_length"],
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            15,
+            internal_metric=constants.SPAN_METRICS_MAP["http.response_transfer_size"],
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            20,
+            internal_metric=constants.SPAN_METRICS_MAP["http.decoded_response_content_length"],
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(http.response_content_length)",
+                    "avg(http.response_transfer_size)",
+                    "avg(http.decoded_response_content_length)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(http.response_content_length)"] == 10
+        assert data[0]["avg(http.response_transfer_size)"] == 15
+        assert data[0]["avg(http.decoded_response_content_length)"] == 20
+
+        meta = response.data["meta"]
+        assert meta["fields"]["avg(http.response_content_length)"] == "size"
+        assert meta["fields"]["avg(http.response_transfer_size)"] == "size"
+        assert meta["fields"]["avg(http.decoded_response_content_length)"] == "size"
+
+        assert meta["units"]["avg(http.response_content_length)"] == "byte"
+        assert meta["units"]["avg(http.response_transfer_size)"] == "byte"
+        assert meta["units"]["avg(http.decoded_response_content_length)"] == "byte"
+
         assert meta["dataset"] == "spansMetrics"
 
     def test_eps(self):
@@ -1640,6 +1751,180 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"count_op(queue.publish)": 1, "count_op(queue.process)": 1},
         ]
 
+    def test_count_publish(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.publish"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.name": "publish"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.type": "create"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_publish()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {"count_publish()": 3},
+        ]
+
+    def test_count_process(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.process"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.name": "process"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.type": "process"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_process()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {"count_process()": 3},
+        ]
+
+    def test_avg_if_publish(self):
+        self.store_span_metric(
+            0,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.publish"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.name": "publish"},
+        )
+        self.store_span_metric(
+            20,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.type": "create"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if_publish(span.duration)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {"avg_if_publish(span.duration)": 10.0},
+        ]
+
+    def test_avg_if_process(self):
+        self.store_span_metric(
+            0,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.process"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.name": "process"},
+        )
+        self.store_span_metric(
+            20,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"messaging.operation.type": "process"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if_process(span.duration)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [{"avg_if_process(span.duration)": 10.0}]
+
+    def test_filter_on_messaging_operation(self):
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.process"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if_process(span.duration)",
+                ],
+                "query": "span.op:queue.process OR messaging.operation.type:process OR messaging.operation.name:process",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [{"avg_if_process(span.duration)": 10.0}]
+
     def test_project_mapping(self):
         self.store_span_metric(
             1,
@@ -1724,6 +2009,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "avg_if(mobile.slow_frames,release,bar)": 10.0,
             }
         ]
+
+    def test_frames_delay_gauge_metric(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frames_delay",
+            timestamp=self.six_min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frames_delay",
+            timestamp=self.six_min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(mobile.frames_delay,release,foo)",
+                    "avg_if(mobile.frames_delay,release,bar)",
+                    "avg_compare(mobile.frames_delay,release,foo,bar)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert data == [
+            {
+                "avg_compare(mobile.frames_delay,release,foo,bar)": 1.0,
+                "avg_if(mobile.frames_delay,release,foo)": 5.0,
+                "avg_if(mobile.frames_delay,release,bar)": 10.0,
+            }
+        ]
+        assert meta["units"]["avg_if(mobile.frames_delay,release,foo)"] == "second"
+        assert meta["units"]["avg_if(mobile.frames_delay,release,bar)"] == "second"
+        assert meta["units"]["avg_compare(mobile.frames_delay,release,foo,bar)"] is None
 
     def test_resolve_messaging_message_receive_latency_gauge(self):
         self.store_span_metric(
@@ -2044,3 +2385,23 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_count_op(self):
         super().test_count_op()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_publish(self):
+        super().test_count_publish()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_process(self):
+        super().test_count_process()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if_publish(self):
+        super().test_avg_if_publish()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if_process(self):
+        super().test_avg_if_process()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_filter_on_messaging_operation(self):
+        super().test_filter_on_messaging_operation()

@@ -78,7 +78,7 @@ export const BaseTab = forwardRef(
 
     const ref = useObjectRef(forwardedRef);
     const InnerWrap = useCallback(
-      ({children}) =>
+      ({children}: any) =>
         to ? (
           <TabLink
             to={to}
@@ -201,11 +201,10 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   overflowing: boolean;
 }>`
   &[aria-selected='true'] {
-    ${p =>
-      `
-        color: ${p.theme.purple400};
-        font-weight: ${p.theme.fontWeightBold};
-        background-color: ${p.theme.purple100};
+    ${p => css`
+      color: ${p.theme.purple400};
+      font-weight: ${p.theme.fontWeightBold};
+      background-color: ${p.theme.purple100};
     `}
   }
   &[aria-selected='false'] {
@@ -221,7 +220,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   }
   ${p =>
     p.overflowing &&
-    `
+    css`
       opacity: 0;
       pointer-events: none;
     `}
@@ -232,13 +231,12 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
 }>`
   &[aria-selected='true'] {
-    ${p =>
-      `
-        border-top: 1px ${p.borderStyle} ${p.theme.border};
-        border-left: 1px ${p.borderStyle} ${p.theme.border};
-        border-right: 1px ${p.borderStyle} ${p.theme.border};
-        background-color: ${p.theme.background};
-        font-weight: ${p.theme.fontWeightBold};
+    ${p => css`
+      border-top: 1px ${p.borderStyle} ${p.theme.border};
+      border-left: 1px ${p.borderStyle} ${p.theme.border};
+      border-right: 1px ${p.borderStyle} ${p.theme.border};
+      background-color: ${p.theme.background};
+      font-weight: ${p.theme.fontWeightBold};
     `}
   }
 
@@ -259,7 +257,7 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.overflowing &&
-    `
+    css`
       opacity: 0;
       pointer-events: none;
     `}
@@ -290,7 +288,7 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.overflowing &&
-    `
+    css`
       opacity: 0;
       pointer-events: none;
     `}
@@ -435,20 +433,20 @@ const TabSelectionIndicator = styled('div')<{
 
   ${p =>
     p.orientation === 'horizontal'
-      ? `
-        width: calc(100% - ${space(2)});
-        height: 3px;
+      ? css`
+          width: calc(100% - ${space(2)});
+          height: 3px;
 
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-      `
-      : `
-        width: 3px;
-        height: 50%;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        `
+      : css`
+          width: 3px;
+          height: 50%;
 
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-      `};
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+        `};
 `;

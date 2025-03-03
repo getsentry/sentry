@@ -30,7 +30,10 @@ import {
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  findItemInSections,
+  itemIsSection,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -136,25 +139,6 @@ const DESCRIPTION_POPPER_OPTIONS = {
   ],
 };
 
-function findItemInSections<T extends SelectOptionOrSectionWithKey<string>>(
-  items: T[],
-  key: Key
-): T | null {
-  for (const item of items) {
-    if (itemIsSection(item)) {
-      const option = item.options.find(child => child.key === key);
-      if (option) {
-        return option as T;
-      }
-    } else {
-      if (item.key === key) {
-        return item;
-      }
-    }
-  }
-  return null;
-}
-
 function menuIsOpen({
   state,
   hiddenOptions,
@@ -238,7 +222,6 @@ function useUpdateOverlayPositionOnContentChange({
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useLayoutEffect(() => {
@@ -413,7 +396,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
             onExit?.();
             return;
           case 'Enter':
-            if (state.selectionManager.focusedKey) {
+            if (isOpen && state.selectionManager.focusedKey) {
               return;
             }
             state.close();

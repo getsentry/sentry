@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/gridEditable';
@@ -16,17 +16,21 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
+import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
 
-export function Table({children, style, ...props}: TableProps) {
-  return (
+export const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({children, styles, ...props}, ref) => (
     <_TableWrapper {...props}>
-      <_Table style={style}>{children}</_Table>
+      <_Table ref={ref} style={styles}>
+        {children}
+      </_Table>
     </_TableWrapper>
-  );
-}
+  )
+);
 
 interface TableStatusProps {
   children: React.ReactNode;
@@ -49,38 +53,95 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
 
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
-type Item = {
-  label: string;
-  value: React.ReactNode;
-  width?: number | 'min-content';
-};
+export function useTableStyles(
+  fields: string[],
+  tableRef: React.RefObject<HTMLDivElement>,
+  options?: {
+    minimumColumnWidth?: number;
+    prefixColumnWidth?: 'min-content' | number;
+  }
+) {
+  const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
+  const prefixColumnWidth =
+    defined(options?.prefixColumnWidth) && typeof options.prefixColumnWidth === 'number'
+      ? `${options.prefixColumnWidth}px`
+      : options?.prefixColumnWidth;
 
-interface UseTableStylesOptions {
-  items: Item[];
-  minimumColumnWidth?: number;
-}
+  const resizingColumnIndex = useRef<number | null>(null);
+  const columnWidthsRef = useRef<Array<number | null>>(fields.map(() => null));
 
-export function useTableStyles({
-  items,
-  minimumColumnWidth = MINIMUM_COLUMN_WIDTH,
-}: UseTableStylesOptions) {
-  const tableStyles = useMemo(() => {
-    const columns = new Array(items.length);
+  useEffect(() => {
+    columnWidthsRef.current = fields.map(
+      (_, index) => columnWidthsRef.current[index] ?? null
+    );
+  }, [fields]);
 
-    for (let i = 0; i < items.length; i++) {
-      if (typeof items[i].width === 'number') {
-        columns[i] = `${items[i].width}px`;
-      } else {
-        columns[i] = items[i].width ?? `minmax(${minimumColumnWidth}px, auto)`;
-      }
+  const initialTableStyles = useMemo(() => {
+    const gridTemplateColumns = fields.map(() => `minmax(${minimumColumnWidth}px, auto)`);
+    if (defined(prefixColumnWidth)) {
+      gridTemplateColumns.unshift(prefixColumnWidth);
     }
-
     return {
-      gridTemplateColumns: columns.join(' '),
+      gridTemplateColumns: gridTemplateColumns.join(' '),
     };
-  }, [items, minimumColumnWidth]);
+  }, [fields, minimumColumnWidth, prefixColumnWidth]);
 
-  return {tableStyles};
+  const onResizeMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, index: number) => {
+      event.preventDefault();
+
+      // <GridResizer> is expected to be nested 1 level down from <GridHeadCell>
+      const cell = event.currentTarget.parentElement;
+      if (!cell) {
+        return;
+      }
+
+      resizingColumnIndex.current = index;
+
+      const startX = event.clientX;
+      const initialWidth = cell.offsetWidth;
+
+      const gridElement = tableRef.current;
+
+      function onMouseMove(e: MouseEvent) {
+        if (resizingColumnIndex.current === null || !gridElement) {
+          return;
+        }
+
+        const newWidth = Math.max(
+          minimumColumnWidth,
+          initialWidth + (e.clientX - startX)
+        );
+
+        columnWidthsRef.current[index] = newWidth;
+
+        // Updating the grid's `gridTemplateColumns` directly
+        const gridTemplateColumns = columnWidthsRef.current.map(width => {
+          return typeof width === 'number'
+            ? `${width}px`
+            : `minmax(${minimumColumnWidth}px, auto)`;
+        });
+        if (defined(prefixColumnWidth)) {
+          gridTemplateColumns.unshift(prefixColumnWidth);
+        }
+        gridElement.style.gridTemplateColumns = gridTemplateColumns.join(' ');
+      }
+
+      function onMouseUp() {
+        resizingColumnIndex.current = null;
+
+        // Cleaning up event listeners
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      }
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    },
+    [tableRef, minimumColumnWidth, prefixColumnWidth]
+  );
+
+  return {initialTableStyles, onResizeMouseDown};
 }
 
 export const TableBody = GridBody;
@@ -93,4 +154,10 @@ export const TableHeaderActions = HeaderButtonContainer;
 export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
+`;
+export const TableHeadCellContent = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  cursor: pointer;
 `;

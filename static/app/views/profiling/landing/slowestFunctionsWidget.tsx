@@ -1,34 +1,49 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import Count from 'sentry/components/count';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconChevron, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Series} from 'sentry/types/echarts';
+import type {EventsStatsSeries} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getShortEventId} from 'sentry/utils/events';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
+import {MAX_FUNCTIONS} from './constants';
 import {
   Accordion,
   AccordionItem,
@@ -40,26 +55,26 @@ import {
   WidgetContainer,
 } from './styles';
 
-const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
+type ChartFunctions<F extends BreakdownFunction> = F | 'all_examples()';
 
-interface SlowestFunctionsWidgetProps {
-  breakdownFunction: BreakdownFunction;
+interface SlowestFunctionsWidgetProps<F extends BreakdownFunction> {
+  breakdownFunction: F;
   cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
-export function SlowestFunctionsWidget({
+export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   breakdownFunction,
   cursorName = DEFAULT_CURSOR_NAME,
   header,
   userQuery,
   widgetHeight,
-}: SlowestFunctionsWidgetProps) {
+}: SlowestFunctionsWidgetProps<F>) {
   const location = useLocation();
 
   const [expandedIndex, setExpandedIndex] = useState(0);
@@ -70,7 +85,7 @@ export function SlowestFunctionsWidget({
   );
 
   const handleCursor = useCallback(
-    (cursor, pathname, query) => {
+    (cursor: any, pathname: any, query: any) => {
       browserHistory.push({
         pathname,
         query: {...query, [cursorName]: cursor},
@@ -91,7 +106,18 @@ export function SlowestFunctionsWidget({
     cursor: slowFnCursor,
   });
 
-  const hasFunctions = (functionsQuery.data?.data?.length || 0) > 0;
+  const functionsData = functionsQuery.data?.data || [];
+
+  const hasFunctions = (functionsData.length || 0) > 0;
+
+  // make sure to query for the projects from the top functions
+  const projects = functionsQuery.isFetched
+    ? [
+        ...new Set(
+          (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
+        ),
+      ]
+    : [];
 
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
@@ -102,19 +128,24 @@ export function SlowestFunctionsWidget({
     },
     query: userQuery,
     limit: MAX_FUNCTIONS,
-    // make sure to query for the projects from the top functions
-    projects: functionsQuery.isFetched
-      ? [
-          ...new Set(
-            (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
-          ),
-        ]
-      : [],
+    projects,
     enabled: functionsQuery.isFetched && hasFunctions,
   });
 
   const isLoading = functionsQuery.isPending || (hasFunctions && totalsQuery.isPending);
   const isError = functionsQuery.isError || totalsQuery.isError;
+
+  const functionStats = useProfileTopEventsStats({
+    dataset: 'profileFunctions',
+    fields: ['fingerprint', 'all_examples()', breakdownFunction],
+    query: functionsData.map(f => `fingerprint:${f.fingerprint}`).join(' OR '),
+    referrer: 'api.profiling.suspect-functions.stats',
+    yAxes: ['all_examples()', breakdownFunction],
+    projects,
+    others: false,
+    topEvents: functionsData.length,
+    enabled: totalsQuery.isFetched && hasFunctions,
+  });
 
   return (
     <WidgetContainer height={widgetHeight}>
@@ -144,12 +175,13 @@ export function SlowestFunctionsWidget({
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
-          <StyledAccordion>
-            {(functionsQuery.data?.data ?? []).map((f, i, l) => {
+          <Accordion>
+            {functionsData.map((f, i, l) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
               );
               const projectTotalDuration = projectEntry?.['sum()'] ?? f['sum()'];
+
               return (
                 <SlowestFunctionEntry
                   key={`${f['project.id']}-${f.package}-${f.function}`}
@@ -160,39 +192,40 @@ export function SlowestFunctionsWidget({
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}
+                  stats={functionStats}
                   totalDuration={projectTotalDuration as number}
                   query={userQuery ?? ''}
                 />
               );
             })}
-          </StyledAccordion>
+          </Accordion>
         )}
       </ContentContainer>
     </WidgetContainer>
   );
 }
 
-interface SlowestFunctionEntryProps {
+interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
   breakdownFunction: BreakdownFunction;
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
   query: string;
   setExpanded: () => void;
   totalDuration: number;
+  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
 }
 
 const BARS = 10;
 
-function SlowestFunctionEntry({
+function SlowestFunctionEntry<F extends BreakdownFunction>({
   breakdownFunction,
   func,
   isExpanded,
-  query,
   setExpanded,
+  stats,
   totalDuration,
-}: SlowestFunctionEntryProps) {
+}: SlowestFunctionEntryProps<F>) {
   const organization = useOrganization();
-
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(func['project.id']));
 
@@ -214,34 +247,65 @@ function SlowestFunctionEntry({
     );
   }, [func, project]);
 
-  const userQuery = useMemo(() => {
-    const conditions = new MutableSearch(query);
+  const examples: MenuItemProps[] = useMemo(() => {
+    const rawExamples = stats?.data?.data?.find(
+      s => s.axis === 'all_examples()' && s.label === String(func.fingerprint)
+    );
 
-    conditions.setFilterValues('project.id', [String(func['project.id'])]);
-    // it is more efficient to filter on the fingerprint
-    // than it is to filter on the package + function
-    conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
+    if (!defined(rawExamples?.values)) {
+      return [];
+    }
 
-    return conditions.formatString();
-  }, [func, query]);
+    const timestamps = stats?.data?.timestamps ?? [];
 
-  const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
-    fields: [...functionTransactionsFields, breakdownFunction],
-    referrer: 'api.profiling.suspect-functions.transactions',
-    sort: {
-      key: 'sum()',
-      order: 'desc',
-    },
-    query: userQuery,
-    limit: 5,
-    enabled: isExpanded,
-  });
+    return rawExamples.values
+      .map(values => (Array.isArray(values) ? values : []))
+      .flatMap((example, i) => {
+        const timestamp = (
+          <TimeSince
+            unitStyle="extraShort"
+            date={timestamps[i]! * 1000}
+            tooltipShowSeconds
+          />
+        );
+        return example.slice(0, 1).map(profileRef => {
+          const targetId = getProfileTargetId(profileRef);
+          return {
+            key: targetId,
+            label: (
+              <DropdownItem>
+                {getShortEventId(targetId)}
+                {timestamp}
+              </DropdownItem>
+            ),
+            textValue: targetId,
+            to: generateProfileRouteFromProfileReference({
+              organization,
+              projectSlug: project?.slug || '',
+              reference: profileRef,
+              frameName: frame.name,
+              framePackage: frame.package,
+            }),
+          };
+        });
+      })
+      .reverse()
+      .slice(0, 10);
+  }, [func, stats, organization, project, frame]);
 
   return (
     <Fragment>
-      <StyledAccordionItem>
+      <AccordionItem>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={setExpanded}
+        />
         {project && (
-          <Tooltip title={project.name}>
+          <Tooltip title={project.slug}>
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
@@ -258,98 +322,119 @@ function SlowestFunctionEntry({
         >
           <ScoreBar score={score} palette={palette} size={20} radius={0} />
         </Tooltip>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={setExpanded}
+        <DropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            icon: <IconEllipsis size="xs" />,
+            borderless: true,
+            showChevron: false,
+            size: 'xs',
+          }}
+          items={examples}
+          menuTitle={t('Example Profiles')}
         />
-      </StyledAccordionItem>
+      </AccordionItem>
       {isExpanded && (
-        <Fragment>
-          {functionTransactionsQuery.isError && (
-            <StatusContainer>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </StatusContainer>
-          )}
-          {functionTransactionsQuery.isPending && (
-            <StatusContainer>
-              <LoadingIndicator />
-            </StatusContainer>
-          )}
-          {functionTransactionsQuery.isFetched && (
-            <TransactionsList data-test-id="transactions-list">
-              <TransactionsListHeader>
-                <TextOverflow>{t('Transaction')}</TextOverflow>
-              </TransactionsListHeader>
-              <TransactionsListHeader align="right">
-                <TextOverflow>{t('Count')}</TextOverflow>
-              </TransactionsListHeader>
-              <TransactionsListHeader align="right">
-                <TextOverflow>{breakdownFunction.toUpperCase()}</TextOverflow>
-              </TransactionsListHeader>
-              <TransactionsListHeader align="right">
-                <TextOverflow>{t('Time Spent')}</TextOverflow>
-              </TransactionsListHeader>
-              {(functionTransactionsQuery.data?.data ?? []).map(transaction => {
-                const examples = transaction['examples()'] as string[];
-                let transactionCol = <Fragment>{transaction.transaction}</Fragment>;
-
-                if (project && examples.length) {
-                  const target = generateProfileFlamechartRouteWithQuery({
-                    orgSlug: organization.slug,
-                    projectSlug: project.slug,
-                    profileId: examples[0],
-                    query: {
-                      frameName: frame.name,
-                      framePackage: frame.package,
-                    },
-                  });
-                  transactionCol = (
-                    <Link
-                      to={target}
-                      onClick={() => {
-                        trackAnalytics('profiling_views.go_to_flamegraph', {
-                          organization,
-                          source: 'profiling.global_suspect_functions',
-                        });
-                      }}
-                    >
-                      {transactionCol}
-                    </Link>
-                  );
-                }
-
-                return (
-                  <Fragment key={transaction.transaction as string}>
-                    <TransactionsListCell>
-                      <TextOverflow>{transactionCol}</TextOverflow>
-                    </TransactionsListCell>
-                    <TransactionsListCell align="right">
-                      <Count value={transaction['count()'] as number} />
-                    </TransactionsListCell>
-                    <TransactionsListCell align="right">
-                      <PerformanceDuration
-                        nanoseconds={transaction[breakdownFunction] as number}
-                        abbreviation
-                      />
-                    </TransactionsListCell>
-                    <TransactionsListCell align="right">
-                      <PerformanceDuration
-                        nanoseconds={transaction['sum()'] as number}
-                        abbreviation
-                      />
-                    </TransactionsListCell>
-                  </Fragment>
-                );
-              })}
-            </TransactionsList>
-          )}
-        </Fragment>
+        <FunctionChartContainer>
+          <FunctionChart
+            func={func}
+            breakdownFunction={breakdownFunction}
+            stats={stats}
+          />
+        </FunctionChartContainer>
       )}
     </Fragment>
+  );
+}
+
+interface FunctionChartProps<F extends BreakdownFunction> {
+  breakdownFunction: F;
+  func: EventsResultsDataRow<FunctionsField>;
+  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
+}
+
+function FunctionChart<F extends BreakdownFunction>({
+  breakdownFunction,
+  func,
+  stats,
+}: FunctionChartProps<F>) {
+  const {selection} = usePageFilters();
+  const theme = useTheme();
+
+  const series: Series[] = useMemo(() => {
+    const timestamps = stats?.data?.timestamps ?? [];
+    const rawData = stats?.data?.data?.find(
+      s => s.axis === breakdownFunction && s.label === String(func.fingerprint)
+    );
+
+    if (!defined(rawData?.values)) {
+      return [];
+    }
+
+    return [
+      {
+        data: timestamps.map((timestamp, i) => {
+          return {
+            name: timestamp * 1000,
+            value: rawData.values[i]!,
+          };
+        }),
+        seriesName: breakdownFunction,
+      },
+    ];
+  }, [breakdownFunction, func, stats]);
+
+  const chartOptions = useMemo(() => {
+    return {
+      height: 150,
+      grid: {
+        top: '10px',
+        bottom: '10px',
+        left: '10px',
+        right: '10px',
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.chartLabel,
+          formatter: (value: number) => axisLabelFormatter(value, 'duration'),
+        },
+      },
+      xAxis: {
+        type: 'time' as const,
+      },
+      tooltip: {
+        valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
+      },
+    };
+  }, [theme.chartLabel]);
+
+  if (stats?.isPending) {
+    return (
+      <StatusContainer>
+        <LoadingIndicator />
+      </StatusContainer>
+    );
+  }
+
+  if (stats?.isError) {
+    return (
+      <StatusContainer>
+        <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+      </StatusContainer>
+    );
+  }
+
+  return (
+    <ChartZoom {...selection.datetime}>
+      {zoomRenderProps => (
+        <LineChart
+          data-test-id="function-chart"
+          {...zoomRenderProps}
+          {...chartOptions}
+          series={series}
+        />
+      )}
+    </ChartZoom>
   );
 }
 
@@ -368,59 +453,23 @@ const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
 
-type FunctionTransactionField =
-  | BreakdownFunction
-  | 'transaction'
-  | 'count()'
-  | 'sum()'
-  | 'examples()';
-
-const functionTransactionsFields: FunctionTransactionField[] = [
-  'transaction',
-  'count()',
-  'sum()',
-  'examples()',
-];
-
 const StyledPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const StyledAccordion = styled(Accordion)`
-  display: flex;
-  flex-direction: column;
-`;
-
-const StyledAccordionItem = styled(AccordionItem)`
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
 
-const TransactionsList = styled('div')`
+const FunctionChartContainer = styled('div')`
   flex: 1 1 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
-  grid-template-rows: 18px repeat(5, min-content);
-  column-gap: ${space(1)};
-  padding: 0 ${space(2)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
-const TransactionsListHeader = styled('span')<{
-  align?: CSSProperties['textAlign'];
-}>`
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
-  text-align: ${p => p.align};
-`;
-
-const TransactionsListCell = styled('div')<{align?: CSSProperties['textAlign']}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-align: ${p => p.align};
-  padding: ${space(0.5)} 0px;
+const DropdownItem = styled('div')`
+  width: 150px;
+  display: flex;
+  justify-content: space-between;
 `;

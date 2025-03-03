@@ -1,5 +1,5 @@
-import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -10,7 +10,6 @@ import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository, RepositoryStatus} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -21,18 +20,18 @@ type Props = {
 };
 
 function OrganizationRepositories({itemList, onRepositoryChange, organization}: Props) {
-  const api = useApi();
-
   const hasItemList = itemList && itemList.length > 0;
 
   return (
     <div>
       <SettingsPageHeader title={t('Repositories')} />
-      <AlertLink to={`/settings/${organization.slug}/integrations/`}>
-        {t(
-          'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
-        )}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink type="info" to={`/settings/${organization.slug}/integrations/`}>
+          {t(
+            'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+          )}
+        </AlertLink>
+      </AlertLink.Container>
       {!hasItemList && (
         <div className="m-b-2">
           <TextBlock>
@@ -54,7 +53,6 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
             <div>
               {itemList.map(repo => (
                 <RepositoryRow
-                  api={api}
                   key={repo.id}
                   repository={repo}
                   showProvider

@@ -13,7 +13,7 @@ export interface SelectOption<Value extends SelectKey> extends SelectValue<Value
 }
 
 export interface SelectSection<Value extends SelectKey> {
-  options: SelectOption<Value>[];
+  options: Array<SelectOption<Value>>;
   /**
    * When true, all options inside this section will be disabled.
    */
@@ -54,7 +54,7 @@ export interface SelectSectionWithKey<Value extends SelectKey>
    * be used.
    */
   key: SelectKey;
-  options: SelectOptionWithKey<Value>[];
+  options: Array<SelectOptionWithKey<Value>>;
 }
 
 /**

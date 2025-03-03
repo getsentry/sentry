@@ -8,9 +8,9 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePageQuery';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
@@ -52,19 +52,20 @@ type Row = {
 type Column = GridColumnHeader<keyof Row>;
 
 function ResourceSummaryTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
   const filters = useResourceModuleFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const {data, isPending, pageLinks} = useResourcePagesQuery(groupId, {
+  const {data, isPending, pageLinks} = useResourcePagesQuery(groupId!, {
     sort,
     cursor,
     subregions: filters[USER_GEO_SUBREGION],
     renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
   });
 
-  const columnOrder: GridColumnOrder<keyof Row>[] = [
+  const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
       key: 'spm()',
@@ -159,7 +160,7 @@ function ResourceSummaryTable() {
   };
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
@@ -173,7 +174,7 @@ function ResourceSummaryTable() {
         columnOrder={columnOrder}
         columnSortBy={[
           {
-            key: sort.field,
+            key: sort.field as keyof Row,
             order: sort.kind,
           },
         ]}

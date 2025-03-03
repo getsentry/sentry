@@ -82,7 +82,7 @@ function List({
             onScroll={onScroll}
             rowCount={items.length}
             rowHeight={({index}) =>
-              items[index].groupLabel && virtualizedLabelHeight
+              items[index]!.groupLabel && virtualizedLabelHeight
                 ? virtualizedLabelHeight
                 : virtualizedHeight
             }
@@ -90,8 +90,8 @@ function List({
               <Row
                 key={key}
                 style={style}
-                item={items[index]}
-                isHighlighted={items[index].index === highlightedIndex}
+                item={items[index]!}
+                isHighlighted={items[index]!.index === highlightedIndex}
                 {...rowProps}
               />
             )}

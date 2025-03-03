@@ -1,5 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
@@ -25,8 +26,8 @@ function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
 
       next.children.sort(sortFn);
 
-      for (let i = 0; i < next.children.length; i++) {
-        queue.push(next.children[i]);
+      for (const child of next.children) {
+        queue.push(child);
       }
     }
   };
@@ -37,9 +38,9 @@ const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
 export class Flamegraph {
   profile: Profile;
-  frames: ReadonlyArray<FlamegraphFrame> = [];
+  frames: readonly FlamegraphFrame[] = [];
 
-  inverted: boolean = false;
+  inverted = false;
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;
@@ -55,6 +56,7 @@ export class Flamegraph {
     children: [],
   };
 
+  unit: ProfilingFormatterUnit;
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
 
@@ -128,6 +130,7 @@ export class Flamegraph {
         throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
     }
 
+    this.unit = profile.unit;
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
 
@@ -304,7 +307,7 @@ export class Flamegraph {
 
   findAllMatchingFramesBy(
     query: string,
-    fields: (keyof FlamegraphFrame['frame'])[]
+    fields: Array<keyof FlamegraphFrame['frame']>
   ): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
     if (!fields.length) {
@@ -312,18 +315,18 @@ export class Flamegraph {
     }
 
     if (fields.length === 1) {
-      for (let i = 0; i < this.frames.length; i++) {
-        if (this.frames[i].frame[fields[0]] === query) {
-          matches.push(this.frames[i]);
+      for (const item of this.frames) {
+        if (item.frame[fields[0]!] === query) {
+          matches.push(item);
         }
       }
       return matches;
     }
 
-    for (let i = 0; i < this.frames.length; i++) {
+    for (const item of this.frames) {
       for (let j = fields.length; j--; ) {
-        if (this.frames[i].frame[fields[j]] === query) {
-          matches.push(this.frames[i]);
+        if (item.frame[fields[j]!] === query) {
+          matches.push(item);
         }
       }
     }
@@ -336,15 +339,15 @@ export class Flamegraph {
 
     const matches: FlamegraphFrame[] = [];
 
-    for (let i = 0; i < this.frames.length; i++) {
+    for (const item of this.frames) {
       if (
-        this.frames[i].frame.name === frameName &&
+        item.frame.name === frameName &&
         // the framePackage can match either the package or the module
         // this is an artifact of how we previously used image
-        (tryTrimPackage(this.frames[i].frame.package) === framePackage ||
-          this.frames[i].frame.module === framePackage)
+        (tryTrimPackage(item.frame.package) === framePackage ||
+          item.frame.module === framePackage)
       ) {
-        matches.push(this.frames[i]);
+        matches.push(item);
       }
     }
 

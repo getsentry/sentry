@@ -28,7 +28,7 @@ env:
 jobs:
   lint:
     name: pre-commit lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - # get a non-default github token so that any changes are verified by CI
@@ -59,7 +59,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
@@ -69,14 +69,14 @@ jobs:
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
 
-      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
-          python-version: 3.12.6
+          python-version: 3.13.1
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
           install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
-      - uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      - uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}

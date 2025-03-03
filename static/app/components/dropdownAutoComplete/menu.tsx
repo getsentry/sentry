@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
+import {Input} from 'sentry/components/core/input';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -441,7 +441,7 @@ export default Menu;
 const StyledInput = styled(Input)`
   flex: 1;
   border: 1px solid transparent;
-  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
+  border-radius: calc(${p => p.theme.borderRadius} - 1px);
   &,
   &:focus,
   &:active,
@@ -497,7 +497,7 @@ const InputWrapper = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p =>
-    `calc(${p.theme.panelBorderRadius} - 1px) calc(${p.theme.panelBorderRadius} - 1px) 0 0`};
+    `calc(${p.theme.borderRadius} - 1px) calc(${p.theme.borderRadius} - 1px) 0 0`};
   align-items: center;
 `;
 

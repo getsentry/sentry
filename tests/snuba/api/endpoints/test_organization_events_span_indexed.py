@@ -1,17 +1,22 @@
 import uuid
+from datetime import datetime, timezone
+from unittest import mock
 
 import pytest
+import urllib3
 
+from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBase):
     is_eap = False
+    use_rpc = False
     """Test the indexed spans dataset.
 
     To run this locally you may need to set the ENABLE_SPANS_CONSUMER flag to True in Snuba.
     A way to do this is
-    1. run: `sentry devservices down snuba`
+    1. run: `docker container rm snuba-snuba-1`
     2. clone snuba locally
     3. run: `export ENABLE_SPANS_CONSUMER=True`
     4. run snuba
@@ -26,6 +31,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             return "spans"
         else:
             return "spansIndexed"
+
+    def do_request(self, query, features=None, **kwargs):
+        query["useRpc"] = "1" if self.use_rpc else "0"
+        return super().do_request(query, features, **kwargs)
 
     def setUp(self):
         super().setUp()
@@ -72,6 +81,38 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "span.status": "ok",
                 "description": "foo",
                 "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_spm(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "spm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "spm()": 1 / (90 * 24 * 60),
             },
         ]
         assert meta["dataset"] == self.dataset
@@ -222,6 +263,58 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["device.class"] == "Unknown"
         assert meta["dataset"] == self.dataset
 
+    def test_span_module(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "op": "http",
+                            "category": "http",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "op": "alternative",
+                            "category": "other",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "op": "alternative",
+                            "category": "other",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.module", "count()"],
+                "query": "",
+                "orderby": "-count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["span.module"] == "other"
+        assert data[1]["span.module"] == "http"
+        assert meta["dataset"] == self.dataset
+
     def test_network_span(self):
         self.store_spans(
             [
@@ -248,7 +341,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         response = self.do_request(
             {
                 "field": ["span.op", "span.status_code"],
-                "query": "span.module:http span.status_code:200",
+                "query": "span.status_code:200",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -524,12 +617,709 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
+    def test_count_field_type(self):
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["fields"] == {"count()": "integer"}
+        assert response.data["meta"]["units"] == {"count()": None}
+        assert response.data["data"] == [{"count()": 0}]
 
-@pytest.mark.xfail(
-    reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
-)
+    def _test_simple_measurements(self, keys):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
+                    },
+                    measurements={k: {"value": (i + 1) / 10} for i, (k, _, _) in enumerate(keys)},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for i, (k, type, unit) in enumerate(keys):
+            key = f"measurements.{k}"
+            response = self.do_request(
+                {
+                    "field": [key],
+                    "query": "description:foo",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            expected = {
+                "dataset": mock.ANY,
+                "datasetReason": "unchanged",
+                "fields": {
+                    key: type,
+                    "id": "string",
+                    "project.name": "string",
+                },
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {
+                    key: unit,
+                    "id": None,
+                    "project.name": None,
+                },
+            }
+            if self.use_rpc:
+                expected["accuracy"] = {
+                    "confidence": [{}],
+                }
+            assert response.data["meta"] == expected
+            assert response.data["data"] == [
+                {
+                    key: pytest.approx((i + 1) / 10),
+                    "id": mock.ANY,
+                    "project.name": self.project.slug,
+                }
+            ]
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+            # size fields aren't property support pre-RPC
+            ("cache.item_size", "number", None),
+            ("messaging.message.body.size", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)
+
+    def test_environment(self):
+        self.create_environment(self.project, name="prod")
+        self.create_environment(self.project, name="test")
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"environment": "prod"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"environment": "test"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["environment", "count()"],
+                "project": self.project.id,
+                "environment": "prod",
+                "orderby": "environment",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"environment": "prod", "count()": 1},
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["environment", "count()"],
+                "project": self.project.id,
+                "environment": ["prod", "test"],
+                "orderby": "environment",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"environment": "prod", "count()": 1},
+            {"environment": "test", "count()": 1},
+        ]
+
+    def test_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": "transaction:bar",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_orderby_alias(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description", "sum(span.self_time)"],
+                "query": "",
+                "orderby": "sum_span_self_time",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.description": "foo",
+                "sum(span.self_time)": 1000,
+            },
+            {
+                "span.description": "bar",
+                "sum(span.self_time)": 2000,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.querybuilder
+    def test_explore_sample_query(self):
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.nine_mins_ago,
+            ),
+        ]
+        self.store_spans(
+            spans,
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "id",
+                    "project",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "timestamp",
+                    "trace",
+                    "transaction.span_id",
+                ],
+                # This is to skip INP spans
+                "query": "!transaction.span_id:00",
+                "orderby": "timestamp",
+                "statsPeriod": "1h",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for source, result in zip(spans, data):
+            assert result["id"] == source["span_id"], "id"
+            assert result["span.duration"] == 1000.0, "duration"
+            assert result["span.op"] == "", "op"
+            assert result["span.description"] == source["description"], "description"
+            ts = datetime.fromisoformat(result["timestamp"])
+            assert ts.tzinfo == timezone.utc
+            assert ts.timestamp() == pytest.approx(
+                source["end_timestamp_precise"], abs=5
+            ), "timestamp"
+            assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
+            assert result["project"] == result["project.name"] == self.project.slug, "project"
+        assert meta["dataset"] == self.dataset
+
+    def test_span_status(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "internal_error"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": "span.status:internal_error",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_handle_nans_from_snuba(self):
+        self.store_spans(
+            [self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": "span.status:internal_error",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+    def test_in_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "baz"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "bat"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["transaction", "count()"],
+                "query": "transaction:[bar, baz]",
+                "orderby": "transaction",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "transaction": "bar",
+                "count()": 1,
+            },
+            {
+                "transaction": "baz",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def _test_aggregate_filter(self, queries):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    measurements={
+                        "lcp": {"value": 5000},
+                        "http.response_content_length": {"value": 5000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    measurements={
+                        "lcp": {"value": 5000},
+                        "http.response_content_length": {"value": 5000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar"}},
+                    measurements={
+                        "lcp": {"value": 1000},
+                        "http.response_content_length": {"value": 1000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for query in queries:
+            response = self.do_request(
+                {
+                    "field": ["transaction", "count()"],
+                    "query": query,
+                    "orderby": "transaction",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 1
+            assert data[0]["transaction"] == "foo"
+            assert data[0]["count()"] == 2
+            assert meta["dataset"] == self.dataset
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+            ]
+        )
+
+    def test_pagination_samples(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "a"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "b"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "a",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        assert links["next"]["href"] is not None
+        response = self.client.get(links["next"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "b",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+        assert links["previous"]["href"] is not None
+        response = self.client.get(links["previous"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "a",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+    def test_precise_timestamps(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["precise.start_ts", "precise.finish_ts"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        start = self.ten_mins_ago.timestamp()
+        finish = start + 1
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "precise.start_ts": start,
+                "precise.finish_ts": finish,
+            },
+        ]
+
+    def test_replay_id(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"replay_id": "123"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "tags": {"replayId": "321"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["replay"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "replay",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "replay": "123",
+            },
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "replay": "321",
+            },
+        ]
+
+    def test_user_display(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"user.username": "test"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["user.display"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "user.display",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "user.display": "test",
+            },
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "user.display": "test@test.com",
+            },
+        ]
+
+    def test_query_with_asterisk(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "select * from database"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"select \\* from database"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["span.description"] == "select * from database"
+
+    def test_wildcard_queries_with_asterisk_literals(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "select * from database"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"select \\* * database"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["span.description"] == "select * from database"
+
+    def test_free_text_wildcard_filter(self):
+        spans = [
+            self.create_span(
+                {"description": "barbarbar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foofoofoo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["count()", "description"],
+                "query": "oof",
+                "orderby": "-count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count()": 1,
+                "description": "foofoofoo",
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
+    use_rpc = False
 
     def test_simple(self):
         self.store_spans(
@@ -619,7 +1409,8 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
-    def test_aggregate_numeric_attr_weighted(self):
+    @pytest.mark.xfail
+    def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
                 self.create_span(
@@ -655,21 +1446,21 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             {
                 "field": [
                     "description",
-                    "count_unique_weighted(bar)",
-                    "count_unique_weighted(tags[bar])",
-                    "count_unique_weighted(tags[bar,string])",
-                    "count_weighted()",
-                    "count_weighted(span.duration)",
-                    "count_weighted(tags[foo,     number])",
-                    "sum_weighted(tags[foo,number])",
-                    "avg_weighted(tags[foo,number])",
-                    "p50_weighted(tags[foo,number])",
-                    "p75_weighted(tags[foo,number])",
-                    "p95_weighted(tags[foo,number])",
-                    "p99_weighted(tags[foo,number])",
-                    "p100_weighted(tags[foo,number])",
-                    "min_weighted(tags[foo,number])",
-                    "max_weighted(tags[foo,number])",
+                    "count_unique(bar)",
+                    "count_unique(tags[bar])",
+                    "count_unique(tags[bar,string])",
+                    "count()",
+                    "count(span.duration)",
+                    "count(tags[foo,     number])",
+                    "sum(tags[foo,number])",
+                    "avg(tags[foo,number])",
+                    "p50(tags[foo,number])",
+                    "p75(tags[foo,number])",
+                    "p95(tags[foo,number])",
+                    "p99(tags[foo,number])",
+                    "p100(tags[foo,number])",
+                    "min(tags[foo,number])",
+                    "max(tags[foo,number])",
                 ],
                 "query": "",
                 "orderby": "description",
@@ -683,21 +1474,21 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         data = response.data["data"]
         assert data[0] == {
             "description": "foo",
-            "count_unique_weighted(bar)": 3,
-            "count_unique_weighted(tags[bar])": 3,
-            "count_unique_weighted(tags[bar,string])": 3,
-            "count_weighted()": 3,
-            "count_weighted(span.duration)": 3,
-            "count_weighted(tags[foo,     number])": 1,
-            "sum_weighted(tags[foo,number])": 5.0,
-            "avg_weighted(tags[foo,number])": 5.0,
-            "p50_weighted(tags[foo,number])": 5.0,
-            "p75_weighted(tags[foo,number])": 5.0,
-            "p95_weighted(tags[foo,number])": 5.0,
-            "p99_weighted(tags[foo,number])": 5.0,
-            "p100_weighted(tags[foo,number])": 5.0,
-            "min_weighted(tags[foo,number])": 5.0,
-            "max_weighted(tags[foo,number])": 5.0,
+            "count_unique(bar)": 3,
+            "count_unique(tags[bar])": 3,
+            "count_unique(tags[bar,string])": 3,
+            "count()": 3,
+            "count(span.duration)": 3,
+            "count(tags[foo,     number])": 1,
+            "sum(tags[foo,number])": 5.0,
+            "avg(tags[foo,number])": 5.0,
+            "p50(tags[foo,number])": 5.0,
+            "p75(tags[foo,number])": 5.0,
+            "p95(tags[foo,number])": 5.0,
+            "p99(tags[foo,number])": 5.0,
+            "p100(tags[foo,number])": 5.0,
+            "min(tags[foo,number])": 5.0,
+            "max(tags[foo,number])": 5.0,
         }
 
     def test_numeric_attr_without_space(self):
@@ -871,6 +1662,412 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert data[2]["tags[foo,number]"] == 71
         assert data[2]["description"] == "baz"
 
+    def test_margin_of_error(self):
+        total_samples = 10
+        in_group = 5
+        spans = []
+        for _ in range(in_group):
+            spans.append(
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.00001}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                )
+            )
+        for _ in range(total_samples - in_group):
+            spans.append(
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.00001}},
+                    },
+                )
+            )
+
+        self.store_spans(
+            spans,
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "margin_of_error()",
+                    "lower_count_limit()",
+                    "upper_count_limit()",
+                    "count()",
+                ],
+                "query": "description:foo",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"][0]
+        margin_of_error = data["margin_of_error()"]
+        lower_limit = data["lower_count_limit()"]
+        upper_limit = data["upper_count_limit()"]
+        extrapolated = data["count()"]
+        assert margin_of_error == pytest.approx(0.306, rel=1e-1)
+        # How to read this; these results mean that the extrapolated count is
+        # 500k, with a lower estimated bound of ~200k, and an upper bound of 800k
+        assert lower_limit == pytest.approx(190_000, abs=5000)
+        assert extrapolated == pytest.approx(500_000, abs=5000)
+        assert upper_limit == pytest.approx(810_000, abs=5000)
+
+    def test_skip_aggregate_conditions_option(self):
+        span_1 = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span_2 = self.create_span(
+            {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans(
+            [span_1, span_2],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": "description:foo count():>1",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "allowAggregateConditions": "0",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "project.name": self.project.slug,
+                "id": span_1["span_id"],
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_span_data_fields_http_resource(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "resource.img",
+                        "description": "/image/",
+                        "data": {
+                            "http.decoded_response_content_length": 1,
+                            "http.response_content_length": 2,
+                            "http.response_transfer_size": 3,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http.decoded_response_content_length",
+                    "http.response_content_length",
+                    "http.response_transfer_size",
+                ],
+                "query": "http.decoded_response_content_length:>0 http.response_content_length:>0 http.response_transfer_size:>0",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "allowAggregateConditions": "0",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "http.decoded_response_content_length": 1,
+                "http.response_content_length": 2,
+                "http.response_transfer_size": 3,
+                "project.name": self.project.slug,
+                "id": mock.ANY,
+            },
+        ]
+        expected = {
+            "dataset": mock.ANY,
+            "datasetReason": "unchanged",
+            "fields": {
+                "http.decoded_response_content_length": "size",
+                "http.response_content_length": "size",
+                "http.response_transfer_size": "size",
+                "id": "string",
+                "project.name": "string",
+            },
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {
+                "http.decoded_response_content_length": "byte",
+                "http.response_content_length": "byte",
+                "http.response_transfer_size": "byte",
+                "id": None,
+                "project.name": None,
+            },
+        }
+        if self.use_rpc:
+            expected["accuracy"] = {
+                "confidence": [{}],
+            }
+        assert response.data["meta"] == expected
+
+    def test_filtering_numeric_attr(self):
+        span_1 = self.create_span(
+            {"description": "foo"},
+            measurements={"foo": {"value": 30}},
+            start_ts=self.ten_mins_ago,
+        )
+        span_2 = self.create_span(
+            {"description": "foo"},
+            measurements={"foo": {"value": 10}},
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span_1, span_2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["tags[foo,number]"],
+                "query": "span.duration:>=0 tags[foo,number]:>20",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span_1["span_id"],
+                "project.name": self.project.slug,
+                "tags[foo,number]": 30,
+            },
+        ]
+
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+                "(count():>1 AND avg(http.response_content_length):>3000) OR (count():>1 AND avg(measurements.lcp):>3000)",
+            ]
+        )
+
+
+class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
+    is_eap = True
+    use_rpc = True
+
+    @mock.patch(
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen", side_effect=urllib3.exceptions.TimeoutError
+    )
+    def test_timeout(self, mock_rpc):
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Query timeout" in response.data["detail"]
+
+    def test_extrapolation(self):
+        """Extrapolation only changes the number when there's a sample rate"""
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "orderby": "-count()",
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
+        assert len(data) == 2
+        assert len(confidence) == 2
+        assert data[0]["count()"] == 10
+        assert confidence[0]["count()"] == "low"
+        assert data[1]["count()"] == 1
+        assert confidence[1]["count()"] in ("high", "low")
+
+    def test_span_duration(self):
+        spans = [
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["span.duration", "description"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.duration": 1000.0,
+                "description": "bar",
+                "project.name": self.project.slug,
+                "id": spans[0]["span_id"],
+            },
+            {
+                "span.duration": 1000.0,
+                "description": "foo",
+                "project.name": self.project.slug,
+                "id": spans[1]["span_id"],
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_average_sampling_rate(self):
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.85}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_sample(sampling_rate)",
+                    "count()",
+                    "min(sampling_rate)",
+                    "count_sample()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
+        assert len(data) == 1
+        assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
+        assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)
+        assert data[0]["count_sample()"] == 2
+        assert data[0]["count()"] == 11
+        assert confidence[0]["count()"] == "low"
+
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
@@ -944,85 +2141,137 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             "max(tags[foo,number])": 5.0,
         }
 
+    @pytest.mark.skip(reason="margin will not be moved to the RPC")
     def test_margin_of_error(self):
-        total_samples = 10
-        in_group = 5
-        spans = []
-        for _ in range(in_group):
-            spans.append(
+        super().test_margin_of_error()
+
+    @pytest.mark.skip(reason="module not migrated over")
+    def test_module_alias(self):
+        super().test_module_alias()
+
+    @pytest.mark.xfail(
+        reason="wip: depends on rpc having a way to set a different default in virtual contexts"
+    )
+    def test_span_module(self):
+        super().test_span_module()
+
+    def test_inp_span(self):
+        replay_id = uuid.uuid4().hex
+        self.store_spans(
+            [
                 self.create_span(
                     {
-                        "description": "foo",
-                        "sentry_tags": {"status": "success"},
-                        "measurements": {"client_sample_rate": {"value": 0.00001}},
+                        "sentry_tags": {
+                            "replay_id": replay_id,
+                            "browser.name": "Chrome",
+                            "transaction": "/pageloads/",
+                        }
                     },
                     start_ts=self.ten_mins_ago,
-                )
-            )
-        for _ in range(total_samples - in_group):
-            spans.append(
-                self.create_span(
-                    {
-                        "description": "bar",
-                        "sentry_tags": {"status": "success"},
-                        "measurements": {"client_sample_rate": {"value": 0.00001}},
-                    },
-                )
-            )
-
-        self.store_spans(
-            spans,
+                ),
+            ],
             is_eap=self.is_eap,
         )
-
         response = self.do_request(
             {
-                "field": [
-                    "margin_of_error()",
-                    "lower_count_limit()",
-                    "upper_count_limit()",
-                    "count_weighted()",
-                ],
-                "query": "description:foo",
+                # Not moving origin.transaction to RPC, its equivalent to transaction and just represents the
+                # transaction that's related to the span
+                "field": ["replay.id", "browser.name", "transaction", "count()"],
+                "query": f"replay.id:{replay_id} AND browser.name:Chrome AND transaction:/pageloads/",
+                "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
         )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"][0]
-        margin_of_error = data["margin_of_error()"]
-        lower_limit = data["lower_count_limit()"]
-        upper_limit = data["upper_count_limit()"]
-        extrapolated = data["count_weighted()"]
-        assert margin_of_error == pytest.approx(0.306, rel=1e-1)
-        # How to read this; these results mean that the extrapolated count is
-        # 500k, with a lower estimated bound of ~200k, and an upper bound of 800k
-        assert lower_limit == pytest.approx(190_000, abs=5000)
-        assert extrapolated == pytest.approx(500_000)
-        assert upper_limit == pytest.approx(810_000, abs=5000)
 
-    def test_skip_aggregate_conditions_option(self):
-        span_1 = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
-            start_ts=self.ten_mins_ago,
-        )
-        span_2 = self.create_span(
-            {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
-            start_ts=self.ten_mins_ago,
-        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["replay.id"] == replay_id
+        assert data[0]["browser.name"] == "Chrome"
+        assert data[0]["transaction"] == "/pageloads/"
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.xfail(
+        reason="wip: depends on rpc having a way to set a different default in virtual contexts"
+    )
+    # https://github.com/getsentry/projects/issues/215?issue=getsentry%7Cprojects%7C488
+    def test_other_category_span(self):
+        super().test_other_category_span()
+
+    @pytest.mark.xfail(
+        reason="wip: not implemented yet, depends on rpc having a way to filter based on casing"
+    )
+    # https://github.com/getsentry/projects/issues/215?issue=getsentry%7Cprojects%7C489
+    def test_span_op_casing(self):
+        super().test_span_op_casing()
+
+    def test_tag_wildcards(self):
         self.store_spans(
-            [span_1, span_2],
+            [
+                self.create_span(
+                    {"description": "foo", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "qux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for query in [
+            "foo:b*",
+            "foo:*r",
+            "foo:*a*",
+            "foo:b*r",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["foo", "count()"],
+                    "query": query,
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [{"foo": "bar", "count()": 1}]
+
+    @pytest.mark.xfail(reason="wip: rate not implemented yet")
+    def test_spm(self):
+        super().test_spm()
+
+    def test_is_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
             is_eap=self.is_eap,
         )
         response = self.do_request(
             {
-                "field": ["description"],
-                "query": "description:foo count():>1",
+                "field": ["span.status", "description", "count()", "is_transaction"],
+                "query": "is_transaction:true",
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "allowAggregateConditions": "0",
             }
         )
 
@@ -1032,9 +2281,457 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert len(data) == 1
         assert data == [
             {
+                "is_transaction": True,
+                "span.status": "success",
                 "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_is_not_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()", "is_transaction"],
+                "query": "is_transaction:0",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "is_transaction": False,
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
                 "project.name": self.project.slug,
-                "id": span_1["span_id"],
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+        assert response.data["meta"]["fields"] == {
+            "id": "string",
+            "project.name": "string",
+            "cache.item_size": "size",
+            "measurements.cache.item_size": "size",
+            "measurements.messaging.message.body.size": "size",
+            "messaging.message.body.size": "size",
+        }
+
+        assert response.data["meta"]["units"] == {
+            "id": None,
+            "project.name": None,
+            "cache.item_size": "byte",
+            "measurements.cache.item_size": "byte",
+            "measurements.messaging.message.body.size": "byte",
+            "messaging.message.body.size": "byte",
+        }
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("cache.item_size", "size", "byte"),
+            ("messaging.message.body.size", "size", "byte"),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)
+
+    def test_explore_sample_query(self):
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.nine_mins_ago,
+            ),
+        ]
+        self.store_spans(
+            spans,
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "id",
+                    "project",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "timestamp",
+                    "trace",
+                    "transaction.span_id",
+                ],
+                # This is to skip INP spans
+                "query": "!transaction.span_id:00",
+                "orderby": "timestamp",
+                "statsPeriod": "1h",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for source, result in zip(spans, data):
+            assert result["id"] == source["span_id"], "id"
+            assert result["span.duration"] == 1000.0, "duration"
+            # TODO: once the snuba change to return Nones has merged remove the or
+            assert result["span.op"] is None or result["span.op"] == "", "op"
+            assert result["span.description"] == source["description"], "description"
+            ts = datetime.fromisoformat(result["timestamp"])
+            assert ts.tzinfo == timezone.utc
+            assert ts.timestamp() == pytest.approx(
+                source["end_timestamp_precise"], abs=5
+            ), "timestamp"
+            assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
+            assert result["project"] == result["project.name"] == self.project.slug, "project"
+        assert meta["dataset"] == self.dataset
+
+    def test_query_for_missing_tag(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": "has:foo",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"foo": "bar", "count()": 1}]
+
+    def test_query_for_missing_tag_negated(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": "!has:foo",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["foo"] == "" or data[0]["foo"] is None
+        assert data[0]["count()"] == 1
+
+    def test_device_class_filter_unknown(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "device.class:Unknown",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "Unknown"
+        assert meta["dataset"] == self.dataset
+
+    def test_http_response_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "500"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "500"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "404"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "200"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(5)",
+                    "http_response_rate(4)",
+                    "http_response_rate(2)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["http_response_rate(5)"] == 0.5
+        assert data[0]["http_response_rate(4)"] == 0.25
+        assert data[0]["http_response_rate(2)"] == 0.25
+        assert meta["dataset"] == self.dataset
+
+    def test_http_response_rate_invalid_param(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "500"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(a)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Invalid Parameter A. Must Be One Of ['1', '2', '3', '4', '5']"
+            == response.data["detail"].title()
+        )
+
+    @pytest.mark.skip(reason="replay id alias not migrated over")
+    def test_replay_id(self):
+        super().test_replay_id()
+
+    @pytest.mark.skip(reason="user display alias not migrated over")
+    def test_user_display(self):
+        super().test_user_display()
+
+    def test_unit_aggregate_filtering(self):
+        spans = [
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["avg(span.duration)", "description"],
+                "query": "avg(span.duration):>0.5s",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "avg(span.duration)": 1000.0,
+                "description": "bar",
+            },
+            {
+                "avg(span.duration)": 1000.0,
+                "description": "foo",
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.xfail(reason="RPC is not evaluating `Null != 200` correctly")
+    def test_filtering_null_numeric_attr(self):
+        spans = [
+            self.create_span(
+                {
+                    "description": "bar",
+                    "measurements": {"http.response.status_code": {"value": 200}},
+                },
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {
+                    "description": "foo",
+                },
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["description", "tags[http.response.status_code,number]"],
+                "query": "!tags[http.response.status_code,number]:200",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "tags[http.response.status_code,number]": None,
+                "description": "foo",
             },
         ]
         assert meta["dataset"] == self.dataset

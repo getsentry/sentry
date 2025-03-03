@@ -4,8 +4,10 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.quotas.base import SeatAssignmentResult
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -60,6 +62,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.timeout_ms == 1500
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body == "something"
+        assert uptime_sub.trace_sampling is False
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -85,6 +88,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.timeout_ms == 1500
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body is None
+        assert uptime_sub.trace_sampling is False
 
     def test_enviroment(self):
         uptime_subscription = self.create_project_uptime_subscription()
@@ -168,7 +172,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
 
-    @mock.patch("sentry.uptime.endpoints.validators.MAX_MONITORS_PER_DOMAIN", 1)
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1)
     def test_domain_limit(self):
         # First monitor is for test-one.example.com
         self.create_project_uptime_subscription(
@@ -193,6 +197,54 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             resp.data["url"][0]
             == "The domain *.example.com has already been used in 1 uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
         )
+
+    def test_status_disable(self):
+        uptime_monitor = self.create_project_uptime_subscription()
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_monitor.project.slug,
+            uptime_monitor.id,
+            name="test_2",
+            status="disabled",
+        )
+        uptime_monitor.refresh_from_db()
+        assert resp.data == serialize(uptime_monitor, self.user)
+        assert uptime_monitor.status == ObjectStatus.DISABLED
+        assert uptime_monitor.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+
+    def test_status_enable(self):
+        uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_monitor.project.slug,
+            uptime_monitor.id,
+            name="test_2",
+            status="active",
+        )
+        uptime_monitor.refresh_from_db()
+        assert resp.data == serialize(uptime_monitor, self.user)
+        assert uptime_monitor.status == ObjectStatus.ACTIVE
+
+    @mock.patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=False, reason="Assignment failed in test"),
+    )
+    def test_status_enable_no_seat_assignment(self, _mock_check_assign_seat):
+        uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
+        resp = self.get_error_response(
+            self.organization.slug,
+            uptime_monitor.project.slug,
+            uptime_monitor.id,
+            name="test_2",
+            status="active",
+        )
+
+        # Monitor was not enabled
+        uptime_monitor.refresh_from_db()
+        assert uptime_monitor.status == ObjectStatus.DISABLED
+        assert resp.data == {
+            "status": [ErrorDetail(string="Assignment failed in test", code="invalid")]
+        }
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):

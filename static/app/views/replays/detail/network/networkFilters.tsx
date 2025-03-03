@@ -28,7 +28,7 @@ function NetworkFilters({
       <CompactSelect
         disabled={!methodTypes.length && !statusTypes.length && !resourceTypes}
         multiple
-        onChange={setFilters as (selection: SelectOption<string>[]) => void}
+        onChange={setFilters as (selection: Array<SelectOption<string>>) => void}
         options={[
           {
             label: t('Method'),

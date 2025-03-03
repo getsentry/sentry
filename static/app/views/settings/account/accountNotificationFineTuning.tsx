@@ -218,7 +218,7 @@ function AccountNotificationFineTuning({
   }
 
   const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
-  const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+  const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType]!;
   // TODO(isabella): once GA, remove this
   if (
     fineTuneType === 'quota' &&
@@ -270,7 +270,7 @@ function AccountNotificationFineTuning({
     ) : (
       <Fragment>
         {isProject && hasProjects && (
-          <AccountNotificationsByProject projects={projects!} field={field} />
+          <AccountNotificationsByProject projects={projects} field={field} />
         )}
 
         {isProject && !hasProjects && (

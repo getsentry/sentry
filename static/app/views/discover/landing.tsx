@@ -3,10 +3,10 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
@@ -23,12 +23,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Queries'), value: 'myqueries'},
   {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('Query Name (A-Z)'), value: 'name'},
@@ -41,7 +42,7 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{}, {}> &
+} & RouteComponentProps &
   DeprecatedAsyncComponent['props'];
 
 type State = {
@@ -124,7 +125,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
-      sortBy: this.getActiveSort().value,
+      sortBy: this.getActiveSort()!.value,
     };
     if (!cursor) {
       delete queryParams.cursor;
@@ -208,7 +209,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
         </PrebuiltSwitch>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
-          value={activeSort.value}
+          value={activeSort!.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
           position="bottom-end"
@@ -229,7 +230,9 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
   renderNoAccess() {
     return (
       <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }
@@ -272,7 +275,10 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const to = `/organizations/${organization.slug}/discover/homepage/`;
+    const to = makeDiscoverPathname({
+      path: `/homepage/`,
+      organization,
+    });
 
     return (
       <Feature

@@ -1,6 +1,6 @@
+'use strict';
 import '@testing-library/jest-dom';
 
-/* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {enableFetchMocks} from 'jest-fetch-mock';
@@ -12,6 +12,7 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
+// eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
@@ -27,13 +28,9 @@ setLocale(DEFAULT_LOCALE_DATA);
  */
 enableFetchMocks();
 
-/**
- * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
- * framer-motion SVG components fail
- *
- * See https://github.com/jsdom/jsdom/issues/1330
- */
-// @ts-expect-error
+// @ts-expect-error XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
+// framer-motion SVG components fail
+// See https://github.com/jsdom/jsdom/issues/1330
 SVGElement.prototype.getTotalLength ??= () => 1;
 
 /**
@@ -68,7 +65,12 @@ jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('sentry/utils/search/searchBoxTextArea');
+
+jest.mock('getsentry/utils/stripe');
+jest.mock('getsentry/utils/trackMarketingEvent');
+jest.mock('getsentry/utils/trackAmplitudeEvent');
+jest.mock('getsentry/utils/trackReloadEvent');
+jest.mock('getsentry/utils/trackMetric');
 
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
@@ -83,7 +85,11 @@ jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
-    AutoSizer: ({children}) => children({width: 100, height: 100}),
+    AutoSizer: ({
+      children,
+    }: {
+      children: (props: {height: number; width: number}) => React.ReactNode;
+    }) => children({width: 100, height: 100}),
   };
 });
 
@@ -155,10 +161,12 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
+  // eslint-disable-next-line no-var
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
+  // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
 
@@ -172,6 +180,8 @@ window.tick = () => new Promise(resolve => setTimeout(resolve));
 window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
+
+window.ra = {event: jest.fn()};
 
 // We need to re-define `window.location`, otherwise we can't spyOn certain
 // methods as `window.location` is read-only
@@ -233,3 +243,24 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+// Using `:focus-visible` in `querySelector` or `matches` will throw an error in JSDOM.
+// See https://github.com/jsdom/jsdom/issues/3055
+// eslint-disable-next-line testing-library/no-node-access
+const originalQuerySelector = HTMLElement.prototype.querySelector;
+const originalMatches = HTMLElement.prototype.matches;
+// eslint-disable-next-line testing-library/no-node-access
+HTMLElement.prototype.querySelector = function (selectors: string) {
+  if (selectors === ':focus-visible') {
+    return null;
+  }
+
+  return originalQuerySelector.call(this, selectors);
+};
+HTMLElement.prototype.matches = function (selectors: string) {
+  if (selectors === ':focus-visible') {
+    return false;
+  }
+
+  return originalMatches.call(this, selectors);
+};

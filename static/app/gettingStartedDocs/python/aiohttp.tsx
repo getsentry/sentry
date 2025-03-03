@@ -6,11 +6,14 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
+  featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -24,7 +27,10 @@ from aiohttp import web
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn.public}",${
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -44,7 +50,7 @@ sentry_sdk.init(
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
-        # to automatically start the profiler on when
+        # to automatically start the profiler when
         # possible.
         "continuous_profiling_auto_start": True,
     },`
@@ -106,16 +112,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
-async def hello(request):
-   return web.Response(text="Hello, world")
-
-app = web.Application()
-app.add_routes([web.get('/', hello)])
-
-web.run_app(app)
-`,
+          code: getSdkSetupSnippet(params),
         },
       ],
       additionalInfo: params.isProfilingSelected &&
@@ -124,7 +121,7 @@ web.run_app(app)
         ),
     },
   ],
-  verify: (params: Params) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -135,7 +132,6 @@ web.run_app(app)
           language: 'python',
 
           code: `
-${getSdkSetupSnippet(params)}
 async def hello(request):
     1/0  # raises an error
     return web.Response(text="Hello, world")
@@ -173,10 +169,10 @@ web.run_app(app)
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

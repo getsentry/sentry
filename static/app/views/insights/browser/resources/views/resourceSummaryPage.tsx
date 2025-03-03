@@ -1,16 +1,8 @@
 import React from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -24,16 +16,16 @@ import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -50,12 +42,22 @@ const {
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
-  const {isInDomainView} = useDomainViewFilters();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
-  const {
-    query: {transaction},
-  } = useLocation();
+
+  useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={groupId!}
+        moduleName={ModuleName.RESOURCE}
+        transactionRoute={webVitalsModuleURL}
+        referrer={TraceViewSources.ASSETS_MODULE}
+      />
+    ),
+    moduleName: ModuleName.RESOURCE,
+    requiredParams: ['transaction'],
+  });
+
   const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
@@ -90,47 +92,24 @@ function ResourceSummary() {
   const isImage =
     filters[SPAN_OP] === ResourceSpanOps.IMAGE ||
     IMAGE_FILE_EXTENSIONS.includes(
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
     ) ||
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
-
-  const crumbs = useModuleBreadcrumbs('resource');
 
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-                },
-              ]}
-            />
-
-            <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <FrontendHeader
-          headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
-          breadcrumbs={[
-            {
-              label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-            },
-          ]}
-          module={ModuleName.RESOURCE}
-        />
-      )}
+      <FrontendHeader
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
+        breadcrumbs={[
+          {
+            label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+          },
+        ]}
+        module={ModuleName.RESOURCE}
+      />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
         <Layout.Body>
@@ -139,12 +118,7 @@ function ResourceSummary() {
               <ModuleLayout.Full>
                 <HeaderContainer>
                   <ToolRibbon>
-                    <PageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </PageFilterBar>
-
+                    <ModulePageFilterBar moduleName={ModuleName.RESOURCE} />
                     <RenderBlockingSelector
                       value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
                     />
@@ -152,14 +126,21 @@ function ResourceSummary() {
                   </ToolRibbon>
                   <ResourceInfo
                     isLoading={isPending}
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
                     avgDecodedContentLength={
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
                     }
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     throughput={spanMetrics['spm()']}
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
                   />
                 </HeaderContainer>
@@ -167,25 +148,17 @@ function ResourceSummary() {
 
               {isImage && (
                 <ModuleLayout.Full>
-                  <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                  <SampleImages
+                    groupId={groupId!}
+                    projectId={data?.[0]?.['project.id']}
+                  />
                 </ModuleLayout.Full>
               )}
 
-              <ResourceSummaryCharts groupId={groupId} />
+              <ResourceSummaryCharts groupId={groupId!} />
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />
-              </ModuleLayout.Full>
-
-              <ModuleLayout.Full>
-                <SampleList
-                  transactionRoute={webVitalsModuleURL}
-                  subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
-                  groupId={groupId}
-                  moduleName={ModuleName.RESOURCE}
-                  transactionName={transaction as string}
-                  referrer={TraceViewSources.ASSETS_MODULE}
-                />
               </ModuleLayout.Full>
             </ModuleLayout.Layout>
           </Layout.Main>
@@ -197,11 +170,7 @@ function ResourceSummary() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="resource"
-      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
       <ResourceSummary />
     </ModulePageProviders>
   );

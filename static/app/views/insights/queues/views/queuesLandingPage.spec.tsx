@@ -6,11 +6,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
 import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 describe('queuesLandingPage', () => {
   const organization = OrganizationFixture({
@@ -58,7 +60,16 @@ describe('queuesLandingPage', () => {
     initiallyLoaded: false,
   });
 
-  let eventsMock, eventsStatsMock;
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
+
+  let eventsMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
@@ -78,7 +89,7 @@ describe('queuesLandingPage', () => {
     render(<QueuesLandingPage />, {organization});
     await screen.findByRole('table', {name: 'Queues'});
     screen.getByPlaceholderText('Search for more destinations');
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();

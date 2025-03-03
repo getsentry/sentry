@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from django.db import models
@@ -8,6 +9,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -26,6 +28,19 @@ class DashboardProject(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardproject"
         unique_together = (("project", "dashboard"),)
+
+
+@region_silo_model
+class DashboardFavoriteUser(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfavoriteuser"
+        unique_together = (("user_id", "dashboard"),)
 
 
 @region_silo_model
@@ -54,6 +69,30 @@ class Dashboard(Model):
 
     __repr__ = sane_repr("organization", "title")
 
+    @property
+    def favorited_by(self):
+        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+            "user_id", flat=True
+        )
+        return user_ids
+
+    @favorited_by.setter
+    def favorited_by(self, user_ids):
+        from django.db import router, transaction
+
+        existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+            "user_id", flat=True
+        )
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            newly_favourited = [
+                DashboardFavoriteUser(dashboard=self, user_id=user_id)
+                for user_id in set(user_ids) - set(existing_user_ids)
+            ]
+            DashboardFavoriteUser.objects.filter(
+                dashboard=self, user_id__in=set(existing_user_ids) - set(user_ids)
+            ).delete()
+            DashboardFavoriteUser.objects.bulk_create(newly_favourited)
+
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
         query = list(
@@ -76,6 +115,32 @@ class Dashboard(Model):
         if dashboard_id in all_prebuilt_dashboards:
             return all_prebuilt_dashboards[dashboard_id]
         return None
+
+    @classmethod
+    def incremental_title(cls, organization, name):
+        """
+        Given a dashboard name that migh already exist, returns a new unique name that does not exist, by appending the word "copy" and an integer if necessary.
+        """
+
+        base_name = re.sub(r" ?copy ?(\d+)?$", "", name)
+        matching_dashboards = cls.objects.filter(
+            organization=organization, title__regex=rf"^{re.escape(base_name)} ?(copy)? ?(\d+)?$"
+        ).values("title")
+
+        if not matching_dashboards:
+            return name
+
+        next_copy_number = 0
+        for dashboard in matching_dashboards:
+            match = re.search(r" copy ?(\d+)?", dashboard["title"])
+            if match:
+                copy_number = int(match.group(1) or 0)
+                next_copy_number = max(next_copy_number, copy_number + 1)
+
+        if next_copy_number == 0:
+            return f"{base_name} copy"
+
+        return f"{base_name} copy {next_copy_number}"
 
 
 @region_silo_model
@@ -129,6 +194,8 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
             "title": "General",
             "dateCreated": "",
             "createdBy": "",
+            "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
+            "isFavorited": False,
             "widgets": [
                 {
                     "title": "Number of Errors",

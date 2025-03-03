@@ -10,12 +10,13 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry import features
 from sentry.integrations.base import (
@@ -33,16 +34,18 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import sha1_text
@@ -167,7 +170,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -192,7 +195,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -222,7 +225,7 @@ class OAuthLoginView(PipelineView):
 
         authorize_url = client.get_authorize_url(request_token)
 
-        return self.redirect(authorize_url)
+        return HttpResponseRedirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -232,7 +235,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(
             config.get("url"),
@@ -714,7 +717,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
+    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -927,7 +930,9 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         issue_type_meta = client.get_issue_fields(jira_project, issue_type)
         if not issue_type_meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+            raise IntegrationInstallationConfigurationError(
+                "Could not fetch issue create configuration from Jira."
+            )
 
         user_id_field = client.user_id_field()
 
@@ -1046,48 +1051,100 @@ class JiraServerIntegration(IssueSyncIntegration):
         Propagate a sentry issue's assignee to a jira issue's assignee
         """
         client = self.get_client()
+        logging_context = {
+            "integration_id": external_issue.integration_id,
+            "issue_key": external_issue.key,
+        }
 
         jira_user = None
         if user and assign:
+            logging_context["user_id"] = user.id
+            logging_context["user_email_count"] = len(user.emails)
+
+            total_queried_jira_users = 0
+            total_available_jira_emails = 0
             for ue in user.emails:
+                assert ue, "Expected a valid user email, received falsy value"
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue)
-                except (ApiUnauthorized, ApiError):
+                except ApiUnauthorized:
+                    logger.info(
+                        "jira.user-search-unauthorized",
+                        extra={
+                            **logging_context,
+                        },
+                    )
                     continue
+                except ApiError as e:
+                    logger.info(
+                        "jira.user-search-request-error",
+                        extra={
+                            **logging_context,
+                            "error": str(e),
+                        },
+                    )
+                    continue
+
+                total_queried_jira_users += len(possible_users)
+
+                if len(possible_users) == 1:
+                    # Assume the only user returned is a full match for the email,
+                    # as we search by username. This addresses visibility issues
+                    # in some cases where Jira server does not populate `emailAddress`
+                    # fields on user responses.
+                    jira_user = possible_users[0]
+                    break
+
                 for possible_user in possible_users:
+                    # Continue matching on email address, since we can't guarantee
+                    # a clean match.
                     email = possible_user.get("emailAddress")
+
+                    if not email:
+                        continue
+
+                    total_available_jira_emails += 1
                     # match on lowercase email
-                    if email and email.lower() == ue.lower():
+                    if email.lower() == ue.lower():
                         jira_user = possible_user
                         break
+
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
                     "jira.assignee-not-found",
                     extra={
-                        "integration_id": external_issue.integration_id,
-                        "user_id": user.id,
-                        "issue_key": external_issue.key,
+                        **logging_context,
+                        "jira_user_count_match": total_queried_jira_users,
+                        "total_available_jira_emails": total_available_jira_emails,
                     },
                 )
-                return
+                raise IntegrationError("Failed to assign user to Jira Server issue")
 
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except (ApiUnauthorized, ApiError):
-            # TODO(jess): do we want to email people about these types of failures?
+        except ApiUnauthorized:
             logger.info(
-                "jira.failed-to-assign",
+                "jira.user-assignment-unauthorized",
                 extra={
-                    "organization_id": external_issue.organization_id,
-                    "integration_id": external_issue.integration_id,
-                    "user_id": user.id if user else None,
-                    "issue_key": external_issue.key,
+                    **logging_context,
                 },
             )
+            raise IntegrationError("Insufficient permissions to assign user to Jira Server issue")
+        except ApiError as e:
+            logger.info(
+                "jira.user-assignment-request-error",
+                extra={
+                    **logging_context,
+                    "error": str(e),
+                },
+            )
+            raise IntegrationError("Failed to assign user to Jira Server issue")
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
@@ -1176,7 +1233,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def build_integration(self, state):

@@ -41,6 +41,7 @@ dummy_provider_config = {
 
 class DummySAML2Provider(GenericSAML2Provider):
     name = "dummy"
+    key = "saml2_dummy"
 
     def get_saml_setup_pipeline(self):
         return []
@@ -295,3 +296,14 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         updated = type(self.user).objects.get(pk=self.user.id)
         assert updated.session_nonce != self.user.session_nonce
+
+    def test_verify_email(self, follow=False, **kwargs):
+        assert AuthIdentity.objects.filter(user_id=self.user.id).count() == 0
+
+        response = self.accept_auth()
+        assert response.status_code == 200
+
+        response = self.client.post(self.acs_path, {"op": "confirm"})
+
+        # expect no linking before verification
+        assert AuthIdentity.objects.filter(user_id=self.user.id).count() == 0

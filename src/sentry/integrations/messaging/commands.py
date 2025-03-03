@@ -9,6 +9,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
 
 
 @dataclass(frozen=True, eq=True)
@@ -66,40 +67,37 @@ class MessagingIntegrationCommand:
     def name(self) -> str:
         return self.interaction_type.value
 
-    @staticmethod
-    def _to_tokens(text: str) -> tuple[str, ...]:
-        return tuple(token.casefold() for token in text.strip().split())
-
     def get_all_command_slugs(self) -> Iterable[CommandSlug]:
         yield self.command_slug
         yield from self.aliases
 
 
-MESSAGING_INTEGRATION_COMMANDS = (
-    HELP := MessagingIntegrationCommand(
-        MessagingInteractionType.HELP,
-        "help",
-        aliases=("", "support", "docs"),
-    ),
-    LINK_IDENTITY := MessagingIntegrationCommand(
-        MessagingInteractionType.LINK_IDENTITY,
-        "link",
-    ),
-    UNLINK_IDENTITY := MessagingIntegrationCommand(
-        MessagingInteractionType.UNLINK_IDENTITY,
-        "unlink",
-    ),
-    LINK_TEAM := MessagingIntegrationCommand(
-        MessagingInteractionType.LINK_TEAM,
-        "link team",
-    ),
-    UNLINK_TEAM := MessagingIntegrationCommand(
-        MessagingInteractionType.UNLINK_TEAM,
-        "unlink team",
-    ),
+HELP = MessagingIntegrationCommand(
+    MessagingInteractionType.HELP,
+    "help",
+    aliases=("", "support", "docs"),
+)
+LINK_IDENTITY = MessagingIntegrationCommand(
+    MessagingInteractionType.LINK_IDENTITY,
+    "link",
+)
+UNLINK_IDENTITY = MessagingIntegrationCommand(
+    MessagingInteractionType.UNLINK_IDENTITY,
+    "unlink",
+)
+LINK_TEAM = MessagingIntegrationCommand(
+    MessagingInteractionType.LINK_TEAM,
+    "link team",
+)
+UNLINK_TEAM = MessagingIntegrationCommand(
+    MessagingInteractionType.UNLINK_TEAM,
+    "unlink team",
 )
 
 R = TypeVar("R")  # response
+
+# Command handler type that receives lifecycle object
+CommandHandler = Callable[[CommandInput], IntegrationResponse[R]]
 
 
 class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
@@ -114,8 +112,16 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     @abstractmethod
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], R]]]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[R]]]:
+        """Return list of (command, handler) tuples.
+
+        Each handler receives (command_input) and returns IntegrationResponse[R].
+        """
         raise NotImplementedError
+
+    """
+    Handlers for bot commands which should wrap the EventLifecycle context.
+    """
 
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
         return MessagingInteractionEvent(
@@ -127,7 +133,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         class CandidateHandler:
             command: MessagingIntegrationCommand
             slug: CommandSlug
-            callback: Callable[[CommandInput], R]
+            callback: CommandHandler[R]
 
             def parsing_order(self) -> int:
                 # Sort by descending length of arg tokens. If one slug is a prefix of
@@ -145,7 +151,16 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         for handler in candidate_handlers:
             if handler.slug.does_match(cmd_input):
                 arg_input = cmd_input.adjust(handler.slug)
-                with self.get_event(handler.command).capture(assume_success=False):
-                    return handler.callback(arg_input)
+                event = self.get_event(handler.command)
+                with event.capture(assume_success=False) as lifecycle:
+                    response = handler.callback(arg_input)
+                    # Record the appropriate lifecycle event based on the response
+                    if response.interaction_result == EventLifecycleOutcome.HALTED:
+                        lifecycle.record_halt(response.outcome_reason, response.context_data)
+                    elif response.interaction_result == EventLifecycleOutcome.FAILURE:
+                        lifecycle.record_failure(response.outcome_reason, response.context_data)
+                    else:
+                        lifecycle.record_success()
+                    return response.response
 
         raise CommandNotMatchedError(f"{cmd_input=!r}", cmd_input)

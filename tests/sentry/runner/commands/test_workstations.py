@@ -1,4 +1,3 @@
-import subprocess
 from dataclasses import dataclass
 from unittest.mock import MagicMock, Mock, patch
 
@@ -26,18 +25,6 @@ class FakePopen(MagicMock):
         self.stderr = ""
 
 
-class FakePopenFactory:
-    pass
-
-
-def raise_error(*args, **kwargs):
-    raise subprocess.CalledProcessError(returncode=123, cmd="foo")
-
-
-def raise_timeout(*args, **kwargs):
-    raise subprocess.TimeoutExpired("Fake gcloud timeout", timeout=123)
-
-
 class WorkstationsTestCase(CliTestCase):
     command = workstations
 
@@ -47,19 +34,16 @@ class WorkstationsTestCase(CliTestCase):
 
     def invoke(self, *args, **kwargs):
         args = (
-            tuple([self.subcommand])
-            + args
-            + tuple(self.default_args)
-            + tuple(["--project", "fake"])
+            self.subcommand,
+            *args,
+            *self.default_args,
+            *("--project", "fake"),
         )
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
 
 @patch("shutil.which", return_value="/fake/path/to/gcloud/bin")
-@patch(
-    "subprocess.Popen",
-    new_callable=lambda: FakePopen,
-)
+@patch("subprocess.Popen", new_callable=lambda: FakePopen)
 class GcloudCheckTests(WorkstationsTestCase):
     """
     Check that we correctly report underlying `gcloud` problems.

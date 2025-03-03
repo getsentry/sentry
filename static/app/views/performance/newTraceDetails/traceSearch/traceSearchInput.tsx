@@ -2,7 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
@@ -10,13 +10,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceReducer} from '../traceState';
 import type {TraceSearchState} from '../traceState/traceSearch';
-import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
+import {
+  useTraceState,
+  useTraceStateDispatch,
+  useTraceStateEmitter,
+} from '../traceState/traceStateProvider';
 
 interface TraceSearchInputProps {
   onTraceSearch: (
@@ -33,7 +39,8 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
-  const [status, setStatus] = useState<TraceSearchState['status']>();
+  const traceStateEmitter = useTraceStateEmitter();
+  const [status, setStatus] = useState<TraceSearchState['status']>([0, 'success']);
 
   const timeoutRef = useRef<number | undefined>(undefined);
   const statusRef = useRef<TraceSearchState['status']>(status);
@@ -46,30 +53,39 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   useLayoutEffect(() => {
     if (typeof timeoutRef.current === 'number') {
       window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
     }
 
     // if status is loading, show loading icon immediately
     // if previous status was loading, show loading icon for at least 500ms
     if (!statusRef.current && traceState.search.status) {
       setStatus([performance.now(), traceState.search.status[1]]);
-      return;
+      return undefined;
     }
+
+    let cancel = false;
 
     const nextStatus = traceState.search.status;
     if (nextStatus) {
       const elapsed = performance.now() - nextStatus[0];
       if (elapsed > MIN_LOADING_TIME || nextStatus[1] === 'loading') {
         setStatus(nextStatus);
-        return;
+        return undefined;
       }
 
       const schedule = nextStatus[0] + MIN_LOADING_TIME - performance.now();
       timeoutRef.current = window.setTimeout(() => {
-        setStatus(nextStatus);
+        if (!cancel) {
+          setStatus(nextStatus);
+        }
       }, schedule);
     } else {
       setStatus(nextStatus);
     }
+
+    return () => {
+      cancel = true;
+    };
   }, [traceState.search.status]);
 
   const onSearchFocus = useCallback(() => {
@@ -169,18 +185,27 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
-    // Search value can be changed externally, e.g. by actions that trigger a search.
-    // When this happens, sync the input value to the search value and trigger a search.
-    if (
-      inputRef.current &&
-      traceState.search.query &&
-      inputRef.current.value !== traceState.search.query
-    ) {
-      inputRef.current.focus();
-      inputRef.current.value = traceState.search.query ?? '';
-      onChange({target: inputRef.current} as React.ChangeEvent<HTMLInputElement>);
-    }
-  }, [traceState.search.query, onChange]);
+    const beforeTraceNextStateDispatch: DispatchingReducerMiddleware<
+      typeof TraceReducer
+    >['before next state'] = (_prevState, _nextState, action) => {
+      if (
+        action.type === 'set query' &&
+        action.source === 'external' &&
+        action.query &&
+        inputRef.current
+      ) {
+        inputRef.current.value = action.query;
+        traceDispatch({type: 'clear roving index'});
+        onTraceSearch(action.query, traceStateRef.current.search.node, 'track result');
+      }
+    };
+
+    traceStateEmitter.on('before next state', beforeTraceNextStateDispatch);
+
+    return () => {
+      traceStateEmitter.off('before next state', beforeTraceNextStateDispatch);
+    };
+  }, [traceStateEmitter, onTraceSearch, traceDispatch]);
 
   return (
     <StyledSearchBar>

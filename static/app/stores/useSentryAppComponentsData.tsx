@@ -7,7 +7,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  projectId: string;
+  projectId: string | undefined;
 }
 
 export default function useSentryAppComponentsData({projectId}: Props) {

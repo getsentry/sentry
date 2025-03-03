@@ -7,6 +7,7 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from rest_framework.request import Request
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -17,6 +18,12 @@ from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
+
+
+def _not_authenticated(request: HttpRequest) -> bool:
+    # subtle indirection -- otherwise mypy infers `request.user: AnonymousUser`
+    # and then complains about unreachable code (though `request.user` is mutated!)
+    return not request.user.is_authenticated
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -70,11 +77,12 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request: HttpRequest, context, application, **kwargs):
+    def respond_login(self, request: Request, context, **kwargs):
+        application = kwargs["application"]  # required argument
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def get(self, request: Request, **kwargs) -> HttpResponseBase:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -127,17 +135,25 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
-        # TODO (athena): Clean up this so scopes are always coming from the model
-        # This change is temporarily needed before we migrate existing applications
-        # to have the correct scopes
-        if application.requires_org_level_access:
-            scopes = application.scopes
+        scopes_s = request.GET.get("scope")
+        if scopes_s:
+            scopes = scopes_s.split(" ")
         else:
-            scopes = request.GET.get("scope")
-            if scopes:
-                scopes = scopes.split(" ")
-            else:
-                scopes = []
+            scopes = []
+        if application.requires_org_level_access:
+            # Applications that require org level access have a maximum scope limit set
+            # in admin that should not pass
+            max_scopes = application.scopes
+            for scope in scopes:
+                if scope not in max_scopes:
+                    return self.error(
+                        request=request,
+                        client_id=client_id,
+                        response_type=response_type,
+                        redirect_uri=redirect_uri,
+                        name="invalid_scope",
+                        state=state,
+                    )
 
         for scope in scopes:
             if scope not in settings.SENTRY_SCOPES:
@@ -163,7 +179,9 @@ class OAuthAuthorizeView(AuthLoginView):
         if not request.user.is_authenticated:
             return super().get(request, application=application)
 
-        if not force_prompt:
+        # If the application expects org level access, we need to prompt the user to choose which
+        # organization they want to give access to every time. We should not presume the user intention
+        if not (force_prompt or application.requires_org_level_access):
             try:
                 existing_auth = ApiAuthorization.objects.get(
                     user_id=request.user.id, application=application
@@ -211,20 +229,29 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if application.requires_org_level_access:
             organization_options = user_service.get_organizations(user_id=request.user.id)
+            if not organization_options:
+                return self.respond(
+                    "sentry/oauth-error.html",
+                    {
+                        "error": "This authorization flow is only available for users who are members of an organization."
+                    },
+                    status=400,
+                )
         else:
             # If application is not org level we should not show organizations to choose from at all
             organization_options = []
 
-        context = {
+        context = self.get_default_context(request) | {
             "user": request.user,
             "application": application,
             "scopes": scopes,
             "permissions": permissions,
             "organization_options": organization_options,
         }
+
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def post(self, request: Request, **kwargs) -> HttpResponseBase:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -245,7 +272,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
             )
 
-        if not request.user.is_authenticated:
+        if _not_authenticated(request):
             response = super().post(request, application=application, **kwargs)
             # once they login, bind their user ID
             if request.user.is_authenticated:

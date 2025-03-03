@@ -13,7 +13,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
-from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
@@ -395,9 +394,6 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
-
-    def zerofill_data(data):
-        return zerofill(data, start, end, ONE_DAY, fill_default=0)
 
     query = Query(
         match=Entity("outcomes"),

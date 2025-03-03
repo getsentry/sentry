@@ -15,7 +15,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 
-const changeQuery = (router, query) => ({
+const changeQuery = (router: any, query: any) => ({
   ...router,
   location: {
     ...router.location,
@@ -23,7 +23,7 @@ const changeQuery = (router, query) => ({
   },
 });
 
-function renderComponent(component, router, organization) {
+function renderComponent(component: any, router: any, organization: any) {
   return render(component, {router, organization});
 }
 
@@ -225,9 +225,9 @@ describe('PageFiltersContainer', function () {
 
     await waitFor(() => {
       expect(globalActions.updateDateTime).not.toHaveBeenCalled();
-      expect(globalActions.updateProjects).not.toHaveBeenCalled();
-      expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
     });
+    expect(globalActions.updateProjects).not.toHaveBeenCalled();
+    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
@@ -652,6 +652,58 @@ describe('PageFiltersContainer', function () {
     });
   });
 
+  describe('maxPickableDays param', function () {
+    it('applies maxPickableDays if the query parms exceed it', async function () {
+      renderComponent(
+        <PageFiltersContainer maxPickableDays={7} />,
+        changeQuery(router, {statsPeriod: '14d'}),
+        organization
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '7d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it('does not use maxPickableDays if the query parms do not exceed it', async function () {
+      renderComponent(
+        <PageFiltersContainer maxPickableDays={7} />,
+        changeQuery(router, {statsPeriod: '3d'}),
+        organization
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '3d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+  });
+
   describe('skipInitializeUrlParams', function () {
     const initialData = initializeOrg({
       organization,
@@ -701,7 +753,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      function getComponentForNonGlobalView(props) {
+      function getComponentForNonGlobalView(props: any) {
         return (
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
@@ -717,7 +769,7 @@ describe('PageFiltersContainer', function () {
           initialData.organization
         );
 
-        const rerender = newProps =>
+        const rerender = (newProps: any) =>
           result.rerender(getComponentForNonGlobalView({...props, ...newProps}));
 
         return {...result, rerender};
@@ -838,7 +890,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      function getComponentForGlobalView(props) {
+      function getComponentForGlobalView(props: any) {
         return (
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
@@ -857,7 +909,7 @@ describe('PageFiltersContainer', function () {
           initialData.organization
         );
 
-        const rerender = newProps =>
+        const rerender = (newProps: any) =>
           result.rerender(getComponentForGlobalView({...props, ...newProps}));
 
         return {...result, rerender};

@@ -13,17 +13,18 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -360,7 +361,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 )
             request = copy.deepcopy(self.request)
             request.user = AnonymousUser()
-            request.auth = api_key
+            request.auth = AuthenticatedToken.from_token(api_key)
             self.org.handle_2fa_required(request)
         self.is_pending_organization_member(user.id, member.id)
         self.assert_org_member_mapping(org_member=member)

@@ -157,9 +157,17 @@ interface TraceBarProps {
 }
 
 export function TraceBar(props: TraceBarProps) {
-  const duration = props.node_space
-    ? formatTraceDuration(props.node_space[1], isTransactionNode(props.node) ? 0 : 2)
-    : null;
+  let duration: string | null = null;
+
+  if (props.node_space) {
+    // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
+    const precision = isTransactionNode(props.node)
+      ? props.node_space[1] >= 1000
+        ? 2
+        : 0
+      : 2;
+    duration = formatTraceDuration(props.node_space[1], precision);
+  }
 
   const registerSpanBarRef = useCallback(
     (ref: HTMLDivElement | null) => {
@@ -230,7 +238,7 @@ interface AutogroupedTraceBarProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
-  node_spaces: [number, number][];
+  node_spaces: Array<[number, number]>;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;

@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   platformProductAvailability,
   ProductSelection,
-  ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import ConfigStore from 'sentry/stores/configStore';
 
@@ -222,6 +222,58 @@ describe('Onboarding Product Selection', function () {
     expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
 
     expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
+  });
+
+  it('selects all products per default', async function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="python" />, {
+      router,
+    });
+
+    // router.replace is called to apply default product selection
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+          }),
+        })
+      )
+    );
+  });
+
+  it('applies defined default product selection', async function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="php" />, {
+      router,
+    });
+
+    // router.replace is called to apply default product selection
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            product: [ProductSolution.PERFORMANCE_MONITORING],
+          }),
+        })
+      )
+    );
   });
 
   it('triggers onChange callback', async function () {

@@ -1,42 +1,48 @@
 import {useMemo} from 'react';
 
-import type {MRI} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {
-  type MetricsQueryApiQueryParams,
-  useMetricsQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 
-const SPANS_COUNT_METRIC: MRI = `c:spans/count_per_root_project@none`;
-const metricsQuery: MetricsQueryApiQueryParams[] = [
-  {
-    mri: SPANS_COUNT_METRIC,
-    aggregation: 'sum',
-    name: 'spans',
-    groupBy: ['project', 'target_project_id'],
-    orderBy: 'desc',
-  },
-];
+interface MetricsQueryApiResponse {
+  data: Array<
+    Array<{
+      by: Record<string, string>;
+      series: Array<number | null>;
+      totals: number;
+    }>
+  >;
+  end: string;
+  intervals: string[];
+  start: string;
+}
 
-export function useProjectSampleCounts({period}: {period: '24h' | '30d'}) {
+export interface ProjectSampleCount {
+  count: number;
+  ownCount: number;
+  project: Project;
+  subProjects: Array<{count: number; project: Project}>;
+}
+
+export type ProjectionSamplePeriod = '24h' | '30d';
+
+export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod}) {
+  const organization = useOrganization();
   const {projects, fetching} = useProjects();
 
-  const {data, isPending, isError, refetch} = useMetricsQuery(
-    metricsQuery,
-    {
-      datetime: {
-        start: null,
-        end: null,
-        utc: true,
-        period,
+  const {data, isPending, isError, refetch} = useApiQuery<MetricsQueryApiResponse>(
+    [
+      `/organizations/${organization.slug}/sampling/project-root-counts/`,
+      {
+        query: {
+          statsPeriod: period,
+        },
       },
-      environments: [],
-      projects: [],
-    },
+    ],
     {
-      includeSeries: false,
-      interval: period === '24h' ? '1h' : '1d',
+      staleTime: 0,
     }
   );
 
@@ -44,38 +50,26 @@ export function useProjectSampleCounts({period}: {period: '24h' | '30d'}) {
 
   const projectBySlug = useMemo(
     () =>
-      projects.reduce(
-        (acc, project) => {
-          acc[project.slug] = project;
-          return acc;
-        },
-        {} as Record<string, Project>
-      ),
+      mapArrayToObject({
+        array: projects,
+        keySelector: project => project.slug,
+        valueSelector: project => project,
+      }),
     [projects]
   );
 
   const projectById = useMemo(
     () =>
-      projects.reduce(
-        (acc, project) => {
-          acc[project.id] = project;
-          return acc;
-        },
-        {} as Record<string, Project>
-      ),
+      mapArrayToObject({
+        array: projects,
+        keySelector: project => project.id,
+        valueSelector: project => project,
+      }),
     [projects]
   );
 
-  const projectEntries = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        count: number;
-        ownCount: number;
-        slug: string;
-        subProjects: Array<{count: number; slug: string}>;
-      }
-    >();
+  const items = useMemo(() => {
+    const map = new Map<string, ProjectSampleCount>();
 
     for (const row of queryResult ?? []) {
       const project = row.by.project && projectBySlug[row.by.project];
@@ -87,49 +81,40 @@ export function useProjectSampleCounts({period}: {period: '24h' | '30d'}) {
         continue;
       }
 
-      const existingEntry = map.get(project.slug) ?? {
-        count: 0,
-        ownCount: 0,
-        slug: project.slug,
-        subProjects: [],
-      };
-
-      existingEntry.count += rowValue;
-
-      if (subProject && subProject.id === project.id) {
-        existingEntry.ownCount = rowValue;
-      } else {
-        existingEntry.subProjects.push({
-          count: rowValue,
-          slug: subProject.slug,
+      // Initialize the map with the project slug if needed
+      if (!map.has(project.slug)) {
+        map.set(project.slug, {
+          project,
+          count: 0,
+          ownCount: 0,
+          subProjects: [],
         });
       }
 
-      map.set(project.slug, existingEntry);
+      const entry = map.get(project.slug)!;
+      // Increment the total count for the project
+      entry.count += rowValue;
+
+      // Depending on if the value is from the project or a subproject, we need to set the ownCount
+      // or add the subproject to the subProjects array
+      if (subProject.id === project.id) {
+        entry.ownCount = rowValue;
+      } else {
+        entry.subProjects.push({
+          count: rowValue,
+          project: subProject,
+        });
+      }
     }
 
-    return map;
+    // Sort the subprojects by count
+    return Array.from(map.values()).map<ProjectSampleCount>(value => {
+      return {
+        ...value,
+        subProjects: value.subProjects.toSorted((a: any, b: any) => b.count - a.count),
+      };
+    });
   }, [projectById, projectBySlug, queryResult]);
-
-  const items = useMemo(
-    () =>
-      projectEntries
-        .entries()
-        .map(([key, value]) => {
-          return {
-            id: key,
-            project: projectBySlug[key],
-            count: value.count,
-            ownCount: value.ownCount,
-            // This is a placeholder value to satisfy typing
-            // the actual value is calculated in the balanceSampleRate function
-            sampleRate: 1,
-            subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
-          };
-        })
-        .toArray(),
-    [projectBySlug, projectEntries]
-  );
 
   return {data: items, isPending: fetching || isPending, isError, refetch};
 }

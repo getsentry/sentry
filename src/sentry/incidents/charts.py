@@ -194,9 +194,6 @@ def build_metric_alert_chart(
     """
     Builds the dataset required for metric alert chart the same way the frontend would
     """
-    if alert_rule.snuba_query is None:
-        return None
-
     snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
@@ -245,10 +242,6 @@ def build_metric_alert_chart(
         )
 
     allow_mri = features.has(
-        "organizations:custom-metrics",
-        organization,
-        actor=user,
-    ) or features.has(
         "organizations:insights-alerts",
         organization,
         actor=user,
@@ -266,7 +259,7 @@ def build_metric_alert_chart(
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
         query_str
-        if is_crash_free_alert
+        if is_crash_free_alert or dataset == Dataset.EventsAnalyticsPlatform
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
             query_str,
@@ -292,6 +285,11 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif (
+            query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform
+        ):
+            query_params["dataset"] = "spans"
+            query_params["useRpc"] = "1"
         elif query_type == SnubaQuery.Type.ERROR:
             query_params["dataset"] = "errors"
         else:

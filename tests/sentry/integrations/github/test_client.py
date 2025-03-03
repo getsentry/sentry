@@ -23,6 +23,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -137,8 +138,9 @@ class GitHubApiClientTest(TestCase):
         assert responses.calls[0].response.status_code == 404
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_stacktrace_link(self, get_jwt):
+    def test_get_stacktrace_link(self, mock_record, get_jwt):
         path = "/src/sentry/integrations/github/client.py"
         version = "master"
         url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
@@ -156,6 +158,14 @@ class GitHubApiClientTest(TestCase):
             source_url
             == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
+        assert (
+            len(mock_record.mock_calls) == 4
+        )  # get_stacktrace_link calls check_file, which also has metrics
+        start1, start2, halt1, halt2 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
+        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -209,8 +219,9 @@ class GitHubApiClientTest(TestCase):
         return_value=GITHUB_CODEOWNERS["html_url"],
     )
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_codeowner_file(self, mock_jwt, mock_check_file):
+    def test_get_codeowner_file(self, mock_record, mock_jwt, mock_check_file):
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
@@ -228,6 +239,11 @@ class GitHubApiClientTest(TestCase):
             responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
         )
         assert result == GITHUB_CODEOWNERS
+        assert (
+            len(mock_record.mock_calls) == 2
+        )  # check_file is mocked in this test, so there will be no metrics logged for it
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_get_cached_repo_files_caching_functionality(self):
@@ -241,14 +257,14 @@ class GitHubApiClientTest(TestCase):
         repo_key = f"github:repo:{self.repo.name}:source-code"
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert cache.get(repo_key) == files
             # Calling a second time should work
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert cache.get(repo_key) == files
             # Calling again after the cache has been cleared should still work
             cache.delete(repo_key)
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert cache.get(repo_key) == files
 
     @responses.activate
@@ -268,7 +284,7 @@ class GitHubApiClientTest(TestCase):
         repo_key = f"github:repo:{self.repo.name}:all"
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert files == ["src/foo.py"]
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -539,7 +555,7 @@ class GithubProxyClientTest(TestCase):
                 if is_proxy:
                     assert request.headers[PROXY_OI_HEADER] is not None
 
-        expected_proxy_path = "repos/test-repo/issues"
+        expected_proxy_path = "repos/test-repo/issues/123"
         control_proxy_responses = add_control_silo_proxy_response(
             method=responses.GET,
             path=expected_proxy_path,
@@ -556,7 +572,7 @@ class GithubProxyClientTest(TestCase):
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = GithubProxyTestClient(integration=self.integration)
-            client.get_issues("test-repo")
+            client.get_issue("test-repo", "123")
             request = responses.calls[0].request
 
             assert github_responses.call_count == 1
@@ -567,7 +583,7 @@ class GithubProxyClientTest(TestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = GithubProxyTestClient(integration=self.integration)
-            client.get_issues("test-repo")
+            client.get_issue("test-repo", "123")
             request = responses.calls[0].request
 
             assert github_responses.call_count == 2
@@ -579,7 +595,7 @@ class GithubProxyClientTest(TestCase):
         assert control_proxy_responses.call_count == 0
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = GithubProxyTestClient(integration=self.integration)
-            client.get_issues("test-repo")
+            client.get_issue("test-repo", "123")
             request = responses.calls[0].request
 
             assert control_proxy_responses.call_count == 1

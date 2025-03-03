@@ -38,6 +38,18 @@ function Headers({
       ) : (
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
+            <Fragment>
+              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
+                {t('First Seen')}
+                <HeaderDivider />
+              </TimestampLabel>
+              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+                {t('Last Seen')}
+                <HeaderDivider />
+              </TimestampLabel>
+            </Fragment>
+          ) : null}
+          {organization.features.includes('issue-stream-table-layout') ? (
             <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
               <NarrowGraphLabelContents>
                 {t('Trend')}
@@ -83,18 +95,6 @@ function Headers({
           )}
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
-                {t('First Seen')}
-                <HeaderDivider />
-              </TimestampLabel>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-                {t('Last Seen')}
-                <HeaderDivider />
-              </TimestampLabel>
-            </Fragment>
-          ) : null}
-          {organization.features.includes('issue-stream-table-layout') ? (
-            <Fragment>
               <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
                 {t('Events')}
                 <HeaderDivider />
@@ -132,8 +132,7 @@ function Headers({
 export default Headers;
 
 const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
-  width: 200px;
-  margin-right: ${space(2)};
+  width: 180px;
 
   @media (max-width: ${p =>
       p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {

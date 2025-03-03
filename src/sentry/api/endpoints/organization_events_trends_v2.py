@@ -36,7 +36,6 @@ DEFAULT_TOP_EVENTS_LIMIT = 45
 MAX_TOP_EVENTS_LIMIT = 1000
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
-ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
 
 DEFAULT_RATE_LIMIT = 15
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -65,7 +64,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
-    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(

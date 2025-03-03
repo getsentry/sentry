@@ -123,7 +123,7 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
         project_ids = {int(d["id"]) for d in serializer.data}
         projects = self.get_projects(request, organization, project_ids=project_ids)
 
-        rate_by_project = {d["id"]: d["sampleRate"] for d in serializer.data}
+        rate_by_project = {d["id"]: round(d["sampleRate"], 4) for d in serializer.data}
         with transaction.atomic(router.db_for_write(ProjectOption)):
             for project in projects:
                 project.update_option(OPTION_KEY, rate_by_project[project.id])

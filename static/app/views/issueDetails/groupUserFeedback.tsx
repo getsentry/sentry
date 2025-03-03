@@ -7,22 +7,31 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupUserFeedback} from 'sentry/views/issueDetails/useGroupUserFeedback';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
-interface GroupUserFeedbackProps {
-  group: Group;
-}
-
-function GroupUserFeedback({group}: GroupUserFeedbackProps) {
+function GroupUserFeedback() {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
+  const params = useParams<{groupId: string}>();
+
+  const {
+    data: group,
+    isPending: isPendingGroup,
+    isError: isErrorGroup,
+    refetch: refetchGroup,
+  } = useGroup({
+    groupId: params.groupId,
+  });
+
   const {
     data: reportList,
     isPending,
@@ -30,17 +39,24 @@ function GroupUserFeedback({group}: GroupUserFeedbackProps) {
     refetch,
     getResponseHeader,
   } = useGroupUserFeedback({
-    groupId: group.id,
+    groupId: params.groupId,
     query: {
       cursor: location.query.cursor as string | undefined,
     },
   });
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
+  if (isError || isErrorGroup) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetch();
+          refetchGroup();
+        }}
+      />
+    );
   }
 
-  if (isPending) {
+  if (isPending || isPendingGroup) {
     return (
       <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
         <Layout.Main fullWidth>
@@ -51,10 +67,17 @@ function GroupUserFeedback({group}: GroupUserFeedbackProps) {
   }
 
   const pageLinks = getResponseHeader?.('Link');
+  const hasUserFeedback = group.project.hasUserReports;
 
   return (
     <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
       <Layout.Main fullWidth>
+        {hasStreamlinedUI && hasUserFeedback && (
+          <FilterMessage>
+            {t('The feedback shown below is not subject to search filters.')}
+            <StyledBreak />
+          </FilterMessage>
+        )}
         {reportList.length === 0 ? (
           <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
         ) : (
@@ -64,7 +87,7 @@ function GroupUserFeedback({group}: GroupUserFeedbackProps) {
                 key={idx}
                 report={item}
                 orgSlug={organization.slug}
-                issueId={group.id}
+                issueId={params.groupId}
               />
             ))}
             <Pagination pageLinks={pageLinks} />
@@ -85,12 +108,22 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
     css`
       border: 1px solid ${p.theme.border};
       border-radius: ${p.theme.borderRadius};
-      padding: ${space(2)} 0;
+      padding: ${space(1.5)} 0;
 
       @media (min-width: ${p.theme.breakpoints.medium}) {
-        padding: ${space(2)} ${space(2)};
+        padding: ${space(1.5)};
       }
     `}
+`;
+
+const FilterMessage = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledBreak = styled('hr')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+  border-color: ${p => p.theme.border};
 `;
 
 export default GroupUserFeedback;

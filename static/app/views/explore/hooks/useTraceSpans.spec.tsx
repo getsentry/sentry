@@ -9,9 +9,9 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
+import type {SpanResults} from 'sentry/views/explore/hooks/useTraceSpans';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import type {TraceResult} from 'sentry/views/traces/hooks/useTraces';
-import type {SpanResults} from 'sentry/views/traces/hooks/useTraceSpans';
 
 import {useTraceSpans} from './useTraceSpans';
 
@@ -19,6 +19,7 @@ function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {
     breakdowns: [],
     duration: 333,
+    rootDuration: 333,
     end: 456,
     matchingSpans: 1,
     name: 'name',

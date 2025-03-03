@@ -5,8 +5,10 @@ from typing import Any
 from unittest.mock import patch
 
 from django.test import override_settings
+from django.urls import reverse
 
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -16,6 +18,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.authenticator import Authenticator
@@ -104,6 +107,27 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id + 10}"})
         assert len(response.data) == 0
+
+    def test_show_only_token_organization(self):
+        org1 = self.create_organization(owner=self.user)
+        self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {user_token.plaintext_token}")
+        response = self.client.get(reverse(self.endpoint))
+        # if token is not specific to any organization, it should return all the organizations
+        assert len(response.data) == 2
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_scoped_token = ApiToken.objects.create(
+                user=self.user, scoping_organization_id=org1.id, scope_list=["org:read"]
+            )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {org_scoped_token.plaintext_token}")
+        response = self.client.get(reverse(self.endpoint))
+        # if token is specific to an organization, it should return only that organization
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(org1.id)
 
 
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
@@ -292,6 +316,56 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 1.0})
+    def test_streamline_only_is_unset_with_full_split_rate(self):
+        """
+        If the rollout rate is 0%, Ignore split rate, the organization should not be put into a bucket.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert (
+            OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only") is None
+        )
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 0})
+    def test_streamline_only_is_unset_with_empty_split_rate(self):
+        """
+        If the rollout rate is 0%, Ignore split rate, the organization should not be put into a bucket.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert (
+            OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only") is None
+        )
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 1.0})
+    def test_streamline_only_is_true(self):
+        """
+        If the rollout rate is 100%, the split rate should be applied to all orgs.
+        In this case, with a split rate of 100%, all orgs should see the Streamline UI.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 0})
+    def test_streamline_only_is_false(self):
+        """
+        If the rollout rate is 100%, the split rate should be applied to all orgs.
+        In this case, with a split rate of 0%, all orgs should see the Legacy UI.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert not OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
 
 @region_silo_test(regions=create_test_regions("de", "us"))

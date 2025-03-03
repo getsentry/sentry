@@ -1,4 +1,5 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -12,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
@@ -20,15 +20,14 @@ import QueryList from 'sentry/views/discover/queryList';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Discover > QueryList', function () {
-  let location,
-    savedQueries,
-    organization,
-    deleteMock,
-    duplicateMock,
-    queryChangeMock,
-    updateHomepageMock,
-    eventsStatsMock,
-    wrapper;
+  let location: ReturnType<typeof LocationFixture>;
+  let savedQueries: Array<ReturnType<typeof DiscoverSavedQueryFixture>>;
+  let organization: ReturnType<typeof OrganizationFixture>;
+  let deleteMock: jest.Mock;
+  let duplicateMock: jest.Mock;
+  let queryChangeMock: jest.Mock;
+  let updateHomepageMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   const {router} = initializeOrg();
 
@@ -74,17 +73,15 @@ describe('Discover > QueryList', function () {
       statusCode: 204,
     });
 
-    location = {
+    location = LocationFixture({
       pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
-    };
+    });
     queryChangeMock = jest.fn();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    wrapper?.unmount();
-    wrapper = null;
   });
 
   it('renders an empty list', function () {
@@ -255,18 +252,19 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {router}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
     expect(withinCard.getByText('Saved query #1')).toBeInTheDocument();
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Duplicate Query'));
 
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: location.pathname,
         query: {},
       });
@@ -341,7 +339,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Delete Query'));
@@ -350,7 +348,7 @@ describe('Discover > QueryList', function () {
     expect(queryChangeMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: location.pathname,
         query: {cursor: undefined, statsPeriod: '14d'},
       });
@@ -376,7 +374,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
@@ -407,7 +405,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
@@ -429,7 +427,7 @@ describe('Discover > QueryList', function () {
     });
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {
-      ...savedQueries.slice(1)[0],
+      ...savedQueries.slice(1)[0]!,
       yAxis,
     };
 
@@ -590,7 +588,7 @@ describe('Discover > QueryList', function () {
           expect.objectContaining({
             widget: {
               title: 'Saved query #1',
-              displayType: DisplayType.LINE,
+              displayType: DisplayType.AREA,
               queries: [
                 {
                   aggregates: ['count()'],
@@ -609,7 +607,7 @@ describe('Discover > QueryList', function () {
               defaultTitle: 'Saved query #1',
               defaultWidgetQuery:
                 'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-              displayType: DisplayType.LINE,
+              displayType: DisplayType.AREA,
               source: DashboardWidgetSource.DISCOVERV2,
             }),
           })
@@ -658,7 +656,7 @@ describe('Discover > QueryList', function () {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget: {
-            displayType: 'line',
+            displayType: 'area',
             interval: undefined,
             limit: undefined,
             queries: [
@@ -681,7 +679,7 @@ describe('Discover > QueryList', function () {
             defaultTitle: 'Saved query #1',
             defaultWidgetQuery:
               'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-            displayType: 'line',
+            displayType: 'area',
             source: 'discoverv2',
             statsPeriod: '14d',
           }),

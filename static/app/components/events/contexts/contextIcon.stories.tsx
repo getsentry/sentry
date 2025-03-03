@@ -6,7 +6,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(ContextIcon, story => {
+export default storyBook('ContextIcon', story => {
   story('All', () => (
     <Grid
       style={{

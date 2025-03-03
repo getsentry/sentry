@@ -5,9 +5,11 @@ from typing import Any
 from django.db import router, transaction
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 
 
 @dataclass
@@ -26,6 +28,13 @@ class ProjectRuleCreator:
     def run(self) -> Rule:
         with transaction.atomic(router.db_for_write(Rule)):
             self.rule = self._create_rule()
+
+            if features.has(
+                "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
+            ):
+                # TODO(cathy): handle errors from broken actions
+                IssueAlertMigrator(self.rule, self.request.user.id if self.request else None).run()
+
             return self.rule
 
     def _create_rule(self) -> Rule:

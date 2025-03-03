@@ -1,42 +1,49 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Badge} from 'sentry/components/core/badge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, Tabs} from 'sentry/components/tabs';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {TabList} from 'sentry/components/tabs';
+import type {TabListItemProps} from 'sentry/components/tabs/item';
+import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
+import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
-  DOMAIN_VIEW_BASE_TITLE,
-  OVERVIEW_PAGE_TITLE,
-} from 'sentry/views/insights/pages/settings';
+  isModuleConsideredNew,
+  isModuleEnabled,
+  isModuleVisible,
+} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
   domainTitle: string;
-  headerTitle: React.ReactNode;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
+  // TODO - hasOverviewPage could be improved, the overview page could just be a "module", but that has a lot of other implications that have to be considered
+  hasOverviewPage?: boolean;
+  headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
 
-type Tab = {
-  key: string;
-  label: string;
-};
-
 export function DomainViewHeader({
   modules,
+  hasOverviewPage = true,
   headerTitle,
   domainTitle,
   selectedModule,
@@ -46,95 +53,100 @@ export function DomainViewHeader({
   domainBaseUrl,
   tabs,
 }: Props) {
-  const navigate = useNavigate();
   const organization = useOrganization();
+  const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
-  const moduleTitles = useModuleTitles();
 
-  const baseCrumbs: Crumb[] = [
-    {
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined, // There is no base /performance/ page
-      preservePageFilters: true,
-    },
+  const crumbs: Crumb[] = [
     {
       label: domainTitle,
       to: domainBaseUrl,
       preservePageFilters: true,
     },
-    {
-      label: selectedModule ? moduleTitles[selectedModule] : OVERVIEW_PAGE_TITLE,
-      to: selectedModule
-        ? `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`
-        : domainBaseUrl,
-      preservePageFilters: true,
-    },
     ...additionalBreadCrumbs,
   ];
-
-  const showModuleTabs = organization.features.includes('insights-entry-points');
-
-  const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
-    if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
-      return;
-    }
-    if (!key) {
-      return;
-    }
-    if (key === OVERVIEW_PAGE_TITLE) {
-      navigate(domainBaseUrl);
-      return;
-    }
-    navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
-  };
 
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
 
-  const handleTabChange =
-    hideDefaultTabs && tabs ? tabs.onTabChange : defaultHandleTabChange;
+  const globalQuery = extractSelectionParameters(location?.query);
 
-  const tabList: Tab[] = [
-    {
-      key: OVERVIEW_PAGE_TITLE,
-      label: OVERVIEW_PAGE_TITLE,
-    },
-  ];
-
-  if (showModuleTabs) {
-    tabList.push(
-      ...modules.map(moduleName => ({
+  const tabList: TabListItemProps[] = [
+    ...(hasOverviewPage
+      ? [
+          {
+            key: OVERVIEW_PAGE_TITLE,
+            children: OVERVIEW_PAGE_TITLE,
+            to: {pathname: domainBaseUrl, query: globalQuery},
+          },
+        ]
+      : []),
+    ...modules
+      .filter(moduleName => isModuleVisible(moduleName, organization))
+      .map(moduleName => ({
         key: moduleName,
-        label: moduleTitles[moduleName],
-      }))
-    );
-  }
+        children: <TabLabel moduleName={moduleName} />,
+        textValue: moduleName,
+        to: {
+          pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
+          query: globalQuery,
+        },
+      })),
+  ];
 
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs crumbs={baseCrumbs} />
-
-          <Layout.Title>{headerTitle}</Layout.Title>
+          {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
+          <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {additonalHeaderActions}
             <FeedbackWidgetButton />
+            {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                <TabList.Item {...tab} key={tab.key} />
               ))}
             </TabList>
           )}
           {hideDefaultTabs && tabs && tabs.tabList}
-        </Tabs>
+        </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
   );
 }
+
+interface TabLabelProps {
+  moduleName: ModuleName;
+}
+
+function TabLabel({moduleName}: TabLabelProps) {
+  const moduleTitles = useModuleTitles();
+  const organization = useOrganization();
+  const showBusinessIcon = !isModuleEnabled(moduleName, organization);
+
+  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
+    return (
+      <TabContainer>
+        {moduleTitles[moduleName]}
+        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {showBusinessIcon && <IconBusiness />}
+      </TabContainer>
+    );
+  }
+
+  return moduleTitles[moduleName];
+}
+
+const TabContainer = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  gap: ${space(0.5)};
+`;

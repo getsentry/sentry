@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -37,7 +36,6 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
-import {anomaliesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
@@ -88,7 +86,7 @@ function TransactionHeader({
       }
 
       const routeQuery = {
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: projectId,
         query: location.query,
@@ -102,8 +100,6 @@ function TransactionHeader({
           return eventsRouteWithQuery(routeQuery);
         case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.ANOMALIES:
-          return anomaliesRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -116,7 +112,7 @@ function TransactionHeader({
           return transactionSummaryRouteWithQuery(routeQuery);
       }
     },
-    [location.query, organization.slug, projectId, transactionName, view]
+    [location.query, organization, projectId, transactionName, view]
   );
 
   const onTabChange = useCallback(
@@ -126,6 +122,7 @@ function TransactionHeader({
         return;
       }
 
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const analyticsKey = TAB_ANALYTICS[newTab];
       if (analyticsKey) {
         trackAnalytics(analyticsKey, {
@@ -146,10 +143,6 @@ function TransactionHeader({
   }
 
   const project = projects.find(p => p.id === projectId);
-
-  const hasAnomalyDetection = organization.features.includes(
-    'performance-anomaly-detection-ui'
-  );
 
   const hasSessionReplay =
     organization.features.includes('session-replay') &&
@@ -222,14 +215,6 @@ function TransactionHeader({
             <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
             <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
             <TabList.Item
-              key={Tab.ANOMALIES}
-              textValue={t('Anomalies')}
-              hidden={!hasAnomalyDetection}
-            >
-              {t('Anomalies')}
-              <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
-            </TabList.Item>
-            <TabList.Item
               key={Tab.WEB_VITALS}
               textValue={t('Web Vitals')}
               hidden={!renderWebVitals}
@@ -290,13 +275,48 @@ function TransactionHeader({
       breadcrumbs: getTabCrumbs({
         location,
         organization,
-        tab: currentTab,
         transaction: {
           name: transactionName,
           project: projectId,
         },
         view,
       }),
+      headerActions: (
+        <Fragment>
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) =>
+              hasFeature && !metricsCardinality?.isLoading ? (
+                <CreateAlertFromViewButton
+                  size="sm"
+                  eventView={eventView}
+                  organization={organization}
+                  projects={projects}
+                  onClick={handleCreateAlertSuccess}
+                  referrer="performance"
+                  alertType="trans_duration"
+                  aria-label={t('Create Alert')}
+                  disableMetricDataset={
+                    metricsCardinality?.outcome?.forceTransactionsOnly
+                  }
+                />
+              ) : null
+            }
+          </Feature>
+          <TeamKeyTransactionButton
+            eventView={eventView}
+            organization={organization}
+            transactionName={transactionName}
+          />
+          <GuideAnchor target="project_transaction_threshold_override" position="bottom">
+            <TransactionThresholdButton
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              onChangeThreshold={onChangeThreshold}
+            />
+          </GuideAnchor>
+        </Fragment>
+      ),
     };
     if (view === FRONTEND_LANDING_SUB_PATH) {
       return <FrontendHeader {...headerProps} />;
@@ -322,7 +342,6 @@ function TransactionHeader({
             project: projectId,
             name: transactionName,
           }}
-          tab={currentTab}
         />
         <Layout.Title>
           {project && (
@@ -396,14 +415,6 @@ function TransactionHeader({
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
               <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
-              <TabList.Item
-                key={Tab.ANOMALIES}
-                textValue={t('Anomalies')}
-                hidden={!hasAnomalyDetection}
-              >
-                {t('Anomalies')}
-                <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
-              </TabList.Item>
               <TabList.Item
                 key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}

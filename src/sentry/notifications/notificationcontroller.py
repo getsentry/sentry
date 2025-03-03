@@ -14,8 +14,6 @@ from sentry.integrations.types import (
     ExternalProviderEnum,
     ExternalProviders,
 )
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
@@ -26,6 +24,8 @@ from sentry.notifications.helpers import (
     recipient_is_user,
     team_is_valid_recipient,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     GroupSubscriptionStatus,
     NotificationScopeEnum,

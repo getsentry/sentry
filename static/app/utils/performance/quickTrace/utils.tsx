@@ -173,18 +173,20 @@ export function parseQuickTrace(
         e.generation === 0
     ) ?? null;
 
-  const isChildren = e => e.parent_event_id === current.event_id;
+  const isChildren = (e: any) => e.parent_event_id === current.event_id;
 
-  const isDescendant = e =>
-    // the current generation needs to be known to determine a descendant
+  const isDescendant = (
+    e: any // the current generation needs to be known to determine a descendant
+  ) =>
     current.generation !== null &&
     // the event's generation needs to be known to determine a descendant
     e.generation !== null &&
     // a descendant is the generation after the direct children
     current.generation + 1 < e.generation;
 
-  const isAncestor = e =>
-    // the current generation needs to be known to determine an ancestor
+  const isAncestor = (
+    e: any // the current generation needs to be known to determine an ancestor
+  ) =>
     current.generation !== null &&
     // the event's generation needs to be known to determine an ancestor
     e.generation !== null &&
@@ -323,9 +325,10 @@ export function isTraceRoot(
   return 'traceSlug' in transaction;
 }
 
-export function isTraceSplitResult<U extends object, V extends object>(
-  result: U | V
-): result is U {
+export function isTraceSplitResult<
+  U extends Record<PropertyKey, unknown>,
+  V extends readonly unknown[],
+>(result: U | V): result is U {
   return 'transactions' in result;
 }
 

@@ -58,13 +58,14 @@ function EventOrGroupHeader({
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <ErrorBoundary customComponent={<EventTitleError />} mini>
+        <ErrorBoundary customComponent={() => <EventTitleError />} mini>
           <StyledEventOrGroupTitle
             data={data}
             // hasSeen is undefined for GroupTombstone
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             query={query}
+            hasNewLayout={hasNewLayout}
           />
         </ErrorBoundary>
       </Fragment>
@@ -120,15 +121,13 @@ function EventOrGroupHeader({
     <div data-test-id="event-issue-header">
       <Title extraMargin={hasNewLayout}>{getTitle()}</Title>
       {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
-      {!hasNewLayout ? (
-        <StyledEventMessage
-          data={data}
-          level={'level' in data ? data.level : undefined}
-          message={getMessage(data)}
-          type={data.type}
-          levelIndicatorSize="9px"
-        />
-      ) : null}
+      <StyledEventMessage
+        data={data}
+        level={'level' in data ? data.level : undefined}
+        message={getMessage(data)}
+        type={data.type}
+        levelIndicatorSize={9}
+      />
     </div>
   );
 }
@@ -141,7 +140,7 @@ const truncateStyles = css`
 `;
 
 const Title = styled('div')<{extraMargin: boolean}>`
-  margin-bottom: ${p => (p.extraMargin ? space(0.75) : space(0.25))};
+  margin-bottom: ${p => (p.extraMargin ? space(0.5) : space(0.25))};
   font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
@@ -163,7 +162,7 @@ const LocationWrapper = styled('div')`
   }
 `;
 
-function Location(props) {
+function Location(props: any) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>
@@ -206,7 +205,9 @@ const TitleWithoutLink = styled('span')`
 export default withOrganization(EventOrGroupHeader);
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
+  hasNewLayout: boolean;
   hasSeen: boolean;
 }>`
-  font-weight: ${p => (p.hasSeen ? 400 : 600)};
+  font-weight: ${p =>
+    p.hasSeen && !p.hasNewLayout ? p.theme.fontWeightNormal : p.theme.fontWeightBold};
 `;

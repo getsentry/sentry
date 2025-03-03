@@ -3,8 +3,8 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -71,8 +71,10 @@ export function ProjectsRenderer({
   return (
     <Projects orgId={organization.slug} slugs={projectSlugs}>
       {({projects}) => {
-        const projectAvatars =
-          projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
+        // ensure that projectAvatars is in the same order as the projectSlugs prop
+        const projectAvatars = projectSlugs.map(slug => {
+          return projects.find(project => project.slug === slug) ?? {slug};
+        });
         const numProjects = projectAvatars.length;
         const numVisibleProjects =
           maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
@@ -144,7 +146,7 @@ const CollapsedProjects = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const AvatarStyle = p => css`
+const AvatarStyle = (p: any) => css`
   border: 2px solid ${p.theme.background};
   margin-right: -8px;
   cursor: default;
@@ -224,14 +226,23 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   position: relative;
   width: 100%;
   height: 15px;
-  ${p => `
+  ${p => css`
     filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
   `}
-  ${p => `
-    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  ${p => css`
+    opacity: var(
+      --highlightedSlice-${p.sliceName ?? ''}-opacity,
+      var(--defaultSlice-opacity, 1)
+    );
   `}
-  ${p => `
-    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
+  ${p => css`
+    transform: var(
+      --hoveredSlice-${p.offset}-translateY,
+      var(
+        --highlightedSlice-${p.sliceName ?? ''}-transform,
+        var(--defaultSlice-transform, 1)
+      )
+    );
   `}
   transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -269,11 +280,11 @@ export function TraceBreakdownRenderer({
             offset={index}
             onMouseEnter={() => {
               setHoveredIndex(index);
-              breakdown.project
-                ? setHighlightedSliceName(
-                    getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
-                  )
-                : null;
+              if (breakdown.project) {
+                setHighlightedSliceName(
+                  getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
+                );
+              }
             }}
           />
         );
@@ -433,7 +444,7 @@ interface TraceIdRendererProps {
   location: Location;
   timestamp: number; // in milliseconds
   traceId: string;
-  onClick?: () => void;
+  onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
 
@@ -482,7 +493,7 @@ export function TransactionRenderer({
   const {projects} = useProjects({slugs: [projectSlug]});
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction,
     query: {
       ...location.query,
@@ -566,6 +577,7 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
 };
 
 function statusToTagType(status: string) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return STATUS_TO_TAG_TYPE[status];
 }
 
@@ -585,7 +597,7 @@ export function StatusTag({status, onClick}: {status: string; onClick?: () => vo
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick} borderStyle="solid">
+    <StyledTag type={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );

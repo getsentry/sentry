@@ -4,9 +4,9 @@ import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -34,15 +34,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
-import GroupActions from './actions';
-import {Tab} from './types';
-import type {ReprocessingStatus} from './utils';
+import {GroupActions} from './actions';
+import {Tab, TabPaths} from './types';
+import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
   event: Event | null;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
 };
@@ -108,7 +107,7 @@ export function GroupHeaderTabs({
         to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
-        <IconBadge>
+        <IconBadge type="default">
           {group.numComments}
           <IconChat size="xs" />
         </IconBadge>
@@ -116,15 +115,15 @@ export function GroupHeaderTabs({
       <TabList.Item
         key={Tab.USER_FEEDBACK}
         textValue={t('User Feedback')}
-        hidden={!issueTypeConfig.userFeedback.enabled}
+        hidden={!issueTypeConfig.pages.userFeedback.enabled}
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
-        {t('User Feedback')} <Badge text={group.userReportCount} />
+        {t('User Feedback')} <Badge type="default">{group.userReportCount}</Badge>
       </TabList.Item>
       <TabList.Item
         key={Tab.ATTACHMENTS}
-        hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
+        hidden={!hasEventAttachments || !issueTypeConfig.pages.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
         to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
       >
@@ -132,7 +131,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
-        hidden={!issueTypeConfig.tags.enabled}
+        hidden={!issueTypeConfig.pages.tagsTab.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >
@@ -140,7 +139,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
-        hidden={!issueTypeConfig.events.enabled}
+        hidden={!issueTypeConfig.pages.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
@@ -167,25 +166,27 @@ export function GroupHeaderTabs({
       <TabList.Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
-        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
+        hidden={!hasReplaySupport || !issueTypeConfig.pages.replays.enabled}
         to={{pathname: `${baseUrl}replays/`, query: queryParams}}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
       </TabList.Item>
+      <TabList.Item
+        key={Tab.UPTIME_CHECKS}
+        textValue={t('Uptime Checks')}
+        hidden={!issueTypeConfig.pages.uptimeChecks.enabled}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`, query: queryParams}}
+      >
+        {t('Uptime Checks')}
+      </TabList.Item>
     </StyledTabList>
   );
 }
 
-function GroupHeader({
-  baseUrl,
-  group,
-  groupReprocessingStatus,
-  organization,
-  event,
-  project,
-}: Props) {
+function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const {
     disabledTabs,
@@ -229,7 +230,6 @@ function GroupHeader({
             project={project}
             disabled={disableActions}
             event={event}
-            query={location.query}
           />
         </BreadcrumbActionWrapper>
         <HeaderRow>
@@ -251,7 +251,7 @@ function GroupHeader({
               data={group}
               message={message}
               level={group.level}
-              levelIndicatorSize="11px"
+              levelIndicatorSize={11}
               type={group.type}
               showUnhandled={group.isUnhandled}
             />

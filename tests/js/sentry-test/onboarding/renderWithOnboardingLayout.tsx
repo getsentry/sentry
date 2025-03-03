@@ -9,8 +9,8 @@ import type {
   Docs,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization} from 'sentry/types/organization';
 import type {DeepPartial} from 'sentry/types/utils';
 
@@ -41,10 +41,8 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization: org} = renderOptions;
-
   const {organization, project, router} = initializeOrg({
-    organization: org,
+    organization: renderOptions.organization,
     router: {
       location: {
         query: selectedOptions,

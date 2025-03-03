@@ -19,14 +19,14 @@ export function TraceTransactionRow(
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
       onKeyDown={props.onRowKeyDown}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       style={props.style}
     >
       <div
@@ -56,7 +56,11 @@ export function TraceTransactionRow(
                 expanded={props.node.expanded || props.node.zoomedIn}
                 onDoubleClick={props.onExpandDoubleClick}
                 onClick={e => {
-                  props.node.canFetch ? props.onZoomIn(e) : props.onExpand(e);
+                  if (props.node.canFetch) {
+                    props.onZoomIn(e);
+                  } else {
+                    props.onExpand(e);
+                  }
                 }}
               >
                 {props.node.children.length > 0

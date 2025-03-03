@@ -19,6 +19,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+
+jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 const requestMocks = {
   missRateChart: jest.fn(),
@@ -30,7 +33,7 @@ const requestMocks = {
 };
 
 describe('CacheLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -79,6 +82,14 @@ describe('CacheLandingPage', function () {
     initiallyLoaded: false,
   });
 
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
+
   beforeEach(function () {
     jest.clearAllMocks();
     setRequestMocks(organization);
@@ -93,29 +104,6 @@ describe('CacheLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.missRateChart).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-stats/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          cursor: undefined,
-          dataset: 'spansMetrics',
-          environment: [],
-          excludeOther: 0,
-          field: [],
-          interval: '30m',
-          orderby: undefined,
-          partial: 1,
-          per_page: 50,
-          project: [],
-          query: 'span.op:[cache.get_item,cache.get] project.id:1',
-          referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
-          statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'cache_miss_rate()',
-        },
-      })
-    );
     expect(requestMocks.throughputChart).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -136,6 +124,7 @@ describe('CacheLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -253,12 +242,12 @@ describe('CacheLandingPage', function () {
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'my-transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/caches/?project=123&statsPeriod=10d&transaction=my-transaction'
+      '/organizations/org-slug/insights/backend/caches/?project=123&statsPeriod=10d&transaction=my-transaction'
     );
 
     expect(screen.getByRole('columnheader', {name: 'Project'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'backend'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'backend'})).toHaveAttribute(
+    expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/backend/?project=1'
     );
@@ -313,7 +302,7 @@ describe('CacheLandingPage', function () {
       initiallyLoaded: false,
     });
 
-    render(<CacheLandingPage />);
+    render(<CacheLandingPage />, {organization});
 
     await waitFor(() => {
       expect(

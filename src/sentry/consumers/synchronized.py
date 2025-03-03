@@ -38,7 +38,7 @@ class Synchronized(Generic[T]):
     # arguments on `get` and `set`, such as `timeout`, `block`, etc.
 
     @contextmanager
-    def get(self) -> Generator[T, None, None]:
+    def get(self) -> Generator[T]:
         """
         Get the synchronized value.
         """
@@ -300,3 +300,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     @property
     def closed(self) -> bool:
         return self.__consumer.closed
+
+    @property
+    def member_id(self) -> str:
+        return self.__consumer.member_id

@@ -77,22 +77,18 @@ class WidgetLegendSelectionState {
         return widgetLegend;
       });
 
-      !isInQuery
-        ? router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: [
-                ...location.query.unselectedSeries,
-                this.encodeLegendQueryParam(widget, selected),
-              ],
-            },
-          })
-        : router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          });
+      const unselectedSeries = isInQuery
+        ? newLegendQuery
+        : [
+            ...location.query.unselectedSeries,
+            this.encodeLegendQueryParam(widget, selected),
+          ];
+      router.replace({
+        query: {
+          ...location.query,
+          unselectedSeries,
+        },
+      });
     } else {
       if (location.query.unselectedSeries?.includes(widget.id!)) {
         router.replace({
@@ -121,8 +117,7 @@ class WidgetLegendSelectionState {
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
-      : this.widgetRequiresLegendUnselection(widget) &&
-          this.organization.features.includes('dashboards-releases-on-charts')
+      : this.widgetRequiresLegendUnselection(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
               'Releases',
@@ -148,8 +143,7 @@ class WidgetLegendSelectionState {
   }
 
   formatLegendDefaultQuery(widget: Widget) {
-    return this.organization.features.includes('dashboards-releases-on-charts') &&
-      this.widgetRequiresLegendUnselection(widget)
+    return this.widgetRequiresLegendUnselection(widget)
       ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
       : undefined;
   }
@@ -163,7 +157,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)!
           )
         )
         .join(SERIES_LIST_DELIMITER)
@@ -179,8 +173,9 @@ class WidgetLegendSelectionState {
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
-      const seriesNames = seriesNameString.split(SERIES_LIST_DELIMITER);
+      const seriesNames = seriesNameString!.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[
           decodeURIComponent(
             WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(series, widget.id)
@@ -194,7 +189,7 @@ class WidgetLegendSelectionState {
 
   // when a widget has been changed/added/deleted update legend to incorporate that
   setMultipleWidgetSelectionStateURL(newDashboard: DashboardDetails, newWidget?: Widget) {
-    const [location] = [this.location];
+    const location = this.location;
     if (!location.query.unselectedSeries) {
       return location.query.unselectedSeries;
     }
@@ -204,15 +199,17 @@ class WidgetLegendSelectionState {
       const formattedDefaultQuery = this.formatLegendDefaultQuery(newWidget);
 
       const newQuery = Array.isArray(location.query.unselectedSeries)
-        ? location.query.unselectedSeries.map(legend => {
-            if (legend.includes(newWidget.id!)) {
-              return this.formatLegendDefaultQuery(newWidget);
-            }
-            return legend;
-          })
+        ? location.query.unselectedSeries
+            .map(legend => {
+              if (legend.includes(newWidget.id!)) {
+                return this.formatLegendDefaultQuery(newWidget);
+              }
+              return legend;
+            })
+            .filter(Boolean)
         : location.query.unselectedSeries.includes(newWidget.id!)
           ? formattedDefaultQuery
-          : [location.query.unselectedSeries, formattedDefaultQuery];
+          : [location.query.unselectedSeries, formattedDefaultQuery].filter(Boolean);
 
       return newQuery;
     }
@@ -220,32 +217,36 @@ class WidgetLegendSelectionState {
     // if widget was deleted it removes it from the selection query (clean up the url)
     if (newWidget) {
       return Array.isArray(location.query.unselectedSeries)
-        ? location.query.unselectedSeries.map(legend => {
-            if (legend.includes(newWidget.id!)) {
-              return undefined;
-            }
-            return legend;
-          })
+        ? location.query.unselectedSeries
+            .map(legend => {
+              if (legend.includes(newWidget.id!)) {
+                return undefined;
+              }
+              return legend;
+            })
+            .filter(Boolean)
         : location.query.unselectedSeries.includes(newWidget.id!)
           ? []
           : location.query.unselectedSeries;
     }
 
     // widget added (since added widgets don't have an id until submitted), it sets selection state based on all widgets
-    const unselectedSeries = newDashboard.widgets.map(widget => {
-      if (Array.isArray(location.query.unselectedSeries)) {
-        const widgetLegendQuery = location.query.unselectedSeries.find(legend =>
-          legend.includes(widget.id!)
-        );
-        if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
-          return this.formatLegendDefaultQuery(widget);
+    const unselectedSeries = newDashboard.widgets
+      .map(widget => {
+        if (Array.isArray(location.query.unselectedSeries)) {
+          const widgetLegendQuery = location.query.unselectedSeries.find(legend =>
+            legend.includes(widget.id!)
+          );
+          if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
+            return this.formatLegendDefaultQuery(widget);
+          }
+          return widgetLegendQuery;
         }
-        return widgetLegendQuery;
-      }
-      return location.query.unselectedSeries?.includes(widget.id!)
-        ? location.query.unselectedSeries
-        : this.formatLegendDefaultQuery(widget);
-    });
+        return location.query.unselectedSeries?.includes(widget.id!)
+          ? location.query.unselectedSeries
+          : this.formatLegendDefaultQuery(widget);
+      })
+      .filter(Boolean);
     return unselectedSeries;
   }
 }

@@ -15,11 +15,14 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  # Disables sentry reporting for devservices
+  DEVSERVICES_DISABLE_SENTRY: 1
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -42,7 +45,7 @@ jobs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -55,7 +58,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
+          mode: default
 
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing
@@ -64,11 +67,18 @@ jobs:
         run: |
           yarn add ts-node && make test-api-docs
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
@@ -94,19 +104,18 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          redis_cluster: true
-          kafka: true
-          snuba: true
-          symbolicator: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: ${{ matrix.pg-version }}
+          mode: backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -132,7 +141,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend migration tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       matrix:
@@ -145,12 +154,18 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
-          pg-version: ${{ matrix.pg-version }}
+          mode: default
 
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -165,7 +180,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       matrix:
@@ -177,11 +192,18 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          pg-version: ${{ matrix.pg-version }}
+          mode: migrations
 
       - name: Run test
         run: |
           make test-cli
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -196,7 +218,7 @@ jobs:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
     name: requirements check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
       - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
@@ -206,9 +228,9 @@ jobs:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
-          python-version: 3.12.6
+          python-version: 3.13.1
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: pip install -q --constraint requirements-dev-frozen.txt pip-tools
       - name: check requirements
@@ -229,7 +251,7 @@ jobs:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         pg-version: ['14']
@@ -242,7 +264,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          pg-version: ${{ matrix.pg-version }}
+          mode: migrations
 
       - name: Migration & lockfile checks
         env:
@@ -251,11 +273,18 @@ jobs:
         run: |
           ./.github/workflows/scripts/migration-check.sh
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: monolith-dbs test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -266,10 +295,19 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
+        with:
+          mode: migrations
 
       - name: Run test
         run: |
           make test-monolith-dbs
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -294,14 +332,14 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
-          python-version: 3.12.6
+          python-version: 3.13.1
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: pip install -r requirements-dev-frozen.txt
 
@@ -330,15 +368,19 @@ jobs:
           # mypy does not have granular codes so don't allow specific messages to regress
           set -euo pipefail
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
+          ! grep 'Argument .* of "dispatch" is incompatible with' .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
           ! grep 'Incompatible default for argument' .artifacts/mypy-all
           ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
+          ! grep 'No return value expected' .artifacts/mypy-all
+          ! grep 'Return value expected' .artifacts/mypy-all
           ! grep 'Unpacking a string is disallowed' .artifacts/mypy-all
           ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
+          ! grep 'gets multiple values for' .artifacts/mypy-all
 
       - name: apply blocklist changes
         if: |
@@ -371,7 +413,7 @@ jobs:
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

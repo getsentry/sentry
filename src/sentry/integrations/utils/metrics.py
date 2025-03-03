@@ -2,24 +2,15 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from types import TracebackType
 from typing import Any, Self
 
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-class EventLifecycleOutcome(Enum):
-    STARTED = "STARTED"
-    HALTED = "HALTED"
-    SUCCESS = "SUCCESS"
-    FAILURE = "FAILURE"
-
-    def __str__(self) -> str:
-        return self.value.lower()
 
 
 class EventLifecycleMetric(ABC):
@@ -122,8 +113,12 @@ class EventLifecycle:
         """
         self._extra[name] = value
 
+    def add_extras(self, extras: Mapping[str, int | str]) -> None:
+        """Add multiple values to logged "extra" data."""
+        self._extra.update(extras)
+
     def record_event(
-        self, outcome: EventLifecycleOutcome, exc: BaseException | None = None
+        self, outcome: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
     ) -> None:
         """Record a starting or halting event.
 
@@ -137,24 +132,35 @@ class EventLifecycle:
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
+        extra = dict(self._extra)
+        extra.update(tags)
+        log_params: dict[str, Any] = {
+            "extra": extra,
+        }
+
+        if isinstance(outcome_reason, BaseException):
+            log_params["exc_info"] = outcome_reason
+        elif isinstance(outcome_reason, str):
+            extra["outcome_reason"] = outcome_reason
+
         if outcome == EventLifecycleOutcome.FAILURE:
-            extra = dict(self._extra)
-            extra.update(tags)
-            logger.error(key, extra=self._extra, exc_info=exc)
+            logger.error(key, **log_params)
+        elif outcome == EventLifecycleOutcome.HALTED:
+            logger.warning(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
         logger.error("EventLifecycle flow error: %s", message)
 
     def _terminate(
-        self, new_state: EventLifecycleOutcome, exc: BaseException | None = None
+        self, new_state: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
     ) -> None:
         if self._state is None:
             self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
             self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
-        self.record_event(new_state, exc)
+        self.record_event(new_state, outcome_reason)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.
@@ -167,10 +173,14 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(
-        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
+        self, failure_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
+
+        Calling it means that the feature is broken and requires immediate attention.
+
+        An error will be reported to Sentry.
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -184,10 +194,14 @@ class EventLifecycle:
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.FAILURE, exc)
+        self._terminate(EventLifecycleOutcome.FAILURE, failure_reason)
 
-    def record_halt(self, exc: BaseException | None = None) -> None:
+    def record_halt(
+        self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+    ) -> None:
         """Record that the event halted in an ambiguous state.
+
+        It will be logged to GCP but no Sentry error will be reported.
 
         This method can be called in response to a sufficiently ambiguous exception
         or other error condition, where it may have been caused by a user error or
@@ -201,7 +215,9 @@ class EventLifecycle:
               (but probably later, as a backlog item).
         """
 
-        self._terminate(EventLifecycleOutcome.HALTED, exc)
+        if extra:
+            self._extra.update(extra)
+        self._terminate(EventLifecycleOutcome.HALTED, halt_reason)
 
     def __enter__(self) -> Self:
         if self._state is not None:
@@ -235,29 +251,27 @@ class EventLifecycle:
             )
 
 
-class IntegrationPipelineViewType(Enum):
+class IntegrationPipelineViewType(StrEnum):
     """A specific step in an integration's pipeline that is not a static page."""
 
     # IdentityProviderPipeline
-    IDENTITY_LOGIN = "IDENTITY_LOGIN"
-    IDENTITY_LINK = "IDENTITY_LINK"
+    IDENTITY_LOGIN = "identity_login"
+    IDENTITY_LINK = "identity_link"
+    TOKEN_EXCHANGE = "token_exchange"
 
     # GitHub
-    OAUTH_LOGIN = "OAUTH_LOGIN"
-    GITHUB_INSTALLATION = "GITHUB_INSTALLATION"
+    OAUTH_LOGIN = "oauth_loging"
+    GITHUB_INSTALLATION = "github_installation"
 
     # Bitbucket
-    VERIFY_INSTALLATION = "VERIFY_INSTALLATION"
+    VERIFY_INSTALLATION = "verify_installation"
 
     # Bitbucket Server
     # OAUTH_LOGIN = "OAUTH_LOGIN"
-    OAUTH_CALLBACK = "OAUTH_CALLBACK"
+    OAUTH_CALLBACK = "oauth_callback"
 
     # Azure DevOps
-    ACCOUNT_CONFIG = "ACCOUNT_CONFIG"
-
-    def __str__(self) -> str:
-        return self.value.lower()
+    ACCOUNT_CONFIG = "account_config"
 
 
 @dataclass
@@ -270,6 +284,34 @@ class IntegrationPipelineViewEvent(IntegrationEventLifecycleMetric):
 
     def get_metrics_domain(self) -> str:
         return "installation"
+
+    def get_integration_domain(self) -> IntegrationDomain:
+        return self.domain
+
+    def get_integration_name(self) -> str:
+        return self.provider_key
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
+
+
+class IntegrationWebhookEventType(StrEnum):
+    INSTALLATION = "installation"
+    PUSH = "push"
+    PULL_REQUEST = "pull_request"
+    INBOUND_SYNC = "inbound_sync"
+
+
+@dataclass
+class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
+    """An instance to be recorded of a webhook event."""
+
+    interaction_type: IntegrationWebhookEventType
+    domain: IntegrationDomain
+    provider_key: str
+
+    def get_metrics_domain(self) -> str:
+        return "webhook"
 
     def get_integration_domain(self) -> IntegrationDomain:
         return self.domain

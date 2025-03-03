@@ -38,7 +38,7 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
     return null;
   }
 
-  const image = images.find((img, idx) => {
+  const image = images.find((img: any, idx: any) => {
     if (!addrMode || addrMode === 'abs') {
       const [startAddress, endAddress] = getImageRange(img);
       return address >= (startAddress as any) && address < (endAddress as any);
@@ -84,12 +84,13 @@ export function getHiddenFrameIndices({
   const repeatedIndeces = getRepeatedFrameIndices(data);
   let hiddenFrameIndices: number[] = [];
   Object.keys(toggleFrameMap)
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     .filter(frameIndex => toggleFrameMap[frameIndex] === true)
     .forEach(indexString => {
       const index = parseInt(indexString, 10);
       const indicesToBeAdded: number[] = [];
       let i = 1;
-      let numHidden = frameCountMap[index];
+      let numHidden = frameCountMap[index]!;
       while (numHidden > 0) {
         if (!repeatedIndeces.includes(index - i)) {
           indicesToBeAdded.push(index - i);
@@ -125,21 +126,21 @@ export function getCurlCommand(data: EntryRequest['data']) {
     result += ' \\\n -X ' + data.method;
   }
 
-  data.headers = data.headers?.filter(defined);
+  const headers =
+    data.headers
+      ?.filter(defined)
+      // sort headers
+      .sort(function (a, b) {
+        return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
+      }) ?? [];
 
   // TODO(benvinegar): just gzip? what about deflate?
-  const compressed = data.headers?.find(
+  const compressed = headers?.find(
     h => h[0] === 'Accept-Encoding' && h[1].includes('gzip')
   );
   if (compressed) {
     result += ' \\\n --compressed';
   }
-
-  // sort headers
-  const headers =
-    data.headers?.sort(function (a, b) {
-      return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
-    }) ?? [];
 
   for (const header of headers) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeBashString(header[1] + '') + '"';
@@ -172,7 +173,9 @@ export function getCurlCommand(data: EntryRequest['data']) {
   return result;
 }
 
-export function stringifyQueryList(query: string | [key: string, value: string][]) {
+export function stringifyQueryList(
+  query: string | Array<[key: string, value: string] | null>
+) {
   if (typeof query === 'string') {
     return query;
   }
@@ -222,12 +225,12 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
  */
 export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
   return Object.keys(obj)
-    .reduce<[string, string][]>((out, k) => {
+    .reduce<Array<[string, string]>>((out, k) => {
       const val = obj[k];
       return out.concat(
         Array.isArray(val)
           ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as [string, string][]) // key has single value
+          : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
     .sort(function ([keyA, valA], [keyB, valB]) {
@@ -303,7 +306,7 @@ export function parseAssembly(assembly: string | null) {
   }
 
   for (let i = 1; i < pieces.length; i++) {
-    const [key, value] = pieces[i].trim().split('=');
+    const [key, value] = pieces[i]!.trim().split('=');
 
     // eslint-disable-next-line default-case
     switch (key) {

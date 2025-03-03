@@ -1,6 +1,7 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -15,17 +16,19 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import type {Environment} from 'sentry/types/project';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
-
-jest.unmock('sentry/utils/recreateRoute');
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: jest.fn(),
+}));
+
 describe('groupDetails', () => {
+  let mockNavigate: jest.Mock;
   const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [TeamFixture()]});
@@ -76,23 +79,8 @@ describe('groupDetails', () => {
     },
   });
 
-  function MockComponent({
-    group: groupProp,
-    environments,
-    eventError,
-  }: {
-    environments?: Environment[];
-    eventError?: boolean;
-    group?: Group;
-  }) {
-    return (
-      <div>
-        Group Details Mock
-        <div>title: {groupProp?.title}</div>
-        <div>environment: {environments?.join(' ')}</div>
-        {eventError && <div>eventError</div>}
-      </div>
-    );
+  function MockComponent() {
+    return <div>Group Details Mock</div>;
   }
 
   const createWrapper = (init = defaultInit) => {
@@ -105,9 +93,11 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
+    mockNavigate = jest.fn();
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
+    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -179,7 +169,7 @@ describe('groupDetails', () => {
 
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
-    expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
 
     // Sample event alert should not show up
     expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
@@ -217,11 +207,6 @@ describe('groupDetails', () => {
     });
 
     createWrapper();
-
-    await waitFor(() =>
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
-    );
-
     expect(
       await screen.findByText(
         'No teams have access to this project yet. Ask an admin to add your team to this project.'
@@ -230,6 +215,11 @@ describe('groupDetails', () => {
   });
 
   it('fetches issue details for a given environment', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
+      body: group,
+    });
+
     const init = initializeOrg({
       router: {
         ...initRouter,
@@ -242,19 +232,17 @@ describe('groupDetails', () => {
     createWrapper(init);
 
     await waitFor(() =>
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      expect(mock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            collapse: ['release', 'tags'],
+            environment: ['staging'],
+            expand: ['inbox', 'owners'],
+          },
+        })
+      )
     );
-
-    expect(await screen.findByText('environment: staging')).toBeInTheDocument();
-  });
-
-  it('renders issue event error', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
-      statusCode: 404,
-    });
-    createWrapper();
-    expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
   it('renders substatus badge', async function () {
@@ -316,6 +304,118 @@ describe('groupDetails', () => {
     createWrapper();
 
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
+  });
+
+  it("refires request when recommended endpoint doesn't return an event", async function () {
+    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
+      query: {
+        query: 'foo:bar',
+        statsPeriod: '14d',
+      },
+      statusCode: 404,
+      body: {
+        detail: 'No matching event',
+      },
+    });
+
+    createWrapper({
+      ...defaultInit,
+      router: {
+        ...defaultInit.router,
+        location: LocationFixture({
+          query: {
+            query: 'foo:bar',
+            statsPeriod: '14d',
+          },
+        }),
+      },
+    });
+
+    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining(
+          // query and period should be removed
+          {query: {}}
+        ),
+        {
+          replace: true,
+        }
+      )
+    );
+  });
+
+  it('does not refire for request with streamlined UI', async function () {
+    // Bunch of mocks to load streamlined UI
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/releases/stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/events-stats/`,
+      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/events/`,
+      body: {data: [{'count_unique(user)': 21}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+
+    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
+      query: {
+        query: 'foo:bar',
+        statsPeriod: '14d',
+      },
+      statusCode: 404,
+      body: {
+        detail: 'No matching event',
+      },
+    });
+
+    createWrapper({
+      ...defaultInit,
+      router: {
+        ...defaultInit.router,
+        location: LocationFixture({
+          query: {
+            query: 'foo:bar',
+            statsPeriod: '14d',
+            streamline: '1',
+          },
+        }),
+      },
+    });
+
+    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
+
+    await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {

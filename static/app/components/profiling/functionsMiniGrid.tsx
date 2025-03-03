@@ -12,9 +12,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
-import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
-
-type FunctionsField = 'package' | 'function' | 'count()' | 'sum()' | 'examples()';
+import type {FunctionsField} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 
 interface FunctionsMiniGridProps {
   functions: EventsResults<FunctionsField>['data'];
@@ -26,19 +25,6 @@ interface FunctionsMiniGridProps {
 export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
   const {organization, project, functions, onLinkClick} = props;
 
-  const linkToFlamechartRoute = (
-    profileId: string,
-    frameName: string,
-    framePackage: string
-  ) => {
-    return generateProfileFlamechartRouteWithHighlightFrame({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId,
-      frameName,
-      framePackage,
-    });
-  };
   return (
     <FunctionsMiniGridContainer>
       <FunctionsMiniGridHeader>{t('Slowest app functions')}</FunctionsMiniGridHeader>
@@ -54,18 +40,17 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
 
         let rendered = <Fragment>{f.function}</Fragment>;
 
-        const examples = f['examples()'];
-        if (defined(examples?.[0])) {
-          const exampleProfileId = examples![0].replaceAll('-', '');
+        const example = f['all_examples()']?.[0];
+        if (defined(example)) {
+          const target = generateProfileRouteFromProfileReference({
+            organization,
+            projectSlug: project?.slug ?? '',
+            frameName: f.function as string,
+            framePackage: f.package as string,
+            reference: example,
+          });
           rendered = (
-            <Link
-              to={linkToFlamechartRoute(
-                exampleProfileId,
-                f.function as string,
-                f.package as string
-              )}
-              onClick={onLinkClick}
-            >
+            <Link to={target} onClick={onLinkClick}>
               {f.function}
             </Link>
           );

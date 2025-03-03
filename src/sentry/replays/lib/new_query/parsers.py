@@ -19,7 +19,24 @@ def parse_float(value: str) -> float:
 
 def parse_int(value: str) -> int:
     """Coerce to int or fail."""
-    return int(parse_float(value))
+    try:
+        return int(parse_float(value))
+    except (ValueError, CouldNotParseValue):
+        raise CouldNotParseValue("Failed to parse int.")
+
+
+def parse_duration(value: str) -> int:
+    """
+    Assert that second resolution is given. The input and output of this fx is still in milliseconds, to match the
+    output of api.event_search.parse_search_query
+    """
+    milliseconds = parse_int(value)
+    if milliseconds % 1000:
+        # TODO: remove once we support milliseconds.
+        raise CouldNotParseValue(
+            f"Replays only supports second-resolution timestamps at this time. Try '{milliseconds // 1000}s' instead."
+        )
+    return milliseconds
 
 
 def parse_str(value: str) -> str:

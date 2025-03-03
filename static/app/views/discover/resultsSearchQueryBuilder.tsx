@@ -49,7 +49,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
-const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+const getFunctionTags = (fields: readonly Field[] | undefined) => {
   if (!fields?.length) {
     return [];
   }
@@ -61,6 +61,7 @@ const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
     ) {
       const parsedFunction = parseFunction(item.field);
       if (parsedFunction) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[parsedFunction.name] = {
           key: parsedFunction.name,
           name: parsedFunction.name,
@@ -82,6 +83,7 @@ const getMeasurementTags = (
     | undefined
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...measurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -94,6 +96,7 @@ const getMeasurementTags = (
   }
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -115,15 +118,16 @@ export const getHasTag = (tags: TagCollection) => ({
 type Props = {
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
-  fields?: Readonly<Field[]>;
+  fields?: readonly Field[];
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   omitTags?: string[];
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
-  projectIds?: number[] | Readonly<number[]>;
+  projectIds?: number[] | readonly number[];
   query?: string;
+  recentSearches?: SavedSearchType;
   searchSource?: string;
   supportedTags?: TagCollection | undefined;
 };
@@ -162,8 +166,8 @@ function ResultsSearchQueryBuilder(props: Props) {
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
   const getEventFieldValues = useCallback(
-    async (tag, query): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+    async (tag: any, query: any): Promise<string[]> => {
+      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
@@ -194,9 +198,10 @@ function ResultsSearchQueryBuilder(props: Props) {
               search: query,
               projectIds: projectIdStrings,
               // allows searching for tags on transactions as well
-              includeTransactions: includeTransactions,
+              includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
             });
 
@@ -289,7 +294,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       searchSource={props.searchSource || 'eventsv2'}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
-      recentSearches={SavedSearchType.EVENT}
+      recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
       showUnsubmittedIndicator
     />
   );

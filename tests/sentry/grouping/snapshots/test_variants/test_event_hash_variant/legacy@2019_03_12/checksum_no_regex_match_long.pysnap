@@ -1,9 +1,0 @@
----
-created: '2024-10-24T16:39:05.649697+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
----
-hashed-checksum:
-  hash: "2c2e85a6e73109222f131228ed06a7af"
-  checksum: "2c2e85a6e73109222f131228ed06a7af"
-  raw_checksum: "not a legit checksum and also too long a string"

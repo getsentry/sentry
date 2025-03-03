@@ -29,8 +29,8 @@ from sentry.tasks.base import instrumented_task
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,  # 2 hours
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=15 * 60,  # 15 minutes
+    time_limit=15 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)

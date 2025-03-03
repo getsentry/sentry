@@ -126,7 +126,7 @@ def extract_commits_from_blame_response(
     files: Sequence[SourceLineInfo],
     file_path_mapping: FilePathMapping,
     extra: dict[str, str | int | None],
-) -> Sequence[FileBlameInfo]:
+) -> list[FileBlameInfo]:
     """
     Using the file path mapping that generated the initial GraphQL query,
     this function extracts all commits from the response and maps each one
@@ -199,6 +199,9 @@ def _get_matching_file_blame(
     Generates a FileBlameInfo object for the given file. Searches the given blame range
     and validates that the commit is valid before creating the FileBlameInfo object.
     """
+    if file.lineno is None:
+        return None
+
     matching_blame_range = next(
         iter([r for r in blame_ranges if r["startingLine"] <= file.lineno <= r["endingLine"]]),
         None,

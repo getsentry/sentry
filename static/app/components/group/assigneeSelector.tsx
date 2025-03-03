@@ -8,56 +8,57 @@ import AssigneeSelectorDropdown, {
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {Button} from 'sentry/components/button';
-import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import {t} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: Group;
   handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
+  additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
-  owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
 }
+
+export type OnAssignCallback = (
+  type: Actor['type'],
+  assignee: User | Actor,
+  suggestedAssignee?: SuggestedAssignee
+) => void;
 
 export function useHandleAssigneeChange({
   organization,
   group,
   onAssign,
+  onSuccess,
 }: {
   group: Group;
   organization: Organization;
   onAssign?: OnAssignCallback;
+  onSuccess?: (assignedTo: Group['assignedTo']) => void;
 }) {
-  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
-    AssignableEntity | null,
-    RequestError,
-    AssignableEntity | null
-  >({
-    mutationFn: async (
-      newAssignee: AssignableEntity | null
-    ): Promise<AssignableEntity | null> => {
+  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation({
+    mutationFn: (newAssignee: AssignableEntity | null): Promise<Group> => {
       if (newAssignee) {
-        await assignToActor({
+        return assignToActor({
           id: group.id,
           orgSlug: organization.slug,
           actor: {id: newAssignee.id, type: newAssignee.type},
           assignedBy: 'assignee_selector',
         });
-        return Promise.resolve(newAssignee);
       }
 
-      await clearAssignment(group.id, organization.slug, 'assignee_selector');
-      return Promise.resolve(null);
+      return clearAssignment(group.id, organization.slug, 'assignee_selector');
     },
-    onSuccess: (newAssignee: AssignableEntity | null) => {
+    onSuccess: (updatedGroup, newAssignee) => {
       if (onAssign && newAssignee) {
         onAssign(newAssignee.type, newAssignee.assignee, newAssignee.suggestedAssignee);
       }
+      onSuccess?.(updatedGroup.assignedTo);
     },
     onError: () => {
       addErrorMessage('Failed to update assignee');
@@ -76,6 +77,7 @@ export function AssigneeSelector({
   assigneeLoading,
   handleAssigneeChange,
   owners,
+  additionalMenuFooterItems,
 }: AssigneeSelectorProps) {
   return (
     <AssigneeSelectorDropdown
@@ -107,6 +109,7 @@ export function AssigneeSelector({
           />
         </StyledDropdownButton>
       )}
+      additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }

@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Badge from 'sentry/components/badge/badge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Badge} from 'sentry/components/core/badge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -19,6 +18,8 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseActions from './releaseActions';
 
@@ -42,16 +43,20 @@ function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
-  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = makeReleasesPathname({
+    organization,
+    path: `/${encodeURIComponent(version)}/`,
+  });
 
   const tabs = [
     {title: t('Overview'), to: ''},
     {
       title: (
         <Fragment>
-          {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
+          {t('Commits')}{' '}
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(commitCount)}
+          </NavTabsBadge>
         </Fragment>
       ),
       to: `commits/`,
@@ -60,17 +65,20 @@ function ReleaseHeader({
       title: (
         <Fragment>
           {t('Files Changed')}
-          <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(commitFilesChanged)}
+          </NavTabsBadge>
         </Fragment>
       ),
       to: `files-changed/`,
     },
   ];
 
-  const getTabUrl = (path: string) => ({
-    pathname: releasePath + path,
-    query: pick(location.query, Object.values(URL_PARAM)),
-  });
+  const getTabUrl = (path: string) =>
+    normalizeUrl({
+      pathname: releasePath + path,
+      query: pick(location.query, Object.values(URL_PARAM)),
+    });
 
   const getActiveTabTo = () => {
     // We are not doing strict version check because there would be a tiny page shift when switching between releases with paginator
@@ -81,7 +89,7 @@ function ReleaseHeader({
       return activeTab.to;
     }
 
-    return tabs[0].to; // default to 'Overview'
+    return tabs[0]!.to; // default to 'Overview'
   };
 
   return (
@@ -90,7 +98,10 @@ function ReleaseHeader({
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${organization.slug}/releases/`,
+              to: makeReleasesPathname({
+                organization,
+                path: '/',
+              }),
               label: t('Releases'),
               preservePageFilters: true,
             },
@@ -131,19 +142,15 @@ function ReleaseHeader({
         />
       </Layout.HeaderActions>
 
-      <Fragment>
-        <StyledNavTabs>
+      <Layout.HeaderTabs value={getActiveTabTo()}>
+        <TabList hideBorder>
           {tabs.map(tab => (
-            <ListLink
-              key={tab.to}
-              to={getTabUrl(tab.to)}
-              isActive={() => getActiveTabTo() === tab.to}
-            >
+            <TabList.Item key={tab.to} to={getTabUrl(tab.to)}>
               {tab.title}
-            </ListLink>
+            </TabList.Item>
           ))}
-        </StyledNavTabs>
-      </Fragment>
+        </TabList>
+      </Layout.HeaderTabs>
     </Layout.Header>
   );
 }
@@ -160,12 +167,6 @@ const IconWrapper = styled('span')`
       color: ${p => p.theme.textColor};
     }
   }
-`;
-
-const StyledNavTabs = styled(NavTabs)`
-  margin-bottom: 0;
-  /* Makes sure the tabs are pushed into another row */
-  width: 100%;
 `;
 
 const NavTabsBadge = styled(Badge)`

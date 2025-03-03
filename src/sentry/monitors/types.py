@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import StrEnum
 from typing import Literal, NotRequired, TypedDict, Union
 
 from django.utils.functional import cached_property
@@ -119,23 +118,3 @@ class IntervalSchedule:
 
 
 ScheduleConfig = Union[CrontabSchedule, IntervalSchedule]
-
-
-class TickVolumeAnomolyResult(StrEnum):
-    """
-    This enum represents the result of comparing the minute we ticked past
-    with it's historic volume data. This is used to determine if we may have
-    consumed an anomalous number of check-ins, indicating there is an upstream
-    incident and we care not able to reliably report misses and time-outs.
-
-    A NORMAL result means we've considered the volume to be within the expected
-    volume for that minute. A ANOMALY value indicates there was a drop in
-    volume significant enough to consider it abnormal.
-    """
-
-    NORMAL = "normal"
-    ABNORMAL = "abnormal"
-
-    @classmethod
-    def from_str(cls, st: str) -> TickVolumeAnomolyResult:
-        return cls[st.upper()]

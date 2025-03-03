@@ -89,7 +89,7 @@ describe('components/interfaces/utils', function () {
           query: [['foo', 'bar']],
           method: 'GET',
         })
-      ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
+      ).toBe('curl \\\n "http://example.com/foo?foo=bar"');
 
       // Do not add `data` if `data` is empty object
       expect(
@@ -105,7 +105,7 @@ describe('components/interfaces/utils', function () {
           data: {},
           method: 'GET',
         })
-      ).toEqual('curl \\\n "http://example.com/foo"');
+      ).toBe('curl \\\n "http://example.com/foo"');
 
       // Filter out undefined headers
       expect(
@@ -233,7 +233,7 @@ describe('components/interfaces/utils', function () {
           ['Content-Type', 'application/json'],
           ['Referer', 'http://example.com'],
           ['Accept-Encoding', 'gzip'],
-        ] as [string, string][],
+        ] as Array<[string, string]>,
         url: 'https://www.sentry.io',
         query: [],
         data: null,
@@ -284,16 +284,16 @@ describe('components/interfaces/utils', function () {
     it('should preserve unfiltered values', function () {
       const result = userContextToActor(rawData);
       expect(result).toHaveProperty('id');
-      expect(result.id).toEqual('26');
+      expect(result.id).toBe('26');
       expect(result).toHaveProperty('username');
-      expect(result.username).toEqual('maiseythedog');
+      expect(result.username).toBe('maiseythedog');
     });
   });
 
   describe('stringifyQueryList()', function () {
     it('should return query if it is a string', function () {
       const query = stringifyQueryList('query');
-      expect(query).toEqual('query');
+      expect(query).toBe('query');
     });
     it('should parse query tuples', function () {
       const query = stringifyQueryList([
@@ -302,9 +302,7 @@ describe('components/interfaces/utils', function () {
         ['field', 'total.time'],
         ['numBuckets', '100'],
       ]);
-      expect(query).toEqual(
-        'field=ops.http&field=ops.db&field=total.time&numBuckets=100'
-      );
+      expect(query).toBe('field=ops.http&field=ops.db&field=total.time&numBuckets=100');
     });
   });
 
@@ -332,7 +330,7 @@ describe('components/interfaces/utils', function () {
           ],
         })
       );
-      expect(thread?.name).toEqual('puma 002');
+      expect(thread?.name).toBe('puma 002');
     });
   });
 
@@ -361,7 +359,7 @@ describe('components/interfaces/utils', function () {
         }),
         13920
       );
-      expect(thread?.name).toEqual('puma 002');
+      expect(thread?.name).toBe('puma 002');
     });
   });
 });

@@ -4,9 +4,13 @@ from attr import dataclass
 from django.db import router, transaction
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
+from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
+    update_migrated_issue_alert,
+)
 
 
 @dataclass
@@ -35,6 +39,12 @@ class ProjectRuleUpdater:
             self._update_conditions()
             self._update_frequency()
             self.rule.save()
+
+            if features.has(
+                "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
+            ):
+                # TODO(cathy): handle errors from broken actions
+                update_migrated_issue_alert(self.rule)
             return self.rule
 
     def _update_name(self) -> None:

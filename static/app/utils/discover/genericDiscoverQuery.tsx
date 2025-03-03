@@ -320,7 +320,8 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
     orgSlug,
     eventView,
   };
-  return <_GenericDiscoverQuery<T, P> {..._props} />;
+  // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+  return <_GenericDiscoverQuery<T, P> {...(_props as any)} />;
 }
 
 export type DiscoverQueryRequestParams = Partial<
@@ -336,7 +337,7 @@ type RetryOptions = {
 
 const BASE_TIMEOUT = 200;
 const TIMEOUT_MULTIPLIER = 2;
-const wait = duration => new Promise(resolve => setTimeout(resolve, duration));
+const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
 
 export async function doDiscoverQuery<T>(
   api: Client,
@@ -362,7 +363,7 @@ export async function doDiscoverQuery<T>(
   const maxTries = retry?.tries ?? 1;
   let tries = 0;
   let timeout = 0;
-  let error;
+  let error: any;
 
   while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
     if (timeout > 0) {
@@ -445,7 +446,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   };
 }
 
-const parseError = (error: any): QueryError | null => {
+export const parseError = (error: any): QueryError | null => {
   if (!error) {
     return null;
   }

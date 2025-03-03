@@ -6,7 +6,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
-import type {JsonFormObject} from './types';
+import type {FieldObject, JsonFormObject} from './types';
 
 const user = UserFixture();
 
@@ -104,7 +104,6 @@ describe('JsonForm', function () {
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
-      // eslint-disable-next-line no-console
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
       try {
         render(<JsonForm forms={accountDetailsFields} />);
@@ -118,7 +117,9 @@ describe('JsonForm', function () {
     it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
+        fields: accountDetailsField.fields.map(
+          field => ({...field, visible: false}) as FieldObject
+        ),
       }));
 
       render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
@@ -129,10 +130,13 @@ describe('JsonForm', function () {
     it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(field => ({
-          ...field,
-          visible: () => false,
-        })),
+        fields: accountDetailsField.fields.map(
+          field =>
+            ({
+              ...field,
+              visible: () => false,
+            }) as FieldObject
+        ),
       }));
 
       render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
@@ -151,7 +155,9 @@ describe('JsonForm', function () {
     it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
+        fields: accountDetailsField.fields.map(
+          field => ({...field, visible: false}) as FieldObject
+        ),
       }));
 
       render(
@@ -168,19 +174,20 @@ describe('JsonForm', function () {
   });
 
   describe('fields prop', function () {
-    const jsonFormFields = [fields.name, fields.platform];
+    const jsonFormFields = [fields.name, fields.platform] as FieldObject[];
 
     it('default', function () {
       render(<JsonForm fields={jsonFormFields} />);
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
-      // eslint-disable-next-line no-console
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
       try {
         render(
           <JsonForm
-            fields={[{...jsonFormFields[0], visible: ({test}) => !!test.email}]}
+            fields={[
+              {...jsonFormFields[0]!, visible: ({test}) => !!test.email} as FieldObject,
+            ]}
           />
         );
       } catch (error) {
@@ -192,7 +199,7 @@ describe('JsonForm', function () {
 
     it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function () {
       // slug and platform have no visible prop, that means they will be always visible
-      render(<JsonForm title={accountDetailsFields[0].title} fields={jsonFormFields} />);
+      render(<JsonForm title={accountDetailsFields[0]!.title} fields={jsonFormFields} />);
 
       expect(screen.getByText('Account Details')).toBeInTheDocument();
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
@@ -202,8 +209,8 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0].title}
-          fields={jsonFormFields.map(field => ({...field, visible: true}))}
+          title={accountDetailsFields[0]!.title}
+          fields={jsonFormFields.map(field => ({...field, visible: true}) as FieldObject)}
         />
       );
 
@@ -215,8 +222,10 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0].title}
-          fields={jsonFormFields.map(field => ({...field, visible: () => true}))}
+          title={accountDetailsFields[0]!.title}
+          fields={jsonFormFields.map(
+            field => ({...field, visible: () => true}) as FieldObject
+          )}
         />
       );
 
@@ -228,8 +237,10 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0].title}
-          fields={jsonFormFields.map(field => ({...field, visible: false}))}
+          title={accountDetailsFields[0]!.title}
+          fields={jsonFormFields.map(
+            field => ({...field, visible: false}) as FieldObject
+          )}
         />
       );
 
@@ -240,8 +251,10 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0].title}
-          fields={jsonFormFields.map(field => ({...field, visible: () => false}))}
+          title={accountDetailsFields[0]!.title}
+          fields={jsonFormFields.map(
+            field => ({...field, visible: () => false}) as FieldObject
+          )}
         />
       );
 

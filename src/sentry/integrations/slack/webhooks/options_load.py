@@ -39,7 +39,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
     def is_substring(self, string, substring):
         # in case either have special characters, we want to preserve the strings
         # as is, so we escape both before applying re.match
-        string = re.escape(string)
         substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 
@@ -69,18 +68,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 ),
                 all_members,
             )
-        )
-        _logger.info(
-            "slack.options_webhook_filter",
-            extra={
-                "substring": substring,
-                "group_id": group.id,
-                "project_id": group.project_id,
-                "teams": len(all_teams),
-                "filtered_teams": len(filtered_teams),
-                "members": len(list(all_members)),
-                "filtered_members": len(filtered_members),
-            },
         )
 
         option_groups: list[OptionGroup] = []

@@ -1,8 +1,9 @@
+import {Badge} from 'sentry/components/core/badge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
@@ -20,6 +21,7 @@ export default function getConfiguration({
 }: ConfigParams): NavigationSection[] {
   const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
   return [
     {
       name: t('Project'),
@@ -66,8 +68,9 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/toolbar/`,
-          title: t('Developer Toolbar'),
+          title: t('Dev Toolbar'),
           show: () => !!organization?.features?.includes('dev-toolbar-ui'),
+          badge: () => <Badge type="beta">Beta</Badge>,
         },
       ],
     },
@@ -112,18 +115,19 @@ export default function getConfiguration({
             !!organization?.features?.includes('performance-view') &&
             !isSelfHostedErrorsOnly,
         },
-        {
-          path: `${pathPrefix}/metrics/`,
-          title: t('Metrics'),
-          show: () =>
-            !!(organization && hasCustomMetrics(organization)) && !isSelfHostedErrorsOnly,
-        },
+
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
           show: () =>
             !!organization?.features?.includes('session-replay-ui') &&
             !isSelfHostedErrorsOnly,
+        },
+        {
+          path: `${pathPrefix}/playstation/`,
+          title: t('PlayStation'),
+          badge: () => <Badge type="beta">Beta</Badge>,
+          show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],
     },
@@ -163,7 +167,7 @@ export default function getConfiguration({
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: opts => opts?.access?.has('project:write') && !plugin.isDeprecated,
+          show: (opts: any) => opts?.access?.has('project:write') && !plugin.isDeprecated,
           id: 'plugin_details',
           recordAnalytics: true,
         })),

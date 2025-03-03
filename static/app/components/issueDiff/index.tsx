@@ -31,15 +31,16 @@ type Props = {
   targetIssueId: string;
   baseEventId?: string;
   className?: string;
+  hasSimilarityEmbeddingsProjectFeature?: boolean;
   organization?: Organization;
   shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
 type State = {
-  baseEvent: Array<string>;
+  baseEvent: string[];
   loading: boolean;
-  targetEvent: Array<string>;
+  targetEvent: string[];
   SplitDiffAsync?: typeof SplitDiff;
 };
 
@@ -67,12 +68,12 @@ class IssueDiff extends Component<Props, State> {
       baseEventId,
       targetEventId,
       organization,
-      project,
       shouldBeGrouped,
       location,
+      hasSimilarityEmbeddingsProjectFeature,
     } = this.props;
     const hasSimilarityEmbeddingsFeature =
-      project.features.includes('similarity-embeddings') ||
+      hasSimilarityEmbeddingsProjectFeature ||
       location.query.similarityEmbeddings === '1';
 
     // Fetch component and event data
@@ -117,7 +118,7 @@ class IssueDiff extends Component<Props, State> {
             parent_transaction: this.getTransaction(
               targetEventData?.tags ? targetEventData.tags : []
             ),
-            shouldBeGrouped: shouldBeGrouped,
+            shouldBeGrouped,
           });
         }
       } catch {

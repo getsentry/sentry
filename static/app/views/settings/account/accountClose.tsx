@@ -1,13 +1,14 @@
 import {useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
+import {Alert} from 'sentry/components/core/alert';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -15,6 +16,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -135,6 +137,7 @@ function AccountClose() {
 
   return (
     <div>
+      <SentryDocumentTitle title={t('Close Account')} />
       <SettingsPageHeader title={t('Close Account')} />
 
       <TextBlock>
@@ -143,11 +146,13 @@ function AccountClose() {
         )}
       </TextBlock>
 
-      <Alert type="error" showIcon>
-        <Important>
-          {t('Closing your account is permanent and cannot be undone')}!
-        </Important>
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          <Important>
+            {t('Closing your account is permanent and cannot be undone')}!
+          </Important>
+        </Alert>
+      </Alert.Container>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
@@ -166,16 +171,11 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label
-                css={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
+              <PanelLabel>
                 <Checkbox
-                  css={{
-                    marginRight: 6,
-                  }}
+                  css={css`
+                    margin-right: 6px;
+                  `}
                   name="organizations"
                   checked={orgsToRemove.has(organization.slug)}
                   disabled={singleOwner}
@@ -185,7 +185,7 @@ function AccountClose() {
                   role="checkbox"
                 />
                 {organization.slug}
-              </label>
+              </PanelLabel>
             </PanelItem>
           ))}
         </PanelBody>
@@ -197,5 +197,10 @@ function AccountClose() {
     </div>
   );
 }
+
+const PanelLabel = styled('label')`
+  display: flex;
+  align-items: center;
+`;
 
 export default AccountClose;

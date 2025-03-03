@@ -4,7 +4,9 @@ import type {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Count from 'sentry/components/count';
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -20,7 +22,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -62,6 +64,7 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 
 import {decodeScalar} from '../queryString';
 
@@ -132,6 +135,14 @@ const EmptyValueContainer = styled('span')`
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+const missingUserMisery = tct(
+  'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/" />
+    ),
+  }
+);
 
 export function nullableValue(value: string | null): string | React.ReactElement {
   switch (value) {
@@ -144,6 +155,7 @@ export function nullableValue(value: string | null): string | React.ReactElement
   }
 }
 
+// TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
 export const SIZE_UNITS = {
   bit: 1 / 8,
   byte: 1,
@@ -170,6 +182,7 @@ export const ABYTE_UNITS = [
   'exabyte',
 ];
 
+// TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
   nanosecond: 1 / 1000 ** 2,
   microsecond: 1 / 1000,
@@ -227,6 +240,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         <NumberContainer>
           {typeof data[field] === 'number' ? (
             <Duration
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               seconds={(data[field] * ((unit && DURATION_UNITS[unit]) ?? 1)) / 1000}
               fixedDigits={2}
               abbreviation
@@ -281,9 +295,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
+          {unit &&
+          SIZE_UNITS[unit as keyof typeof SIZE_UNITS] &&
+          typeof data[field] === 'number' ? (
             <FileSize
-              bytes={data[field] * SIZE_UNITS[unit]}
+              bytes={data[field] * SIZE_UNITS[unit as keyof typeof SIZE_UNITS]}
               base={ABYTE_UNITS.includes(unit) ? 10 : 2}
             />
           ) : (
@@ -302,15 +318,27 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
           ? data[field]
           : emptyValue;
+
       if (isUrl(value)) {
         return (
-          <Container>
-            <ExternalLink href={value} data-test-id="group-tag-url">
-              {value}
-            </ExternalLink>
-          </Container>
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>
+              <ExternalLink href={value} data-test-id="group-tag-url">
+                {value}
+              </ExternalLink>
+            </Container>
+          </Tooltip>
         );
       }
+
+      if (value && typeof value === 'string') {
+        return (
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>{nullableValue(value)}</Container>
+          </Tooltip>
+        );
+      }
+
       return <Container>{nullableValue(value)}</Container>;
     },
   },
@@ -340,9 +368,11 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  adoption_stage: SpecialField;
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
+  device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
   issue: SpecialField;
@@ -352,7 +382,9 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.description': SpecialField;
   'span.status_code': SpecialField;
+  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -393,7 +425,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   attachments: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
-      const attachments: Array<IssueAttachment> = data.attachments;
+      const attachments: IssueAttachment[] = data.attachments;
 
       const items: MenuItemProps[] = attachments
         .filter(attachment => attachment.type !== 'event.minidump')
@@ -468,6 +500,40 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{getShortEventId(id)}</Container>;
     },
   },
+  span_id: {
+    sortField: 'span_id',
+    renderFunc: data => {
+      const id: string | unknown = data?.span_id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  'span.description': {
+    sortField: 'span.description',
+    renderFunc: data => {
+      const value = data['span.description'];
+
+      return (
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Container>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
+        </Tooltip>
+      );
+    },
+  },
   trace: {
     sortField: 'trace',
     renderFunc: data => {
@@ -510,7 +576,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'profile.id',
     renderFunc: data => {
       const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string') {
+      if (typeof id !== 'string' || id === '') {
         return emptyValue;
       }
 
@@ -593,6 +659,7 @@ const SPECIAL_FIELDS: SpecialFields = {
           username: '',
           ip_address: '',
         };
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         userObj[key] = value;
 
         const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
@@ -637,6 +704,29 @@ const SPECIAL_FIELDS: SpecialFields = {
       }
 
       return <Container>{emptyValue}</Container>;
+    },
+  },
+  device: {
+    sortField: 'device',
+    renderFunc: data => {
+      if (typeof data.device === 'string') {
+        return <Container>{deviceNameMapper(data.device) || data.device}</Container>;
+      }
+
+      return <Container>{emptyValue}</Container>;
+    },
+  },
+  adoption_stage: {
+    sortField: 'adoption_stage',
+    renderFunc: data => {
+      const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
+      return data.adoption_stage && label ? (
+        <Tooltip title={label.tooltipTitle} isHoverable>
+          <Tag type={label.type}>{label.name}</Tag>
+        </Tooltip>
+      ) : (
+        <Container>{emptyValue}</Container>
+      );
     },
   },
   release: {
@@ -747,16 +837,24 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const userMiseryField = fieldName;
 
     if (!(userMiseryField in data)) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
+      return (
+        <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <NumberContainer>{emptyValue}</NumberContainer>
+        </Tooltip>
+      );
     }
 
     const userMisery = data[userMiseryField];
     if (userMisery === null || isNaN(userMisery)) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
+      return (
+        <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <NumberContainer>{emptyValue}</NumberContainer>
+        </Tooltip>
+      );
     }
 
     const projectThresholdConfig = 'project_threshold_config';
-    let countMiserableUserField: string = '';
+    let countMiserableUserField = '';
 
     let miseryLimit: number | undefined = parseInt(
       userMiseryField.split('(').pop()?.slice(0, -1) || '',
@@ -837,6 +935,7 @@ export function getSortField(
 
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }
@@ -876,7 +975,7 @@ export const spanOperationRelativeBreakdownRenderer = (
   }
 
   let otherPercentage = 1;
-  let orderedSpanOpsBreakdownFields;
+  let orderedSpanOpsBreakdownFields: any[];
   const sortingOnField = eventView?.sorts?.[0]?.field;
   if (sortingOnField && (SPAN_OP_BREAKDOWN_FIELDS as string[]).includes(sortingOnField)) {
     orderedSpanOpsBreakdownFields = [
@@ -993,9 +1092,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export function getFieldRenderer(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
@@ -1008,11 +1108,13 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
@@ -1035,12 +1137,13 @@ type FieldTypeFormatterRenderFunctionPartial = (
 export function getFieldFormatter(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);

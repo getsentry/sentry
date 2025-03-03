@@ -53,6 +53,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
+    # TODO(lforst): Make v9 loader default
     epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x"},
 )
 
@@ -183,8 +184,14 @@ register(
 # The available loader SDK versions
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["8.x", "7.x"]},
+    epoch_defaults={1: ["9.x", "8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["9.x", "8.x", "7.x"]},
 )
 
 # Dynamic sampling rate in project-level "manual" configuration mode
 register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
+
+# Should tempest fetch screenshots for this project
+register(key="sentry:tempest_fetch_screenshots", default=False)
+
+# Should tempest fetch dumps for this project
+register(key="sentry:tempest_fetch_dumps", default=False)

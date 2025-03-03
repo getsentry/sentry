@@ -5,11 +5,13 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
 import PageWithProviders from 'sentry/views/insights/queues/views/destinationSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 describe('destinationSummaryPage', () => {
   const organization = OrganizationFixture({
@@ -54,6 +56,14 @@ describe('destinationSummaryPage', () => {
     initiallyLoaded: false,
   });
 
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
+
   let eventsMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
 
@@ -67,7 +77,9 @@ describe('destinationSummaryPage', () => {
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
-      body: {data: []},
+      body: {
+        data: [[1699907700, [{count: 0.2}]]],
+      },
     });
   });
 
@@ -75,7 +87,7 @@ describe('destinationSummaryPage', () => {
     render(<PageWithProviders />, {organization});
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();

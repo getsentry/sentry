@@ -1,4 +1,4 @@
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
@@ -14,8 +14,8 @@ describe('Sentry Application Dashboard', function () {
   const NUM_INSTALLS = 5;
   const NUM_UNINSTALLS = 2;
 
-  let sentryApp;
-  let webhookRequest;
+  let sentryApp: ReturnType<typeof SentryAppFixture>;
+  let webhookRequest: ReturnType<typeof SentryAppWebhookRequestFixture>;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -36,6 +36,7 @@ describe('Sentry Application Dashboard', function () {
           ],
         },
       });
+
       webhookRequest = SentryAppWebhookRequestFixture();
 
       MockApiClient.addMockResponse({
@@ -49,7 +50,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
 
@@ -71,23 +72,15 @@ describe('Sentry Application Dashboard', function () {
     });
 
     it('shows the total install/uninstall stats', async () => {
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
       expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
     it('shows the request log', async () => {
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
@@ -100,16 +93,12 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [],
       });
 
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
 
       expect(
         await screen.findByText('No requests found in the last 30 days.')
@@ -117,12 +106,8 @@ describe('Sentry Application Dashboard', function () {
     });
 
     it('shows integration and interactions chart', async () => {
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
 
       expect(await screen.findAllByTestId('chart')).toHaveLength(3);
     });
@@ -149,7 +134,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
 
@@ -170,12 +155,9 @@ describe('Sentry Application Dashboard', function () {
     });
 
     it('shows the request log', async () => {
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
@@ -190,28 +172,20 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [],
       });
 
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
       expect(
         await screen.findByText('No requests found in the last 30 days.')
       ).toBeInTheDocument();
     });
 
     it('shows the component interactions in a line chart', async () => {
-      render(
-        <SentryApplicationDashboard
-          {...RouteComponentPropsFixture()}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
+      render(<SentryApplicationDashboard />, {router});
 
       expect(await screen.findByTestId('chart')).toBeInTheDocument();
     });

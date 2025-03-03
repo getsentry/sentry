@@ -8,7 +8,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
@@ -61,7 +61,7 @@ const useApdex = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -82,7 +82,7 @@ const useApdex = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -115,11 +115,15 @@ function ProjectApdexScoreCard(props: Props) {
 
   if (!hasTransactions || !organization.features.includes('performance-view')) {
     return (
-      <WidgetFrame title={cardTitle} description={cardHelp}>
-        <ActionWrapper>
-          <MissingPerformanceButtons organization={organization} />
-        </ActionWrapper>
-      </WidgetFrame>
+      <Widget
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={<Widget.WidgetDescription description={cardHelp} />}
+        Visualization={
+          <ActionWrapper>
+            <MissingPerformanceButtons organization={organization} />
+          </ActionWrapper>
+        }
+      />
     );
   }
 
@@ -134,6 +138,7 @@ function ProjectApdexScoreCard(props: Props) {
         fields: {
           'apdex()': 'number',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}

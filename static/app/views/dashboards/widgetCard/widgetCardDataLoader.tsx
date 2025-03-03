@@ -2,10 +2,12 @@ import {Fragment} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
@@ -16,8 +18,10 @@ import WidgetQueries from './widgetQueries';
 
 type Results = {
   loading: boolean;
+  confidence?: Confidence;
   errorMessage?: string;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -37,6 +41,8 @@ type Props = {
       | 'timeseriesResults'
       | 'timeseriesResultsTypes'
       | 'totalIssuesCount'
+      | 'confidence'
+      | 'sampleCount'
     >
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
@@ -93,6 +99,22 @@ export function WidgetCardDataLoader({
     );
   }
 
+  if (widget.widgetType === WidgetType.SPANS) {
+    return (
+      <SpansWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </SpansWidgetQueries>
+    );
+  }
+
   return (
     <WidgetQueries
       api={api}
@@ -110,6 +132,7 @@ export function WidgetCardDataLoader({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        confidence,
       }) => (
         <Fragment>
           {children({
@@ -118,6 +141,7 @@ export function WidgetCardDataLoader({
             errorMessage,
             loading,
             timeseriesResultsTypes,
+            confidence,
           })}
         </Fragment>
       )}

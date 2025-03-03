@@ -25,7 +25,6 @@ type Props = {
   event: Event;
   platform: PlatformKey;
   className?: string;
-  expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hiddenFrameCount?: number;
   hideIcon?: boolean;
@@ -50,7 +49,6 @@ export function NativeContent({
   hideIcon,
   groupingCurrentLevel,
   includeSystemFrames = true,
-  expandFirstFrame = true,
   maxDepth,
   meta,
 }: Props) {
@@ -74,9 +72,10 @@ export function NativeContent({
   function setInitialFrameMap(): {[frameIndex: number]: boolean} {
     const indexMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         indexMap[frameIdx] = false;
       }
     });
@@ -87,9 +86,10 @@ export function NativeContent({
     let count = 0;
     const countMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         countMap[frameIdx] = count;
         count = 0;
       } else {
@@ -177,10 +177,13 @@ export function NativeContent({
     0
   );
 
+  const firstInAppFrameIndex = frames[newestFirst ? 'findLastIndex' : 'findIndex'](
+    frame => frame.inApp
+  );
   let convertedFrames = frames
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
-      const nextFrame = frames[frameIndex + 1];
+      const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
@@ -198,7 +201,6 @@ export function NativeContent({
           frame,
           prevFrame,
           nextFrame,
-          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: inlined
             ? false
             : lastFrameIndex === frameIndex && frameIndex === 0,
@@ -223,6 +225,7 @@ export function NativeContent({
           isHoverPreviewed,
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
+          isFirstInAppFrame: firstInAppFrameIndex === frameIndex,
           isUsedForGrouping,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
@@ -260,7 +263,7 @@ export function NativeContent({
 
   if (convertedFrames.length > 0 && registers) {
     const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame]!, {
       registers,
     });
   }
@@ -279,6 +282,7 @@ export function NativeContent({
       <ContentPanel
         className={wrapperClassName}
         data-test-id="native-stack-trace-content"
+        hideIcon={hideIcon}
       >
         <Frames data-test-id="stack-trace">
           {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
@@ -292,9 +296,9 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-const ContentPanel = styled(Panel)`
+const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   position: relative;
-  border-top-left-radius: 0;
+  border-top-left-radius: ${p => (p.hideIcon ? p.theme.borderRadius : 0)};
   overflow: hidden;
 `;
 

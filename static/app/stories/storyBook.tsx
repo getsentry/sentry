@@ -1,82 +1,76 @@
-import type {JSXElementConstructor, ReactNode} from 'react';
-import {Children} from 'react';
+import type {ReactNode} from 'react';
+import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
+import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
-type RenderFn = () => ReactNode | ReactNode[];
-type StoryFn = (storyName: string, storyRender: RenderFn) => void;
-type SetupFn = (story: StoryFn) => void;
-
-type Context = {
-  name: string;
-  render: RenderFn;
-};
+type StoryRenderFunction = () => ReactNode | ReactNode[];
+type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
+type SetupFunction = (
+  story: StoryContext,
+  apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
+) => void;
 
 export default function storyBook(
-  bookContext: string | JSXElementConstructor<any>,
-  setup: SetupFn
-) {
-  const contexts: Context[] = [];
+  title: string,
+  setup: SetupFunction
+): StoryRenderFunction {
+  const stories: Array<{
+    name: string;
+    render: StoryRenderFunction;
+  }> = [];
+  const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
 
-  const storyFn: StoryFn = (name: string, render: RenderFn) => {
-    contexts.push({name, render});
+  const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
+    stories.push({name, render});
   };
 
-  setup(storyFn);
+  const apiReferenceFn: (
+    documentation: TypeLoader.ComponentDocWithFilename | undefined
+  ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
+    APIDocumentation.push(documentation);
+  };
+
+  setup(storyFn, apiReferenceFn);
 
   return function RenderStory() {
     return (
-      <Flex column gap={space(4)}>
-        <BookHeading bookContext={bookContext} />
-        {contexts.map(({name, render}, i) => {
-          const children = render();
-          const isOneChild = Children.count(children) === 1;
-          const key = `${i}_${name}`;
-
-          return (
-            <Story key={key}>
-              <StoryTitle id={key}>{name}</StoryTitle>
-              {isOneChild ? children : <SideBySide>{children}</SideBySide>}
-            </Story>
-          );
-        })}
-      </Flex>
+      <Fragment>
+        <StoryTitle>{title}</StoryTitle>
+        {stories.map(({name, render}, i) => (
+          <Story key={i} name={name} render={render} />
+        ))}
+        {APIDocumentation.map((documentation, i) => (
+          <StoryTypes key={i} types={documentation} />
+        ))}
+      </Fragment>
     );
   };
 }
 
-function BookHeading({bookContext}) {
-  if (typeof bookContext === 'string') {
-    return <BookTitle>{bookContext}</BookTitle>;
-  }
-
-  const componentName =
-    bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name;
-
-  if (!componentName) {
-    return null;
-  }
+function Story(props: {name: string; render: StoryRenderFunction}) {
+  const children = props.render();
+  const isOneChild = Children.count(children) === 1;
 
   return (
-    <BookTitle>
-      <code>{`<${componentName}/>`}</code>
-    </BookTitle>
+    <StorySection>
+      <StoryTitle>{props.name}</StoryTitle>
+      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+    </StorySection>
   );
 }
 
-const BookTitle = styled('h3')`
-  margin: 0;
-`;
+export const StorySection = styled('section')`
+  margin-top: ${space(4)};
 
-const Story = styled('section')`
   & > p {
     margin: ${space(3)} 0;
   }
 `;
 
-const StoryTitle = styled('h4')`
+export const StoryTitle = styled('h3')`
   border-bottom: 1px solid ${p => p.theme.border};
+  scroll-margin-top: ${space(2)};
 `;

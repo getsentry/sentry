@@ -30,6 +30,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
@@ -41,7 +42,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getOrganizationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -85,12 +86,16 @@ function Onboarding(props: Props) {
   const projectSlug =
     stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
-  const recentCreatedProject = useRecentCreatedProject({
+  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
+    // Wait until the first event is received as we have an UI element that depends on it
+    pollUntilFirstEvent: true,
   });
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
+
+  const {activateSidebar} = useOnboardingSidebar();
 
   useEffect(() => {
     return () => {
@@ -100,20 +105,22 @@ function Onboarding(props: Props) {
 
   useEffect(() => {
     if (
-      props.location.pathname === `/onboarding/${onboardingSteps[2].id}/` &&
+      props.location.pathname === `/onboarding/${onboardingSteps[2]!.id}/` &&
       props.location.query?.platform &&
       onboardingContext.data.selectedSDK === undefined
     ) {
       const platformKey = Object.keys(platforms).find(
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         key => platforms[key].id === props.location.query.platform
       );
 
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       const platform = platformKey ? platforms[platformKey] : undefined;
 
       // if no platform found, we redirect the user to the platform select page
       if (!platform) {
         props.router.push(
-          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1].id}/`)
+          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1]!.id}/`)
         );
         return;
       }
@@ -145,18 +152,7 @@ function Onboarding(props: Props) {
   ]);
 
   const shallProjectBeDeleted =
-    stepObj?.id === 'setup-docs' &&
-    recentCreatedProject &&
-    // if the project has received a first error, we don't delete it
-    recentCreatedProject.firstError === false &&
-    // if the project has received a first transaction, we don't delete it
-    recentCreatedProject.firstTransaction === false &&
-    // if the project has replays, we don't delete it
-    recentCreatedProject.hasReplays === false &&
-    // if the project has sessions, we don't delete it
-    recentCreatedProject.hasSessions === false &&
-    // if the project is older than one hour, we don't delete it
-    recentCreatedProject.olderThanOneHour === false;
+    stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -194,7 +190,7 @@ function Onboarding(props: Props) {
   const goNextStep = useCallback(
     (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1];
+      const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
       if (nextStep.id === 'setup-docs' && !platform) {
         return;
@@ -217,9 +213,10 @@ function Onboarding(props: Props) {
     const newProjects = Object.keys(onboardingContext.data.projects).reduce(
       (acc, key) => {
         if (
-          onboardingContext.data.projects[key].slug !==
+          onboardingContext.data.projects[key]!.slug !==
           onboardingContext.data.selectedSDK?.key
         ) {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           acc[key] = onboardingContext.data.projects[key];
         }
         return acc;
@@ -271,12 +268,12 @@ function Onboarding(props: Props) {
 
       trackAnalytics('onboarding.back_button_clicked', {
         organization,
-        from: onboardingSteps[stepIndex].id,
+        from: onboardingSteps[stepIndex]!.id,
         to: previousStep.id,
       });
 
       // from selected platform to welcome
-      if (onboardingSteps[stepIndex].id === 'select-platform') {
+      if (onboardingSteps[stepIndex]!.id === 'select-platform') {
         onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
         props.router.replace(
@@ -286,7 +283,11 @@ function Onboarding(props: Props) {
       }
 
       // from setup docs to selected platform
-      if (onboardingSteps[stepIndex].id === 'setup-docs' && shallProjectBeDeleted) {
+      if (
+        onboardingSteps[stepIndex]!.id === 'setup-docs' &&
+        shallProjectBeDeleted &&
+        recentCreatedProject
+      ) {
         trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
           organization,
           platform: recentCreatedProject.slug,
@@ -323,6 +324,10 @@ function Onboarding(props: Props) {
             source,
           });
           onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+          activateSidebar({
+            userClicked: false,
+            source: `targeted_onboarding_select_platform_skip`,
+          });
         }}
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
@@ -338,7 +343,7 @@ function Onboarding(props: Props) {
   if (!stepObj || stepIndex === -1 || isInvalidDocsStep) {
     return (
       <Redirect
-        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}
+        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0]!.id}/`)}
       />
     );
   }
@@ -384,14 +389,16 @@ function Onboarding(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
-              if (i < stepIndex && shallProjectBeDeleted) {
+              if ((i as number) < stepIndex && shallProjectBeDeleted) {
                 openConfirmModal({
                   ...goBackDeletionAlertModalProps,
+                  // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
                   onConfirm: () => handleGoBack(i),
                 });
                 return;
               }
 
+              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
               goToStep(onboardingSteps[i]);
             }}
           />
@@ -408,7 +415,17 @@ function Onboarding(props: Props) {
           <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
         </Confirm>
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
+          <OnboardingStep
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={{animate: {}}}
+            transition={testableTransition({
+              staggerChildren: 0.2,
+            })}
+            key={stepObj.id}
+            data-test-id={`onboarding-step-${stepObj.id}`}
+          >
             {stepObj.Component && (
               <stepObj.Component
                 active
@@ -477,33 +494,6 @@ const OnboardingStep = styled(motion.div)`
   display: flex;
   flex-direction: column;
 `;
-
-OnboardingStep.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
-
-const Sidebar = styled(motion.div)`
-  width: 850px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-Sidebar.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;

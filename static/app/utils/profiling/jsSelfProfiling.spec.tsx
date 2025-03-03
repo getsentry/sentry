@@ -1,7 +1,7 @@
 import {resolveJSSelfProfilingStack} from 'sentry/utils/profiling/jsSelfProfiling';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
-const toStackNames = (stack: ReadonlyArray<JSSelfProfiling.Frame>): string[] => {
+const toStackNames = (stack: readonly JSSelfProfiling.Frame[]): string[] => {
   return stack.map(f => f.name);
 };
 

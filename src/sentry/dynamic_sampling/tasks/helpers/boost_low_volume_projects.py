@@ -28,6 +28,13 @@ def get_boost_low_volume_projects_sample_rate(
 def get_boost_low_volume_projects_sample_rate(
     org_id: int, project_id: int, *, error_sample_rate_fallback: float | None
 ) -> tuple[float | None, bool]:
+    """Get the sample rate and whether it was directly retrieved or is a fallback.
+
+    Returns:
+        A tuple containing:
+            - float: The sample rate value
+            - bool: Whether the sample rate was directly retrieved (True) or is a fallback (False)
+    """
     redis_client = get_redis_client_for_ds()
     cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
 

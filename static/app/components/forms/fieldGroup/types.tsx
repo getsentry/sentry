@@ -1,3 +1,5 @@
+import type {TooltipProps} from 'sentry/components/tooltip';
+
 /**
  * Props that control UI elements that are part of a Form Group
  */
@@ -21,11 +23,11 @@ export interface FieldGroupProps {
   /**
    * Should field be disabled?
    */
-  disabled?: boolean | ((props: FieldGroupProps) => boolean);
+  disabled?: boolean;
   /**
    * Produces a question tooltip on the field, explaining why it is disabled
    */
-  disabledReason?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
+  disabledReason?: React.ReactNode;
   /**
    * Display the  error indicator
    */
@@ -44,7 +46,7 @@ export interface FieldGroupProps {
   /**
    * Help or description of the field
    */
-  help?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
+  help?: React.ReactNode;
   /**
    * Hide the fields control state
    */
@@ -91,9 +93,10 @@ export interface FieldGroupProps {
    */
   required?: boolean;
   /**
-   * Displays the help element in the tooltip
+   * Displays the help element in the tooltip. Tooltip props may be passed to
+   * customize the help tooltip.
    */
-  showHelpInTooltip?: boolean;
+  showHelpInTooltip?: boolean | Omit<TooltipProps, 'title'>;
   /**
    * When stacking forms the bottom border is hidden and padding is adjusted
    * for form elements to be stacked on each other.
@@ -106,7 +109,7 @@ export interface FieldGroupProps {
   /**
    * Should field be visible
    */
-  visible?: boolean | ((props: FieldGroupProps) => boolean);
+  visible?: boolean;
 }
 
 /**

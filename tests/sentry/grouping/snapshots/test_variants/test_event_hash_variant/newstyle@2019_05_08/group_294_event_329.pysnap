@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:22:49.626196+00:00'
+created: '2025-02-26T00:33:26.557888+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -160,26 +161,27 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "76e54b047bb34b5d0ec6d210fcd8d995"
+  contributing component: exception
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_root_queues_init_once"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "start_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_pthread_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_worker_thread2"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_root_queue_drain"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_client_callout"
           frame*
@@ -213,52 +215,52 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "mac"
             function*
               "std::__1::map<T>::~map"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "map"
             function*
               "std::__1::map<T>::~map"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::__destroy<T>"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "mac"
             function*
               "std::__1::pair<T>::~pair"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "utility"
             function*
@@ -287,25 +289,25 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             function*
               "std::terminate"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             function*
               "std::__terminate"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "demangling_terminate_handler"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort_message"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "__abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

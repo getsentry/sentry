@@ -163,8 +163,14 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 "\n".join(api_token.allowed_origins) if api_token.allowed_origins else None
             ),
             user_id=api_token.user_id,
+            scoping_organization_id=api_token.scoping_organization_id,
         )
         handle_replication(ApiToken, destination)
+
+    def delete_replicated_api_token(self, *, apitoken_id: int, region_name: str) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(ApiTokenReplica))):
+            api_token_qs = ApiTokenReplica.objects.filter(apitoken_id=apitoken_id)
+            api_token_qs.delete()
 
     def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
         try:

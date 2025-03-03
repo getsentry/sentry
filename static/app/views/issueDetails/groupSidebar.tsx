@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
-import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
+import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -40,6 +39,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import {ExternalIssueList as StreamlinedExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -92,6 +94,8 @@ export default function GroupSidebar({
 
   const location = useLocation();
 
+  const {areAiFeaturesAllowed} = useAiConfig(group, event, project);
+
   const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
@@ -103,6 +107,7 @@ export default function GroupSidebar({
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      org_streamline_only: organization.streamlineOnly ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
     });
@@ -258,6 +263,13 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      {((areAiFeaturesAllowed && issueTypeConfig.issueSummary.enabled) ||
+        issueTypeConfig.resources) && (
+        <ErrorBoundary mini>
+          <SolutionsSection group={group} project={project} event={event} />
+        </ErrorBoundary>
+      )}
+
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
@@ -282,7 +294,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}

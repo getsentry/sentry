@@ -17,7 +17,6 @@ from sentry.models.project import Project
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 
 from ..base import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
@@ -174,7 +173,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
+            type=PerformanceNPlusOneAPICallsGroupType,
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=offender_span_ids,

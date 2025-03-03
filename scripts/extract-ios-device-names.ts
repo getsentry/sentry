@@ -1,4 +1,4 @@
-/* eslint-env node */
+'use strict';
 import {existsSync, unlinkSync} from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -51,9 +51,9 @@ async function collectDefinitions(files: string[]): Promise<Mapping> {
       continue;
     }
 
-    for (let i = 0; i < content.length; i++) {
-      if (content[i].Identifier) {
-        definitions[content[i].Identifier] = content[i].Generation;
+    for (const c of content) {
+      if (c.Identifier) {
+        definitions[c.Identifier] = c.Generation;
       }
     }
   }
@@ -103,6 +103,4 @@ async function run() {
   await fs.rename(tmpOutputPath, outputPath);
 }
 
-run()
-  // eslint-disable-next-line no-console
-  .catch(error => console.error(`Failed to run extract-ios-device-names`, error));
+run().catch(error => console.error(`Failed to run extract-ios-device-names`, error));

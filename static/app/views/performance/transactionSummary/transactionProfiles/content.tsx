@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -41,6 +40,7 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
@@ -221,7 +221,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
+  const frameSelectOptions: Array<SelectOption<'system' | 'application' | 'all'>> =
     useMemo(() => {
       return [
         {value: 'system', label: t('System Frames')},
@@ -287,16 +287,11 @@ const ALL_DIGESTS = [
 ] satisfies ProfilingFieldType[];
 
 function ProfileDigest({query}: TransactionProfilesContentProps) {
-  const organization = useOrganization();
-
   const profilesSummary = useProfileEvents<ProfilingFieldType>({
     fields: ALL_DIGESTS,
     query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const digestData = profilesSummary.data?.data?.[0];
@@ -354,7 +349,7 @@ const ALLOWED_SORTS = [
 ] as const;
 type SortOption = (typeof ALLOWED_SORTS)[number];
 
-const sortOptions: SelectOption<SortOption>[] = [
+const sortOptions: Array<SelectOption<SortOption>> = [
   {value: '-timestamp', label: t('Newest Events')},
   {value: 'timestamp', label: t('Oldest Events')},
   {value: '-transaction.duration', label: t('Slowest Events')},
@@ -365,6 +360,7 @@ const PROFILES_SORT = 'profilesSort';
 const PROFILES_CURSOR = 'profilesCursor';
 
 function ProfileList({query: userQuery, transaction}: TransactionProfilesContentProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -419,14 +415,11 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     referrer: 'api.profiling.profile-summary-table',
     cursor,
     limit: 10,
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const handleSort = useCallback(
     (value: {value: SortOption}) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -435,15 +428,19 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
-  const handleCursor = useCallback((newCursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [PROFILES_CURSOR]: newCursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    // @ts-expect-error TS(7006): Parameter 'newCursor' implicitly has an 'any' type... Remove this comment to see the full error message
+    (newCursor, pathname, query) => {
+      navigate({
+        pathname,
+        query: {...query, [PROFILES_CURSOR]: newCursor},
+      });
+    },
+    [navigate]
+  );
 
   return (
     <ProfileListContainer>
@@ -480,7 +477,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               location,
               organization,
               transactionName: transaction,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY_PROFILES,
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             });
 
             const profileTarget = generateProfileLink()(
@@ -538,11 +535,10 @@ const TransactionProfilesContentContainer = styled('div')`
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: 'visualization digest';
-  grid-template-columns: 1fr 250px;
+  grid-template-columns: 1fr min-content;
   flex: 1;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -554,7 +550,6 @@ const ProfileVisualizationContainer = styled('div')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  overflow: hidden;
   display: flex;
 `;
 

@@ -1,36 +1,28 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
+import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
-}
+export function ReplaySideBySideImageDiff() {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
-export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   return (
     <Flex column>
       <DiffHeader>
-        <Before flex="1" align="center">
-          {t('Before')}
-        </Before>
-        <After flex="1" align="center">
-          {t('After')}
-        </After>
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </DiffHeader>
 
       <ReplayGrid>
         <ReplayPlayerPluginsContextProvider>
-          <ReplayPlayerEventsContextProvider replay={replay}>
+          <ReplayReaderProvider replay={replay}>
             <Border>
               <ReplayPlayerStateContextProvider>
                 <ReplayPlayerMeasurer measure="width">
@@ -45,43 +37,16 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
                 </ReplayPlayerMeasurer>
               </ReplayPlayerStateContextProvider>
             </Border>
-          </ReplayPlayerEventsContextProvider>
+          </ReplayReaderProvider>
         </ReplayPlayerPluginsContextProvider>
       </ReplayGrid>
     </Flex>
   );
 }
 
-const DiffHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex: 1;
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.2;
-
-  div {
-    height: 28px; /* div with and without buttons inside are the same height */
-  }
-
-  div:last-child {
-    padding-left: ${space(2)};
-  }
-
-  padding: 10px 0;
-`;
-
 const ReplayGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-`;
-
-export const Before = styled(Flex)`
-  color: ${p => p.theme.red300};
-`;
-
-export const After = styled(Flex)`
-  color: ${p => p.theme.green300};
 `;
 
 const Border = styled('span')`

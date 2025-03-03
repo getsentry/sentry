@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import logging
 import re
 
 from django.db import IntegrityError, router
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import BaseEndpointMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
@@ -33,28 +36,29 @@ def load_dist(results):
     # Dists are pretty uncommon.  In case they do appear load them now
     # as trying to join this on the DB does terrible things with large
     # offsets (it would otherwise generate a left outer join).
-    dists = dict.fromkeys(x.dist_id for x in results)
-    if not dists:
+    dist_map = {}
+    dist_ids = dict.fromkeys(x.dist_id for x in results)
+    if not dist_ids:
         return results
 
-    for dist in Distribution.objects.filter(pk__in=dists.keys()):
-        dists[dist.id] = dist
+    for d in Distribution.objects.filter(pk__in=dist_ids.keys()):
+        dist_map[d.id] = d
 
     for result in results:
         if result.dist_id is not None:
-            dist = dists.get(result.dist_id)
-            if dist is not None:
-                result.dist = dist
+            result_dist = dist_map.get(result.dist_id)
+            if result_dist is not None:
+                result.dist = result_dist
 
     return results
 
 
-class ReleaseFilesMixin:
+class ReleaseFilesMixin(BaseEndpointMixin):
     def get_releasefiles(self, request: Request, release, organization_id):
         query = request.GET.getlist("query")
         checksums = request.GET.getlist("checksum")
 
-        data_sources = []
+        data_sources: list[QuerySet[ReleaseFile] | ArtifactSource] = []
 
         # Exclude files which are also present in archive:
         file_list = ReleaseFile.public_objects.filter(release_id=release.id).exclude(
@@ -63,18 +67,12 @@ class ReleaseFilesMixin:
         file_list = file_list.select_related("file").order_by("name")
 
         if query:
-            if not isinstance(query, list):
-                query = [query]
-
             condition = Q(name__icontains=query[0])
             for name in query[1:]:
                 condition |= Q(name__icontains=name)
             file_list = file_list.filter(condition)
 
         if checksums:
-            if not isinstance(checksums, list):
-                checksums = [checksums]
-
             condition = Q(file__checksum__in=checksums)
             file_list = file_list.filter(condition)
 
@@ -271,6 +269,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         Unlike other API requests, files must be uploaded using the
         traditional multipart/form-data content-type.
+
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
 
         The optional 'name' attribute should reflect the absolute path
         that this file will be referenced as. For example, in the case of

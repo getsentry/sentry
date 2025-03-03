@@ -1,10 +1,10 @@
 import type {CSSProperties} from 'react';
-import {useCallback} from 'react';
+import {forwardRef, useCallback} from 'react';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Extraction} from 'sentry/utils/replays/extractHtml';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
@@ -25,23 +25,26 @@ interface Props {
   expandPaths?: string[];
 }
 
-export default function BreadcrumbRow({
-  expandPaths,
-  extraction,
-  frame,
-  index,
-  onClick,
-  onInspectorExpanded,
-  startTimestampMs,
-  style,
-}: Props) {
+const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
+  {
+    expandPaths,
+    extraction,
+    frame,
+    index,
+    onClick,
+    onInspectorExpanded,
+    startTimestampMs,
+    style,
+  },
+  ref
+) {
   const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
 
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState) => onInspectorExpanded?.(index, path, expandedState),
+    (path: any, expandedState: any) => onInspectorExpanded?.(index, path, expandedState),
     [index, onInspectorExpanded]
   );
 
@@ -51,6 +54,7 @@ export default function BreadcrumbRow({
 
   return (
     <BreadcrumbItem
+      ref={ref}
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -68,4 +72,6 @@ export default function BreadcrumbRow({
       onInspectorExpanded={handleObjectInspectorExpanded}
     />
   );
-}
+});
+
+export default BreadcrumbRow;

@@ -35,6 +35,7 @@ class JiraCloudClient(ApiClient):
     USERS_URL = "/rest/api/2/user/assignable/search"
     USER_URL = "/rest/api/2/user"
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
+    STATUS_SEARCH_URL = "/rest/api/2/statuses/search"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
     EMAIL_URL = "/rest/api/3/user/email"
@@ -54,8 +55,8 @@ class JiraCloudClient(ApiClient):
         verify_ssl: bool,
         logging_context: Any | None = None,
     ):
-        self.base_url = integration.metadata.get("base_url")
-        self.shared_secret = integration.metadata.get("shared_secret")
+        self.base_url = integration.metadata["base_url"]
+        self.shared_secret = integration.metadata["shared_secret"]
         super().__init__(
             integration_id=integration.id,
             verify_ssl=verify_ssl,
@@ -63,6 +64,8 @@ class JiraCloudClient(ApiClient):
         )
 
     def finalize_request(self, prepared_request: PreparedRequest):
+        assert prepared_request.url is not None
+        assert prepared_request.method is not None
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
@@ -161,11 +164,6 @@ class JiraCloudClient(ApiClient):
     def get_priorities(self):
         return self.get_cached(self.PRIORITIES_URL)
 
-    def get_users_for_project(self, project):
-        # Jira Server wants a project key, while cloud is indifferent.
-        project_key = self.get_project_key_for_id(project)
-        return self.get_cached(self.USERS_URL, params={"project": project_key})
-
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
@@ -224,3 +222,6 @@ class JiraCloudClient(ApiClient):
         return self.get_cached(
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
+
+    def get_project_statuses(self, project_id: str) -> dict[str, Any]:
+        return dict(self.get_cached(self.STATUS_SEARCH_URL, params={"projectId": project_id}))

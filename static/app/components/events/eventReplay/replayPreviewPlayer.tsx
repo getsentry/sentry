@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
@@ -28,10 +27,11 @@ import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-function ReplayPreviewPlayer({
+export default function ReplayPreviewPlayer({
   replayId,
   fullReplayButtonProps,
   replayRecord,
@@ -88,7 +88,10 @@ function ReplayPreviewPlayer({
         <LinkButton
           size="sm"
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+            pathname: makeReplaysPathname({
+              path: `/${replayId}/`,
+              organization,
+            }),
             query: {
               referrer: getRouteStringFromRoutes(routes),
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
@@ -163,9 +166,7 @@ function ReplayPreviewPlayer({
   );
 }
 
-const PlayerPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} ${space(1.5)};
-  margin: 0;
+const PlayerPanel = styled('div')`
   display: flex;
   gap: ${space(1)};
   flex-direction: column;
@@ -237,5 +238,3 @@ const HeaderWrapper = styled('div')`
   align-items: center;
   margin-bottom: ${space(1)};
 `;
-
-export default ReplayPreviewPlayer;

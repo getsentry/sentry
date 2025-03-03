@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import LetterSpacingGraphic from 'sentry-images/stories/typography/letter-spacing.svg';
@@ -96,11 +97,11 @@ const TYPE_SCALE: TypeScaleItem[] = [
 const InlineLinkExampleStyles = `styled('a')\`
   color: \${p => p.theme.blue300};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.blue100};
+  text-decoration-color: ${(p: any) => p.theme.blue100};
   cursor: pointer;
 
   &:hover {
-    text-decoration-color: ${p => p.theme.blue200};
+    text-decoration-color: ${(p: any) => p.theme.blue200};
   }
 \`;
 `;
@@ -366,7 +367,7 @@ export default function TypographyStories() {
       </p>
       <hr />
       <h4>Lists</h4>
-      <h3>Unordered</h3>
+      <h5>Unordered</h5>
       <p>Use filled and hollow circles as bullets points:</p>
       <ExamplePanel>
         <ul>
@@ -633,12 +634,12 @@ const ExamplePanel = styled(Panel)<{fontSize?: 'large'}>`
   padding: ${space(2)};
   ${p =>
     p.fontSize === 'large'
-      ? `
-        font-weight: ${p.theme.fontWeightBold};
-        font-size: 1.875rem;
-        line-height: 1.2;
-        letter-spacing: -0.016em;
-      `
+      ? css`
+          font-weight: ${p.theme.fontWeightBold};
+          font-size: 1.875rem;
+          line-height: 1.2;
+          letter-spacing: -0.016em;
+        `
       : ''}
 `;
 

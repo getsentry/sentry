@@ -8,6 +8,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import organization_service
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.services.user.service import user_service
 
@@ -33,8 +34,15 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
             if request.user.id is not None
             else ()
         )
+        organization_ids = []
+        for o in organizations:
+            org_context = organization_service.get_organization_by_id(
+                id=o.id, user_id=request.user.id
+            )
+            if org_context and org_context.member and "org:read" in org_context.member.scopes:
+                organization_ids.append(o.id)
         queryset = OrganizationIntegration.objects.filter(
-            organization_id__in=[o.id for o in organizations],
+            organization_id__in=organization_ids,
             status=ObjectStatus.ACTIVE,
             integration__status=ObjectStatus.ACTIVE,
         )

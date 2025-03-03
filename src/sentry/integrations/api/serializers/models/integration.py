@@ -4,6 +4,8 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.models.integration import Integration
@@ -15,6 +17,7 @@ from sentry.integrations.services.integration import (
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +55,11 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 @register(Integration)
 class IntegrationSerializer(Serializer):
     def serialize(
-        self, obj: Integration | RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self,
+        obj: Integration | RpcIntegration,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[str, Any]:
         provider = obj.get_provider()
         return {
@@ -78,7 +85,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         self,
         obj: RpcIntegration | Integration,
         attrs: Mapping[str, Any],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         include_config: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[str, Any]:
@@ -119,7 +126,7 @@ class OrganizationIntegrationSerializer(Serializer):
     def get_attrs(
         self,
         item_list: Sequence[RpcOrganizationIntegration],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[RpcOrganizationIntegration, MutableMapping[str, Any]]:
         integrations = integration_service.get_integrations(
@@ -134,7 +141,7 @@ class OrganizationIntegrationSerializer(Serializer):
         self,
         obj: RpcOrganizationIntegration,
         attrs: Mapping[str, Any],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         include_config: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[str, Any]:
@@ -194,10 +201,25 @@ class OrganizationIntegrationSerializer(Serializer):
         return serialized_integration
 
 
+class IntegrationProviderResponse(TypedDict):
+    key: str
+    slug: str
+    name: str
+    metadata: Any
+    canAdd: bool
+    canDisable: bool
+    features: list[str]
+    setupDialog: dict[str, Any]
+
+
 class IntegrationProviderSerializer(Serializer):
     def serialize(
-        self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+        self,
+        obj: IntegrationProvider,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> IntegrationProviderResponse:
         org_slug = kwargs.pop("organization").slug
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None

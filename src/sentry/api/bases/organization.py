@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -43,7 +43,7 @@ class NoProjects(Exception):
     pass
 
 
-class OrganizationPermission(SentryPermission):
+class OrganizationPermission(DemoSafePermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:write", "org:admin"],
@@ -227,6 +227,14 @@ class OrganizationMetricsPermission(OrganizationPermission):
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
+    }
+
+
+class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
@@ -610,18 +618,16 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         has_valid_api_key = False
         if is_api_key_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
+            if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope(  # type: ignore[union-attr]
+            has_valid_api_key = request.auth.has_scope(
                 "project:releases"
-            ) or request.auth.has_scope(  # type: ignore[union-attr]
-                "project:write"
-            )
+            ) or request.auth.has_scope("project:write")
 
         if is_org_auth_token_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
+            if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore[union-attr]
+            has_valid_api_key = request.auth.has_scope("org:ci")
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
@@ -655,12 +661,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         actor_id = None
         has_perms = None
         key = None
-        if getattr(request, "user", None) and request.user.id:
+        if request.user.is_authenticated:
             actor_id = "user:%s" % request.user.id
-        if getattr(request, "auth", None) and getattr(request.auth, "id", None):
-            actor_id = "apikey:%s" % request.auth.id  # type: ignore[union-attr]
-        elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore[union-attr]
+        elif request.auth is not None:
+            actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             requested_project_ids = project_ids
             if requested_project_ids is None:

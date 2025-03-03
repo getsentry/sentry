@@ -42,7 +42,7 @@ const defaultProps = {
   sort: '',
 };
 
-function WrappedComponent(props) {
+function WrappedComponent(props: any) {
   return (
     <Fragment>
       <GlobalModal />
@@ -466,9 +466,30 @@ describe('IssueListActions', function () {
       );
     });
 
+    it('disables delete if user does not have permission to delete issues', async () => {
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set(['1', '2']));
+      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+        return GroupFixture({id});
+      });
+
+      render(<WrappedComponent />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveTextContent(
+        'You do not have permission to delete issues'
+      );
+    });
+
     describe('bulk action performance issues', function () {
       const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
+        access: ['event:admin'],
       });
 
       it('silently filters out performance issues when bulk deleting', async function () {

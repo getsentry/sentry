@@ -79,9 +79,7 @@ export class EventedProfile extends Profile {
       const samples: CallTreeNode[] = [];
       const weights: number[] = [];
 
-      for (let i = 0; i < built.samples.length; i++) {
-        const sample = built.samples[i];
-
+      for (const sample of built.samples) {
         if (visited.has(sample)) {
           continue;
         }
@@ -177,10 +175,10 @@ export class EventedProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = this.calltree.length - 1;
       while (start >= 0) {
-        if (this.calltree[start].frame === node.frame) {
+        if (this.calltree[start]!.frame === node.frame) {
           // The recursion edge is bidirectional
-          this.calltree[start].recursive = node;
-          node.recursive = this.calltree[start];
+          this.calltree[start]!.recursive = node;
+          node.recursive = this.calltree[start]!;
           break;
         }
         start--;

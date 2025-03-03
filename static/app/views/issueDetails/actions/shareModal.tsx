@@ -1,101 +1,74 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Switch from 'sentry/components/switchButton';
-import {IconRefresh} from 'sentry/icons';
+import ButtonBar from 'sentry/components/buttonBar';
+import Checkbox from 'sentry/components/checkbox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 interface ShareIssueModalProps extends ModalRenderProps {
+  event: Event | null;
   groupId: string;
-  onToggle: () => void;
   organization: Organization;
-  projectSlug: string;
 }
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
-function ShareIssueModal({
+export function getShareUrl(group: Group) {
+  const path = `/share/issue/${group.shareId}/`;
+  const {host, protocol} = window.location;
+  return `${protocol}//${host}${path}`;
+}
+
+export default function ShareIssueModal({
   Header,
   Body,
-  Footer,
   organization,
-  projectSlug,
   groupId,
-  onToggle,
   closeModal,
+  event,
 }: ShareIssueModalProps) {
-  const api = useApi({persistInFlight: true});
-  const [loading, setLoading] = useState(false);
+  const [includeEventId, setIncludeEventId] = useLocalStorageState(
+    'issue-details-share-event-id',
+    true
+  );
+
   const urlRef = useRef<UrlRef>(null);
   const groups = useLegacyStore(GroupStore);
   const group = (groups as Group[]).find(item => item.id === groupId);
-  const isShared = group?.isPublic;
 
-  const handleShare = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement> | null, reshare?: boolean) => {
-      e?.preventDefault();
-      setLoading(true);
-      onToggle();
+  const issueUrl =
+    includeEventId && event
+      ? window.location.origin +
+        normalizeUrl(
+          `/organizations/${organization.slug}/issues/${group?.id}/events/${event.id}/`
+        )
+      : window.location.origin +
+        normalizeUrl(`/organizations/${organization.slug}/issues/${group?.id}/`);
 
-      bulkUpdate(
-        api,
-        {
-          orgId: organization.slug,
-          projectId: projectSlug,
-          itemIds: [groupId],
-          data: {
-            isPublic: reshare ?? !isShared,
-          },
-        },
-        {
-          error: () => {
-            addErrorMessage(t('Error sharing'));
-          },
-          complete: () => {
-            setLoading(false);
-          },
-        }
-      );
-    },
-    [api, setLoading, onToggle, isShared, organization.slug, projectSlug, groupId]
-  );
+  const markdownLink = `[${group?.shortId}](${issueUrl})`;
 
-  /**
-   * Share as soon as modal is opened
-   */
-  useEffect(() => {
-    if (isShared) {
-      return;
-    }
+  const {onClick: handleCopyIssueLink} = useCopyToClipboard({
+    text: issueUrl,
+    successMessage: t('Copied Issue Link to clipboard'),
+    onCopy: closeModal,
+  });
 
-    handleShare(null, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- we only want to run this on open
-  }, []);
-
-  function getShareUrl() {
-    const path = `/share/issue/${group!.shareId}/`;
-    const {host, protocol} = window.location;
-    return `${protocol}//${host}${path}`;
-  }
-
-  const shareUrl = group?.shareId ? getShareUrl() : null;
-
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: shareUrl!,
+  const {onClick: handleCopyMarkdownLink} = useCopyToClipboard({
+    text: markdownLink,
+    successMessage: t('Copied Markdown link to clipboard'),
     onCopy: closeModal,
   });
 
@@ -106,99 +79,73 @@ function ShareIssueModal({
       </Header>
       <Body>
         <ModalContent>
-          <SwitchWrapper>
-            <div>
-              <Title>{t('Create a public link')}</Title>
-              <SubText>{t('Share a link with anyone outside your organization')}</SubText>
-            </div>
-            <Switch
-              aria-label={isShared ? t('Unshare') : t('Share')}
-              isActive={isShared}
-              size="lg"
-              toggle={handleShare}
-            />
-          </SwitchWrapper>
-
-          {(!group || loading) && (
-            <LoadingContainer>
-              <LoadingIndicator mini />
-            </LoadingContainer>
-          )}
-
-          {group && !loading && isShared && shareUrl && (
-            <UrlContainer>
-              <TextContainer>
-                <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
-              </TextContainer>
-
-              <ClipboardButton
-                text={shareUrl}
-                title={t('Copy to clipboard')}
-                borderless
-                size="sm"
-                onClick={handleCopy}
-                aria-label={t('Copy to clipboard')}
+          <UrlContainer>
+            <TextContainer>
+              <StyledAutoSelectText ref={urlRef}>{issueUrl}</StyledAutoSelectText>
+            </TextContainer>
+          </UrlContainer>
+          {event && (
+            <CheckboxContainer>
+              <Checkbox
+                checked={includeEventId}
+                onChange={() => setIncludeEventId(!includeEventId)}
               />
-
-              <ReshareButton
-                title={t('Generate new URL. Invalidates previous URL')}
-                aria-label={t('Generate new URL')}
-                borderless
-                size="sm"
-                icon={<IconRefresh />}
-                onClick={() => handleShare(null, true)}
-              />
-            </UrlContainer>
+              {t('Include Event ID in link')}
+            </CheckboxContainer>
           )}
+          <StyledButtonBar gap={0.5}>
+            <Button
+              size="sm"
+              onClick={handleCopyMarkdownLink}
+              analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
+              analyticsEventName="Issue Details: Copy Issue Markdown Link"
+              analyticsParams={{
+                ...getAnalyticsDataForGroup(group),
+                streamline: true,
+              }}
+            >
+              {t('Copy as Markdown')}
+            </Button>
+            <Button
+              priority="primary"
+              size="sm"
+              onClick={handleCopyIssueLink}
+              analyticsEventKey={
+                includeEventId
+                  ? 'issue_details.copy_event_link_clicked'
+                  : 'issue_details.copy_issue_url_clicked'
+              }
+              analyticsEventName={
+                includeEventId
+                  ? 'Issue Details: Copy Event Link Clicked'
+                  : 'Issue Details: Copy Issue URL'
+              }
+              analyticsParams={
+                includeEventId && event
+                  ? {
+                      ...getAnalyticsDataForGroup(group),
+                      ...getAnalyticsDataForEvent(event),
+                      streamline: true,
+                    }
+                  : {
+                      ...getAnalyticsDataForGroup(group),
+                      streamline: true,
+                    }
+              }
+            >
+              {t('Copy Link')}
+            </Button>
+          </StyledButtonBar>
         </ModalContent>
       </Body>
-      <Footer>
-        {!loading && isShared && shareUrl ? (
-          <Button priority="primary" onClick={handleCopy}>
-            {t('Copy Link')}
-          </Button>
-        ) : (
-          <Button priority="primary" onClick={closeModal}>
-            {t('Close')}
-          </Button>
-        )}
-      </Footer>
     </Fragment>
   );
 }
 
-export default ShareIssueModal;
-
-/**
- * min-height reduces layout shift when switching on and off
- */
 const ModalContent = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   flex-direction: column;
-  min-height: 100px;
-`;
-
-const SwitchWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(2)};
-`;
-
-const Title = styled('div')`
-  padding-right: ${space(4)};
-  white-space: nowrap;
-`;
-
-const SubText = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
 `;
 
 const UrlContainer = styled('div')`
@@ -207,6 +154,7 @@ const UrlContainer = styled('div')`
   align-items: center;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
+  width: 100%;
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)`
@@ -223,20 +171,13 @@ const TextContainer = styled('div')`
   min-width: 0;
 `;
 
-const ClipboardButton = styled(CopyToClipboardButton)`
-  border-radius: 0;
-  border-right: 1px solid ${p => p.theme.border};
-  height: 100%;
-  flex-shrink: 0;
-  margin: 0;
-
-  &:hover {
-    border-right: 1px solid ${p => p.theme.border};
-  }
+const CheckboxContainer = styled('label')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
-const ReshareButton = styled(Button)`
-  border-radius: 0;
-  height: 100%;
-  flex-shrink: 0;
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-end;
 `;

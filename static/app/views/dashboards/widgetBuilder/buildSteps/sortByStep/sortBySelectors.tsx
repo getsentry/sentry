@@ -55,6 +55,7 @@ export function SortBySelectors({
   disableSortDirection,
   widgetQuery,
   displayType,
+  tags,
 }: Props) {
   const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
@@ -87,6 +88,7 @@ export function SortBySelectors({
           menuPlacement="auto"
           disabled={disableSortDirection}
           options={Object.keys(sortDirections).map(value => ({
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: sortDirections[value],
             value,
           }))}
@@ -103,7 +105,7 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE || widgetType === WidgetType.SPANS ? (
+        {displayType === DisplayType.TABLE ? (
           <SelectControl
             name="sortBy"
             aria-label={t('Sort by')}
@@ -135,7 +137,8 @@ export function SortBySelectors({
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,
-              widgetQuery
+              widgetQuery,
+              tags
             )}
             filterPrimaryOptions={
               datasetConfig.filterSeriesSortOptions

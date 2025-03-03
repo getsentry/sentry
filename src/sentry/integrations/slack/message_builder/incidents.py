@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from sentry import features
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -13,7 +11,9 @@ from sentry.integrations.slack.message_builder.types import (
 from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
-def get_started_at(timestamp: datetime) -> str:
+def get_started_at(timestamp: datetime | None) -> str:
+    if timestamp is None:
+        return ""
     return "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
         timestamp.timestamp(), "{date_pretty}", "{time}"
     )
@@ -22,10 +22,9 @@ def get_started_at(timestamp: datetime) -> str:
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
-        action: AlertRuleTriggerAction,
         incident: Incident,
         new_status: IncidentStatus,
-        metric_value: float | None = None,
+        metric_value: float,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
@@ -43,10 +42,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.new_status = new_status
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
-        self.action = action
 
     def build(self) -> SlackBody:
-        alert_rule = self.action.alert_rule_trigger.alert_rule
         data = incident_attachment_info(
             self.incident,
             self.new_status,
@@ -54,20 +51,10 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             self.notification_uuid,
             referrer="metric_alert_slack",
         )
-        incident_text = f"{data['text']}\n{get_started_at(data['ts'])}"
+        incident_text = f"{data['text']}\n{get_started_at(data['date_started'])}"
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]
-
-        if (
-            alert_rule.description
-            and features.has(
-                "organizations:slack-metric-alert-description", self.incident.organization
-            )
-            and not self.new_status == IncidentStatus.CLOSED
-        ):
-            description = self.get_markdown_block(text=f"*Notes*: {alert_rule.description}")
-            blocks.append(description)
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))

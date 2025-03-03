@@ -22,10 +22,7 @@ export function ResponsivenessModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="mobile-ui"
-      features={['insights-addon-modules', 'starfish-mobile-ui-module']}
-    >
+    <ModulePageProviders moduleName="mobile-ui">
       <ResponsivenessModule />
     </ModulePageProviders>
   );

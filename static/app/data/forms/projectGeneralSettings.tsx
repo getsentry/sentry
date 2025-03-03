@@ -1,7 +1,8 @@
-import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
@@ -149,7 +150,8 @@ export const fields: Record<string, Field> = {
     name: 'scrapeJavaScript',
     type: 'boolean',
     // if this is off for the organization, it cannot be enabled for the project
-    disabled: ({organization, name}) => !organization[name],
+    disabled: ({organization, project, name}) =>
+      !organization[name] || !hasEveryAccess(['project:write'], {organization, project}),
     disabledReason: ORG_DISABLED_REASON,
     // `props` are the props given to FormField
     setValue: (val, props) => props.organization?.[props.name] && val,

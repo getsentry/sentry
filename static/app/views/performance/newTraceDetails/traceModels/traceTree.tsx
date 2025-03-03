@@ -24,6 +24,7 @@ import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
   isBrowserRequestSpan,
+  isCollapsedNode,
   isJavascriptSDKTransaction,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
@@ -132,7 +133,6 @@ export declare namespace TraceTree {
   type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
-    id: number;
     slug: string;
   };
   type Root = null;
@@ -146,7 +146,12 @@ export declare namespace TraceTree {
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
+    | CollapsedNode
     | Root;
+
+  interface CollapsedNode {
+    type: 'collapsed';
+  }
 
   // Node types
   interface MissingInstrumentationSpan {
@@ -190,9 +195,10 @@ export declare namespace TraceTree {
     poor: boolean;
     start: number;
     type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+    score?: number;
   };
 
-  type CollectedVital = {key: string; measurement: Measurement};
+  type CollectedVital = {key: string; measurement: Measurement; score?: number};
 }
 
 export enum TraceShape {
@@ -231,7 +237,7 @@ function fetchTrace(
 
 export class TraceTree extends TraceTreeEventDispatcher {
   eventsCount = 0;
-  projects = new Set<TraceTree.Project>();
+  projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -242,7 +248,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   profiled_events = new Set<TraceTreeNode<TraceTree.NodeValue>>();
   indicators: TraceTree.Indicator[] = [];
 
-  list: TraceTreeNode<TraceTree.NodeValue>[] = [];
+  list: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
   events: Map<string, EventTransaction> = new Map();
 
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
@@ -289,20 +295,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
       value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       tree.eventsCount++;
-      tree.projects.add({
-        id: value.project_id,
+      tree.projects.set(value.project_id, {
         slug: value.project_slug,
       });
 
       const node = new TraceTreeNode(parent, value, {
-        spans: options.meta?.transactiontoSpanChildrenCount[value.event_id] ?? 0,
+        spans: options.meta?.transaction_child_count_map[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
 
       if (isTransactionNode(node)) {
         const spanChildrenCount =
-          options.meta?.transactiontoSpanChildrenCount[node.value.event_id];
+          options.meta?.transaction_child_count_map[node.value.event_id];
 
         // We check for >1 events, as the first one is the transaction node itself
         node.canFetch = spanChildrenCount === undefined ? true : spanChildrenCount > 1;
@@ -332,8 +337,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const traceSpaceBounds = [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
 
     TraceTree.ForEachChild(traceNode, c => {
-      traceSpaceBounds[0] = Math.min(traceSpaceBounds[0], c.space[0]);
-      traceSpaceBounds[1] = Math.max(traceSpaceBounds[1], c.space[0] + c.space[1]);
+      traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, c.space[0]);
+      traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, c.space[0] + c.space[1]);
 
       if (isTransactionNode(c)) {
         for (const error of c.value.errors) {
@@ -387,17 +392,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
       const replayStart = options.replay.started_at.getTime();
       const replayEnd = options.replay.finished_at.getTime();
 
-      traceSpaceBounds[0] = Math.min(traceSpaceBounds[0], replayStart);
-      traceSpaceBounds[1] = Math.max(traceSpaceBounds[1], replayEnd);
+      traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, replayStart);
+      traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, replayEnd);
     }
 
     for (const indicator of tree.indicators) {
       // If any indicator starts after the trace ends, set end to the indicator start
-      if (indicator.start > traceSpaceBounds[1]) {
+      if (indicator.start > traceSpaceBounds[1]!) {
         traceSpaceBounds[1] = indicator.start;
       }
       // If an indicator starts before the trace start, set start to the indicator start
-      if (indicator.start < traceSpaceBounds[0]) {
+      if (indicator.start < traceSpaceBounds[0]!) {
         traceSpaceBounds[0] = indicator.start;
       }
     }
@@ -410,10 +415,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       traceSpaceBounds[1] = 0;
     }
 
-    const space = [traceSpaceBounds[0], traceSpaceBounds[1] - traceSpaceBounds[0]];
+    const space = [traceSpaceBounds[0]!, traceSpaceBounds[1]! - traceSpaceBounds[0]!];
 
-    tree.root.space = [space[0], space[1]];
-    traceNode.space = [space[0], space[1]];
+    tree.root.space = [space[0]!, space[1]!];
+    traceNode.space = [space[0]!, space[1]!];
 
     tree.indicators.sort((a, b) => a.start - b.start);
     return tree;
@@ -425,12 +430,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     event: EventTransaction | null
   ): [TraceTreeNode<TraceTree.NodeValue>, [number, number]] {
     // collect transactions
-    const transactions = TraceTree.FindAll(node, n =>
-      isTransactionNode(n)
-    ) as TraceTreeNode<TraceTree.Transaction>[];
+    const transactions = TraceTree.FindAll(node, n => isTransactionNode(n)) as Array<
+      TraceTreeNode<TraceTree.Transaction>
+    >;
 
     // Create span nodes
-    const spanNodes: TraceTreeNode<TraceTree.Span>[] = [];
+    const spanNodes: Array<TraceTreeNode<TraceTree.Span>> = [];
     const spanIdToNode = new Map<string, TraceTreeNode<TraceTree.NodeValue>>();
 
     // Transactions have a span_id that needs to be used as the edge to child child span
@@ -592,7 +597,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     // We need to invalidate the data in the last node of the tree
     // so that the connectors are updated and pointing to the sibling nodes
-    const last = this.root.children[this.root.children.length - 1];
+    const last = this.root.children[this.root.children.length - 1]!;
     TraceTree.invalidate(last, true);
 
     const previousEnd = this.root.space[0] + this.root.space[1];
@@ -633,8 +638,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           queue.push(next.head);
         }
 
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+        for (const child of next.children) {
+          queue.push(child);
         }
       }
     }
@@ -742,7 +747,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        isSpanNode(tail.children[0]) &&
+        isSpanNode(tail.children[0]!) &&
         tail.children[0].value.op === head.value.op
       ) {
         start = Math.min(start, tail.space[0]);
@@ -874,7 +879,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       while (index < node.children.length) {
         // Skip until we find a span candidate
-        if (!isSpanNode(node.children[index])) {
+        if (!isSpanNode(node.children[index]!)) {
           index++;
           matchCount = 0;
           continue;
@@ -924,15 +929,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
           let timestamp = Number.NEGATIVE_INFINITY;
 
           for (let j = start; j < start + matchCount + 1; j++) {
-            const child = node.children[j];
+            const child = node.children[j]!;
 
-            start_timestamp = Math.min(start_timestamp, node.children[j].space[0]);
+            start_timestamp = Math.min(start_timestamp, node.children[j]!.space[0]);
             timestamp = Math.max(
               timestamp,
-              node.children[j].space[0] + node.children[j].space[1]
+              node.children[j]!.space[0] + node.children[j]!.space[1]
             );
 
-            if (node.children[j].hasErrors) {
+            if (node.children[j]!.hasErrors) {
               for (const error of child.errors) {
                 autoGroupedNode.errors.add(error);
               }
@@ -942,8 +947,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
               }
             }
 
-            autoGroupedNode.children.push(node.children[j]);
-            node.children[j].parent = autoGroupedNode;
+            autoGroupedNode.children.push(node.children[j]!);
+            node.children[j]!.parent = autoGroupedNode;
           }
 
           autoGroupedNode.space = [start_timestamp, timestamp - start_timestamp];
@@ -985,7 +990,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static DirectVisibleChildren(
     node: TraceTreeNode<TraceTree.NodeValue>
-  ): TraceTreeNode<TraceTree.NodeValue>[] {
+  ): Array<TraceTreeNode<TraceTree.NodeValue>> {
     if (isParentAutogroupedNode(node)) {
       if (node.expanded) {
         return [node.head];
@@ -998,15 +1003,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static VisibleChildren(
     root: TraceTreeNode<TraceTree.NodeValue>
-  ): TraceTreeNode<TraceTree.NodeValue>[] {
-    const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
+  ): Array<TraceTreeNode<TraceTree.NodeValue>> {
+    const queue: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
+    const visibleChildren: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
     if (root.expanded || isParentAutogroupedNode(root)) {
       const children = TraceTree.DirectVisibleChildren(root);
 
       for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]);
+        queue.push(children[i]!);
       }
     }
 
@@ -1014,12 +1019,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
       const node = queue.pop()!;
 
       visibleChildren.push(node);
-      // iterate in reverseto ensure nodes are processed in order
+
+      // iterate in reverse to ensure nodes are processed in order
       if (node.expanded || isParentAutogroupedNode(node)) {
         const children = TraceTree.DirectVisibleChildren(node);
 
         for (let i = children.length - 1; i >= 0; i--) {
-          queue.push(children[i]);
+          queue.push(children[i]!);
         }
       }
     }
@@ -1035,7 +1041,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     // Otherwise, we need to traverse up the tree until we find a transaction node.
-    const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+    const nodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
     let current: TraceTreeNode<TraceTree.NodeValue> | null = node.parent;
 
     while (current && !isTransactionNode(current)) {
@@ -1053,13 +1059,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
     root: TraceTreeNode<TraceTree.NodeValue>,
     cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
   ): void {
-    const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const queue: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
     if (isParentAutogroupedNode(root)) {
       queue.push(root.head);
     } else {
       for (let i = root.children.length - 1; i >= 0; i--) {
-        queue.push(root.children[i]);
+        queue.push(root.children[i]!);
       }
     }
 
@@ -1072,7 +1078,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         queue.push(next.head);
       } else {
         for (let i = next.children.length - 1; i >= 0; i--) {
-          queue.push(next.children[i]);
+          queue.push(next.children[i]!);
         }
       }
     }
@@ -1128,9 +1134,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
   static FindAll(
     root: TraceTreeNode<TraceTree.NodeValue>,
     predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
-  ): TraceTreeNode<TraceTree.NodeValue>[] {
+  ): Array<TraceTreeNode<TraceTree.NodeValue>> {
     const queue = [root];
-    const results: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const results: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
@@ -1142,8 +1148,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isParentAutogroupedNode(next)) {
         queue.push(next.head);
       } else {
-        for (const child of next.children) {
-          queue.push(child);
+        for (let i = next.children.length - 1; i >= 0; i--) {
+          queue.push(next.children[i]!);
         }
       }
     }
@@ -1166,7 +1172,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (type === 'trace' && id === 'root') {
-      return tree.root.children[0];
+      return tree.root.children[0]!;
     }
 
     return TraceTree.Find(tree.root, node => {
@@ -1188,7 +1194,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           );
         }
         if (isSiblingAutogroupedNode(node)) {
-          const child = node.children[0];
+          const child = node.children[0]!;
           if (isSpanNode(child)) {
             return child.value.span_id === id;
           }
@@ -1215,10 +1221,38 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isTransactionNode(n)) {
         // A transaction itself is a span and we are starting to treat it as such.
         // Hence we check for both event_id and span_id.
-        return n.value.event_id === eventId || n.value.span_id === eventId;
+        if (n.value.event_id === eventId || n.value.span_id === eventId) {
+          return true;
+        }
+
+        // If we dont have an exact match, then look for an event_id in the errors or performance issues
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
       }
       if (isSpanNode(n)) {
-        return n.value.span_id === eventId;
+        if (n.value.span_id === eventId) {
+          return true;
+        }
+
+        // If we dont have an exact match, then look for an event_id in the errors or performance issues
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
       }
       if (isTraceErrorNode(n)) {
         return n.value.event_id === eventId;
@@ -1238,7 +1272,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       if (isSiblingAutogroupedNode(n)) {
-        const child = n.children[0];
+        const child = n.children[0]!;
         if (isSpanNode(child)) {
           return child.value.span_id === eventId;
         }
@@ -1246,18 +1280,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (eventId === 'root' && isTraceNode(n)) {
         return true;
-      }
-
-      // If we dont have an exact match, then look for an event_id in the errors or performance issues
-      for (const e of n.errors) {
-        if (e.event_id === eventId) {
-          return true;
-        }
-      }
-      for (const p of n.performance_issues) {
-        if (p.event_id === eventId) {
-          return true;
-        }
       }
 
       return false;
@@ -1443,7 +1465,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         // API response is not sorted
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
-        spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
+        spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
         const [root, spanTreeSpaceBounds] = TraceTree.FromSpans(node, spans.data, data);
 
@@ -1511,7 +1533,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // This is very wasteful as it performs O(n^2) search each time we expand a node...
         // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
         // a low autogrouped node count.
-        index = node ? tree.list.findIndex(n => n === node) : -1;
+        index = node ? tree.list.indexOf(node) : -1;
         if (index !== -1) {
           break;
         }
@@ -1702,7 +1724,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return connectors;
   }
 
-  toList(): TraceTreeNode<TraceTree.NodeValue>[] {
+  toList(): Array<TraceTreeNode<TraceTree.NodeValue>> {
     this.list = TraceTree.VisibleChildren(this.root);
     return this.list;
   }
@@ -1792,7 +1814,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;
     const clonedTraceIds = [...replayTraces];
 
-    const root = this.root.children[0];
+    const root = this.root.children[0]!;
     root.fetchStatus = 'loading';
     rerender();
 
@@ -1880,7 +1902,7 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
       return `ag-${n.head.value.span_id}`;
     }
     if (isSiblingAutogroupedNode(n)) {
-      const child = n.children[0];
+      const child = n.children[0]!;
       if (isSpanNode(child)) {
         return `ag-${child.value.span_id}`;
       }
@@ -1959,6 +1981,10 @@ function printTraceTreeNode(
 
   if (isTraceErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
+  }
+
+  if (isCollapsedNode(t)) {
+    return padding + 'collapsed';
   }
 
   return 'unknown node';

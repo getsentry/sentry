@@ -21,7 +21,7 @@ defaults:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -60,12 +60,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: 14
+          mode: backend-ci
       - name: Download Codecov CLI
         run: |
           pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.1

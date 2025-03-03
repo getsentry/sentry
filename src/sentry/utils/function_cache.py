@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable
 from datetime import timedelta
@@ -13,6 +14,7 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.utils.hashlib import md5_text
 
+logger = logging.getLogger(__name__)
 Ts = TypeVarTuple("Ts")
 R = TypeVar("R")
 S = TypeVar("S", bound=models.Model)
@@ -46,7 +48,13 @@ def clear_cache_for_cached_func(
     func_args = arg_getter(instance)
     cache_key = cache_key_for_cached_func(cached_func, *func_args)
     if recalculate:
-        cache.set(cache_key, cached_func(*func_args))
+        try:
+            value = cached_func(*func_args)
+        except Exception:
+            logger.exception("Failed to recalculate cached value")
+            cache.delete(cache_key)
+        else:
+            cache.set(cache_key, value)
     else:
         cache.delete(cache_key)
 
@@ -75,14 +83,6 @@ def cache_func_for_models(
         cache_ttl = timedelta(days=7)
 
     def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
-        def inner(*args: *Ts) -> R:
-            cache_key = cache_key_for_cached_func(func_to_cache, *args)
-            cached_val = cache.get(cache_key, None)
-            if cached_val is None:
-                cached_val = func_to_cache(*args)
-                cache.set(cache_key, cached_val, timeout=cache_ttl.total_seconds())
-            return cached_val
-
         for model, arg_getter in cache_invalidators:
             clear_cache_callable = partial(
                 clear_cache_for_cached_func, func_to_cache, arg_getter, recalculate
@@ -90,6 +90,32 @@ def cache_func_for_models(
             post_save.connect(clear_cache_callable, sender=model, weak=False)
             post_delete.connect(clear_cache_callable, sender=model, weak=False)
 
-        return inner
+        return build_inner_cache_func(func_to_cache, cache_ttl)
 
     return cached_query_func
+
+
+def cache_func(
+    cache_ttl: None | timedelta = None,
+) -> Callable[[Callable[[*Ts], R]], Callable[[*Ts], R]]:
+    if cache_ttl is None:
+        cache_ttl = timedelta(days=7)
+
+    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
+        return build_inner_cache_func(func_to_cache, cache_ttl)
+
+    return cached_query_func
+
+
+def build_inner_cache_func(
+    func_to_cache: Callable[[*Ts], R], cache_ttl: timedelta
+) -> Callable[[*Ts], R]:
+    def inner(*args: *Ts) -> R:
+        cache_key = cache_key_for_cached_func(func_to_cache, *args)
+        cached_val = cache.get(cache_key, None)
+        if cached_val is None:
+            cached_val = func_to_cache(*args)
+            cache.set(cache_key, cached_val, timeout=cache_ttl.total_seconds())
+        return cached_val
+
+    return inner

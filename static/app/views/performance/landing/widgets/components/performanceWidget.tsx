@@ -11,7 +11,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import useApi from 'sentry/utils/useApi';
-import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
+import getPerformanceWidgetContainer, {
+  type PerformanceWidgetContainerTypes,
+} from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
 import type {
   GenericPerformanceWidgetProps,
@@ -32,13 +34,13 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
 ) {
   // Use object keyed to chart setting so switching between charts of a similar type doesn't retain data with query components still having inflight requests.
   const [allWidgetData, setWidgetData] = useState<{[chartSetting: string]: T}>({});
-  const widgetData = allWidgetData[props.chartSetting] ?? {};
+  const widgetData = allWidgetData[props.chartSetting] ?? ({} as T);
   const widgetDataRef = useRef(widgetData);
 
   const setWidgetDataForKey = useCallback(
     (dataKey: string, result?: WidgetDataResult) => {
       const _widgetData = widgetDataRef.current;
-      const newWidgetData = {..._widgetData, [dataKey]: result};
+      const newWidgetData = {..._widgetData, [dataKey]: result} as T;
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
@@ -79,7 +81,13 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
           queries={queries}
           api={api}
         />
-        <DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
+        <DataDisplay<T>
+          chartHeight={200}
+          containerType="panel"
+          {...props}
+          {...widgetProps}
+          totalHeight={totalHeight}
+        />
       </MEPDataProvider>
     </Fragment>
   );
@@ -96,7 +104,11 @@ function trackDataComponentClicks(
 }
 
 export function DataDisplay<T extends WidgetDataConstraint>(
-  props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T> & {totalHeight: number}
+  props: GenericPerformanceWidgetProps<T> &
+    WidgetDataProps<T> & {
+      containerType: PerformanceWidgetContainerTypes;
+      totalHeight: number;
+    }
 ) {
   const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
@@ -164,9 +176,12 @@ export function DataDisplay<T extends WidgetDataConstraint>(
 
 function DefaultErrorComponent(props: {height: number}) {
   return (
-    <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
+    <ErrorPanelWithMinHeight
+      data-test-id="widget-state-is-errored"
+      minHeight={`${props.height}px`}
+    >
       <IconWarning color="gray300" size="lg" />
-    </ErrorPanel>
+    </ErrorPanelWithMinHeight>
   );
 }
 
@@ -176,6 +191,10 @@ const defaultGrid = {
   top: space(2),
   bottom: space(1),
 };
+
+const ErrorPanelWithMinHeight = styled(ErrorPanel)<{minHeight: string}>`
+  min-height: ${p => p.minHeight};
+`;
 
 const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
   padding-left: ${p => (p.noPadding ? 0 : space(2))};
@@ -203,8 +222,3 @@ const LoadingWrapper = styled('div')<{height?: number}>`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
 `;
-
-GenericPerformanceWidget.defaultProps = {
-  containerType: 'panel',
-  chartHeight: 200,
-};

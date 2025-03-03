@@ -1,5 +1,4 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -9,8 +8,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -18,6 +15,7 @@ import {
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -50,9 +48,6 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
 
-const getAutoInstallSnippet = () =>
-  `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ios`;
-
 const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
   params,
@@ -79,7 +74,8 @@ func application(_ application: UIApplication,
         options.tracesSampleRate = 1.0`
             : ''
         }${
-          params.isProfilingSelected
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode !== 'continuous'
             ? `
 
         // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -87,6 +83,20 @@ func application(_ application: UIApplication,
         options.profilesSampleRate = 1.0`
             : ''
         }
+    }${
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+
+    // Manually call startProfiler and stopProfiler
+    // to profile the code in between
+    SentrySDK.startProfiler()
+    // this code will be profiled
+    //
+    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+    // your application until the process exits or stopProfiler is called.
+    SentrySDK.stopProfiler()`
+        : ''
     }
 
     return true
@@ -109,7 +119,8 @@ struct SwiftUIApp: App {
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-              params.isProfilingSelected
+              params.isProfilingSelected &&
+              params.profilingOptions?.defaultProfilingMode !== 'continuous'
                 ? `
 
             // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -117,6 +128,20 @@ struct SwiftUIApp: App {
             options.profilesSampleRate = 1.0`
                 : ''
             }
+        }${
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode === 'continuous'
+            ? `
+
+        // Manually call startProfiler and stopProfiler
+        // to profile the code in between
+        SentrySDK.startProfiler()
+        // this code will be profiled
+        //
+        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+        // your application until the process exits or stopProfiler is called.
+        SentrySDK.stopProfiler()`
+            : ''
         }
     }
 }`;
@@ -160,108 +185,18 @@ const getExperimentalFeaturesSnippetObjC = () => `
     options.enableAppLaunchProfiling = YES;
 }];`;
 
-const getConfigureMetricsSnippetSwift = (params: Params) => `
-import Sentry
-
-SentrySDK.start { options in
-    options.dsn = "${params.dsn.public}"
-
-    options.enableMetrics = true
-}`;
-
-const getConfigureMetricsSnippetObjC = (params: Params) => `
-@import Sentry;
-
-[SentrySDK startWithConfigureOptions:^(SentryOptions * options) {
-    options.Dsn = @"${params.dsn.public}";
-
-    options.enableMetrics = YES;
-}];`;
-
-const getVerifyMetricsSnippetSwift = () => `
-import Sentry
-
-// Incrementing a counter by one for each button click.
-SentrySDK.metrics
-    .increment(key: "button_login_click",
-               value: 1.0,
-               tags: ["screen": "login"]
-    )
-
-// Add '150' to a distribution used to track the loading time.
-SentrySDK.metrics
-    .distribution(key: "image_download_duration",
-                value: 150.0,
-                unit: MeasurementUnitDuration.millisecond,
-                tags: ["screen": "login"]
-    )
-
-// Adding '1' to a gauge used to track the loading time.
-SentrySDK.metrics
-    .gauge(key: "page_load",
-          value: 1.0,
-          unit: MeasurementUnitDuration.millisecond,
-          tags: ["screen": "login"]
-    )
-
-// Add 'jane' to a set
-// used for tracking the number of users that viewed a page.
-SentrySDK.metrics
-    .set(key: "user_view",
-          value: "jane",
-          unit: MeasurementUnit(unit: "username"),
-          tags: ["screen": "login"]
-    )`;
-
-const getVerifyMetricsSnippetObjC = () => `
-@import Sentry;
-
-// Incrementing a counter by one for each button click.
-[SentrySDK.metrics
-    incrementWithKey :@"button_login_click"
-    value: 1.0
-    unit: SentryMeasurementUnit.none
-    tags: @{ @"screen" : @"login" }
-];
-
-// Add '150' to a distribution used to track the loading time.
-[SentrySDK.metrics
-    distributionWithKey: @"image_download_duration"
-    value: 150.0
-    unit: SentryMeasurementUnitDuration.millisecond
-    tags: @{ @"screen" : @"login" }
-];
-
-// Adding '1' to a gauge used to track the loading time.
-[SentrySDK.metrics
-    gaugeWithKey: @"page_load"
-    value: 1.0
-    unit: SentryMeasurementUnitDuration.millisecond
-    tags: @{ @"screen" : @"login" }
-];
-
-// Add 'jane' to a set
-// used for tracking the number of users that viewed a page.
-[SentrySDK.metrics
-  setWithKey :@"user_view"
-  value: @"jane"
-  unit: [[SentryMeasurementUnit alloc] initWithUnit:@"username"]
-  tags: @{ @"screen" : @"login" }
-];`;
-
 const getReplaySetupSnippet = (params: Params) => `
 SentrySDK.start(configureOptions: { options in
   options.dsn = "${params.dsn.public}"
   options.debug = true
 
-  // Currently under experimental options:
-  options.experimental.sessionReplay.onErrorSampleRate = 1.0
-  options.experimental.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.onErrorSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 })`;
 
 const getReplayConfigurationSnippet = () => `
-options.experimental.sessionReplay.redactAllText = true
-options.experimental.sessionReplay.redactAllImages = true`;
+options.sessionReplay.redactAllText = true
+options.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -283,8 +218,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: getAutoInstallSnippet(),
+                code: getWizardInstallSnippet({
+                  platform: 'ios',
+                  params,
+                }),
               },
             ],
           },
@@ -329,8 +266,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? [
           {
             type: StepType.CONFIGURE,
-            description: t(
-              'The Sentry wizard will automatically patch your application:'
+            description: (
+              <p>{t('The Sentry wizard will automatically patch your application:')}</p>
             ),
             configurations: [
               {
@@ -369,15 +306,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       )}
                     </ListItem>
                   </List>
-                ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
-                    ),
-                    stepsBelow: <strong />,
-                  }
                 ),
               },
             ],
@@ -524,111 +452,12 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
-const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need Sentry Cocoa SDK version [codeVersion:8.23.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
-        {
-          codeVersion: <code />,
-          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
-        }
-      ),
-      configurations: [
-        {
-          language: 'yml',
-          partialLoading: params.sourcePackageRegistries?.isLoading,
-          code: getAutoInstallSnippet(),
-        },
-      ],
-    },
-  ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'To enable capturing metrics, you need to enable the metrics feature.'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'Swift',
-              value: 'swift',
-              language: 'swift',
-              code: getConfigureMetricsSnippetSwift(params),
-            },
-            {
-              label: 'Objective-C',
-              value: 'c',
-              language: 'c',
-              code: getConfigureMetricsSnippetObjC(params),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:SentrySDK.metrics()] namespace.",
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Swift',
-              value: 'swift',
-              language: 'swift',
-              code: getVerifyMetricsSnippetSwift(),
-            },
-            {
-              label: 'Objective-C',
-              value: 'c',
-              language: 'c',
-              code: getVerifyMetricsSnippetObjC(),
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/apple/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-};
-
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry Cocoa SDK version is at least 8.43.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {
@@ -703,10 +532,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };
@@ -715,7 +542,6 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
   crashReportOnboarding: appleFeedbackOnboarding,
-  customMetricsOnboarding: metricsOnboarding,
   platformOptions,
   replayOnboarding,
 };

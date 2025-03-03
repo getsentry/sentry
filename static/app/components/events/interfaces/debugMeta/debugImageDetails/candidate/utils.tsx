@@ -49,7 +49,7 @@ export function getImageFeatureDescription(type: ImageFeature) {
 
 export function getSourceTooltipDescription(
   source: string,
-  builtinSymbolSources: Array<BuiltinSymbolSource> | null
+  builtinSymbolSources: BuiltinSymbolSource[] | null
 ) {
   if (source === INTERNAL_SOURCE) {
     return t(

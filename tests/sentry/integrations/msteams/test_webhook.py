@@ -10,8 +10,9 @@ from django.urls import reverse
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
@@ -38,7 +39,7 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -366,9 +367,10 @@ class MsTeamsWebhookTest(APITestCase):
         assert len(responses.calls) == 2
 
     @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
-    def test_unlink_user(self, mock_time, mock_decode):
+    def test_unlink_user(self, mock_time, mock_decode, mock_record):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
@@ -395,6 +397,8 @@ class MsTeamsWebhookTest(APITestCase):
             "utf-8"
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -430,15 +434,13 @@ class MsTeamsWebhookTest(APITestCase):
         ].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
-    def test_link_command(self, mock_time, mock_decode):
+    def test_link_command(self, mock_time, mock_decode, mock_record):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
         access_json = {"expires_in": 86399, "access_token": "my_token"}
@@ -471,33 +473,22 @@ class MsTeamsWebhookTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "msteams", "status": 200},
             ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-        ]
+        ] * 4
         assert self.metrics.incr.mock_calls == calls
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
     @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
-    def test_link_command_already_linked(self, mock_time, mock_decode):
+    def test_link_command_already_linked(self, mock_time, mock_decode, mock_record):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -532,6 +523,8 @@ class MsTeamsWebhookTest(APITestCase):
             in responses.calls[3].request.body.decode("utf-8")
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")

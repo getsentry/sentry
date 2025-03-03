@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http.response import HttpResponseBase
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -30,21 +30,22 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
@@ -167,7 +168,9 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration):
+class GitHubIntegration(
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -227,23 +230,24 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[Mapping[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         """
-        This fetches all repositories accessible to a Github App
-        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+        args:
+        * query - a query to filter the repositories by
 
-        per_page: The number of results per page (max 100; default 30).
+        This fetches all repositories accessible to the Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
+            all_repos = self.get_client().get_repos()
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in self.get_client().get_repositories(fetch_max_pages)
+                for i in all_repos
+                if not i.get("archived")
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -278,29 +282,6 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         except ApiError:
             return False
         return True
-
-    # for derive code mappings - TODO(cathy): define in an ABC
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
-        trees: dict[str, RepoTree] = {}
-        domain_name = self.model.metadata["domain_name"]
-        extra = {"metadata": self.model.metadata}
-        if domain_name.find("github.com/") == -1:
-            logger.warning("We currently only support github.com domains.", extra=extra)
-            return trees
-
-        gh_org = domain_name.split("github.com/")[1]
-        extra.update({"gh_org": gh_org})
-        org_exists = organization_service.check_organization_by_id(
-            id=self.org_integration.organization_id, only_visible=False
-        )
-        if not org_exists:
-            logger.error(
-                "No organization information was found. Continuing execution.", extra=extra
-            )
-        else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
-
-        return trees
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         resp = self.get_client().search_issues(query)
@@ -359,7 +340,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -422,9 +403,9 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -444,13 +425,13 @@ class OAuthLoginView(PipelineView):
                 redirect_uri = absolute_uri(
                     reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
                 )
-                return self.redirect(
+                return HttpResponseRedirect(
                     f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
                 )
 
             # At this point, we are past the GitHub "authorize" step
             if request.GET.get("state") != pipeline.signature:
-                lifecycle.record_failure({"failure_reason": GitHubInstallationError.INVALID_STATE})
+                lifecycle.record_failure(GitHubInstallationError.INVALID_STATE)
                 return error(
                     request,
                     self.active_organization,
@@ -474,7 +455,7 @@ class OAuthLoginView(PipelineView):
                 payload = {}
 
             if "access_token" not in payload:
-                lifecycle.record_failure({"failure_reason": GitHubInstallationError.MISSING_TOKEN})
+                lifecycle.record_failure(GitHubInstallationError.MISSING_TOKEN)
                 return error(
                     request,
                     self.active_organization,
@@ -483,7 +464,7 @@ class OAuthLoginView(PipelineView):
 
             authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
-                lifecycle.record_failure({"failure_reason": GitHubInstallationError.MISSING_LOGIN})
+                lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
                     request,
                     self.active_organization,
@@ -499,16 +480,16 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
             if installation_id is None:
-                return self.redirect(self.get_app_url())
+                return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -525,9 +506,7 @@ class GitHubInstallation(PipelineView):
                 ).exists()
 
             if integration_pending_deletion_exists:
-                lifecycle.record_failure(
-                    {"failure_reason": GitHubInstallationError.PENDING_DELETION}
-                )
+                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
                 return error(
                     request,
                     self.active_organization,
@@ -545,9 +524,7 @@ class GitHubInstallation(PipelineView):
                 return pipeline.next_step()
 
             if installations_exist:
-                lifecycle.record_failure(
-                    {"failure_reason": GitHubInstallationError.INSTALLATION_EXISTS}
-                )
+                lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
                 return error(
                     request,
                     self.active_organization,
@@ -561,9 +538,7 @@ class GitHubInstallation(PipelineView):
                     external_id=installation_id, status=ObjectStatus.ACTIVE
                 )
             except Integration.DoesNotExist:
-                lifecycle.record_failure(
-                    {"failure_reason": GitHubInstallationError.MISSING_INTEGRATION}
-                )
+                lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
                 return error(request, self.active_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.
@@ -571,7 +546,7 @@ class GitHubInstallation(PipelineView):
                 pipeline.fetch_state("github_authenticated_user")
                 != integration.metadata["sender"]["login"]
             ):
-                lifecycle.record_failure({"failure_reason": GitHubInstallationError.USER_MISMATCH})
+                lifecycle.record_failure(GitHubInstallationError.USER_MISMATCH)
                 return error(
                     request,
                     self.active_organization,

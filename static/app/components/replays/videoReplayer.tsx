@@ -3,8 +3,6 @@ import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
-type RootElem = HTMLDivElement | null;
-
 // The number of segments to load on either side of the requested segment (around 15 seconds)
 // Also the number of segments we load initially
 const PRELOAD_BUFFER = 3;
@@ -19,7 +17,7 @@ interface VideoReplayerOptions {
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   start: number;
   videoApiPrefix: string;
   clipWindow?: ClipWindow;
@@ -45,11 +43,10 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
-  private _currentVideo: HTMLVideoElement | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
-  private _trackList: [ts: number, index: number][];
-  private _isPlaying: boolean = false;
+  private _trackList: Array<[ts: number, index: number]>;
+  private _isPlaying = false;
   private _listeners: RemoveListener[] = [];
   /**
    * Maps attachment index to the video element.
@@ -92,9 +89,8 @@ export class VideoReplayer {
     this.config = config;
 
     this.wrapper = document.createElement('div');
-    if (root) {
-      root.appendChild(this.wrapper);
-    }
+    this.wrapper.className = 'video-replayer-wrapper';
+    root.appendChild(this.wrapper);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
 
@@ -141,10 +137,10 @@ export class VideoReplayer {
   private addListeners(el: HTMLVideoElement, index: number): void {
     const handleEnded = () => this.handleSegmentEnd(index);
 
-    const handleLoadedData = event => {
+    const handleLoadedData = (event: any) => {
       // Used to correctly set the dimensions of the first frame
       if (index === 0) {
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
 
       // Only call this for current segment as we preload multiple
@@ -160,24 +156,27 @@ export class VideoReplayer {
       }
     };
 
-    const handlePlay = event => {
+    const handlePlay = (event: any) => {
       if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
     };
 
-    const handleLoadedMetaData = event => {
+    const handleLoadedMetaData = (event: any) => {
       // Only call this for current segment?
       if (index === this._currentIndex) {
         // Theoretically we could have different orientations and they should
         // only happen in different segments
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
     };
 
-    const handleSeeking = event => {
+    const handleSeeking = (event: any) => {
       // Centers the video when seeking (and video is not playing)
-      this._callbacks.onLoaded(event);
+      // Only call this for the segment that's being seeked to
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded!(event);
+      }
     };
 
     el.addEventListener('ended', handleEnded);
@@ -199,6 +198,8 @@ export class VideoReplayer {
     const el = document.createElement('video');
     const sourceEl = document.createElement('source');
     el.style.display = 'none';
+    el.style.zIndex = index.toString();
+    el.style.position = 'absolute';
     sourceEl.setAttribute('type', 'video/mp4');
     sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
@@ -287,12 +288,12 @@ export class VideoReplayer {
       this.resumeTimer();
     }
 
-    this._callbacks.onBuffer(isBuffering);
+    this._callbacks.onBuffer!(isBuffering);
   }
 
   private stopReplay() {
     this._timer.stop();
-    this._callbacks.onFinished();
+    this._callbacks.onFinished!();
     this._isPlaying = false;
   }
 
@@ -400,8 +401,7 @@ export class VideoReplayer {
 
   /**
    * Shows the video -- it is assumed that it is preloaded. Also
-   * hides the previous video, there should not be a reason we show
-   * a video and not hide the previous video, otherwise there will
+   * hides all other videos, otherwise there will
    * be multiple video elements stacked on top of each other.
    */
   protected showVideo(nextVideo: HTMLVideoElement | undefined): void {
@@ -409,20 +409,33 @@ export class VideoReplayer {
       return;
     }
 
-    // This is the soon-to-be previous video that needs to be hidden
-    if (this._currentVideo) {
-      this._currentVideo.style.display = 'none';
-      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
-      if (this._currentVideo.ended) {
-        this.setVideoTime(this._currentVideo, 0);
+    for (const [index, videoElem] of this._videos) {
+      // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
+      // Edge case: Don't show previous video if size is different (eg. orientation changes)
+      if (
+        index === (this._currentIndex || 0) - 1 &&
+        videoElem.videoHeight === nextVideo.videoHeight &&
+        videoElem.videoWidth === nextVideo.videoWidth
+      ) {
+        if (videoElem.duration) {
+          // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
+          // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends
+          this.setVideoTime(videoElem, videoElem.duration * 1000 - 1);
+        }
+        videoElem.style.display = 'block';
+      }
+      // hides all videos because videos have a different z-index depending on their index
+      else {
+        videoElem.style.display = 'none';
+        // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
+        // we don't do this for videos that have a duration of 0 because this will incorrectly cause handleSegmentEnd to fire.
+        if (videoElem.ended && videoElem.duration > 0) {
+          this.setVideoTime(videoElem, 0);
+        }
       }
     }
 
     nextVideo.style.display = 'block';
-
-    // Update current video so that we can hide it when showing the
-    // next video
-    this._currentVideo = nextVideo;
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
@@ -534,9 +547,7 @@ export class VideoReplayer {
    * segment's timestamp and duration. Displays the closest prior segment if
    * offset exists in a gap where there is no recorded segment.
    */
-  protected async loadSegmentAtTime(
-    videoOffsetMs: number = 0
-  ): Promise<number | undefined> {
+  protected async loadSegmentAtTime(videoOffsetMs = 0): Promise<number | undefined> {
     if (!this._trackList.length) {
       return undefined;
     }
@@ -678,6 +689,7 @@ export class VideoReplayer {
     Object.entries(config)
       .filter(([, value]) => value !== undefined)
       .forEach(([key, value]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         this.config[key] = value;
       });
 

@@ -10,11 +10,10 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +28,6 @@ import {
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -314,7 +312,7 @@ export class Results extends Component<Props, State> {
 
   openConfirm = () => {};
 
-  setOpenFunction = ({open}) => {
+  setOpenFunction = ({open}: any) => {
     this.openConfirm = open;
     return null;
   };
@@ -369,6 +367,9 @@ export class Results extends Component<Props, State> {
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
     }
+    if (nextEventView.environment.length === 0 && selection.environments) {
+      nextEventView.environment = selection.environments;
+    }
     if (selection.datetime) {
       const {period, utc, start, end} = selection.datetime;
       nextEventView.statsPeriod = period ?? undefined;
@@ -386,7 +387,7 @@ export class Results extends Component<Props, State> {
     browserHistory.replace(
       normalizeUrl(
         nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage,
           hasDatasetSelector(organization) ? savedQueryDataset : undefined
         )
@@ -560,7 +561,7 @@ export class Results extends Component<Props, State> {
     const {eventView, savedQueryDataset} = this.state;
 
     const url = eventView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       isHomepage,
       hasDatasetSelector(organization) ? savedQueryDataset : undefined
     );
@@ -576,9 +577,11 @@ export class Results extends Component<Props, State> {
       return null;
     }
     return (
-      <Alert type="error" showIcon>
-        {error}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -593,25 +596,29 @@ export class Results extends Component<Props, State> {
       this.state.showMetricsAlert
     ) {
       return (
-        <Alert type="info" showIcon>
-          {t(
-            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="info" showIcon>
+            {t(
+              "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
     if (this.state.showUnparameterizedBanner) {
       return (
-        <Alert type="info" showIcon>
-          {tct(
-            'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#beforenavigate" />
-              ),
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="info" showIcon>
+            {tct(
+              'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#beforenavigate" />
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
     return null;
@@ -621,23 +628,25 @@ export class Results extends Component<Props, State> {
     const {organization} = this.props;
     if (hasDatasetSelector(organization) && this.state.showQueryIncompatibleWithDataset) {
       return (
-        <Alert
-          type="warning"
-          showIcon
-          trailingItems={
-            <StyledCloseButton
-              icon={<IconClose size="sm" />}
-              aria-label={t('Close')}
-              onClick={() => {
-                this.setState({showQueryIncompatibleWithDataset: false});
-              }}
-              size="zero"
-              borderless
-            />
-          }
-        >
-          {t('Your query was updated to make it compatible with this dataset.')}
-        </Alert>
+        <Alert.Container>
+          <Alert
+            type="warning"
+            showIcon
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showQueryIncompatibleWithDataset: false});
+                }}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            {t('Your query was updated to make it compatible with this dataset.')}
+          </Alert>
+        </Alert.Container>
       );
     }
     return null;
@@ -655,26 +664,28 @@ export class Results extends Component<Props, State> {
         return null;
       }
       return (
-        <Alert
-          type="warning"
-          showIcon
-          trailingItems={
-            <StyledCloseButton
-              icon={<IconClose size="sm" />}
-              aria-label={t('Close')}
-              onClick={() => {
-                this.setState({showForcedDatasetAlert: false});
-              }}
-              size="zero"
-              borderless
-            />
-          }
-        >
-          {tct(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-            {splitDecision: DATASET_LABEL_MAP[splitDecision]}
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert
+            type="warning"
+            showIcon
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showForcedDatasetAlert: false});
+                }}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            {tct(
+              "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
+              {splitDecision: DATASET_LABEL_MAP[splitDecision]}
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
     return null;
@@ -684,9 +695,11 @@ export class Results extends Component<Props, State> {
     const {tips} = this.state;
     if (tips) {
       return tips.map((tip, index) => (
-        <Alert type="info" showIcon key={`tip-${index}`}>
-          <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
-        </Alert>
+        <Alert.Container key={`tip-${index}`}>
+          <Alert type="info" showIcon key={`tip-${index}`}>
+            <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+          </Alert>
+        </Alert.Container>
       ));
     }
     return null;
@@ -720,22 +733,6 @@ export class Results extends Component<Props, State> {
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
 
-    if (organization.features.includes('search-query-builder-discover')) {
-      return (
-        <Wrapper>
-          <ResultsSearchQueryBuilder
-            projectIds={eventView.project}
-            query={eventView.query}
-            fields={fields}
-            onSearch={this.handleSearch}
-            customMeasurements={customMeasurements}
-            dataset={eventView.dataset}
-            includeTransactions
-          />
-        </Wrapper>
-      );
-    }
-
     let savedSearchType: SavedSearchType | undefined = SavedSearchType.EVENT;
     if (hasDatasetSelector(organization)) {
       savedSearchType =
@@ -745,19 +742,18 @@ export class Results extends Component<Props, State> {
     }
 
     return (
-      <StyledSearchBar
-        searchSource="eventsv2"
-        organization={organization}
-        projectIds={eventView.project}
-        query={eventView.query}
-        fields={fields}
-        onSearch={this.handleSearch}
-        maxQueryLength={MAX_QUERY_LENGTH}
-        customMeasurements={customMeasurements}
-        dataset={eventView.dataset}
-        includeTransactions
-        savedSearchType={savedSearchType}
-      />
+      <Wrapper>
+        <ResultsSearchQueryBuilder
+          projectIds={eventView.project}
+          query={eventView.query}
+          fields={fields}
+          onSearch={this.handleSearch}
+          customMeasurements={customMeasurements}
+          dataset={eventView.dataset}
+          includeTransactions
+          recentSearches={savedSearchType}
+        />
+      </Wrapper>
     );
   }
 
@@ -910,10 +906,6 @@ const Wrapper = styled('div')`
     display: grid;
     grid-auto-flow: row;
   }
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
 `;
 
 const Top = styled(Layout.Main)`

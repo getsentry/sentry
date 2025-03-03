@@ -27,6 +27,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+
+jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
@@ -61,7 +64,7 @@ describe('ResourcesLandingPage', function () {
     render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.domainSelector.mock.calls).toMatchInlineSnapshot(`
+    expect(requestMocks.domainSelector!.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "/organizations/org-slug/events/",
@@ -94,7 +97,7 @@ describe('ResourcesLandingPage', function () {
     render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.mainTable.mock.calls).toMatchInlineSnapshot(`
+    expect(requestMocks.mainTable!.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "/organizations/org-slug/events/",
@@ -170,6 +173,13 @@ const setupMocks = () => {
     onSearch: jest.fn(),
     reloadProjects: jest.fn(),
     placeholders: [],
+  });
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 };
 
@@ -270,6 +280,25 @@ const setupMockRequests = (organization: Organization) => {
           [1699907700, [{count: 1111.2}]],
           [1699908000, [{count: 2222.8}]],
         ],
+      },
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/`,
+    method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.insights.user-geo-subregion-selector',
+      }),
+    ],
+    body: {
+      data: [
+        {'user.geo.subregion': '21', 'count()': 123},
+        {'user.geo.subregion': '155', 'count()': 123},
+      ],
+      meta: {
+        fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
       },
     },
   });

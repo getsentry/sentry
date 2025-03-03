@@ -200,7 +200,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         return []
 
-    def store_issue_last_defaults(self, project: Project, user: RpcUser, data):
+    def store_issue_last_defaults(self, project: Project, user: RpcUser | User, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
@@ -405,13 +405,8 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
 
     @abstractmethod
     def sync_status_outbound(
-        self,
-        external_issue,
-        is_resolved,
-        project_id,
-        assignment_source: AssignmentSource | None = None,
-        **kwargs,
-    ):
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """

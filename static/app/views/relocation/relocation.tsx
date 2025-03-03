@@ -34,7 +34,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -225,7 +225,7 @@ function RelocationOnboarding(props: Props) {
   const goNextStep = useCallback(
     (step: StepDescriptor) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1];
+      const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
       if (step.cornerVariant !== nextStep.cornerVariant) {
         cornerVariantControl.start('none');
@@ -237,7 +237,7 @@ function RelocationOnboarding(props: Props) {
   );
 
   if (!stepObj || stepIndex === -1) {
-    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0].id}/`)} />;
+    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0]!.id}/`)} />;
   }
 
   const headerView =
@@ -249,6 +249,7 @@ function RelocationOnboarding(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
+              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
               goToStep(onboardingSteps[i]);
             }}
           />
@@ -259,7 +260,7 @@ function RelocationOnboarding(props: Props) {
   const backButtonView =
     stepId === 'in-progress' ? null : (
       <Back
-        onClick={() => goToStep(onboardingSteps[stepIndex - 1])}
+        onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
         animate={stepIndex > 0 ? 'visible' : 'hidden'}
       />
     );
@@ -379,21 +380,22 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)`
+const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) => (
+  <motion.div
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    variants={{animate: {}}}
+    transition={testableTransition({
+      staggerChildren: 0.2,
+    })}
+    {...props}
+  />
+))`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
 `;
-
-OnboardingStep.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;

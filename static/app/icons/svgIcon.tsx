@@ -27,10 +27,20 @@ export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   } = useIconDefaults(props);
 
   const theme = useTheme();
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const color = theme[providedColor] ?? providedColor;
   const size = legacySize ?? theme.iconSizes[providedSize];
 
   return (
-    <svg {...rest} viewBox={viewBox} fill={color} height={size} width={size} ref={ref} />
+    <svg
+      // The icons only ever contain a single graphic, so we can use the img role
+      role="img"
+      {...rest}
+      viewBox={viewBox}
+      fill={color}
+      height={size}
+      width={size}
+      ref={ref}
+    />
   );
 });

@@ -1,3 +1,4 @@
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -28,8 +29,12 @@ describe('DiffModal', function () {
       url: '/projects/123/project-slug/events/789/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/`,
+      body: {features: []},
+    });
 
-    const styledWrapper = styled(c => c.children);
+    const styledWrapper = styled((c: PropsWithChildren) => c.children);
 
     render(
       <DiffModal

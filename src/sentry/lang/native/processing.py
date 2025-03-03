@@ -9,6 +9,7 @@ import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
+from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -23,6 +24,7 @@ from sentry.lang.native.utils import (
     signal_from_data,
 )
 from sentry.models.eventerror import EventError
+from sentry.options.rollout import in_random_rollout
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
@@ -99,6 +101,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
 def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
+    elif status == "unsupported":
+        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
@@ -130,6 +134,8 @@ def _handle_image_status(status, image, os, data):
         error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
     elif status == "fetching_failed":
         error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
+    elif status == "timeout":
+        error = SymbolicationFailed(type=EventError.FETCH_TIMEOUT)
     elif status == "other":
         error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
     else:
@@ -283,7 +289,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(minidump.data)
+    response = symbolicator.process_minidump(data.get("platform"), minidump.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -306,7 +312,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_applecrashreport(report.data)
+    response = symbolicator.process_applecrashreport(data.get("platform"), report.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -421,7 +427,9 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     signal = signal_from_data(data)
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
+    response = symbolicator.process_payload(
+        platform=data.get("platform"), stacktraces=stacktraces, modules=modules, signal=signal
+    )
 
     if not _handle_response_status(data, response):
         return data
@@ -485,6 +493,8 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         data, "contexts", "os", "raw_description"
     )
     os_version = get_path(data, "contexts", "os", "version")
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/
+    is_simulator = get_path(data, "contexts", "device", "simulator", default=False)
 
     if os_version:
         os_version = os_version.split(".", 1)[0]
@@ -493,35 +503,68 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=neither,
-            tags={"availability": "neither", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "neither",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
-    # TODO: This seems to just be wrong
-    # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
-    # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
-    # that matched both.
     if both := apple_symbol_stats.get("both"):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=both,
-            tags={"availability": "both", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "both",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
     if old := apple_symbol_stats.get("old"):
         metrics.incr(
             "apple_symbol_availability_v2",
-            amount=old,
-            tags={"availability": "old", "os_name": os_name, "os_version": os_version},
+            amount=len(old),
+            tags={
+                "availability": "old",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
+
+        # This is done to temporally collect information about the events for which symx is not working correctly.
+        if in_random_rollout("symbolicate.symx-logging-rate") and os_name and os_version:
+            os_description = os_name + str(os_version)
+            if os_description in options.get("symbolicate.symx-os-description-list"):
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("os", os_description)
+                    scope.set_context(
+                        "Event Info",
+                        {
+                            "project": data.get("project"),
+                            "id": data.get("event_id"),
+                            "modules": old,
+                            "os": os_description,
+                        },
+                    )
+                    sentry_sdk.capture_message("Failed to find symbols using symx")
 
     if symx := apple_symbol_stats.get("symx"):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=symx,
-            tags={"availability": "symx", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "symx",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -68,9 +68,11 @@ function ApiApplicationsDetails() {
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
-            <Alert type="info" showIcon>
-              {t('This will be the only time your client secret is visible!')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon>
+                {t('This will be the only time your client secret is visible!')}
+              </Alert>
+            </Alert.Container>
             <TextCopyInput aria-label={t('new-client-secret')}>
               {data.clientSecret}
             </TextCopyInput>
@@ -113,7 +115,7 @@ function ApiApplicationsDetails() {
 
           <PanelBody>
             <FormField name="clientID" label="Client ID">
-              {({value}) => (
+              {({value}: any) => (
                 <TextCopyInput>
                   {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                 </TextCopyInput>
@@ -126,7 +128,7 @@ function ApiApplicationsDetails() {
               help={t(`Your secret is only available briefly after application creation. Make
                   sure to save this value!`)}
             >
-              {({value}) =>
+              {({value}: any) =>
                 value ? (
                   <TextCopyInput>
                     {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}

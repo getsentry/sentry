@@ -14,6 +14,7 @@ from .views import MapAttributes, SelectIdP, saml2_configure_view
 
 class GenericSAML2Provider(SAML2Provider):
     name = "SAML2"
+    key = "saml2"
 
     def get_configure_view(
         self,

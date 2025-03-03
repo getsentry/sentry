@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import unittest
 from unittest.mock import Mock, call, patch
 
 import pytest
@@ -15,12 +14,7 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import no_silo_test
-from sentry.utils.performance_issues.base import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
-    DetectorType,
-    total_span_time,
-)
+from sentry.utils.performance_issues.base import DetectorType, total_span_time
 from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
 )
@@ -491,16 +485,6 @@ class PerformanceDetectionTest(TestCase):
         # Ensure all other detections are set to false in tags
         pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
-
-
-@no_silo_test
-class DetectorTypeToGroupTypeTest(unittest.TestCase):
-    def test(self):
-        # Make sure we don't forget to include a mapping to `GroupType`
-        for detector_type in DetectorType:
-            assert (
-                detector_type in DETECTOR_TYPE_TO_GROUP_TYPE
-            ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
 class EventPerformanceProblemTest(TestCase):

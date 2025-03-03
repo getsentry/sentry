@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import {Alert} from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {Alert} from 'sentry/components/core/alert';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 
 import {OrganizationContext} from '../organizationContext';
 
-type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
+type Props = RouteComponentProps<{sentryAppSlug: string}>;
 
 // Page Layout
 export default function SentryAppExternalInstallation(props: Props) {
@@ -46,7 +46,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
   // The selected organization's slug. Should be removed as we have the selected organization as well.
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string>();
 
-  const [organizations, setOrganizations] = useState<Array<OrganizationSummary>>([]);
+  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [orgsLoading, setOrgsLoading] = useState<boolean>(true);
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
@@ -125,7 +125,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     }
     if (organizations.length === 1) {
       // auto select the org if there is only one
-      onSelectOrg(organizations[0].slug);
+      onSelectOrg(organizations[0]!.slug);
     }
 
     // now check the subomdain and use that org slug if it exists
@@ -245,28 +245,32 @@ function CheckAndRenderError({
 }: CheckAndRenderProps) {
   if (selectedOrgSlug && organization && !hasAccess(organization)) {
     return (
-      <Alert type="error" showIcon>
-        <p>
-          {tct(
-            `You do not have permission to install integrations in
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          <p>
+            {tct(
+              `You do not have permission to install integrations in
         [organization]. Ask an organization owner or manager to
         visit this page to finish installing this integration.`,
-            {organization: <strong>{organization.slug}</strong>}
-          )}
-        </p>
-        <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
-      </Alert>
+              {organization: <strong>{organization.slug}</strong>}
+            )}
+          </p>
+          <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+        </Alert>
+      </Alert.Container>
     );
   }
 
   if (isInstalled && organization && sentryApp) {
     return (
-      <Alert type="error" showIcon>
-        {tct('Integration [sentryAppName] already installed for [organization]', {
-          organization: <strong>{organization.name}</strong>,
-          sentryAppName: <strong>{sentryApp.name}</strong>,
-        })}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {tct('Integration [sentryAppName] already installed for [organization]', {
+            organization: <strong>{organization.name}</strong>,
+            sentryAppName: <strong>{sentryApp.name}</strong>,
+          })}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -274,15 +278,17 @@ function CheckAndRenderError({
     // use the slug of the owner if we have it, otherwise use 'another organization'
     const ownerSlug = sentryApp?.owner?.slug ?? 'another organization';
     return (
-      <Alert type="error" showIcon>
-        {tct(
-          'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
-          {
-            sentryAppName: <strong>{sentryApp.name}</strong>,
-            otherOrg: <strong>{ownerSlug}</strong>,
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {tct(
+            'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
+            {
+              sentryAppName: <strong>{sentryApp.name}</strong>,
+              otherOrg: <strong>{ownerSlug}</strong>,
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -290,11 +296,11 @@ function CheckAndRenderError({
 }
 
 type SingleOrgProps = {
-  organizations: Array<OrganizationSummary>;
+  organizations: OrganizationSummary[];
   sentryApp: SentryApp;
 };
 function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
-  const organizationName = organizations[0].name;
+  const organizationName = organizations[0]!.name;
   return (
     <div>
       <p>
@@ -311,7 +317,7 @@ type SelectOrgCallback = (slug: string) => void;
 
 type MultiOrgProps = {
   onSelectOrg: SelectOrgCallback;
-  organizations: Array<OrganizationSummary>;
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   sentryApp: SentryApp;
 };
@@ -334,7 +340,7 @@ function MultiOrgView({
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>
         <SelectControl
-          onChange={({value}) => onSelectOrg(value)}
+          onChange={({value}: any) => onSelectOrg(value)}
           value={selectedOrgSlug}
           placeholder={t('Select an organization')}
           options={getOrganizationOptions(organizations)}
@@ -347,11 +353,11 @@ function MultiOrgView({
 
 const hasAccess = (org: Organization) => org.access.includes('org:integrations');
 
-function isSingleOrg(organizations: Array<OrganizationSummary>): boolean {
+function isSingleOrg(organizations: OrganizationSummary[]): boolean {
   return organizations.length === 1;
 }
 
-function getOrganizationOptions(organizations: Array<OrganizationSummary>) {
+function getOrganizationOptions(organizations: OrganizationSummary[]) {
   return organizations.map(org => ({
     value: org.slug,
     label: (

@@ -16,8 +16,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -63,7 +63,7 @@ export interface SelectContextValue {
    */
   saveSelectedOptions: (
     index: number,
-    newSelectedOptions: SelectOption<SelectKey> | SelectOption<SelectKey>[]
+    newSelectedOptions: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>
   ) => void;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -256,7 +256,7 @@ export function Control({
   const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
-  const [listStates, setListStates] = useState<ListState<any>[]>([]);
+  const [listStates, setListStates] = useState<Array<ListState<any>>>([]);
   const registerListState = useCallback<SelectContextValue['registerListState']>(
     (index, listState) => {
       setListStates(current => [
@@ -437,7 +437,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
+    Array<SelectOption<SelectKey> | Array<SelectOption<SelectKey>>>
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {
@@ -468,7 +468,9 @@ export function Control({
     return (
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
-        {options.length > 1 && <StyledBadge text={`+${options.length - 1}`} />}
+        {options.length > 1 && (
+          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+        )}
       </Fragment>
     );
   }, [triggerLabelProp, selectedOptions]);
@@ -524,9 +526,9 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style.minWidth}
+            minWidth={overlayProps.style!.minWidth}
             maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style.maxHeight}
+            maxHeight={overlayProps.style!.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}
@@ -587,7 +589,7 @@ const ControlWrap = styled('div')`
   width: max-content;
 `;
 
-const TriggerLabel = styled('span')`
+export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
   line-height: normal;
@@ -686,7 +688,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   }
 `;
 
-const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),

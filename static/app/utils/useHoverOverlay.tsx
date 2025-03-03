@@ -99,9 +99,22 @@ interface UseHoverOverlayProps {
    */
   offset?: number;
   /**
+   * Callback whenever the hovercard is blurred
+   * See also `onHover`
+   */
+  onBlur?: () => void;
+
+  /**
+   * Callback whenever the hovercard is hovered
+   * See also `onBlur`
+   */
+  onHover?: () => void;
+
+  /**
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
+
   /**
    * Only display the overlay only if the content overflows
    */
@@ -115,6 +128,11 @@ interface UseHoverOverlayProps {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
+  /**
+   * style for when a wrapper is used. Does nothing using skipWrapper.
+   */
+  style?: React.CSSProperties;
+
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
@@ -148,6 +166,7 @@ function useHoverOverlay(
   overlayType: string,
   {
     className,
+    style,
     delay,
     displayTimeout,
     isHoverable,
@@ -159,6 +178,8 @@ function useHoverOverlay(
     offset = 8,
     position = 'top',
     containerDisplayMode = 'inline-block',
+    onHover,
+    onBlur,
   }: UseHoverOverlayProps
 ) {
   const theme = useTheme();
@@ -166,6 +187,14 @@ function useHoverOverlay(
 
   const [isVisible, setIsVisible] = useState(forceVisible ?? false);
   const isOpen = forceVisible ?? isVisible;
+
+  useEffect(() => {
+    if (isOpen) {
+      onHover?.();
+    } else {
+      onBlur?.();
+    }
+  }, [isOpen, onBlur, onHover]);
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -280,6 +309,7 @@ function useHoverOverlay(
           ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
           maxWidth: '100%',
+          ...style,
         },
         className,
       });
@@ -296,6 +326,7 @@ function useHoverOverlay(
       showUnderline,
       skipWrapper,
       describeById,
+      style,
       theme,
       underlineColor,
     ]

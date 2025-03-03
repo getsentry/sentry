@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 import orjson
 import sentry_sdk
@@ -14,6 +13,10 @@ from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
@@ -22,13 +25,14 @@ from sentry.integrations.repository.metric_alert import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import (
     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
     SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
-    SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
-    SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
+    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 
@@ -66,31 +70,36 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    attachment: Any = SlackIncidentsMessageBuilder(
-        action, incident, new_status, metric_value, chart_url, notification_uuid
+    attachment: SlackBlock = SlackIncidentsMessageBuilder(
+        incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
     attachments = orjson.dumps([blocks]).decode()
 
-    repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
-    parent_notification_message = None
-    # Only grab the parent notification message for thread use if the feature is on
-    # Otherwise, leave it empty, and it will not create a thread
-    if OrganizationOption.objects.get_value(
-        organization=organization,
-        key="sentry:metric_alerts_thread_flag",
-        default=METRIC_ALERTS_THREAD_DEFAULT,
-    ):
-        try:
-            parent_notification_message = repository.get_parent_notification_message(
-                alert_rule_id=incident.alert_rule_id,
-                incident_id=incident.id,
-                trigger_action_id=action.id,
-            )
-        except Exception:
-            # if there's an error trying to grab a parent notification, don't let that error block this flow
-            pass
+    with MessagingInteractionEvent(
+        interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
+        spec=SlackMessagingSpec(),
+    ).capture() as lifecycle:
+        repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
+        parent_notification_message = None
+        # Only grab the parent notification message for thread use if the feature is on
+        # Otherwise, leave it empty, and it will not create a thread
+        if OrganizationOption.objects.get_value(
+            organization=organization,
+            key="sentry:metric_alerts_thread_flag",
+            default=METRIC_ALERTS_THREAD_DEFAULT,
+        ):
+            try:
+                parent_notification_message = repository.get_parent_notification_message(
+                    alert_rule_id=incident.alert_rule_id,
+                    incident_id=incident.id,
+                    trigger_action_id=action.id,
+                )
+            except Exception as e:
+                lifecycle.record_halt(e)
+                # if there's an error trying to grab a parent notification, don't let that error block this flow
+                pass
 
     new_notification_message_object = NewMetricAlertNotificationMessage(
         incident_id=incident.id,
@@ -114,44 +123,51 @@ def send_incident_alert_notification(
             reply_broadcast = True
 
     success = False
-    try:
-        client = SlackSdkClient(integration_id=integration.id)
-        response = client.chat_postMessage(
-            attachments=attachments,
-            text=text,
-            channel=str(channel),
-            thread_ts=thread_ts,
-            reply_broadcast=reply_broadcast,
-            unfurl_links=False,
-            unfurl_media=False,
-        )
-        metrics.incr(SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
-    except SlackApiError as e:
-        # Record the error code and details from the exception
-        new_notification_message_object.error_code = e.response.status_code
-        new_notification_message_object.error_details = {
-            "msg": str(e),
-            "data": e.response.data,
-            "url": e.response.api_url,
-        }
+    with MessagingInteractionEvent(
+        interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
+        spec=SlackMessagingSpec(),
+    ).capture() as lifecycle:
+        try:
+            client = SlackSdkClient(integration_id=integration.id)
+            response = client.chat_postMessage(
+                attachments=attachments,
+                text=text,
+                channel=str(channel),
+                thread_ts=thread_ts,
+                reply_broadcast=reply_broadcast,
+                unfurl_links=False,
+                unfurl_media=False,
+            )
+        except SlackApiError as e:
+            # Record the error code and details from the exception
+            new_notification_message_object.error_code = e.response.status_code
+            new_notification_message_object.error_details = {
+                "msg": str(e),
+                "data": e.response.data,
+                "url": e.response.api_url,
+            }
 
-        log_params = {
-            "error": str(e),
-            "incident_id": incident.id,
-            "incident_status": new_status,
-            "attachments": attachments,
-        }
-        _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
-        metrics.incr(
-            SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-        )
-    else:
-        success = True
-        ts = response.get("ts")
+            log_params: dict[str, str | int] = {
+                "error": str(e),
+                "incident_id": incident.id,
+                "incident_status": str(new_status),
+                "attachments": attachments,
+            }
+            if channel:
+                log_params["channel_id"] = channel
+            if action.target_display:
+                log_params["channel_name"] = action.target_display
 
-        new_notification_message_object.message_identifier = str(ts) if ts is not None else None
+            lifecycle.add_extras(log_params)
+            # If the error is a channel not found or archived, we can halt the flow
+            # This means that the channel was deleted or archived after the alert rule was created
+            record_lifecycle_termination_level(lifecycle, e)
+
+        else:
+            success = True
+            ts = response.get("ts")
+
+            new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
     # Save the notification message we just sent with the response id or error we received
     try:

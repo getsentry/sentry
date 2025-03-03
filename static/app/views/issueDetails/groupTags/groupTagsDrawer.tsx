@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -12,12 +13,10 @@ import {
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
-  Header,
   NavigationCrumbs,
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDownload, IconSearch} from 'sentry/icons';
@@ -25,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -34,10 +34,12 @@ import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistributi
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function GroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
@@ -63,12 +65,22 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     refetch,
   } = useGroupTags({
     groupId: group.id,
-    environment: location.query.environment as string[] | string | undefined,
+    environment: environments,
   });
+
+  const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+  }, [detailedProject, project]);
 
   const tagValues = useMemo(
     () =>
       data.reduce((valueMap, tag) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
         return valueMap;
       }, {}),
@@ -76,17 +88,24 @@ export function GroupTagsDrawer({group}: {group: Group}) {
   );
 
   const displayTags = useMemo(() => {
-    const sortedTags = data.sort((a, b) => a.key.localeCompare(b.key));
-    const searchedTags = sortedTags.filter(
+    const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
+    const orderedHighlightTags = highlightTags.sort(
+      (a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key)
+    );
+    const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
+    const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
+    const orderedTags = [...orderedHighlightTags, ...sortedTags];
+    const searchedTags = orderedTags.filter(
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         tagValues[tag.key].includes(search)
     );
     return searchedTags;
-  }, [data, search, tagValues]);
+  }, [data, search, tagValues, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightsPending) {
     return <LoadingIndicator />;
   }
 
@@ -115,7 +134,13 @@ export function GroupTagsDrawer({group}: {group: Group}) {
         {
           key: 'export-page',
           label: t('Export Page to CSV'),
-          to: `${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+          // TODO(issues): Dropdown menu doesn't support hrefs yet
+          onAction: () => {
+            window.open(
+              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              '_blank'
+            );
+          },
         },
         {
           key: 'export-all',
@@ -189,7 +214,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <Wrapper>
             <Container>
               {displayTags.map((tag, tagIdx) => (
-                <TagDistribution tag={tag} key={tagIdx} />
+                <TagDistribution tag={tag} key={tagIdx} groupId={group.id} />
               ))}
             </Container>
           </Wrapper>
@@ -210,4 +235,11 @@ const Container = styled('div')`
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
   margin-bottom: ${space(2)};
+`;
+
+const Header = styled('h3')`
+  ${p => p.theme.overflowEllipsis};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin: 0;
 `;

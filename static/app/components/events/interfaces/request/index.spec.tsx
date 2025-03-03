@@ -1,16 +1,22 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
+import ConfigStore from 'sentry/stores/configStore';
 import type {EntryRequest} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
 jest.unmock('prismjs');
 
 describe('Request entry', function () {
+  beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
+  });
+
   it('display redacted data', async function () {
     const event = EventFixture({
       entries: [
@@ -166,7 +172,7 @@ describe('Request entry', function () {
       },
     });
 
-    render(<Request event={event} data={event.entries[0].data} />, {
+    render(<Request event={event} data={event.entries[0]!.data} />, {
       organization: {
         relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
@@ -180,7 +186,7 @@ describe('Request entry', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(7);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(
@@ -215,7 +221,7 @@ describe('Request entry', function () {
         ],
       });
 
-      render(<Request event={event} data={event.entries[0].data} />, {
+      render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
           relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
@@ -249,7 +255,7 @@ describe('Request entry', function () {
         ],
       });
 
-      render(<Request event={event} data={event.entries[0].data} />, {
+      render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
           relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
@@ -283,7 +289,7 @@ describe('Request entry', function () {
         ],
       });
 
-      render(<Request event={event} data={event.entries[0].data} />, {
+      render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
           relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
@@ -319,7 +325,39 @@ describe('Request entry', function () {
       });
 
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />, {
+        render(<Request event={event} data={event.entries[0]!.data} />, {
+          organization: {
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+          },
+        })
+      ).not.toThrow();
+    });
+
+    it('should remove any non-tuple values from array', function () {
+      const user = UserFixture();
+      user.options.prefersIssueDetailsStreamlinedUI = true;
+      ConfigStore.set('user', user);
+
+      const data: EntryRequest['data'] = {
+        apiTarget: null,
+        query: 'a%AFc',
+        data: '',
+        headers: [['foo', 'bar'], null],
+        cookies: [],
+        env: {},
+        method: 'POST',
+        url: '/Home/PostIndex',
+      };
+      const event = EventFixture({
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      });
+      expect(() =>
+        render(<Request event={event} data={event.entries[0]!.data} />, {
           organization: {
             relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
@@ -350,7 +388,7 @@ describe('Request entry', function () {
       });
 
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />, {
+        render(<Request event={event} data={event.entries[0]!.data} />, {
           organization: {
             relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
@@ -380,7 +418,7 @@ describe('Request entry', function () {
           ],
         });
 
-        render(<Request event={event} data={event.entries[0].data} />);
+        render(<Request event={event} data={event.entries[0]!.data} />);
 
         expect(screen.getByText('query Test { test }')).toBeInTheDocument();
         expect(screen.getByRole('row', {name: 'operationName Test'})).toBeInTheDocument();
@@ -418,11 +456,13 @@ describe('Request entry', function () {
         });
 
         const {container} = render(
-          <Request event={event} data={event.entries[0].data} />
+          <Request event={event} data={event.entries[0]!.data} />
         );
 
+        // eslint-disable-next-line testing-library/no-container
         expect(container.querySelector('.line-highlight')).toBeInTheDocument();
         expect(
+          // eslint-disable-next-line testing-library/no-container
           container.querySelector('.line-highlight')?.getAttribute('data-start')
         ).toBe('1');
         expect(

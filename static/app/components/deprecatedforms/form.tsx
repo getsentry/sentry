@@ -16,15 +16,15 @@ type FormProps = {
   extraButton?: React.ReactNode;
   footerClass?: string;
   hideErrors?: boolean;
-  initialData?: object;
+  initialData?: Record<PropertyKey, unknown>;
   onCancel?: () => void;
   onSubmit?: (
-    data: object,
-    onSubmitSuccess: (data: object) => void,
-    onSubmitError: (error: object) => void
+    data: Record<PropertyKey, unknown>,
+    onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void,
+    onSubmitError: (error: Record<PropertyKey, unknown>) => void
   ) => void;
-  onSubmitError?: (error: object) => void;
-  onSubmitSuccess?: (data: object) => void;
+  onSubmitError?: (error: Record<PropertyKey, unknown>) => void;
+  onSubmitSuccess?: (data: Record<PropertyKey, unknown>) => void;
   requireChanges?: boolean;
   resetOnError?: boolean;
   submitDisabled?: boolean;
@@ -33,8 +33,11 @@ type FormProps = {
 
 type FormClassState = {
   data: any;
-  errors: {non_field_errors?: object[]} & object;
-  initialData: object;
+  errors: {non_field_errors?: Array<Record<PropertyKey, unknown>>} & Record<
+    PropertyKey,
+    string
+  >;
+  initialData: Record<PropertyKey, unknown>;
   state: FormState;
 };
 
@@ -88,7 +91,7 @@ class Form<
     this.props.onSubmit(this.state.data, this.onSubmitSuccess, this.onSubmitError);
   };
 
-  onSubmitSuccess = (data: object) => {
+  onSubmitSuccess = (data: Record<PropertyKey, unknown>) => {
     this.setState({
       state: FormState.READY,
       errors: {},
@@ -97,7 +100,7 @@ class Form<
     this.props.onSubmitSuccess?.(data);
   };
 
-  onSubmitError = error => {
+  onSubmitError = (error: any) => {
     this.setState({
       state: FormState.ERROR,
       errors: error.responseJSON,
@@ -136,7 +139,7 @@ class Form<
         <StyledForm
           onSubmit={this.onSubmit}
           className={this.props.className}
-          aria-label={this.props['aria-label']}
+          aria-label={(this.props as any)['aria-label']}
         >
           {isError && !hideErrors && (
             <div className="alert alert-error alert-block">

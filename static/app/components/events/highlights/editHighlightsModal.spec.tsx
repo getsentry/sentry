@@ -14,13 +14,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import EditHighlightsModal, {
   type EditHighlightsModalProps,
 } from 'sentry/components/events/highlights/editHighlightsModal';
-import {
-  TEST_EVENT_CONTEXTS,
-  TEST_EVENT_TAGS,
-} from 'sentry/components/events/highlights/util.spec';
 import ModalStore from 'sentry/stores/modalStore';
 import type {Project} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
+
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('EditHighlightsModal', function () {
   const organization = OrganizationFixture();
@@ -154,7 +152,7 @@ describe('EditHighlightsModal', function () {
     const previewCtxButtons = screen.queryAllByTestId('highlights-remove-ctx');
     expect(previewCtxButtons).toHaveLength(highlightContextTitles.length);
 
-    await userEvent.click(previewTagButtons[0]);
+    await userEvent.click(previewTagButtons[0]!);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.edit_modal.remove_tag',
       expect.anything()
@@ -163,7 +161,7 @@ describe('EditHighlightsModal', function () {
       previewTagButtons.length - 1
     );
 
-    await userEvent.click(previewCtxButtons[0]);
+    await userEvent.click(previewCtxButtons[0]!);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.edit_modal.remove_context_key',
       expect.anything()
@@ -318,7 +316,7 @@ describe('EditHighlightsModal', function () {
       'Runtime: Name',
     ]);
     allHighlightCtxTitles.forEach(title => {
-      const previewCtxItem = within(previewSection).getByText(title) as HTMLElement;
+      const previewCtxItem = within(previewSection).getByText(title);
       const removeButton = previewCtxItem?.closest(
         "div[data-test-id='highlights-preview-ctx']"
       )?.previousSibling;

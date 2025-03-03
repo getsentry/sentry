@@ -1,13 +1,28 @@
 ---
-created: '2024-10-28T14:02:44.512670+00:00'
+created: '2024-12-17T22:50:13.495277+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: violation
+hashing_metadata: {
+  "blocked_host": "example.com",
+  "security_report_type": "hpkp"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "hpkp"
+  }
+}
 ---
 contributing variants:
   default*
     hash: "1e37a374cb33572622d02ff7a6237c44"
+    contributing component: hpkp
     component:
       default*
         hpkp*

@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
-import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
+import {
+  ItemType,
+  type SearchGroup,
+} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -11,10 +14,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
   getIssueTitleFromType,
   IssueCategory,
-  IssueType,
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -35,6 +38,7 @@ type UseFetchIssueTagsParams = {
   projectIds: string[];
   enabled?: boolean;
   end?: string;
+  includeFeatureFlags?: boolean;
   keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
@@ -88,6 +92,7 @@ export const useFetchIssueTags = ({
   keepPreviousData = false,
   useCache = true,
   enabled = true,
+  includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
   const {teams} = useLegacyStore(TeamStore);
@@ -113,6 +118,22 @@ export const useFetchIssueTags = ({
       dataset: Dataset.ISSUE_PLATFORM,
       useCache,
       enabled,
+      keepPreviousData,
+      ...statsPeriodParams,
+    },
+    {}
+  );
+
+  // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
+  // with query param useFlagsBackend=1. This is used for issue stream search suggestions.
+  const featureFlagTagsQuery = useFetchOrganizationTags(
+    {
+      orgSlug: org.slug,
+      projectIds,
+      dataset: Dataset.ERRORS,
+      useCache,
+      useFlagsBackend: true, // Queries `flags` column instead of tags. Response format is the same.
+      enabled: enabled && includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -148,6 +169,7 @@ export const useFetchIssueTags = ({
 
     const eventsTags: Tag[] = eventsTagsQuery.data || [];
     const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
+    const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
 
     const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
       (acc, tag) => {
@@ -159,10 +181,25 @@ export const useFetchIssueTags = ({
 
     issuePlatformTags.forEach(tag => {
       if (allTagsCollection[tag.key]) {
-        allTagsCollection[tag.key].totalValues =
-          (allTagsCollection[tag.key].totalValues ?? 0) + (tag.totalValues ?? 0);
+        allTagsCollection[tag.key]!.totalValues =
+          (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
         allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
+      }
+    });
+
+    featureFlagTags.forEach(tag => {
+      // Wrap with flags[] and if necessary, quote to escape ':', which is used by our search syntax.
+      const key = tag.key.includes(':') ? `flags["${tag.key}"]` : `flags[${tag.key}]`;
+      if (allTagsCollection[key]) {
+        allTagsCollection[key]!.totalValues =
+          (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+      } else {
+        allTagsCollection[key] = {
+          ...tag,
+          kind: FieldKind.FEATURE_FLAG,
+          key, // Update with wrapped key.
+        };
       }
     });
 
@@ -181,12 +218,24 @@ export const useFetchIssueTags = ({
       ...renamedTags,
       ...additionalTags,
     };
-  }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, teams]);
+  }, [
+    eventsTagsQuery.data,
+    issuePlatformTagsQuery.data,
+    featureFlagTagsQuery.data,
+    members,
+    teams,
+  ]);
 
   return {
     tags: allTags,
-    isLoading: eventsTagsQuery.isPending || issuePlatformTagsQuery.isPending,
-    isError: eventsTagsQuery.isError || issuePlatformTagsQuery.isError,
+    isLoading:
+      eventsTagsQuery.isPending ||
+      issuePlatformTagsQuery.isPending ||
+      featureFlagTagsQuery.isPending,
+    isError:
+      eventsTagsQuery.isError ||
+      issuePlatformTagsQuery.isError ||
+      featureFlagTagsQuery.isError,
   };
 };
 
@@ -237,20 +286,20 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED],
+      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED]!,
       name: 'Assigned or Suggested',
       isInput: true,
       values: assigneeFieldValues,
       predefined: true,
     },
     [FieldKey.BOOKMARKS]: {
-      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS],
+      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS]!,
       name: 'Bookmarked By',
       values: bookmarksValues,
       predefined: true,
     },
     [FieldKey.ISSUE_CATEGORY]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: [
         IssueCategory.ERROR,
@@ -262,22 +311,9 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
-      values: [
-        IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-        IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-        IssueType.PERFORMANCE_SLOW_DB_QUERY,
-        IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-        IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-        IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-        IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-        IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
-        IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
-        IssueType.PROFILE_REGEX_MAIN_THREAD,
-        IssueType.PROFILE_FUNCTION_REGRESSION,
-      ].map(value => ({
+      values: VISIBLE_ISSUE_TYPES.map(value => ({
         icon: null,
         title: value,
         name: value,
@@ -289,31 +325,31 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN]!,
       name: 'Last Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN]!,
       name: 'First Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_RELEASE]: {
-      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
       values: ['latest'],
       predefined: true,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
-      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP],
+      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
       name: 'Event Timestamp',
       values: [],
       predefined: true,
     },
     [FieldKey.TIMES_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN]!,
       name: 'Times Seen',
       isInput: true,
       // Below values are required or else SearchBar will attempt to get values
@@ -322,7 +358,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_PRIORITY]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY]!,
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,

@@ -40,6 +40,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         }
         const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
         const isLast = i === lastRouteIndex;
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const createMenu = MENUS[route.name];
         const Menu = typeof createMenu === 'function' && createMenu;
         const hasMenu = !!Menu;

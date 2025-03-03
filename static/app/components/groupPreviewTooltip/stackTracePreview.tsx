@@ -16,7 +16,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -25,7 +24,7 @@ export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
     event.entries
       .find(e => e.type === EntryType.EXCEPTION)
-      ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
+      ?.data?.values.filter(({stacktrace}: any) => defined(stacktrace)) ?? [];
 
   const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
     ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
@@ -66,12 +65,11 @@ export function StackTracePreviewContent({
   }, [stacktrace]);
 
   const framePlatform = stacktrace?.frames?.find(frame => !!frame.platform)?.platform;
-  const platform = (framePlatform ?? event.platform ?? 'other') as PlatformKey;
+  const platform = framePlatform ?? event.platform ?? 'other';
   const newestFirst = isStacktraceNewestFirst();
 
   const commonProps = {
     data: stacktrace,
-    expandFirstFrame: false,
     includeSystemFrames,
     platform,
     newestFirst,
@@ -80,10 +78,16 @@ export function StackTracePreviewContent({
   };
 
   if (isNativePlatform(platform)) {
-    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
+    return (
+      <NativeContent
+        {...commonProps}
+        groupingCurrentLevel={groupingCurrentLevel}
+        hideIcon
+      />
+    );
   }
 
-  return <StackTraceContent {...commonProps} hideIcon />;
+  return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;
 }
 
 type StackTracePreviewProps = {

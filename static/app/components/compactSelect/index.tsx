@@ -21,7 +21,7 @@ import {getItemsWithKeys} from './utils';
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
-  options: SelectOptionOrSection<Value>[];
+  options: Array<SelectOptionOrSection<Value>>;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>
@@ -148,7 +148,11 @@ function CompactSelect<Value extends SelectKey>({
             );
           }
 
-          return <Item {...item}>{item.label}</Item>;
+          return (
+            <Item {...item} key={item.key}>
+              {item.label}
+            </Item>
+          );
         }}
       </List>
 

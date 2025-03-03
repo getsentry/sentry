@@ -16,12 +16,12 @@ import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };
@@ -40,7 +40,7 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function (_body) {
+      embed.submit = function (_body: any) {
         this._submitInProgress = true;
         window.setTimeout(() => {
           this._submitInProgress = false;
@@ -76,7 +76,7 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
             your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs.`
         )}
       </TextBlock>
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <Form
         saveOnBlur
         apiMethod="PUT"

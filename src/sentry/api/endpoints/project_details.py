@@ -38,6 +38,7 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -56,6 +57,7 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +114,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "safeFields",
         "storeCrashReports",
         "relayPiiConfig",
-        "relayCustomMetricCardinalityLimit",
         "builtinSymbolSources",
         "symbolSources",
         "scrubIPAddresses",
@@ -130,6 +131,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
         "uptimeAutodetection",
+        "tempestFetchScreenshots",
+        "tempestFetchDumps",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -203,7 +206,6 @@ E.g. `['release', 'environment']`""",
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    relayCustomMetricCardinalityLimit = serializers.IntegerField(required=False, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
@@ -224,6 +226,8 @@ E.g. `['release', 'environment']`""",
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
+    tempestFetchScreenshots = serializers.BooleanField(required=False)
+    tempestFetchDumps = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -277,22 +281,6 @@ E.g. `['release', 'environment']`""",
     def validate_relayPiiConfig(self, value):
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
-
-    def validate_relayCustomMetricCardinalityLimit(self, value):
-        if value is None:
-            return value
-
-        if value < 0:
-            raise serializers.ValidationError("Cardinality limit must be a non-negative integer.")
-
-        # Value is stored as uint32 in relay
-        # TODO: find a way to share this constant between relay and sentry
-        if value > 4_294_967_295:
-            raise serializers.ValidationError(
-                "Cardinality limit must be smaller or equal to 4,294,967,295."
-            )
-
-        return value
 
     def validate_builtinSymbolSources(self, value):
         if not value:
@@ -432,11 +420,9 @@ E.g. `['release', 'environment']`""",
         return validate_pii_selectors(value)
 
     def validate_targetSampleRate(self, value):
-        from sentry import features
-
         organization = self.context["project"].organization
         actor = self.context["request"].user
-        if not features.has("organizations:dynamic-sampling-custom", organization, actor=actor):
+        if not has_custom_dynamic_sampling(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
@@ -449,6 +435,24 @@ E.g. `['release', 'environment']`""",
                 "Must enable Manual Mode to configure project sample rates."
             )
 
+        return value
+
+    def validate_tempestFetchScreenshots(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_tempest_access(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_tempestFetchDumps(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_tempest_access(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the tempest feature enabled."
+            )
         return value
 
 
@@ -514,7 +518,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         # Dynamic Sampling Logic
-        if features.has("organizations:dynamic-sampling", project.organization):
+        if has_dynamic_sampling(project.organization):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
@@ -571,9 +575,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        if result.get("dynamicSamplingBiases") and not (
-            features.has("organizations:dynamic-sampling", project.organization)
-        ):
+        if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
@@ -688,7 +690,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("highlightTags") is not None:
             if project.update_option("sentry:highlight_tags", result["highlightTags"]):
                 changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
-        if result.get("storeCrashReports") is not None:
+        if "storeCrashReports" in result:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
                 if result["storeCrashReports"] is None:
@@ -700,25 +702,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:relay_pii_config"] = (
                     result["relayPiiConfig"].strip() or None
                 )
-        if "relayCustomMetricCardinalityLimit" in result:
-            limit = result.get("relayCustomMetricCardinalityLimit")
-            cardinality_limits = []
-            if limit is not None:
-                # For now we only allow setting a single limit
-                # TODO: validate this with rust validator
-                cardinality_limits = [
-                    {
-                        "limit": {
-                            "id": "project-override-custom",
-                            "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                            "limit": limit,
-                            "namespace": "custom",
-                            "scope": "name",
-                        }
-                    }
-                ]
-            if project.update_option("relay.cardinality-limiter.limits", cardinality_limits):
-                changed_proj_settings["relay.cardinality-limiter.limits"] = cardinality_limits
         if result.get("builtinSymbolSources") is not None:
             if project.update_option(
                 "sentry:builtin_symbol_sources", result["builtinSymbolSources"]
@@ -754,9 +737,23 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
+        if result.get("tempestFetchScreenshots") is not None:
+            if project.update_option(
+                "sentry:tempest_fetch_screenshots", result["tempestFetchScreenshots"]
+            ):
+                changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
+                    "tempestFetchScreenshots"
+                ]
+        if result.get("tempestFetchDumps") is not None:
+            if project.update_option("sentry:tempest_fetch_dumps", result["tempestFetchDumps"]):
+                changed_proj_settings["sentry:tempest_fetch_dumps"] = result["tempestFetchDumps"]
         if result.get("targetSampleRate") is not None:
-            if project.update_option("sentry:target_sample_rate", result["targetSampleRate"]):
-                changed_proj_settings["sentry:target_sample_rate"] = result["targetSampleRate"]
+            if project.update_option(
+                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
+            ):
+                changed_proj_settings["sentry:target_sample_rate"] = round(
+                    result["targetSampleRate"], 4
+                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
@@ -927,7 +924,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not (features.has("organizations:dynamic-sampling", project.organization)):
+        if not has_dynamic_sampling(project.organization):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

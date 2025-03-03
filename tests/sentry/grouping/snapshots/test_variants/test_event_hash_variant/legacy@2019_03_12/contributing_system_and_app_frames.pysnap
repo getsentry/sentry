@@ -1,0 +1,84 @@
+---
+created: '2025-02-26T00:33:38.518257+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (marked out of app by stack trace rule (function:runApp -app -group))
+            filename*
+              "/node_modules/express/app.js"
+            context-line*
+              "return server.serve(port);"
+            function (function name is not used if context-line is available)
+              "runApp"
+          frame* (un-ignored by stack trace rule (function:handleRequest -app +group))
+            filename*
+              "/node_modules/express/router.js"
+            context-line*
+              "return handler(request);"
+            function (function name is not used if context-line is available)
+              "handleRequest"
+          frame (ignored by stack trace rule (function:recordMetrics +app -group))
+            filename*
+              "/dogApp/metrics.js"
+            context-line*
+              "return withMetrics(handler, metricName, tags);"
+            function (function name is not used if context-line is available)
+              "recordMetrics"
+          frame* (marked in-app by stack trace rule (function:playFetch +app +group))
+            filename*
+              "/dogApp/dogpark.js"
+            context-line*
+              "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+            function (function name is not used if context-line is available)
+              "playFetch"
+        type*
+          "FailedToFetchError"
+        value (stacktrace and type take precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
+--------------------------------------------------------------------------
+system:
+  hash: "eb1c9a5ad0bb12f57d30dd08ee542d47"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (function:runApp -app -group))
+            filename*
+              "/node_modules/express/app.js"
+            context-line*
+              "return server.serve(port);"
+            function (function name is not used if context-line is available)
+              "runApp"
+          frame*
+            filename*
+              "/node_modules/express/router.js"
+            context-line*
+              "return handler(request);"
+            function (function name is not used if context-line is available)
+              "handleRequest"
+          frame (ignored by stack trace rule (function:recordMetrics +app -group))
+            filename*
+              "/dogApp/metrics.js"
+            context-line*
+              "return withMetrics(handler, metricName, tags);"
+            function (function name is not used if context-line is available)
+              "recordMetrics"
+          frame*
+            filename*
+              "/dogApp/dogpark.js"
+            context-line*
+              "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+            function (function name is not used if context-line is available)
+              "playFetch"
+        type*
+          "FailedToFetchError"
+        value (stacktrace and type take precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"

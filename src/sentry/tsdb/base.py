@@ -117,12 +117,7 @@ class BaseTSDB(Service):
             "get_sums",
             "get_distinct_counts_series",
             "get_distinct_counts_totals",
-            "get_distinct_counts_union",
-            "get_most_frequent",
-            "get_most_frequent_series",
             "get_frequency_series",
-            "get_frequency_totals",
-            "get_distinct_counts_totals_with_conditions",
         ]
     )
 
@@ -451,6 +446,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, int]:
         range_set = self.get_range(
             model,
@@ -463,6 +459,7 @@ class BaseTSDB(Service):
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
+            conditions=conditions,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
@@ -549,44 +546,10 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[int, Any]:
-        """
-        Count distinct items during a time range.
-        """
-        raise NotImplementedError
-
-    def get_distinct_counts_totals_with_conditions(
-        self,
-        model: TSDBModel,
-        keys: Sequence[int],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        use_cache: bool = False,
-        jitter_value: int | None = None,
-        tenant_ids: dict[str, int | str] | None = None,
-        referrer_suffix: str | None = None,
         conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, Any]:
         """
-        Count distinct items during a time range with conditions.
-        """
-        raise NotImplementedError
-
-    def get_distinct_counts_union(
-        self,
-        model: TSDBModel,
-        keys: list[int] | None,
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> int:
-        """
-        Count the total number of distinct items across multiple counters
-        during a time range.
+        Count distinct items during a time range with optional conditions
         """
         raise NotImplementedError
 
@@ -632,52 +595,6 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_most_frequent(
-        self,
-        model: TSDBModel,
-        keys: Sequence[TSDBKey],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        limit: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[TSDBKey, list[tuple[str, float]]]:
-        """
-        Retrieve the most frequently seen items in a frequency table.
-
-        Results are returned as a mapping, where the key is the key requested
-        and the value is a list of ``(member, score)`` tuples, ordered by the
-        highest (most frequent) to lowest (least frequent) score. The maximum
-        number of items returned is ``index capacity * rollup intervals`` if no
-        ``limit`` is provided.
-        """
-        raise NotImplementedError
-
-    def get_most_frequent_series(
-        self,
-        model: TSDBModel,
-        keys: Iterable[str],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        limit: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, list[tuple[int, dict[str, float]]]]:
-        """
-        Retrieve the most frequently seen items in a frequency table for each
-        interval in a series. (This is in contrast with ``get_most_frequent``,
-        which returns the most frequent items seen over the entire requested
-        range.)
-
-        Results are returned as a mapping, where the key is the key requested
-        and the value is a list of ``(timestamp, {item: score, ...})`` pairs
-        over the series. The maximum number of items returned for each interval
-        is the index capacity if no ``limit`` is provided.
-        """
-        raise NotImplementedError
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -698,29 +615,6 @@ class BaseTSDB(Service):
         Results are returned as a mapping, where the key is the key requested
         and the value is a list of ``(timestamp, {item: score, ...})`` pairs
         over the series.
-        """
-        raise NotImplementedError
-
-    def get_frequency_totals(
-        self,
-        model: TSDBModel,
-        items: Mapping[TSDBKey, Sequence[TSDBItem]],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
-        """
-        Retrieve the total frequency of known items in a table over time.
-
-        The items requested should be passed as a mapping, where the key is the
-        metric key, and the value is a sequence of members to retrieve scores
-        for.
-
-        Results are returned as a mapping, where the key is the key requested
-        and the value is a mapping of ``{item: score, ...}`` containing the
-        total score of items over the interval.
         """
         raise NotImplementedError
 

@@ -1,244 +1,101 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
-import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
-import {linkStyles} from 'sentry/components/links/styles';
-import {useNavContext} from 'sentry/components/nav/context';
-import Submenu from 'sentry/components/nav/submenu';
+import Hook from 'sentry/components/hook';
 import {
-  isNavItemActive,
-  isNonEmptyArray,
-  isSubmenuItemActive,
-  makeLinkPropsFromTo,
-  type NavSidebarItem,
-  resolveNavItemTo,
-} from 'sentry/components/nav/utils';
+  PRIMARY_SIDEBAR_WIDTH,
+  SECONDARY_SIDEBAR_WIDTH,
+} from 'sentry/components/nav/constants';
+import {useNavContext} from 'sentry/components/nav/context';
+import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
+import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
+import {useCollapsedNav} from 'sentry/components/nav/useCollapsedNav';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
-import {useLocation} from 'sentry/utils/useLocation';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import useOrganization from 'sentry/utils/useOrganization';
 
-function Sidebar() {
+export function Sidebar() {
+  const organization = useOrganization();
+  const {isCollapsed} = useNavContext();
+  const {isOpen} = useCollapsedNav();
+
+  // Avoid showing superuser UI on certain organizations
+  const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
+    organization
+  );
+  const showSuperuserWarning =
+    isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
+
   return (
     <Fragment>
       <SidebarWrapper role="navigation" aria-label="Primary Navigation">
-        <SidebarHeader>
+        <SidebarHeader isSuperuser={showSuperuserWarning}>
           <SidebarDropdown orientation="left" collapsed />
+          {showSuperuserWarning && (
+            <Hook name="component:superuser-warning" organization={organization} />
+          )}
         </SidebarHeader>
-        <SidebarItems />
+        <PrimaryNavigationItems />
       </SidebarWrapper>
-      <Submenu />
-    </Fragment>
-  );
-}
+      {isCollapsed ? null : <SecondarySidebar />}
 
-export default Sidebar;
-
-export function SidebarItems() {
-  const {config} = useNavContext();
-  return (
-    <Fragment>
-      <SidebarBody>
-        {config.main.map(item => (
-          <SidebarItem key={item.label} item={item} />
-        ))}
-      </SidebarBody>
-      {isNonEmptyArray(config.footer) && (
-        <SidebarFooter>
-          {config.footer.map(item => (
-            <SidebarItem key={item.label} item={item} />
-          ))}
-        </SidebarFooter>
-      )}
+      {isCollapsed ? (
+        <CollapsedSecondaryWrapper
+          initial="hidden"
+          animate={isOpen ? 'visible' : 'hidden'}
+          variants={{
+            visible: {x: 0},
+            hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
+          }}
+          transition={{duration: 0.15, ease: 'easeOut'}}
+          data-test-id="collapsed-secondary-sidebar"
+          data-visible={isOpen}
+        >
+          <SecondarySidebar />
+        </CollapsedSecondaryWrapper>
+      ) : null}
     </Fragment>
   );
 }
 
 const SidebarWrapper = styled('div')`
-  height: 40px;
-  width: 100vw;
-  padding: ${space(2)} 0;
-  border-right: 1px solid ${theme.translucentGray100};
-  /* these colors should be moved to the "theme" object */
-  background: #3e2648;
-  background: linear-gradient(180deg, #3e2648 0%, #442c4e 100%);
+  width: ${PRIMARY_SIDEBAR_WIDTH}px;
+  padding: ${space(2)} 0 ${space(1)} 0;
+  border-right: 1px solid ${p => p.theme.translucentGray200};
+  background: ${p => p.theme.surface300};
   display: flex;
   flex-direction: column;
-  z-index: ${theme.zIndex.sidebar};
-
-  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
-    height: unset;
-    width: 74px;
-  }
+  z-index: ${p => p.theme.zIndex.sidebar};
 `;
 
-const SidebarItemList = styled('ul')`
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  padding-top: ${space(1)};
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  color: rgba(255, 255, 255, 0.85);
-
-  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: ${space(1)};
-  }
+const CollapsedSecondaryWrapper = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: ${PRIMARY_SIDEBAR_WIDTH}px;
+  height: 100%;
+  box-shadow: ${p => p.theme.dropShadowHeavy};
 `;
 
-interface SidebarItemProps {
-  item: NavSidebarItem;
-}
-
-function SidebarItem({item}: SidebarItemProps) {
-  const to = resolveNavItemTo(item);
-  const SidebarChild = to ? SidebarLink : SidebarMenu;
-
-  const FeatureGuard = item.feature ? Feature : Fragment;
-  const featureGuardProps: any = item.feature ?? {};
-
-  return (
-    <FeatureGuard {...featureGuardProps}>
-      <SidebarItemWrapper>
-        <SidebarChild item={item} key={item.label}>
-          {item.icon}
-          <span>{item.label}</span>
-        </SidebarChild>
-      </SidebarItemWrapper>
-    </FeatureGuard>
-  );
-}
-
-const NavLink = styled(Link)`
-  position: relative;
-`;
-
-const NavButton = styled('button')`
-  border: none;
-  position: relative;
-  background: transparent;
-  min-width: 58px;
-
-  ${linkStyles}
-`;
-
-function SidebarLink({children, item}: SidebarItemProps & {children: React.ReactNode}) {
-  const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
-  const to = resolveNavItemTo(item);
-  if (!to) {
-    throw new Error(
-      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
-    );
-  }
-  const linkProps = makeLinkPropsFromTo(to);
-
-  return (
-    <NavLink
-      {...linkProps}
-      className={isActive || isSubmenuActive ? 'active' : undefined}
-      aria-current={isActive ? 'page' : undefined}
-    >
-      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
-      {children}
-    </NavLink>
-  );
-}
-
-function SidebarMenu({item, children}: SidebarItemProps & {children: React.ReactNode}) {
-  if (!item.dropdown) {
-    throw new Error(
-      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
-    );
-  }
-  return (
-    <DropdownMenu
-      position="right-end"
-      trigger={(props, isOpen) => {
-        return (
-          <NavButton {...props}>
-            <InteractionStateLayer hasSelectedBackground={isOpen} />
-            {children}
-          </NavButton>
-        );
-      }}
-      items={item.dropdown}
-    />
-  );
-}
-
-const SidebarItemWrapper = styled('li')`
-  svg {
-    --size: 14px;
-    width: var(--size);
-    height: var(--size);
-
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      --size: 18px;
-      padding-top: ${space(0.5)};
-    }
-  }
-  > a,
-  button {
-    display: flex;
-    flex-direction: row;
-    height: 40px;
-    gap: ${space(1.5)};
-    align-items: center;
-    padding: auto ${space(1.5)};
-    color: var(--color, currentColor);
-    font-size: ${theme.fontSizeMedium};
-    font-weight: ${theme.fontWeightNormal};
-    line-height: 177.75%;
-
-    & > * {
-      pointer-events: none;
-    }
-
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      flex-direction: column;
-      justify-content: center;
-      height: 52px;
-      padding: ${space(0.5)} ${space(0.75)};
-      border-radius: ${theme.borderRadius};
-      font-size: ${theme.fontSizeExtraSmall};
-      margin-inline: ${space(1)};
-      gap: ${space(0.5)};
-    }
-  }
-`;
-
-const SidebarFooterWrapper = styled('div')`
-  position: relative;
-  border-top: 1px solid ${theme.translucentGray200};
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  padding-bottom: ${space(0.5)};
-  margin-top: auto;
-`;
-
-const SidebarHeader = styled('header')`
+const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   position: relative;
   display: flex;
   justify-content: center;
   margin-bottom: ${space(1.5)};
+
+  ${p =>
+    p.isSuperuser &&
+    css`
+      &:before {
+        content: '';
+        position: absolute;
+        inset: -${space(1)} ${space(1)};
+        border-radius: ${p.theme.borderRadius};
+        background: ${p.theme.sidebar.superuser};
+      }
+    `}
 `;
-
-function SidebarBody({children}) {
-  return <SidebarItemList>{children}</SidebarItemList>;
-}
-
-function SidebarFooter({children}) {
-  return (
-    <SidebarFooterWrapper>
-      <SidebarItemList>{children}</SidebarItemList>
-    </SidebarFooterWrapper>
-  );
-}

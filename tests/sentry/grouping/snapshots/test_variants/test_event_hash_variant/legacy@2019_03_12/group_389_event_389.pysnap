@@ -1,10 +1,11 @@
 ---
-created: '2021-03-26T18:53:36.581044Z'
+created: '2025-02-26T00:33:47.346584+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
@@ -46,6 +47,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "6f4e0b1cef47a64deadb07777bb652db"
+  contributing component: exception
   component:
     system*
       exception*
@@ -53,13 +55,13 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "thread_start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_pthread_start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_pthread_body"
           frame
@@ -77,7 +79,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_pthread_testcancel"
         type*

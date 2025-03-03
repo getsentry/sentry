@@ -30,7 +30,7 @@ import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
 import {useStacktraceCoverage} from './useStacktraceCoverage';
 
 type Props = {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
   registers: {[key: string]: string};
@@ -48,7 +48,7 @@ type Props = {
 };
 
 export function getLineCoverage(
-  lines: [number, string][],
+  lines: Array<[number, string]>,
   lineCov: LineCoverage[]
 ): [Array<Coverage | undefined>, boolean] {
   const keyedCoverage = keyBy(lineCov, 0);
@@ -141,7 +141,7 @@ function Context({
     ) : null;
   }
 
-  const startLineNo = hasContextSource ? frame.context[0][0] : 0;
+  const startLineNo = hasContextSource ? frame.context[0]![0] : 0;
 
   const prismClassName = fileExtension ? `language-${fileExtension}` : '';
 
@@ -157,7 +157,7 @@ function Context({
           <pre className={prismClassName}>
             <code className={prismClassName}>
               {lines.map((line, i) => {
-                const contextLine = contextLines[i];
+                const contextLine = contextLines[i]!;
                 const isActive = activeLineNumber === contextLine[0];
 
                 return (

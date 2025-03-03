@@ -1,7 +1,6 @@
-import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -30,7 +29,7 @@ const getInstallConfig = (params: Params) => [
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (
-          <StyledAlert type="info" showIcon>
+          <Alert type="info" showIcon>
             {tct(
               'Make sure that Session Replay is enabled in your [link:project settings].',
               {
@@ -43,7 +42,7 @@ const getInstallConfig = (params: Params) => [
                 ),
               }
             )}
-          </StyledAlert>
+          </Alert>
         ),
       },
     ],
@@ -59,6 +58,71 @@ const getVerifySnippet = () => `
     throw new Error('This is a test error');
   });
 </script>`;
+
+const feedbackOnboardingJsLoader: OnboardingConfig = {
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        {
+          description: t('Add this script tag to the top of the page:'),
+          language: 'html',
+          code: beautify.html(
+            `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
+            {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
+          ),
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'When using the Loader Script, you can lazy load the User Feedback integration like this:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+window.sentryOnLoad = function () {
+  Sentry.init({
+    // add other configuration here
+  });
+
+  Sentry.lazyLoadIntegration("feedbackIntegration")
+    .then((feedbackIntegration) => {
+      Sentry.addIntegration(feedbackIntegration({
+      	// User Feedback configuration options
+      }));
+    })
+    .catch(() => {
+      // this can happen if e.g. a network error occurs,
+      // in this case User Feedback will not be enabled
+    });
+};
+              `,
+            },
+          ],
+        },
+      ],
+      additionalInfo: tct(
+        `For a full list of User Feedback configuration options, [link:read the docs].`,
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/configuration/" />
+          ),
+        }
+      ),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
 
 const replayOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
@@ -99,8 +163,4 @@ const replayOnboardingJsLoader: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const StyledAlert = styled(Alert)`
-  margin: 0;
-`;
-
-export default replayOnboardingJsLoader;
+export {feedbackOnboardingJsLoader, replayOnboardingJsLoader};

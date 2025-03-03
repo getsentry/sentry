@@ -6,7 +6,6 @@ from typing import cast
 
 import sentry_sdk
 
-from sentry import features
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY, PagerdutySeverity
 from sentry.rules.actions import IntegrationEventAction
@@ -17,18 +16,13 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
-    form_cls = PagerDutyNotifyServiceForm
-    old_label = "Send a notification to PagerDuty account {account} and service {service}"
-    new_label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
+    label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
     provider = "pagerduty"
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.has_feature_flag = features.has(
-            "organizations:integrations-custom-alert-priorities", self.project.organization
-        )
         self.form_fields = {
             "account": {
                 "type": "choice",
@@ -46,7 +40,6 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 ],
             },
         }
-        self.__class__.label = self.new_label if self.has_feature_flag else self.old_label
 
     def _get_service(self):
         oi = self.get_organization_integration()
@@ -147,8 +140,8 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             account=self.get_integration_name(), service=service_name, severity=severity
         )
 
-    def get_form_instance(self):
-        return self.form_cls(
+    def get_form_instance(self) -> PagerDutyNotifyServiceForm:
+        return PagerDutyNotifyServiceForm(
             self.data,
             integrations=self.get_integrations(),
             services=self.get_services(),

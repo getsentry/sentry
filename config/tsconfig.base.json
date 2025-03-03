@@ -35,11 +35,12 @@
     // Type checking specific options
     "alwaysStrict": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
     "strict": true,
     "strictBindCallApply": false,
     "useUnknownInCatchVariables": false,
@@ -99,10 +100,13 @@
       "sentry/*": ["static/app/*"],
       "sentry-fixture/*": ["tests/js/fixtures/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
+      "getsentry-test/*": ["tests/js/getsentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
-      "sentry-fonts/*": ["static/fonts/*"]
+      "sentry-fonts/*": ["static/fonts/*"],
+      "getsentry/*": ["static/gsApp/*"],
+      "getsentry-images/*": ["static/images/*"]
     },
 
     "plugins": [

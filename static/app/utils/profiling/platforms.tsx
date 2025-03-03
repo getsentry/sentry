@@ -3,6 +3,7 @@ import type {Project} from 'sentry/types/project';
 type SupportedProfilingPlatformSDK =
   | 'android'
   | 'apple-ios'
+  | 'apple-macos'
   | 'flutter'
   | 'dart-flutter'
   | 'go'
@@ -37,9 +38,15 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'android') {
     return 'android';
   }
+
   // iOS
   if (platform === 'apple-ios') {
     return 'apple-ios';
+  }
+
+  // macOS
+  if (platform === 'apple-macos') {
+    return 'apple-macos';
   }
 
   // Go
@@ -139,5 +146,7 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
   }
   return docsPlatform === 'apple-ios'
     ? 'https://docs.sentry.io/platforms/apple/guides/ios/profiling/'
-    : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
+    : docsPlatform === 'apple-macos'
+      ? 'https://docs.sentry.io/platforms/apple/guides/macos/profiling/'
+      : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
 }

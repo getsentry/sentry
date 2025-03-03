@@ -6,10 +6,9 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote as urlquote
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -229,14 +228,8 @@ class Endpoint(APIView):
         | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
     ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-    snuba_methods: list[HTTP_METHOD_NAME] = []
 
-    def build_link_header(self, request: Request, path: str, rel: str):
-        # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
-        uri = request.build_absolute_uri(urlquote(path))
-        return f'<{uri}>; rel="{rel}">'
-
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -298,7 +291,7 @@ class Endpoint(APIView):
 
         super().permission_denied(request, message, code)
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -321,7 +314,7 @@ class Endpoint(APIView):
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
             # and caught below.
-            response = super().handle_exception(exc)
+            response = self.handle_exception(exc)
         except Exception as err:
             import sys
             import traceback
@@ -341,29 +334,6 @@ class Endpoint(APIView):
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
-
-    def load_json_body(self, request: Request):
-        """
-        Attempts to load the request body when it's JSON.
-
-        The end result is ``request.json_body`` having a value. When it can't
-        load the body as JSON, for any reason, ``request.json_body`` is None.
-
-        The request flow is unaffected and no exceptions are ever raised.
-        """
-
-        request.json_body = None
-
-        if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
-            return
-
-        if not len(request.body):
-            return
-
-        try:
-            request.json_body = orjson.loads(request.body)
-        except orjson.JSONDecodeError:
-            return
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
@@ -398,9 +368,14 @@ class Endpoint(APIView):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
-            self.load_json_body(request)
+            # XXX: without this seemingly useless access to `.body` we are
+            # unable to access `request.body` later on due to `rest_framework`
+            # loading the request body via `request.read()`
+            request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
+
+        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
 
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).
@@ -456,7 +431,7 @@ class Endpoint(APIView):
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
-            response = self.handle_exception(request, exc)
+            response = self.handle_exception_with_details(request, exc)
 
         if origin:
             self.add_cors_headers(request, response)
@@ -597,7 +572,9 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin:
-    def _get_environment_func(self, request: Request, organization_id):
+    def _get_environment_func(
+        self, request: Request, organization_id: int
+    ) -> Callable[[], Environment | None]:
         """\
         Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
@@ -612,11 +589,15 @@ class EnvironmentMixin:
         """
         return functools.partial(self._get_environment_from_request, request, organization_id)
 
-    def _get_environment_id_from_request(self, request: Request, organization_id):
+    def _get_environment_id_from_request(
+        self, request: Request, organization_id: int
+    ) -> int | None:
         environment = self._get_environment_from_request(request, organization_id)
-        return environment and environment.id
+        return environment.id if environment is not None else None
 
-    def _get_environment_from_request(self, request: Request, organization_id):
+    def _get_environment_from_request(
+        self, request: Request, organization_id: int
+    ) -> Environment | None:
         if not hasattr(request, "_cached_environment"):
             environment_param = request.GET.get("environment")
             if environment_param is None:
@@ -631,8 +612,17 @@ class EnvironmentMixin:
         return request._cached_environment
 
 
+class StatsArgsDict(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+    environment_ids: list[int]
+
+
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+    def _parse_args(
+        self, request: Request, environment_id=None, restrict_rollups=True
+    ) -> StatsArgsDict:
         """
         Parse common stats parameters from the query string. This includes
         `since`, `until`, and `resolution`.

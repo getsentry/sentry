@@ -46,6 +46,8 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
+        assert not resp.data["options"]["prefersStackedNavigation"]
+        assert not resp.data["options"]["quickStartDisplay"]
 
     def test_superuser_simple(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -116,6 +118,8 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
+                "prefersStackedNavigation": True,
+                "quickStartDisplay": {self.organization.id: 1},
             },
         )
 
@@ -134,6 +138,13 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
+        )
+        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
+        assert (
+            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
+                str(self.organization.id)
+            )
+            == 1
         )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
@@ -199,6 +210,64 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
+
+    def test_saving_quick_start_display_option(self):
+        org1_id = str(self.organization.id)
+        org2_id = str(self.create_organization().id)
+
+        # 1 = Shown once (on the second visit)
+        self.get_success_response(
+            "me",
+            options={"quickStartDisplay": {org1_id: 1, org2_id: 2}},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org1_id)
+            == 1
+        )
+
+        # 2 = Hidden automatically after the second visit
+        self.get_success_response("me", options={"quickStartDisplay": {org1_id: 2}})
+        assert (
+            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org1_id)
+            == 2
+        )
+
+        # Validate that existing other orgs entries are not affected
+        assert (
+            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org2_id)
+            == 2
+        )
+
+        # Invalid values
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {org1_id: None}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {org1_id: -1}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {org1_id: 0}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {org1_id: 3}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {org1_id: "invalid"}},
+            status_code=400,
+        )
 
 
 @control_silo_test

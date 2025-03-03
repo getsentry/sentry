@@ -1,23 +1,25 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import AutofixInsightCards, {
-  useUpdateInsightCard,
-} from 'sentry/components/events/autofix/autofixInsightCards';
-import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
+import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
+import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
 import {
   AutofixRootCause,
-  useSelectCause,
+  replaceHeadersWithBold,
 } from 'sentry/components/events/autofix/autofixRootCause';
+import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixData,
   type AutofixProgressItem,
   type AutofixRepository,
+  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -35,12 +37,14 @@ interface StepProps {
   repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
+  shouldCollapseByDefault?: boolean;
 }
 
 interface AutofixStepsProps {
   data: AutofixData;
   groupId: string;
-  onRetry: () => void;
   runId: string;
 }
 
@@ -48,15 +52,6 @@ function isProgressLog(
   item: AutofixProgressItem | AutofixStep
 ): item is AutofixProgressItem {
   return 'message' in item && 'timestamp' in item;
-}
-
-function replaceHeadersWithBold(markdown: string) {
-  const headerRegex = /^(#{1,6})\s+(.*)$/gm;
-  const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
-    return ` **${content}** `;
-  });
-
-  return boldMarkdown;
 }
 
 export function Step({
@@ -67,6 +62,9 @@ export function Step({
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
+  shouldCollapseByDefault,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: StepProps) {
   return (
     <StepCard>
@@ -74,15 +72,20 @@ export function Step({
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
             <Fragment>
+              {hasErroredStepBefore && hasStepAbove && (
+                <StepMessage>
+                  {t('Autofix encountered an error. Restarting step from scratch...')}
+                </StepMessage>
+              )}
               {step.type === AutofixStepType.DEFAULT && (
                 <AutofixInsightCards
                   insights={step.insights}
-                  repos={repos}
                   hasStepBelow={hasStepBelow}
                   hasStepAbove={hasStepAbove}
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
+                  shouldCollapseByDefault={shouldCollapseByDefault}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -93,17 +96,30 @@ export function Step({
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
                   repos={repos}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                />
+              )}
+              {step.type === AutofixStepType.SOLUTION && (
+                <AutofixSolution
+                  groupId={groupId}
+                  runId={runId}
+                  solution={step.solution}
+                  solutionSelected={step.solution_selected}
+                  customSolution={step.custom_solution}
+                  repos={repos}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
-                <AutofixChanges step={step} groupId={groupId} runId={runId} />
-              )}
-              {hasErroredStepBefore && hasStepBelow && (
-                <StepMessage>
-                  Autofix encountered an error.
-                  <br />
-                  Restarting step from scratch...
-                </StepMessage>
+                <AutofixChanges
+                  step={step}
+                  groupId={groupId}
+                  runId={runId}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                />
               )}
             </Fragment>
           </AnimationWrapper>
@@ -117,190 +133,131 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
 
-  const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hasSeenBottom, setHasSeenBottom] = useState(false);
-  const [isBottomVisible, setIsBottomVisible] = useState(false);
-  const prevStepsLengthRef = useRef(0);
-  const prevInsightsCountRef = useRef(0);
 
-  const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
-  const selectRootCause = (text: string, isCustom?: boolean) => {
-    if (isCustom) {
-      handleSelectFix({customRootCause: text});
-    } else {
-      if (!steps) {
-        return;
-      }
-      const step = steps[steps.length - 1];
-      if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-        return;
-      }
-      const cause = step.causes[0];
-      const id = cause.id;
-      handleSelectFix({causeId: id, instruction: text});
-    }
-  };
-
-  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
-  const iterateOnChangesStep = (text: string) => {
-    const planStep = steps?.[steps.length - 2];
-    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
-      return;
-    }
-    sendFeedbackOnChanges({
-      step_index: planStep.index,
-      retain_insight_card_index: planStep.insights.length - 1,
-      message: text,
-    });
-  };
-
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsBottomVisible(entry.isIntersecting);
-        if (entry.isIntersecting) {
-          setHasSeenBottom(true);
-        }
-      },
-      {threshold: 0.1, root: null, rootMargin: '0px'}
-    );
-
-    if (bottomRef.current) {
-      observer.observe(bottomRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!steps) {
-      return;
-    }
-
-    const currentStepsLength = steps.length;
-    const currentInsightsCount = steps.reduce((count, step) => {
-      if (step.type === AutofixStepType.DEFAULT) {
-        return count + step.insights.length;
-      }
-      return count;
-    }, 0);
-
-    const hasNewSteps = currentStepsLength > prevStepsLengthRef.current;
-    const hasNewInsights = currentInsightsCount > prevInsightsCountRef.current;
-
-    if (hasNewSteps || hasNewInsights) {
-      if (!isBottomVisible) {
-        setHasSeenBottom(false);
-      }
-    }
-
-    prevStepsLengthRef.current = currentStepsLength;
-    prevInsightsCountRef.current = currentInsightsCount;
-  }, [steps, isBottomVisible]);
-
-  const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
-    setHasSeenBottom(true);
-  };
-
-  if (!steps) {
+  if (!steps?.length) {
     return null;
   }
 
+  if (data.status === AutofixStatus.ERROR) {
+    const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
+    const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
+
+    return (
+      <ErrorContainer>
+        <StyledArrow direction="down" size="sm" />
+        <ErrorMessage>
+          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
+        </ErrorMessage>
+      </ErrorContainer>
+    );
+  }
+
   const lastStep = steps[steps.length - 1];
-  const logs: AutofixProgressItem[] = lastStep.progress?.filter(isProgressLog) ?? [];
+  const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
-    lastStep.completedMessage ?? replaceHeadersWithBold(logs.at(-1)?.message ?? '') ?? '';
-
-  const isRootCauseSelectionStep =
-    lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-    lastStep.status === 'COMPLETED';
-
-  const isChangesStep =
-    lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
+    lastStep!.completedMessage ??
+    replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
+    '';
 
   return (
-    <div>
-      <StepsContainer ref={containerRef}>
-        {steps.map((step, index) => {
-          const previousStep = index > 0 ? steps[index - 1] : null;
-          const previousStepErrored =
-            previousStep !== null &&
-            previousStep?.type === step.type &&
-            previousStep.status === 'ERROR';
-          const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
-          const twoInsightStepsInARow =
-            nextStep?.type === AutofixStepType.DEFAULT &&
-            step.type === AutofixStepType.DEFAULT &&
-            step.insights.length > 0 &&
-            nextStep.insights.length > 0;
-          const twoNonDefaultStepsInARow =
-            previousStep &&
-            (previousStep?.type !== AutofixStepType.DEFAULT ||
-              previousStep?.insights.length === 0) &&
-            step.type !== AutofixStepType.DEFAULT;
-          return (
-            <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
-              {twoNonDefaultStepsInARow && <br />}
-              <Step
-                step={step}
-                hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
-                hasStepAbove={index > 0}
-                groupId={groupId}
-                runId={runId}
-                repos={repos}
-                hasErroredStepBefore={previousStepErrored}
-              />
-            </div>
-          );
-        })}
-      </StepsContainer>
+    <StepsContainer ref={containerRef}>
+      {steps.map((step, index) => {
+        const previousDefaultStepIndex = steps
+          .slice(0, index)
+          .findLastIndex(s => s.type === AutofixStepType.DEFAULT);
+        const previousDefaultStep =
+          previousDefaultStepIndex >= 0 ? steps[previousDefaultStepIndex] : undefined;
+        const previousInsightCount =
+          previousDefaultStep?.type === AutofixStepType.DEFAULT
+            ? previousDefaultStep.insights.length
+            : undefined;
 
-      <AutofixMessageBox
-        displayText={activeLog ?? ''}
-        step={lastStep}
-        responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
-        onSend={
-          !isRootCauseSelectionStep
-            ? !isChangesStep
-              ? null
-              : iterateOnChangesStep
-            : selectRootCause
-        }
-        actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
-        allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
-        groupId={groupId}
-        runId={runId}
-        primaryAction={isRootCauseSelectionStep}
-        isRootCauseSelectionStep={isRootCauseSelectionStep}
-        isChangesStep={isChangesStep}
-        scrollIntoView={!hasSeenBottom ? scrollToBottom : null}
-        scrollText={
-          lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
-            ? 'View Root Cause'
-            : lastStep.type === AutofixStepType.CHANGES
-              ? 'View Fix'
-              : 'New Insight'
-        }
-      />
-      <div ref={bottomRef} />
-    </div>
+        const previousStep = index > 0 ? steps[index - 1] : null;
+        const previousStepErrored =
+          previousStep !== null &&
+          previousStep?.type === step.type &&
+          previousStep.status === 'ERROR';
+        const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
+        const twoInsightStepsInARow =
+          nextStep?.type === AutofixStepType.DEFAULT &&
+          step.type === AutofixStepType.DEFAULT &&
+          step.insights.length > 0 &&
+          nextStep.insights.length > 0;
+        const stepBelowProcessingAndEmpty =
+          nextStep?.type === AutofixStepType.DEFAULT &&
+          nextStep?.status === 'PROCESSING' &&
+          nextStep?.insights?.length === 0;
+
+        return (
+          <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+            <Step
+              step={step}
+              hasStepBelow={
+                index + 1 < steps.length &&
+                !twoInsightStepsInARow &&
+                !stepBelowProcessingAndEmpty
+              }
+              hasStepAbove
+              groupId={groupId}
+              runId={runId}
+              repos={repos}
+              hasErroredStepBefore={previousStepErrored}
+              shouldCollapseByDefault={
+                step.type === AutofixStepType.DEFAULT &&
+                nextStep !== null &&
+                !twoInsightStepsInARow
+              }
+              previousDefaultStepIndex={
+                previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
+              }
+              previousInsightCount={previousInsightCount}
+            />
+          </div>
+        );
+      })}
+      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
+        <AutofixOutputStream
+          stream={lastStep!.output_stream ?? ''}
+          activeLog={activeLog}
+          groupId={groupId}
+          runId={runId}
+          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          isProcessing={lastStep!.status === 'PROCESSING'}
+        />
+      )}
+    </StepsContainer>
   );
 }
 
 const StepMessage = styled('div')`
   overflow: hidden;
-  padding: ${space(2)};
+  padding: ${space(1)};
   color: ${p => p.theme.subText};
-  justify-content: center;
-  text-align: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  justify-content: flex-start;
+  text-align: left;
 `;
 
-const StepsContainer = styled('div')`
-  margin-bottom: 13em;
+const ErrorMessage = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+`;
+
+const StepsContainer = styled('div')``;
+
+const ErrorContainer = styled('div')`
+  margin-top: ${space(1)};
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const StyledArrow = styled(IconArrow)`
+  color: ${p => p.theme.subText};
+  opacity: 0.5;
 `;
 
 const StepCard = styled('div')`

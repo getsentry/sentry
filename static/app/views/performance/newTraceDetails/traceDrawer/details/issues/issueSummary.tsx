@@ -37,7 +37,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
           <IconStar isSolid color="yellow400" />
         </IconWrapper>
       )}
-      <ErrorBoundary customComponent={<EventTitleError />} mini>
+      <ErrorBoundary customComponent={() => <EventTitleError />} mini>
         <StyledEventOrGroupTitle
           data={props.data}
           // hasSeen is undefined for GroupTombstone
@@ -99,7 +99,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
           level={'level' in data ? data.level : undefined}
           message={getMessage(data)}
           type={data.type}
-          levelIndicatorSize="9px"
+          levelIndicatorSize={9}
         />
       ) : null}
     </div>
@@ -131,7 +131,7 @@ const LocationWrapper = styled('div')`
   }
 `;
 
-function Location(props) {
+function Location(props: any) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>
@@ -153,11 +153,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: inline-flex;
   align-items: center;
+  ${p => p.theme.overflowEllipsis}
 `;
 const TitleWithoutLink = styled('span')`
-  display: inline-flex;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{

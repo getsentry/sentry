@@ -21,6 +21,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {isTransactionNode} from '../../../../traceGuards';
@@ -70,7 +72,7 @@ function SpanChild({
         }
 
         const target = transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: transactionResult.transaction,
           query: omit(location.query, Object.values(PAGE_URL_PARAM)),
           projectID: String(childTransaction.value.project_id),
@@ -101,7 +103,7 @@ function SpanChildrenTraversalButton({
   organization: Organization;
 }) {
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
@@ -145,7 +147,7 @@ function SpanChildrenTraversalButton({
       data-test-id="view-child-transactions"
       size="xs"
       to={childrenEventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
       )}
@@ -155,7 +157,7 @@ function SpanChildrenTraversalButton({
   );
 }
 
-export function getSpanAncestryAndGroupingItems({
+export function useSpanAncestryAndGroupingItems({
   node,
   onParentClick,
   location,
@@ -166,9 +168,10 @@ export function getSpanAncestryAndGroupingItems({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
+  const hasTraceNewUi = useHasTraceNewUi();
   const parentTransaction = useMemo(() => TraceTree.ParentTransaction(node), [node]);
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
@@ -191,24 +194,31 @@ export function getSpanAncestryAndGroupingItems({
     });
   }
 
-  items.push({
-    key: 'span_id',
-    value: (
-      <Fragment>
-        {span.span_id}
-        <CopyToClipboardButton borderless size="zero" iconSize="xs" text={span.span_id} />
-      </Fragment>
-    ),
-    subject: 'Span ID',
-    subjectNode: (
-      <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
-        <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
-          Span ID
-        </span>
-        <SpanChildrenTraversalButton node={node} organization={organization} />
-      </TraceDrawerComponents.FlexBox>
-    ),
-  });
+  if (!hasTraceNewUi) {
+    items.push({
+      key: 'span_id',
+      value: (
+        <Fragment>
+          {span.span_id}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={span.span_id}
+          />
+        </Fragment>
+      ),
+      subject: 'Span ID',
+      subjectNode: (
+        <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
+          <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
+            Span ID
+          </span>
+          <SpanChildrenTraversalButton node={node} organization={organization} />
+        </TraceDrawerComponents.FlexBox>
+      ),
+    });
+  }
 
   items.push({
     key: 'origin',
@@ -251,10 +261,21 @@ export function getSpanAncestryAndGroupingItems({
     });
   }
 
+  const spanGroup = defined(span.hash) ? String(span.hash) : null;
   items.push({
     key: 'same_group',
-    value: defined(span.hash) ? String(span.hash) : null,
+    value: spanGroup,
     subject: t('Span Group'),
+    actionButton: (
+      <TraceDrawerComponents.KeyValueAction
+        rowKey={SpanIndexedField.SPAN_GROUP}
+        rowValue={spanGroup}
+        projectIds={
+          childTransaction ? String(childTransaction.value.project_id) : undefined
+        }
+      />
+    ),
+    actionButtonAlwaysVisible: true,
   });
 
   return items;

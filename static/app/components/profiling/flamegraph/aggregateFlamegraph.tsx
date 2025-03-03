@@ -85,7 +85,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [flamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
@@ -224,6 +224,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         disableGrid
         disableCallOrderSort
         disableColorCoding
+        scheduler={props.scheduler}
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={props.canvasPoolManager}
         flamegraph={flamegraph}

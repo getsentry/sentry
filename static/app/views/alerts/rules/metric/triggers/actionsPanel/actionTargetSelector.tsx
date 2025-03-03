@@ -1,5 +1,5 @@
+import {Input} from 'sentry/components/core/input';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import type {SelectValue} from 'sentry/types/core';
@@ -52,7 +52,7 @@ export default function ActionTargetSelector(props: Props) {
 
   switch (action.targetType) {
     case TargetType.TEAM:
-    case TargetType.USER:
+    case TargetType.USER: {
       const isTeam = action.targetType === TargetType.TEAM;
 
       return isTeam ? (
@@ -73,7 +73,7 @@ export default function ActionTargetSelector(props: Props) {
           onChange={handleChangeTargetIdentifier}
         />
       );
-
+    }
     case TargetType.SPECIFIC:
       return availableAction?.options ? (
         <SelectControl

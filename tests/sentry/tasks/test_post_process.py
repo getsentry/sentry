@@ -19,9 +19,9 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
-from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
+from sentry.issues.auto_source_code_config.constants import SUPPORTED_LANGUAGES
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -55,7 +55,6 @@ from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
@@ -63,7 +62,6 @@ from sentry.tasks.post_process import (
     feedback_filter_decorator,
     locks,
     post_process_group,
-    process_event,
     run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -72,7 +70,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
-from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -222,6 +219,12 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
         data.setdefault("platform", "javascript")
         return self.store_event(data=data, project_id=project_id or self.project.id)
 
+    def _generate_node_data(self, filename: str) -> dict[str, Any]:
+        return {
+            "stacktrace": {"frames": [{"filename": f"src/{filename}.py", "in_app": True}]},
+            "platform": "python",
+        }
+
     def _call_post_process_group(self, event: Event) -> None:
         self.call_post_process_group(
             is_new=True,
@@ -230,48 +233,28 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_invalid_platform(self, mock_derive_code_mappings):
         event = self._create_event({"platform": "elixir"})
         self._call_post_process_group(event)
 
         assert mock_derive_code_mappings.delay.call_count == 0
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
         for platform in SUPPORTED_LANGUAGES:
-            event = self._create_event({"platform": platform})
+            event = self._create_event(self._generate_node_data("foo"))
             self._call_post_process_group(event)
 
             assert mock_derive_code_mappings.delay.call_count == 1
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event = self._create_event(
-            {
-                "fingerprint": ["themaiseymasieydog"],
-            },
-            dogs_project.id,
-        )
-        charlie_event = self._create_event(
-            {
-                "fingerprint": ["charliebear"],
-            },
-            dogs_project.id,
-        )
-        cory_event = self._create_event(
-            {
-                "fingerprint": ["thenudge"],
-            },
-            dogs_project.id,
-        )
-        bodhi_event = self._create_event(
-            {
-                "fingerprint": ["theescapeartist"],
-            },
-            dogs_project.id,
-        )
+        maisey_event = self._create_event(self._generate_node_data("themaiseydog"), dogs_project.id)
+        charlie_event = self._create_event(self._generate_node_data("charliebear"), dogs_project.id)
+        cory_event = self._create_event(self._generate_node_data("thenudge"), dogs_project.id)
+        bodhi_event = self._create_event(self._generate_node_data("escapeartist"), dogs_project.id)
 
         self._call_post_process_group(maisey_event)
         assert mock_derive_code_mappings.delay.call_count == 1
@@ -290,33 +273,17 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(bodhi_event)
             assert mock_derive_code_mappings.delay.call_count == 2
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event1 = self._create_event(
-            {
-                "fingerprint": ["themaiseymaiseydog"],
-            },
-            dogs_project.id,
-        )
-        maisey_event2 = self._create_event(
-            {
-                "fingerprint": ["themaiseymaiseydog"],
-            },
-            dogs_project.id,
-        )
-        maisey_event3 = self._create_event(
-            {
-                "fingerprint": ["themaiseymaiseydog"],
-            },
-            dogs_project.id,
-        )
-        maisey_event4 = self._create_event(
-            {
-                "fingerprint": ["themaiseymaiseydog"],
-            },
-            dogs_project.id,
-        )
+        data = {
+            "stacktrace": {"frames": [{"filename": "src/app/example.py", "in_app": True}]},
+            "platform": "python",
+        }
+        maisey_event1 = self._create_event(data, dogs_project.id)
+        maisey_event2 = self._create_event(data, dogs_project.id)
+        maisey_event3 = self._create_event(data, dogs_project.id)
+        maisey_event4 = self._create_event(data, dogs_project.id)
         # because of the fingerprint, the events should always end up in the same group,
         # but the rest of the test is bogus if they aren't, so let's be sure
         assert maisey_event1.group_id == maisey_event2.group_id
@@ -340,26 +307,15 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(maisey_event4)
             assert mock_derive_code_mappings.delay.call_count == 2
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event = self._create_event(
-            {
-                "fingerprint": ["themaiseymasieydog"],
-            },
-            dogs_project.id,
-        )
+        maisey_event = self._create_event(self._generate_node_data("themaiseydog"), dogs_project.id)
         charlie_event1 = self._create_event(
-            {
-                "fingerprint": ["charliebear"],
-            },
-            dogs_project.id,
+            self._generate_node_data("charliebear"), dogs_project.id
         )
         charlie_event2 = self._create_event(
-            {
-                "fingerprint": ["charliebear"],
-            },
-            dogs_project.id,
+            self._generate_node_data("charliebear"), dogs_project.id
         )
         # because of the fingerprint, the two Charlie events should always end up in the same group,
         # but the rest of the test is bogus if they aren't, so let's be sure
@@ -867,6 +823,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
+            "assigneeName": self.user.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
@@ -2201,6 +2158,54 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         self.assert_organization_key(self.organization, False)
 
 
+@patch("sentry.analytics.record")
+@patch("sentry.utils.metrics.incr")
+@patch("sentry.utils.metrics.distribution")
+class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
+    def test_set_has_flags(self, mock_dist, mock_incr, mock_record):
+        project = self.create_project()
+        event_id = "a" * 32
+        event = self.create_event(
+            data={
+                "event_id": event_id,
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {
+                                "flag": "test-flag-1",
+                                "result": False,
+                            },
+                            {
+                                "flag": "test-flag-2",
+                                "result": True,
+                            },
+                        ]
+                    }
+                },
+            },
+            project_id=project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        project.refresh_from_db()
+        assert project.flags.has_flags
+
+        mock_incr.assert_any_call("feature_flags.event_has_flags_context")
+        mock_dist.assert_any_call("feature_flags.num_flags_sent", 2)
+        mock_record.assert_called_with(
+            "first_flag.sent",
+            organization_id=self.organization.id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated(self, mock_run_post_process_job):
@@ -2436,9 +2441,23 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
             return
         raise AssertionError("Expected safe_execute to not be called with similarity.record")
 
-    @with_feature("projects:similarity-embeddings")
     @patch("sentry.tasks.post_process.safe_execute")
     def test_skip_process_similarity(self, mock_safe_execute):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    @override_options({"sentry.similarity.indexing.enabled": False})
+    def test_skip_process_similarity_global(self, mock_safe_execute):
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
@@ -2469,6 +2488,7 @@ class PostProcessGroupErrorTest(
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
     ProcessSimilarityTestMixin,
+    CheckIfFlagsSentTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2568,47 +2588,6 @@ class PostProcessGroupPerformanceTest(
             )
         return cache_key
 
-    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    @patch("sentry.tasks.post_process.run_post_process_job")
-    @patch("sentry.rules.processing.processor.RuleProcessor")
-    @patch("sentry.signals.transaction_processed.send_robust")
-    @patch("sentry.signals.event_processed.send_robust")
-    def test_process_transaction_event_with_no_group(
-        self,
-        event_processed_signal_mock,
-        transaction_processed_signal_mock,
-        mock_processor,
-        run_post_process_job_mock,
-        generic_metrics_backend_mock,
-    ):
-        min_ago = before_now(minutes=1)
-        event = store_transaction(
-            test_case=self,
-            project_id=self.project.id,
-            user_id=self.create_user(name="user1").name,
-            fingerprint=[],
-            environment=None,
-            timestamp=min_ago,
-        )
-        assert len(event.groups) == 0
-        cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=None,
-            group_states=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-
-        assert transaction_processed_signal_mock.call_count == 1
-        assert event_processed_signal_mock.call_count == 0
-        assert mock_processor.call_count == 0
-        assert run_post_process_job_mock.call_count == 0
-        assert generic_metrics_backend_mock.call_count == 0
-
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
     @patch("sentry.tasks.post_process.process_rules")
@@ -2648,7 +2627,6 @@ class PostProcessGroupPerformanceTest(
             eventstream_type=EventStreamEventType.Error,
         )
 
-        assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 1
@@ -2695,44 +2673,6 @@ class PostProcessGroupAggregateEventTest(
                 eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
-
-
-class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-    def test_process_transaction_event_clusterer(
-        self,
-        mock_store_transaction_name,
-    ):
-        min_ago = before_now(minutes=1)
-        event = process_event(
-            data={
-                "project": self.project.id,
-                "event_id": "b" * 32,
-                "transaction": "foo",
-                "start_timestamp": str(min_ago),
-                "timestamp": str(min_ago),
-                "type": "transaction",
-                "transaction_info": {
-                    "source": "url",
-                },
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            group_id=0,
-        )
-        cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-
-        assert mock_store_transaction_name.mock_calls == [
-            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
-        ]
 
 
 class PostProcessGroupGenericTest(

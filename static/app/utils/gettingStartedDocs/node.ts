@@ -1,5 +1,5 @@
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 export type ProductSelectionMap = Record<ProductSolution, boolean>;
 
@@ -152,7 +152,7 @@ export function getDefaultNodeImports({
 
 export function getImportInstrumentSnippet(
   defaultMode?: 'esm' | 'cjs',
-  fileExtension: string = 'js'
+  fileExtension = 'js'
 ): string {
   const filename = `instrument.${fileExtension}`;
 
@@ -216,13 +216,36 @@ Sentry.init({
       tracesSampleRate: 1.0, //  Capture 100% of the transactions\n`
       : ''
   }${
-    params.isProfilingSelected
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
     // Set sampling rate for profiling - this is relative to tracesSampleRate
     profilesSampleRate: 1.0,`
       : ''
-  }});
-`;
+  }});${
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
+// Manually call startProfiler and stopProfiler
+// to profile the code in between
+Sentry.profiler.startProfiler();
+${
+  params.isPerformanceSelected
+    ? `
+// Starts a transaction that will also be profiled
+Sentry.startSpan({
+  name: "My First Transaction",
+}, () => {
+  // the code executing inside the transaction will be wrapped in a span and profiled
+});
+`
+    : '// this code will be profiled'
+}
+// Calls to stopProfiling are optional - if you don't stop the profiler, it will keep profiling
+// your application until the process exits or stopProfiling is called.
+Sentry.profiler.stopProfiler();`
+      : ''
+  }`;
 
 export function getProductIntegrations({
   productSelection,

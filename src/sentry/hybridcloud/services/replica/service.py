@@ -75,6 +75,11 @@ class RegionReplicaService(RpcService):
 
     @regional_rpc_method(resolve=ByRegionName())
     @abc.abstractmethod
+    def delete_replicated_api_token(self, *, apitoken_id: int, region_name: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
     def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
         pass
 

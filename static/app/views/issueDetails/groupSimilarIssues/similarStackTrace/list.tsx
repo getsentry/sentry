@@ -19,12 +19,13 @@ import Item from './item';
 import Toolbar from './toolbar';
 
 type DefaultProps = {
-  filteredItems: Array<SimilarItem>;
+  filteredItems: SimilarItem[];
 };
 
 type Props = {
   groupId: string;
-  items: Array<SimilarItem>;
+  hasSimilarityEmbeddingsFeature: boolean;
+  items: SimilarItem[];
   location: Location;
   onMerge: () => void;
   orgId: Organization['id'];
@@ -53,15 +54,13 @@ function List({
   pageLinks,
   onMerge,
   location,
+  hasSimilarityEmbeddingsFeature,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
 
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
-  const hasSimilarityEmbeddingsFeature =
-    project.features.includes('similarity-embeddings') ||
-    location.query.similarityEmbeddings === '1';
   const organization = useOrganization();
   const itemsWouldGroup = hasSimilarityEmbeddingsFeature
     ? itemsWithFiltered.map(item => ({
@@ -97,7 +96,7 @@ function List({
           project={project}
           organization={organization}
           itemsWouldGroup={itemsWouldGroup}
-          location={location}
+          hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
 
         <PanelBody>
@@ -108,6 +107,7 @@ function List({
               groupId={groupId}
               project={project}
               location={location}
+              hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
               {...item}
             />
           ))}

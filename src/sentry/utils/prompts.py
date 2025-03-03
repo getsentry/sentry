@@ -19,8 +19,11 @@ DEFAULT_PROMPTS = {
     "data_consent_banner": {"required_fields": ["organization_id"]},
     "data_consent_priority": {"required_fields": ["organization_id"]},
     "issue_replay_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
+    "issue_feature_flags_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
     "issue_feedback_hidden": {"required_fields": ["organization_id", "project_id"]},
     "issue_views_add_view_banner": {"required_fields": ["organization_id"]},
+    "stacked_navigation_banner": {"required_fields": ["organization_id"]},
+    "stacked_navigation_help_menu": {"required_fields": ["organization_id"]},
 }
 
 

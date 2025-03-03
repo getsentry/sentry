@@ -11,6 +11,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -123,7 +124,7 @@ function VitalChart({
                 }
 
                 const colors =
-                  (results && theme.charts.getColorPalette(results.length - 2)) || [];
+                  (results && getChartColorPalette(results.length - 2)) || [];
 
                 const {smoothedResults} = transformEventStatsSmoothed(results);
 
@@ -184,7 +185,7 @@ function VitalChart({
 
 export default VitalChart;
 
-export type _VitalChartProps = {
+export type VitalChartInnerProps = {
   field: string;
   grid: LineChartProps['grid'];
   loading: boolean;
@@ -201,7 +202,7 @@ export type _VitalChartProps = {
 
 function fieldToVitalType(
   seriesName: string,
-  vitalFields: _VitalChartProps['vitalFields']
+  vitalFields: VitalChartInnerProps['vitalFields']
 ): VitalState | undefined {
   if (seriesName === vitalFields?.poorCountField.replace('equation|', '')) {
     return VitalState.POOR;
@@ -216,7 +217,7 @@ function fieldToVitalType(
   return undefined;
 }
 
-export function _VitalChart(props: _VitalChartProps) {
+export function VitalChartInner(props: VitalChartInnerProps) {
   const {
     field: yAxis,
     data: _results,
@@ -243,6 +244,7 @@ export function _VitalChart(props: _VitalChartProps) {
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           aggregateOutputType(vitalFields[0] === WebVital.CLS ? seriesName : yAxis)
         );
       },
@@ -272,6 +274,7 @@ export function _VitalChart(props: _VitalChartProps) {
         return {
           seriesName: adjustedSeries,
           ...rest,
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           color: theme[vitalStateColors[adjustedSeries]],
           lineStyle: {
             opacity: 1,

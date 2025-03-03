@@ -1,7 +1,11 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
-import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 
 import {isSpanNode, isTransactionNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
@@ -25,6 +29,25 @@ function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefine
   return TraceTree.ParentTransaction(node)?.value?.event_id;
 }
 
+export function makeTransactionProfilingLink(
+  profileId: string,
+  options: {
+    organization: Organization;
+    projectSlug: string;
+  },
+  query: Location['query'] = {}
+): LocationDescriptor | null {
+  if (!options.projectSlug || !options.organization) {
+    return null;
+  }
+  return generateProfileFlamechartRouteWithQuery({
+    organization: options.organization,
+    projectSlug: options.projectSlug,
+    profileId,
+    query,
+  });
+}
+
 /**
  * Generates a link to a continuous profile for a given trace element type
  */
@@ -32,14 +55,14 @@ export function makeTraceContinuousProfilingLink(
   node: TraceTreeNode<TraceTree.NodeValue>,
   profilerId: string,
   options: {
-    orgSlug: string;
+    organization: Organization;
     projectSlug: string;
     threadId: string | undefined;
     traceId: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.orgSlug) {
+  if (!options.projectSlug || !options.organization) {
     return null;
   }
 
@@ -97,9 +120,9 @@ export function makeTraceContinuousProfilingLink(
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery({
-    orgSlug: options.orgSlug,
+    organization: options.organization,
     projectSlug: options.projectSlug,
-    profilerId: profilerId,
+    profilerId,
     start: start.toISOString(),
     end: end.toISOString(),
     query: queryWithEventData,

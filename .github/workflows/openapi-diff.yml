@@ -15,7 +15,7 @@ env:
 jobs:
   check-diff:
     name: (Optional) Shows the difference between the prod and dev schema
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -29,6 +29,8 @@ jobs:
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Checkout getsentry/sentry-api-schema

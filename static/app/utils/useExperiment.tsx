@@ -34,13 +34,11 @@ export type UseExperiment = <E extends ExperimentKey>(
   options?: UseExperimentOptions
 ) => UseExperimentReturnValue<E>;
 
-const DEFAULT_RETURN_VALUE = {
-  experimentAssignment: unassignedValue,
-  logExperiment: noop,
-};
-
 export const useExperiment: UseExperiment = (...params) => {
   return (
-    HookStore.get('react-hook:use-experiment')[0]?.(...params) ?? DEFAULT_RETURN_VALUE
+    HookStore.get('react-hook:use-experiment')[0]?.(...params) ?? {
+      experimentAssignment: unassignedValue,
+      logExperiment: noop,
+    }
   );
 };

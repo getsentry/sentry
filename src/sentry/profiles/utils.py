@@ -1,3 +1,4 @@
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from types import TracebackType
 from typing import Any, Self
@@ -8,15 +9,16 @@ import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
-from parsimonious.exceptions import ParseError
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
-from sentry.api.event_search import SearchFilter, parse_search_query
-from sentry.exceptions import InvalidSearchQuery
+from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
 from sentry.utils.sdk import set_measurement
+
+Profile = MutableMapping[str, Any]
+CallTrees = Mapping[str, list[Any]]
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -151,23 +153,37 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> dict[str, str]:
-    try:
-        parsed_terms = parse_search_query(query)
-    except ParseError as e:
-        raise InvalidSearchQuery(f"Parse error: {e}")
-
-    profile_filters: dict[str, str] = {}
-
-    for term in parsed_terms:
-        if not isinstance(term, SearchFilter):
-            raise InvalidSearchQuery("Invalid query: Unknown filter")
-        if term.operator != "=":  # only support equality filters
-            raise InvalidSearchQuery("Invalid query: Illegal operator")
-        if term.key.name not in PROFILE_FILTERS:
-            raise InvalidSearchQuery(f"Invalid query: {term.key.name} is not supported")
-        if term.key.name in profile_filters and term.value.value != profile_filters[term.key.name]:
-            raise InvalidSearchQuery(f"Invalid query: Multiple filters for {term.key.name}")
-        profile_filters[term.key.name] = term.value.value
-
-    return profile_filters
+# This support applying a subset of stack trace rules to the profile (matchers and actions).
+#
+# Matchers allowed:
+#
+#     stack.abs_path
+#     stack.module
+#     stack.function
+#     stack.package
+#
+# Actions allowed:
+#
+#     +app
+#     -app
+def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> None:
+    profiling_rules = keep_profiling_rules(rules_config)
+    if profiling_rules == "":
+        return
+    enhancements = Enhancements.from_config_string(profiling_rules)
+    if "version" in profile:
+        enhancements.apply_category_and_updated_in_app_to_frames(
+            profile["profile"]["frames"], profile["platform"], {}
+        )
+    elif profile["platform"] == "android":
+        # Set the fields that Enhancements expect
+        # with the right names.
+        # Sample format already has the right fields,
+        # for android we need to create aliases.
+        for method in profile["profile"]["methods"]:
+            method["function"] = method.get("name", "")
+            method["abs_path"] = method.get("source_file", "")
+            method["module"] = method.get("class_name", "")
+        enhancements.apply_category_and_updated_in_app_to_frames(
+            profile["profile"]["methods"], profile["platform"], {}
+        )

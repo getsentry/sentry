@@ -7,10 +7,10 @@ import requests
 from django.conf import settings
 from pydantic import BaseModel
 
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
 
@@ -26,10 +26,23 @@ class AutofixRequest(TypedDict):
 class AutofixStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     ERROR = "ERROR"
-    PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
     CANCELLED = "CANCELLED"
+    WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
+
+
+class FileChange(BaseModel):
+    path: str
+    content: str | None = None
+    is_deleted: bool = False
+
+
+class CodebaseState(BaseModel):
+    repo_external_id: str | None = None
+    file_changes: list[FileChange] = []
+    is_readable: bool | None = None
+    is_writeable: bool | None = None
 
 
 class AutofixState(BaseModel):
@@ -38,6 +51,7 @@ class AutofixState(BaseModel):
     updated_at: datetime.datetime
     status: AutofixStatus
     actor_ids: list[str] | None = None
+    codebases: dict[str, CodebaseState] = {}
 
     class Config:
         extra = "allow"
@@ -81,16 +95,12 @@ def get_autofix_state(
         }
     )
 
-    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        url,
+        f"{settings.SEER_AUTOFIX_URL}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(
-                salt,
-                body=body,
-            ),
+            **sign_with_seer_secret(body),
         },
     )
 
@@ -119,16 +129,12 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         }
     ).encode("utf-8")
 
-    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        url,
+        f"{settings.SEER_AUTOFIX_URL}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(
-                salt=salt,
-                body=body,
-            ),
+            **sign_with_seer_secret(body),
         },
     )
 

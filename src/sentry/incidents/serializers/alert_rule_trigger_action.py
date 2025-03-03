@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
@@ -14,9 +15,9 @@ from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.integrations.slack.utils.channel import validate_channel_id
-from sentry.models.notificationaction import ActionService
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -193,13 +194,15 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     def create(self, validated_data):
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
-
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
         except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_str(e))
+        except ValidationError as e:
+            # invalid action type
+            raise serializers.ValidationError(str(e))
 
         analytics.record(
             "metric_alert_with_ui_component.created",
@@ -207,6 +210,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             alert_rule_id=getattr(self.context["alert_rule"], "id"),
             organization_id=getattr(self.context["organization"], "id"),
         )
+
         return action
 
     def update(self, instance, validated_data):

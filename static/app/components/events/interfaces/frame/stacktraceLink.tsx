@@ -27,15 +27,18 @@ import useProjects from 'sentry/utils/useProjects';
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
+// Keep this list in sync with SUPPORTED_LANGUAGES in code_mapping.py
 const supportedStacktracePlatforms: PlatformKey[] = [
+  'csharp',
+  'elixir',
   'go',
   'javascript',
   'node',
   'php',
   'python',
   'ruby',
-  'elixir',
 ];
+const scmProviders = ['github', 'gitlab'];
 
 function shouldShowCodecovFeatures(
   organization: Organization,
@@ -200,7 +203,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       const url = new URL(sourceLink);
       const hostname = url.hostname;
       const parts = hostname.split('.');
-      const domain = parts.length > 1 ? parts[1] : '';
+      const domain = parts.length > 1 ? parts[1]! : '';
       trackAnalytics(
         'integrations.non_inapp_stacktrace_link_clicked',
         {
@@ -223,7 +226,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     return null;
   }
 
-  // Render the provided `sourceLink` for all the non-inapp frames for `csharp` platform Issues
+  // Render the provided `sourceLink` for all the non-in-app frames for `csharp` platform Issues
   // We skip fetching from the API for these frames.
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
@@ -260,7 +263,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
             match.config.provider.key,
-            match!.sourceUrl,
+            match.sourceUrl,
             frame.lineNo
           )}
           openInNewTab
@@ -332,7 +335,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     }
 
     const sourceCodeProviders = match.integrations.filter(integration =>
-      ['github', 'gitlab'].includes(integration.provider?.key)
+      scmProviders.includes(integration.provider?.key)
     );
     return (
       <StacktraceLinkWrapper>
@@ -340,7 +343,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           priority="link"
           icon={
             sourceCodeProviders.length === 1
-              ? getIntegrationIcon(sourceCodeProviders[0].provider.key, 'sm')
+              ? getIntegrationIcon(sourceCodeProviders[0]!.provider.key, 'sm')
               : undefined
           }
           onClick={() => {
@@ -349,7 +352,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
-                provider: sourceCodeProviders[0]?.provider.key,
+                provider: sourceCodeProviders[0]?.provider.key!,
                 setup_type: 'automatic',
                 organization,
                 ...getAnalyticsDataForEvent(event),

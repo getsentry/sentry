@@ -30,8 +30,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -39,6 +38,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
@@ -112,12 +112,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         plugins.unregister(GitHubPlugin)
         super().tearDown()
 
-    def assert_failure_metric(self, mock_record, error_msg):
-        (event_failures,) = (
-            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
-        )
-        assert event_failures.args[1]["failure_reason"] == error_msg
-
     @pytest.fixture(autouse=True)
     def stub_get_jwt(self):
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
@@ -145,6 +139,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         repositories: dict[str, Any] = {
             "xyz": {
+                "name": "xyz",
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",
             },
@@ -372,7 +367,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
                 in resp.content
             )
-            self.assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
+            assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
@@ -413,7 +408,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
         )
         assert b"Invalid state" in resp.content
-        self.assert_failure_metric(mock_record, GitHubInstallationError.INVALID_STATE)
+        assert_failure_metric(mock_record, GitHubInstallationError.INVALID_STATE)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -474,7 +469,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
             assert b"Authenticated user is not the same as who installed the app" in resp.content
-            self.assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
+            assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
@@ -544,7 +539,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories(fetch_max_pages=True)
+            result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
                 {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
@@ -562,7 +557,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
+        with (
+            patch.object(
+                sentry.integrations.github.client.GitHubBaseClient, "page_number_limit", 1
+            ),
+            patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1),
+        ):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -763,7 +763,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             in resp.content
         )
 
-        self.assert_failure_metric(mock_record, GitHubInstallationError.PENDING_DELETION)
+        assert_failure_metric(mock_record, GitHubInstallationError.PENDING_DELETION)
 
         # Delete the original Integration
         oi.delete()
@@ -832,7 +832,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
         ]
         for repo, branch, files in list:
-            result[f"{self.gh_org}/{repo}"] = RepoTree(Repo(f"{self.gh_org}/{repo}", branch), files)
+            result[f"{self.gh_org}/{repo}"] = RepoTree(
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch), files
+            )
         return result
 
     def _expected_cached_repos(self):
@@ -850,7 +852,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
         self.set_rate_limit()
         expected_trees = self._expected_trees()
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
@@ -869,7 +871,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
         """Some repos will hit the network but the rest will grab from the cache."""
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         cache.clear()
         installation = self.get_installation_helper()
         expected_trees = self._expected_trees(
@@ -882,7 +884,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ]
         )
 
-        with patch("sentry.integrations.github.client.MINIMUM_REQUESTS", new=5, autospec=False):
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MINIMUM_REQUESTS_REMAINING",
+            new=5,
+            autospec=False,
+        ):
             # We start with one request left before reaching the minimum remaining requests floor
             self.set_rate_limit(remaining=6)
             assert cache.get(repos_key) is None
@@ -971,7 +977,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
 
@@ -1005,7 +1011,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
 
@@ -1156,4 +1162,36 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert (
             installation.extract_source_path_from_source_url(repo, source_url)
             == "src/sentry/integrations/github/integration.py"
+        )
+
+    @responses.activate
+    def test_get_stacktrace_link_with_special_chars(self):
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/[id]/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/%5Bid%5D/test.py"
         )

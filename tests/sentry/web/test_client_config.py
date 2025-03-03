@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import urllib.parse
 from typing import Any
 
 import pytest
 from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
+from django.urls import get_resolver
 
 from sentry import options
 from sentry.app import env
@@ -72,6 +74,13 @@ multiregion_client_config_test = control_silo_test(
     regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
     include_monolith_run=True,
 )
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_default():
+    cfg = get_client_config()
+    assert cfg["sentryMode"] == "SELF_HOSTED"
 
 
 @multiregion_client_config_test
@@ -353,3 +362,26 @@ def test_project_key_default():
 
     with override_settings(SENTRY_PROJECT=project.id):
         assert get_client_config()["dsn"] == project_key.dsn_public
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_no_preload_data_if_accept_invitation_view():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    member = Factories.create_member(
+        user=None,
+        email=user.email,
+        organization=Factories.create_organization(name="test-org"),
+        role="owner",
+    )
+    invite_url = member.get_invite_link()
+    invite_path = urllib.parse.urlparse(invite_url).path
+    resolver = get_resolver()
+    request.path = invite_path
+    request.resolver_match = resolver.resolve(invite_path)
+
+    client_config = get_client_config(request)
+
+    assert client_config["shouldPreloadData"] is False
