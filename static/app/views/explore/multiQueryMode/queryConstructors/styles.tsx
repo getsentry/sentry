@@ -3,9 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-export const Section = styled('div')`
-  margin-bottom: ${space(2)};
-`;
+export const Section = styled('div')``;
 
 export const SectionHeader = styled('div')`
   display: flex;

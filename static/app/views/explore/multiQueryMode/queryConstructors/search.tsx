@@ -27,7 +27,7 @@ export function SearchBarSection({query, index}: Props) {
   return (
     <Section data-test-id={`section-filter-${index}`}>
       <SectionHeader>
-        <SectionLabel underlined={false}>{t('Filter')}</SectionLabel>
+        <SectionLabel>{t('Filter')}</SectionLabel>
       </SectionHeader>
       <EAPSpanSearchQueryBuilder
         projects={selection.projects}
