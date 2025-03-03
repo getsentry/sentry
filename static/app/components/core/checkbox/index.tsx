@@ -4,18 +4,6 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {FormSize} from 'sentry/utils/theme';
 
-export interface CheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
-  /**
-   * Is the checkbox active? Supports 'indeterminate'
-   */
-  checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
-  /**
-   * The size of the checkbox. Defaults to 'sm'.
-   */
-  size?: FormSize;
-}
-
 type CheckboxConfig = {
   borderRadius: string;
   box: string;
@@ -27,6 +15,18 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   sm: {box: '16px', borderRadius: '4px', icon: '12px'},
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
+
+export interface CheckboxProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
+  /**
+   * Is the checkbox active? Supports 'indeterminate'
+   */
+  checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
+  /**
+   * The size of the checkbox. Defaults to 'sm'.
+   */
+  size?: FormSize;
+}
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({checked = false, size = 'sm', className, ...props}, ref) => {
