@@ -44,7 +44,27 @@ function HeaderCell({column, sort}: Props) {
       );
 
     case ReplayColumn.COUNT_ERRORS:
-      return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
+      return (
+        <SortableHeader
+          sort={sort}
+          fieldName="count_errors"
+          label={t('Errors')}
+          tooltip={tct(
+            'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
+            {
+              inboundFilters: (
+                <ExternalLink href="https://docs.sentry.io/concepts/data-management/filtering/" />
+              ),
+              replayIssue: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/replay-issues/" />
+              ),
+              perfIssue: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/performance-issues/" />
+              ),
+            }
+          )}
+        />
+      );
 
     case ReplayColumn.COUNT_RAGE_CLICKS:
       return (
