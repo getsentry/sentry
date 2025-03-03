@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -19,6 +19,8 @@ function SchemaHintsList({
   numberTags,
   stringTags,
 }: SchemaHintsListProps) {
+  const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
+
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
@@ -35,19 +37,55 @@ function SchemaHintsList({
       .filter(tag => !tag?.key.startsWith('tags['));
   }, [filterTags]);
 
-  // only show 8 tags for now until we have a better way to decide to display them
-  const first8Tags = useMemo(() => {
-    return filterTagsWithoutTagPrefix.slice(0, 8);
+  const [visibleHints, setVisibleHints] = useState(filterTagsWithoutTagPrefix);
+
+  useEffect(() => {
+    const calculateVisibleHints = () => {
+      if (!schemaHintsContainerRef.current) {
+        return;
+      }
+
+      const containerWidth = schemaHintsContainerRef.current.offsetWidth;
+      let currentWidth = 0;
+      const gap = 8;
+      const averageHintWidth = 250;
+
+      const visibleItems = filterTagsWithoutTagPrefix.filter((_hint, index) => {
+        const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
+        if (!element) {
+          if (containerWidth - currentWidth >= averageHintWidth) {
+            currentWidth += averageHintWidth + (index > 0 ? gap : 0);
+            return true;
+          }
+          return false;
+        }
+
+        const itemWidth = element.offsetWidth;
+        currentWidth += itemWidth + (index > 0 ? gap : 0);
+
+        return currentWidth <= containerWidth;
+      });
+
+      setVisibleHints(visibleItems);
+    };
+
+    calculateVisibleHints();
+
+    const resizeObserver = new ResizeObserver(calculateVisibleHints);
+    if (schemaHintsContainerRef.current) {
+      resizeObserver.observe(schemaHintsContainerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
   }, [filterTagsWithoutTagPrefix]);
 
-  const tagHintsText = useMemo(() => {
-    return first8Tags.map(tag => `${tag?.key} is ...`);
-  }, [first8Tags]);
-
   return (
-    <SchemaHintsContainer>
-      {tagHintsText.map(text => (
-        <SchemaHintOption key={text}>{text}</SchemaHintOption>
+    <SchemaHintsContainer ref={schemaHintsContainerRef}>
+      {visibleHints.map((hint, index) => (
+        <SchemaHintOption
+          key={index}
+          data-type={hint?.key}
+        >{`${hint?.key} is ...`}</SchemaHintOption>
       ))}
     </SchemaHintsContainer>
   );
@@ -59,6 +97,12 @@ const SchemaHintsContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  flex-wrap: nowrap;
+  overflow: hidden;
+
+  > * {
+    flex-shrink: 0;
+  }
 `;
 
 const SchemaHintOption = styled(Button)`
