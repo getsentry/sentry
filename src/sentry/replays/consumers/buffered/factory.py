@@ -11,7 +11,7 @@ from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyF
 from arroyo.types import Commit as ArroyoCommit
 from arroyo.types import Partition
 
-from sentry.replays.consumers.buffered.consumer import Flags, recording_runtime
+from sentry.replays.consumers.buffered.consumer import Flags, recording_consumer
 from sentry.replays.consumers.buffered.platform import PlatformStrategy
 
 
@@ -29,4 +29,4 @@ class PlatformStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: ArroyoCommit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return PlatformStrategy(commit=commit, flags=self.flags, runtime=recording_runtime)
+        return PlatformStrategy(commit=commit, flags=self.flags, runtime=recording_consumer)

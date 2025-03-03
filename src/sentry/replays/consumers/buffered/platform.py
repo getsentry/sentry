@@ -1,7 +1,7 @@
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Callable, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import CommitOffsets, ProcessingStrategy
@@ -25,7 +25,7 @@ class PlatformStrategy(ProcessingStrategy[KafkaPayload]):
         self.__closed = False
         self.__runtime = runtime
 
-    def handle_commit_request(self, offsets: Mapping[Partition, int]) -> None:
+    def handle_commit_request(self, offsets: MutableMapping[Partition, int]) -> None:
         self.__commit_step.submit(Message(Value(None, offsets, datetime.now())))
 
     def submit(self, message: Message[KafkaPayload]) -> None:
@@ -51,7 +51,7 @@ class PlatformStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_step.join(timeout)
 
 
-CommitProtocol = Callable[[Mapping[Partition, int]], None]
+CommitProtocol = Callable[[MutableMapping[Partition, int]], None]
 
 # A Model represents the state of your application. It is a type variable and the RunTime is
 # generic over it. Your state can be anything from a simple integer to a large class with many
@@ -62,7 +62,11 @@ Model = TypeVar("Model")
 # and optionally issue commands to the RunTime.
 Msg = TypeVar("Msg")
 
+# A generic type representing the structure of the flags passed to the RunTime instance.
 Flags = TypeVar("Flags")
+
+# A generic type of unknown origins not tied to anything in the platform.
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -78,10 +82,22 @@ class Commit(Generic[Msg]):
     offsets: MutableMapping[Partition, int]
 
 
-class Nothing:
-    """Instructs the RunTime to do nothing. Equivalent to a null command."""
+@dataclass(frozen=True)
+class Effect(Generic[Msg]):
+    """Instructs the RunTime to perform a managed effect.
 
-    pass
+    If the RunTime performs an effect for the application it means the RunTime can dictate if the
+    effect blocks the application, if the effect executes at all, or perform any additional
+    operations before or after the effect. This has significant implications for RunTime
+    performance and application testability.
+    """
+
+    fun: Callable[[], Any]
+    msg: Callable[[Any], Msg]
+
+
+class Nothing:
+    """Instructs the RunTime to do nothing."""
 
 
 @dataclass(frozen=True)
@@ -94,7 +110,7 @@ class Task(Generic[Msg]):
 # A "Cmd" is the union of all the commands an application can issue to the RunTime. The RunTime
 # accepts these commands and handles them in some pre-defined way. Commands are fixed and can not
 # be registered on a per application basis.
-Cmd = Commit[Msg] | Nothing | Task[Msg]
+Cmd = Commit[Msg] | Effect[Msg] | Task[Msg]
 
 
 @dataclass(frozen=True)
@@ -106,7 +122,7 @@ class Join(Generic[Msg]):
     events and handle them in the way they see fit.
     """
 
-    msg: Msg
+    msg: Callable[[], Msg]
     name = "join"
 
 
@@ -118,7 +134,7 @@ class Poll(Generic[Msg]):
     these events and choose to act on them.
     """
 
-    msg: Msg
+    msg: Callable[[], Msg]
     name = "poll"
 
 
@@ -142,7 +158,7 @@ class RunTime(Generic[Model, Msg, Flags]):
     def __init__(
         self,
         init: Callable[[Flags], tuple[Model, Cmd[Msg] | None]],
-        process: Callable[[Model, bytes, Mapping[Partition, int]], Msg | None],
+        process: Callable[[Model, bytes, MutableMapping[Partition, int]], Msg | None],
         subscription: Callable[[Model], list[Sub[Msg]]],
         update: Callable[[Model, Msg], tuple[Model, Cmd[Msg] | None]],
     ) -> None:
@@ -151,41 +167,47 @@ class RunTime(Generic[Model, Msg, Flags]):
         self.subscription = subscription
         self.update = update
 
-        self.__commit: CommitProtocol | None = None
-        self.__model: Model | None = None
-        self.__subscriptions: dict[str, Sub[Msg]] = {}
+        self._commit: CommitProtocol | None = None
+        self._model: Model | None = None
+        self._subscriptions: dict[str, Sub[Msg]] = {}
 
     @property
     def commit(self) -> CommitProtocol:
-        assert self.__commit is not None
-        return self.__commit
+        assert self._commit is not None
+        return self._commit
 
     @property
     def model(self) -> Model:
-        assert self.__model is not None
-        return self.__model
+        assert self._model is not None
+        return self._model
 
+    # NOTE: Could this be a factory function that produces RunTimes instead? That way we don't need
+    # the assert checks on model and commit.
     def setup(self, flags: Flags, commit: CommitProtocol) -> None:
-        # NOTE: Could this be a factory function that produces RunTimes instead? That way we
-        #       don't need the assert checks on model and commit.
-        self.__commit = commit
+        self._commit = commit
 
         model, cmd = self.init(flags)
-        self.__model = model
-        self.__handle_cmd(cmd)
-        self.__register_subscriptions()
+        self._model = model
+        self._handle_cmd(cmd)
+        self._register_subscriptions()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        self.__handle_msg(self.process(self.model, message.payload.value, message.committable))
+        self._handle_msg(
+            self.process(
+                self.model,
+                message.payload.value,
+                cast(MutableMapping[Partition, int], message.committable),
+            )
+        )
 
-    def publish(self, sub_name: str) -> None:
+    def publish(self, sub_name: str):
         # For each new subscription event we re-register the subscribers in case anything within
         # the application has changed. I.e. the model is in some new state and that means we care
         # about a new subscription or don't care about an old one.
-        self.__register_subscriptions()
+        self._register_subscriptions()
 
         # Using the subscription's name look for the subscription in the registry.
-        sub = self.__subscriptions.get(sub_name)
+        sub = self._subscriptions.get(sub_name)
         if sub is None:
             return None
 
@@ -194,29 +216,31 @@ class RunTime(Generic[Model, Msg, Flags]):
         # subscriptions might do more complex things.
         match sub:
             case Join(msg=msg):
-                return self.__handle_msg(msg)
+                return self._handle_msg(msg())
             case Poll(msg=msg):
-                return self.__handle_msg(msg)
+                return self._handle_msg(msg())
 
-    def __handle_msg(self, msg: Msg | None) -> None:
+    def _handle_msg(self, msg: Msg | None) -> None:
         if msg:
             model, cmd = self.update(self.model, msg)
-            self.__model = model
-            self.__handle_cmd(cmd)
+            self._model = model
+            self._handle_cmd(cmd)
 
-    def __handle_cmd(self, cmd: Cmd[Msg] | None) -> None:
+    def _handle_cmd(self, cmd: Cmd[Msg] | None) -> None:
         if cmd is None:
             return None
 
         match cmd:
             case Commit(msg=msg, offsets=offsets):
                 self.commit(offsets)
-                return self.__handle_msg(msg)
+                return self._handle_msg(msg)
+            case Effect(msg=msg, fun=fun):
+                return self._handle_msg(msg(fun()))
             case Nothing():
                 return None
             case Task(msg=msg):
-                return self.__handle_msg(msg)
+                return self._handle_msg(msg)
 
-    def __register_subscriptions(self) -> None:
+    def _register_subscriptions(self) -> None:
         for sub in self.subscription(self.model):
-            self.__subscriptions[sub.name] = sub
+            self._subscriptions[sub.name] = sub
