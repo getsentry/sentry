@@ -15,7 +15,7 @@ from sentry.replays.consumers.buffered.consumer import (
     subscription,
     update,
 )
-from sentry.replays.consumers.buffered.platform import Effect, NextStep, Nothing, Task
+from sentry.replays.consumers.buffered.platform import Commit, Effect, Nothing, Task
 from sentry.replays.usecases.ingest import ProcessedRecordingMessage
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from tests.sentry.replays.unit.consumers.test_helpers import MockNextStep, MockRunTime
@@ -92,7 +92,7 @@ def test_end_to_end_message_processing():
     cmd = gen.send(cmd.msg(1))
     assert len(runtime.model.buffer) == 0
     assert runtime.model.last_flushed_at == 1
-    assert isinstance(cmd, NextStep)
+    assert isinstance(cmd, Commit)
     assert isinstance(cmd.msg, Committed)
 
 

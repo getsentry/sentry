@@ -28,10 +28,6 @@ class PlatformStrategy(ProcessingStrategy[FilteredPayload | Input], Generic[Outp
         self.__offsets: MutableMapping[Partition, int] = {}
         self.__runtime = runtime
 
-    # NOTE: Filtered payloads update the offsets but are not forwarded to the next step. My
-    # concern is that the filtered payload could have its offsets committed before the
-    # preceeding messages have their offsets committed. This is against what the Arroyo library
-    # does which is to forward everything.
     def submit(self, message: Message[FilteredPayload | KafkaPayload]) -> None:
         assert not self.__closed
 
@@ -85,7 +81,7 @@ Flags = TypeVar("Flags")
 
 
 @dataclass(frozen=True)
-class NextStep(Generic[Msg, Output]):
+class Commit(Generic[Msg, Output]):
     """Instructs the RunTime to produce to the next step."""
 
     msg: Msg
@@ -120,7 +116,7 @@ class Task(Generic[Msg]):
 # A "Cmd" is the union of all the commands an application can issue to the RunTime. The RunTime
 # accepts these commands and handles them in some pre-defined way. Commands are fixed and can not
 # be registered on a per application basis.
-Cmd = NextStep[Msg, Output] | Effect[Msg] | Nothing | Task[Msg]
+Cmd = Commit[Msg, Output] | Effect[Msg] | Nothing | Task[Msg]
 
 
 @dataclass(frozen=True)
@@ -231,7 +227,7 @@ class RunTime(Generic[Model, Msg, Flags, Output]):
 
     def _handle_cmd(self, cmd: Cmd[Msg, Output]) -> None:
         match cmd:
-            case NextStep(msg=msg, value=value):
+            case Commit(msg=msg, value=value):
                 self.next_step(value)
                 return self._handle_msg(msg)
             case Effect(msg=msg, fun=fun):

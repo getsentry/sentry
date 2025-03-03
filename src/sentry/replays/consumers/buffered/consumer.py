@@ -1,4 +1,9 @@
-"""Session Replay recording consumer implementation."""
+"""Session Replay recording consumer implementation.
+
+The consumer implementation follows a batching flush strategy. We accept messages, process them,
+buffer them, and when some threshold is reached we flush the buffer. The batch has finished work
+after the buffer is flushed so we commit with a None value.
+"""
 
 import contextlib
 import time
@@ -10,9 +15,9 @@ import sentry_sdk
 
 from sentry.replays.consumers.buffered.platform import (
     Cmd,
+    Commit,
     Effect,
     Join,
-    NextStep,
     Nothing,
     Poll,
     RunTime,
@@ -122,7 +127,7 @@ def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, None]]:
         case Flushed(now=now):
             model.buffer = []
             model.last_flushed_at = now
-            return (model, NextStep(msg=Committed(), value=None))
+            return (model, Commit(msg=Committed(), value=None))
         case TryFlush(now=now):
             return (model, Task(msg=Flush())) if can_flush(model, now) else (model, Nothing())
 
