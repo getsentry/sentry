@@ -1,7 +1,7 @@
-from sentry.replays.consumers.buffered.platform import Flags, Model, Msg, Out, RunTime
+from sentry.replays.consumers.buffered.platform import Flags, Model, Msg, Output, RunTime
 
 
-class MockRunTime(RunTime[Model, Msg, Flags, Out]):
+class MockRunTime(RunTime[Model, Msg, Flags, Output]):
     def _handle_msg(self, msg):
         while True:
             model, cmd = self.update(self.model, msg)

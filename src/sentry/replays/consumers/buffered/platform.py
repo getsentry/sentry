@@ -7,17 +7,17 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message, Partition, Value
 
-Out = TypeVar("Out")
-Input = FilteredPayload | KafkaPayload
+Output = TypeVar("Output")
+Input = KafkaPayload
 
 
-class PlatformStrategy(ProcessingStrategy[Input], Generic[Out]):
+class PlatformStrategy(ProcessingStrategy[FilteredPayload | Input], Generic[Output]):
 
     def __init__(
         self,
         flags: "Flags",
-        runtime: "RunTime[Model, Msg, Flags, Out]",
-        next_step: "ProcessingStrategy[Out]",
+        runtime: "RunTime[Model, Msg, Flags, Output]",
+        next_step: "ProcessingStrategy[Output]",
     ) -> None:
         # The RunTime is made aware of the commit strategy. It will
         # submit the partition, offset mapping it wants committed.
@@ -67,7 +67,7 @@ class PlatformStrategy(ProcessingStrategy[Input], Generic[Out]):
         self.__next_step.close()
         self.__next_step.join(timeout)
 
-    def _handle_next_step(self, value: Out) -> None:
+    def _handle_next_step(self, value: Output) -> None:
         self.__next_step.submit(Message(Value(value, self.__offsets, datetime.now())))
 
 
@@ -85,11 +85,11 @@ Flags = TypeVar("Flags")
 
 
 @dataclass(frozen=True)
-class NextStep(Generic[Msg, Out]):
+class NextStep(Generic[Msg, Output]):
     """Instructs the RunTime to produce to the next step."""
 
     msg: Msg
-    value: Out
+    value: Output
 
 
 @dataclass(frozen=True)
@@ -120,7 +120,7 @@ class Task(Generic[Msg]):
 # A "Cmd" is the union of all the commands an application can issue to the RunTime. The RunTime
 # accepts these commands and handles them in some pre-defined way. Commands are fixed and can not
 # be registered on a per application basis.
-Cmd = NextStep[Msg, Out] | Effect[Msg] | Nothing | Task[Msg]
+Cmd = NextStep[Msg, Output] | Effect[Msg] | Nothing | Task[Msg]
 
 
 @dataclass(frozen=True)
@@ -155,7 +155,7 @@ class Poll(Generic[Msg]):
 Sub = Join[Msg] | Poll[Msg]
 
 
-class RunTime(Generic[Model, Msg, Flags, Out]):
+class RunTime(Generic[Model, Msg, Flags, Output]):
     """RunTime object.
 
     The RunTime is an intermediate data structure which manages communication between the platform
@@ -167,17 +167,17 @@ class RunTime(Generic[Model, Msg, Flags, Out]):
 
     def __init__(
         self,
-        init: Callable[[Flags], tuple[Model, Cmd[Msg, Out]]],
+        init: Callable[[Flags], tuple[Model, Cmd[Msg, Output]]],
         process: Callable[[Model, bytes], Msg],
         subscription: Callable[[Model], list[Sub[Msg]]],
-        update: Callable[[Model, Msg], tuple[Model, Cmd[Msg, Out]]],
+        update: Callable[[Model, Msg], tuple[Model, Cmd[Msg, Output]]],
     ) -> None:
         self.init = init
         self.process = process
         self.subscription = subscription
         self.update = update
 
-        self._next_step: Callable[[Out], None] | None = None
+        self._next_step: Callable[[Output], None] | None = None
         self._model: Model | None = None
         self._subscriptions: dict[str, Sub[Msg]] = {}
 
@@ -187,13 +187,13 @@ class RunTime(Generic[Model, Msg, Flags, Out]):
         return self._model
 
     @property
-    def next_step(self) -> Callable[[Out], None]:
+    def next_step(self) -> Callable[[Output], None]:
         assert self._next_step is not None
         return self._next_step
 
     # NOTE: Could this be a factory function that produces RunTimes instead? That way we don't need
     # the assert checks on model and commit.
-    def setup(self, flags: Flags, next_step: Callable[[Out], None]) -> None:
+    def setup(self, flags: Flags, next_step: Callable[[Output], None]) -> None:
         self._next_step = next_step
 
         model, cmd = self.init(flags)
@@ -229,7 +229,7 @@ class RunTime(Generic[Model, Msg, Flags, Out]):
         self._model = model
         self._handle_cmd(cmd)
 
-    def _handle_cmd(self, cmd: Cmd[Msg, Out]) -> None:
+    def _handle_cmd(self, cmd: Cmd[Msg, Output]) -> None:
         match cmd:
             case NextStep(msg=msg, value=value):
                 self.next_step(value)

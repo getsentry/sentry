@@ -8,8 +8,8 @@ from collections.abc import Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Commit as ArroyoCommit
-from arroyo.types import Partition
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.types import Commit, Partition
 
 from sentry.replays.consumers.buffered.consumer import Flags, recording_consumer
 from sentry.replays.consumers.buffered.platform import PlatformStrategy
@@ -26,7 +26,9 @@ class PlatformStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: ArroyoCommit,
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return PlatformStrategy(commit=commit, flags=self.flags, runtime=recording_consumer)
+        return PlatformStrategy(
+            next_step=CommitOffsets(commit), flags=self.flags, runtime=recording_consumer
+        )

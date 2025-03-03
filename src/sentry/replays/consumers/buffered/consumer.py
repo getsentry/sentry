@@ -14,7 +14,6 @@ from sentry.replays.consumers.buffered.platform import (
     Join,
     NextStep,
     Nothing,
-    Out,
     Poll,
     RunTime,
     Sub,
@@ -87,7 +86,7 @@ Msg = Append | Committed | Flush | Flushed | Skip | TryFlush
 # State machine functions.
 
 
-def init(flags: Flags) -> tuple[Model, Cmd[Msg, Out]]:
+def init(flags: Flags) -> tuple[Model, Cmd[Msg, None]]:
     return (
         Model(
             buffer=[],
@@ -109,7 +108,7 @@ def process(_: Model, message: bytes) -> Msg:
         return Skip()
 
 
-def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, Out]]:
+def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, None]]:
     match msg:
         case Append(item=item):
             model.buffer.append(item)
