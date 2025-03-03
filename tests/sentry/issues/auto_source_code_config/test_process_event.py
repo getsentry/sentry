@@ -432,7 +432,7 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_files=["sentry/foo/bar.py"],
             frames=[self.frame("sentry/foo/bar.py", True)],
             platform=self.platform,
-            expected_stack_root="sentry/",
+            expected_stack_root="",
             expected_source_root="",
         )
 
