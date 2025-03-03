@@ -80,7 +80,7 @@ class TryFlush:
 
 
 # A "Msg" is the union of all application messages our RunTime will accept.
-Msg = Append | Committed | Flush | Flushed | TryFlush
+Msg = Append | Committed | Flush | Flushed | Skip | TryFlush
 
 
 # State machine functions.

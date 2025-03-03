@@ -6,7 +6,7 @@ def counter_runtime() -> RunTime[int, str, None]:
     def init(_):
         return (22, None)
 
-    def process(_model, message, _offsets):
+    def process(_model, message):
         if message == b"incr":
             return "incr"
         elif message == b"decr":
@@ -28,8 +28,8 @@ def counter_runtime() -> RunTime[int, str, None]:
 
     def subscription(_):
         return [
-            Join(msg="join"),
-            Poll(msg="poll"),
+            Join(msg=lambda: "join"),
+            Poll(msg=lambda: "poll"),
         ]
 
     return RunTime(

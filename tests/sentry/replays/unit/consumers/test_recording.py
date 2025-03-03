@@ -34,7 +34,7 @@ def test_end_to_end_message_processing():
     message: ReplayRecording = {
         "key_id": None,
         "org_id": 1,
-        "payload": b'{"segment_id":0}\n[]',
+        "payload": b'{"segment_id":0}\n[]',  # type: ignore[typeddict-item]
         "project_id": 1,
         "received": int(time.time()),
         "replay_event": None,
@@ -139,7 +139,7 @@ def test_invalid_recording_json():
     message: ReplayRecording = {
         "key_id": None,
         "org_id": 1,
-        "payload": b'{"segment_id":0}\n[',
+        "payload": b'{"segment_id":0}\n[',  # type: ignore[typeddict-item]
         "project_id": 1,
         "received": int(time.time()),
         "replay_event": None,
@@ -183,7 +183,7 @@ def test_missing_headers():
     message: ReplayRecording = {
         "key_id": None,
         "org_id": 1,
-        "payload": b"[]",
+        "payload": b"[]",  # type: ignore[typeddict-item]
         "project_id": 1,
         "received": int(time.time()),
         "replay_event": None,
@@ -226,7 +226,7 @@ def test_buffer_full_semantics():
     message: ReplayRecording = {
         "key_id": None,
         "org_id": 1,
-        "payload": b'{"segment_id":0}\n[]',
+        "payload": b'{"segment_id":0}\n[]',  # type: ignore[typeddict-item]
         "project_id": 1,
         "received": int(time.time()),
         "replay_event": None,
@@ -268,7 +268,7 @@ def test_buffer_timeout():
     message: ReplayRecording = {
         "key_id": None,
         "org_id": 1,
-        "payload": b'{"segment_id":0}\n[]',
+        "payload": b'{"segment_id":0}\n[]',  # type: ignore[typeddict-item]
         "project_id": 1,
         "received": int(time.time()),
         "replay_event": None,

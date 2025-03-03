@@ -104,7 +104,7 @@ class Task(Generic[Msg]):
 # A "Cmd" is the union of all the commands an application can issue to the RunTime. The RunTime
 # accepts these commands and handles them in some pre-defined way. Commands are fixed and can not
 # be registered on a per application basis.
-Cmd = Commit[Msg] | Effect[Msg] | Task[Msg]
+Cmd = Commit[Msg] | Effect[Msg] | Nothing | Task[Msg]
 
 
 @dataclass(frozen=True)
@@ -190,7 +190,7 @@ class RunTime(Generic[Model, Msg, Flags]):
         self._handle_msg(self.process(self.model, message.payload.value))
         self._offsets = cast(MutableMapping[Partition, int], message.committable)
 
-    def publish(self, sub_name: str):
+    def publish(self, sub_name: str) -> None:
         # For each new subscription event we re-register the subscribers in case anything within
         # the application has changed. I.e. the model is in some new state and that means we care
         # about a new subscription or don't care about an old one.
