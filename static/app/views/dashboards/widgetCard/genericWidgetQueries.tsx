@@ -36,6 +36,7 @@ function getReferrer(displayType: DisplayType) {
 export type OnDataFetchedProps = {
   confidence?: Confidence;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -47,6 +48,7 @@ export type GenericWidgetQueriesChildrenProps = {
   confidence?: Confidence;
   errorMessage?: string;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;

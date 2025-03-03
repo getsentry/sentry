@@ -9,6 +9,7 @@ export type WidgetViewerContextProps = {
   setData: (data: {
     confidence?: Confidence;
     pageLinks?: string;
+    sampleCount?: number;
     seriesData?: Series[];
     seriesResultsType?: Record<string, AggregationOutputType>;
     tableData?: TableDataWithTitle[];
@@ -16,6 +17,7 @@ export type WidgetViewerContextProps = {
   }) => void;
   confidence?: Confidence;
   pageLinks?: string;
+  sampleCount?: number;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];

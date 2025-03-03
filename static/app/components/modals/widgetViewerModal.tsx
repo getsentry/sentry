@@ -115,6 +115,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
+  sampleCount?: number;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
@@ -195,6 +196,7 @@ function WidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
     confidence,
+    sampleCount,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -854,6 +856,7 @@ function WidgetViewerModal(props: Props) {
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
                 confidence={confidence}
+                sampleCount={sampleCount}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
