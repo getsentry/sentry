@@ -205,7 +205,7 @@ export function transformToSeriesMap(
     }, {} as SeriesMap);
 }
 
-function convertEventsStatsToTimeSeriesData(
+export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
   alias?: string

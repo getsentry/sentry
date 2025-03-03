@@ -4,6 +4,7 @@ from typing import Any
 
 from django.http import Http404
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
@@ -26,7 +27,7 @@ class DocIntegrationsPermission(SentryPermission):
 
     scope_map = {"GET": PARANOID_GET}
 
-    def has_permission(self, request: Request, view: object) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         if not super().has_permission(request, view):
             return False
 
@@ -38,7 +39,7 @@ class DocIntegrationsPermission(SentryPermission):
         return False
 
     def has_object_permission(
-        self, request: Request, view: object, doc_integration: DocIntegration
+        self, request: Request, view: APIView, doc_integration: DocIntegration
     ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
