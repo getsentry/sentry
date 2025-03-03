@@ -7,7 +7,10 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
+import {
+  PROVIDER_TO_SETUP_WEBHOOK_URL,
+  WebhookProviderEnum,
+} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -51,7 +54,9 @@ export default function NewProviderForm({
   const [selectedProvider, setSelectedProvider] = useState('<provider_name>');
 
   const handleGoBack = useCallback(() => {
-    navigate(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
+    navigate(
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+    );
   }, [organization.slug, navigate]);
 
   const {mutate: submitSecret, isPending} = useMutation<
@@ -116,24 +121,36 @@ export default function NewProviderForm({
         value={selectedProvider}
         placeholder={t('Select a provider')}
         name="provider"
-        options={[
-          {value: 'LaunchDarkly', label: 'LaunchDarkly'},
-          {value: 'Generic', label: 'Generic'},
-          {value: 'Unleash', label: 'Unleash'},
-        ]}
+        options={Object.values(WebhookProviderEnum).map(provider => ({
+          value: provider,
+          label: provider,
+        }))}
         help={t(
           'If you have already linked this provider, pasting a new secret will override the existing secret.'
         )}
       />
       <StyledFieldGroup
         label={t('Webhook URL')}
-        help={tct(
-          "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
-          {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            link: <ExternalLink href={PROVIDER_TO_SETUP_WEBHOOK_URL[selectedProvider]} />,
-          }
-        )}
+        help={
+          Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(selectedProvider)
+            ? tct(
+                "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+                {
+                  link: (
+                    <ExternalLink
+                      href={
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[
+                          selectedProvider as WebhookProviderEnum
+                        ]
+                      }
+                    />
+                  ),
+                }
+              )
+            : t(
+                "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
+              )
+        }
         inline
         flexibleControlStateSize
       >
