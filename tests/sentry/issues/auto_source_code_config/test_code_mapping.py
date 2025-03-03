@@ -14,7 +14,9 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
+    FailedToExtractFilename,
     FrameInfo,
+    MissingModuleOrAbsPath,
     NeedsExtension,
     UnexpectedPathException,
     UnsupportedFrameInfo,
@@ -123,6 +125,14 @@ class TestFrameInfo:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
             with pytest.raises(NeedsExtension):
                 FrameInfo({"filename": filepath})
+
+    def test_module_raises_missing_module_or_abs_path(self) -> None:
+        with pytest.raises(MissingModuleOrAbsPath):
+            FrameInfo({}, "java")
+
+    def test_frame_raises_failed_to_extract_filename(self) -> None:
+        with pytest.raises(FailedToExtractFilename):
+            FrameInfo({"module": "foo"}, "java")
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",

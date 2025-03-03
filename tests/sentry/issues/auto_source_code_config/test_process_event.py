@@ -65,9 +65,14 @@ class BaseDeriveCodeMappings(TestCase):
                 "code_mappings.created", tags={"platform": self.event.platform}
             )
 
-    def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> list[CodeMapping]:
+    def _process_and_assert_no_code_mapping(
+        self, files: Sequence[str], event: Event | None = None
+    ) -> list[CodeMapping]:
+        if event is None:
+            event = self.event
+
         with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
-            code_mappings = process_event(self.project.id, self.event.group_id, self.event.event_id)
+            code_mappings = process_event(self.project.id, event.group_id, event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             return code_mappings
 
@@ -147,7 +152,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         file_in_repo = "src/foo/bar.py"
         with (
             patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
-            patch(f"{CODE_ROOT}.task.DRY_RUN_PLATFORMS", ["other"]),
+            patch(f"{CODE_ROOT}.utils.DRY_RUN_PLATFORMS", ["other"]),
         ):
             self.event = self.create_event([{"filename": frame_filename, "in_app": True}], "other")
             # No code mapping will be stored, however, we get what would have been created
@@ -321,25 +326,29 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
 
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
+    option = {"issues.auto_source_code_config.dry-run-platforms": ["java"]}
     platform = "java"
+    # In Java, we do not need to specify in_app=True since all frames are processed
     frames = [
-        {"module": "kotlinx.coroutines.scheduling.Foo$Worker"},
-        {"module": "io.sentry.foo.Baz", "abs_path": "Baz.kt"},
-        {"module": "a.SomeShortPackageNameClass"},
+        {"module": "a.SomeShortPackageNameClass"},  # No abs_path
+        {"module": "a.SomeShortPackageNameClass", "abs_path": "SomeShortPackageNameClass.java"},
         {"module": "com.example.foo.Bar$handle$1", "abs_path": "Bar.kt"},
     ]
 
-    def test_handles_two_levels_of_directories_and_dollar_sign_in_module(self) -> None:
-        with override_options({"issues.auto_source_code_config.dry-run-platforms": ["java"]}):
+    def test_very_short_module_name(self) -> None:
+        with override_options(self.option):
+            # No code mapping will be stored, however, we get what would have been created
+            code_mappings = self._process_and_assert_no_code_mapping(
+                ["src/a/SomeShortPackageNameClass.java"]
+            )
+            assert len(code_mappings) == 1
+            assert code_mappings[0].stacktrace_root == "a/"
+            assert code_mappings[0].source_path == "src/a/"
+
+    def test_handles_dollar_sign_in_module(self) -> None:
+        with override_options(self.option):
             # No code mapping will be stored, however, we get what would have been created
             code_mappings = self._process_and_assert_no_code_mapping(["src/com/example/foo/Bar.kt"])
             assert len(code_mappings) == 1
             assert code_mappings[0].stacktrace_root == "com/example/foo/"
             assert code_mappings[0].source_path == "src/com/example/foo/"
-
-    def test_module_is_too_short(self) -> None:
-        with override_options({"issues.auto_source_code_config.dry-run-platforms": ["java"]}):
-            # This is to prove that we will prevent code mappings when the module is too short
-            # to be a valid code mapping.
-            code_mappings = self._process_and_assert_no_code_mapping(["src/com/foo/Short.kt"])
-            assert len(code_mappings) == 0

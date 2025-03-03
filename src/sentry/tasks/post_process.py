@@ -1003,10 +1003,11 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project = event.project
         group_id = event.group_id
 
-        if not supported_platform(event.data.get("platform")):
+        platform = event.data.get("platform", "not_available")
+        if not supported_platform(platform):
             return
 
-        frames_to_process = get_frames_to_process(event.data, event.platform or "")
+        frames_to_process = get_frames_to_process(event.data, platform)
         if not frames_to_process:
             return
 
