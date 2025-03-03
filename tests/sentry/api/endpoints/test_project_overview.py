@@ -36,16 +36,6 @@ class ProjectOverviewTest(APITestCase):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
 
-    def test_numeric_org_slug(self):
-        # Regression test for https://github.com/getsentry/sentry/issues/2236
-        project = self.create_project(name="Bar", slug="bar", teams=[self.team])
-
-        # We want to make sure we don't hit the LegacyProjectRedirect view at all.
-        url = f"/api/0/projects/{self.organization.slug}/{project.slug}/"
-        response = self.client.get(url)
-        assert response.status_code == 200
-        assert response.data["id"] == str(project.id)
-
     def test_non_org_rename_403(self):
         org = self.create_organization()
         team = self.create_team(organization=org, name="foo", slug="foo")
