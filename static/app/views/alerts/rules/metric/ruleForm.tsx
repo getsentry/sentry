@@ -52,6 +52,7 @@ import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeFor
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
+  determineIsSampled,
   determineMultiSeriesConfidence,
   determineSeriesConfidence,
 } from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
@@ -148,6 +149,7 @@ type State = {
   comparisonDelta?: number;
   confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
+  isSampled?: boolean | null;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
@@ -989,7 +991,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const confidence = isEventsStats(data)
       ? determineSeriesConfidence(data)
       : determineMultiSeriesConfidence(data);
-    this.setState({confidence});
+    const isSampled = determineIsSampled(data);
+    this.setState({confidence, isSampled});
   }
 
   handleHistoricalTimeSeriesDataFetched(
@@ -1124,6 +1127,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
+      isSampled,
     } = this.state;
 
     if (chartError) {
@@ -1171,6 +1175,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
+      isSampled,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
