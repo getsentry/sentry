@@ -2,11 +2,14 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import BrokerValue, Commit, Message, Partition
+from arroyo.processing.strategies.produce import Produce
+from arroyo.processing.strategies.unfold import Unfold
+from arroyo.types import BrokerValue, Commit, Message, Partition, Value
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
@@ -27,10 +30,7 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 def process_message(message: Message[KafkaPayload]):
     value = message.payload.value
     segment = _deserialize_segment(value)
-
-    assert segment["spans"]
-
-    process_segment(segment["spans"])
+    return process_segment(segment["spans"])
 
 
 def _process_message(message: Message[KafkaPayload]):
@@ -44,9 +44,16 @@ def _process_message(message: Message[KafkaPayload]):
             op="process", name="spans.process_segments.process_message"
         ):
             sentry_sdk.set_measurement("message_size.bytes", len(message.payload.value))
-            process_message(message)
+            return process_message(message)
     except Exception:
         sentry_sdk.capture_exception()
+
+
+def explode_segment(spans: list[dict[str, Any]]):
+    for span in spans:
+        if span is not None:
+            payload = rapidjson.dumps(span)
+            yield Value(KafkaPayload(None, payload, []), {}, None)
 
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -70,9 +77,17 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        produce_step = Produce(
+            producer=self.producer,
+            topic=self.output_topic,
+            next_step=CommitOffsets(commit),
+        )
+
+        unfold_step = Unfold(generator=explode_segment, next_step=produce_step)
+
         return run_task_with_multiprocessing(
             function=_process_message,
-            next_step=CommitOffsets(commit),
+            next_step=unfold_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             pool=self.pool,
