@@ -3,6 +3,7 @@ import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 import {openModal} from 'sentry/actionCreators/modal';
 
 import {
+  type FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
   type SourceMapsDebuggerModalProps,
 } from './sourceMapsDebuggerModal';
@@ -13,7 +14,7 @@ const defaultAnalyticsParams = {
   organization: null,
 };
 
-const defaultSourceResolutionResults = {
+const defaultSourceResolutionResults: FrameSourceMapDebuggerData = {
   debugIdProgress: 0,
   debugIdProgressPercent: 0,
   dist: null,
@@ -30,7 +31,7 @@ const defaultSourceResolutionResults = {
   releaseSourceMapReference: null,
   scrapingProgress: 0,
   scrapingProgressPercent: 0,
-  sdkDebugIdSupport: 'full' as const,
+  sdkDebugIdSupport: 'full',
   sdkName: null,
   sdkVersion: null,
   sourceFileReleaseNameFetchingResult: 'found' as const,
@@ -77,8 +78,31 @@ describe('SourceMapsDebuggerModal', () => {
 
     renderModal({sourceResolutionResults});
 
-    screen.getByText(
-      "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
-    );
+    expect(
+      screen.getByText(
+        "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not render "Debug IDs" tab if the SDK does not support it', function () {
+    renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'not-supported',
+      },
+    });
+
+    expect(screen.queryByRole('tab', {name: /debug ids/i})).not.toBeInTheDocument();
+  });
+  it('renders "Debug IDs" tab if the SDK does support it', function () {
+    renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'full',
+      },
+    });
+
+    expect(screen.getByRole('tab', {name: /debug ids/i})).toBeInTheDocument();
   });
 });
