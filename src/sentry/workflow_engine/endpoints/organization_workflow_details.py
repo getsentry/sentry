@@ -86,4 +86,5 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("WORKFLOW_REMOVE"),
             data=workflow.get_audit_log_data(),
         )
+
         return Response(status=204)
