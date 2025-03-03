@@ -11,7 +11,7 @@ interface Props {
   error?: Error | null;
 }
 
-export function LatencyChart({error, destination, referrer}: Props) {
+export function DurationChart({error, destination, referrer}: Props) {
   const {
     data,
     isPending,

@@ -19,7 +19,7 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
+import {DurationChart} from 'sentry/views/insights/queues/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {
   isAValidSort,
@@ -85,7 +85,7 @@ function QueuesLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.QUEUE}>
                 <ModuleLayout.Half>
-                  <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
+                  <DurationChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
                   <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
