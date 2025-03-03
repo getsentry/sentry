@@ -81,5 +81,5 @@ export function MultiQueryModeContent() {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

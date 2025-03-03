@@ -47,7 +47,6 @@ export function VisualizeSection({query, index}: Props) {
     <Section data-test-id={`section-visualize-${index}`}>
       <SectionHeader>
         <Tooltip
-          position="right"
           title={t(
             'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
           )}

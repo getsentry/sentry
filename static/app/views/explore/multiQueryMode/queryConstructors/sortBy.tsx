@@ -51,7 +51,6 @@ export function SortBySection({query, index}: Props) {
     <Section data-test-id={`section-sort-by-${index}`}>
       <SectionHeader>
         <Tooltip
-          position="right"
           title={t('Results you see first and last in your samples or aggregates.')}
         >
           <SectionLabel>{t('Sort By')}</SectionLabel>
