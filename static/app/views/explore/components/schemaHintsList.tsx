@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -46,9 +47,12 @@ function SchemaHintsList({
 
   return (
     <SchemaHintsContainer>
-      {tagHintsText.map(text => (
-        <SchemaHintOption key={text}>{text}</SchemaHintOption>
-      ))}
+      <HintsWrapper>
+        {tagHintsText.map(text => (
+          <SchemaHintOption key={text}>{text}</SchemaHintOption>
+        ))}
+      </HintsWrapper>
+      <SchemaHintOption style={{flexShrink: 0}}>{t('See full list')}</SchemaHintOption>
     </SchemaHintsContainer>
   );
 }
@@ -56,9 +60,17 @@ function SchemaHintsList({
 export default SchemaHintsList;
 
 const SchemaHintsContainer = styled('div')`
+  gap: ${space(1)};
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+`;
+
+const HintsWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  overflow: hidden;
 `;
 
 const SchemaHintOption = styled(Button)`
@@ -74,7 +86,7 @@ const SchemaHintOption = styled(Button)`
   flex-wrap: wrap;
 
   /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
+  min-width: min-content;
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};

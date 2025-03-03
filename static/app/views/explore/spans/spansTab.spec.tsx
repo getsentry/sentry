@@ -182,5 +182,6 @@ describe('SpansTabContent', function () {
     expect(screen.getByText('stringTag2 is ...')).toBeInTheDocument();
     expect(screen.getByText('numberTag1 is ...')).toBeInTheDocument();
     expect(screen.getByText('numberTag2 is ...')).toBeInTheDocument();
+    expect(screen.getByText('See full list')).toBeInTheDocument();
   });
 });
