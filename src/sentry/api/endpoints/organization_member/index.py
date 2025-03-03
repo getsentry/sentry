@@ -277,12 +277,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     else:
                         queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
-                    value = " ".join(value)
+                    value_s = " ".join(value)
                     query_user_ids = user_service.get_many_ids(
-                        filter=dict(query=value, organization_id=organization.id)
+                        filter=dict(query=value_s, organization_id=organization.id)
                     )
                     queryset = queryset.filter(
-                        Q(user_id__in=query_user_ids) | Q(email__icontains=value)
+                        Q(user_id__in=query_user_ids) | Q(email__icontains=value_s)
                     )
                 else:
                     queryset = queryset.none()
@@ -318,7 +318,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
+        assigned_org_role = (
+            request.data.get("orgRole")
+            or request.data.get("role")
+            or organization_roles.get_default().id
+        )
         billing_bypass = assigned_org_role == "billing" and features.has(
             "organizations:invite-billing", organization
         )

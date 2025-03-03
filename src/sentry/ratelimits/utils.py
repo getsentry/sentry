@@ -20,7 +20,8 @@ from . import backend as ratelimiter
 logger = logging.getLogger("sentry.api.rate-limit")
 
 if TYPE_CHECKING:
-    from sentry.models.apitoken import ApiToken
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
 
@@ -218,8 +219,8 @@ def finish_request(key: str, request_uid: str) -> None:
 def for_organization_member_invite(
     organization: Organization,
     email: str,
-    user: User | None = None,
-    auth: ApiToken | None = None,
+    user: User | AnonymousUser | None = None,
+    auth: AuthenticatedToken | None = None,
     config: Mapping[str, Any] | None = None,
 ) -> bool:
     """
