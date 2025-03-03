@@ -131,7 +131,7 @@ const DeleteButton = styled(Button)`
 
 const QueryVisualizationSection = styled('div')`
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr 1.2fr;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
