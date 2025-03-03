@@ -1,5 +1,6 @@
 import {
   canIncludePreviousPeriod,
+  computeEchartsAriaLabels,
   getDiffInMinutes,
   getInterval,
   getSeriesApiInterval,
@@ -218,6 +219,60 @@ describe('Chart Utils', function () {
         ],
       };
       expect(processTableResults(tableData)).toEqual(result);
+    });
+  });
+
+  describe('computeEchartsAriaLabels', function () {
+    it('generates correct aria descriptions for single series data', function () {
+      const series = [
+        {
+          name: 'Total Events',
+          data: [
+            {value: 100, name: '2024-01-01'},
+            {value: 200, name: '2024-01-02'},
+            {value: 300, name: '2024-01-03'},
+          ],
+        },
+      ];
+
+      const result = computeEchartsAriaLabels({series, useUTC: undefined}, true);
+
+      expect(result).toBe({
+        enabled: true,
+        label: {
+          description:
+            ' chart with January 1st to January 2nd featuring 1 data series: Total Events. The Total Events series contains 2 data points. Its lowest value is 100 on January 1st and highest value is 300 on January 3rd.',
+        },
+      });
+    });
+
+    it('generates correct aria descriptions for multiple series', function () {
+      const series = [
+        {
+          name: 'Errors',
+          data: [
+            {value: 10, name: '2024-01-01'},
+            {value: 20, name: '2024-01-02'},
+          ],
+        },
+        {
+          name: 'Transactions',
+          data: [
+            {value: 100, name: '2024-01-01'},
+            {value: 200, name: '2024-01-02'},
+          ],
+        },
+      ];
+
+      const result = computeEchartsAriaLabels({series, useUTC: undefined}, true);
+
+      expect(result).toBe({
+        enabled: true,
+        label: {
+          description:
+            ' chart with January 1st to January 2nd featuring 2 data series: Errors, Transactions. The Errors series contains 2 data points. Its lowest value is 10 on January 1st and highest value is 20 on January 2nd. The Transactions series contains 2 data points. Its lowest value is 100 on January 1st and highest value is 200 on January 2nd',
+        },
+      });
     });
   });
 });
