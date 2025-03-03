@@ -606,6 +606,17 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('firstSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
+          <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
+        </TimestampWrapper>
+      )}
+      {withColumns.includes('lastSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+          <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
+        </TimestampWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -644,16 +655,6 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
-          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
