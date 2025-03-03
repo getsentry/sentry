@@ -15,6 +15,7 @@ from .organization_derive_code_mappings import OrganizationDeriveCodeMappingsEnd
 from .organization_eventid import EventIdLookupEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
 from .organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
+from .organization_group_search_view_details import OrganizationGroupSearchViewDetailsEndpoint
 from .organization_group_search_views import OrganizationGroupSearchViewsEndpoint
 from .organization_issues_count import OrganizationIssuesCountEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
@@ -50,6 +51,7 @@ __all__ = (
     "OrganizationGroupIndexEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
     "OrganizationGroupSearchViewsEndpoint",
+    "OrganizationGroupSearchViewDetailsEndpoint",
     "OrganizationIssuesCountEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",
