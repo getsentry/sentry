@@ -38,12 +38,7 @@ export interface InsightsTimeSeriesWidgetProps {
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const pageFilters = usePageFilters();
-  const {projects, environments} = pageFilters.selection;
-  const {releases} = useReleaseStats({
-    datetime: pageFilters.selection.datetime,
-    environment: environments,
-    project: projects,
-  });
+  const {releases} = useReleaseStats(pageFilters.selection);
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     visualizationType: props.visualizationType,

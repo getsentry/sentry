@@ -1,55 +1,66 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type ReleaseMetaBasic = {
+interface ReleaseMetaBasic {
   date: string;
   version: string;
-};
+}
 
-type ReleaseConditions = {
-  datetime: PageFilters['datetime'];
-  environment: readonly string[];
-  project?: readonly number[];
+interface ReleaseConditions extends PageFilters {
   query?: string;
-};
+}
 
+/**
+ * Fetches *ALL* releases (e.g. all pages worth)
+ */
 export function useReleaseStats({
   datetime,
-  environment,
-  project,
+  environments,
+  projects,
   query,
 }: ReleaseConditions) {
   const organization = useOrganization();
-  const {isLoading, isPending, isError, error, data} = useApiQuery<ReleaseMetaBasic[]>(
-    [
+
+  const {
+    isLoading,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isPending,
+    isError,
+    error,
+    data,
+  } = useInfiniteApiQuery<ReleaseMetaBasic[]>({
+    queryKey: [
       `/organizations/${organization.slug}/releases/stats/`,
       {
         query: {
-          environment,
-          project,
+          environment: environments,
+          project: projects,
           query,
+          cursor: undefined,
           ...normalizeDateTimeParams(datetime),
         },
       },
     ],
-    {
-      staleTime: 0,
-    }
-  );
+  });
+
+  if (!isFetching && hasNextPage) {
+    fetchNextPage();
+  }
+
+  const releases =
+    data?.pages.flatMap(([pageData]) =>
+      pageData.map(({date, version}) => ({timestamp: date, version}))
+    ) ?? [];
 
   return {
     isLoading,
     isPending,
     isError,
     error,
-    releases:
-      !isLoading && data
-        ? data.map(release => ({
-            timestamp: release.date,
-            version: release.version,
-          }))
-        : undefined,
+    releases,
   };
 }
