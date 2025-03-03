@@ -207,9 +207,9 @@ export function useStoryTree(
         Object.entries(root.children).sort(rootCategorySort)
       );
       // Sort the children of each category by file, folder or alphabetically
-      for (const key in root.children) {
-        root.children[key]!.sort(folderOrSearchScoreFirst);
-      }
+      Object.values(root.children).forEach(child => {
+        child.sort(folderOrSearchScoreFirst);
+      });
     }
 
     // If the user navigates to a story, expand to its location in the tree
