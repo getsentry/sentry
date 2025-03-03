@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -105,7 +107,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         self,
         request: Request,
         organization: Organization,
-        member_id: int | str,
+        member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         try:

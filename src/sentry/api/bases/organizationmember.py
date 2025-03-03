@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -108,7 +108,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        member_id: int | str,
+        member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         kwargs: _FilterKwargs = {"organization": organization}
