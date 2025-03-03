@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
+from functools import reduce
 from unittest.mock import ANY, patch
 
 import pytest
@@ -19,6 +20,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
@@ -37,6 +39,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -315,7 +318,8 @@ class TestProcessResourceChange(TestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-    def test_group_created_sends_webhook(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_group_created_sends_webhook(self, mock_record, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         with self.tasks():
@@ -342,12 +346,29 @@ class TestProcessResourceChange(TestCase):
             "Sentry-Hook-Timestamp",
             "Sentry-Hook-Signature",
         }
+        assert_success_metric(mock_record)
+        started_calls = reduce(
+            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
+            mock_record.mock_calls,
+            0,
+        )
+        success_calls = reduce(
+            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
+            mock_record.mock_calls,
+            0,
+        )
 
-    def test_does_not_process_disallowed_event(self, safe_urlopen):
+        assert started_calls == 3
+        assert success_calls == 3
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_does_not_process_disallowed_event(self, mock_record, safe_urlopen):
         process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
+        assert_failure_metric(mock_record, "invalid_event")
 
-    def test_does_not_process_sentry_apps_without_issue_webhooks(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_does_not_process_sentry_apps_without_issue_webhooks(self, mock_record, safe_urlopen):
         with assume_test_silo_mode_of(SentryApp):
             SentryAppInstallation.objects.all().delete()
             SentryApp.objects.all().delete()
@@ -358,6 +379,20 @@ class TestProcessResourceChange(TestCase):
         process_resource_change_bound("created", "Group", self.create_group().id)
 
         assert len(safe_urlopen.mock_calls) == 0
+        assert_success_metric(mock_record)
+        started_calls = reduce(
+            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
+            mock_record.mock_calls,
+            0,
+        )
+        success_calls = reduce(
+            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
+            mock_record.mock_calls,
+            0,
+        )
+
+        assert started_calls == 1
+        assert success_calls == 1
 
     @patch("sentry.sentry_apps.tasks.sentry_apps._process_resource_change")
     def test_process_resource_change_bound_passes_retry_object(self, process, safe_urlopen):
@@ -370,7 +405,8 @@ class TestProcessResourceChange(TestCase):
         assert isinstance(task, Task)
 
     @with_feature("organizations:integrations-event-hooks")
-    def test_error_created_sends_webhook(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_error_created_sends_webhook(self, mock_record, safe_urlopen):
         sentry_app = self.create_sentry_app(
             organization=self.project.organization, events=["error.created"]
         )
@@ -415,6 +451,21 @@ class TestProcessResourceChange(TestCase):
             "Sentry-Hook-Timestamp",
             "Sentry-Hook-Signature",
         }
+
+        assert_success_metric(mock_record)
+        started_calls = reduce(
+            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
+            mock_record.mock_calls,
+            0,
+        )
+        success_calls = reduce(
+            lambda acc, calls: (acc + 1 if calls.args[0] == EventLifecycleOutcome.SUCCESS else acc),
+            mock_record.mock_calls,
+            0,
+        )
+
+        assert started_calls == 3
+        assert success_calls == 3
 
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
     @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")
@@ -877,6 +928,7 @@ class TestWebhookRequests(TestCase):
             self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
+        # with pytest.raises(SentryAppSentryError):
         for i in range(3):
             send_webhooks(
                 installation=self.install, event="event.alert", data=data, actor=self.user

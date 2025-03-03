@@ -530,7 +530,6 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         )
     except ServiceHook.DoesNotExist:
         raise SentryAppSentryError("send_webhooks.missing_servicehook", webhook_context=extras)
-
     if event not in servicehook.events:
         raise SentryAppSentryError("send_webhooks.event_not_in_servicehook", webhook_context=extras)
 
