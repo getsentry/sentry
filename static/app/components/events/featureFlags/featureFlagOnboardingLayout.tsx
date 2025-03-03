@@ -5,7 +5,6 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalInfo';
-import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -21,8 +20,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration?: string;
-  provider?: string;
-  skipChangeTracking?: boolean;
   skipEvalTracking?: boolean;
 }
 
@@ -35,9 +32,7 @@ export function FeatureFlagOnboardingLayout({
   projectKeyId,
   configType = 'onboarding',
   integration = '',
-  provider = '',
   skipEvalTracking,
-  skipChangeTracking = true,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -123,12 +118,7 @@ export function FeatureFlagOnboardingLayout({
           </Steps>
         )}
         <Divider />
-        {/* If skipChangeTracking, link to settings page instead of displaying the webhook setup form. */}
-        {skipChangeTracking ? (
-          <OnboardingAdditionalFeatures organization={organization} />
-        ) : (
-          <OnboardingIntegrationSection provider={provider} integration={integration} />
-        )}
+        <OnboardingAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

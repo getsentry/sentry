@@ -378,10 +378,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           // either OpenFeature or the SDK selected from the second dropdown
           setupMode() === 'openFeature' ? SdkProviderEnum.OPENFEATURE : sdkProvider.value
         }
-        provider={
-          // dropdown value (from either dropdown)
-          setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
-        }
         configType="featureFlagOnboarding"
       />
     </Fragment>
