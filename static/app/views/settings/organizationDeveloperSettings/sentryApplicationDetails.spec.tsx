@@ -15,6 +15,9 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
+const router = RouterFixture();
+const location = LocationFixture();
+
 describe('Sentry Application Details', function () {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
   let token: ReturnType<typeof SentryAppTokenFixture>;
@@ -29,12 +32,16 @@ describe('Sentry Application Details', function () {
 
   describe('Creating a new public Sentry App', () => {
     function renderComponent() {
-      const publicRouter = RouterFixture({
-        location: LocationFixture({
-          pathname: `/settings/developer-settings/new-public/`,
-        }),
-      });
-      return render(<SentryApplicationDetails />, {router: publicRouter});
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={LocationFixture({pathname: 'new-public/'})}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{}}
+        />
+      );
     }
 
     beforeEach(() => {
@@ -134,15 +141,17 @@ describe('Sentry Application Details', function () {
   });
 
   describe('Creating a new internal Sentry App', () => {
-    window.location.pathname = 'new-internal/';
-
     function renderComponent() {
-      const internalRouter = RouterFixture({
-        location: LocationFixture({
-          pathname: `/settings/developer-settings/new-internal/`,
-        }),
-      });
-      return render(<SentryApplicationDetails />, {router: internalRouter});
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={LocationFixture({pathname: 'new-internal/'})}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{}}
+        />
+      );
     }
 
     it('does not show logo upload fields', function () {
@@ -167,7 +176,16 @@ describe('Sentry Application Details', function () {
 
   describe('Renders public app', function () {
     function renderComponent() {
-      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
     }
 
     beforeEach(() => {
@@ -223,7 +241,16 @@ describe('Sentry Application Details', function () {
 
   describe('Renders for internal apps', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
     }
 
     beforeEach(() => {
@@ -284,7 +311,16 @@ describe('Sentry Application Details', function () {
 
   describe('Renders masked values', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
     }
 
     beforeEach(() => {
@@ -325,7 +361,16 @@ describe('Sentry Application Details', function () {
 
   describe('Editing internal app tokens', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
     }
 
     beforeEach(() => {
@@ -402,7 +447,16 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
     }
 
     beforeEach(() => {
@@ -484,7 +538,16 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App with a scope error', () => {
     function renderComponent() {
-      render(<SentryApplicationDetails appSlug={sentryApp.slug} />);
+      render(
+        <SentryApplicationDetails
+          router={router}
+          location={location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
     }
 
     beforeEach(() => {

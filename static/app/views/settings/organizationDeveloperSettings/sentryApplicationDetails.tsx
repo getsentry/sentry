@@ -40,6 +40,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
@@ -50,8 +51,6 @@ import {
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
@@ -155,8 +154,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = {appSlug?: string};
-
+type Props = RouteComponentProps<{appSlug?: string}>;
 function makeSentryAppQueryKey(appSlug?: string): ApiQueryKey {
   return [`/sentry-apps/${appSlug}/`];
 }
@@ -166,17 +164,17 @@ function makeSentryAppApiTokensQueryKey(appSlug?: string): ApiQueryKey {
 }
 
 export default function SentryApplicationDetails(props: Props) {
-  const {appSlug} = props;
-  const isEditingApp = !!appSlug;
+  const {appSlug} = props.params;
+  const {router, location} = props;
+  const organization = useOrganization();
   const [form] = useState<SentryAppFormModel>(
     () => new SentryAppFormModel({mapFormErrors})
   );
 
-  const organization = useOrganization();
+  const isEditingApp = !!appSlug;
+
   const api = useApi();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const SENTRY_APP_QUERY_KEY = makeSentryAppQueryKey(appSlug);
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
@@ -199,12 +197,6 @@ export default function SentryApplicationDetails(props: Props) {
   );
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
 
-  const headerTitle = () => {
-    const action = app ? 'Edit' : 'Create';
-    const type = isInternal() ? 'Internal' : 'Public';
-    return tct('[action] [type] Integration', {action, type});
-  };
-
   // Events may come from the API as "issue.created" when we just want "issue" here.
   function normalize(events: any) {
     if (events.length === 0) {
@@ -213,6 +205,26 @@ export default function SentryApplicationDetails(props: Props) {
 
     return events.map((e: any) => e.split('.').shift());
   }
+
+  const hasTokenAccess = () => {
+    return organization.access.includes('org:write');
+  };
+
+  const isInternal = () => {
+    if (app) {
+      // if we are editing an existing app, check the status of the app
+      return app.status === 'internal';
+    }
+    return location.pathname.endsWith('new-internal/');
+  };
+
+  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
+
+  const headerTitle = () => {
+    const action = app ? 'Edit' : 'Create';
+    const type = isInternal() ? 'Internal' : 'Public';
+    return tct('[action] [type] Integration', {action, type});
+  };
 
   const handleSubmitSuccess = (data: SentryApp) => {
     const type = isInternal() ? 'internal' : 'public';
@@ -224,7 +236,7 @@ export default function SentryApplicationDetails(props: Props) {
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    navigate(normalizeUrl(url));
+    router.push(normalizeUrl(url));
   };
 
   const handleSubmitError = (err: any) => {
@@ -244,20 +256,6 @@ export default function SentryApplicationDetails(props: Props) {
       }
     }
   };
-
-  const hasTokenAccess = () => {
-    return organization.access.includes('org:write');
-  };
-
-  const isInternal = () => {
-    if (app) {
-      // if we are editing an existing app, check the status of the app
-      return app.status === 'internal';
-    }
-    return location.pathname.endsWith('new-internal/');
-  };
-
-  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
 
   const onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
