@@ -343,7 +343,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
       parent.children.push(node);
 
       if (node.value && 'children' in node.value) {
-        for (const child of node.value.children) {
+        // EAP spans are not sorted by default
+        const children = node.value.children.sort(
+          (a, b) => a.start_timestamp - b.start_timestamp
+        );
+        for (const child of children) {
           visit(node, child);
         }
       }
