@@ -2660,6 +2660,11 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.detect-performance-problems.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.profile-process-messages.rate",
     type=Float,
     default=0.0,

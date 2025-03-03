@@ -50,6 +50,11 @@ class TestSpansTask(TestCase):
 
         return spans
 
+    @override_options(
+        {
+            "standalone-spans.detect-performance-problems.enable": True,
+        }
+    )
     def test_n_plus_one_issue_detection(self):
         spans = self.generate_n_plus_one_spans()
         job = process_segment(spans)[0]
@@ -63,6 +68,7 @@ class TestSpansTask(TestCase):
 
     @override_options(
         {
+            "standalone-spans.detect-performance-problems.enable": True,
             "standalone-spans.send-occurrence-to-platform.enable": True,
         }
     )
@@ -82,6 +88,11 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
 
+    @override_options(
+        {
+            "standalone-spans.detect-performance-problems.enable": True,
+        }
+    )
     def test_n_plus_one_issue_detection_without_segment_span(self):
         segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
         child_span = build_mock_span(
