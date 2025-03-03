@@ -128,24 +128,25 @@ class TestFrameInfo:
         "frame_filename, prefix",
         [
             pytest.param(
-                FrameInfo({"filename": "app:///utils/something.py"}),
+                "app:///utils/something.py",
                 "app:///utils",
             ),
             pytest.param(
-                FrameInfo({"filename": "./app/utils/something.py"}),
+                "./app/utils/something.py",
                 "./app",
             ),
             pytest.param(
-                FrameInfo({"filename": "../../../../../../packages/something.py"}),
+                "../../../../../../packages/something.py",
                 "../../../../../../packages",
             ),
             pytest.param(
-                FrameInfo({"filename": "app:///../services/something.py"}),
+                "app:///../services/something.py",
                 "app:///../services",
             ),
         ],
     )
-    def test_straight_path_prefix(self, frame_filename: FrameInfo, prefix: str) -> None:
+    def test_straight_path_prefix(self, frame_filename: str, prefix: str) -> None:
+        frame_filename = FrameInfo({"filename": frame_filename})
         assert frame_filename.stack_root == prefix
 
 
