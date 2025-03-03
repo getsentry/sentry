@@ -9,15 +9,7 @@ import {space} from 'sentry/styles/space';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  | 'white'
-  | 'black';
+  'default' | 'promotion' | 'highlight' | 'warning' | 'success' | 'error' | 'info';
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Icon on the left side.
