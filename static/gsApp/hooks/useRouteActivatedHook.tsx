@@ -150,7 +150,9 @@ export default function useRouteActivatedHook(props: Props) {
       }
     }, DELAY_TIME_MS);
     return () => {
-      timeoutId && clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [organization, analyticsParams, hasSentAnalytics]);
 

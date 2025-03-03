@@ -84,7 +84,9 @@ export function PolicyRow({
         )
       : null;
     // @ts-expect-error TS(2774): This condition will always return true since this ... Remove this comment to see the full error message
-    window.focus && dialog?.focus();
+    if (window.focus) {
+      dialog?.focus();
+    }
   };
 
   const showModal = () => {

@@ -254,6 +254,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
