@@ -82,7 +82,7 @@ def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, 
     DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
 
-def update_migrated_issue_alert(rule: Rule):
+def update_migrated_issue_alert(rule: Rule) -> Workflow:
     data = rule.data
 
     try:
@@ -146,6 +146,8 @@ def update_migrated_issue_alert(rule: Rule):
     workflow.enabled = True
     workflow.save()
 
+    return workflow
+
 
 def update_dcg(
     dcg: DataConditionGroup,
@@ -175,7 +177,7 @@ def update_dcg(
     return dcg
 
 
-def delete_migrated_issue_alert(rule: Rule):
+def delete_migrated_issue_alert(rule: Rule) -> int:
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
@@ -183,6 +185,7 @@ def delete_migrated_issue_alert(rule: Rule):
         return
 
     workflow: Workflow = alert_rule_workflow.workflow
+    workflow_id = workflow.id
 
     try:
         # delete all associated IF DCGs and their conditions
@@ -209,6 +212,8 @@ def delete_migrated_issue_alert(rule: Rule):
 
     workflow.delete()
     alert_rule_workflow.delete()
+
+    return workflow_id
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):

@@ -366,6 +366,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        rule_id = rule.id
         rule.update(status=ObjectStatus.PENDING_DELETION)
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
@@ -375,7 +376,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if features.has(
             "organizations:workflow-engine-issue-alert-dual-write", project.organization
         ):
-            delete_migrated_issue_alert(rule)
+            workflow_id = delete_migrated_issue_alert(rule)
+            logger.info(
+                "workflow_engine.issue_alert.deleted",
+                extra={"rule_id": rule_id, "workflow_id": workflow_id},
+            )
 
         self.create_audit_entry(
             request=request,

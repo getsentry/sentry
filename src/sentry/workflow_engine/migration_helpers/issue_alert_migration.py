@@ -51,7 +51,7 @@ class IssueAlertMigrator:
         self.project = rule.project
         self.organization = self.project.organization
 
-    def run(self) -> None:
+    def run(self) -> Workflow:
         error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
         action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
