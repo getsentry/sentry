@@ -22,7 +22,7 @@ class GroupSearchViewLastSeen(Model):
         db_table = "sentry_groupsearchviewlastseen"
         constraints = [
             UniqueConstraint(
-                fields=["user_id", "organization_id", "group_search_view_id", "last_seen"],
+                fields=["user_id", "organization_id", "group_search_view_id"],
                 name="sentry_groupsearchviewlastseen_unique_last_seen_per_org_user_view",
             )
         ]
