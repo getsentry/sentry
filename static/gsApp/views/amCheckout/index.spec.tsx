@@ -14,8 +14,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
-import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -138,19 +136,11 @@ describe('AM1 Checkout', function () {
   });
 
   it('renders pending cancellation button', async function () {
-    const pendingChanges = PendingChangesFixture({
-      plan: 'am3_f',
-      planName: 'Developer',
-      onDemandMaxSpend: 0,
-      effectiveDate: '2021-02-01',
-      onDemandEffectiveDate: '2021-03-01',
-      planDetails: PlanFixture({
-        id: 'am3_f',
-        name: 'Developer',
-      }),
-    });
-
-    const sub: SubscriptionType = {...subscription, canCancel: true, pendingChanges};
+    const sub: SubscriptionType = {
+      ...subscription,
+      canCancel: true,
+      cancelAtPeriodEnd: true,
+    };
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -168,7 +158,7 @@ describe('AM1 Checkout', function () {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument(); // TODO
+    expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument();
   });
 
   it('does not renders cancel subscription button if cannot cancel', async function () {
