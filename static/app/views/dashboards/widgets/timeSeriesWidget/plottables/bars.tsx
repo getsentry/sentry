@@ -6,9 +6,9 @@ import BarSeries from 'sentry/components/charts/series/barSeries';
 import {markDelayedData} from '../markDelayedData';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
-import type {
+import {
   ContinuousTimeSeries,
-  ContinuousTimeSeriesConfig,
+  type ContinuousTimeSeriesConfig,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
