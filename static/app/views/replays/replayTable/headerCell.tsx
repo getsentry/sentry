@@ -49,8 +49,19 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_errors"
           label={t('Errors')}
-          tooltip={t(
-            'The error count only reflects errors generated within the Replay SDK. Inbound Filters may have prevented those errors from being saved. Backend and other error types may have been added afterwards.'
+          tooltip={tct(
+            'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
+            {
+              inboundFilters: (
+                <ExternalLink href="https://docs.sentry.io/concepts/data-management/filtering/" />
+              ),
+              replayIssue: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/replay-issues/" />
+              ),
+              perfIssue: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/performance-issues/" />
+              ),
+            }
           )}
         />
       );
