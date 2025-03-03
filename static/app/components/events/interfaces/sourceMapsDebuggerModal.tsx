@@ -164,6 +164,10 @@ const projectPlatformToDocsMap: Record<string, string> = {
   'node-awslambda': 'aws-lambda',
 };
 
+function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
+  return sdkName === 'sentry.javascript.react-native';
+}
+
 function getSourceMapsDocLinks({
   sdkName,
   projectPlatform,
@@ -181,6 +185,7 @@ function getSourceMapsDocLinks({
     return {
       sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
       legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
+      sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
     };
   }
 
@@ -344,9 +349,7 @@ export function SourceMapsDebuggerModal({
               }/4)`}
               hidden={
                 !sourceResolutionResults.hasScrapingData ||
-                !sourceResolutionResults.sdkName?.startsWith(
-                  'sentry.javascript.react-native'
-                )
+                !isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
               }
             >
               <StyledProgressRing
@@ -673,15 +676,24 @@ function HasDebugIdChecklistItem({
           </p>
           {defined(sourceMapsDocLinks.sentryCli) && (
             <p>
-              {tct(
-                'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
-                {
-                  sentryCliLink: (
-                    <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
-                  ),
-                  injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
-                }
-              )}
+              {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+                ? tct(
+                    'When manually creating source maps, ensure that you upload the exact same files that were bundled into the application package. For details, see the [uploadingSourceMapsLink:Uploading Source Maps documentation]',
+                    {
+                      uploadingSourceMapsLink: (
+                        <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
+                      ),
+                    }
+                  )
+                : tct(
+                    'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
+                    {
+                      sentryCliLink: (
+                        <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
+                      ),
+                      injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
+                    }
+                  )}
             </p>
           )}
           <p>
