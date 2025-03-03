@@ -38,6 +38,18 @@ function Headers({
       ) : (
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
+            <Fragment>
+              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
+                {t('First Seen')}
+                <HeaderDivider />
+              </TimestampLabel>
+              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+                {t('Last Seen')}
+                <HeaderDivider />
+              </TimestampLabel>
+            </Fragment>
+          ) : null}
+          {organization.features.includes('issue-stream-table-layout') ? (
             <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
               <NarrowGraphLabelContents>
                 {t('Trend')}
@@ -81,18 +93,6 @@ function Headers({
               </GraphHeader>
             </GraphHeaderWrapper>
           )}
-          {organization.features.includes('issue-stream-table-layout') ? (
-            <Fragment>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
-                {t('First Seen')}
-                <HeaderDivider />
-              </TimestampLabel>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-                {t('Last Seen')}
-                <HeaderDivider />
-              </TimestampLabel>
-            </Fragment>
-          ) : null}
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
               <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
