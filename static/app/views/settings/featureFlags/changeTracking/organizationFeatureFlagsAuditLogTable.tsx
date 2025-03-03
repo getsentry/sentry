@@ -91,7 +91,11 @@ export function OrganizationFeatureFlagsAuditLogTable({
               : undefined;
         const capitalized =
           dataRow.action.charAt(0).toUpperCase() + dataRow.action.slice(1);
-        return <Tag type={type}>{capitalized}</Tag>;
+        return (
+          <div style={{alignSelf: 'flex-start'}}>
+            <Tag type={type}>{capitalized}</Tag>
+          </div>
+        );
       }
       default:
         return dataRow[column.key!];
