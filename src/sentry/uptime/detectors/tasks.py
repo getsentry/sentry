@@ -146,7 +146,7 @@ def process_project_url_ranking(project: Project, project_url_count: int) -> boo
 
     found_url = False
 
-    for url, url_count in get_candidate_urls_for_project(project)[:5]:
+    for url, url_count in get_candidate_urls_for_project(project, limit=5):
         if process_candidate_url(project, project_url_count, url, url_count):
             found_url = True
             break
