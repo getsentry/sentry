@@ -96,7 +96,12 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
         organization = org_or_project
 
     # Load all FileBlobs from db since we can be sure here we already own all chunks need to build the file.
-    file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
+    #
+    # To guarantee that the blobs are owned by the org which is building this file, we check the ownership when checking
+    # the blobs.
+    file_blobs = FileBlob.objects.filter(
+        checksum__in=chunks, fileblobowner__organization_id=organization.id
+    ).values_list("id", "checksum", "size")
 
     # Reject all files that exceed the maximum allowed size for this organization.
     file_size = sum(size for _, _, size in file_blobs if size is not None)
