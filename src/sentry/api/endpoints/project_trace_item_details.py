@@ -5,11 +5,7 @@ from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
-from sentry_protos.snuba.v1.request_common_pb2 import (
-    TRACE_ITEM_TYPE_LOG,
-    TRACE_ITEM_TYPE_SPAN,
-    RequestMeta,
-)
+from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_LOG, RequestMeta
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -37,12 +33,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         """
         dataset = request.GET.get("dataset")
         referrer = request.GET.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
-        try:
-            trace_item_type = {
-                "spans": TRACE_ITEM_TYPE_SPAN,
-                "ourlogs": TRACE_ITEM_TYPE_LOG,
-            }[dataset]
-        except KeyError:
+        if dataset == "ourlogs":
+            trace_item_type = TRACE_ITEM_TYPE_LOG
+        else:
             raise BadRequest(detail=f"Unknown dataset: '{dataset}'")
 
         start_timestamp_proto = ProtoTimestamp()
