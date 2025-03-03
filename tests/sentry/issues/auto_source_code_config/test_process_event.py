@@ -198,10 +198,20 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
         with patch(f"{CODE_ROOT}.task.supported_platform", return_value=True):
             # No extensions are supported, thus, we can't generate a code mapping
-            self._process_and_assert_no_code_mapping([file_in_repo])
+            self._process_and_assert_no_code_mapping(
+                repo_files=[file_in_repo],
+                frames=[{"filename": frame_filename, "in_app": True}],
+                platform=platform,
+            )
 
             with patch(f"{REPO_TREES_CODE}.SUPPORTED_EXTENSIONS", ["tbd"]):
-                self._process_and_assert_code_mapping([file_in_repo], "foo/", "src/foo/")
+                self._process_and_assert_code_mapping(
+                    repo_files=[file_in_repo],
+                    frames=[{"filename": frame_filename, "in_app": True}],
+                    platform=platform,
+                    expected_stack_root="foo/",
+                    expected_source_root="src/foo/",
+                )
 
 
 class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):
