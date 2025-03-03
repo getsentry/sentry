@@ -18,6 +18,7 @@ import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
@@ -130,6 +131,8 @@ export function Content({
   meta,
   threadId,
 }: Props) {
+  const {projects} = useProjects({slugs: [projectSlug]});
+
   const {collapsedExceptions, toggleException, expandException} =
     useCollapsedExceptions(values);
 
@@ -144,6 +147,7 @@ export function Content({
     return null;
   }
 
+  const project = projects.find(({slug}) => slug === projectSlug);
   const children = values.map((exc, excIdx) => {
     const id = defined(exc.mechanism?.exception_id)
       ? `exception-${exc.mechanism?.exception_id}`
@@ -155,7 +159,8 @@ export function Content({
       prepareSourceMapDebuggerFrameInformation(
         sourceMapDebuggerData,
         debuggerFrame,
-        event
+        event,
+        project?.platform
       )
     );
     const exceptionValue = exc.value

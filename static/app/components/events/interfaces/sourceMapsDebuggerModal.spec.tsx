@@ -42,6 +42,7 @@ const defaultSourceResolutionResults = {
   uploadedSomeArtifactWithDebugId: false,
   uploadedSourceFileWithCorrectDebugId: false,
   uploadedSourceMapWithCorrectDebugId: false,
+  projectPlatform: undefined,
 };
 
 const renderModal = (props?: Partial<SourceMapsDebuggerModalProps>) => {
