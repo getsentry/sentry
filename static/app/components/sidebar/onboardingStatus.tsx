@@ -134,8 +134,9 @@ export function OnboardingStatus({
         source: 'onboarding_sidebar_user_second_visit',
       });
     }
+    // be careful when adding dependencies here as it can cause side-effects, e.g activateSidebar
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
+  }, [mutateUserOptions, orgId, skipQuickStart]);
 
   if (skipQuickStart) {
     return null;
