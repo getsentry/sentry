@@ -317,9 +317,9 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 const TopResultsIndicator = styled('div')<{index: number}>`
   position: absolute;
   left: -1px;
-  width: 9px;
+  width: 8px;
   height: 16px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 2px 2px 0;
 
   background-color: ${p => {
     return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
@@ -331,14 +331,14 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  min-height: 30px;
   font-size: ${p => p.theme.fontSizeSmall};
+  min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  height: 32px;
   font-size: ${p => p.theme.fontSizeSmall};
+  height: 33px;
 `;
 
 const TableHeadCellContent = styled('div')`
