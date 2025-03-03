@@ -98,6 +98,7 @@ type Props = WithRouterProps & {
 type Data = {
   confidence?: Confidence;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -172,6 +173,7 @@ function WidgetCard(props: Props) {
         seriesResultsType: data?.timeseriesResultsTypes,
         totalIssuesCount: data?.totalIssuesCount,
         confidence: data?.confidence,
+        sampleCount: data?.sampleCount,
       });
 
       props.router.push({

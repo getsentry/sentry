@@ -303,6 +303,7 @@ class DashboardDetail extends Component<Props, State> {
       totalIssuesCount,
       seriesResultsType,
       confidence,
+      sampleCount,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
@@ -369,6 +370,7 @@ class DashboardDetail extends Component<Props, State> {
             }
           },
           confidence,
+          sampleCount,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
