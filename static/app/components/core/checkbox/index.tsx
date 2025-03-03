@@ -45,16 +45,15 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     };
 
     return (
-      <CheckboxWrapper checked={checked} size={size} {...wrapperProps}>
+      <CheckboxWrapper size={size} {...wrapperProps}>
         <NativeHiddenCheckbox
           ref={nativeCheckboxRef}
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
-          aria-checked={checked === 'indeterminate' ? 'mixed' : checked}
           {...props}
         />
 
-        <FakeCheckbox aria-hidden checked={checked} size={size}>
+        <FakeCheckbox aria-hidden size={size}>
           {(checked === true || checked === 'indeterminate') && (
             <CheckboxIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
               {checked === 'indeterminate' ? (
@@ -76,14 +75,12 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
 );
 
 const CheckboxWrapper = styled('div')<{
-  checked: CheckboxProps['checked'];
   size: FormSize;
 }>`
   position: relative;
   cursor: pointer;
   display: inline-flex;
   justify-content: flex-start;
-  color: ${p => (p.checked ? p.theme.white : p.theme.textColor)};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
 `;
 
@@ -98,25 +95,39 @@ const NativeHiddenCheckbox = styled('input')`
   padding: 0;
   cursor: pointer;
 
+  & + * {
+    color: ${p => p.theme.textColor};
+    border: 1px solid ${p => p.theme.gray200};
+  }
+
   &:focus-visible + * {
-    box-shadow: ${p =>
-      p.checked ? `${p.theme.focus} 0 0 0 3px` : `${p.theme.focusBorder} 0 0 0 1px`};
-    border-color: ${p => (p.checked ? p.theme.focusBorder : 'none')};
+    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
   }
 
-  &:disabled:not(:indeterminate) + * {
-    background-color: ${p =>
-      p.checked ? p.theme.disabled : p.theme.backgroundSecondary};
-    border-color: ${p => (p.checked ? p.theme.disabledBorder : 'inherit')};
+  &:checked:focus-visible + *,
+  &:indeterminate:focus-visible + * {
+    box-shadow: ${p => p.theme.focus} 0 0 0 3px;
   }
 
-  &:indeterminate:disabled + * {
+  &:disabled + * {
+    background-color: ${p => p.theme.backgroundSecondary};
+    border: 1px solid ${p => p.theme.disabledBorder};
+  }
+
+  &:checked + *,
+  &:indeterminate + * {
+    background-color: ${p => p.theme.active};
+    color: ${p => p.theme.white};
+  }
+
+  &:disabled:checked + *,
+  &:disabled:indeterminate + * {
     background-color: ${p => p.theme.disabled};
+    border: 1px solid ${p => p.theme.disabledBorder};
   }
 `;
 
 const FakeCheckbox = styled('div')<{
-  checked: CheckboxProps['checked'];
   size: FormSize;
 }>`
   position: relative;
@@ -129,9 +140,6 @@ const FakeCheckbox = styled('div')<{
   height: ${p => checkboxSizeMap[p.size].box};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
   pointer-events: none;
-
-  background-color: ${p => (p.checked ? p.color ?? p.theme.active : p.theme.background)};
-  border: ${p => (p.checked ? 'none' : `1px solid ${p.theme.gray200}`)};
 `;
 
 const CheckboxIcon = styled('svg')<{size: string}>`

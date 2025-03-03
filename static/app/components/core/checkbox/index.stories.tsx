@@ -41,7 +41,7 @@ export default storyBook('Checkbox', (story, APIReference) => {
   });
 });
 
-const Label = styled('label')`
+const Label = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
