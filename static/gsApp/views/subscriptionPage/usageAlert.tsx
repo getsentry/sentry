@@ -162,8 +162,12 @@ function UsageAlert({organization, subscription, usage}: Props) {
   }
 
   function renderExceededInfo() {
-    const exceededList = sortCategoriesWithKeys(subscription.categories).reduce(
-      (acc, [category, currentHistory]) => {
+    const exceededList = sortCategoriesWithKeys(subscription.categories)
+      .filter(
+        ([category]) =>
+          category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
+      )
+      .reduce((acc, [category, currentHistory]) => {
         if (currentHistory.usageExceeded) {
           acc.push(
             getPlanCategoryName({
@@ -175,9 +179,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
           );
         }
         return acc;
-      },
-      [] as string[]
-    );
+      }, [] as string[]);
 
     const quotasExceeded =
       exceededList.length > 0
