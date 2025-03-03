@@ -11,15 +11,19 @@ from sentry.types.rules import RuleFuture
 # This allows us to set up alert rules via the UI
 class FakeLogAction(IntegrationEventAction):
     id = "sentry.integrations.fake_log.notify_action.FakeLogAction"
-    label = "Log a message with identifier: {identifier}"
+    label = "Log a message to {log_key} with identifier: {identifier}"
     prompt = "Enter a fake identifier to log alongside issue data"
     provider = "fake-log"
-    integration_key = "fake-log"
+    integration_key = "log_key"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "identifier": {"type": "string", "required": True},
+            "log_key": {
+                "type": "choice",
+                "choices": [(i.id, i.name) for i in self.get_integrations()],
+            },
         }
 
     def after(self, event: GroupEvent, notification_uuid: str | None = None):
@@ -48,10 +52,12 @@ class FakeLogAction(IntegrationEventAction):
 
     def render_label(self) -> str:
         identifier = self.get_option("identifier", "damn")
-        label = f"Log a message with identifier: {identifier}"
+        log_key = self.get_option("log_key")
+        label = f"Log a message to {log_key} with identifier: {identifier}"
         return label
 
     def get_form_instance(self) -> FakeLogServiceForm:
         return FakeLogServiceForm(
             self.data,
+            integrations=self.get_integrations(),
         )
