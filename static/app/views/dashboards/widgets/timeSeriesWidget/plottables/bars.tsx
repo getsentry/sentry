@@ -1,36 +1,58 @@
 import Color from 'color';
+import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import BarSeries from 'sentry/components/charts/series/barSeries';
 
-import type {TimeSeries} from '../../common/types';
+import type {PlottableData} from '../../common/types';
 import {markDelayedData} from '../markDelayedData';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
-import {Plottable} from './plottable';
+import {
+  type AggregateTimePlottingOptions,
+  AggregateTimeSeries,
+} from './aggregateTimeSeries';
 
-interface BarsOptions {
+interface BarsConfig {
+  /**
+   * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
+   */
   color?: string;
-  dataCompletenessDelay?: number;
+  /**
+   * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
+   */
+  delay?: number;
+  /**
+   * Stack name. If provided, bar plottables with the same stack will be stacked visually.
+   */
   stack?: string;
 }
 
-export class Bars extends Plottable<BarsOptions> {
-  toSeries(timeSeries: TimeSeries, options: BarsOptions) {
-    const markedSeries = markDelayedData(timeSeries, options.dataCompletenessDelay ?? 0);
+/**
+ * See documentation for `PlottableData` for an explanation.
+ */
+export class Bars extends AggregateTimeSeries<BarsConfig> implements PlottableData {
+  toSeries(
+    plottingOptions: AggregateTimePlottingOptions
+  ): Array<BarSeriesOption | LineSeriesOption> {
+    const {timeSeries, config = {}} = this;
+
+    const {color, unit} = plottingOptions;
+
+    const scaledTimeSeries = this.scaleToUnit(unit);
+
+    const markedSeries = markDelayedData(scaledTimeSeries, config.delay ?? 0);
 
     return [
       BarSeries({
-        name: markedSeries.field,
-        color: markedSeries.color,
-        stack: options.stack ?? GLOBAL_STACK_NAME,
+        name: timeSeries.field,
+        color: timeSeries.color,
+        stack: config.stack ?? GLOBAL_STACK_NAME,
         animation: false,
         itemStyle: {
           color: params => {
             const datum = markedSeries.data[params.dataIndex]!;
 
-            return datum.delayed
-              ? Color(options.color).lighten(0.5).string()
-              : options.color!;
+            return datum.delayed ? Color(color).lighten(0.5).string() : color!;
           },
           opacity: 1.0,
         },

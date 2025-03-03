@@ -41,7 +41,6 @@ import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {isTimeSeriesOther} from './isTimeSeriesOther';
 import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 type VisualizationType = 'area' | 'line' | 'bar';
@@ -178,11 +177,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
   }
 
-  // Apply unit scaling to all series
-  const scaledSeries = props.timeSeries.map(timeSeries => {
-    return scaleTimeSeriesData(timeSeries, yAxisUnit);
-  });
-
   // Construct plottable items
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
 
@@ -192,7 +186,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : [];
 
   let seriesColorIndex = 0;
-  const plottables = scaledSeries.map(timeSeries => {
+  const plottables = props.timeSeries.map(timeSeries => {
     let color: string;
 
     if (timeSeries.color) {
@@ -209,21 +203,21 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
     if (props.visualizationType === 'area') {
       return new Area(timeSeries, {
-        dataCompletenessDelay,
+        delay: dataCompletenessDelay,
         color,
       });
     }
 
     if (props.visualizationType === 'bar') {
       return new Bars(timeSeries, {
-        dataCompletenessDelay,
+        delay: dataCompletenessDelay,
         color,
         stack: props.stacked ? GLOBAL_STACK_NAME : undefined,
       });
     }
 
     return new Line(timeSeries, {
-      dataCompletenessDelay,
+      delay: dataCompletenessDelay,
       color,
     });
   });
@@ -273,13 +267,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeSeries = scaledSeries.find(t => t.field === field);
-
-        return formatTooltipValue(
-          value,
-          timeSeries?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeSeries?.meta?.units?.[field] ?? undefined
-        );
+        return formatTooltipValue(value, yAxisFieldType, yAxisUnit ?? undefined);
       },
       nameFormatter: seriesName => {
         return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
@@ -289,14 +277,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = scaledSeries.length;
+  let visibleSeriesCount = plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
 
-  const dataSeries = plottables.flatMap(plottable => plottable.series);
+  const dataSeries = plottables.flatMap(plottable =>
+    plottable.toSeries({
+      color: plottable.config?.color!, // Colors are assigned from palette, above, so they're guaranteed to be there
+      unit: yAxisUnit,
+    })
+  );
 
   return (
     <BaseChart
