@@ -127,23 +127,37 @@ class TestFrameInfo:
             with pytest.raises(NeedsExtension):
                 FrameInfo({"filename": filepath})
 
-    def test_module_raises_missing_module_or_abs_path(self) -> None:
-        with pytest.raises(MissingModuleOrAbsPath):
-            FrameInfo({}, "java")
+    @pytest.mark.parametrize(
+        "frame, expected_exception",
+        [
+            pytest.param({}, MissingModuleOrAbsPath),  # No module
+            pytest.param({"module": "foo"}, MissingModuleOrAbsPath),  # No abs_path
+            pytest.param({"module": "foo", "abs_path": "hasDollar$Symbol"}, DoNotUseThisFrame),
+            pytest.param(
+                {"module": "foo.no_upper_letter_class", "abs_path": "bar.java"},
+                FailedToExtractFilename,
+            ),
+            pytest.param(
+                {"module": "foo.ClassName", "abs_path": "no_extension"},
+                FailedToExtractFilename,
+            ),
+        ],
+    )
+    def test_java_raises_exception(
+        self, frame: dict[str, Any], expected_exception: type[Exception]
+    ) -> None:
+        with pytest.raises(expected_exception):
+            FrameInfo(frame, "java")
 
-        with pytest.raises(MissingModuleOrAbsPath):
-            FrameInfo({"module": "foo"}, "java")
-
-    def test_frame_raises_failed_to_extract_filename(self) -> None:
-        with pytest.raises(FailedToExtractFilename):
-            FrameInfo(
-                {"module": "foo.bar.the_class_does_not_have_upper_case_letter", "abs_path": "bar"},
-                "java",
-            )
-
-    def test_abs_path_with_dollar_sign(self) -> None:
-        with pytest.raises(DoNotUseThisFrame):
-            FrameInfo({"module": "foo", "abs_path": "barHas$Symbol"}, "java")
+    @pytest.mark.parametrize(
+        "frame, expected_stack_root",
+        [
+            pytest.param({"module": "foo.bar.Bar$handle$1", "abs_path": "bar.java"}, "foo/bar"),
+        ],
+    )
+    def test_valid_frames(self, frame: dict[str, Any], expected_stack_root: str) -> None:
+        frame_info = FrameInfo(frame, "java")
+        assert frame_info.stack_root == expected_stack_root
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",
