@@ -93,8 +93,7 @@ def test_end_to_end_message_processing():
     assert cmd.fun == FlushBuffer(runtime.model)
     assert len(runtime.model.buffer) == 1
 
-    # Assert the successful flush triggers a commit command. Assert the model's offsets were
-    # committed and the buffer was reset.
+    # Assert the successful flush triggers a commit command.
     cmd = gen.send(cmd.msg(1))
     assert len(runtime.model.buffer) == 0
     assert runtime.model.last_flushed_at == 1
@@ -125,8 +124,7 @@ def test_invalid_message_format():
     assert isinstance(cmd, Effect)
     assert cmd.fun == FlushBuffer(runtime.model)
 
-    # Send the `Flushed` message with an arbitrary timestamp. Offsets are retained so the invalid
-    # message is never revisited.
+    # Send the `Flushed` message with an arbitrary timestamp.
     cmd = gen.send(cmd.msg(1))
     assert runtime.model.last_flushed_at == 1
     assert len(runtime.model.buffer) == 0
