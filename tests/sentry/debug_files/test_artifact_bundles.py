@@ -40,7 +40,7 @@ def make_compressed_zip_file(files):
 
 
 def upload_bundle(bundle_file, project, release=None, dist=None):
-    blob1 = FileBlob.from_file(ContentFile(bundle_file))
+    blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
     return assemble_artifacts(
