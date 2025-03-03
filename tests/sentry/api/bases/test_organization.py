@@ -24,6 +24,7 @@ from sentry.api.exceptions import (
     SuperuserRequired,
     TwoFactorRequired,
 )
+from sentry.api.permissions import SentryPermission
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
@@ -53,7 +54,7 @@ class PermissionBaseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
         # default to the organization permission class
-        self.permission_cls = OrganizationPermission
+        self.permission_cls: type[SentryPermission] = OrganizationPermission
         super().setUp()
 
     def has_object_perm(

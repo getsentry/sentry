@@ -1,11 +1,12 @@
 from sentry.api.bases.organizationmember import MemberAndStaffPermission, MemberPermission
+from sentry.api.permissions import SentryPermission
 from tests.sentry.api.bases.test_organization import PermissionBaseTestCase
 
 
 class MemberPermissionTest(PermissionBaseTestCase):
     def setUp(self):
         super().setUp()
-        self.permission_cls = MemberPermission
+        self.permission_cls: type[SentryPermission] = MemberPermission
 
     def test_user_not_in_org(self):
         random_user = self.create_user()

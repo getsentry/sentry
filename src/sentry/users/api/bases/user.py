@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, staff_permission_cls
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -45,14 +45,10 @@ class UserPermission(DemoSafePermission):
         return False
 
 
-class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
-    """
-    Allows staff to access any endpoints this permission is used on. Note that
-    UserPermission already includes a check for Superuser
-    """
+UserAndStaffPermission = staff_permission_cls("UserAndStaffPermission", UserPermission)
 
 
-class OrganizationUserPermission(UserAndStaffPermission):
+class _OrganizationUserPermission(UserPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
     def has_org_permission(self, request: Request, user: User | RpcUser | None) -> bool:
@@ -99,6 +95,11 @@ class OrganizationUserPermission(UserAndStaffPermission):
         if super().has_object_permission(request, view, user):
             return True
         return self.has_org_permission(request, user)
+
+
+OrganizationUserPermission = staff_permission_cls(
+    "OrganizationUserPermission", _OrganizationUserPermission
+)
 
 
 class UserEndpoint(Endpoint):

@@ -12,6 +12,7 @@ from sentry import analytics, audit_log, deletions, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.api.permissions import staff_permission_cls
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
@@ -21,8 +22,8 @@ from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import (
-    SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
+    SentryAppPermission,
     catch_raised_errors,
 )
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
@@ -41,11 +42,11 @@ from sentry.utils.audit import create_audit_entry
 logger = logging.getLogger(__name__)
 PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
 
-
-class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
-    """Allows staff to access the GET and PUT methods which are used in _admin."""
-
-    staff_allowed_methods = {"GET", "PUT"}
+SentryAppDetailsEndpointPermission = staff_permission_cls(
+    "SentryAppDetailsEndpointPermission",
+    SentryAppPermission,
+    staff_allowed_methods=frozenset(("GET", "PUT")),
+)
 
 
 @extend_schema(tags=["Integration"])

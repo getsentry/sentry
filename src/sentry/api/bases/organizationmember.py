@@ -7,7 +7,7 @@ from rest_framework.fields import empty
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import StaffPermissionMixin
+from sentry.api.permissions import staff_permission_cls
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -46,10 +46,7 @@ class MemberPermission(OrganizationPermission):
         return is_role_above_member or not organization.flags.disable_member_invite
 
 
-class MemberAndStaffPermission(StaffPermissionMixin, MemberPermission):
-    """Allows staff to access member endpoints."""
-
-    pass
+MemberAndStaffPermission = staff_permission_cls("MemberAndStaffPermission", MemberPermission)
 
 
 class MemberIdField(serializers.IntegerField):

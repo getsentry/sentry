@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import SentryPermission, staff_permission_cls
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
@@ -100,10 +100,9 @@ class SentryAppsPermission(SentryPermission):
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
-class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
-    """Allows staff to access the GET method of sentry apps endpoints."""
-
-    staff_allowed_methods = {"GET"}
+SentryAppsAndStaffPermission = staff_permission_cls(
+    "SentryAppsAndStaffPermission", SentryAppsPermission, staff_allowed_methods=frozenset(("GET",))
+)
 
 
 class IntegrationPlatformEndpoint(Endpoint):
@@ -274,11 +273,9 @@ class SentryAppPermission(SentryPermission):
             return self.unpublished_scope_map
 
 
-class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
-    """Allows staff to access sentry app endpoints. Note that this is used for
-    endpoints acting on a single sentry app only."""
-
-    pass
+SentryAppAndStaffPermission = staff_permission_cls(
+    "SentryAppAndStaffPermission", SentryAppPermission
+)
 
 
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):

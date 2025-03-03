@@ -20,7 +20,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
-from sentry.api.permissions import StaffPermissionMixin
+from sentry.api.permissions import staff_permission_cls
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
@@ -466,8 +466,9 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
-class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermission):
-    pass
+RelaxedProjectAndStaffPermission = staff_permission_cls(
+    "RelaxedProjectAndStaffPermission", RelaxedProjectPermission
+)
 
 
 @extend_schema(tags=["Projects"])

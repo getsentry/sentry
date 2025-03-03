@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
+from sentry.api.permissions import SentryPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
@@ -10,7 +11,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 class ProjectPermissionBase(TestCase):
     def setUp(self):
         super().setUp()
-        self.permission_cls = ProjectPermission
+        self.permission_cls: type[SentryPermission] = ProjectPermission
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None, is_staff=None):
         perm = self.permission_cls()

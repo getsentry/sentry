@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import SentryPermission, staff_permission_cls
 from sentry.auth.superuser import is_active_superuser
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.integrations.api.parsers.doc_integration import METADATA_PROPERTIES
@@ -32,7 +32,7 @@ class DocIntegrationsPermission(SentryPermission):
             return False
 
         # TODO(schew2381): Remove superuser check once staff feature flag is rolled out.
-        # We want to allow staff through the StaffPermissionMixin instead of mixing logic here.
+        # We want to allow staff through the staff_permission_cls instead of mixing logic here.
         if is_active_superuser(request) or request.method == "GET":
             return True
 
@@ -45,7 +45,7 @@ class DocIntegrationsPermission(SentryPermission):
             return False
 
         # TODO(schew2381): Remove superuser check once staff feature flag is rolled out.
-        # We want to allow staff through the StaffPermissionMixin instead of mixing logic here.
+        # We want to allow staff through the staff_permission_cls instead of mixing logic here.
         if is_active_superuser(request):
             return True
 
@@ -55,10 +55,9 @@ class DocIntegrationsPermission(SentryPermission):
         return False
 
 
-class DocIntegrationsAndStaffPermission(StaffPermissionMixin, DocIntegrationsPermission):
-    """Allows staff to to access doc integration endpoints."""
-
-    pass
+DocIntegrationsAndStaffPermission = staff_permission_cls(
+    "DocIntegrationsAndStaffPermission", DocIntegrationsPermission
+)
 
 
 class DocIntegrationsBaseEndpoint(Endpoint):

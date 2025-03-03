@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, staff_permission_cls
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -94,10 +94,9 @@ class OrganizationPermission(DemoSafePermission):
         return is_member_disabled_from_limit(request, organization)
 
 
-class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
-    """Allows staff to to access organization endpoints."""
-
-    pass
+OrganizationAndStaffPermission = staff_permission_cls(
+    "OrganizationAndStaffPermission", OrganizationPermission
+)
 
 
 class OrganizationAuditPermission(OrganizationPermission):

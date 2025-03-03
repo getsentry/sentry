@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -64,6 +65,64 @@ class StaffPermission(BasePermission):
 
     def has_permission(self, request: Request, view: object) -> bool:
         return is_active_staff(request)
+
+
+def staff_permission_cls(
+    name: str,
+    base_permission_cls: type[SentryPermission],
+    *,
+    staff_allowed_methods: frozenset[str] = frozenset(("GET", "POST", "PUT", "DELETE")),
+) -> type[SentryPermission]:
+    def _staff_allowed(request: Request) -> bool:
+        return request.method in staff_allowed_methods and is_active_staff(request)
+
+    @functools.wraps(base_permission_cls, updated=())
+    class _P(SentryPermission):
+        def __init__(self) -> None:
+            self._base = base_permission_cls()
+
+        def has_permission(self, request: Request, view: APIView) -> bool:
+            """
+            Calls the parent class's has_permission method. If it returns False or
+            raises an exception and the method is allowed by the mixin, we then check
+            if the request is from an active staff. Raised exceptions are not caught
+            if the request is not allowed by the mixin or from an active staff.
+            """
+            try:
+                if self._base.has_permission(request, view):
+                    return True
+            except Exception:
+                if not _staff_allowed(request):
+                    raise
+                return True
+            return _staff_allowed(request)
+
+        def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
+            """
+            Calls the parent class's has_object_permission method. If it returns False or
+            raises an exception and the method is allowed by the mixin, we then check
+            if the request is from an active staff. Raised exceptions are not caught
+            if the request is not allowed by the mixin or from an active staff.
+            """
+            try:
+                if self._base.has_object_permission(request, view, obj):
+                    return True
+            except Exception:
+                if not _staff_allowed(request):
+                    raise
+                return True
+            return _staff_allowed(request)
+
+        def is_not_2fa_compliant(
+            self, request: Request, organization: RpcOrganization | Organization
+        ) -> bool:
+            return self._base.is_not_2fa_compliant(request, organization) and not is_active_staff(
+                request
+            )
+
+    _P.__name__ = name
+
+    return _P
 
 
 class StaffPermissionMixin:
