@@ -579,18 +579,21 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str | None, str | 
     temp_path = None
     generated_file_path = None
     stack_root = None
-    # We have a Java package name and perhaps the extension
-    # example.com -> com.example.package_name.ClassName
-    if module.count(".") >= 3:
-        # Sometimes, the module name has a dollar sign after the class name
-        # so we split on the dollar sign and take the first part
-        # e.g. com.example.foo.Bar$handle$1, Baz.kt -> com/example/foo/Bar
-        temp_path = module.replace(".", "/").split("$")[0]
-        # Grab the first two directories, e.g. com/example/
-        stack_root = "/".join(temp_path.split("/")[:2])
 
-        if abs_path and abs_path.count(".") == 1:
-            extension = abs_path.rsplit(".")[1]
-            generated_file_path = f"{temp_path}.{extension}"
+    # Find the first uppercase letter after a period to identify class name
+    parts = module.split(".")
+    for i, part in enumerate(parts):
+        if part and part[0].isupper():
+            # Everything before this part is the package path
+            package_name = parts[:i]
+            if package_name:
+                # Convert package path to directory structure
+                temp_path = "/".join(package_name + [part]).split("$")[0]
+                stack_root = "/".join(package_name)
+
+                if abs_path and abs_path.count(".") == 1:
+                    extension = abs_path.rsplit(".")[1]
+                    generated_file_path = f"{temp_path}.{extension}"
+            break
 
     return stack_root, generated_file_path
