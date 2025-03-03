@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -87,11 +86,6 @@ STATUS_LABELS = {
 
 
 class ProjectOverviewSerializer(Serializer):
-    def get_attrs(
-        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Project, dict[str, Any]]:
-        return {}
-
     def serialize(
         self,
         obj: Project,
