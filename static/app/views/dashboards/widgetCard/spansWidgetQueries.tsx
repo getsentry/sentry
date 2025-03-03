@@ -14,7 +14,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
-import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
@@ -68,7 +68,7 @@ function SpansWidgetQueries({
 
     if (isEventsStats(result)) {
       seriesConfidence = determineSeriesConfidence(result);
-      seriesSampleCount = determineSeriesSampleCount(
+      const {sampleCount: calculatedSampleCount} = determineSeriesSampleCountAndIsSampled(
         [
           convertEventsStatsToTimeSeriesData(
             widget.queries[0]?.aggregates[0] ?? '',
@@ -77,15 +77,17 @@ function SpansWidgetQueries({
         ],
         false
       );
+      seriesSampleCount = calculatedSampleCount;
     } else {
       const dedupedYAxes = dedupeArray(widget.queries[0]?.aggregates ?? []);
       const seriesMap = transformToSeriesMap(result, dedupedYAxes);
       const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
-      seriesSampleCount = determineSeriesSampleCount(
+      const {sampleCount: calculatedSampleCount} = determineSeriesSampleCountAndIsSampled(
         series,
         Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
           .length > 0
       );
+      seriesSampleCount = calculatedSampleCount;
       seriesConfidence = combineConfidenceForSeries(series);
     }
 
