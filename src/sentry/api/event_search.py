@@ -260,6 +260,15 @@ def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
     return "".join(chars)
 
 
+def wrap_free_text(string: str) -> str:
+    # Free text already had wildcarding on it, leave it alone
+    if string.startswith("*") or string.endswith("*"):
+        return string
+    # Otherwise always wrap it with wildcarding
+    else:
+        return f"*{string}*"
+
+
 def translate_escape_sequences(string: str) -> str:
     """
     A non-wildcard pattern can contain escape sequences that we need to handle.
@@ -709,7 +718,7 @@ class SearchVisitor(NodeVisitor):
             return None
         # Free text searches need to be treated like they were wildcards
         return SearchFilter(
-            SearchKey(self.config.free_text_key), "=", SearchValue(f"*{children[0]}*")
+            SearchKey(self.config.free_text_key), "=", SearchValue(wrap_free_text(children[0]))
         )
 
     def visit_paren_group(self, node, children):
@@ -717,7 +726,7 @@ class SearchVisitor(NodeVisitor):
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
             return SearchFilter(
-                SearchKey(self.config.free_text_key), "=", SearchValue(f"*{node.text}*")
+                SearchKey(self.config.free_text_key), "=", SearchValue(wrap_free_text(node.text))
             )
 
         children = remove_space(remove_optional_nodes(flatten(children)))

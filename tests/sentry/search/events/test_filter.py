@@ -466,7 +466,7 @@ def _email(x):
 
 def _message(x):
     return Condition(
-        lhs=Function("positionCaseInsensitive", [Column("message"), x]), op=Op.NEQ, rhs=0
+        lhs=Function("match", [Column("message"), f"(?i).*{re.escape(x)}.*"]), op=Op.EQ, rhs=1
     )
 
 

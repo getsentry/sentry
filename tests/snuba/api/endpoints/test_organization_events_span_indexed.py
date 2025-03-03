@@ -1282,7 +1282,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["span.description"] == "select * from database"
 
-    def test_wildcard_filter(self):
+    def test_free_text_wildcard_filter(self):
         spans = [
             self.create_span(
                 {"description": "barbarbar", "sentry_tags": {"status": "invalid_argument"}},
@@ -2613,6 +2613,40 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             {
                 "avg(span.duration)": 1000.0,
                 "description": "foo",
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_free_text_wildcard_filter(self):
+        spans = [
+            self.create_span(
+                {"description": "barbarbar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foofoofoo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["count()", "description"],
+                "query": "oof",
+                "orderby": "-count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count()": 1,
+                "description": "foofoofoo",
             },
         ]
         assert meta["dataset"] == self.dataset
