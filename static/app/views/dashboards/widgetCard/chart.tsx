@@ -307,7 +307,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <BigNumberResizeWrapper>
+          <BigNumberResizeWrapper noPadding={noPadding}>
             {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
         </TransitionChart>
@@ -579,10 +579,12 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   background-color: ${p => p.theme.surface300};
 `;
 
-const BigNumberResizeWrapper = styled('div')`
+const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
+  padding: ${p =>
+    p.noPadding ? `0` : `0${space(1)} ${space(3)} ${space(3)} ${space(3)}`};
 `;
 
 const BigNumber = styled('div')`
@@ -593,7 +595,6 @@ const BigNumber = styled('div')`
   min-height: 0;
   font-size: 32px;
   color: ${p => p.theme.headingColor};
-  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 
   * {
     text-align: left !important;
