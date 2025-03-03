@@ -1000,6 +1000,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    tour: {
+      blur: 10100,
+      element: 10101,
+      overlay: 10102,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 2,
