@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -78,7 +79,7 @@ class ProjectOverviewSerializer(Serializer):
     def serialize(
         self,
         obj: Project,
-        attrs: dict[str, Any],
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ProjectOverviewResponse:
@@ -143,7 +144,7 @@ class ProjectOverviewEndpoint(ProjectEndpoint):
         summary=(
             "Retrieve a Project overview. This endpoint returns an overview of an individual "
             "project. This only returns high-level information of the project, for more detailed "
-            "information use the project details endpoint.",
+            "information use the project details endpoint."
         ),
     )
     def get(self, request: Request, project: Project) -> Response:
