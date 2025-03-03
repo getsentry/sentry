@@ -17,6 +17,12 @@ export default function useFinalizeRelease() {
 
   return useMutation<TData, TError, TVariables, TContext>({
     mutationFn: ([release]) => {
+      // It's likely that there will either be a) CI setup or b) people manually
+      // clicking. If people are manually clicking then we try `firstEvent` and
+      // fall back to `dateCreated` to preserve relative sort order between
+      // releases. This strategy allows users to manually bucket releases by
+      // finalized/un-finalized, if they want more precision then CI automation
+      // is a better approach.
       const payload: TPayload = {
         dateReleased: release.firstEvent ?? release.dateCreated,
       };
