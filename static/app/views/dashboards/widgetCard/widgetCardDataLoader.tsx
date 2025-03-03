@@ -21,6 +21,7 @@ type Results = {
   confidence?: Confidence;
   errorMessage?: string;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -41,6 +42,7 @@ type Props = {
       | 'timeseriesResultsTypes'
       | 'totalIssuesCount'
       | 'confidence'
+      | 'sampleCount'
     >
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
@@ -84,7 +86,7 @@ export function WidgetCardDataLoader({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={tableItemLimit}
+        limit={widget.limit ?? tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
       >

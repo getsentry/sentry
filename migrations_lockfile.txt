@@ -21,6 +21,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0026_region_mode_col
+uptime: 0028_drop_migrated_column
 
 workflow_engine: 0032_remove_data_source_query_id

@@ -86,7 +86,6 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
-        migrated=True,
     )
 
     # Associate active regions with this subscription

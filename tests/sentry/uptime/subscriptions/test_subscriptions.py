@@ -531,36 +531,6 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             )
         mock_enable_project_uptime_subscription.assert_called()
 
-    def test_migrated_does_not_violate_constraint(self):
-        with self.tasks():
-            proj_sub = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            uptime_sub_1 = proj_sub.uptime_subscription
-            uptime_sub_1.update(migrated=False)
-
-            proj_sub_2 = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            uptime_sub_2 = proj_sub_2.uptime_subscription
-
-        uptime_sub_1.refresh_from_db()
-        uptime_sub_2.refresh_from_db()
-        assert uptime_sub_1.url == uptime_sub_2.url
-        assert uptime_sub_1.interval_seconds == uptime_sub_2.interval_seconds
-        assert uptime_sub_1.id != uptime_sub_2.id
-        assert uptime_sub_1.subscription_id != uptime_sub_2.subscription_id
-
 
 class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
     def test_other_subscriptions(self):

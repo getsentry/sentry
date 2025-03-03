@@ -171,16 +171,18 @@ def incident_attachment_info(
 
     status = get_status_text(new_status)
 
-    text = get_incident_status_text(
-        alert_rule.snuba_query,
-        (
-            AlertRuleThresholdType(alert_rule.threshold_type)
-            if alert_rule.threshold_type is not None
-            else None
-        ),
-        alert_rule.comparison_delta,
-        str(metric_value),
-    )
+    text = ""
+    if metric_value is not None:
+        text = get_incident_status_text(
+            alert_rule.snuba_query,
+            (
+                AlertRuleThresholdType(alert_rule.threshold_type)
+                if alert_rule.threshold_type is not None
+                else None
+            ),
+            alert_rule.comparison_delta,
+            str(metric_value),
+        )
     if features.has(
         "organizations:anomaly-detection-alerts", incident.organization
     ) and features.has("organizations:anomaly-detection-rollout", incident.organization):

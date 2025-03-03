@@ -18,6 +18,11 @@ describe('SharedGroupDetails', function () {
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
+      url: `/organizations/test-org/projects/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shared/issues/a/',
       body: GroupFixture({
         title: 'ZeroDivisionError',
