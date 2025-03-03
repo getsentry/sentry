@@ -69,9 +69,26 @@ export const DetailsGrid = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const DetailsSubGrid = styled('div')`
+export const LogDetailsTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  user-select: none;
+`;
+
+export const LogAttributesTree = styled('div')`
   display: grid;
-  grid-template-columns: min-content min-content;
+  grid-template-columns: min-content min-content min-content;
+  gap: ${space(1)};
+  width: 100%;
+
+  > div {
+    &:nth-of-type(6n + 4),
+    &:nth-of-type(6n + 5),
+    &:nth-of-type(6n + 6) {
+      background: ${p => p.theme.surface200};
+    }
+    padding: ${space(0.5)} ${space(1)};
+  }
 `;
 
 export const DetailsFooter = styled(StyledPanelItem)<{
@@ -99,16 +116,6 @@ export const DetailsFooter = styled(StyledPanelItem)<{
       : `
           ${p.logColors.backgroundLight}
         `};
-`;
-
-export const DetailsLabel = styled('div')`
-  font-weight: 600;
-  min-width: 100px;
-  color: ${p => p.theme.gray300};
-`;
-
-export const DetailsValue = styled('div')`
-  word-break: break-word;
 `;
 
 export const StyledChevronButton = styled(Button)`

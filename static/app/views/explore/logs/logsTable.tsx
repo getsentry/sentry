@@ -16,26 +16,30 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   bodyRenderer,
-  severityCircleRenderer,
+  HiddenLogAttributes,
+  LogAttributesRendererMap,
   severityTextRenderer,
   TimestampRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
+import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
+  type OurLogFieldKey,
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  useExploreLogsTable,
+  useExploreLogsTableRow,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {
   DetailsFooter,
   DetailsGrid,
-  DetailsLabel,
-  DetailsSubGrid,
-  DetailsValue,
   DetailsWrapper,
   getLogColors,
   HeaderCell,
+  LogDetailsTitle,
   LogPanelContent,
   StyledChevronButton,
   StyledPanel,
@@ -60,11 +64,12 @@ export function LogsTable() {
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
 
-  const headers: Array<{align: 'left' | 'right'; field: string; label: string}> = [
-    {field: 'log.severity_number', label: t('Severity'), align: 'left'},
-    {field: 'log.body', label: t('Message'), align: 'left'},
-    {field: 'timestamp', label: t('Timestamp'), align: 'right'},
-  ];
+  const headers: Array<{align: 'left' | 'right'; field: OurLogFieldKey; label: string}> =
+    [
+      {field: OurLogKnownFieldKey.SEVERITY_NUMBER, label: t('Severity'), align: 'left'},
+      {field: OurLogKnownFieldKey.BODY, label: t('Message'), align: 'left'},
+      {field: OurLogKnownFieldKey.TIMESTAMP, label: t('Timestamp'), align: 'right'},
+    ];
 
   return (
     <StyledPanel>
@@ -148,22 +153,34 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
           size="zero"
           borderless
         />
-        {severityCircleRenderer(
-          dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-          dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
-          logColors
-        )}
-        {severityTextRenderer(
-          dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-          dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
-          logColors
-        )}
+        {severityTextRenderer({
+          attribute_value: dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
+          extra: {
+            highlightTerms,
+            logColors,
+            useFullSeverityText: true,
+            renderSeverityCircle: true,
+          },
+        })}
       </StyledPanelItem>
       <StyledPanelItem overflow>
-        {bodyRenderer(dataRow[OurLogKnownFieldKey.BODY], highlightTerms)}
+        {bodyRenderer({
+          attribute_value: dataRow[OurLogKnownFieldKey.BODY],
+          extra: {
+            highlightTerms,
+            logColors,
+            wrapBody: true,
+          },
+        })}
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <TimestampRenderer timestamp={dataRow.timestamp} />
+        <TimestampRenderer
+          attribute_value={dataRow.timestamp}
+          extra={{
+            highlightTerms,
+            logColors,
+          }}
+        />
       </StyledPanelItem>
       {expanded && <LogDetails dataRow={dataRow} highlightTerms={highlightTerms} />}
     </Fragment>
@@ -181,32 +198,53 @@ function LogDetails({
     dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
     dataRow[OurLogKnownFieldKey.SEVERITY_TEXT]
   );
+  const missingLogId = !dataRow[OurLogKnownFieldKey.ID];
+  const {data, isPending} = useExploreLogsTableRow({
+    log_id: dataRow[OurLogKnownFieldKey.ID] ?? '',
+    enabled: !missingLogId,
+  });
+
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
+
+  if (missingLogId) {
+    return (
+      <DetailsWrapper span={3}>
+        <EmptyStreamWrapper>
+          <IconWarning color="gray300" size="lg" />
+        </EmptyStreamWrapper>
+      </DetailsWrapper>
+    );
+  }
   return (
     <DetailsWrapper span={3}>
-      <DetailsGrid>
-        <DetailsSubGrid>
-          <DetailsLabel>Timestamp</DetailsLabel>
-          <DetailsValue>
-            <TimestampRenderer timestamp={dataRow.timestamp} />
-          </DetailsValue>
-        </DetailsSubGrid>
-        <DetailsSubGrid>
-          <DetailsLabel>Severity</DetailsLabel>
-          <DetailsValue>
-            {severityTextRenderer(
-              dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-              dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
-              logColors,
-              true
-            )}
-          </DetailsValue>
-        </DetailsSubGrid>
-      </DetailsGrid>
-      <DetailsFooter logColors={logColors}>
-        {bodyRenderer(dataRow['log.body'], highlightTerms, true)}
-      </DetailsFooter>
+      {isPending && <LoadingIndicator />}
+      {!isPending && data && (
+        <Fragment>
+          <DetailsGrid>
+            <LogDetailsTitle>{t('Log')}</LogDetailsTitle>
+            <LogFieldsTree
+              attributes={data.attributes}
+              hiddenAttributes={HiddenLogAttributes}
+              renderers={LogAttributesRendererMap}
+              renderExtra={{
+                highlightTerms,
+                logColors,
+              }}
+            />
+          </DetailsGrid>
+          <DetailsFooter logColors={logColors}>
+            {bodyRenderer({
+              attribute_value: dataRow['log.body'],
+              extra: {
+                highlightTerms,
+                logColors,
+                wrapBody: true,
+              },
+            })}
+          </DetailsFooter>
+        </Fragment>
+      )}
     </DetailsWrapper>
   );
 }

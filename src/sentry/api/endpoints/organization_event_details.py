@@ -121,6 +121,35 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return args, kwargs
 
+    def get_fake_log_event(self):
+        return {
+            "item_id": "a" * 32,
+            "item_type": "log",
+            "organization_id": 1,
+            "timestamp": datetime.now(),
+            "body": "Added item to shopping cart: Xbox One X 500 GB 2018 Payment failure detected",
+            "attributes": {
+                "sentry.severity_text": "error",
+                "sentry.level_value": 40,
+                "sentry.message": "This is a fake log event",
+                "user_id": "12345",
+                "order_id": "67890",
+                "payment_method": "Credit Card",
+                "amount": "199.99",
+                "retry_count": "2",
+                "error_code": "PAYMENT_TIMEOUT",
+                "correlation_id": "1234567890",
+                "params.user_id": "12345",
+                "params.order_id": "67890",
+                "params.payment_method": "Credit Card",
+                "params.amount": "199.99",
+                "params.retry_count": "2",
+                "params.error_code": "PAYMENT_TIMEOUT",
+                "params.timestamp": "2024-11-15T14:32:07Z",
+                "params.correlation_id": "1234567890",
+            },
+        }
+
     def get(self, request: Request, organization, project: Project, event_id) -> Response:
         """event_id is validated by a regex in the URL"""
         if not self.has_feature(organization, request):
@@ -130,6 +159,10 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # get_filter_params().
         if not request.access.has_project_access(project):
             return Response(status=404)
+
+        use_fake_logs = request.GET.get("useLogs", "0") == "1"
+        if use_fake_logs:
+            return Response(self.get_fake_log_event())
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified

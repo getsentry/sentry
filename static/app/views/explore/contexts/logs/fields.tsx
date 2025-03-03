@@ -5,6 +5,7 @@ import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/log
 
 function defaultLogFields(): OurLogKnownFieldKey[] {
   return [
+    OurLogKnownFieldKey.ID,
     OurLogKnownFieldKey.SEVERITY_TEXT,
     OurLogKnownFieldKey.SEVERITY_NUMBER,
     OurLogKnownFieldKey.BODY,

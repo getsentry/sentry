@@ -18,6 +18,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedColumn(
+            public_alias="id",
+            internal_name="sentry.item_id",
+            search_type="string",
+            validator=is_event_id,
+        ),
+        ResolvedColumn(
             public_alias="span_id",
             internal_name="sentry.span_id",
             search_type="string",

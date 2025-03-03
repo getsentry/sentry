@@ -1,6 +1,7 @@
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
 export enum OurLogKnownFieldKey {
+  ID = 'id',
   BODY = 'log.body',
   SEVERITY_NUMBER = 'log.severity_number',
   SEVERITY_TEXT = 'log.severity_text',
