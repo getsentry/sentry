@@ -1,4 +1,5 @@
 import {Component, Fragment, useEffect, useRef} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
@@ -12,12 +13,12 @@ import {
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
 import type {Guide} from 'sentry/components/assistant/types';
-import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {Hovercard} from 'sentry/components/hovercard';
-import {t, tct} from 'sentry/locale';
+import {TourAction, TourOverlayBody} from 'sentry/components/tours/components';
+import {t} from 'sentry/locale';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 type Props = {
@@ -158,67 +159,31 @@ class BaseGuideAnchor extends Component<Props, State> {
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
-    // to clear `#assistant` from the url
-    const href = window.location.hash === '#assistant' ? '#' : '';
-
-    const dismissButton = (
-      <DismissButton
-        size="sm"
-        translucentBorder
-        href={href}
-        onClick={this.handleDismiss}
-        priority="link"
-      >
-        {currentStep.dismissText || t('Dismiss')}
-      </DismissButton>
-    );
-
     return (
-      <GuideContainer data-test-id="guide-container">
-        <GuideContent>
-          {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
-          <GuideDescription>{currentStep.description}</GuideDescription>
-        </GuideContent>
-        <GuideAction>
-          <div>
+      <TourOverlayBody
+        stepCount={currentStepCount}
+        stepTotal={totalStepCount}
+        title={currentStep.title}
+        description={currentStep.description}
+        handleDismiss={e => {
+          window.location.hash = '';
+          this.handleDismiss(e);
+        }}
+        actions={
+          <StyledButtonBar gap={1}>
             {lastStep ? (
-              <Fragment>
-                <StyledButton
-                  size="sm"
-                  translucentBorder
-                  to={to}
-                  onClick={this.handleFinish}
-                >
-                  {currentStep.nextText ||
-                    (hasManySteps ? t('Enough Already') : t('Got It'))}
-                </StyledButton>
-                {currentStep.hasNextGuide && dismissButton}
-              </Fragment>
+              <TourAction size="xs" to={to} onClick={this.handleFinish}>
+                {currentStep.nextText ||
+                  (hasManySteps ? t('Enough Already') : t('Got It'))}
+              </TourAction>
             ) : (
-              <Fragment>
-                <StyledButton
-                  size="sm"
-                  translucentBorder
-                  onClick={this.handleNextStep}
-                  to={to}
-                >
-                  {currentStep.nextText || t('Next')}
-                </StyledButton>
-                {!currentStep.cantDismiss && dismissButton}
-              </Fragment>
+              <TourAction size="xs" onClick={this.handleNextStep} to={to}>
+                {currentStep.nextText || t('Next')}
+              </TourAction>
             )}
-          </div>
-
-          {hasManySteps && (
-            <StepCount>
-              {tct('[currentStepCount] of [totalStepCount]', {
-                currentStepCount,
-                totalStepCount,
-              })}
-            </StepCount>
-          )}
-        </GuideAction>
-      </GuideContainer>
+          </StyledButtonBar>
+        }
+      />
     );
   }
 
@@ -231,16 +196,23 @@ class BaseGuideAnchor extends Component<Props, State> {
     }
 
     return (
-      <StyledHovercard
-        forceVisible
-        body={this.getHovercardBody()}
-        tipColor="purple300"
-        position={position}
-        offset={offset}
-        containerClassName={containerClassName}
-      >
-        <ScrollToGuide>{children}</ScrollToGuide>
-      </StyledHovercard>
+      <ClassNames>
+        {({css}) => (
+          <StyledHovercard
+            forceVisible
+            body={this.getHovercardBody()}
+            tipColor="lightModeBlack"
+            position={position}
+            offset={offset}
+            containerClassName={containerClassName}
+            bodyClassName={css`
+              padding: 0 !important;
+            `}
+          >
+            <ScrollToGuide>{children}</ScrollToGuide>
+          </StyledHovercard>
+        )}
+      </ClassNames>
     );
   }
 }
@@ -268,73 +240,10 @@ function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
 
 export default GuideAnchor;
 
-const GuideContainer = styled('div')`
-  display: grid;
-  grid-template-rows: repeat(2, auto);
-  gap: ${space(2)};
-  text-align: center;
-  line-height: 1.5;
-  background-color: ${p => p.theme.purple300};
-  border-color: ${p => p.theme.purple300};
-  color: ${p => p.theme.white};
-
-  a {
-    :hover {
-      color: ${p => p.theme.white};
-    }
-  }
-`;
-
-const GuideContent = styled('div')`
-  display: grid;
-  grid-template-rows: repeat(2, auto);
-  gap: ${space(1)};
-
-  a {
-    color: ${p => p.theme.white};
-    text-decoration: underline;
-  }
-`;
-
-const GuideTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const GuideDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const GuideAction = styled('div')`
-  display: grid;
-  grid-template-rows: repeat(2, auto);
-  gap: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  min-width: 40%;
-`;
-
-const DismissButton = styled(LinkButton)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  min-width: 40%;
-  margin-left: ${space(1)};
-
-  &:hover,
-  &:focus,
-  &:active {
-    color: ${p => p.theme.white};
-  }
-  color: ${p => p.theme.white};
-`;
-
-const StepCount = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-transform: uppercase;
-`;
-
 const StyledHovercard = styled(Hovercard)`
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.inverted.surface400};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-end;
 `;
