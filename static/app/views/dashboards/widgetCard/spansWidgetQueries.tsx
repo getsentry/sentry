@@ -16,7 +16,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {getTopEvents} from 'sentry/views/dashboards/widgetBuilder/utils/getTopEvents';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
@@ -66,7 +65,6 @@ function SpansWidgetQueries({
   const afterFetchSeriesData = (result: SeriesResult) => {
     let seriesConfidence;
     let seriesSampleCount;
-    const topEvents = getTopEvents(widget);
 
     if (isEventsStats(result)) {
       seriesConfidence = determineSeriesConfidence(result);
@@ -77,13 +75,17 @@ function SpansWidgetQueries({
             result
           )[1],
         ],
-        !!topEvents
+        false
       );
     } else {
       const dedupedYAxes = dedupeArray(widget.queries[0]?.aggregates ?? []);
       const seriesMap = transformToSeriesMap(result, dedupedYAxes);
       const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
-      seriesSampleCount = determineSeriesSampleCount(series, !!topEvents);
+      seriesSampleCount = determineSeriesSampleCount(
+        series,
+        Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
+          .length > 0
+      );
       seriesConfidence = combineConfidenceForSeries(series);
     }
 
