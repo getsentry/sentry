@@ -145,7 +145,6 @@ class FrameInfo:
                 self.raw_path = filepath
                 self.normalized_path = filepath
             else:
-
                 raise FailedToExtractFilename("Investigate why it did not work.")
         else:
             raise MissingModuleOrAbsPath("Investigate why the data is missing.")

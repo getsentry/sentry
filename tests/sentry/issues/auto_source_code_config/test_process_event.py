@@ -325,8 +325,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     frames = [
         # {"module": "kotlinx.coroutines.scheduling.Foo$Worker"},
         # {"module": "io.sentry.foo.Baz", "abs_path": "Baz.kt"},
-        # The package name is short, so we don't use it
-        # {"module": "com.foo.Short", "abs_path": "Short.kt"},
+        {"module": "a.SomeShortPackageNameClass"},
         {"module": "com.example.foo.Bar$handle$1", "abs_path": "Bar.kt"},
     ]
 
