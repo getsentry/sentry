@@ -39,7 +39,6 @@ interface ReleasesDrawerProps {
    */
   releases: Release[];
   startTs: number;
-  timeSeries: TimeSeriesWidgetVisualizationProps['timeSeries'];
   /**
    * A renderer function that returns a chart. It is called with the trimmed
    * list of releases and timeSeries. It currently uses the
@@ -57,17 +56,9 @@ export function ReleasesDrawer({
   endTs,
   chartRenderer,
   releases,
-  timeSeries,
 }: ReleasesDrawerProps) {
   const start = new Date(startTs);
   const end = new Date(endTs);
-  const trimmedTimeSeries = timeSeries.map(s => ({
-    ...s,
-    data: s.data.filter(dataItem => {
-      const ts = new Date(dataItem.timestamp).getTime();
-      return ts >= startTs && ts <= endTs;
-    }),
-  }));
 
   return (
     <EventDrawerContainer>
@@ -87,10 +78,6 @@ export function ReleasesDrawer({
                   <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
                 </Fragment>
               }
-              Visualization={chartRenderer?.({
-                releases,
-                timeSeries: trimmedTimeSeries,
-              })}
             />
           </ChartContainer>
         ) : null}
