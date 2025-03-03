@@ -1,27 +1,16 @@
 import {useLayoutEffect, useRef} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
-import type {Interpolation} from '@emotion/styled';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {FormSize} from 'sentry/utils/theme';
 
-type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
-
-interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
-  /**
-   * The background color of the filled in checkbox.
-   */
-  checkboxColor?: string;
+export interface CheckboxProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
   /**
    * Is the checkbox active? Supports 'indeterminate'
    */
-  checked?: CheckboxProps['checked'] | 'indeterminate';
-  /**
-   * Styles to be applied to the hidden <input> element.
-   */
-  inputCss?: Interpolation<Theme>;
+  checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
   /**
    * The size of the checkbox. Defaults to 'sm'.
    */
@@ -40,14 +29,12 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-function Checkbox({
-  checkboxColor,
+export function Checkbox({
   className,
-  inputCss,
   checked = false,
   size = 'sm',
   ...props
-}: Props) {
+}: CheckboxProps) {
   const checkboxRef = useRef<HTMLInputElement>(null);
 
   // indeterminate attribute can only be set through javascript
@@ -61,13 +48,12 @@ function Checkbox({
     <Wrapper className={className} checked={checked} size={size}>
       <HiddenInput
         ref={checkboxRef}
-        css={inputCss}
         checked={checked !== 'indeterminate' && checked}
         type="checkbox"
         {...props}
       />
 
-      <StyledCheckbox aria-hidden checked={checked} size={size} color={checkboxColor}>
+      <StyledCheckbox aria-hidden checked={checked} size={size}>
         {checked === true && (
           <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
@@ -88,7 +74,7 @@ function Checkbox({
   );
 }
 
-const Wrapper = styled('div')<{checked: Props['checked']; size: FormSize}>`
+const Wrapper = styled('div')<{checked: CheckboxProps['checked']; size: FormSize}>`
   position: relative;
   cursor: pointer;
   display: inline-flex;
@@ -134,9 +120,8 @@ const HiddenInput = styled('input')`
 `;
 
 const StyledCheckbox = styled('div')<{
-  checked: Props['checked'];
+  checked: CheckboxProps['checked'];
   size: FormSize;
-  color?: Props['checkboxColor'];
 }>`
   position: relative;
   display: flex;
@@ -171,5 +156,3 @@ const VariableWeightIcon = styled('svg')<{size: string}>`
   stroke: ${p => p.theme.white};
   stroke-width: calc(1.4px + ${p => p.size} * 0.04);
 `;
-
-export default Checkbox;
