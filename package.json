@@ -56,6 +56,7 @@
     "@sentry-internal/rrweb": "2.33.0",
     "@sentry-internal/rrweb-player": "2.33.0",
     "@sentry-internal/rrweb-snapshot": "2.33.0",
+    "@sentry/browser": "9.2.0-alpha.1",
     "@sentry/core": "9.2.0-alpha.1",
     "@sentry/node": "9.2.0-alpha.1",
     "@sentry/react": "9.2.0-alpha.1",

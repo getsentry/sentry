@@ -186,6 +186,9 @@ export function initializeSdk(config: Config) {
 
       return event;
     },
+    _experiments: {
+      enableLogs: true,
+    },
   });
 
   if (process.env.NODE_ENV !== 'production') {
