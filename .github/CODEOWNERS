@@ -584,6 +584,23 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## Billing
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 
+## gsApp
+/static/gsApp/*                               @getsentry/revenue
+/static/gsApp/components/gsBanner.tsx         @getsentry/revenue
+/static/gsApp/hooks/useAM2*                   @getsentry/revenue
+/static/gsApp/views/checkout/                 @getsentry/revenue
+/static/gsApp/views/amCheckout/               @getsentry/revenue
+/static/gsApp/views/subscriptionPage/         @getsentry/revenue
+/static/gsApp/hooks/spendVisibility/          @getsentry/revenue
+/static/gsApp/views/spendAllocations/         @getsentry/revenue
+/static/gsApp/views/spikeProtection/          @getsentry/revenue
+/static/gsApp/hooks/superuser*                @getsentry/enterprise
+/static/gsApp/hooks/integration*              @getsentry/ecosystem
+/static/gsApp/hooks/escalatingIssues*         @getsentry/issues
+/static/gsApp/hooks/issue*                    @getsentry/issues
+/static/gsApp/components/crons/               @getsentry/crons
+/static/gsApp/components/replay*              @getsentry/replay-frontend
+
 ## ML & AI
 *autofix*.py                                                @getsentry/machine-learning-ai
 /src/sentry/api/endpoints/event_ai_suggested_fix.py         @getsentry/machine-learning-ai
@@ -591,6 +608,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /static/app/components/modals/autofixSetupModal.spec.tsx    @getsentry/machine-learning-ai
 /static/app/components/modals/autofixSetupModal.tsx         @getsentry/machine-learning-ai
+/src/sentry/seer/fetch_issues_given_patches.py              @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Processing
