@@ -1,4 +1,4 @@
-from sentry.replays.consumers.buffered.platform import Join, Poll, RunTime
+from sentry.replays.consumers.buffered.platform import Join, Nothing, Poll, RunTime
 from tests.sentry.replays.unit.consumers.test_helpers import MockCommit, make_kafka_message
 
 
@@ -12,17 +12,19 @@ def counter_runtime() -> RunTime[int, str, None]:
         elif message == b"decr":
             return "decr"
         else:
-            return None
+            return "nothing"
 
     def update(model, msg):
         if msg == "incr":
-            return (model + 1, None)
+            return (model + 1, Nothing())
         elif msg == "decr":
-            return (model - 1, None)
+            return (model - 1, Nothing())
         elif msg == "join":
-            return (-10, None)
+            return (-10, Nothing())
         elif msg == "poll":
-            return (99, None)
+            return (99, Nothing())
+        elif msg == "nothing":
+            return (model, Nothing())
         else:
             raise ValueError("Unknown msg")
 

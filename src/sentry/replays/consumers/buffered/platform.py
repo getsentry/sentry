@@ -151,10 +151,10 @@ class RunTime(Generic[Model, Msg, Flags]):
 
     def __init__(
         self,
-        init: Callable[[Flags], tuple[Model, Cmd[Msg] | None]],
-        process: Callable[[Model, bytes], Msg | None],
+        init: Callable[[Flags], tuple[Model, Cmd[Msg]]],
+        process: Callable[[Model, bytes], Msg],
         subscription: Callable[[Model], list[Sub[Msg]]],
-        update: Callable[[Model, Msg], tuple[Model, Cmd[Msg] | None]],
+        update: Callable[[Model, Msg], tuple[Model, Cmd[Msg]]],
     ) -> None:
         self.init = init
         self.process = process
@@ -210,16 +210,12 @@ class RunTime(Generic[Model, Msg, Flags]):
             case Poll(msg=msg):
                 return self._handle_msg(msg())
 
-    def _handle_msg(self, msg: Msg | None) -> None:
-        if msg:
-            model, cmd = self.update(self.model, msg)
-            self._model = model
-            self._handle_cmd(cmd)
+    def _handle_msg(self, msg: Msg) -> None:
+        model, cmd = self.update(self.model, msg)
+        self._model = model
+        self._handle_cmd(cmd)
 
-    def _handle_cmd(self, cmd: Cmd[Msg] | None) -> None:
-        if cmd is None:
-            return None
-
+    def _handle_cmd(self, cmd: Cmd[Msg]) -> None:
         match cmd:
             case Commit(msg=msg):
                 self.commit(self._offsets)
