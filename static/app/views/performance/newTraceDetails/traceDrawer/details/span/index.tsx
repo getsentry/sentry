@@ -19,6 +19,7 @@ import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -44,14 +45,14 @@ function SpanNodeDetailHeader({
   onTabScrollToNode,
   project,
 }: {
-  node: TraceTreeNode<TraceTree.Span>;
+  node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 }) {
   const hasNewTraceUi = useHasTraceNewUi();
 
-  if (!hasNewTraceUi) {
+  if (!hasNewTraceUi && !isEAPSpanNode(node)) {
     return (
       <LegacySpanNodeDetailHeader
         node={node}
@@ -62,14 +63,15 @@ function SpanNodeDetailHeader({
     );
   }
 
+  const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
   return (
     <TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Title>
         <TraceDrawerComponents.LegacyTitleText>
           <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            subTitle={`ID: ${node.value.span_id}`}
-            clipboardText={node.value.span_id}
+            subTitle={`ID: ${spanId}`}
+            clipboardText={spanId}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
@@ -246,7 +248,9 @@ export function SpanNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
-}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
+}: TraceTreeNodeDetailsProps<
+  TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+>) {
   const location = useLocation();
   const hasNewTraceUi = useHasTraceNewUi();
   const {projects} = useProjects();
@@ -258,6 +262,19 @@ export function SpanNodeDetails({
   const profileMeta = getProfileMeta(node.event) || '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
+
+  if (isEAPSpanNode(node)) {
+    return (
+      <TraceDrawerComponents.DetailContainer>
+        <SpanNodeDetailHeader
+          node={node}
+          organization={organization}
+          project={project}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+      </TraceDrawerComponents.DetailContainer>
+    );
+  }
 
   return (
     <TraceDrawerComponents.DetailContainer>

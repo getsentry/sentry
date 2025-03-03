@@ -12,12 +12,13 @@ import type {
   TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {isRootTransaction} from '../../traceDetails/utils';
+import {isRootEvent} from '../../traceDetails/utils';
 import {getTraceQueryParams} from '../traceApi/useTrace';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
@@ -25,7 +26,8 @@ import {
   isAutogroupedNode,
   isBrowserRequestSpan,
   isCollapsedNode,
-  isJavascriptSDKTransaction,
+  isEAPTraceNode,
+  isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
   isParentAutogroupedNode,
@@ -118,6 +120,23 @@ export declare namespace TraceTree {
     ['trace timeline change']: (view: [number, number]) => void;
   }
 
+  type EAPSpan = {
+    children: EAPSpan[];
+    duration: number;
+    end_timestamp: number;
+    event_id: string;
+    is_transaction: boolean;
+    op: string;
+    parent_span_id: string;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    description?: string;
+  };
+
+  type EAPTrace = EAPSpan[];
+
   // Raw node values
   interface Span extends RawSpanType {
     measurements?: Record<string, Measurement>;
@@ -128,7 +147,7 @@ export declare namespace TraceTree {
     sdk_name: string;
   }
 
-  type Trace = TraceSplitResults<Transaction>;
+  type Trace = TraceSplitResults<Transaction> | EAPTrace;
   type TraceError = TraceErrorType;
   type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string} | {profiler_id: string};
@@ -143,6 +162,7 @@ export declare namespace TraceTree {
     | Transaction
     | TraceError
     | Span
+    | EAPSpan
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
@@ -292,7 +312,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
     ) {
       tree.eventsCount++;
       tree.projects.set(value.project_id, {
@@ -1750,25 +1770,31 @@ export class TraceTree extends TraceTreeEventDispatcher {
       throw new TypeError('Not trace node');
     }
 
-    const traceStats = trace.value.transactions?.reduce<{
-      javascriptRootTransactions: TraceTree.Transaction[];
-      orphans: number;
-      roots: number;
-    }>(
-      (stats, transaction) => {
-        if (isRootTransaction(transaction)) {
-          stats.roots++;
-
-          if (isJavascriptSDKTransaction(transaction)) {
-            stats.javascriptRootTransactions.push(transaction);
-          }
-        } else {
-          stats.orphans++;
+    const traceStats = isEAPTraceNode(trace)
+      ? {
+          javascriptRootTransactions: trace.value.filter(isJavascriptSDKEvent),
+          orphans: trace.value.filter(span => span.parent_span_id !== null).length,
+          roots: trace.value.filter(span => span.parent_span_id === null).length,
         }
-        return stats;
-      },
-      {roots: 0, orphans: 0, javascriptRootTransactions: []}
-    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+      : trace.value.transactions?.reduce<{
+          javascriptRootTransactions: TraceTree.Transaction[];
+          orphans: number;
+          roots: number;
+        }>(
+          (stats, transaction) => {
+            if (isRootEvent(transaction)) {
+              stats.roots++;
+
+              if (isJavascriptSDKEvent(transaction)) {
+                stats.javascriptRootTransactions.push(transaction);
+              }
+            } else {
+              stats.orphans++;
+            }
+            return stats;
+          },
+          {roots: 0, orphans: 0, javascriptRootTransactions: []}
+        ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
 
     if (traceStats.roots === 0) {
       if (traceStats.orphans > 0) {
@@ -1997,9 +2023,18 @@ function traceQueueIterator(
   root: TraceTreeNode<TraceTree.NodeValue>,
   visitor: (
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    value: TraceTree.Transaction | TraceTree.TraceError
+    value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
   ) => void
 ) {
+  if (!isTraceSplitResult(trace)) {
+    // Finish this
+    const spans = [...trace].sort((a, b) => a.start_timestamp - b.start_timestamp);
+    for (const span of spans) {
+      visitor(root, span);
+    }
+    return;
+  }
+
   let tIdx = 0;
   let oIdx = 0;
 

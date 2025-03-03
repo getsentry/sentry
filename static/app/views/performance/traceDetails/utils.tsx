@@ -228,7 +228,7 @@ export function shortenErrorTitle(title: string): string {
   return title.split(':')[0]!;
 }
 
-export function isRootTransaction(trace: TraceFullDetailed): boolean {
-  // Root transactions has no parent_span_id
-  return trace.parent_span_id === null;
+export function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }

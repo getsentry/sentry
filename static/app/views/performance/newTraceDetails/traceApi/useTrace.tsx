@@ -217,5 +217,20 @@ export function useTrace(
     }
   );
 
+  // const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
+  //   [
+  //     `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
+  //     {
+  //       query: {
+  //         timestamp: queryParams.timestamp,
+  //       },
+  //     },
+  //   ],
+  //   {
+  //     staleTime: Infinity,
+  //     enabled: !!options.traceSlug && !!organization.slug && mode !== 'demo',
+  //   }
+  // );
+
   return mode === 'demo' ? demoTrace : traceQuery;
 }

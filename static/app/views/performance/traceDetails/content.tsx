@@ -49,7 +49,7 @@ import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles'
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import type {TraceInfo} from './types';
-import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootEvent} from './utils';
 
 type IndexedFusedTransaction = {
   event: TraceFullDetailed | TraceError;
@@ -276,7 +276,7 @@ class TraceDetailsContent extends Component<Props, State> {
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
-        if (isRootTransaction(trace)) {
+        if (isRootEvent(trace)) {
           counts.roots++;
         } else {
           counts.orphans++;

@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import type {EventTransaction} from 'sentry/types/event';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {TraceTree} from './traceTree';
 
@@ -28,6 +29,11 @@ function isTraceAutogroup(
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  // Only collapse EAP spans if they are a segments/transactions
+  if (isEAPSpanNode(node)) {
+    return node.value.is_transaction;
+  }
+
   if (isTraceSpan(node.value)) {
     // Android creates TCP connection spans which are noisy and not useful in most cases.
     // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
@@ -84,14 +90,17 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     // otherwise we can only infer a timestamp.
     if (
       value &&
-      'timestamp' in value &&
+      (('end_timestamp' in value && typeof value.end_timestamp === 'number') ||
+        ('timestamp' in value && typeof value.timestamp === 'number')) &&
+      // Finish this
       'start_timestamp' in value &&
-      typeof value.timestamp === 'number' &&
       typeof value.start_timestamp === 'number'
     ) {
+      const end_timestamp =
+        'end_timestamp' in value ? value.end_timestamp : value.timestamp;
       this.space = [
         value.start_timestamp * 1e3,
-        (value.timestamp - value.start_timestamp) * 1e3,
+        (end_timestamp - value.start_timestamp) * 1e3,
       ];
     } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
       this.space = [value.timestamp * 1e3, 0];
