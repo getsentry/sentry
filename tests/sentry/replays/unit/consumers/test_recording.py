@@ -15,14 +15,10 @@ from sentry.replays.consumers.buffered.consumer import (
     subscription,
     update,
 )
-from sentry.replays.consumers.buffered.platform import Commit, Effect, Nothing, Task
+from sentry.replays.consumers.buffered.platform import Effect, NextStep, Nothing, Task
 from sentry.replays.usecases.ingest import ProcessedRecordingMessage
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
-from tests.sentry.replays.unit.consumers.test_helpers import (
-    MockCommit,
-    MockRunTime,
-    make_kafka_message,
-)
+from tests.sentry.replays.unit.consumers.test_helpers import MockNextStep, MockRunTime
 
 RECORDINGS_CODEC = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -45,9 +41,8 @@ def test_end_to_end_message_processing():
         "version": 1,
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
-    kafka_message = make_kafka_message(message_bytes)
 
-    gen = runtime.submit(kafka_message)
+    gen = runtime.submit(message_bytes)
 
     # Assert the runtime gets the current time after appending the message and then attempts to
     # flush the buffer with the current time.
@@ -97,7 +92,7 @@ def test_end_to_end_message_processing():
     cmd = gen.send(cmd.msg(1))
     assert len(runtime.model.buffer) == 0
     assert runtime.model.last_flushed_at == 1
-    assert isinstance(cmd, Commit)
+    assert isinstance(cmd, NextStep)
     assert isinstance(cmd.msg, Committed)
 
 
@@ -106,7 +101,7 @@ def test_invalid_message_format():
     runtime = _make_runtime()
 
     # We submit a message which can't be parsed and will not be buffered. Flush is not triggered.
-    gen = runtime.submit(make_kafka_message(b"invalid"))
+    gen = runtime.submit(b"invalid")
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
     assert isinstance(cmd, Effect)
@@ -148,10 +143,9 @@ def test_invalid_recording_json():
         "version": 1,
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
-    kafka_message = make_kafka_message(message_bytes)
 
     # We submit a message which will not be buffered. Flush is not triggered.
-    gen = runtime.submit(kafka_message)
+    gen = runtime.submit(message_bytes)
     cmd = next(gen)
     assert len(runtime.model.buffer) == 1
     assert isinstance(cmd, Effect)
@@ -192,10 +186,9 @@ def test_missing_headers():
         "version": 1,
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
-    kafka_message = make_kafka_message(message_bytes)
 
     # We submit a message which will not be buffered. Flush is not triggered.
-    gen = runtime.submit(kafka_message)
+    gen = runtime.submit(message_bytes)
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
     assert isinstance(cmd, Effect)
@@ -235,10 +228,9 @@ def test_buffer_full_semantics():
         "version": 1,
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
-    kafka_message = make_kafka_message(message_bytes)
 
     # We submit a message which will be buffered but not flushed.
-    gen = runtime.submit(kafka_message)
+    gen = runtime.submit(message_bytes)
     cmd = next(gen)
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
@@ -248,7 +240,7 @@ def test_buffer_full_semantics():
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
     # We submit another message which will be buffered and trigger a flush.
-    gen = runtime.submit(kafka_message)
+    gen = runtime.submit(message_bytes)
     cmd = next(gen)
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
@@ -277,10 +269,9 @@ def test_buffer_timeout():
         "version": 1,
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
-    kafka_message = make_kafka_message(message_bytes)
 
     # We submit a message which will be buffered but not flushed.
-    gen = runtime.submit(kafka_message)
+    gen = runtime.submit(message_bytes)
     cmd = next(gen)
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
@@ -305,6 +296,6 @@ def _make_runtime():
             "max_buffer_wait": 1,
             "max_workers": 1,
         },
-        MockCommit(),
+        MockNextStep(),
     )
     return runtime

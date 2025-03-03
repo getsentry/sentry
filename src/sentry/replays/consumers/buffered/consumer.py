@@ -10,10 +10,11 @@ import sentry_sdk
 
 from sentry.replays.consumers.buffered.platform import (
     Cmd,
-    Commit,
     Effect,
     Join,
+    NextStep,
     Nothing,
+    Out,
     Poll,
     RunTime,
     Sub,
@@ -86,7 +87,7 @@ Msg = Append | Committed | Flush | Flushed | Skip | TryFlush
 # State machine functions.
 
 
-def init(flags: Flags) -> tuple[Model, Cmd[Msg]]:
+def init(flags: Flags) -> tuple[Model, Cmd[Msg, Out]]:
     return (
         Model(
             buffer=[],
@@ -108,7 +109,7 @@ def process(_: Model, message: bytes) -> Msg:
         return Skip()
 
 
-def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg]]:
+def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, Out]]:
     match msg:
         case Append(item=item):
             model.buffer.append(item)
@@ -122,7 +123,7 @@ def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg]]:
         case Flushed(now=now):
             model.buffer = []
             model.last_flushed_at = now
-            return (model, Commit(msg=Committed()))
+            return (model, NextStep(msg=Committed(), value=None))
         case TryFlush(now=now):
             return (model, Task(msg=Flush())) if can_flush(model, now) else (model, Nothing())
 

@@ -1,8 +1,8 @@
 from sentry.replays.consumers.buffered.platform import Join, Nothing, Poll, RunTime
-from tests.sentry.replays.unit.consumers.test_helpers import MockCommit, make_kafka_message
+from tests.sentry.replays.unit.consumers.test_helpers import MockNextStep
 
 
-def counter_runtime() -> RunTime[int, str, None]:
+def counter_runtime() -> RunTime[int, str, None, None]:
     def init(_):
         return (22, None)
 
@@ -44,37 +44,37 @@ def counter_runtime() -> RunTime[int, str, None]:
 
 def test_runtime_setup():
     runtime = counter_runtime()
-    runtime.setup(None, commit=MockCommit())
+    runtime.setup(None, next_step=MockNextStep())
     assert runtime.model == 22
 
 
 def test_runtime_submit():
     # RunTime defaults to a start point of 22.
     runtime = counter_runtime()
-    runtime.setup(None, commit=MockCommit())
+    runtime.setup(None, next_step=MockNextStep())
     assert runtime.model == 22
 
     # Two incr commands increase the count by 2.
-    runtime.submit(make_kafka_message(b"incr"))
-    runtime.submit(make_kafka_message(b"incr"))
+    runtime.submit(b"incr")
+    runtime.submit(b"incr")
     assert runtime.model == 24
 
     # Four decr commands decrease the count by 4.
-    runtime.submit(make_kafka_message(b"decr"))
-    runtime.submit(make_kafka_message(b"decr"))
-    runtime.submit(make_kafka_message(b"decr"))
-    runtime.submit(make_kafka_message(b"decr"))
+    runtime.submit(b"decr")
+    runtime.submit(b"decr")
+    runtime.submit(b"decr")
+    runtime.submit(b"decr")
     assert runtime.model == 20
 
     # Messages which the application does not understand do nothing to the model.
-    runtime.submit(make_kafka_message(b"other"))
+    runtime.submit(b"other")
     assert runtime.model == 20
 
 
 def test_runtime_publish():
     # RunTime defaults to a start point of 22.
     runtime = counter_runtime()
-    runtime.setup(None, commit=MockCommit())
+    runtime.setup(None, next_step=MockNextStep())
     assert runtime.model == 22
 
     # A join event updates the model and sets it to -10.

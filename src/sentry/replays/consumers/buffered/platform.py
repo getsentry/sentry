@@ -1,57 +1,75 @@
 from collections.abc import Callable, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, Generic, TypeVar
 
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import CommitOffsets, ProcessingStrategy
-from arroyo.types import Commit as ArroyoCommit
-from arroyo.types import Message, Partition, Value
+from arroyo.processing.strategies import MessageRejected, ProcessingStrategy
+from arroyo.types import FilteredPayload, Message, Partition, Value
+
+Out = TypeVar("Out")
+Input = FilteredPayload | KafkaPayload
 
 
-class PlatformStrategy(ProcessingStrategy[KafkaPayload]):
+class PlatformStrategy(ProcessingStrategy[Input], Generic[Out]):
 
     def __init__(
         self,
-        commit: ArroyoCommit,
         flags: "Flags",
-        runtime: "RunTime[Model, Msg, Flags]",
+        runtime: "RunTime[Model, Msg, Flags, Out]",
+        next_step: "ProcessingStrategy[Out]",
     ) -> None:
         # The RunTime is made aware of the commit strategy. It will
         # submit the partition, offset mapping it wants committed.
-        runtime.setup(flags, self.handle_commit_request)
+        runtime.setup(flags, self._handle_next_step)
 
-        self.__commit_step = CommitOffsets(commit)
         self.__closed = False
+        self.__next_step = next_step
+        self.__offsets: MutableMapping[Partition, int] = {}
         self.__runtime = runtime
 
-    def handle_commit_request(self, offsets: MutableMapping[Partition, int]) -> None:
-        self.__commit_step.submit(Message(Value(None, offsets, datetime.now())))
-
-    def submit(self, message: Message[KafkaPayload]) -> None:
+    # NOTE: Filtered payloads update the offsets but are not forwarded to the next step. My
+    # concern is that the filtered payload could have its offsets committed before the
+    # preceeding messages have their offsets committed. This is against what the Arroyo library
+    # does which is to forward everything.
+    def submit(self, message: Message[FilteredPayload | KafkaPayload]) -> None:
         assert not self.__closed
-        self.__runtime.submit(message)
+
+        if isinstance(message.payload, KafkaPayload):
+            self.__runtime.submit(message.payload.value)
+            self.__offsets.update(message.committable)
+        else:
+            self.__offsets.update(message.committable)
 
     def poll(self) -> None:
         assert not self.__closed
-        self.__runtime.publish("poll")
-        self.__commit_step.poll()
+
+        try:
+            self.__runtime.publish("poll")
+        except MessageRejected:
+            pass
+
+        self.__next_step.poll()
 
     def close(self) -> None:
         self.__closed = True
-        self.__commit_step.close()
 
     def terminate(self) -> None:
         self.__closed = True
-        self.__commit_step.terminate()
+        self.__next_step.terminate()
 
     def join(self, timeout: float | None = None) -> None:
-        self.__runtime.publish("join")
-        self.__commit_step.close()
-        self.__commit_step.join(timeout)
+        try:
+            self.__runtime.publish("join")
+        except MessageRejected:
+            pass
 
+        self.__next_step.close()
+        self.__next_step.join(timeout)
 
-CommitProtocol = Callable[[MutableMapping[Partition, int]], None]
+    def _handle_next_step(self, value: Out) -> None:
+        self.__next_step.submit(Message(Value(value, self.__offsets, datetime.now())))
+
 
 # A Model represents the state of your application. It is a type variable and the RunTime is
 # generic over it. Your state can be anything from a simple integer to a large class with many
@@ -65,15 +83,13 @@ Msg = TypeVar("Msg")
 # A generic type representing the structure of the flags passed to the RunTime instance.
 Flags = TypeVar("Flags")
 
-# A generic type of unknown origins not tied to anything in the platform.
-T = TypeVar("T")
-
 
 @dataclass(frozen=True)
-class Commit(Generic[Msg]):
-    """Instructs the RunTime to commit the message offsets."""
+class NextStep(Generic[Msg, Out]):
+    """Instructs the RunTime to produce to the next step."""
 
     msg: Msg
+    value: Out
 
 
 @dataclass(frozen=True)
@@ -104,7 +120,7 @@ class Task(Generic[Msg]):
 # A "Cmd" is the union of all the commands an application can issue to the RunTime. The RunTime
 # accepts these commands and handles them in some pre-defined way. Commands are fixed and can not
 # be registered on a per application basis.
-Cmd = Commit[Msg] | Effect[Msg] | Nothing | Task[Msg]
+Cmd = NextStep[Msg, Out] | Effect[Msg] | Nothing | Task[Msg]
 
 
 @dataclass(frozen=True)
@@ -139,7 +155,7 @@ class Poll(Generic[Msg]):
 Sub = Join[Msg] | Poll[Msg]
 
 
-class RunTime(Generic[Model, Msg, Flags]):
+class RunTime(Generic[Model, Msg, Flags, Out]):
     """RunTime object.
 
     The RunTime is an intermediate data structure which manages communication between the platform
@@ -151,44 +167,42 @@ class RunTime(Generic[Model, Msg, Flags]):
 
     def __init__(
         self,
-        init: Callable[[Flags], tuple[Model, Cmd[Msg]]],
+        init: Callable[[Flags], tuple[Model, Cmd[Msg, Out]]],
         process: Callable[[Model, bytes], Msg],
         subscription: Callable[[Model], list[Sub[Msg]]],
-        update: Callable[[Model, Msg], tuple[Model, Cmd[Msg]]],
+        update: Callable[[Model, Msg], tuple[Model, Cmd[Msg, Out]]],
     ) -> None:
         self.init = init
         self.process = process
         self.subscription = subscription
         self.update = update
 
-        self._commit: CommitProtocol | None = None
+        self._next_step: Callable[[Out], None] | None = None
         self._model: Model | None = None
-        self._offsets: MutableMapping[Partition, int] = {}
         self._subscriptions: dict[str, Sub[Msg]] = {}
-
-    @property
-    def commit(self) -> CommitProtocol:
-        assert self._commit is not None
-        return self._commit
 
     @property
     def model(self) -> Model:
         assert self._model is not None
         return self._model
 
+    @property
+    def next_step(self) -> Callable[[Out], None]:
+        assert self._next_step is not None
+        return self._next_step
+
     # NOTE: Could this be a factory function that produces RunTimes instead? That way we don't need
     # the assert checks on model and commit.
-    def setup(self, flags: Flags, commit: CommitProtocol) -> None:
-        self._commit = commit
+    def setup(self, flags: Flags, next_step: Callable[[Out], None]) -> None:
+        self._next_step = next_step
 
         model, cmd = self.init(flags)
         self._model = model
         self._handle_cmd(cmd)
         self._register_subscriptions()
 
-    def submit(self, message: Message[KafkaPayload]) -> None:
-        self._handle_msg(self.process(self.model, message.payload.value))
-        self._offsets = cast(MutableMapping[Partition, int], message.committable)
+    def submit(self, message: bytes) -> None:
+        self._handle_msg(self.process(self.model, message))
 
     def publish(self, sub_name: str) -> None:
         # For each new subscription event we re-register the subscribers in case anything within
@@ -215,10 +229,10 @@ class RunTime(Generic[Model, Msg, Flags]):
         self._model = model
         self._handle_cmd(cmd)
 
-    def _handle_cmd(self, cmd: Cmd[Msg]) -> None:
+    def _handle_cmd(self, cmd: Cmd[Msg, Out]) -> None:
         match cmd:
-            case Commit(msg=msg):
-                self.commit(self._offsets)
+            case NextStep(msg=msg, value=value):
+                self.next_step(value)
                 return self._handle_msg(msg)
             case Effect(msg=msg, fun=fun):
                 return self._handle_msg(msg(fun()))
