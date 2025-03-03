@@ -6,9 +6,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 
+/**
+ * Please be careful when using 'activateSidebar' function as a hook dependency,
+ * as it gets re-created when the organization gets updated. This may trigger
+ * unnecessary re-renders or side effects.
+ */
 export function useOnboardingSidebar() {
   const organization = useOrganization();
-
   const activateSidebar = useCallback(
     ({
       source,
@@ -31,9 +35,7 @@ export function useOnboardingSidebar() {
         SidebarPanelStore.activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
       }, 0);
     },
-    // Omitting the organization here as it causes the hook to re-run on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [organization]
   );
 
   return {activateSidebar};
