@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,7 +16,9 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, WorkflowParams
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.models import Workflow
 
@@ -75,4 +78,12 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a workflow
         """
-        pass
+        RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=workflow.id,
+            event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+            data=workflow.get_audit_log_data(),
+        )
+        return Response(status=204)
