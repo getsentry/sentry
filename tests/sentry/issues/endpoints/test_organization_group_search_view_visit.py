@@ -16,11 +16,11 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         self.base_data = self.create_base_data()
 
         # Get the first view's ID for testing
-        self.view_id = str(self.base_data["user_one_views"][0].id)
+        self.view = self.base_data["user_one_views"][0]
 
         self.url = reverse(
             "sentry-api-0-organization-group-search-view-visit",
-            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": self.view_id},
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": self.view.id},
         )
 
     @freeze_time("2025-03-03 14:52:37")
@@ -30,7 +30,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
             GroupSearchViewLastSeen.objects.filter(
                 organization=self.organization,
                 user_id=self.user.id,
-                group_search_view_id=self.view_id,
+                group_search_view=self.view,
             ).count()
             == 0
         )
@@ -42,7 +42,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         last_seen = GroupSearchViewLastSeen.objects.get(
             organization=self.organization,
             user_id=self.user.id,
-            group_search_view_id=self.view_id,
+            group_search_view=self.view,
         )
         assert last_seen.last_seen == timezone.now()
 
@@ -54,7 +54,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
             GroupSearchViewLastSeen.objects.create(
                 organization=self.organization,
                 user_id=self.user.id,
-                group_search_view_id=self.view_id,
+                group_search_view=self.view,
                 last_seen=timezone.now(),
             )
 
@@ -66,7 +66,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         last_seen = GroupSearchViewLastSeen.objects.get(
             organization=self.organization,
             user_id=self.user.id,
-            group_search_view_id=self.view_id,
+            group_search_view=self.view,
         )
         assert last_seen.last_seen == timezone.now()
         assert last_seen.last_seen.year == 2025  # Verify it's the new timestamp
@@ -90,10 +90,10 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_view_from_another_user(self) -> None:
         # Get a view ID from user_two
-        view_id = str(self.base_data["user_two_views"][0].id)
+        view = self.base_data["user_two_views"][0]
         url = reverse(
             "sentry-api-0-organization-group-search-view-visit",
-            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": view_id},
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": view.id},
         )
 
         # This should succeed because the view exists in the organization
@@ -105,7 +105,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         last_seen = GroupSearchViewLastSeen.objects.get(
             organization=self.organization,
             user_id=self.user.id,
-            group_search_view_id=view_id,
+            group_search_view=view,
         )
         assert last_seen is not None
 
@@ -117,5 +117,5 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         assert not GroupSearchViewLastSeen.objects.filter(
             organization=self.organization,
             user_id=self.user.id,
-            group_search_view_id=self.view_id,
+            group_search_view=self.view,
         ).exists()
