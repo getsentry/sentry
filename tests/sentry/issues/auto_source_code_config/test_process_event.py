@@ -1,8 +1,8 @@
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
@@ -40,10 +40,11 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
 
-    def create_event(self, frames: Sequence[Mapping[str, str | bool]], platform: str) -> Event:
+    def create_event(self, frames: Sequence[Mapping[str, str | bool]], platform: str) -> GroupEvent:
         """Helper function to prevent creating an event without a platform."""
         test_data = {"platform": platform, "stacktrace": {"frames": frames}}
-        return self.store_event(data=test_data, project_id=self.project.id)
+        # XXX: In the future fix store_event to return the correct type
+        return cast(GroupEvent, self.store_event(data=test_data, project_id=self.project.id))
 
     def _get_trees_for_org(self, files: Sequence[str]) -> dict[str, RepoTree]:
         return {"test-org/repo": RepoTree(RepoAndBranch("test-org/repo", "master"), files)}
@@ -55,33 +56,51 @@ class BaseDeriveCodeMappings(TestCase):
         return {"full_name": "test-org/repo", "default_branch": "master"}
 
     def _process_and_assert_code_mapping(
-        self, files: Sequence[str], stack_root: str, source_root: str
+        self,
+        *,  # Force keyword arguments
+        repo_files: Sequence[str],
+        frames: Sequence[Mapping[str, str | bool]],
+        platform: str,
+        expected_stack_root: str,
+        expected_source_root: str,
     ) -> None:
         with (
-            patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(files)),
+            patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(repo_files)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
             patch(REPO_TREES_GET_REPOS, return_value=[self._repo_info()]),
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            event = self.create_event(frames, platform)
+            process_event(self.project.id, event.group_id, event.event_id)
             code_mappings = RepositoryProjectPathConfig.objects.all()
             assert len(code_mappings) == 1
             code_mapping = code_mappings[0]
-            assert code_mapping.stack_root == stack_root
-            assert code_mapping.source_root == source_root
-            mock_incr.assert_called_with(
-                "code_mappings.created", tags={"platform": self.event.platform}
-            )
+            assert code_mapping.stack_root == expected_stack_root
+            assert code_mapping.source_root == expected_source_root
+            mock_incr.assert_called_with("code_mappings.created", tags={"platform": event.platform})
 
-    def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> list[CodeMapping]:
+    def _process_and_assert_no_code_mapping(
+        self,
+        *,  # Force keyword arguments
+        repo_files: Sequence[str],
+        frames: Sequence[Mapping[str, str | bool]],
+        platform: str,
+    ) -> list[CodeMapping]:
         with (
-            patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(files)),
+            patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(repo_files)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
             patch(REPO_TREES_GET_REPOS, return_value=[self._repo_info()]),
         ):
-            code_mappings = process_event(self.project.id, self.event.group_id, self.event.event_id)
+            event = self.create_event(frames, platform)
+            code_mappings = process_event(self.project.id, event.group_id, event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             return code_mappings
+
+    def frame(self, filename: str, in_app: bool | None = True) -> dict[str, str | bool]:
+        frame: dict[str, str | bool] = {"filename": filename}
+        if in_app and in_app is not None:
+            frame["in_app"] = in_app
+        return frame
 
 
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -91,7 +110,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
     def setUp(self) -> None:
         super().setUp()
         # The platform and event are not relevant for these tests
-        self.event = self.create_event([{"filename": "foo/bar.baz", "in_app": True}], "python")
+        self.event = self.create_event([self.frame("foo/bar.baz", True)], "python")
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
@@ -124,7 +143,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
     def test_skips_not_supported_platforms(self) -> None:
-        self._process_and_assert_no_code_mapping([])
+        self._process_and_assert_no_code_mapping(repo_files=[], frames=[{}], platform="other")
 
     def test_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -147,7 +166,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         )
 
         # The platform & frames are irrelevant for this test
-        event = self.create_event([{"filename": "foo/bar/baz.py", "in_app": True}], "python")
+        event = self.create_event([self.frame("foo/bar/baz.py", True)], "python")
         assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
         all_cm = RepositoryProjectPathConfig.objects.all()
@@ -161,9 +180,12 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
             patch(f"{CODE_ROOT}.task.DRY_RUN_PLATFORMS", ["other"]),
         ):
-            self.event = self.create_event([{"filename": frame_filename, "in_app": True}], "other")
             # No code mapping will be stored, however, we get what would have been created
-            code_mappings = self._process_and_assert_no_code_mapping([file_in_repo])
+            code_mappings = self._process_and_assert_no_code_mapping(
+                repo_files=[file_in_repo],
+                frames=[self.frame(frame_filename, True)],
+                platform="other",
+            )
             assert len(code_mappings) == 1
             assert code_mappings[0].stacktrace_root == "foo/"
             assert code_mappings[0].source_path == "src/foo/"
@@ -183,10 +205,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
 
 class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self) -> None:
-        super().setUp()
-        self.event = self.create_event(self.frames, self.platform)
-
     @property
     def platform(self) -> str:
         raise NotImplementedError
@@ -198,103 +216,171 @@ class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):
 
 class TestBackSlashDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "python"
-    # The lack of a \ after the drive letter in the third frame signals that
-    # this is a relative path. This may be unlikely to occur in practice,
-    # but worth testing nonetheless.
-    frames = [
-        {"in_app": True, "filename": "\\sentry\\mouse.py"},
-        {"in_app": True, "filename": "\\sentry\\dog\\cat\\parrot.py"},
-        {"in_app": True, "filename": "C:sentry\\tasks.py"},
-        {"in_app": True, "filename": "D:\\Users\\code\\sentry\\models\\release.py"},
-    ]
 
     def test_backslash_filename_simple(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/mouse.py"], "\\", "")
+        # The lack of a \ after the drive letter in the third frame signals that
+        # this is a relative path. This may be unlikely to occur in practice,
+        # but worth testing nonetheless.
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/mouse.py"],
+            frames=[self.frame("\\sentry\\mouse.py", True)],
+            platform=self.platform,
+            expected_stack_root="\\",
+            expected_source_root="",
+        )
 
     def test_backslash_drive_letter_filename_simple(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/tasks.py"], "C:sentry\\", "sentry/")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/tasks.py"],
+            frames=[self.frame("C:sentry\\tasks.py", True)],
+            platform=self.platform,
+            expected_stack_root="C:sentry\\",
+            expected_source_root="sentry/",
+        )
 
     def test_backslash_drive_letter_filename_monoRepoAndBranch(self) -> None:
-        self._process_and_assert_code_mapping(["src/sentry/tasks.py"], "C:sentry\\", "src/sentry/")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/tasks.py"],
+            frames=[self.frame("C:sentry\\tasks.py", True)],
+            platform=self.platform,
+            expected_stack_root="C:sentry\\",
+            expected_source_root="sentry/",
+        )
 
     def test_backslash_drive_letter_filename_abs_path(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/models/release.py"], "D:\\Users\\code\\", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/models/release.py"],
+            frames=[self.frame("D:\\Users\\code\\sentry\\models\\release.py", True)],
+            platform=self.platform,
+            expected_stack_root="D:\\Users\\code\\",
+            expected_source_root="",
+        )
 
 
 class TestJavascriptDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "javascript"
-    frames = [
-        {"filename": "../node_modules/@sentry/foo/esm/hub.js", "in_app": False},  # Not in-app
-        {"filename": "./app/utils/handle.tsx", "in_app": True},  # Starts with ./
-        {"filename": "some/path/Test.tsx", "in_app": True},  # No special characters
-    ]
 
     def test_auto_source_code_config_starts_with_period_slash(self) -> None:
         # ./app/utils/handle.tsx -> app/utils/handle.tsx -> static/app/utils/handle.tsx
-        self._process_and_assert_code_mapping(["static/app/utils/handle.tsx"], "./", "static/")
+        self._process_and_assert_code_mapping(
+            repo_files=["static/app/utils/handle.tsx"],
+            frames=[self.frame("./app/utils/handle.tsx", True)],
+            platform=self.platform,
+            expected_stack_root="./",
+            expected_source_root="static/",
+        )
 
     def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self) -> None:
-        self._process_and_assert_code_mapping(["app/utils/handle.tsx"], "./", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["app/utils/handle.tsx"],
+            frames=[self.frame("./app/utils/handle.tsx", True)],
+            platform=self.platform,
+            expected_stack_root="./",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_one_to_one_match(self) -> None:
-        self._process_and_assert_code_mapping(["some/path/Test.tsx"], "", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["some/path/Test.tsx"],
+            frames=[self.frame("some/path/Test.tsx", True)],
+            platform=self.platform,
+            expected_stack_root="",
+            expected_source_root="",
+        )
 
 
 class TestRubyDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "ruby"
-    frames = [
-        {"filename": "some/path/test.rb", "in_app": True},
-        {"filename": "lib/tasks/crontask.rake", "in_app": True},
-    ]
 
     def test_auto_source_code_config_rb(self) -> None:
-        self._process_and_assert_code_mapping(["some/path/test.rb"], "", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["some/path/test.rb"],
+            frames=[self.frame("some/path/test.rb", True)],
+            platform=self.platform,
+            expected_stack_root="",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_rake(self) -> None:
-        self._process_and_assert_code_mapping(["lib/tasks/crontask.rake"], "", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["lib/tasks/crontask.rake"],
+            frames=[self.frame("lib/tasks/crontask.rake", True)],
+            platform=self.platform,
+            expected_stack_root="",
+            expected_source_root="",
+        )
 
 
 class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "node"
-    frames = [
-        # It can handle app:// urls
-        {"filename": "app:///utils/errors.js", "in_app": True},
-        # It can handle relative paths
-        {"filename": "../../packages/api/src/response.ts", "in_app": True},
-        # It can handle app:// urls with dot dot slashes
-        {"filename": "app:///../services/event/index.js", "in_app": True},
-    ]
 
     def test_auto_source_code_config_starts_with_app(self) -> None:
-        self._process_and_assert_code_mapping(["utils/errors.js"], "app:///", "")
+        # It can handle app:// urls
+        self._process_and_assert_code_mapping(
+            repo_files=["utils/errors.js"],
+            frames=[self.frame("app:///utils/errors.js", True)],
+            platform=self.platform,
+            expected_stack_root="app:///",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_starts_with_app_complex(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/utils/errors.js"], "app:///", "sentry/")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/utils/errors.js"],
+            frames=[self.frame("app:///utils/errors.js", True)],
+            platform=self.platform,
+            expected_stack_root="app:///",
+            expected_source_root="sentry/",
+        )
 
     def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self) -> None:
-        self._process_and_assert_code_mapping(["packages/api/src/response.ts"], "../../", "")
+        # It can handle relative paths
+        self._process_and_assert_code_mapping(
+            repo_files=["packages/api/src/response.ts"],
+            frames=[self.frame("../../packages/api/src/response.ts", True)],
+            platform=self.platform,
+            expected_stack_root="../../",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_starts_with_app_dot_dot_slash(self) -> None:
-        self._process_and_assert_code_mapping(["services/event/index.js"], "app:///../", "")
+        # It can handle app:// urls with dot dot slashes
+        self._process_and_assert_code_mapping(
+            repo_files=["services/event/index.js"],
+            frames=[self.frame("app:///../services/event/index.js", True)],
+            platform=self.platform,
+            expected_stack_root="app:///../",
+            expected_source_root="",
+        )
 
 
 class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "go"
-    frames = [
-        {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
-        {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/kangaroo.go"},
-        {"in_app": True, "filename": "/src/cmd/vroom/profile.go"},
-        {"in_app": True, "filename": "Users/JohnDoe/src/sentry/main.go"},
-    ]
 
     def test_auto_source_code_config_go_abs_filename(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/capybara.go"], "/Users/JohnDoe/code/", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/capybara.go"],
+            frames=[self.frame("/Users/JohnDoe/code/sentry/capybara.go", True)],
+            platform=self.platform,
+            expected_stack_root="/Users/JohnDoe/code/",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_go_long_abs_filename(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/kangaroo.go"], "/Users/JohnDoe/code/", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/kangaroo.go"],
+            frames=[self.frame("/Users/JohnDoe/code/sentry/kangaroo.go", True)],
+            platform=self.platform,
+            expected_stack_root="/Users/JohnDoe/code/",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_similar_but_incorrect_file(self) -> None:
-        self._process_and_assert_no_code_mapping(["notsentry/main.go"])
+        self._process_and_assert_no_code_mapping(
+            repo_files=["not-sentry/main.go"],
+            frames=[self.frame("Users/JohnDoe/src/sentry/main.go", True)],
+            platform=self.platform,
+        )
 
 
 class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
@@ -306,39 +392,70 @@ class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     ]
 
     def test_auto_source_code_config_basic_php(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/p/kanga.php"], "/", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/p/kanga.php"],
+            frames=[self.frame("/sentry/p/kanga.php", True)],
+            platform=self.platform,
+            expected_stack_root="/",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_different_roots_php(self) -> None:
-        self._process_and_assert_code_mapping(["src/sentry/p/kanga.php"], "/sentry/", "src/sentry/")
+        self._process_and_assert_code_mapping(
+            repo_files=["src/sentry/p/kanga.php"],
+            frames=[self.frame("/sentry/p/kanga.php", True)],
+            platform=self.platform,
+            expected_stack_root="/sentry/",
+            expected_source_root="src/sentry/",
+        )
 
 
 class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "csharp"
-    frames = [
-        {"in_app": True, "filename": "/sentry/capybara.cs"},
-        {"in_app": True, "filename": "/sentry/p/kanga.cs"},
-        {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.cs"},
-    ]
 
     def test_auto_source_code_config_csharp_trivial(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/p/kanga.cs"], "/", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/p/kanga.cs"],
+            frames=[self.frame("/sentry/p/kanga.cs", True)],
+            platform=self.platform,
+            expected_stack_root="/",
+            expected_source_root="",
+        )
 
     def test_auto_source_code_config_different_roots_csharp(self) -> None:
-        self._process_and_assert_code_mapping(["src/sentry/p/kanga.cs"], "/sentry/", "src/sentry/")
+        self._process_and_assert_code_mapping(
+            repo_files=["src/sentry/p/kanga.cs"],
+            frames=[self.frame("/sentry/p/kanga.cs", True)],
+            platform=self.platform,
+            expected_stack_root="/sentry/",
+            expected_source_root="src/sentry/",
+        )
 
     def test_auto_source_code_config_non_in_app_frame(self) -> None:
-        self._process_and_assert_no_code_mapping(["sentry/src/functions.cs"])
+        self._process_and_assert_no_code_mapping(
+            repo_files=["sentry/src/functions.cs"],
+            frames=[self.frame("/sentry/p/vendor/sentry/src/functions.cs", False)],
+            platform=self.platform,
+        )
 
 
 class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "python"
-    frames = [
-        {"in_app": True, "filename": "sentry/tasks.py"},
-        {"in_app": True, "filename": "sentry/foo/bar.py"},
-    ]
 
     def test_auto_source_code_config_stack_and_source_root_do_not_match(self) -> None:
-        self._process_and_assert_code_mapping(["src/sentry/foo/bar.py"], "sentry/", "src/sentry/")
+        self._process_and_assert_code_mapping(
+            repo_files=["src/sentry/foo/bar.py"],
+            frames=[self.frame("sentry/foo/bar.py", True)],
+            platform=self.platform,
+            expected_stack_root="sentry/",
+            expected_source_root="src/sentry/",
+        )
 
     def test_auto_source_code_config_no_normalization(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/foo/bar.py"], "", "")
+        self._process_and_assert_code_mapping(
+            repo_files=["sentry/foo/bar.py"],
+            frames=[self.frame("sentry/foo/bar.py", True)],
+            platform=self.platform,
+            expected_stack_root="",
+            expected_source_root="",
+        )
