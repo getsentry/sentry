@@ -65,17 +65,60 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
         GroupSearchView.objects.get(id=view_id)
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_delete_starred_view(self) -> None:
-        # Create a starred view
-        GroupSearchViewStarred.objects.create(
-            group_search_view=self.base_data["user_one_views"][0],
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            position=0,
-        )
+    def test_delete_first_starred_view_decrements_succeeding_positions(self) -> None:
+        for idx, view in enumerate(self.base_data["user_one_views"]):
+            GroupSearchViewStarred.objects.create(
+                group_search_view=view,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                position=idx,
+            )
 
+        # Delete the first view
         response = self.client.delete(self.url)
-        assert response.status_code == 400
+        assert response.status_code == 204
+
+        assert GroupSearchViewStarred.objects.count() == 2
+
+        # All succeeeding views should have their position decremented
+        for idx, gsv in enumerate(
+            GroupSearchViewStarred.objects.filter(
+                organization_id=self.organization.id, user_id=self.user.id
+            )
+        ):
+            assert self.base_data["user_one_views"][idx + 1].id == gsv.group_search_view.id
+            assert gsv.position == idx
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_delete_last_starred_view_does_not_decrement_positions(self) -> None:
+        for idx, view in enumerate(self.base_data["user_one_views"]):
+            GroupSearchViewStarred.objects.create(
+                group_search_view=view,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                position=idx,
+            )
+
+        # Delete the last view
+        response = self.client.delete(
+            reverse(
+                "sentry-api-0-organization-group-search-view-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "view_id": self.base_data["user_one_views"][-1].id,
+                },
+            )
+        )
+        assert response.status_code == 204
+
+        assert GroupSearchViewStarred.objects.count() == 2
+
+        for idx, gsv in enumerate(
+            GroupSearchViewStarred.objects.filter(
+                organization_id=self.organization.id, user_id=self.user.id
+            )
+        ):
+            assert self.base_data["user_one_views"][idx].id == gsv.group_search_view.id
 
     def test_delete_without_feature_flag(self) -> None:
         response = self.client.delete(self.url)

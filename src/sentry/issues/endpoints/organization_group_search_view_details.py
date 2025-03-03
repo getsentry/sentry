@@ -1,3 +1,4 @@
+from django.db.models import F
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -43,13 +44,23 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         # Check if the view is starred by the current user
-        if GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id, group_search_view=view
-        ).exists():
-            return Response(
-                {"detail": "Cannot delete a starred view."},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            starredView = GroupSearchViewStarred.objects.get(
+                organization=organization, user_id=request.user.id, group_search_view=view
             )
+            deleted_position = starredView.position
+            # Delete the starred view
+            starredView.delete()
+
+            # Decrement the position of all other starred views with higher position
+            GroupSearchViewStarred.objects.filter(
+                organization=organization,
+                user_id=request.user.id,
+                position__gt=deleted_position,
+            ).update(position=F("position") - 1)
+
+        except GroupSearchViewStarred.DoesNotExist:
+            pass
 
         view.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
