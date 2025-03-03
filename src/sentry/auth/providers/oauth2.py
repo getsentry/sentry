@@ -113,6 +113,9 @@ class OAuth2Callback(AuthView):
         if state != helper.fetch_state("state"):
             return helper.error(ERR_INVALID_STATE)
 
+        if code is None:
+            return helper.error("no code was provided")
+
         data = self.exchange_token(request, helper, code)
 
         if "error_description" in data:
