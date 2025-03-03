@@ -92,6 +92,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                 >
                   <Button
                     size="xs"
+                    style={{marginRight: '-8px'}}
                     onClick={() => {
                       finalizeRelease.mutate([release], {
                         onSettled() {
