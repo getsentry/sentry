@@ -1,4 +1,4 @@
-import {css, type SerializedStyles} from '@emotion/react';
+import type React from 'react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
@@ -18,7 +18,8 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 }
 
 const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
-  ${p => makeChonkAlertTheme(p.type, p.theme)}
+  ${p => ({...makeChonkAlertTheme(p.type, p.theme)})};
+
   display: grid;
   grid-template-columns: ${p => getAlertGridLayout(p)};
 
@@ -46,43 +47,43 @@ const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
 function makeChonkAlertTheme(
   type: ChonkAlertProps['type'],
   theme: ReturnType<typeof useChonkTheme>
-): SerializedStyles {
+): React.CSSProperties {
   switch (type) {
     case 'info':
-      return css`
-        color: ${theme.colors.static.white};
-        background: ${theme.colors.static.blue400};
-        border: 1px solid ${theme.colors.static.blue400};
-        padding: ${theme.space.md} ${theme.space.lg};
-      `;
+      return {
+        color: theme.colors.static.white,
+        background: theme.colors.static.blue400,
+        border: `1px solid ${theme.colors.static.blue400}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
     case 'success':
-      return css`
-        color: ${theme.colors.static.black};
-        background: ${theme.colors.static.green400};
-        border: 1px solid ${theme.colors.dynamic.green100};
-        padding: ${theme.space.md} ${theme.space.lg};
-      `;
+      return {
+        color: theme.colors.static.black,
+        background: theme.colors.static.green400,
+        border: `1px solid ${theme.colors.dynamic.green100}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
     case 'warning':
-      return css`
-        color: ${theme.colors.static.black};
-        background: ${theme.colors.static.yellow400};
-        border: 1px solid ${theme.colors.dynamic.yellow100};
-        padding: ${theme.space.md} ${theme.space.lg};
-      `;
+      return {
+        color: theme.colors.static.black,
+        background: theme.colors.static.yellow400,
+        border: `1px solid ${theme.colors.dynamic.yellow100}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
     case 'danger':
-      return css`
-        color: ${theme.colors.static.white};
-        background: ${theme.colors.static.red400};
-        border: 1px solid ${theme.colors.dynamic.red100};
-        padding: ${theme.space.md} ${theme.space.lg};
-      `;
+      return {
+        color: theme.colors.static.white,
+        background: theme.colors.static.red400,
+        border: `1px solid ${theme.colors.dynamic.red100}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
     case 'subtle':
-      return css`
-        color: ${theme.textColor};
-        background: ${theme.colors.dynamic.surface500};
-        border: 1px solid ${theme.colors.dynamic.surface100};
-        padding: ${theme.space.md} ${theme.space.lg};
-      `;
+      return {
+        color: theme.textColor,
+        background: theme.colors.dynamic.surface500,
+        border: `1px solid ${theme.colors.dynamic.surface100}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
 
     default:
       unreachable(type);
