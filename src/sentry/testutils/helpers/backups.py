@@ -74,7 +74,7 @@ from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
-from sentry.models.groupsearchviewlastseen import GroupSearchViewLastSeen
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -625,11 +625,11 @@ class ExhaustiveFixtures(Fixtures):
             group_search_view=group_search_view,
             project=project,
         )
-        GroupSearchViewLastSeen.objects.create(
+        GroupSearchViewLastVisited.objects.create(
             organization=org,
             user_id=owner_id,
             group_search_view=group_search_view,
-            last_seen=timezone.now(),
+            last_visited=timezone.now(),
         )
         GroupSearchViewStarred.objects.create(
             organization=org,
