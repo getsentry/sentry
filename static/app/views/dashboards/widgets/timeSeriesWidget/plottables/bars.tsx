@@ -3,36 +3,26 @@ import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import BarSeries from 'sentry/components/charts/series/barSeries';
 
-import type {PlottableData} from '../../common/types';
 import {markDelayedData} from '../markDelayedData';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
-import {
-  type AggregateTimePlottingOptions,
-  AggregateTimeSeries,
-} from './aggregateTimeSeries';
+import type {
+  ContinuousTimeSeries,
+  ContinuousTimeSeriesConfig,
+  type ContinuousTimeSeriesPlottingOptions,
+} from './continuousTimeSeries';
+import type {Plottable} from './plottable';
 
-interface BarsConfig {
-  /**
-   * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
-   */
-  color?: string;
-  /**
-   * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
-   */
-  delay?: number;
+interface BarsConfig extends ContinuousTimeSeriesConfig {
   /**
    * Stack name. If provided, bar plottables with the same stack will be stacked visually.
    */
   stack?: string;
 }
 
-/**
- * See documentation for `PlottableData` for an explanation.
- */
-export class Bars extends AggregateTimeSeries<BarsConfig> implements PlottableData {
+export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
   toSeries(
-    plottingOptions: AggregateTimePlottingOptions
+    plottingOptions: ContinuousTimeSeriesPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
     const {timeSeries, config = {}} = this;
 
