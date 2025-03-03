@@ -55,7 +55,7 @@ export default function NewProviderForm({
 
   const handleGoBack = useCallback(() => {
     navigate(
-      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/`)
     );
   }, [organization.slug, navigate]);
 
