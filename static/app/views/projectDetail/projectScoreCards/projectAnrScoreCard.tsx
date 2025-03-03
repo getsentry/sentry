@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import {LinkButton} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -10,10 +11,12 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import useApi from 'sentry/utils/useApi';
-import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -138,32 +141,54 @@ export function ProjectAnrScoreCard({
     query: queryParams,
   };
 
+  const cardTitle = t('ANR Rate');
+
+  const cardHelp = getSessionTermDescription(SessionTerm.ANR_RATE, null);
+
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
+  if (!defined(value)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
   return (
-    <BigNumberWidget
-      title={t('ANR Rate')}
-      description={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
-      value={value ?? undefined}
-      previousPeriodValue={previousValue ?? undefined}
-      field="anr_rate()"
-      preferredPolarity="-"
-      meta={{
-        fields: {
-          'anr_rate()': 'percentage',
-        },
-        units: {},
-      }}
-      actions={[
-        {
-          key: 'issue-search',
-          label: t('View Issues'),
-          to: issueSearch,
-          onAction: () => {
-            trackAnalytics('project_detail.open_anr_issues', {
-              organization,
-            });
-          },
-        },
-      ]}
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <LinkButton
+            size="xs"
+            to={issueSearch}
+            onClick={() => {
+              trackAnalytics('project_detail.open_anr_issues', {
+                organization,
+              });
+            }}
+          >
+            {t('View Issues')}
+          </LinkButton>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={value ?? undefined}
+          previousPeriodValue={previousValue ?? undefined}
+          field="anr_rate()"
+          preferredPolarity="-"
+          meta={{
+            fields: {
+              'anr_rate()': 'percentage',
+            },
+            units: {},
+          }}
+        />
+      }
     />
   );
 }
