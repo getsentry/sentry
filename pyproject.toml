@@ -154,7 +154,6 @@ module = [
     "sentry.integrations.github_enterprise.integration",
     "sentry.integrations.gitlab.client",
     "sentry.integrations.gitlab.issues",
-    "sentry.integrations.jira.client",
     "sentry.integrations.jira.integration",
     "sentry.integrations.jira.webhooks.base",
     "sentry.integrations.jira.webhooks.issue_updated",
