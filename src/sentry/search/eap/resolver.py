@@ -32,6 +32,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api import event_search
+from sentry.api.event_search import SearchConfig
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -154,6 +155,7 @@ class SearchResolver:
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
+                config=SearchConfig(wildcard_free_text=True),
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_field_type,
