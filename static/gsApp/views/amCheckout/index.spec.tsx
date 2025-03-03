@@ -21,6 +21,9 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
+import {PendingChangesFixture} from '../../__fixtures__/pendingChanges';
+import {PlanFixture} from '../../__fixtures__/plan';
+
 describe('AM1 Checkout', function () {
   let mockResponse: any;
   const api = new MockApiClient();
@@ -133,6 +136,40 @@ describe('AM1 Checkout', function () {
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Cancel Subscription'})).toBeInTheDocument();
+  });
+
+  it('renders pending cancellation button', async function () {
+    const pendingChanges = PendingChangesFixture({
+      plan: 'am3_f',
+      planName: 'Developer',
+      onDemandMaxSpend: 0,
+      effectiveDate: '2021-02-01',
+      onDemandEffectiveDate: '2021-03-01',
+      planDetails: PlanFixture({
+        id: 'am3_f',
+        name: 'Developer',
+      }),
+    });
+
+    const sub: SubscriptionType = {...subscription, canCancel: true, pendingChanges};
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={sub.planTier as PlanTier}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument(); // TODO
   });
 
   it('does not renders cancel subscription button if cannot cancel', async function () {

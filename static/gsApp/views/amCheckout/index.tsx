@@ -46,6 +46,7 @@ import {
   hasPerformance,
   isAmPlan,
   isBizPlanFamily,
+  isDeveloperPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -643,6 +644,10 @@ class AMCheckout extends Component<Props, State> {
     const isOnSponsoredPartnerPlan =
       (subscription.partner?.isActive && subscription.isSponsored) || false;
 
+    const hasPendingChangeToFree: boolean = isDeveloperPlan(
+      subscription.pendingChanges?.planDetails
+    );
+
     return (
       <Fragment>
         <SentryDocumentTitle
@@ -697,8 +702,13 @@ class AMCheckout extends Component<Props, State> {
 
             {subscription.canCancel && (
               <CancelSubscription>
-                <Button to={`/settings/${organization.slug}/billing/cancel/`}>
-                  {t('Cancel Subscription')}
+                <Button
+                  to={`/settings/${organization.slug}/billing/cancel/`}
+                  disabled={hasPendingChangeToFree}
+                >
+                  {hasPendingChangeToFree
+                    ? t('Pending Cancellation')
+                    : t('Cancel Subscription')}
                 </Button>
               </CancelSubscription>
             )}
