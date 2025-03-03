@@ -14,6 +14,7 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
+    DoNotUseThisFrame,
     FailedToExtractFilename,
     FrameInfo,
     MissingModuleOrAbsPath,
@@ -139,6 +140,10 @@ class TestFrameInfo:
                 {"module": "foo.bar.the_class_does_not_have_upper_case_letter", "abs_path": "bar"},
                 "java",
             )
+
+    def test_abs_path_with_dollar_sign(self) -> None:
+        with pytest.raises(DoNotUseThisFrame):
+            FrameInfo({"module": "foo", "abs_path": "barHas$Symbol"}, "java")
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",

@@ -62,6 +62,10 @@ class FailedToExtractFilename(Exception):
     pass
 
 
+class DoNotUseThisFrame(Exception):
+    pass
+
+
 def derive_code_mappings(
     organization: Organization,
     frame: Mapping[str, Any],
@@ -138,6 +142,7 @@ class FrameInfo:
         return frame_file_path
 
     def frame_info_from_module(self, frame: Mapping[str, Any]) -> None:
+        # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
         if frame.get("module") and frame.get("abs_path"):
             stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
             if filepath:
@@ -578,6 +583,9 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str | None, str | 
     temp_path = None
     generated_file_path = None
     stack_root = None
+
+    if abs_path.find("$") > -1:
+        raise DoNotUseThisFrame
 
     # Find the first uppercase letter after a period to identify class name
     parts = module.split(".")
