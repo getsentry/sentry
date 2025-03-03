@@ -600,7 +600,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
   return (
-    <Content>
+    <Content data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
