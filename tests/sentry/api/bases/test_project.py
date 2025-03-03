@@ -1,3 +1,5 @@
+from rest_framework.views import APIView
+
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -16,8 +18,8 @@ class ProjectPermissionBase(TestCase):
             user=user, auth=auth, method=method, is_superuser=is_superuser, is_staff=is_staff
         )
         drf_request = drf_request_from_request(request)
-        return perm.has_permission(drf_request, None) and perm.has_object_permission(
-            drf_request, None, obj
+        return perm.has_permission(drf_request, APIView()) and perm.has_object_permission(
+            drf_request, APIView(), obj
         )
 
 

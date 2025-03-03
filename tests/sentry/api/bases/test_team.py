@@ -1,3 +1,5 @@
+from rest_framework.views import APIView
+
 from sentry.api.bases.team import TeamPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -16,8 +18,8 @@ class TeamPermissionBase(TestCase):
         if is_superuser:
             request.superuser.set_logged_in(request.user)
         drf_request = drf_request_from_request(request)
-        return perm.has_permission(drf_request, None) and perm.has_object_permission(
-            drf_request, None, obj
+        return perm.has_permission(drf_request, APIView()) and perm.has_object_permission(
+            drf_request, APIView(), obj
         )
 
 
