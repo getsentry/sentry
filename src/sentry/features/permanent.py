@@ -83,16 +83,16 @@ def register_permanent_features(manager: FeatureManager):
         # Enable Performance view
         "organizations:performance-view": True,
         # Enable profiling view
-        "organizations:profiling-view": False,
+        "organizations:profiling-view": True,
         # Enable usage of external relays, for use with Relay. See
         # https://github.com/getsentry/relay.
         "organizations:relay": True,
         # Enable core remote-config backend APIs
         "organizations:remote-config": False,
         # Enable core Session Replay backend APIs
-        "organizations:session-replay": False,
+        "organizations:session-replay": True,
         # Measure usage by spans instead of transactions
-        "organizations:spans-usage-tracking": False,
+        "organizations:spans-usage-tracking": True,
         # Enable basic SSO functionality, providing configurable single sign on
         # using services like GitHub / Google. This is *not* the same as the signup
         # and login with Github / Azure DevOps that sentry.io provides.
@@ -109,7 +109,7 @@ def register_permanent_features(manager: FeatureManager):
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
-        "organizations:custom-metrics": False,
+        "organizations:custom-metrics": True,
         # Prefix host with organization ID when giving users DSNs (can be
         # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE) eg. o123.ingest.us.sentry.io
         "organizations:org-ingest-subdomains": False,

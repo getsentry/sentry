@@ -1496,6 +1496,13 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # NOTE: Don't add feature defaults down here! Please add a default to
     # the manager.add() call that defines the feature.
+    "projects:span-metrics-extraction": True,
+    "organizations:indexed-spans-extraction": True,
+    "organizations:profiling": True,
+    "organizations:continuous-profiling": True,
+    "organizations:profiling-using-transactions": True,
+    "organizations:profiling-browser": True,
+    "organizations:continuous-profiling-ui": True,
 }
 
 # Default time zone for localization in the UI.
@@ -2191,7 +2198,7 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
@@ -2218,13 +2225,13 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 SENTRY_USE_METRICS_DEV = False
 
 # This flag activates profiling backend in the development environment
-SENTRY_USE_PROFILING = False
+SENTRY_USE_PROFILING = True
 
 # This flag activates indexed spans backend in the development environment
-SENTRY_USE_SPANS = False
+SENTRY_USE_SPANS = True
 
 # This flag activates spans consumer in the sentry backend in development environment
-SENTRY_USE_SPANS_BUFFER = False
+SENTRY_USE_SPANS_BUFFER = True
 
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
@@ -2561,14 +2568,14 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 #
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
-SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+SENTRY_PROFILING_ENABLED = True
 
 # To have finer control over which process will have continuous profiling enabled,
 # this environment variable will be required to enable continuous profiling.
 #
 # This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
 # to operate under the continuous profiling model.
-SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
+SENTRY_CONTINUOUS_PROFILING_ENABLED = True
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -3471,3 +3478,6 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+SENTRY_USE_RELAY = True
+SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"

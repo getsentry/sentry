@@ -264,3 +264,14 @@ if "SENTRY_RUNNING_UWSGI" not in os.environ and len(secret_key) < 32:
 
 SENTRY_OPTIONS["system.secret-key"] = secret_key
 SENTRY_USE_RELAY = True
+
+KAFKA_CLUSTERS = {
+    "default": {
+        "bootstrap.servers": "127.0.0.1:9092",
+        "compression.type": "lz4",
+        "message.max.bytes": 50000000,  # 50MB, default is 1MB
+    }
+}
+
+SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
+SENTRY_EVENTSTREAM_OPTIONS = {"producer_configuration": KAFKA_CLUSTERS["default"]}
