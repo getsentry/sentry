@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
+from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.conditions.event_frequency import (
     ComparisonType,
@@ -168,9 +169,20 @@ def create_tagged_event_data_condition(
 def create_age_comparison_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
+    comparison_type = AgeComparisonType(data["comparison_type"])
+    value = int(data["value"])
+    if value < 0:
+        # make all values positive and switch the comparison type
+        value = -1 * value
+        comparison_type = (
+            AgeComparisonType.NEWER
+            if comparison_type == AgeComparisonType.OLDER
+            else AgeComparisonType.OLDER
+        )
+
     comparison = {
-        "comparison_type": data["comparison_type"],
-        "value": int(data["value"]),
+        "comparison_type": comparison_type,
+        "value": value,
         "time": data["time"],
     }
 
