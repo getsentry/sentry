@@ -92,8 +92,7 @@ function FrontendOverviewPage() {
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
     location,
-    withStaticFilters,
-    organization
+    withStaticFilters
   );
   const searchBarEventView = eventView.clone();
 
