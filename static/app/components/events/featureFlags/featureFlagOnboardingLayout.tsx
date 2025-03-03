@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import OnboardingAdditionalInfo from 'sentry/components/events/featureFlags/onboardingAdditionalInfo';
+import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalInfo';
 import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -117,12 +117,15 @@ export function FeatureFlagOnboardingLayout({
             {steps.map(step => (
               <Step key={step.title ?? step.type} {...step} />
             ))}
+            <StyledLinkButton to={`/issues/`} priority="primary">
+              {t('Take me to Issues')}
+            </StyledLinkButton>
           </Steps>
         )}
         <Divider />
         {/* If skipChangeTracking, link to settings page instead of displaying the webhook setup form. */}
         {skipChangeTracking ? (
-          <OnboardingAdditionalInfo organization={organization} />
+          <OnboardingAdditionalFeatures organization={organization} />
         ) : (
           <OnboardingIntegrationSection provider={provider} integration={integration} />
         )}
@@ -135,6 +138,10 @@ const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  align-self: flex-start;
 `;
 
 const Wrapper = styled('div')`
