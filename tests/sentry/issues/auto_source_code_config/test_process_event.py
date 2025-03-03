@@ -323,8 +323,8 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "java"
     frames = [
-        # {"module": "kotlinx.coroutines.scheduling.Foo$Worker"},
-        # {"module": "io.sentry.foo.Baz", "abs_path": "Baz.kt"},
+        {"module": "kotlinx.coroutines.scheduling.Foo$Worker"},
+        {"module": "io.sentry.foo.Baz", "abs_path": "Baz.kt"},
         {"module": "a.SomeShortPackageNameClass"},
         {"module": "com.example.foo.Bar$handle$1", "abs_path": "Bar.kt"},
     ]
@@ -334,10 +334,8 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             # No code mapping will be stored, however, we get what would have been created
             code_mappings = self._process_and_assert_no_code_mapping(["src/com/example/foo/Bar.kt"])
             assert len(code_mappings) == 1
-            # Two levels of directories implies that we're not including the package name,
-            # thus, making a more generic code mapping.
-            assert code_mappings[0].stacktrace_root == "com/example/"
-            assert code_mappings[0].source_path == "src/com/example/"
+            assert code_mappings[0].stacktrace_root == "com/example/foo/"
+            assert code_mappings[0].source_path == "src/com/example/foo/"
 
     def test_module_is_too_short(self) -> None:
         with override_options({"issues.auto_source_code_config.dry-run-platforms": ["java"]}):
