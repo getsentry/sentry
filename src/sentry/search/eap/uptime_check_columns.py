@@ -87,6 +87,7 @@ UPTIME_CHECK_VIRTUAL_CONTEXTS = {
 
 UPTIME_CHECK_DEFINITIONS = ColumnDefinitions(
     functions={},
+    formulas={},
     columns=UPTIME_CHECK_ATTRIBUTE_DEFINITIONS,
     contexts=UPTIME_CHECK_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
