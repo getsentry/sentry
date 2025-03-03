@@ -34,6 +34,7 @@ export function useReleaseStats({datetime, environments, projects}: PageFilters)
         },
       },
     ],
+    staleTime: Infinity,
   });
 
   if (!isFetching && hasNextPage) {
