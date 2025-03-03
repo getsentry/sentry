@@ -189,7 +189,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const ORIGINAL_HASH = useMemo(() => {
     return window.location.hash;
   }, []);
-  const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
+  const skipEvalTracking = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
 
   // First dropdown: OpenFeature providers
   const openFeatureProviderOptions = Object.values(WebhookProviderEnum).map(provider => {
@@ -366,7 +366,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       {radioButtons}
       <FeatureFlagOnboardingLayout
-        skipConfig={skipConfig}
+        skipEvalTracking={skipEvalTracking}
         docsConfig={docs}
         dsn={dsn}
         projectKeyId={projectKeyId}
