@@ -1,4 +1,4 @@
-import {forwardRef, useImperativeHandle, useRef} from 'react';
+import {forwardRef, useImperativeHandle, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -33,9 +33,11 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     const nativeCheckboxRef = useRef<HTMLInputElement>(null);
     useImperativeHandle(ref, () => nativeCheckboxRef.current as HTMLInputElement);
 
-    if (nativeCheckboxRef.current) {
-      nativeCheckboxRef.current.indeterminate = checked === 'indeterminate';
-    }
+    useLayoutEffect(() => {
+      if (nativeCheckboxRef.current) {
+        nativeCheckboxRef.current.indeterminate = checked === 'indeterminate';
+      }
+    }, [checked]);
 
     const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
       className,
@@ -102,9 +104,14 @@ const NativeHiddenCheckbox = styled('input')`
     border-color: ${p => (p.checked ? p.theme.focusBorder : 'none')};
   }
 
-  &:disabled + * {
-    background: ${p => (p.checked ? p.theme.disabled : p.theme.backgroundSecondary)};
+  &:disabled:not(:indeterminate) + * {
+    background-color: ${p =>
+      p.checked ? p.theme.disabled : p.theme.backgroundSecondary};
     border-color: ${p => (p.checked ? p.theme.disabledBorder : 'inherit')};
+  }
+
+  &:indeterminate:disabled + * {
+    background-color: ${p => p.theme.disabled};
   }
 `;
 
@@ -123,7 +130,7 @@ const FakeCheckbox = styled('div')<{
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
   pointer-events: none;
 
-  background: ${p => (p.checked ? p.color ?? p.theme.active : p.theme.background)};
+  background-color: ${p => (p.checked ? p.color ?? p.theme.active : p.theme.background)};
   border: ${p => (p.checked ? 'none' : `1px solid ${p.theme.gray200}`)};
 `;
 
