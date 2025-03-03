@@ -224,7 +224,7 @@ describe('Performance > Landing > Index', function () {
           project: [],
           query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
-          statsPeriod: '14d',
+          statsPeriod: '28d',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
         }),
       })

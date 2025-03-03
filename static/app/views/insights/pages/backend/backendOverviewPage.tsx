@@ -121,11 +121,7 @@ function GenericBackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
   const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
