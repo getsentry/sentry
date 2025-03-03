@@ -131,7 +131,7 @@ class ProjectOverviewEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedProjectAndStaffPermission,)
 
     @extend_schema(
-        operation_id="Retrieve a Project",
+        operation_id="Retrieve a Project overview",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -140,6 +140,11 @@ class ProjectOverviewEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
         examples=ProjectExamples.OVERVIEW_PROJECT,
+        summary=(
+            "Retrieve a Project overview. This endpoint returns an overview of an individual "
+            "project. This only returns high-level information of the project, for more detailed "
+            "information use the project details endpoint.",
+        ),
     )
     def get(self, request: Request, project: Project) -> Response:
         """

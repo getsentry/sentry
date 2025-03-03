@@ -489,7 +489,11 @@ class ProjectExamples:
     OVERVIEW_PROJECT = [
         OpenApiExample(
             "Get an overview of a Project",
-            value=PROJECT_OVERVIEW,  # TODO: Update this to include more fields
+            summary=(
+                "Project overviews are high-level summaries of a project. They are intended to provide a "
+                "quick and lightweight way to get information about a project."
+            ),
+            value=PROJECT_OVERVIEW,
             status_codes=["200"],
             response_only=True,
         ),
