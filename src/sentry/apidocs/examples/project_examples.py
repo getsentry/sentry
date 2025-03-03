@@ -277,6 +277,7 @@ DETAILED_PROJECT = {
             "performance-onboarding-checklist",
             "performance-consecutive-http-visible",
             "performance-n-plus-one-api-calls-ingest",
+            "performance-landing-page-stats-period",
             "dynamic-sampling",
             "performance-slow-db-query-visible",
             "performance-n-plus-one-api-calls-visible",
