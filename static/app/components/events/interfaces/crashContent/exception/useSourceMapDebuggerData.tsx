@@ -1,5 +1,6 @@
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -128,7 +129,8 @@ function getScrapingProgress(debuggerFrame: SourceMapDebugBlueThunderResponseFra
 export function prepareSourceMapDebuggerFrameInformation(
   sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
   debuggerFrame: SourceMapDebugBlueThunderResponseFrame,
-  event: Event
+  event: Event,
+  projectPlatform: PlatformKey | undefined
 ): FrameSourceMapDebuggerData {
   const {debugIdProgressPercent, debugIdProgress} = getDebugIdProgress(
     sourceMapDebuggerData,
@@ -171,6 +173,7 @@ export function prepareSourceMapDebuggerFrameInformation(
       debuggerFrame.debug_id_process.uploaded_source_map_with_correct_debug_id,
     sdkVersion: sourceMapDebuggerData.sdk_version,
     sdkName: event.sdk?.name ?? null,
+    projectPlatform,
     matchingSourceMapName:
       debuggerFrame.release_process?.matching_source_map_name ?? null,
     debugIdProgressPercent,
