@@ -130,9 +130,15 @@ class TestFrameInfo:
         with pytest.raises(MissingModuleOrAbsPath):
             FrameInfo({}, "java")
 
+        with pytest.raises(MissingModuleOrAbsPath):
+            FrameInfo({"module": "foo"}, "java")
+
     def test_frame_raises_failed_to_extract_filename(self) -> None:
         with pytest.raises(FailedToExtractFilename):
-            FrameInfo({"module": "foo"}, "java")
+            FrameInfo(
+                {"module": "foo.bar.the_class_does_not_have_upper_case_letter", "abs_path": "bar"},
+                "java",
+            )
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",
