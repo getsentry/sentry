@@ -93,7 +93,7 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        {!skipEvalTracking ? null : (
+        {skipEvalTracking ? (
           <Alert.Container>
             <Alert type="info" showIcon>
               <Flex gap={space(3)}>
@@ -106,13 +106,13 @@ export function FeatureFlagOnboardingLayout({
               </Flex>
             </Alert>
           </Alert.Container>
-        )}
-        {!hideSteps && (
+        ) : null}
+        {hideSteps ? null : (
           <Steps>
             {steps.map(step => (
               <Step key={step.title ?? step.type} {...step} />
             ))}
-            <StyledLinkButton to={`/issues/`} priority="primary">
+            <StyledLinkButton to="/issues/" priority="primary">
               {t('Take me to Issues')}
             </StyledLinkButton>
           </Steps>
