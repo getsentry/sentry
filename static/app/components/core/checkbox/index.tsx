@@ -101,6 +101,7 @@ const NativeHiddenCheckbox = styled('input')`
   }
 
   &:focus-visible + * {
+    border: 1px solid ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
   }
 
