@@ -421,7 +421,7 @@ def http_response_rate(code: int) -> Column.BinaryFormula:
                         op=ComparisonFilter.OP_IN,
                         value=AttributeValue(
                             val_str_array=StrArray(
-                                values=response_codes,
+                                values=response_codes,  # It is faster to exact matches then startsWith
                             ),
                         ),
                     )
