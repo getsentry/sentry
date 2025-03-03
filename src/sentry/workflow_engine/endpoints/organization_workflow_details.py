@@ -72,6 +72,14 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationEndpoint):
         """
         Updates a workflow
         """
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=workflow.id,
+            event=audit_log.get_event_id("WORKFLOW_EDIT"),
+            data=workflow.get_audit_log_data(),
+        )
+
         pass
 
     def delete(self, request: Request, organization: Organization, workflow: Workflow):
