@@ -1,8 +1,8 @@
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
@@ -40,10 +40,10 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
 
-    def create_event(self, frames: Sequence[Mapping[str, str | bool]], platform: str) -> Event:
+    def create_event(self, frames: Sequence[Mapping[str, str | bool]], platform: str) -> GroupEvent:
         """Helper function to prevent creating an event without a platform."""
         test_data = {"platform": platform, "stacktrace": {"frames": frames}}
-        return self.store_event(data=test_data, project_id=self.project.id)
+        return cast(GroupEvent, self.store_event(data=test_data, project_id=self.project.id))
 
     def _get_trees_for_org(self, files: Sequence[str]) -> dict[str, RepoTree]:
         return {"test-org/repo": RepoTree(RepoAndBranch("test-org/repo", "master"), files)}
@@ -66,7 +66,7 @@ class BaseDeriveCodeMappings(TestCase):
             )
 
     def _process_and_assert_no_code_mapping(
-        self, files: Sequence[str], event: Event | None = None
+        self, files: Sequence[str], event: GroupEvent | None = None
     ) -> list[CodeMapping]:
         if event is None:
             event = self.event
