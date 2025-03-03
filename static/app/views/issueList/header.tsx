@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -121,14 +122,16 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <IssueListSetAsDefault {...{sort, query, organization}} />
-          <Button
-            size="sm"
-            data-test-id="real-time"
-            title={realtimeTitle}
-            aria-label={realtimeTitle}
-            icon={realtimeActive ? <IconPause /> : <IconPlay />}
-            onClick={() => onRealtimeChange(!realtimeActive)}
-          />
+          <DisableInDemoMode>
+            <Button
+              size="sm"
+              data-test-id="real-time"
+              title={realtimeTitle}
+              aria-label={realtimeTitle}
+              icon={realtimeActive ? <IconPause /> : <IconPlay />}
+              onClick={() => onRealtimeChange(!realtimeActive)}
+            />
+          </DisableInDemoMode>
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />

@@ -157,6 +157,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Basic Plotting', () => {
+    const millisecondsSeries = sampleDurationTimeSeries;
+
+    // Create a very similar series, but with a different unit to demonstrate automatic scaling
+    const secondsSeries = {
+      field: 'p99(span.self_time)',
+      data: sampleDurationTimeSeries.data.map(datum => {
+        return {
+          ...datum,
+          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+        };
+      }),
+      meta: {
+        fields: {
+          'p99(span.self_time)': 'duration',
+        },
+        units: {
+          'p99(span.self_time)': 'second',
+        },
+      },
+    };
+
     return (
       <Fragment>
         <p>
@@ -171,9 +192,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <SmallSizingWindow>
           <FillParent>
             <TimeSeriesWidgetVisualization
-              visualizationType="bar"
+              visualizationType="line"
               stacked
-              timeSeries={[sampleDurationTimeSeries]}
+              timeSeries={[millisecondsSeries, secondsSeries]}
             />
           </FillParent>
         </SmallSizingWindow>
@@ -341,6 +362,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Colors', () => {
     const theme = useTheme();
 
+    const timeSeries = {
+      ...sampleThroughputTimeSeries,
+      field: 'error_rate()',
+      meta: {
+        fields: {
+          'error_rate()': 'rate',
+        },
+        units: {
+          'error_rate()': '1/second',
+        },
+      },
+      color: theme.error,
+    };
+
     return (
       <Fragment>
         {' '}
@@ -348,26 +383,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           You can control the color of each time series by setting the <code>color</code>{' '}
           attribute to a string that contains a valid hex color code.
         </p>
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={[
-              {
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-                meta: {
-                  fields: {
-                    'error_rate()': 'rate',
-                  },
-                  units: {
-                    'error_rate()': '1/second',
-                  },
-                },
-                color: theme.error,
-              },
-            ]}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="line"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="area"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              visualizationType="bar"
+              timeSeries={[timeSeries]}
+            />
+          </SmallWidget>
+        </SideBySide>
       </Fragment>
     );
   });

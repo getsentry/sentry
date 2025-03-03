@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -23,10 +23,8 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -116,15 +114,14 @@ interface RequestLogProps {
   app: SentryApp;
 }
 
-function makeRequestLogQueryKey(slug: string, organization: Organization): ApiQueryKey {
-  if (organization.features.includes('sentry-app-webhook-requests')) {
-    return [`/sentry-apps/${slug}/webhook-requests/`];
-  }
-  return [`/sentry-apps/${slug}/requests/`];
+function makeRequestLogQueryKey(
+  slug: string,
+  query: Record<string, string>
+): ApiQueryKey {
+  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
 }
 
 export default function RequestLog({app}: RequestLogProps) {
-  const organization = useOrganization();
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
@@ -143,10 +140,9 @@ export default function RequestLog({app}: RequestLogProps) {
     data: requests = [],
     isLoading,
     refetch,
-  } = useApiQuery<SentryAppWebhookRequest[]>(
-    makeRequestLogQueryKey(slug, organization),
-    query
-  );
+  } = useApiQuery<SentryAppWebhookRequest[]>(makeRequestLogQueryKey(slug, query), {
+    staleTime: Infinity,
+  });
 
   const currentRequests = useMemo(
     () => requests.slice(currentPage * MAX_PER_PAGE, (currentPage + 1) * MAX_PER_PAGE),
@@ -177,13 +173,11 @@ export default function RequestLog({app}: RequestLogProps) {
 
   const handleNextPage = useCallback(() => {
     setCurrentPage(currentPage + 1);
-    refetch();
-  }, [currentPage, refetch]);
+  }, [currentPage]);
 
   const handlePrevPage = useCallback(() => {
     setCurrentPage(currentPage - 1);
-    refetch();
-  }, [currentPage, refetch]);
+  }, [currentPage]);
 
   return (
     <Fragment>
@@ -334,5 +328,4 @@ const Tags = styled('div')`
 
 const StyledTag = styled(Tag)`
   padding: ${space(0.5)};
-  display: inline-flex;
 `;

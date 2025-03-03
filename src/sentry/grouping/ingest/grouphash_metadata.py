@@ -151,6 +151,7 @@ def create_or_update_grouphash_metadata_if_needed(
                     "grouphash_is_new": grouphash_is_new,
                     "event_id": event.event_id,
                     "hash_basis": new_data["hash_basis"],
+                    "hash": grouphash.hash,
                 },
             )
             return
@@ -164,6 +165,7 @@ def create_or_update_grouphash_metadata_if_needed(
 
         grouphash_metadata.update(**new_data)
 
+    # Update data in existing metadata record if needed
     else:
         updated_data: dict[str, Any] = {}
 
@@ -176,6 +178,29 @@ def create_or_update_grouphash_metadata_if_needed(
                 "current_config": grouphash.metadata.latest_grouping_config,
                 "new_config": grouping_config,
             }
+
+        # If the metadata was gathered under an old schema, get new data and bump the schema version
+        if grouphash.metadata.schema_version != GROUPHASH_METADATA_SCHEMA_VERSION:
+            updated_data.update(
+                # This includes `schema_version`
+                get_grouphash_metadata_data(event, project, variants, grouping_config)
+            )
+
+            db_hit_metadata.update(
+                {
+                    "reason": (
+                        "outdated_schema"
+                        if not db_hit_metadata.get("reason")
+                        else "config_and_schema"
+                    ),
+                    # TODO: Any time during or after May 2025, confirm that all metadata records
+                    # have been backfilled with a schema version (or deleted because their groups
+                    # aged out). If so, we can get rid of the best-guess logic here.
+                    "current_version": grouphash.metadata.schema_version
+                    or grouphash.metadata.get_best_guess_schema_version(),
+                    "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+                }
+            )
 
         # Only hit the DB if there's something to change
         if updated_data:
@@ -214,6 +239,15 @@ def get_grouphash_metadata_data(
             "platform": event.platform or "unknown",
         }
         hashing_metadata: HashingMetadata = {}
+
+        # If we've landed here as the result of secondary grouping, we won't actually have any
+        # variants data from which to derive hash basis or hashing metadata, but we still want to
+        # collect grouping config (so we know it's an outdated hash), schema version (to forestall
+        # any race-condition-y attempts to update the data), and platform (to make whatever
+        # querying we do more complete).
+        if not variants:
+            return base_data
+
         # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
         # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
         # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe

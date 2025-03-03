@@ -17,25 +17,20 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {
-  type ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
-  CheckStatus,
-  type CheckStatusBucket,
-  type UptimeRule,
-} from 'sentry/views/alerts/rules/uptime/types';
+  setUptimeRuleData,
+  useUptimeRule,
+} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
+import {CheckStatus, type CheckStatusBucket, type UptimeRule} from './types';
 import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
@@ -52,14 +47,11 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const {projects, fetching: loadingProject} = useProjects({slugs: [projectId]});
   const project = projects.find(({slug}) => slug === projectId);
 
-  const queryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${projectId}/uptime/${uptimeRuleId}/`,
-  ];
   const {
     data: uptimeRule,
     isPending,
     isError,
-  } = useApiQuery<UptimeRule>(queryKey, {staleTime: 0});
+  } = useUptimeRule({projectSlug: projectId, uptimeRuleId});
 
   // Only display the missed window legend when there are visible missed window
   // check-ins in the timeline
@@ -100,7 +92,12 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     const resp = await updateUptimeRule(api, organization.slug, uptimeRule, data);
 
     if (resp !== null) {
-      setApiQueryData(queryClient, queryKey, resp);
+      setUptimeRuleData({
+        queryClient,
+        organizationSlug: organization.slug,
+        projectSlug: projectId,
+        uptimeRule: resp,
+      });
     }
   };
 
