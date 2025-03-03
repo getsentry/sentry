@@ -27,6 +27,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+
+jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
@@ -170,6 +173,13 @@ const setupMocks = () => {
     onSearch: jest.fn(),
     reloadProjects: jest.fn(),
     placeholders: [],
+  });
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 };
 

@@ -19,6 +19,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+
+jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 const requestMocks = {
   missRateChart: jest.fn(),
@@ -77,6 +80,14 @@ describe('CacheLandingPage', function () {
     hasMore: null,
     fetchError: null,
     initiallyLoaded: false,
+  });
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 
   beforeEach(function () {
