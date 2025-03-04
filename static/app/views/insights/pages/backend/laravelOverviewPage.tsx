@@ -798,6 +798,7 @@ const WidgetFooterTable = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   margin: -${space(1)} -${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
 
   & > * {
     padding: ${space(1)} ${space(1)};
