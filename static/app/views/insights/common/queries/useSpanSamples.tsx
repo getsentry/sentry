@@ -102,7 +102,7 @@ export const useSpanSamples = (options: Options) => {
   );
 
   const queryString = query.formatString();
-  const fullUrl = `${url}?${qs.stringify({
+  const queryParams = {
     ...dateCondtions,
     ...{utc: location.query.utc},
     lowerBound: 0,
@@ -113,12 +113,11 @@ export const useSpanSamples = (options: Options) => {
     environment: pageFilter.selection.environments,
     query: queryString,
     ...(additionalFields?.length ? {additionalFields} : {}),
-  })}`;
-
+  };
   const result = useQuery<SpanSample[]>({
-    queryKey: ['span-samples', fullUrl],
+    queryKey: ['span-samples', {url, queryParams}],
     queryFn: async () => {
-      const {data} = await api.requestPromise(fullUrl);
+      const {data} = await api.requestPromise(`${url}?${qs.stringify(queryParams)}`);
       return data
         ?.map((d: SpanSample) => ({
           ...d,
