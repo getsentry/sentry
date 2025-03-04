@@ -4,6 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import {getStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useCrashFreeSessions() {
   const location = useLocation();
@@ -47,10 +48,6 @@ export default function useCrashFreeSessions() {
       error,
     };
   }
-
-  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
-    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-    [];
 
   // Maps release to its API response groups
   const releaseGroupMap = new Map<string, typeof sessionData.groups>();
