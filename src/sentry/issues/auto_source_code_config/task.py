@@ -201,4 +201,5 @@ def set_project_codemappings(
             },
         )
         if created:
-            metrics.incr("code_mappings.created", tags={"platform": platform})
+            # Since it is a low volume event, we can sample at 100%
+            metrics.incr(key="code_mappings.created", tags={"platform": platform}, sample_rate=1.0)
