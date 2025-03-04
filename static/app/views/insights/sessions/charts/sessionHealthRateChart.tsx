@@ -3,7 +3,7 @@ import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/i
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
 
 export default function SessionHealthRateChart() {
-  const {series, isPending, error} = useSessionHealthBreakdown();
+  const {series, isPending, error} = useSessionHealthBreakdown({type: 'rate'});
 
   const aliases = {
     healthy_session_rate: t('Healthy session rate'),
