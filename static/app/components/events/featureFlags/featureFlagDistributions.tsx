@@ -1,24 +1,25 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import useGroupFlags from 'sentry/components/events/featureFlags/useGroupFlags';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export default function FeatureFlagDistributions({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
+  // Flags use the same endpoint and response format as tags, so we reuse TagDistribution, tag types, and "tag" in variable names.
   const {
     data = [],
     isPending,
     isError,
     refetch,
-  } = useGroupTags({
+  } = useGroupFlags({
     groupId: group.id,
     environment: environments,
   });
@@ -64,7 +65,12 @@ export default function FeatureFlagDistributions({group}: {group: Group}) {
     <Wrapper>
       <Container>
         {displayTags.map((tag, tagIdx) => (
-          <TagDistribution tag={tag} key={tagIdx} groupId={group.id} />
+          <TagDistribution
+            tag={tag}
+            key={tagIdx}
+            groupId={group.id}
+            allowPrefetch={false}
+          />
         ))}
       </Container>
     </Wrapper>

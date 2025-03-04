@@ -30,7 +30,7 @@ export interface GroupTag {
   totalValues: number;
 }
 
-interface FetchIssueTagsParameters {
+export interface FetchIssueTagsParameters {
   environment: string[] | string | undefined;
   /**
    * Request is disabled until groupId is defined
@@ -45,7 +45,7 @@ interface FetchIssueTagsParameters {
   readable?: boolean;
 }
 
-type GroupTagUseQueryOptions = Partial<UseApiQueryOptions<GroupTag[]>>;
+export type GroupTagUseQueryOptions = Partial<UseApiQueryOptions<GroupTag[]>>;
 
 const makeGroupTagsQueryKey = ({
   groupId,

@@ -13,7 +13,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
-export function TagDistribution({tag, groupId}: {groupId: string; tag: GroupTag}) {
+export function TagDistribution({
+  tag,
+  groupId,
+  allowPrefetch = true,
+}: {
+  groupId: string;
+  tag: GroupTag;
+  allowPrefetch?: boolean;
+}) {
   const location = useLocation();
   const [prefetchEnabled, setPrefetchEnabled] = useState(false);
   const hoverTimeoutRef = useRef<number | undefined>();
@@ -34,7 +42,7 @@ export function TagDistribution({tag, groupId}: {groupId: string; tag: GroupTag}
   // This is to prevent every tag from prefetch when a user scrolls
   const handleMouseEnter = () => {
     hoverTimeoutRef.current = window.setTimeout(() => {
-      setPrefetchEnabled(true);
+      setPrefetchEnabled(allowPrefetch);
     }, 1000);
   };
 
