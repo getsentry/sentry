@@ -83,7 +83,7 @@ export function SolutionsSectionCtaButton({
 
   const getButtonText = () => {
     if (aiConfig.needsGenAIConsent) {
-      return t('Set Up Sentry AI');
+      return t('Set Up Seer');
     }
 
     if (!aiConfig.hasAutofix) {

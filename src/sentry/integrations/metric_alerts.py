@@ -9,11 +9,12 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.incidents.logic import get_incident_aggregates
+from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
+    IncidentProject,
     IncidentStatus,
     IncidentTrigger,
 )
@@ -81,7 +82,22 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
     else:
         start, end = None, None
 
-    return get_incident_aggregates(incident=incident, start=start, end=end).get("count")
+    organization = Organization.objects.get_from_cache(id=incident.organization_id)
+
+    project_ids = list(
+        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    )
+
+    params = GetMetricIssueAggregatesParams(
+        snuba_query=incident.alert_rule.snuba_query,
+        date_started=incident.date_started,
+        current_end_date=incident.current_end_date,
+        organization=organization,
+        project_ids=project_ids,
+        start_arg=start,
+        end_arg=end,
+    )
+    return get_metric_issue_aggregates(params).get("count")
 
 
 def get_incident_status_text(
@@ -171,16 +187,18 @@ def incident_attachment_info(
 
     status = get_status_text(new_status)
 
-    text = get_incident_status_text(
-        alert_rule.snuba_query,
-        (
-            AlertRuleThresholdType(alert_rule.threshold_type)
-            if alert_rule.threshold_type is not None
-            else None
-        ),
-        alert_rule.comparison_delta,
-        str(metric_value),
-    )
+    text = ""
+    if metric_value is not None:
+        text = get_incident_status_text(
+            alert_rule.snuba_query,
+            (
+                AlertRuleThresholdType(alert_rule.threshold_type)
+                if alert_rule.threshold_type is not None
+                else None
+            ),
+            alert_rule.comparison_delta,
+            str(metric_value),
+        )
     if features.has(
         "organizations:anomaly-detection-alerts", incident.organization
     ) and features.has("organizations:anomaly-detection-rollout", incident.organization):

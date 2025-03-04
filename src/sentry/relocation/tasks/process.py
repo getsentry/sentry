@@ -57,7 +57,6 @@ from sentry.relocation.models.relocation import (
 from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
 )
-from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.relocation.utils import (
     TASK_TO_STEP,
     LoggingPrinter,
@@ -244,6 +243,9 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
         with the `Relocation` that originally triggered `uploading_start`, and the next task in the
         sequence (`uploading_complete`) is scheduled.
     """
+    from sentry.relocation.services.relocation_export.service import (
+        control_relocation_export_service,
+    )
 
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,

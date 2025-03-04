@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
+MAX_MONITORS_PER_DOMAIN = 100
 
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
@@ -86,7 +87,6 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
-        migrated=True,
     )
 
     # Associate active regions with this subscription
@@ -447,3 +447,27 @@ def check_and_update_regions(
                 )
             deleted_region.delete()
     return True
+
+
+class MaxUrlsForDomainReachedException(Exception):
+    def __init__(self, domain, suffix, max_urls):
+        self.domain = domain
+        self.suffix = suffix
+        self.max_urls = max_urls
+
+
+def check_url_limits(url):
+    """
+    Determines if a URL's domain has reached the global maximum (MAX_MONITORS_PER_DOMAIN).
+    In the case that it has a `MaxUrlsForDomainReachedException` will be raised.
+    """
+    url_parts = extract_domain_parts(url)
+    existing_count = ProjectUptimeSubscription.objects.filter(
+        uptime_subscription__url_domain=url_parts.domain,
+        uptime_subscription__url_domain_suffix=url_parts.suffix,
+    ).count()
+
+    if existing_count >= MAX_MONITORS_PER_DOMAIN:
+        raise MaxUrlsForDomainReachedException(
+            url_parts.domain, url_parts.suffix, MAX_MONITORS_PER_DOMAIN
+        )

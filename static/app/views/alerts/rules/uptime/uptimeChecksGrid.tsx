@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
@@ -43,7 +43,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
       search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
       fields: ['trace', 'count()'],
     },
-    'uptime_checks'
+    'api.uptime-checks-grid'
   );
 
   const traceSpanCounts = spanCountLoading
@@ -161,10 +161,9 @@ function CheckInBodyCell({
         spanCount === undefined ? (
           <Placeholder height="20px" width="70px" />
         ) : spanCount === 0 ? (
-          <Tag
-            type="default"
-            tooltipProps={{isHoverable: true}}
-            tooltipText={
+          <Tooltip
+            isHoverable
+            title={
               uptimeRule.traceSampling
                 ? tct(
                     'No spans found in this trace. Configure your SDKs to see correlated spans across services. [learnMore:Learn more].',
@@ -176,8 +175,8 @@ function CheckInBodyCell({
                   )
             }
           >
-            {t('0 spans')}
-          </Tag>
+            <Tag type="default">{t('0 spans')}</Tag>
+          </Tooltip>
         ) : (
           <Tag type="info">{t('%s spans', spanCount)}</Tag>
         );

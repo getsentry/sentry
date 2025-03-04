@@ -10,7 +10,11 @@ from rediscluster import RedisCluster
 
 from sentry.constants import UPTIME_AUTODETECTION
 from sentry.uptime.models import get_active_auto_monitor_count_for_org
-from sentry.uptime.subscriptions.subscriptions import MAX_AUTO_SUBSCRIPTIONS_PER_ORG
+from sentry.uptime.subscriptions.subscriptions import (
+    MAX_AUTO_SUBSCRIPTIONS_PER_ORG,
+    MaxUrlsForDomainReachedException,
+    check_url_limits,
+)
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
@@ -105,14 +109,24 @@ def delete_candidate_projects_for_org(org: Organization) -> None:
     cluster.delete(key)
 
 
-def get_candidate_urls_for_project(project: Project) -> list[tuple[str, int]]:
+def get_candidate_urls_for_project(project: Project, limit=5) -> list[tuple[str, int]]:
     """
     Gets all the candidate urls for a project. Returns a tuple of (url, times_url_seen). Urls are sorted by
     `times_url_seen` desc.
     """
     key = get_project_base_url_rank_key(project)
     cluster = _get_cluster()
-    return cluster.zrange(key, 0, -1, desc=True, withscores=True, score_cast_func=int)
+    candidate_urls = cluster.zrange(key, 0, -1, desc=True, withscores=True, score_cast_func=int)
+    urls = []
+    for candidate_url, url_count in candidate_urls:
+        try:
+            check_url_limits(candidate_url)
+            urls.append((candidate_url, url_count))
+        except MaxUrlsForDomainReachedException:
+            pass
+        if len(urls) == limit:
+            break
+    return urls
 
 
 def delete_candidate_urls_for_project(project: Project) -> None:
