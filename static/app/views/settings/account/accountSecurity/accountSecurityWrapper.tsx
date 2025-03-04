@@ -24,6 +24,7 @@ function AccountSecurityWrapper({children}: Props) {
   const {authId} = useParams<{authId?: string}>();
 
   const orgRequest = useQuery<OrganizationSummary[]>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['organizations'],
     queryFn: () => fetchOrganizations(api),
     staleTime: 0,

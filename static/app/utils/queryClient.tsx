@@ -126,6 +126,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 
+  // eslint-disable-next-line @tanstack/query/no-rest-destructuring
   const {data, ...rest} = useQuery({
     queryKey,
     queryFn,

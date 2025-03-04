@@ -26,26 +26,25 @@ export function useServiceIncidents({
   componentFilter,
 }: UseServiceIncidentsOptions = {}) {
   const {statuspage} = useLegacyStore(ConfigStore);
+  const {api_host, id} = statuspage ?? {};
 
   return useQuery<StatuspageIncident[] | null>({
-    queryKey: ['statuspage-incidents', includeResolved],
+    queryKey: ['statuspage-incidents', {api_host, id, includeResolved}],
     gcTime: 60 * 5,
     queryFn: async () => {
-      const {api_host, id} = statuspage ?? {};
-
       if (!api_host || !id) {
         return null;
       }
 
       // We can avoid fetching lots of data by only querying the unresolved API
       // when we filter to only unresolved incidents
-      const sttusPageUrl = includeResolved
+      const statusPageUrl = includeResolved
         ? `https://${id}.${api_host}/api/v2/incidents.json`
         : `https://${id}.${api_host}/api/v2/incidents/unresolved.json`;
 
       let resp: Response;
       try {
-        resp = await fetch(sttusPageUrl);
+        resp = await fetch(statusPageUrl);
       } catch {
         // No point in capturing this as we can't make statuspage come back.
         return null;

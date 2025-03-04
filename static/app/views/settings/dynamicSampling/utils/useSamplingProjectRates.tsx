@@ -1,4 +1,3 @@
-import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
@@ -28,41 +27,41 @@ function getQueryKey(organization: Organization): ApiQueryKey {
  * Fetches all sampling rates for the organization by looping through
  * the paginated results.
  */
-const fetchAllSamplingRates = async (
-  api: Client,
-  organization: Organization
-): Promise<SamplingProjectRate[]> => {
-  const endpoint = getEndpoint(organization);
-  let cursor: string | null = '';
-  let result: SamplingProjectRate[] = [];
+const useFetchAllSamplingRates = () => {
+  const api = useApi();
+  return async (organization: Organization): Promise<SamplingProjectRate[]> => {
+    const endpoint = getEndpoint(organization);
+    let cursor: string | null = '';
+    let result: SamplingProjectRate[] = [];
 
-  while (cursor !== null) {
-    const [data, _, response] = await api.requestPromise(endpoint, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {cursor},
-    });
+    while (cursor !== null) {
+      const [data, _, response] = await api.requestPromise(endpoint, {
+        method: 'GET',
+        includeAllArgs: true,
+        query: {cursor},
+      });
 
-    result = result.concat(data);
+      result = result.concat(data);
 
-    cursor = null;
-    const linkHeader = response?.getResponseHeader('Link');
+      cursor = null;
+      const linkHeader = response?.getResponseHeader('Link');
 
-    if (linkHeader) {
-      const links = parseLinkHeader(linkHeader);
-      cursor = (links.next!.results && links.next!.cursor) || null;
+      if (linkHeader) {
+        const links = parseLinkHeader(linkHeader);
+        cursor = (links.next!.results && links.next!.cursor) || null;
+      }
     }
-  }
 
-  return result;
+    return result;
+  };
 };
 
 export function useGetSamplingProjectRates() {
-  const api = useApi();
+  const fetchAllSamplingRates = useFetchAllSamplingRates();
   const organization = useOrganization();
   return useQuery<SamplingProjectRate[]>({
     queryKey: getQueryKey(organization),
-    queryFn: () => fetchAllSamplingRates(api, organization),
+    queryFn: () => fetchAllSamplingRates(organization),
     staleTime: 0,
   });
 }

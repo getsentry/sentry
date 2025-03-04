@@ -57,62 +57,65 @@ async function fetchSingleTraceMetaNew(
   return data;
 }
 
-async function fetchTraceMetaInBatches(
-  api: Client,
-  organization: Organization,
-  replayTraces: ReplayTrace[],
-  normalizedParams: any,
-  filters: Partial<PageFilters> = {}
-) {
-  const clonedTraceIds = [...replayTraces];
-  const meta: TraceMeta = {
-    errors: 0,
-    performance_issues: 0,
-    projects: 0,
-    transactions: 0,
-    transaction_child_count_map: {},
-    span_count: 0,
-    span_count_map: {},
+function useFetchTraceMetaInBatches() {
+  const api = useApi();
+
+  return async (
+    organization: Organization,
+    replayTraces: ReplayTrace[],
+    normalizedParams: any,
+    filters: Partial<PageFilters> = {}
+  ) => {
+    const clonedTraceIds = [...replayTraces];
+    const meta: TraceMeta = {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: {},
+      span_count: 0,
+      span_count_map: {},
+    };
+
+    const apiErrors: Error[] = [];
+
+    while (clonedTraceIds.length > 0) {
+      const batch = clonedTraceIds.splice(0, 3);
+      const results = await Promise.allSettled(
+        batch.map(replayTrace => {
+          const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
+          return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
+        })
+      );
+
+      results.reduce((acc, result) => {
+        if (result.status === 'fulfilled') {
+          acc.errors += result.value.errors;
+          acc.performance_issues += result.value.performance_issues;
+          acc.projects = Math.max(acc.projects, result.value.projects);
+          acc.transactions += result.value.transactions;
+
+          // Turn the transaction_child_count_map array into a map of transaction id to child count
+          // for more efficient lookups.
+          result.value.transaction_child_count_map.forEach(
+            ({'transaction.id': id, count}: any) => {
+              acc.transaction_child_count_map[id] = count;
+            }
+          );
+
+          acc.span_count += result.value.span_count;
+          Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
+            acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
+          });
+        } else {
+          apiErrors.push(new Error(result?.reason));
+        }
+        return acc;
+      }, meta);
+    }
+
+    return {meta, apiErrors};
   };
-
-  const apiErrors: Error[] = [];
-
-  while (clonedTraceIds.length > 0) {
-    const batch = clonedTraceIds.splice(0, 3);
-    const results = await Promise.allSettled(
-      batch.map(replayTrace => {
-        const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
-        return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
-      })
-    );
-
-    results.reduce((acc, result) => {
-      if (result.status === 'fulfilled') {
-        acc.errors += result.value.errors;
-        acc.performance_issues += result.value.performance_issues;
-        acc.projects = Math.max(acc.projects, result.value.projects);
-        acc.transactions += result.value.transactions;
-
-        // Turn the transaction_child_count_map array into a map of transaction id to child count
-        // for more efficient lookups.
-        result.value.transaction_child_count_map.forEach(
-          ({'transaction.id': id, count}: any) => {
-            acc.transaction_child_count_map[id] = count;
-          }
-        );
-
-        acc.span_count += result.value.span_count;
-        Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
-          acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
-        });
-      } else {
-        apiErrors.push(new Error(result?.reason));
-      }
-      return acc;
-    }, meta);
-  }
-
-  return {meta, apiErrors};
 }
 
 export type TraceMetaQueryResults = {
@@ -122,7 +125,7 @@ export type TraceMetaQueryResults = {
 };
 
 export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
-  const api = useApi();
+  const fetchTraceMetaInBatches = useFetchTraceMetaInBatches();
   const filters = usePageFilters();
   const organization = useOrganization();
 
@@ -144,10 +147,15 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     },
     Error
   >({
-    queryKey: ['traceData', replayTraces],
+    queryKey: [
+      'traceData',
+      organization,
+      replayTraces,
+      normalizedParams,
+      filters.selection,
+    ],
     queryFn: () =>
       fetchTraceMetaInBatches(
-        api,
         organization,
         replayTraces,
         normalizedParams,

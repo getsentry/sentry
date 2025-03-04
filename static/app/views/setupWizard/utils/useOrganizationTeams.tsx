@@ -10,13 +10,17 @@ export function useOrganizationTeams({
   organization?: OrganizationWithRegion;
 }) {
   const api = useApi();
+  const queryParams = {
+    host: organization?.region.url,
+  };
 
   return useQuery<Team[], RequestError>({
-    queryKey: [`/organizations/${organization?.slug}/teams/`],
+    queryKey: [`/organizations/${organization?.slug}/teams/`, queryParams],
     queryFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/user-teams/`, {
-        host: organization?.region.url,
-      });
+      return api.requestPromise(
+        `/organizations/${organization?.slug}/user-teams/`,
+        queryParams
+      );
     },
     enabled: !!organization,
     refetchOnWindowFocus: true,
