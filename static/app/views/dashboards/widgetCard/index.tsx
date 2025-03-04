@@ -93,6 +93,7 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
+  isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
@@ -170,6 +171,7 @@ function WidgetCard(props: Props) {
         totalIssuesCount: data?.totalIssuesCount,
         confidence: data?.confidence,
         sampleCount: data?.sampleCount,
+        isSampled: data?.isSampled,
       });
 
       props.router.push({
