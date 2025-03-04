@@ -96,6 +96,7 @@ export type AutofixStep =
 interface BaseStep {
   id: string;
   index: number;
+  key: string;
   progress: AutofixProgressItem[];
   status: AutofixStatus;
   title: string;
@@ -154,6 +155,7 @@ export interface AutofixSolutionStep extends BaseStep {
   solution_selected: boolean;
   type: AutofixStepType.SOLUTION;
   custom_solution?: string;
+  description?: string;
 }
 
 export type AutofixCodebaseChange = {
