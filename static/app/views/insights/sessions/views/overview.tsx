@@ -22,6 +22,8 @@ import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFr
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
 import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
+import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
+import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
@@ -61,14 +63,20 @@ export function SessionsOverview() {
             </ModuleLayout.Full>
             {view === MOBILE_LANDING_SUB_PATH && (
               <Fragment>
-                <ModuleLayout.Half>
+                <ModuleLayout.Third>
                   <CrashFreeSessionChart />
-                </ModuleLayout.Half>
-                <ModuleLayout.Half>
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
                   <SessionHealthRateChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  <SessionHealthCountChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Half>
+                  <UserHealthCountChart />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <SessionHealthCountChart />
+                  <UserHealthRateChart />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <FilterWrapper>
@@ -90,6 +98,12 @@ export function SessionsOverview() {
                 <ModuleLayout.Third>
                   <SessionHealthCountChart />
                 </ModuleLayout.Third>
+                <ModuleLayout.Half>
+                  <UserHealthCountChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Half>
+                  <UserHealthRateChart />
+                </ModuleLayout.Half>
               </Fragment>
             )}
           </ModuleLayout.Layout>
