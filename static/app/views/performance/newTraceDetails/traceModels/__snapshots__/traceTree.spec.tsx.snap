@@ -61,6 +61,14 @@ trace root
 "
 `;
 
+exports[`TraceTree eap trace assembles tree from eap trace 1`] = `
+"
+unknown node
+  span.op - span.description
+    span.op - span.description
+"
+`;
+
 exports[`TraceTree expand collapsing a parent autogroup node shows tail chain 1`] = `
 "
 trace root

@@ -26,6 +26,7 @@ import {
   isAutogroupedNode,
   isBrowserRequestSpan,
   isCollapsedNode,
+  isEAPSpanNode,
   isEAPTraceNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
@@ -1770,42 +1771,48 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return TraceShape.EMPTY_TRACE;
     }
 
-    if (!isTraceNode(trace)) {
-      throw new TypeError('Not trace node');
-    }
+    let traceStats: {
+      javascriptRootTransactions: Array<TraceTree.Transaction | TraceTree.EAPSpan>;
+      orphans: number;
+      roots: number;
+    };
 
-    const traceStats = isEAPTraceNode(trace)
-      ? {
-          javascriptRootTransactions: trace.value.filter(isJavascriptSDKEvent),
-          orphans: trace.value.filter(span => span.parent_span_id !== null).length,
-          roots: trace.value.filter(span => span.parent_span_id === null).length,
-        }
-      : trace.value.transactions?.reduce<{
-          javascriptRootTransactions: TraceTree.Transaction[];
-          orphans: number;
-          roots: number;
-        }>(
-          (stats, transaction) => {
-            if (isRootEvent(transaction)) {
-              stats.roots++;
+    if (isEAPTraceNode(trace)) {
+      traceStats = {
+        javascriptRootTransactions: trace.value.filter(isJavascriptSDKEvent),
+        orphans: trace.value.filter(span => span.parent_span_id !== null).length,
+        roots: trace.value.filter(span => span.parent_span_id === null).length,
+      };
+    } else if (isTraceNode(trace)) {
+      traceStats = trace.value.transactions?.reduce<{
+        javascriptRootTransactions: TraceTree.Transaction[];
+        orphans: number;
+        roots: number;
+      }>(
+        (stats, transaction) => {
+          if (isRootEvent(transaction)) {
+            stats.roots++;
 
-              if (isJavascriptSDKEvent(transaction)) {
-                stats.javascriptRootTransactions.push(transaction);
-              }
-            } else {
-              stats.orphans++;
+            if (isJavascriptSDKEvent(transaction)) {
+              stats.javascriptRootTransactions.push(transaction);
             }
-            return stats;
-          },
-          {roots: 0, orphans: 0, javascriptRootTransactions: []}
-        ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+          } else {
+            stats.orphans++;
+          }
+          return stats;
+        },
+        {roots: 0, orphans: 0, javascriptRootTransactions: []}
+      );
+    } else {
+      throw new Error('Unknown trace type');
+    }
 
     if (traceStats.roots === 0) {
       if (traceStats.orphans > 0) {
         return TraceShape.NO_ROOT;
       }
 
-      if ((trace.value.orphan_errors?.length ?? 0) > 0) {
+      if (isTraceNode(trace) && (trace.value.orphan_errors?.length ?? 0) > 0) {
         return TraceShape.ONLY_ERRORS;
       }
 
@@ -1828,7 +1835,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return TraceShape.MULTIPLE_ROOTS;
     }
 
-    throw new Error('Unknown trace type');
+    throw new Error('Not a valid trace');
   }
 
   fetchAdditionalTraces(options: {
@@ -1983,7 +1990,7 @@ function printTraceTreeNode(
 
     return padding + 'autogroup';
   }
-  if (isSpanNode(t)) {
+  if (isSpanNode(t) || isEAPSpanNode(t)) {
     return (
       padding +
       (t.value.op || 'unknown span') +

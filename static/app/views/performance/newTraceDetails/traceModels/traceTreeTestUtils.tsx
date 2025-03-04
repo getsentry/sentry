@@ -9,6 +9,7 @@ import type {
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -41,6 +42,10 @@ export function makeTrace(
   } as TraceSplitResults<TraceTree.Transaction>;
 }
 
+export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.EAPTrace {
+  return (overrides ?? []) as TraceTree.EAPTrace;
+}
+
 export function makeTransaction(
   overrides: Partial<TraceTree.Transaction> = {}
 ): TraceTree.Transaction {
@@ -69,6 +74,26 @@ export function makeSpan(overrides: Partial<TraceTree.Span> = {}): TraceTree.Spa
     trace_id: '',
     ...overrides,
   };
+}
+
+export function makeEAPSpan(
+  overrides: Partial<TraceTree.EAPSpan> = {}
+): TraceTree.EAPSpan {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    op: 'span.op',
+    description: 'span.description',
+    start_timestamp: 0,
+    end_timestamp: 10,
+    is_transaction: false,
+    project_id: 1,
+    project_slug: 'project_slug',
+    transaction: 'span.transaction',
+    parent_span_id: null,
+    children: [],
+    duration: 10,
+    ...overrides,
+  } as TraceTree.EAPSpan;
 }
 
 export function makeTraceError(
@@ -150,6 +175,14 @@ export function assertSpanNode(
 ): asserts node is TraceTreeNode<TraceTree.Span> {
   if (!isSpanNode(node)) {
     throw new Error('node is not a span');
+  }
+}
+
+export function assertEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+  if (!isEAPSpanNode(node)) {
+    throw new Error('node is not an eap span');
   }
 }
 
