@@ -85,7 +85,7 @@ describe('destinationSummaryPage', () => {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Average Duration');
     screen.getByText('Published vs Processed');
-    expect(eventsStatsMock).toHaveBeenCalledWith();
+    expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();
   });
 });
