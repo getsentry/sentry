@@ -73,7 +73,7 @@ export function GroupSummaryWithAutofix({
   project,
   preview = false,
 }: {
-  event: Event;
+  event: Event | undefined;
   group: Group;
   project: Project;
   preview?: boolean;
