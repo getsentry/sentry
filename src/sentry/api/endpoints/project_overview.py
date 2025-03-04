@@ -127,7 +127,7 @@ class ProjectOverviewSerializer(Serializer):
 class ProjectOverviewEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (RelaxedProjectAndStaffPermission,)
 
