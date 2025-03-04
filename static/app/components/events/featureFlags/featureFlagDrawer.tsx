@@ -15,6 +15,7 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
+import FeatureFlagDistributions from 'sentry/components/events/featureFlags/featureFlagDistributions';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
@@ -26,6 +27,7 @@ import useFocusControl from 'sentry/components/events/useFocusControl';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -53,6 +55,9 @@ export function FeatureFlagDrawer({
   hydratedFlags,
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
+  const [tab, setTab] = useState<'eventFlags' | 'issueFlags'>('eventFlags');
+
+  // "All Flags" state
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
   const [search, setSearch] = useState('');
@@ -62,7 +67,7 @@ export function FeatureFlagDrawer({
     f.item.key.includes(search)
   );
 
-  const actions = (
+  const eventFlagsActions = (
     <ButtonBar gap={1}>
       <InputGroup>
         <SearchInput
@@ -107,12 +112,31 @@ export function FeatureFlagDrawer({
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{t('Feature Flags')}</Header>
-        {actions}
+
+        <SegmentedControl size="xs" value={tab} onChange={setTab}>
+          <SegmentedControl.Item key="eventFlags">
+            {t('Event Flags')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="issueFlags">
+            {t('Issue Flags')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+
+        {/* Empty div for bottom-left grid cell */}
+        <div />
+
+        <div style={{marginTop: space(1)}}>
+          {tab === 'eventFlags' ? eventFlagsActions : null}
+        </div>
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer numCols={1}>
-          <KeyValueData.Card expandLeft contentItems={searchResults} />
-        </CardContainer>
+        {tab === 'eventFlags' ? (
+          <CardContainer numCols={1}>
+            <KeyValueData.Card expandLeft contentItems={searchResults} />
+          </CardContainer>
+        ) : (
+          <FeatureFlagDistributions group={group} />
+        )}
       </EventDrawerBody>
     </EventDrawerContainer>
   );
