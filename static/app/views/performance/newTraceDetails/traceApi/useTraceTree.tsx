@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -11,6 +10,7 @@ import {traceAnalytics} from '../traceAnalytics';
 import {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
+import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   meta: TraceMetaQueryResults;
@@ -64,12 +64,7 @@ export function useTraceTree({
       return;
     }
 
-    if (
-      trace.data &&
-      (isTraceSplitResult(trace.data)
-        ? trace.data?.transactions.length === 0 && trace.data?.orphan_errors.length === 0
-        : trace.data?.length === 0)
-    ) {
+    if (trace.data && isEmptyTrace(trace.data)) {
       setTree(t => (t.type === 'empty' ? t : TraceTree.Empty()));
       traceAnalytics.trackTraceEmptyState(organization, traceWaterfallSource);
       return;
