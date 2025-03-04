@@ -18,7 +18,7 @@ from sentry.replays.consumers.buffered.consumer import (
 from sentry.replays.consumers.buffered.platform import Commit, Effect, Nothing, Task
 from sentry.replays.usecases.ingest import ProcessedRecordingMessage
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
-from tests.sentry.replays.unit.consumers.test_helpers import MockNextStep, MockRunTime
+from tests.sentry.replays.unit.consumers.test_helpers import MockNextStep, SandboxRunTime
 
 RECORDINGS_CODEC = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -289,7 +289,7 @@ def test_buffer_timeout():
 
 
 def _make_runtime():
-    runtime = MockRunTime(init, process, subscription, update)
+    runtime = SandboxRunTime(init, process, subscription, update)
     runtime.setup(
         {
             "max_buffer_length": 2,
