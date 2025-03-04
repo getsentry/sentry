@@ -2,24 +2,22 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 export interface SwitchProps
-  extends Omit<React.InputHTMLAttributes<HTMLButtonElement>, 'size' | 'type'> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'> {
   size?: 'sm' | 'lg';
 }
 
-export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({size = 'sm', ...props}: SwitchProps, ref) => {
     return (
-      <SwitchButton
-        ref={ref}
-        data-test-id="switch"
-        type="button"
-        role="checkbox"
-        aria-checked={props.checked}
-        size={size}
-        {...props}
-      >
-        <Toggle checked={props.checked} size={size} />
-      </SwitchButton>
+      <SwitchWrapper>
+        {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
+         * so we need to use a different name, or somehow tell emotion to not create a type intersection.
+         */}
+        <NativeHiddenCheckbox ref={ref} type="checkbox" toggleSize={size} {...props} />
+        <FakeCheckbox size={size}>
+          <FakeCheckboxButton size={size} />
+        </FakeCheckbox>
+      </SwitchWrapper>
     );
   }
 );
@@ -40,52 +38,82 @@ const ToggleWrapperSize = {
   lg: 24,
 };
 
-const SwitchButton = styled('button')<{
-  checked?: SwitchProps['checked'];
-  disabled?: SwitchProps['disabled'];
-  size?: SwitchProps['size'];
-}>`
-  display: inline-block;
-  background: none;
-  padding: 0;
-  border: 1px solid ${p => p.theme.border};
+const SwitchWrapper = styled('div')`
   position: relative;
-  box-shadow: inset ${p => p.theme.dropShadowMedium};
-  height: ${p => ToggleWrapperSize[p.size ?? 'sm']}px;
-  width: ${p => ToggleWrapperSize[p.size ?? 'sm'] * 1.875}px;
-  border-radius: ${p => ToggleWrapperSize[p.size ?? 'sm']}px;
-  transition:
-    border 0.1s,
-    box-shadow 0.1s;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: flex-start;
+`;
 
-  span {
-    background: ${p => (p.checked ? p.theme.active : p.theme.border)};
-    opacity: ${p => (p.disabled ? 0.4 : null)};
+const NativeHiddenCheckbox = styled('input')<{
+  toggleSize: NonNullable<SwitchProps['size']>;
+}>`
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+
+  & + div {
+    > div {
+      background: ${p => p.theme.border};
+      transform: translateX(${p => ToggleConfig[p.toggleSize].top}px);
+    }
   }
 
-  &:focus,
-  &:focus-visible {
+  &:checked + div {
+    > div {
+      background: ${p => p.theme.active};
+      transform: translateX(
+        ${p => ToggleConfig[p.toggleSize].top + ToggleWrapperSize[p.toggleSize] * 0.875}px
+      );
+    }
+  }
+
+  &:focus + div,
+  &:focus-visible + div {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
   }
+
+  &:disabled {
+    cursor: not-allowed;
+
+    + div {
+      opacity: 0.4;
+    }
+  }
 `;
 
-const Toggle = styled('span')<{
-  checked?: SwitchProps['checked'];
-  size?: SwitchProps['size'];
+const FakeCheckbox = styled('div')<{
+  size: NonNullable<SwitchProps['size']>;
 }>`
-  display: block;
+  position: relative;
+  display: inline-block;
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
+  height: ${p => ToggleWrapperSize[p.size]}px;
+  width: ${p => ToggleWrapperSize[p.size] * 1.875}px;
+  border-radius: ${p => ToggleWrapperSize[p.size]}px;
+  pointer-events: none;
+
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
+`;
+
+const FakeCheckboxButton = styled('div')<{
+  size: NonNullable<SwitchProps['size']>;
+}>`
   position: absolute;
-  border-radius: 50%;
   transition: 0.25s all ease;
-  top: ${p => ToggleConfig[p.size ?? 'sm'].top}px;
-  transform: translateX(
-    ${p =>
-      p.checked
-        ? ToggleConfig[p.size ?? 'sm'].top + ToggleWrapperSize[p.size ?? 'sm'] * 0.875
-        : ToggleConfig[p.size ?? 'sm'].top}px
-  );
-  width: ${p => ToggleConfig[p.size ?? 'sm'].size}px;
-  height: ${p => ToggleConfig[p.size ?? 'sm'].size}px;
+  border-radius: 50%;
+  top: ${p => ToggleConfig[p.size].top}px;
+  width: ${p => ToggleConfig[p.size].size}px;
+  height: ${p => ToggleConfig[p.size].size}px;
 `;
