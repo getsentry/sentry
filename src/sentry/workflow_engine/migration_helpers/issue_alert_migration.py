@@ -190,7 +190,7 @@ class IssueAlertMigrator:
         # if it's empty and this is not the case, we should not migrate
         no_conditions = len(data_conditions) == 0
         only_has_every_event_cond = len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
-        
+
         if no_conditions and not only_has_every_event_cond:
         ):
             raise Exception("No valid conditions, skipping migration")
