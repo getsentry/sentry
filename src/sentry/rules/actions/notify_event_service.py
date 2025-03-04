@@ -16,7 +16,8 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import (
-    GetIncidentAttachmentInfoParams,
+    AlertContext,
+    OpenPeriodParams,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -51,20 +52,22 @@ def build_incident_attachment(
         metric_value = get_metric_count_from_incident(incident)
 
     data = incident_attachment_info(
-        GetIncidentAttachmentInfoParams(
+        AlertContext(
             name=incident.alert_rule.name,
-            open_period_identifier_id=incident.identifier,
             action_identifier_id=incident.alert_rule.id,
-            organization=incident.organization,
             threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
             detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
-            snuba_query=incident.alert_rule.snuba_query,
             comparison_delta=incident.alert_rule.comparison_delta,
+        ),
+        OpenPeriodParams(
+            open_period_identifier_id=incident.identifier,
             new_status=new_status,
-            metric_value=metric_value,
-            notification_uuid=notification_uuid,
-            referrer="metric_alert_sentry_app",
-        )
+        ),
+        organization=incident.organization,
+        snuba_query=incident.alert_rule.snuba_query,
+        metric_value=metric_value,
+        notification_uuid=notification_uuid,
+        referrer="metric_alert_sentry_app",
     )
 
     return {

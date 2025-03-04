@@ -14,7 +14,8 @@ from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
 from sentry.integrations.metric_alerts import (
-    GetIncidentAttachmentInfoParams,
+    AlertContext,
+    OpenPeriodParams,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -40,20 +41,22 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
             self.metric_value = get_metric_count_from_incident(self.incident)
 
         data = incident_attachment_info(
-            GetIncidentAttachmentInfoParams(
+            AlertContext(
                 name=self.alert_rule.name,
-                open_period_identifier_id=self.incident.identifier,
                 action_identifier_id=self.alert_rule.id,
-                organization=self.incident.organization,
                 threshold_type=AlertRuleThresholdType(self.alert_rule.threshold_type),
                 detection_type=AlertRuleDetectionType(self.alert_rule.detection_type),
-                snuba_query=self.alert_rule.snuba_query,
                 comparison_delta=self.alert_rule.comparison_delta,
+            ),
+            OpenPeriodParams(
+                open_period_identifier_id=self.incident.identifier,
                 new_status=self.new_status,
-                metric_value=self.metric_value,
-                notification_uuid=notification_uuid,
-                referrer="metric_alert_discord",
-            )
+            ),
+            organization=self.incident.organization,
+            snuba_query=self.alert_rule.snuba_query,
+            metric_value=self.metric_value,
+            notification_uuid=notification_uuid,
+            referrer="metric_alert_discord",
         )
 
         description = f"{data['text']}{get_started_at(self.incident.date_started)}"

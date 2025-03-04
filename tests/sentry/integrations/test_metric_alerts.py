@@ -8,7 +8,8 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import (
-    GetIncidentAttachmentInfoParams,
+    AlertContext,
+    OpenPeriodParams,
     incident_attachment_info,
 )
 from sentry.snuba.dataset import Dataset
@@ -21,18 +22,20 @@ pytestmark = pytest.mark.sentry_metrics
 
 def incident_attachment_info_with_metric_value(incident, new_status, metric_value):
     return incident_attachment_info(
-        GetIncidentAttachmentInfoParams(
+        AlertContext(
             name=incident.alert_rule.name,
-            open_period_identifier_id=incident.identifier,
             action_identifier_id=incident.alert_rule.id,
-            organization=incident.organization,
             threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
             detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
-            snuba_query=incident.alert_rule.snuba_query,
             comparison_delta=incident.alert_rule.comparison_delta,
+        ),
+        OpenPeriodParams(
+            open_period_identifier_id=incident.identifier,
             new_status=new_status,
-            metric_value=metric_value,
-        )
+        ),
+        organization=incident.organization,
+        snuba_query=incident.alert_rule.snuba_query,
+        metric_value=metric_value,
     )
 
 
@@ -56,20 +59,22 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
         data = incident_attachment_info(
-            GetIncidentAttachmentInfoParams(
+            AlertContext(
                 name=alert_rule.name,
-                open_period_identifier_id=incident.identifier,
                 action_identifier_id=alert_rule.id,
-                organization=self.organization,
                 threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
                 detection_type=AlertRuleDetectionType(alert_rule.detection_type),
-                snuba_query=alert_rule.snuba_query,
                 comparison_delta=alert_rule.comparison_delta,
+            ),
+            OpenPeriodParams(
+                open_period_identifier_id=incident.identifier,
                 new_status=IncidentStatus.CLOSED,
-                metric_value=metric_value,
-                notification_uuid=notification_uuid,
-                referrer=referrer,
-            )
+            ),
+            organization=incident.organization,
+            snuba_query=alert_rule.snuba_query,
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
+            referrer=referrer,
         )
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
