@@ -6,27 +6,27 @@
 import logging
 from datetime import UTC, datetime
 from io import BytesIO
-from uuid import UUID
 
 from django.db import router
 from django.db.utils import IntegrityError
+from django.utils import timezone
 from sentry_sdk import capture_exception
 
-from sentry.hybridcloud.models.outbox import ControlOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocation import Relocation, RelocationFile
-from sentry.relocation.services.relocation_export.model import (
-    RelocationExportReplyWithExportParameters,
-    RelocationExportRequestNewExportParameters,
+from sentry.relocation.models.relocationtransfer import (
+    RETRY_BACKOFF,
+    ControlRelocationTransfer,
+    RelocationTransferState,
 )
 from sentry.relocation.services.relocation_export.service import (
     ControlRelocationExportService,
     RegionRelocationExportService,
 )
 from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
-from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, uuid_to_identifier
+from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
@@ -150,25 +150,18 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             "encrypt_with_public_key_size": len(encrypt_with_public_key),
         }
         logger.info("SaaS -> SaaS request received on proxy", extra=logger_data)
-
-        # Saving this outbox "proxies" the request to the correct region.
-        identifier = uuid_to_identifier(UUID(relocation_uuid))
-        payload = RelocationExportRequestNewExportParameters(
+        transfer = ControlRelocationTransfer.objects.create(
             relocation_uuid=relocation_uuid,
-            requesting_region_name=requesting_region_name,
-            replying_region_name=replying_region_name,
             org_slug=org_slug,
-            encrypt_with_public_key=encrypt_with_public_key,
-        ).dict()
-        ControlOutbox(
-            region_name=replying_region_name,
-            shard_scope=OutboxScope.RELOCATION_SCOPE,
-            category=OutboxCategory.RELOCATION_EXPORT_REQUEST,
-            shard_identifier=identifier,
-            object_identifier=identifier,
-            payload=payload,
-        ).save()
-        logger.info("SaaS -> SaaS request proxy outbox saved", extra=logger_data)
+            requesting_region=requesting_region_name,
+            exporting_region=replying_region_name,
+            public_key=encrypt_with_public_key,
+            state=RelocationTransferState.Request,
+            # Set next runtime in the future to reduce races with celerybeat
+            scheduled_for=timezone.now() + RETRY_BACKOFF,
+        )
+        process_relocation_transfer_control.delay(transfer_id=transfer.id)
+        logger.info("SaaS -> SaaS request control request saved", extra=logger_data)
 
     def reply_with_export(
         self,
@@ -200,20 +193,15 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         relocation_storage.save(path, fp)
         logger.info("SaaS -> SaaS export contents retrieved", extra=logger_data)
 
-        # Saving this outbox "proxies" the reply to the correct region.
-        identifier = uuid_to_identifier(UUID(relocation_uuid))
-        payload = RelocationExportReplyWithExportParameters(
+        # Save transfer record so we can push state to the requesting region
+        transfer = ControlRelocationTransfer.objects.create(
             relocation_uuid=relocation_uuid,
-            requesting_region_name=requesting_region_name,
-            replying_region_name=replying_region_name,
             org_slug=org_slug,
-        ).dict()
-        ControlOutbox(
-            region_name=requesting_region_name,
-            shard_scope=OutboxScope.RELOCATION_SCOPE,
-            category=OutboxCategory.RELOCATION_EXPORT_REPLY,
-            shard_identifier=identifier,
-            object_identifier=identifier,
-            payload=payload,
-        ).save()
-        logger.info("SaaS -> SaaS reply proxy outbox saved", extra=logger_data)
+            requesting_region=requesting_region_name,
+            exporting_region=replying_region_name,
+            state=RelocationTransferState.Reply,
+            # Set next runtime in the future to reduce races with celerybeat
+            scheduled_for=timezone.now() + RETRY_BACKOFF,
+        )
+        process_relocation_transfer_control.delay(transfer_id=transfer.id)
+        logger.info("SaaS -> SaaS reply proxy transfer saved", extra=logger_data)

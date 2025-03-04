@@ -16,6 +16,7 @@ from celery.app.task import Task
 from cryptography.fernet import Fernet
 from django.core.exceptions import ValidationError
 from django.db import router, transaction
+from django.utils import timezone
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 from sentry_sdk import capture_exception
@@ -39,8 +40,6 @@ from sentry.backup.exports import (
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
-from sentry.hybridcloud.models.outbox import RegionOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
@@ -54,9 +53,12 @@ from sentry.relocation.models.relocation import (
     RelocationValidationAttempt,
     ValidationStatus,
 )
-from sentry.relocation.services.relocation_export.model import (
-    RelocationExportReplyWithExportParameters,
+from sentry.relocation.models.relocationtransfer import RETRY_BACKOFF as TRANSFER_RETRY_BACKOFF
+from sentry.relocation.models.relocationtransfer import (
+    RegionRelocationTransfer,
+    RelocationTransferState,
 )
+from sentry.relocation.tasks.transfer import process_relocation_transfer_region
 from sentry.relocation.utils import (
     TASK_TO_STEP,
     LoggingPrinter,
@@ -68,7 +70,6 @@ from sentry.relocation.utils import (
     retry_task_or_fail_relocation,
     send_relocation_update_email,
     start_relocation_task,
-    uuid_to_identifier,
 )
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
@@ -199,19 +200,18 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
         |            |            |            |            |            |
 
 
-    01. (RR) .../tasks/relocation.py::uploading_start: This first function grabs this (aka the
+    01. (RR) ./tasks/process.py::uploading_start: This first function grabs this (aka the
         "requesting" region) region's public key, then sends an RPC call to the control silo,
         requesting an export of some `org_slug` from the `replying_region_name` in which is lives.
     02. The `ProxyingRelocationExportService::request_new_export` call is sent over the wire from
         the requesting region to the control silo.
     03. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::request_new_export: The
-        request RPC call is received, and is immediately packaged into a `ControlOutbox`, so that we
-        may robustly forward it to the exporting region. This task successfully completing causes
+        request RPC call is received, and is immediately packaged into a `ControlRelocationTransfer`,
+        so that we may robustly forward it to the exporting region. This task successfully completing causes
         the RPC to successfully return to the sender, allowing the calling `uploading_start` celery
         task to finish successfully as well.
-    04. (CS) .../receiver/outbox/control.py::process_relocation_request_new_export: Whenever an
-        outbox draining attempt occurs, this code will be called to forward the proxied call into
-        the exporting region.
+    04. (CS) ./tasks/transfer.py::process_relocation_transfer_control: Whenever an outbox draining attempt
+        occurs, this code will be called to forward the proxied call into the exporting region.
     05. The `DBBackedExportService::request_new_export` call is sent over the wire from the control
         silo to the exporting region.
     06. (ER) .../relocation_export/impl.py::DBBackedRelocationExportService::request_new_export: The
@@ -219,23 +219,24 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
         `fulfill_cross_region_export_request` celery task, which uses an exponential backoff
         algorithm to try and create an encrypted tarball containing an export of the requested org
         slug.
-    07. (ER) .../tasks/relocation.py::fulfill_cross_region_export_request: This celery task performs
+    07. (ER) ./tasks/process.py::fulfill_cross_region_export_request: This celery task performs
         the actual export operation locally in the exporting region. This data is written as a file
         to this region's relocation-specific GCS bucket, and the response is immediately packaged
-        into a `RegionOutbox`, so that we may robustly attempt to send it at drain-time.
-    08. (ER) .../receiver/outbox/region.py::process_relocation_reply_with_export: Whenever an outbox
-        draining attempt occurs, this code will be called to read the saved export data from the
-        local GCS bucket, package it into an RPC call, and send it back to the proxy.
+        into a `RegionRelocationTransfer`, so that we may robustly attempt to send it to control silo
+        and the requesting region.
+    08. (ER) ./tasks/transfer.py::process_relocation_transfer_region: This code will be called to read
+        the saved export data from the local GCS bucket, package it into an RPC call, and send
+        it back to the proxy (control silo).
     09. The `ProxyingRelocationExportService::reply_with_export` call is sent over the wire from the
         exporting region back to the control silo.
     10. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::reply_with_export: The
-        request RPC call is received, and is immediately packaged into a `ControlOutbox`, so that we
-        may robustly forward it back to the requesting region. To ensure robustness, the export data
-        is saved to a local file, so that outbox drain attempts can read it locally without needing
-        to make their own nested RPC calls.
-    11. (CS) .../receiver/outbox/control.py::process_relocation_reply_with_export: Whenever an
-        outbox draining attempt occurs, this code will be called to read the export data from the
-        local relocation-specific GCS bucket, then forward it into the requesting region.
+        request RPC call is received, and is immediately packaged into a `ControlRelocationTransfer`,
+        so that we may robustly forward it back to the requesting region. To ensure robustness,
+        the export data is saved to a local file, so that transfer attempts can read it locally
+        without needing to make their own nested RPC calls.
+    11. (CS) ../tasks/transfer.py::process_relocation_transfer_control: This code will be called to read
+        the export data from the local relocation-specific GCS bucket, then forward it into
+        the requesting region.
     12. The `DBBackedExportService::reply_with_export` call is sent over the wire from the control
         silo back to the requesting region.
     13. (RR) .../relocation_export/impl.py::DBBackedRelocationExportService::reply_with_export:
@@ -404,19 +405,17 @@ def fulfill_cross_region_export_request(
         extra=logger_data,
     )
 
-    identifier = uuid_to_identifier(uuid)
-    RegionOutbox(
-        shard_scope=OutboxScope.RELOCATION_SCOPE,
-        category=OutboxCategory.RELOCATION_EXPORT_REPLY,
-        shard_identifier=identifier,
-        object_identifier=identifier,
-        payload=RelocationExportReplyWithExportParameters(
-            relocation_uuid=uuid_str,
-            requesting_region_name=requesting_region_name,
-            replying_region_name=replying_region_name,
-            org_slug=org_slug,
-        ).dict(),
-    ).save()
+    # Save a transfer record to move the export to control silo
+    transfer = RegionRelocationTransfer.objects.create(
+        relocation_uuid=uuid_str,
+        requesting_region=requesting_region_name,
+        exporting_region=replying_region_name,
+        org_slug=org_slug,
+        state=RelocationTransferState.Reply,
+        # Set next runtime in the future to reduce races with celerybeat
+        scheduled_for=timezone.now() + TRANSFER_RETRY_BACKOFF,
+    )
+    process_relocation_transfer_region.delay(transfer_id=transfer.id)
     logger.info(
         "fulfill_cross_region_export_request: scheduled",
         extra=logger_data,

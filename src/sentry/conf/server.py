@@ -1054,6 +1054,10 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
     },
+    "relocation-find-transfer-control": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": timedelta(minutes=5),
+    },
 }
 
 # Most tasks run in the regions
@@ -1284,6 +1288,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
+    },
+    "relocation-find-transfer-region": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": timedelta(minutes=5),
     },
 }
 
