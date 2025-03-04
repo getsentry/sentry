@@ -17,7 +17,7 @@ class WorkflowEngineActionSerializer(Serializer):
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
         aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
-        priority = obj.data.get("priority", "")
+        priority = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
         result = {
             "id": str(aarta.alert_rule_trigger_action.id),
