@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import useGroupFlags from 'sentry/components/events/featureFlags/useGroupFlags';
@@ -10,7 +10,14 @@ import type {Group} from 'sentry/types/group';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-export default function FeatureFlagDistributions({group}: {group: Group}) {
+export default function FeatureFlagDistributions({
+  group,
+  search = '',
+}: {
+  group: Group;
+  orderBy?: string;
+  search?: string;
+}) {
   const environments = useEnvironmentsFromUrl();
 
   // Flags use the same endpoint and response format as tags, so we reuse TagDistribution, tag types, and "tag" in variable names.
@@ -23,8 +30,6 @@ export default function FeatureFlagDistributions({group}: {group: Group}) {
     groupId: group.id,
     environment: environments,
   });
-
-  const [search] = useState(''); // TODO:
 
   const tagValues = useMemo(
     () =>
@@ -43,7 +48,7 @@ export default function FeatureFlagDistributions({group}: {group: Group}) {
         tag.key.includes(search) ||
         tag.name.includes(search) ||
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        tagValues[tag.key].includes(search)
+        tagValues[tag.key].toLowerCase().includes(search.toLowerCase())
     );
     return searchedTags;
   }, [data, search, tagValues]);

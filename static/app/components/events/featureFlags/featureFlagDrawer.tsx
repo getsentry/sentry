@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -56,18 +56,22 @@ export function FeatureFlagDrawer({
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const [tab, setTab] = useState<'eventFlags' | 'issueFlags'>('eventFlags');
-
-  // "All Flags" state
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
   const [search, setSearch] = useState('');
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
-  const searchResults = sortedFlags({flags: hydratedFlags, sort: orderBy}).filter(f =>
-    f.item.key.includes(search)
+  const displayFlags = useMemo(
+    () =>
+      tab === 'eventFlags'
+        ? sortedFlags({flags: hydratedFlags, sort: orderBy}).filter(f =>
+            f.item.key.includes(search)
+          )
+        : [], // FeatureFlagDistributions has its own query for issue flags.
+    [hydratedFlags, orderBy, search, tab]
   );
 
-  const eventFlagsActions = (
+  const actions = (
     <ButtonBar gap={1}>
       <InputGroup>
         <SearchInput
@@ -125,17 +129,15 @@ export function FeatureFlagDrawer({
         {/* Empty div for bottom-left grid cell */}
         <div />
 
-        <div style={{marginTop: space(1)}}>
-          {tab === 'eventFlags' ? eventFlagsActions : null}
-        </div>
+        <div style={{marginTop: space(1)}}>{actions}</div>
       </EventNavigator>
       <EventDrawerBody>
         {tab === 'eventFlags' ? (
           <CardContainer numCols={1}>
-            <KeyValueData.Card expandLeft contentItems={searchResults} />
+            <KeyValueData.Card expandLeft contentItems={displayFlags} />
           </CardContainer>
         ) : (
-          <FeatureFlagDistributions group={group} />
+          <FeatureFlagDistributions group={group} search={search} />
         )}
       </EventDrawerBody>
     </EventDrawerContainer>
