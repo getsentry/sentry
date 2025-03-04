@@ -1,6 +1,5 @@
 from collections.abc import Mapping
-from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
@@ -13,11 +12,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.types import SerializedAvatarFields
+from sentry.api.serializers.models.project import STATUS_LABELS, ProjectSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -33,46 +31,8 @@ class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermi
     pass
 
 
-class ProjectOverviewResponse(TypedDict, total=False):
-    id: str
-    slug: str
-    name: str
-    platform: str | None
-    dateCreated: datetime
-    firstEvent: datetime | None
-    firstTransactionEvent: bool
-    access: list[str]
-    hasFeedbacks: bool
-    hasFlags: bool
-    hasMinifiedStackTrace: bool
-    hasMonitors: bool
-    hasNewFeedbacks: bool
-    hasProfiles: bool
-    hasReplays: bool
-    hasSessions: bool
-    hasInsightsHttp: bool
-    hasInsightsDb: bool
-    hasInsightsAssets: bool
-    hasInsightsAppStart: bool
-    hasInsightsScreenLoad: bool
-    hasInsightsVitals: bool
-    hasInsightsCaches: bool
-    hasInsightsQueues: bool
-    hasInsightsLlmMonitoring: bool
-
-    isInternal: bool
-    isPublic: bool
-    avatar: SerializedAvatarFields
-    color: str
-    status: str
-
-
-STATUS_LABELS = {
-    ObjectStatus.ACTIVE: "active",
-    ObjectStatus.DISABLED: "deleted",
-    ObjectStatus.PENDING_DELETION: "deleted",
-    ObjectStatus.DELETION_IN_PROGRESS: "deleted",
-}
+class ProjectOverviewResponse(ProjectSerializerResponse, total=False):
+    pass
 
 
 class ProjectOverviewSerializer(Serializer):
