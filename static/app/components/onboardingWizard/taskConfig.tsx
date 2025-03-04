@@ -120,6 +120,16 @@ export function getOnboardingTasks({
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
       {
+        task: OnboardingTaskKey.SIDEBAR_GUIDE,
+        title: t('Check out the different tabs'),
+        description: t('Press the start button for a guided tour through each tab.'),
+        skippable: false,
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/projects/`,
+        display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
+      },
+      {
         task: OnboardingTaskKey.PERFORMANCE_GUIDE,
         title: t('Performance'),
         description: t(
@@ -143,16 +153,6 @@ export function getOnboardingTasks({
           organization,
           path: '/',
         }),
-        display: true,
-        group: OnboardingTaskGroup.GETTING_STARTED,
-      },
-      {
-        task: OnboardingTaskKey.SIDEBAR_GUIDE,
-        title: t('Check out the different tabs'),
-        description: t('Press the start button for a guided tour through each tab.'),
-        skippable: false,
-        actionType: 'app',
-        location: `/organizations/${organization.slug}/projects/`,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },

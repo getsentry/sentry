@@ -186,6 +186,41 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert "bar" in response.data
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
+    def test_llm_tokens(self):
+        self.store_span_metric(
+            4,
+            metric="ai.total_tokens.used",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+        self.store_span_metric(
+            4,
+            metric="ai.total_tokens.used",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
+                "interval": "1m",
+                "yAxis": "sum(ai.total_tokens.used)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 8.0
+        assert meta["units"]["sum_ai_total_tokens_used"] is None
+
     def test_resource_encoded_length(self):
         self.store_span_metric(
             4,

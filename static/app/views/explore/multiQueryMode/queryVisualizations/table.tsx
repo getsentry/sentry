@@ -7,7 +7,7 @@ import {GridBodyCell, GridHeadCell} from 'sentry/components/gridEditable/styles'
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -103,6 +103,10 @@ function AggregatesTable({
     prefixColumnWidth: 'min-content',
   });
 
+  const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
+
+  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2)!; // -2 because getColorPalette artificially adds 1, I'm not sure why
+
   return (
     <Fragment>
       <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
@@ -172,7 +176,9 @@ function AggregatesTable({
               return (
                 <TableRow key={i}>
                   <TableBodyCell key={`samples-${i}`}>
-                    {topEvents && i < topEvents && <TopResultsIndicator index={i} />}
+                    {topEvents && i < topEvents && (
+                      <TopResultsIndicator color={palette[i]!} />
+                    )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target} data-test-id={'unstack-link'}>
                         <IconStack />
@@ -314,16 +320,14 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   );
 }
 
-const TopResultsIndicator = styled('div')<{index: number}>`
+const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;
   left: -1px;
-  width: 9px;
+  width: 8px;
   height: 16px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 2px 2px 0;
 
-  background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
-  }};
+  background-color: ${p => p.color};
 `;
 
 const StyledLink = styled(Link)`
@@ -331,14 +335,14 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  min-height: 30px;
   font-size: ${p => p.theme.fontSizeSmall};
+  min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  height: 32px;
   font-size: ${p => p.theme.fontSizeSmall};
+  height: 33px;
 `;
 
 const TableHeadCellContent = styled('div')`

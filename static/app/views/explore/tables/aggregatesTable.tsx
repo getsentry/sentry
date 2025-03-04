@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -73,6 +73,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
+
+  const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
+
+  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2)!; // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
     <Fragment>
@@ -160,7 +164,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
-                    {topEvents && i < topEvents && <TopResultsIndicator index={i} />}
+                    {topEvents && i < topEvents && (
+                      <TopResultsIndicator color={palette[i]!} />
+                    )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target}>
                         <IconStack />
@@ -196,16 +202,14 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   );
 }
 
-const TopResultsIndicator = styled('div')<{index: number}>`
+const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;
   left: -1px;
   width: 9px;
   height: 16px;
   border-radius: 0 3px 3px 0;
 
-  background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
-  }};
+  background-color: ${p => p.color};
 `;
 
 const StyledLink = styled(Link)`

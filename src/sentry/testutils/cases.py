@@ -2062,7 +2062,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
@@ -3342,10 +3341,10 @@ class SpanTestCase(BaseTestCase):
 class _OptionalOurLogData(TypedDict, total=False):
     body: str
     trace_id: str
-    span_id: str
     severity_text: str
     severity_number: int
     trace_flags: int
+    item_id: int
 
 
 class OurLogTestCase(BaseTestCase):

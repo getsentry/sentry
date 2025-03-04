@@ -2,30 +2,30 @@ import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
-import type {TimeSeries} from '../../common/types';
 import {splitSeriesIntoCompleteAndIncomplete} from '../splitSeriesIntoCompleteAndIncomplete';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
-import {Plottable} from './plottable';
+import {
+  ContinuousTimeSeries,
+  type ContinuousTimeSeriesPlottingOptions,
+} from './continuousTimeSeries';
+import type {Plottable} from './plottable';
 
-interface AreaOptions {
-  color?: string;
-  dataCompletenessDelay?: number;
-}
+export class Area extends ContinuousTimeSeries implements Plottable {
+  toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
+    const {timeSeries, config = {}} = this;
 
-export class Area extends Plottable<AreaOptions> {
-  toSeries(timeSeries: TimeSeries, options: AreaOptions) {
+    const color = plottingOptions.color ?? config.color ?? undefined;
+    const scaledSeries = this.scaleToUnit(plottingOptions.unit);
+
     const [completeTimeSeries, incompleteTimeSeries] =
-      splitSeriesIntoCompleteAndIncomplete(
-        timeSeries,
-        options.dataCompletenessDelay ?? 0
-      );
+      splitSeriesIntoCompleteAndIncomplete(scaledSeries, config.delay ?? 0);
 
     const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions = {
       name: timeSeries.field,
-      color: options.color,
+      color,
       animation: false,
     };
 
@@ -53,7 +53,7 @@ export class Area extends Plottable<AreaOptions> {
             type: 'dotted',
           },
           areaStyle: {
-            color: options.color,
+            color,
             opacity: 0.8,
           },
           silent: true,

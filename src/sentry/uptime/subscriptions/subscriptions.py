@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
+MAX_MONITORS_PER_DOMAIN = 100
 
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
@@ -86,7 +87,6 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
-        migrated=True,
     )
 
     # Associate active regions with this subscription
@@ -243,33 +243,16 @@ def update_project_uptime_subscription(
     """
     Links a project to an uptime subscription so that it can process results.
     """
-    cur_uptime_subscription = uptime_monitor.uptime_subscription
-    if cur_uptime_subscription.migrated:
-        update_uptime_subscription(
-            cur_uptime_subscription,
-            url=url,
-            interval_seconds=interval_seconds,
-            timeout_ms=timeout_ms,
-            method=method,
-            headers=headers,
-            body=body,
-            trace_sampling=trace_sampling,
-        )
-        new_uptime_subscription = cur_uptime_subscription
-    else:
-        new_uptime_subscription = create_uptime_subscription(
-            url=default_if_not_set(cur_uptime_subscription.url, url),
-            interval_seconds=default_if_not_set(
-                cur_uptime_subscription.interval_seconds, interval_seconds
-            ),
-            timeout_ms=default_if_not_set(cur_uptime_subscription.timeout_ms, timeout_ms),
-            method=default_if_not_set(cur_uptime_subscription.method, method),
-            headers=default_if_not_set(cur_uptime_subscription.headers, headers),
-            body=default_if_not_set(cur_uptime_subscription.body, body),
-            trace_sampling=default_if_not_set(
-                cur_uptime_subscription.trace_sampling, trace_sampling
-            ),
-        )
+    update_uptime_subscription(
+        uptime_monitor.uptime_subscription,
+        url=url,
+        interval_seconds=interval_seconds,
+        timeout_ms=timeout_ms,
+        method=method,
+        headers=headers,
+        body=body,
+        trace_sampling=trace_sampling,
+    )
 
     owner_user_id = uptime_monitor.owner_user_id
     owner_team_id = uptime_monitor.owner_team_id
@@ -283,17 +266,11 @@ def update_project_uptime_subscription(
 
     uptime_monitor.update(
         environment=default_if_not_set(uptime_monitor.environment, environment),
-        # Temporarily keep assigning the subscription here, although we can remove this once we've moved away from the
-        # delete/recreate method
-        uptime_subscription=new_uptime_subscription,
         name=default_if_not_set(uptime_monitor.name, name),
         mode=mode,
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
-    # TODO: Remove. If we haven't migrated the subscription yet then we recreated it, and might have orphaned it. Remove
-    # any orphaned subs now
-    remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
     # Update status. This may have the side effect of removing or creating a
     # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
@@ -470,3 +447,27 @@ def check_and_update_regions(
                 )
             deleted_region.delete()
     return True
+
+
+class MaxUrlsForDomainReachedException(Exception):
+    def __init__(self, domain, suffix, max_urls):
+        self.domain = domain
+        self.suffix = suffix
+        self.max_urls = max_urls
+
+
+def check_url_limits(url):
+    """
+    Determines if a URL's domain has reached the global maximum (MAX_MONITORS_PER_DOMAIN).
+    In the case that it has a `MaxUrlsForDomainReachedException` will be raised.
+    """
+    url_parts = extract_domain_parts(url)
+    existing_count = ProjectUptimeSubscription.objects.filter(
+        uptime_subscription__url_domain=url_parts.domain,
+        uptime_subscription__url_domain_suffix=url_parts.suffix,
+    ).count()
+
+    if existing_count >= MAX_MONITORS_PER_DOMAIN:
+        raise MaxUrlsForDomainReachedException(
+            url_parts.domain, url_parts.suffix, MAX_MONITORS_PER_DOMAIN
+        )

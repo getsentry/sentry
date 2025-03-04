@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectEndpoint
+from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
@@ -22,13 +22,11 @@ from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.models.project import Project
 from sentry.monitors.processing_errors.manager import InvalidProjectError, delete_error
 
-from .base import ProjectMonitorPermission
-
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class ProjectProcessingErrorsDetailsEndpoint(ProjectEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectAlertRulePermission,)
 
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,

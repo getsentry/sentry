@@ -21,10 +21,12 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/utils/demoMode');
 
 const roles = [
   {
@@ -649,6 +651,19 @@ describe('OrganizationMembersList', function () {
 
       expect(await screen.findByText('Members')).toBeInTheDocument();
       expect(screen.getByText(member.name)).toBeInTheDocument();
+    });
+
+    it('renders only current user in demo mode', async function () {
+      (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+
+      render(<OrganizationMembersList />, {organization, router});
+      renderGlobalModal({router});
+
+      expect(await screen.findByText('Members')).toBeInTheDocument();
+      expect(screen.getByText(currentUser.name)).toBeInTheDocument();
+      expect(screen.queryByText(member.name)).not.toBeInTheDocument();
+
+      (isDemoModeEnabled as jest.Mock).mockReset();
     });
   });
 });

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 import sentry_sdk
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +13,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
@@ -31,6 +33,8 @@ class SerializedEvent(TypedDict):
     description: str
     duration: float
     is_transaction: bool
+    op: str
+    event_type: str
 
 
 @region_silo_endpoint
@@ -38,6 +42,28 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    def get_projects(
+        self,
+        request: HttpRequest,
+        organization: Organization | RpcOrganization,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+    ) -> list[Project]:
+        """The trace endpoint always wants to get all projects regardless of what's passed into the API
+
+        This is because a trace can span any number of projects in an organization. But we still want to
+        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
+        which is what would be sent if we wanted all projects"""
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
 
     def serialize_rpc_span(self, span: dict[str, Any]) -> SerializedEvent:
         return SerializedEvent(
@@ -52,6 +78,8 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
             transaction=span["transaction"],
             is_transaction=span["is_transaction"],
             description=span["description"],
+            op=span["span.op"],
+            event_type="span",
         )
 
     @sentry_sdk.tracing.trace

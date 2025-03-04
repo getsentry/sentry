@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import format from 'date-fns/format';
 
 import {DatePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Overlay} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
@@ -133,9 +134,12 @@ function SuggestedQueryLink({suggestedQuery}: SuggestedQueryLinkProps) {
   );
 
   return (
-    <Tag to={target} icon={null} type="info">
-      {suggestedQuery.title}
-    </Tag>
+    <Link to={target}>
+      {/* @TODO(jonasbadalic): this used to set icon={null}, which was actually being ignored internally as passing a to prop
+       * was causing the tag to always render a IconOpen. If IconOpen is required, it can be passed manually via icon={<IconOpen />}
+       */}
+      <Tag type="info">{suggestedQuery.title}</Tag>
+    </Link>
   );
 }
 

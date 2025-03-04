@@ -256,7 +256,7 @@ class TaskWorker:
         self.backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
-        self._shutdown()
+        self.shutdown()
 
     def do_imports(self) -> None:
         for module in settings.TASKWORKER_IMPORTS:
@@ -291,16 +291,18 @@ class TaskWorker:
 
     def _handle_sigint(self, signum: int, frame: FrameType | None) -> None:
         logger.info("taskworker.worker.sigint_received")
-        self._shutdown()
+        self.shutdown()
         raise KeyboardInterrupt("Shutdown complete")
 
-    def _shutdown(self) -> None:
+    def shutdown(self) -> None:
         """
         Shutdown cleanly
         Activate the shutdown event and drain results before terminating children.
         """
-        self._shutdown_event.set()
+        if self._shutdown_event.is_set():
+            return
 
+        self._shutdown_event.set()
         while True:
             more = self._drain_result(fetch=False)
             if not more:
@@ -337,6 +339,10 @@ class TaskWorker:
         except queue.Empty:
             return False
 
+        task_received = self._task_receive_timing.pop(result.task_id, None)
+        if task_received is not None:
+            metrics.distribution("taskworker.worker.complete_duration", time.time() - task_received)
+
         if fetch:
             fetch_next = None
             if not self._child_tasks.full():
@@ -349,12 +355,9 @@ class TaskWorker:
                     status=result.status,
                     fetch_next_task=fetch_next,
                 )
-                task_received = self._task_receive_timing.pop(result.task_id, None)
-                if task_received is not None:
-                    metrics.distribution(
-                        "taskworker.worker.complete_duration", time.time() - task_received
-                    )
             except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.UNAVAILABLE:
+                    self._processed_tasks.put(result)
                 logger.exception(
                     "taskworker.drain_result.update_task_failed",
                     extra={"task_id": result.task_id, "error": e},
