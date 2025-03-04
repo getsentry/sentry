@@ -26,16 +26,15 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
   ): Array<BarSeriesOption | LineSeriesOption> {
     const {timeSeries, config = {}} = this;
 
-    const {color, unit} = plottingOptions;
-
-    const scaledTimeSeries = this.scaleToUnit(unit);
+    const color = plottingOptions.color ?? config.color ?? undefined;
+    const scaledTimeSeries = this.scaleToUnit(plottingOptions.unit);
 
     const markedSeries = markDelayedData(scaledTimeSeries, config.delay ?? 0);
 
     return [
       BarSeries({
         name: timeSeries.field,
-        color: timeSeries.color,
+        color,
         stack: config.stack ?? GLOBAL_STACK_NAME,
         animation: false,
         itemStyle: {

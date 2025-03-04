@@ -15,9 +15,8 @@ export class Line extends ContinuousTimeSeries implements Plottable {
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {timeSeries, config = {}} = this;
 
-    const {color, unit} = plottingOptions;
-
-    const scaledSeries = this.scaleToUnit(unit);
+    const color = plottingOptions.color ?? config.color ?? undefined;
+    const scaledSeries = this.scaleToUnit(plottingOptions.unit);
 
     const [completeTimeSeries, incompleteTimeSeries] =
       splitSeriesIntoCompleteAndIncomplete(scaledSeries, config.delay ?? 0);
