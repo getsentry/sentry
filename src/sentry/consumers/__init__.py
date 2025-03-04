@@ -442,7 +442,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "process-spans": {
-        "topic": Topic.SNUBA_SPANS,
+        "topic": Topic.INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
     },
