@@ -163,7 +163,7 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             organization=readonly_rpc_context,
         )
 
-        assert readonly_rpc_context.member.scopes == READONLY_SCOPES
+        assert readonly_rpc_context.member.scopes == sorted(READONLY_SCOPES)
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": []})
     def test_determine_access_no_demo_users(self):
