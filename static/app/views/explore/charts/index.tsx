@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -17,6 +18,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {isTimeSeriesOther} from 'sentry/views/dashboards/widgets/timeSeriesWidget/isTimeSeriesOther';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
@@ -68,6 +73,7 @@ export function ExploreCharts({
   query,
   timeseriesResult,
 }: ExploreChartsProps) {
+  const theme = useTheme();
   const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
@@ -226,6 +232,13 @@ export function ExploreCharts({
             );
           }
 
+          const DataPlottableConstructor =
+            chartInfo.chartType === ChartType.LINE
+              ? Line
+              : chartInfo.chartType === ChartType.AREA
+                ? Area
+                : Bars;
+
           return (
             <Widget
               key={index}
@@ -277,15 +290,13 @@ export function ExploreCharts({
               revealActions="always"
               Visualization={
                 <TimeSeriesWidgetVisualization
-                  dataCompletenessDelay={INGESTION_DELAY}
-                  visualizationType={
-                    chartInfo.chartType === ChartType.AREA
-                      ? 'area'
-                      : chartInfo.chartType === ChartType.LINE
-                        ? 'line'
-                        : 'bar'
-                  }
-                  timeSeries={chartInfo.data}
+                  plottables={chartInfo.data.map(timeSeries => {
+                    return new DataPlottableConstructor(timeSeries, {
+                      delay: INGESTION_DELAY,
+                      color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                      stack: 'all',
+                    });
+                  })}
                 />
               }
               Footer={

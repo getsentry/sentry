@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -18,6 +19,10 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {isTimeSeriesOther} from 'sentry/views/dashboards/widgets/timeSeriesWidget/isTimeSeriesOther';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
@@ -54,6 +59,8 @@ export function MultiQueryModeChart({
   timeseriesResult,
   canUsePreviousResults,
 }: MultiQueryChartProps) {
+  const theme = useTheme();
+
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
@@ -236,6 +243,13 @@ export function MultiQueryModeChart({
     });
   }
 
+  const DataPlottableConstructor =
+    chartInfo.chartType === ChartType.LINE
+      ? Line
+      : chartInfo.chartType === ChartType.AREA
+        ? Area
+        : Bars;
+
   return (
     <Widget
       key={index}
@@ -295,9 +309,13 @@ export function MultiQueryModeChart({
       revealActions="always"
       Visualization={
         <TimeSeriesWidgetVisualization
-          dataCompletenessDelay={INGESTION_DELAY}
-          visualizationType={visualizationType}
-          timeSeries={chartInfo.data}
+          plottables={chartInfo.data.map(timeSeries => {
+            return new DataPlottableConstructor(timeSeries, {
+              delay: INGESTION_DELAY,
+              color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+              stack: 'all',
+            });
+          })}
         />
       }
       Footer={

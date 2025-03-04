@@ -9,6 +9,9 @@ import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
@@ -31,7 +34,7 @@ export interface InsightsTimeSeriesWidgetProps {
   isLoading: boolean;
   series: DiscoverSeries[];
   title: string;
-  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
+  visualizationType: 'line' | 'area' | 'bar';
   aliases?: Aliases;
   stacked?: boolean;
 }
@@ -42,18 +45,22 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const {projects, environments} = pageFilters.selection;
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
-    visualizationType: props.visualizationType,
-    timeSeries: (props.series.filter(Boolean) ?? [])?.map(serie => {
+    plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
+      const PlottableDataConstructor =
+        props.visualizationType === 'line'
+          ? Line
+          : props.visualizationType === 'area'
+            ? Area
+            : Bars;
 
-      return {
-        ...timeSeries,
+      return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS[timeSeries.field],
-      };
+        delay: 90,
+        stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
+      });
     }),
-    dataCompletenessDelay: 90,
     aliases: props.aliases,
-    stacked: props.stacked,
   };
 
   const Title = <Widget.WidgetTitle title={props.title} />;
@@ -81,7 +88,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  if (visualizationProps.timeSeries.length === 0) {
+  if (props.series.filter(Boolean).length === 0) {
     return (
       <ChartContainer>
         <Widget

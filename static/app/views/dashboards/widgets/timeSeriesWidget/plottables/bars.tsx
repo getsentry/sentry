@@ -34,8 +34,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     return [
       BarSeries({
         name: timeSeries.field,
-        color,
-        stack: config.stack ?? GLOBAL_STACK_NAME,
+        stack: config.stack,
         animation: false,
         itemStyle: {
           color: params => {
@@ -50,5 +49,3 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     ];
   }
 }
-
-const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

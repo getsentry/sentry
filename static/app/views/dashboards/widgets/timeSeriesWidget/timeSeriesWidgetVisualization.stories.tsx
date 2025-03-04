@@ -16,6 +16,9 @@ import type {LegendSelection, Release, TimeSeries} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {Area} from './plottables/area';
+import {Bars} from './plottables/bars';
+import {Line} from './plottables/line';
 import {shiftTimeSeriesToNow} from './shiftTimeSeriesToNow';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
@@ -57,10 +60,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <ul>
             <li>scaling mis-matched units</li>
             <li>displaying incomplete ingestion buckets</li>
+            <li>multi-type plotting</li>
+            <li>
+              support for <code>null</code> values
+            </li>
             <li>
               stripping legend names of internal information like <code>equation|</code>{' '}
               prefixes
             </li>
+            <li>flexible size</li>
             <li>intelligently formatting the axes</li>
             <li>and more!</li>
           </ul>
@@ -72,20 +80,26 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              visualizationType="line"
-              timeSeries={[sampleDurationTimeSeries]}
+              plottables={[
+                new Line(sampleDurationTimeSeries2),
+                new Bars(sampleDurationTimeSeries),
+              ]}
             />
           </SmallWidget>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              visualizationType="area"
-              timeSeries={[sampleDurationTimeSeries]}
+              plottables={[
+                new Area(sampleDurationTimeSeries),
+                new Area(sampleDurationTimeSeries2),
+              ]}
             />
           </SmallWidget>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              visualizationType="bar"
-              timeSeries={[sampleDurationTimeSeries]}
+              plottables={[
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeries2),
+              ]}
             />
           </SmallWidget>
         </SideBySide>
@@ -93,16 +107,63 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
-  story('Data Format', () => {
+  story('Choosing The Plot Type', () => {
+    return (
+      <Fragment>
+        <p>
+          Here are a few guidelines on how to choose the right visualization for your
+          data:
+        </p>
+        <ul>
+          <li>
+            Only use area charts if you want to plot multiple series <i>and</i> those
+            series represent components of a total. For example, area charts are a good
+            choice to show time spent, broken down by span operation. They are not a good
+            choice for plotting a single duration time series. Area charts should be
+            stacked!
+          </li>
+          <li>
+            Bar charts are to your discretion, it's most an aesthetic choice. Generally,
+            bars communicate discrete buckets, and lines communicate continuous data. If
+            you are plotting something like duration, even if it's broken down by time
+            buckets, a line feels right. If you are plotting someting like throughput (a
+            naturally bucketed value) and the buckets are big, a bar chart might be better
+          </li>
+          <li>Use line charts when in doubt! They are almost always the right choice</li>
+        </ul>
+      </Fragment>
+    );
+  });
+
+  story('Plotting and Plottables', () => {
     return (
       <Fragment>
         <p>
           <JSXNode name="TimeSeriesWidgetVisualization" /> accepts the{' '}
-          <code>timeSeries</code> prop, which contains the plottable data. This is a
-          special format that we're slowly aligning with the server responses. For now,
-          you will probably have to transform your data into this format. Here's an
-          example:
+          <code>plottables</code> prop. Every item in the <code>plottables</code> array
+          must be an object of a class that implements the <code>Plottable</code>{' '}
+          interface. A few of these objects are already implemented, and ready to use! For
+          example <code>Line</code> is a continuous line, suitable for normal line charts.
+          You'll probably be using plottables like <code>Line</code>, <code>Area</code>,
+          and <code>Bars</code> most of the time. Here's a simple example:
         </p>
+
+        <CodeSnippet language="jsx">
+          {`
+<TimeSeriesWidgetVisualization
+  plottables={[new Line(timeSeries)]}
+/>
+          `}
+        </CodeSnippet>
+
+        <p>
+          <code>Line</code>, <code>Area</code>, and <code>Bars</code> accept a{' '}
+          <code>TimeSeries</code> object, and a configuration object.{' '}
+          <code>TimeSeries</code> is in special format that we're slowly aligning with the
+          server responses. For now, you will probably have to transform your data into
+          this format. Here's an example of a <code>TimeSeries</code>:
+        </p>
+
         <CodeSnippet language="json">
           {`
 {
@@ -128,35 +189,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 }
         `}
         </CodeSnippet>
+
+        <p>
+          The configuration object depends on the plottable. You will find detailed
+          documentation for plottable options below.
+        </p>
+
+        <CodeSnippet language="jsx">
+          {`
+<TimeSeriesWidgetVisualization
+  plottables={[
+    new Bars(timeSeries, {color: 'red', delay: 60 * 60 * 3, stack: 'all'}),
+    new Bars(timeSeries2, {color: 'yellow', delay: 60 * 60 * 3, stack: 'all'})
+  ]}
+/>
+          `}
+        </CodeSnippet>
       </Fragment>
     );
   });
 
-  story('Choosing The Visualization Type', () => {
-    return (
-      <Fragment>
-        <p>Here are a few guidelines on how to choose the right visualization:</p>
-        <ul>
-          <li>
-            Only use area charts if you want to plot multiple series <i>and</i> those
-            series represent components of a total. For example, area charts are a good
-            choice to show time spent, broken down by span operation. They are not a good
-            choice for plotting a single duration time series
-          </li>
-          <li>
-            Bar charts are to your discretion, it's most an aesthetic choice. Generally,
-            bars communicate discrete buckets, and lines communicate continuous data. If
-            you are plotting something like duration, even if it's broken down by time
-            buckets, a line feels right. If you are plotting someting like throughput (a
-            naturally bucketed value) and the buckets are big, a bar chart might be better
-          </li>
-          <li>Use line charts when in doubt! They are almost always the right choice</li>
-        </ul>
-      </Fragment>
-    );
-  });
-
-  story('Basic Plotting', () => {
+  story('Unit Alignment', () => {
     const millisecondsSeries = sampleDurationTimeSeries;
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
@@ -184,20 +237,141 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <JSXNode name="TimeSeriesWidgetVisualization" /> can plot multiple time series
           while accounting for their type and units. It adds X axis formatting, Y axis
           formatting, a tooltip with correct units, it will scale units of the same type
-          if needed, and it supports <code>null</code> values. It also supports more
-          advanced features like drag-to-zoom, and marking incomplete data. The component
-          doesn't have its own size, it always respects the side of its parent.
+          if needed.
         </p>
 
         <SmallSizingWindow>
           <FillParent>
             <TimeSeriesWidgetVisualization
-              visualizationType="line"
-              stacked
-              timeSeries={[millisecondsSeries, secondsSeries]}
+              plottables={[new Bars(millisecondsSeries), new Line(secondsSeries)]}
             />
           </FillParent>
         </SmallSizingWindow>
+      </Fragment>
+    );
+  });
+
+  story('Stacking', () => {
+    return (
+      <Fragment>
+        <p>
+          Plottables are <i>unstacked</i> by default. To turn on stacking, use the{' '}
+          <code>stack</code> plottable configuration option. Note that only{' '}
+          <code>Bars</code> supports this! <code>Area</code> plottables are always
+          stacked. <code>Line</code> plottables are never stacked.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Bars(sampleDurationTimeSeries, {}),
+                new Bars(sampleDurationTimeSeries2, {}),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Bars(sampleDurationTimeSeries, {stack: 'all'}),
+                new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+              ]}
+            />
+          </MediumWidget>
+          <SmallWidget />
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Delay', () => {
+    const shiftedSampleDurationTimeSeries = shiftTimeSeriesToNow(
+      sampleDurationTimeSeries
+    );
+    const shiftedSampleDurationTimeSeries2 = shiftTimeSeriesToNow(
+      sampleDurationTimeSeries2
+    );
+
+    const delay = 60 * 60 * 3;
+
+    return (
+      <Fragment>
+        <p>
+          The <code>delay</code> plottable configuration option indicates that this data
+          is live, and the last few buckets might not have complete data. The delay is a
+          number in seconds. By default the delay is <code>0</code>.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(shiftedSampleDurationTimeSeries, {delay}),
+                new Line(shiftedSampleDurationTimeSeries2, {delay}),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(shiftedSampleDurationTimeSeries, {delay}),
+                new Area(shiftedSampleDurationTimeSeries2, {delay}),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Bars(shiftedSampleDurationTimeSeries, {stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries2, {stack: 'all'}),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Color', () => {
+    const theme = useTheme();
+
+    const timeSeries = {
+      ...sampleThroughputTimeSeries,
+      field: 'error_rate()',
+      meta: {
+        fields: {
+          'error_rate()': 'rate',
+        },
+        units: {
+          'error_rate()': '1/second',
+        },
+      },
+    };
+
+    return (
+      <Fragment>
+        <p>
+          You can control the color of each plottable by setting the <code>color</code>{' '}
+          plotting configuration option to a string that contains a valid hex color code.
+        </p>
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Line(timeSeries, {color: theme.error})]}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Area(timeSeries, {color: theme.error})]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Bars(timeSeries, {color: theme.error})]}
+            />
+          </SmallWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -214,66 +388,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <SmallWidget>
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
         </SmallWidget>
-      </Fragment>
-    );
-  });
-
-  story('Stacking', () => {
-    return (
-      <Fragment>
-        <p>
-          Bar charts are <i>unstacked</i> by default. To turn on stacking, use the{' '}
-          <code>stacked</code> prop. Area charts are always stacked. Line charts are never
-          stacked.
-        </p>
-
-        <SideBySide>
-          <MediumWidget>
-            <TimeSeriesWidgetVisualization
-              visualizationType="bar"
-              timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
-            />
-          </MediumWidget>
-          <MediumWidget>
-            <TimeSeriesWidgetVisualization
-              visualizationType="bar"
-              timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
-              stacked
-            />
-          </MediumWidget>
-          <SmallWidget />
-        </SideBySide>
-      </Fragment>
-    );
-  });
-
-  story('Incomplete Data', () => {
-    const props = {
-      dataCompletenessDelay: 60 * 60 * 3,
-      timeSeries: [
-        shiftTimeSeriesToNow(sampleDurationTimeSeries),
-        shiftTimeSeriesToNow(sampleDurationTimeSeries2),
-      ],
-    };
-    return (
-      <Fragment>
-        <p>
-          The <code>dataCompletenessDelay</code> prop indicates that this data is live,
-          and the last few buckets might not have complete data. The delay is a number in
-          seconds. By default the delay is <code>0</code>.
-        </p>
-
-        <SideBySide>
-          <MediumWidget>
-            <TimeSeriesWidgetVisualization {...props} visualizationType="line" />
-          </MediumWidget>
-          <MediumWidget>
-            <TimeSeriesWidgetVisualization visualizationType="area" {...props} />
-          </MediumWidget>
-          <MediumWidget>
-            <TimeSeriesWidgetVisualization {...props} stacked visualizationType="bar" />
-          </MediumWidget>
-        </SideBySide>
       </Fragment>
     );
   });
@@ -309,8 +423,10 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={[durationTimeSeries1, durationTimeSeries2]}
+            plottables={[
+              new Line(durationTimeSeries1, {}),
+              new Line(durationTimeSeries2, {}),
+            ]}
           />
         </MediumWidget>
       </Fragment>
@@ -326,14 +442,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       <Fragment>
         <p>
           <JSXNode name="TimeSeriesWidgetVisualization" /> supports series legends, and a
-          few features on top of them. By default, if only one series is plotted, the
-          legend does not appear. If there are multiple series, a legend is shown above
-          the charts.
+          few features on top of them. By default, if only one plottable is provided, the
+          legend does not appear. If there are multiple plottables, a legend is shown
+          above the charts.
         </p>
         <p>
           You can control legend selection with the <code>legendSelection</code> prop. By
-          default, all time series are shown. If any time series is set to{' '}
-          <code>false</code> it will be hidden. The companion{' '}
+          default, all plottables are shown. If any plottable is set to <code>false</code>{' '}
+          (keyed by <code>timeSeries.field</code>) it will be hidden. The companion{' '}
           <code>onLegendSelectionChange</code> prop is a callback, it will tell you when
           the user changes the legend selection by clicking on legend labels.
         </p>
@@ -345,8 +461,10 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
-            visualizationType="area"
-            timeSeries={[sampleDurationTimeSeries, sampleDurationTimeSeries2]}
+            plottables={[
+              new Area(sampleDurationTimeSeries, {}),
+              new Area(sampleDurationTimeSeries2, {}),
+            ]}
             aliases={{
               'p99(span.duration)': 'p99',
               'p50(span.duration)': 'p50',
@@ -355,55 +473,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             onLegendSelectionChange={setLegendSelection}
           />
         </MediumWidget>
-      </Fragment>
-    );
-  });
-
-  story('Colors', () => {
-    const theme = useTheme();
-
-    const timeSeries = {
-      ...sampleThroughputTimeSeries,
-      field: 'error_rate()',
-      meta: {
-        fields: {
-          'error_rate()': 'rate',
-        },
-        units: {
-          'error_rate()': '1/second',
-        },
-      },
-      color: theme.error,
-    };
-
-    return (
-      <Fragment>
-        {' '}
-        <p>
-          You can control the color of each time series by setting the <code>color</code>{' '}
-          attribute to a string that contains a valid hex color code.
-        </p>
-        <SideBySide>
-          <SmallWidget>
-            <TimeSeriesWidgetVisualization
-              visualizationType="line"
-              timeSeries={[timeSeries]}
-            />
-          </SmallWidget>
-          <SmallWidget>
-            <TimeSeriesWidgetVisualization
-              visualizationType="area"
-              timeSeries={[timeSeries]}
-            />
-          </SmallWidget>
-
-          <SmallWidget>
-            <TimeSeriesWidgetVisualization
-              visualizationType="bar"
-              timeSeries={[timeSeries]}
-            />
-          </SmallWidget>
-        </SideBySide>
       </Fragment>
     );
   });
@@ -430,9 +499,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={[
-              {
+            plottables={[
+              new Line({
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
                 meta: {
@@ -443,7 +511,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                     'error_rate()': '1/second',
                   },
                 },
-              },
+              }),
             ]}
             releases={releases}
           />
