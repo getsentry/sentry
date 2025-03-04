@@ -99,9 +99,7 @@ export function SessionsOverview() {
                 </ModuleLayout.Full>
               </Fragment>
             )}
-            {view === FRONTEND_LANDING_SUB_PATH && (
-              <Fragment>{SESSION_HEALTH_CHARTS}</Fragment>
-            )}
+            {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
