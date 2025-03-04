@@ -31,6 +31,8 @@ class SerializedEvent(TypedDict):
     description: str
     duration: float
     is_transaction: bool
+    op: str
+    event_type: str
 
 
 @region_silo_endpoint
@@ -52,6 +54,8 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
             transaction=span["transaction"],
             is_transaction=span["is_transaction"],
             description=span["description"],
+            op=span["span.op"],
+            event_type="span",
         )
 
     @sentry_sdk.tracing.trace
