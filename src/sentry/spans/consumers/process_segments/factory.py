@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import rapidjson
+import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
@@ -58,7 +58,7 @@ def explode_segment(message: tuple[list[dict[str, Any]], Mapping[Partition, int]
     for span in spans:
         if span is not None:
             yield Value(
-                payload=KafkaPayload(key=None, value=rapidjson.dumps(span).encode(), headers=[]),
+                payload=KafkaPayload(key=None, value=orjson.dumps(span), headers=[]),
                 committable=committable,
                 timestamp=None,
             )
