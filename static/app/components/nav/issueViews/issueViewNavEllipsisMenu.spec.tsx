@@ -28,10 +28,10 @@ describe('IssueViewNavEllipsisMenu', () => {
 
   const defaultProps: IssueViewNavEllipsisMenuProps = {
     baseUrl: '/organizations/sentry/issues',
-    deleteView: jest.fn(),
-    duplicateView: jest.fn(),
+    onDeleteView: jest.fn(),
+    onDuplicateView: jest.fn(),
+    onUpdateView: jest.fn(),
     setIsEditing: jest.fn(),
-    updateView: jest.fn(),
     view: mockView,
     isLastView: false,
   };
