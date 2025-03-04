@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
 
-export default function SessionHealthChart() {
+export default function SessionHealthRateChart() {
   const {series, isPending, error} = useSessionHealthBreakdown();
 
   const aliases = {

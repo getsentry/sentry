@@ -20,7 +20,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import SessionHealthChart from 'sentry/views/insights/sessions/charts/sessionHealthChart';
+import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
@@ -64,7 +64,7 @@ export function SessionsOverview() {
                   <CrashFreeSessionChart />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <SessionHealthChart />
+                  <SessionHealthRateChart />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <FilterWrapper>
@@ -81,7 +81,7 @@ export function SessionsOverview() {
                   <ErrorFreeSessionsChart />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <SessionHealthChart />
+                  <SessionHealthRateChart />
                 </ModuleLayout.Third>
               </Fragment>
             )}
