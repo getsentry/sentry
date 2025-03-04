@@ -63,6 +63,7 @@ def should_call_seer_for_grouping(
 
     if (
         has_blocked_fingerprint
+        or _is_race_condition_skipped_event(event, event_grouphash)
         or _has_too_many_contributing_frames(event, variants)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -82,6 +83,47 @@ def should_call_seer_for_grouping(
         return False
 
     return True
+
+
+def _is_race_condition_skipped_event(event: Event, event_grouphash: GroupHash) -> bool:
+    """
+    In cases where multiple events with the same new hash are racing to assign that hash to a group,
+    we only want one of them to be sent to Seer.
+
+    We detect the race when creating `GroupHashMetadata` records, and track all but the winner of
+    the race as events whose Seer call we should skip.
+
+    NOTE: For now this only returns False, so it will never block sending to Seer. This will allow
+    us to collect logs of when it *would* block, in order or us to have greater confidence in the
+    change.
+    """
+    if event.should_skip_seer:
+        logger.info(
+            "should_call_seer_for_grouping.race_condition_skip",
+            extra={
+                "grouphash_id": event_grouphash.id,
+                "hash": event_grouphash.hash,
+                "event_id": event.event_id,
+            },
+        )
+        # TODO: The two lines below are what the code *should* be, in order to actually skip sending
+        # the events. For now, though, we're just going to log, to essentially enact the change in
+        # dry-run mode. Once we're confident that in race condition situations, exactly one event
+        # will be sent to Seer, we can restore the real code.
+        #
+        # record_did_call_seer_metric(event, call_made=False, blocker="race_condition")
+        # return True
+        return False
+
+    logger.info(
+        "should_call_seer_for_grouping.race_condition_pass",
+        extra={
+            "grouphash_id": event_grouphash.id,
+            "hash": event_grouphash.hash,
+            "event_id": event.event_id,
+        },
+    )
+    return False
 
 
 def _event_content_is_seer_eligible(event: Event) -> bool:
