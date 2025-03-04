@@ -66,26 +66,19 @@ function SentryApplicationRowButtons({
           disableDeleteReason = t(
             'Organization owner permissions are required for this action.'
           );
-        }
-
-        // feature flag new publishing flow features
-        if (organization.features.includes(`streamlined-publishing-flow`)) {
-          if (app.status === 'publish_request_inprogress') {
-            disablePublishReason = t(
-              'This integration has already been submitted for publishing'
-            );
-          } else if (hasInvalidStatus(app)) {
-            disablePublishReason = t('Only unpublished integrations can be published');
-          } else if (!hasUploadedSentryAppPhoto(app.avatars, 'logo')) {
-            disablePublishReason = t('A logo is required to publish an integration');
-          } else if (
-            hasUIComponent(app.schema.elements) &&
-            !hasUploadedSentryAppPhoto(app.avatars, 'icon')
-          ) {
-            disablePublishReason = t(
-              'Integrations with a UI component must have an icon'
-            );
-          }
+        } else if (app.status === 'publish_request_inprogress') {
+          disablePublishReason = t(
+            'This integration has already been submitted for publishing'
+          );
+        } else if (hasInvalidStatus(app)) {
+          disablePublishReason = t('Only unpublished integrations can be published');
+        } else if (!hasUploadedSentryAppPhoto(app.avatars, 'logo')) {
+          disablePublishReason = t('A logo is required to publish an integration');
+        } else if (
+          hasUIComponent(app.schema.elements) &&
+          !hasUploadedSentryAppPhoto(app.avatars, 'icon')
+        ) {
+          disablePublishReason = t('Integrations with a UI component must have an icon');
         }
 
         return (
