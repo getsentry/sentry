@@ -4,7 +4,6 @@ import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -13,6 +12,7 @@ import type {
   SelectSection,
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

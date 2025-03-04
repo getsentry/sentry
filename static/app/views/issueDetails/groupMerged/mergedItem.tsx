@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconLink} from 'sentry/icons';

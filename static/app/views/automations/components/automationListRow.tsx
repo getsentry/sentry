@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   type Action,

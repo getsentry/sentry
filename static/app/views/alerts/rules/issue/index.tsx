@@ -17,10 +17,10 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';

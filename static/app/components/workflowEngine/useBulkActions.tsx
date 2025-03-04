@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {type AnimationProps, motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/views/automations/components/automationListRow';
