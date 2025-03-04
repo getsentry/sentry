@@ -14,7 +14,7 @@ from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 @freeze_time("2018-12-11 03:21:34")
 class TestActionSerializer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule)
         self.trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=self.trigger)
@@ -29,7 +29,7 @@ class TestActionSerializer(TestCase):
             alert_rule_trigger_action_id=self.trigger_action.id,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         serialized_action = serialize(self.action, self.user, WorkflowEngineActionSerializer())
         assert serialized_action["type"] == "email"
         assert serialized_action["targetType"] == "user"
@@ -40,7 +40,7 @@ class TestActionSerializer(TestCase):
         )
         assert serialized_action == serialized_alert_rule_trigger_action
 
-    def test_sentry_app_action(self):
+    def test_sentry_app_action(self) -> None:
         sentry_app = self.create_sentry_app(
             organization=self.organization,
             published=True,
@@ -95,7 +95,7 @@ class TestActionSerializer(TestCase):
         )
         assert serialized_action == serialized_alert_rule_trigger_action
 
-    def test_slack_action(self):
+    def test_slack_action(self) -> None:
         self.integration = self.create_slack_integration(
             self.organization,
             external_id="TXXXXXXX1",
