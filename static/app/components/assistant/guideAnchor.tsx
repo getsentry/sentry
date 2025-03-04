@@ -146,17 +146,11 @@ class BaseGuideAnchor extends Component<Props, State> {
   };
 
   render() {
-    const {children, position, offset, containerClassName} = this.props;
-    const {active} = this.state;
+    const {children, position, offset, containerClassName, to} = this.props;
+    const {active, currentGuide, step} = this.state;
 
-    if (!active) {
+    if (!active || !currentGuide) {
       return children ? children : null;
-    }
-
-    const {to} = this.props;
-    const {currentGuide, step} = this.state;
-    if (!currentGuide) {
-      return null;
     }
 
     const totalStepCount = currentGuide.steps.length;
@@ -165,7 +159,6 @@ class BaseGuideAnchor extends Component<Props, State> {
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
-    // offset is  missed
     return (
       <TourGuide
         isOpen
