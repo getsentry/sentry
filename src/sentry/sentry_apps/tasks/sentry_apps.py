@@ -141,7 +141,7 @@ def send_alert_webhook(
 
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
         if sentry_app is None:
-            lifecycle.record_failure("event_alert_webhook.missing_sentry_app")
+            lifecycle.record_failure("send_alert_event.missing_sentry_app")
             return
 
         installations = app_service.get_many(
@@ -152,7 +152,7 @@ def send_alert_webhook(
             )
         )
         if not installations:
-            lifecycle.record_failure("event_alert_webhook.missing_installation")
+            lifecycle.record_failure("send_alert_event.missing_installation")
             return
         (install,) = installations
 
@@ -503,6 +503,7 @@ def send_resource_change_webhook(
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
+            logger.info("notify_sentry_app.future_missing_sentry_app", extra={"future": f})
             continue
 
         extra_kwargs: dict[str, Any] = {
