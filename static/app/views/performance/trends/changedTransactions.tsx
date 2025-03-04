@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {Radio} from 'sentry/components/core/radio';
 import Count from 'sentry/components/count';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -17,7 +18,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Radio} from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';

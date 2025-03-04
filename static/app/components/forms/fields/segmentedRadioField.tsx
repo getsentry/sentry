@@ -1,11 +1,11 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import {Radio} from 'sentry/components/core/radio';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Radio} from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 

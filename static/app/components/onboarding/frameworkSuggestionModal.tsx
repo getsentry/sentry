@@ -7,12 +7,12 @@ import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {Radio} from 'sentry/components/radio';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -275,7 +275,7 @@ export function FrameworkSuggestionModal({
                       }
                     >
                       <RadioBox
-                        radioSize="small"
+                        size="sm"
                         checked={selectedFramework?.key === platform.id}
                         readOnly
                       />
