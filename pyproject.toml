@@ -115,7 +115,6 @@ module = [
     "sentry.api.bases.organization_events",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
-    "sentry.api.endpoints.internal.mail",
     "sentry.api.endpoints.organization_events_facets_performance",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
