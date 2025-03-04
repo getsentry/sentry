@@ -83,7 +83,6 @@ Makefile                                                 @getsentry/owners-sentr
 /.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/dev-infra
 /bin/react-to-product-owners-yml-changes.py              @getsentry/dev-infra
 /bin/react-to-product-owners-yml-changes.sh              @getsentry/dev-infra
-/static/app/components/sidebar/index.tsx                 @getsentry/dev-infra
 
 ## Backup - getsentry/team-ospo#153
 /src/sentry/backup/                                      @getsentry/hybrid-cloud
