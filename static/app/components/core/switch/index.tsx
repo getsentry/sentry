@@ -26,11 +26,22 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 
 type StyleProps = Pick<SwitchProps, 'size' | 'checked' | 'disabled'>;
 
+const ToggleConfig = {
+  sm: {
+    size: 12,
+    top: 1,
+  },
+  lg: {
+    size: 16,
+    top: 3,
+  },
+};
+
 const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
-const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 4 : 8);
-const getToggleTop = (p: StyleProps) => (p.size === 'sm' ? 1 : 3);
 const getTranslateX = (p: StyleProps) =>
-  p.checked ? getToggleTop(p) + getSize(p) * 0.875 : getToggleTop(p);
+  p.checked
+    ? ToggleConfig[p.size ?? 'sm'].top + getSize(p) * 0.875
+    : ToggleConfig[p.size ?? 'sm'].top;
 
 const SwitchButton = styled('button')<StyleProps>`
   display: inline-block;
@@ -64,8 +75,8 @@ const Toggle = styled('span')<StyleProps>`
   position: absolute;
   border-radius: 50%;
   transition: 0.25s all ease;
-  top: ${getToggleTop}px;
+  top: ${p => ToggleConfig[p.size ?? 'sm'].top}px;
   transform: translateX(${getTranslateX}px);
-  width: ${getToggleSize}px;
-  height: ${getToggleSize}px;
+  width: ${p => ToggleConfig[p.size ?? 'sm'].size}px;
+  height: ${p => ToggleConfig[p.size ?? 'sm'].size}px;
 `;
