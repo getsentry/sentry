@@ -1,5 +1,12 @@
+from datetime import datetime, timezone
+
 from django.conf import settings
 
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
@@ -35,3 +42,47 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
 
         # verify that the quick start sidebar is not automatically opened
         assert not self.browser.element_exists_by_test_id("quick-start-content")
+
+    @with_feature("organizations:onboarding")
+    def test_quick_start_not_rendered_because_all_tasks_completed_and_overdue(self):
+        # Record tasks with all marked as COMPLETE, all overdue
+        for task in list(OrganizationOnboardingTask.TASK_KEY_MAP.keys()):
+            OrganizationOnboardingTask.objects.record(
+                organization_id=self.organization.id,
+                task=task,
+                status=OnboardingTaskStatus.COMPLETE,
+                date_completed=datetime(year=2024, month=12, day=25, tzinfo=timezone.utc),
+            )
+
+        # Load the organization's page
+        self.browser.get(f"/organizations/{self.organization.slug}/")
+
+        # Assert no error happen
+        assert not self.browser.element_exists(xpath='//h1[text()="Oops! Something went wrong"]')
+
+        # Check that the quick start sidebar is NOT shown
+        assert not self.browser.element_exists('[aria-label="Onboarding"]')
+
+    @with_feature("organizations:onboarding")
+    def test_quick_start_rendered_because_not_all_tasks_are_done_even_if_all_overdue(self):
+        for task in list(OrganizationOnboardingTask.TASK_KEY_MAP.keys()):
+            # Record tasks with some marked as PENDING and others as COMPLETE, all overdue
+            status = OnboardingTaskStatus.COMPLETE
+            if task in [OnboardingTask.RELEASE_TRACKING, OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE]:
+                status = OnboardingTaskStatus.PENDING
+
+            OrganizationOnboardingTask.objects.record(
+                organization_id=self.organization.id,
+                task=task,
+                status=status,
+                date_completed=datetime(year=2024, month=12, day=25, tzinfo=timezone.utc),
+            )
+
+        # Load the organization's page
+        self.browser.get(f"/organizations/{self.organization.slug}/")
+
+        # Assert no error happen
+        assert not self.browser.element_exists(xpath='//h1[text()="Oops! Something went wrong"]')
+
+        # Check that the quick start sidebar is shown
+        assert self.browser.element_exists('[aria-label="Onboarding"]')
