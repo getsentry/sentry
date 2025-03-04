@@ -165,7 +165,9 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     ).exists()
 
 
-def build_sentry_app_compare_blob(sentry_app_config: list[dict[str, str]]) -> list[dict[str, str]]:
+def build_sentry_app_compare_blob(
+    sentry_app_config: list[dict[str, str]]
+) -> list[dict[str, str | None]]:
     """
     Add the label to the config
     """
