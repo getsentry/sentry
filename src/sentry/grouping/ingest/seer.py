@@ -37,7 +37,9 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def should_call_seer_for_grouping(
+    event: Event, variants: dict[str, BaseVariant], event_grouphash: GroupHash
+) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -366,7 +368,7 @@ def maybe_check_seer_for_matching_grouphash(
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
-    if should_call_seer_for_grouping(event, variants):
+    if should_call_seer_for_grouping(event, variants, event_grouphash):
         record_did_call_seer_metric(event, call_made=True, blocker="none")
 
         try:
@@ -381,23 +383,8 @@ def maybe_check_seer_for_matching_grouphash(
             )
             return None
 
-        # Find the GroupHash corresponding to the hash value sent to Seer
-        #
-        # TODO: There shouldn't actually be more than one hash in `all_grouphashes`, but
-        #   a) there's a bug in our precedence logic which leads both in-app and system stacktrace
-        #      hashes being marked as contributing and making it through to this point, and
-        #   b) because of how we used to compute secondary and primary hashes, we keep secondary
-        #      hashes even when we don't need them.
-        # Once those two problems are fixed, there will only be one hash passed to this function
-        # and we won't have to do this search to find the right one to update.
-        primary_hash = event.get_primary_hash()
-
-        grouphash_sent = list(
-            filter(lambda grouphash: grouphash.hash == primary_hash, all_grouphashes)
-        )[0]
-
         # Update the relevant GroupHash with Seer results
-        gh_metadata = grouphash_sent.metadata
+        gh_metadata = event_grouphash.metadata
         if gh_metadata:
 
             # TODO: This should never be true (anything created with `objects.create` should have an
