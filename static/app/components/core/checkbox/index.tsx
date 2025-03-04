@@ -4,6 +4,9 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkCheckbox from './index.chonk';
 
 type CheckboxConfig = {
   borderRadius: string;
