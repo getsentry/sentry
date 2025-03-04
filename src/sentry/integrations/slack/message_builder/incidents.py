@@ -69,7 +69,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
                 referrer="metric_alert_slack",
             )
         )
-        incident_text = f"{data['text']}\n{get_started_at(data['date_started'])}"
+        incident_text = f"{data['text']}\n{get_started_at(self.incident.date_started)}"
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]

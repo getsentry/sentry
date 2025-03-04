@@ -153,7 +153,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
-        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
