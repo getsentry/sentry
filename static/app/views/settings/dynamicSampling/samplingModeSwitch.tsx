@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Switch} from 'sentry/components/core/switch';
 import ExternalLink from 'sentry/components/links/externalLink';
-import SwitchButton from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -46,7 +46,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
         disabled={hasAccess}
         title={t('You do not have permission to change this setting.')}
       >
-        <SwitchButton
+        <Switch
           size="lg"
           toggle={handleSwitchMode}
           isDisabled={!hasAccess}
