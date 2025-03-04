@@ -65,7 +65,7 @@ export default function useSessionHealthBreakdown() {
 
       return {
         name: sessionData.intervals[idx] ?? '',
-        value: intervalTotal > 0 ? count / intervalTotal : 1,
+        value: intervalTotal > 0 ? count / intervalTotal : 0,
       };
     });
 
