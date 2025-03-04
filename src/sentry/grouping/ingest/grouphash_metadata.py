@@ -224,7 +224,8 @@ def create_or_update_grouphash_metadata_if_needed(
             logger.info(
                 "grouping.grouphash_metadata.handle_existing_grouphash",
                 extra={
-                    "grouphash": grouphash.id,
+                    "grouphash_id": grouphash.id,
+                    "hash": grouphash.hash,
                     "group_id": grouphash.group_id,
                     "reason": db_hit_metadata["reason"],
                 },
