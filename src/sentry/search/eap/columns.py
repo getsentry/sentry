@@ -163,7 +163,7 @@ class FunctionDefinition:
     # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
     extrapolation: bool = True
     # Processor is the function run in the post process step to transform a row into the final result
-    processor: Callable[[Any], Column.BinaryFormula] | None = None
+    processor: Callable[[Any], Any] | None = None
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:

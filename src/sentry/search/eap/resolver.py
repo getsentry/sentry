@@ -42,6 +42,7 @@ from sentry.search.eap.columns import (
     ResolvedAggregate,
     ResolvedColumn,
     ResolvedFormula,
+    ResolvedFunction,
     VirtualColumnDefinition,
 )
 from sentry.search.eap.types import SearchResolverConfig
@@ -65,7 +66,7 @@ class SearchResolver:
         field(default_factory=dict)
     )
     _resolved_function_cache: dict[
-        str, tuple[ResolvedAggregate | ResolvedFormula, VirtualColumnDefinition | None]
+        str, tuple[type[ResolvedFunction], VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
 
     @sentry_sdk.trace
