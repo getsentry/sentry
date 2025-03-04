@@ -1,32 +1,11 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
-describe('BigNumberWidget', () => {
-  describe('Layout', () => {
-    it('Renders', () => {
-      render(
-        <BigNumberWidget
-          title="EPS"
-          description="Number of events per second"
-          value={0.01087819860850493}
-          field="eps()"
-          meta={{
-            fields: {
-              'eps()': 'rate',
-            },
-            units: {
-              'eps()': '1/second',
-            },
-          }}
-        />
-      );
+import {Widget} from '../widget/widget';
 
-      expect(screen.getByText('0.0109/s')).toBeInTheDocument();
-    });
-  });
-
+describe('BigNumberWidgetVisualization', () => {
   describe('Visualization', () => {
     beforeEach(() => {
       jest.spyOn(console, 'error').mockImplementation();
@@ -36,34 +15,21 @@ describe('BigNumberWidget', () => {
       jest.resetAllMocks();
     });
 
-    it('Explains missing data', () => {
-      render(
-        <BigNumberWidget
-          value={undefined}
-          field={'p95(span.duration)'}
-          meta={{
-            fields: {
-              'p95(span.duration)': 'number',
-            },
-            units: {},
-          }}
-        />
-      );
-
-      expect(screen.getByText('No Data')).toBeInTheDocument();
-    });
-
     it('Explains non-numeric data', () => {
       render(
-        <BigNumberWidget
-          value={Infinity}
-          field="count()"
-          meta={{
-            fields: {
-              'count()': 'number',
-            },
-            units: {},
-          }}
+        <Widget
+          Visualization={
+            <BigNumberWidgetVisualization
+              value={Infinity}
+              field="count()"
+              meta={{
+                fields: {
+                  'count()': 'number',
+                },
+                units: {},
+              }}
+            />
+          }
         />
       );
 
@@ -72,7 +38,7 @@ describe('BigNumberWidget', () => {
 
     it('Formats dates', () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={'2024-10-17T16:08:07+00:00'}
           field="max(timestamp)"
           meta={{
@@ -91,7 +57,7 @@ describe('BigNumberWidget', () => {
 
     it('Renders strings', () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={'/api/0/fetch'}
           field="any(transaction)"
           meta={{
@@ -108,7 +74,7 @@ describe('BigNumberWidget', () => {
 
     it('Formats duration data', () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={17.28}
           field="p95(span.duration)"
           meta={{
@@ -127,7 +93,7 @@ describe('BigNumberWidget', () => {
 
     it('Shows the full unformatted value on hover', async () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={178451214}
           field="count()"
           meta={{
@@ -148,8 +114,7 @@ describe('BigNumberWidget', () => {
 
     it('Respect maximum value', () => {
       render(
-        <BigNumberWidget
-          title="Count"
+        <BigNumberWidgetVisualization
           value={178451214}
           field="count()"
           maximumValue={100000000}
@@ -166,64 +131,10 @@ describe('BigNumberWidget', () => {
     });
   });
 
-  describe('State', () => {
-    it('Shows a loading placeholder', () => {
-      render(<BigNumberWidget isLoading />);
-
-      expect(screen.getByText('—')).toBeInTheDocument();
-    });
-
-    it('Loading state takes precedence over error state', () => {
-      render(
-        <BigNumberWidget isLoading error={new Error('Parsing error of old value')} />
-      );
-
-      expect(screen.getByText('—')).toBeInTheDocument();
-    });
-
-    it('Shows an error message', () => {
-      render(<BigNumberWidget error={new Error('Uh oh')} />);
-
-      expect(screen.getByText('Error: Uh oh')).toBeInTheDocument();
-    });
-
-    it('Shows a retry button', async () => {
-      const onRetry = jest.fn();
-
-      render(<BigNumberWidget error={new Error('Oh no!')} onRetry={onRetry} />);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-      expect(onRetry).toHaveBeenCalledTimes(1);
-    });
-
-    it('Hides other actions if there is an error and a retry handler', () => {
-      const onRetry = jest.fn();
-
-      render(
-        <BigNumberWidget
-          error={new Error('Oh no!')}
-          onRetry={onRetry}
-          actions={[
-            {
-              key: 'Open in Discover',
-              to: '/discover',
-            },
-          ]}
-        />
-      );
-
-      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('link', {name: 'Open in Discover'})
-      ).not.toBeInTheDocument();
-    });
-  });
-
   describe('Previous Period Data', () => {
     it('Shows the difference between the current and previous data', () => {
       render(
-        <BigNumberWidget
-          title="http_response_code_rate(500)"
+        <BigNumberWidgetVisualization
           value={0.14227123}
           previousPeriodValue={0.1728139}
           field="http_response_code_rate(500)"
@@ -246,7 +157,7 @@ describe('BigNumberWidget', () => {
   describe('Thresholds', () => {
     it('Evaluates the current value against a threshold', async () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={14.227123}
           field="eps()"
           meta={{
@@ -275,7 +186,7 @@ describe('BigNumberWidget', () => {
 
     it('Normalizes the units', () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={135} //  2.25/s
           field="mystery_error_rate()"
           meta={{
@@ -301,7 +212,7 @@ describe('BigNumberWidget', () => {
 
     it('Respects the preferred polarity', () => {
       render(
-        <BigNumberWidget
+        <BigNumberWidgetVisualization
           value={135}
           field="mystery_error_rate()"
           meta={{
