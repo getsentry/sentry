@@ -160,6 +160,9 @@ def validate_interval(
     # When top events are present, there can be up to 5x as many points
     max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
 
+    if interval.total_seconds() > date_range.total_seconds():
+        raise error.__class__("Interval cannot be larger than the date range.")
+
     if date_range.total_seconds() / interval.total_seconds() > max_rollup_points:
         raise error
 
