@@ -17,6 +17,7 @@ from sentry.sentry_metrics.querying.data import (
     run_queries,
 )
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
+from sentry.sentry_metrics.utils import STRING_NOT_FOUND, UseCaseID, resolve_weak
 from sentry.snuba.metrics import SpanMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period
@@ -42,6 +43,13 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
         projects = list(
             Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
         )
+
+        transformer = MetricsAPIQueryResultsTransformer()
+
+        if resolve_weak(UseCaseID.SPANS, organization.id, "target_project_id") == STRING_NOT_FOUND:
+            results = transformer.transform([])
+            return Response(status=200, data=results)
+
         mql = f"sum({SpanMRI.COUNT_PER_ROOT_PROJECT.value}) by (project,target_project_id)"
         query = MQLQuery(mql=mql, order=QueryOrder.DESC, limit=10000)
         results = run_queries(
@@ -54,7 +62,7 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
             environments=self.get_environments(request, organization),
             referrer=Referrer.DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS.value,
             query_type=QueryType.TOTALS,
-        ).apply_transformer(MetricsAPIQueryResultsTransformer())
+        ).apply_transformer(transformer)
 
         return Response(status=200, data=results)
 
