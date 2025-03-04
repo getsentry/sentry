@@ -228,9 +228,9 @@ describe('Chart Utils', function () {
         {
           name: 'Total Events',
           data: [
-            {value: 100, name: '2024-01-01'},
-            {value: 200, name: '2024-01-02'},
-            {value: 300, name: '2024-01-03'},
+            {value: [1741006800000, 0]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60, 12]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60 * 2, 24]},
           ],
         },
       ];
@@ -251,20 +251,52 @@ describe('Chart Utils', function () {
         {
           name: 'Errors',
           data: [
-            {value: 10, name: '2024-01-01'},
-            {value: 20, name: '2024-01-02'},
+            {value: [1741006800000, 0]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60, 12]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60 * 2, 24]},
           ],
         },
         {
           name: 'Transactions',
           data: [
-            {value: 100, name: '2024-01-01'},
-            {value: 200, name: '2024-01-02'},
+            {value: [1741006800000, 24]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60, 12]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60 * 2, 0]},
           ],
         },
       ];
 
       const result = computeEchartsAriaLabels({series, useUTC: undefined}, true);
+
+      expect(result).toEqual({
+        enabled: true,
+        label: {
+          description:
+            ' chart with January 1, 12:00 AM to January 2, 12:00 AM featuring 2 data series: Errors and Transactions. The Errors series contains 2 data points. Its lowest value is 10 on January 1, 12:00 AM and highest value is 20 on January 2, 12:00 AM. The Transactions series contains 2 data points. Its lowest value is 100 on January 1, 12:00 AM and highest value is 200 on January 2, 12:00 AM',
+        },
+      });
+    });
+    it('generates correct aria descriptions for multiple series with hourly data', function () {
+      const series = [
+        {
+          name: 'Errors',
+          data: [
+            {value: [1741006800000, 0]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60, 12]},
+            {value: [1741006800000 + 1000 * 24 * 60 * 60 * 2, 24]},
+          ],
+        },
+        {
+          name: 'Transactions',
+          data: [
+            {value: [1741006800000, 24]},
+            {value: [1741006800000 + 60 * 60, 12]},
+            {value: [1741006800000 + 60 * 60 * 2, 0]},
+          ],
+        },
+      ];
+
+      const result = computeEchartsAriaLabels({series, useUTC: undefined}, false);
 
       expect(result).toEqual({
         enabled: true,
