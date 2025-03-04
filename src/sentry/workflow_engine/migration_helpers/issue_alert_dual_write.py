@@ -82,21 +82,22 @@ def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, 
     DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
 
-def update_migrated_issue_alert(rule: Rule):
+def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     data = rule.data
 
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
-        logger.exception("AlertRuleWorkflow does not exist", extra={"rule_id": rule.id})
-        return
+        # OK state, rule may not have been migrated
+        logger.exception(
+            "workflow_engine.issue_alert.updated.error",
+            extra={"rule_id": rule.id, "error": "AlertRuleWorkflow does not exist"},
+        )
+        return None
 
     workflow: Workflow = alert_rule_workflow.workflow
     if not workflow.when_condition_group:
-        logger.error(
-            "Workflow does not have a when_condition_group", extra={"workflow_id": workflow.id}
-        )
-        return
+        raise Exception("Workflow does not have a when_condition_group")
 
     conditions, filters = split_conditions_and_filters(data["conditions"])
 
@@ -111,8 +112,13 @@ def update_migrated_issue_alert(rule: Rule):
     try:
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
     except WorkflowDataConditionGroup.DoesNotExist:
+        # OK state because we can recreate the IF DCG but should not happen
         logger.exception(
-            "WorkflowDataConditionGroup does not exist", extra={"workflow_id": workflow.id}
+            "workflow_engine.issue_alert.updated.error",
+            extra={
+                "workflow_id": workflow.id,
+                "error": "WorkflowDataConditionGroup does not exist",
+            },
         )
         # if no IF DCG exists, create one
         if_dcg = create_if_dcg(
@@ -146,6 +152,8 @@ def update_migrated_issue_alert(rule: Rule):
     workflow.enabled = True
     workflow.save()
 
+    return workflow
+
 
 def update_dcg(
     dcg: DataConditionGroup,
@@ -175,32 +183,36 @@ def update_dcg(
     return dcg
 
 
-def delete_migrated_issue_alert(rule: Rule):
+def delete_migrated_issue_alert(rule: Rule) -> int | None:
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
-        logger.exception("AlertRuleWorkflow does not exist", extra={"rule_id": rule.id})
-        return
+        # OK state, rule may not have been migrated
+        logger.exception(
+            "workflow_engine.issue_alert.deleted.error",
+            extra={"rule_id": rule.id, "error": "AlertRuleWorkflow does not exist"},
+        )
+        return None
 
     workflow: Workflow = alert_rule_workflow.workflow
+    workflow_id = workflow.id
 
-    try:
-        # delete all associated IF DCGs and their conditions
-        workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
-        for workflow_dcg in workflow_dcgs:
-            if_dcg = workflow_dcg.condition_group
-            if_dcg.conditions.all().delete()
-            delete_workflow_actions(if_dcg=if_dcg)
-            if_dcg.delete()
-
-    except WorkflowDataConditionGroup.DoesNotExist:
-        logger.exception(
-            "WorkflowDataConditionGroup does not exist", extra={"workflow_id": workflow.id}
-        )
+    # delete all associated IF DCGs and their conditions
+    workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
+    for workflow_dcg in workflow_dcgs:
+        if_dcg = workflow_dcg.condition_group
+        if_dcg.conditions.all().delete()
+        delete_workflow_actions(if_dcg=if_dcg)
+        if_dcg.delete()
 
     if not workflow.when_condition_group:
+        # OK, this shouldn't happen but should not prevent deletion
         logger.error(
-            "Workflow does not have a when_condition_group", extra={"workflow_id": workflow.id}
+            "workflow_engine.issue_alert.deleted.error",
+            extra={
+                "workflow_id": workflow.id,
+                "error": "Workflow does not have a when_condition_group",
+            },
         )
     else:
         when_dcg = workflow.when_condition_group
@@ -209,6 +221,8 @@ def delete_migrated_issue_alert(rule: Rule):
 
     workflow.delete()
     alert_rule_workflow.delete()
+
+    return workflow_id
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):
