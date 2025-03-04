@@ -6,6 +6,7 @@
   "include": [
     "eslint.config.mjs",
     "static/app",
+    "static/gsApp",
     "tests/js",
     "config",
     "scripts"
