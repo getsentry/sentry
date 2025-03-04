@@ -67,8 +67,7 @@ def construct_title(alert_rule: AlertRule, status: int) -> str:
     else:
         higher_or_lower = "less than" if alert_rule.comparison_delta else "below"
 
-    status = IncidentStatus(status)
-    label = INCIDENT_STATUS[status].lower()
+    label = INCIDENT_STATUS[IncidentStatus(status)].lower()
 
     # Format the time window for the threshold
     time_window = alert_rule.snuba_query.time_window // 60
@@ -84,13 +83,13 @@ def construct_title(alert_rule: AlertRule, status: int) -> str:
             f"{title} in the last {format_duration_idiomatic(time_window)} {higher_or_lower} {comparison_string}"
         )
 
-    trigger = AlertRuleTrigger.objects.filter(id=alert_rule.id, label=label.lower())
+    trigger = AlertRuleTrigger.objects.filter(id=alert_rule.id, label=label.lower()).first()
     if not trigger:
         return _(
             f"{title} in the last {format_duration_idiomatic(time_window)} {higher_or_lower} threshold"
         )
 
-    threshold = trigger.first().alert_threshold
+    threshold = trigger.alert_threshold
     if threshold % 1 == 0:
         threshold = int(threshold)
 
