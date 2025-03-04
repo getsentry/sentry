@@ -204,12 +204,13 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
         if action_type == ActionType.SENTRY_APP:
             if not trigger_action.sentry_app_config:
                 data = {}
-            settings = (
-                [trigger_action.sentry_app_config]
-                if isinstance(trigger_action.sentry_app_config, dict)
-                else trigger_action.sentry_app_config
-            )
-            data = dataclasses.asdict(SentryAppDataBlob.from_list(settings))
+            else:
+                settings = (
+                    [trigger_action.sentry_app_config]
+                    if isinstance(trigger_action.sentry_app_config, dict)
+                    else trigger_action.sentry_app_config
+                )
+                data = dataclasses.asdict(SentryAppDataBlob.from_list(settings))
         elif action_type in (ActionType.OPSGENIE, ActionType.PAGERDUTY):
             default_priority = (
                 OPSGENIE_DEFAULT_PRIORITY
@@ -219,14 +220,14 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
 
             if not trigger_action.sentry_app_config:
                 data = {"priority": default_priority}
-
-            # Ensure sentry_app_config is a dict before accessing
-            config = trigger_action.sentry_app_config
-            if not isinstance(config, dict):
-                data = {"priority": default_priority}
             else:
-                priority = config.get("priority", default_priority)
-                data = dataclasses.asdict(OnCallDataBlob(priority=priority))
+                # Ensure sentry_app_config is a dict before accessing
+                config = trigger_action.sentry_app_config
+                if not isinstance(config, dict):
+                    data = {"priority": default_priority}
+                else:
+                    priority = config.get("priority", default_priority)
+                    data = dataclasses.asdict(OnCallDataBlob(priority=priority))
         else:
             data = {
                 "type": trigger_action.type,
@@ -320,10 +321,6 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             continue
 
         organization_id = alert_rule.organization_id
-        # uncomment this when we do run the test migration (it messes up the tests)
-        # if organization_id != 1:
-        #     # we'll first test the migration on just the Sentry org
-        #     continue
 
         try:
             with transaction.atomic(router.db_for_write(AlertRule)):
