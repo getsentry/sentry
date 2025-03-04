@@ -13,9 +13,6 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
-
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 describe('DatabaseLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
@@ -61,14 +58,6 @@ describe('DatabaseLandingPage', function () {
     state: undefined,
     action: 'PUSH',
     key: '',
-  });
-
-  jest.mocked(useReleaseStats).mockReturnValue({
-    isLoading: false,
-    isPending: false,
-    isError: false,
-    error: null,
-    releases: [],
   });
 
   beforeEach(function () {

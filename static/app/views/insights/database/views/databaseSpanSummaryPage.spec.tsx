@@ -10,9 +10,6 @@ import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/data
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
-
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
@@ -45,14 +42,6 @@ describe('DatabaseSpanSummaryPage', function () {
     state: undefined,
     action: 'PUSH',
     key: '',
-  });
-
-  jest.mocked(useReleaseStats).mockReturnValue({
-    isLoading: false,
-    isPending: false,
-    isError: false,
-    error: null,
-    releases: [],
   });
 
   beforeEach(function () {

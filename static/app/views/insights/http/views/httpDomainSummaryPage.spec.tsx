@@ -13,9 +13,6 @@ import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomain
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
-
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
@@ -53,14 +50,6 @@ describe('HTTPSummaryPage', function () {
     state: undefined,
     action: 'PUSH',
     key: '',
-  });
-
-  jest.mocked(useReleaseStats).mockReturnValue({
-    isLoading: false,
-    isPending: false,
-    isError: false,
-    error: null,
-    releases: [],
   });
 
   beforeEach(function () {

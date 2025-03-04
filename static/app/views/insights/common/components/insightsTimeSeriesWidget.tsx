@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,7 +13,6 @@ import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import {
@@ -38,7 +38,8 @@ export interface InsightsTimeSeriesWidgetProps {
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const pageFilters = usePageFilters();
-  const {releases} = useReleaseStats(pageFilters.selection);
+  const {start, end, period, utc} = pageFilters.selection.datetime;
+  const {projects, environments} = pageFilters.selection;
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     visualizationType: props.visualizationType,
@@ -107,12 +108,33 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 openInsightChartModal({
                   title: props.title,
                   children: (
-                    <ModalChartContainer>
-                      <TimeSeriesWidgetVisualization
-                        {...visualizationProps}
-                        releases={releases ?? []}
-                      />
-                    </ModalChartContainer>
+                    <ReleaseSeries
+                      start={start}
+                      end={end}
+                      queryExtra={undefined}
+                      period={period}
+                      utc={utc}
+                      projects={projects}
+                      environments={environments}
+                    >
+                      {({releases}) => {
+                        return (
+                          <ModalChartContainer>
+                            <TimeSeriesWidgetVisualization
+                              {...visualizationProps}
+                              releases={
+                                releases
+                                  ? releases.map(release => ({
+                                      timestamp: release.date,
+                                      version: release.version,
+                                    }))
+                                  : []
+                              }
+                            />
+                          </ModalChartContainer>
+                        );
+                      }}
+                    </ReleaseSeries>
                   ),
                 });
               }}
