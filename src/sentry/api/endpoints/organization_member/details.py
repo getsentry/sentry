@@ -5,7 +5,7 @@ from typing import Literal
 from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -199,6 +199,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         For example, an organization Manager may change someone's role from
         Member to Manager, but not to Owner.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -245,6 +248,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if not is_reinvite_request_only:
                 return Response({"detail": ERR_EDIT_WHEN_REINVITING}, status=403)
             if member.is_pending:
+                assert member.email is not None
                 if ratelimits.for_organization_member_invite(
                     organization=organization,
                     email=member.email,
@@ -270,7 +274,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user.id, auth_provider)
+                member.send_sso_link_email(request.user.email, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
