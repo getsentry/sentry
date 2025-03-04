@@ -574,22 +574,28 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
 
 
 def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
-    """This converts a Java module name and filename into a real path."""
+    """This attempts to generate a modified module and a real path from a Java module name and filename.
+    Returns a tuple of (modified_module, real_path).
+    """
+    extension = abs_path.split(".", 1)[1] if "." in abs_path else ""
+
     if abs_path.find("$") > -1:
-        raise DoesNotFollowJavaPackageNamingConvention
+        # Split the module at the first '$' character and take the part before it
+        # If there's no '$', use the entire module
+        modified_module = module.split("$", 1)[0] if "$" in module else module
+        # Convert the module's dot notation to path notation
+        path = modified_module.replace(".", "/")
+        if extension:
+            path = f"{path}.{extension}"
+        return modified_module, path
 
-    parts = abs_path.split(".")
-    if len(parts) != 2:  # file name + extension
-        raise DoesNotFollowJavaPackageNamingConvention
-    extension = parts[1]
-
-    parts = module.split(".")
-    if len(parts) <= 1:
+    if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
     package_name = None
     temp_path = None
     # Find the first uppercase letter after a period to identify class name
+    parts = module.split(".")
     for i, part in enumerate(parts):
         if part and part[0].isupper():
             # Everything before this part is the package path

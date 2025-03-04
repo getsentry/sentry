@@ -132,11 +132,6 @@ class TestFrameInfo:
             pytest.param({}, MissingModuleOrAbsPath, id="no_module"),
             pytest.param({"module": "foo"}, MissingModuleOrAbsPath, id="no_abs_path"),
             pytest.param(
-                {"module": "foo", "abs_path": "hasDollar$Symbol"},
-                DoesNotFollowJavaPackageNamingConvention,
-                id="dollar_symbol",
-            ),
-            pytest.param(
                 # Classes without declaring a package are placed in
                 # the unnamed package which cannot be imported.
                 # https://docs.oracle.com/javase/specs/jls/se8/html/jls-7.html#jls-7.4.2
@@ -149,11 +144,6 @@ class TestFrameInfo:
                 DoesNotFollowJavaPackageNamingConvention,
                 id="no_upper_letter_class",
             ),
-            pytest.param(
-                {"module": "foo.ClassName", "abs_path": "no_extension"},
-                DoesNotFollowJavaPackageNamingConvention,
-                id="no_extension",
-            ),
         ],
     )
     def test_java_raises_exception(
@@ -165,10 +155,19 @@ class TestFrameInfo:
     @pytest.mark.parametrize(
         "frame, expected_stack_root",
         [
-            pytest.param({"module": "foo.bar.Bar$handle$1", "abs_path": "bar.java"}, "foo/bar"),
+            pytest.param(
+                {"module": "foo.bar.Bar$handle$1", "abs_path": "bar.java"},
+                "foo/bar",
+                id="dollar_symbol_in_abs_path",
+            ),
+            pytest.param(
+                {"module": "foo.ClassName", "abs_path": "no_extension"},
+                "foo",
+                id="no_extension",
+            ),
         ],
     )
-    def test_valid_frames(self, frame: dict[str, Any], expected_stack_root: str) -> None:
+    def test_java_valid_frames(self, frame: dict[str, Any], expected_stack_root: str) -> None:
         frame_info = FrameInfo(frame, "java")
         assert frame_info.stack_root == expected_stack_root
 
