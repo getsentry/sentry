@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 from urllib import parse
@@ -60,6 +61,22 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
+
+
+@dataclass
+class GetIncidentAttachmentInfoParams:
+    name: str
+    open_period_identifier_id: int
+    action_identifier_id: int
+    organization: Organization
+    threshold_type: AlertRuleThresholdType | None
+    detection_type: AlertRuleDetectionType
+    snuba_query: SnubaQuery
+    comparison_delta: int | None
+    new_status: IncidentStatus
+    metric_value: float | None = None
+    notification_uuid: str | None = None
+    referrer: str = "metric_alert"
 
 
 def logo_url() -> str:
@@ -167,45 +184,34 @@ def build_title_link(
     )
 
 
-def incident_attachment_info(
-    name: str,
-    open_period_identifier_id: int,
-    action_identifier_id: int,
-    organization: Organization,
-    threshold_type: AlertRuleThresholdType | None,
-    detection_type: AlertRuleDetectionType,
-    snuba_query: SnubaQuery,
-    comparison_delta: int | None,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
-    notification_uuid=None,
-    referrer="metric_alert",
-) -> AttachmentInfo:
-    status = get_status_text(new_status)
+def incident_attachment_info(params: GetIncidentAttachmentInfoParams) -> AttachmentInfo:
+    status = get_status_text(params.new_status)
 
     text = get_incident_status_text(
-        snuba_query,
-        threshold_type,
-        comparison_delta,
-        str(metric_value),
+        params.snuba_query,
+        params.threshold_type,
+        params.comparison_delta,
+        str(params.metric_value),
     )
 
-    if features.has("organizations:anomaly-detection-alerts", organization) and features.has(
-        "organizations:anomaly-detection-rollout", organization
+    if features.has("organizations:anomaly-detection-alerts", params.organization) and features.has(
+        "organizations:anomaly-detection-rollout", params.organization
     ):
-        text += f"\nThreshold: {detection_type.title()}"
+        text += f"\nThreshold: {params.detection_type.title()}"
 
-    title = get_title(status, name)
+    title = get_title(status, params.name)
 
     title_link_params: TitleLinkParams = {
-        "alert": str(open_period_identifier_id),
-        "referrer": referrer,
-        "detection_type": detection_type.value,
+        "alert": str(params.open_period_identifier_id),
+        "referrer": params.referrer,
+        "detection_type": params.detection_type.value,
     }
-    if notification_uuid:
-        title_link_params["notification_uuid"] = notification_uuid
+    if params.notification_uuid:
+        title_link_params["notification_uuid"] = params.notification_uuid
 
-    title_link = build_title_link(str(action_identifier_id), organization, title_link_params)
+    title_link = build_title_link(
+        str(params.action_identifier_id), params.organization, title_link_params
+    )
 
     return AttachmentInfo(
         title=title,

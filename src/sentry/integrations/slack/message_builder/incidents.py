@@ -3,6 +3,7 @@ from datetime import datetime
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import (
+    GetIncidentAttachmentInfoParams,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -53,18 +54,20 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             self.metric_value = get_metric_count_from_incident(self.incident)
 
         data = incident_attachment_info(
-            name=self.incident.alert_rule.name,
-            open_period_identifier_id=self.incident.identifier,
-            action_identifier_id=self.incident.alert_rule.id,
-            organization=self.incident.organization,
-            threshold_type=AlertRuleThresholdType(self.incident.alert_rule.threshold_type),
-            detection_type=AlertRuleDetectionType(self.incident.alert_rule.detection_type),
-            snuba_query=self.incident.alert_rule.snuba_query,
-            comparison_delta=self.incident.alert_rule.comparison_delta,
-            new_status=self.new_status,
-            metric_value=self.metric_value,
-            notification_uuid=self.notification_uuid,
-            referrer="metric_alert_slack",
+            GetIncidentAttachmentInfoParams(
+                name=self.incident.alert_rule.name,
+                open_period_identifier_id=self.incident.identifier,
+                action_identifier_id=self.incident.alert_rule.id,
+                organization=self.incident.organization,
+                threshold_type=AlertRuleThresholdType(self.incident.alert_rule.threshold_type),
+                detection_type=AlertRuleDetectionType(self.incident.alert_rule.detection_type),
+                snuba_query=self.incident.alert_rule.snuba_query,
+                comparison_delta=self.incident.alert_rule.comparison_delta,
+                new_status=self.new_status,
+                metric_value=self.metric_value,
+                notification_uuid=self.notification_uuid,
+                referrer="metric_alert_slack",
+            )
         )
         incident_text = f"{data['text']}\n{get_started_at(data['date_started'])}"
         blocks = [
