@@ -186,6 +186,7 @@ function getSourceMapsDocLinks({
       sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
       legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
       sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
+      bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
     };
   }
 
@@ -231,6 +232,7 @@ function getSourceMapsDocLinks({
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
+    bundlerPluginRepoLink: `https://github.com/getsentry/sentry-javascript-bundler-plugins`,
   };
 }
 
@@ -659,21 +661,52 @@ function HasDebugIdChecklistItem({
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
           <h6>Uploaded Files Not Deployed</h6>
-          <p>
-            {t(
-              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
-            )}
-          </p>
-          <p>
-            {tct(
-              'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
-              {
-                bundlerPluginRepoLink: (
-                  <ExternalLinkWithIcon href="https://github.com/getsentry/sentry-javascript-bundler-plugins" />
-                ),
-              }
-            )}
-          </p>
+          {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) ? (
+            <Fragment>
+              <p>
+                {t(
+                  "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that your application doesn't include the same files you uploaded to Sentry."
+                )}
+              </p>
+              <p>
+                {t(
+                  'For Sentry to be able to show your original source code, it is required that you build the application with the exact same files that you uploaded to Sentry.'
+                )}
+              </p>
+              <p>
+                {tct(
+                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+                  {
+                    bundlerPluginRepoLink: (
+                      <ExternalLinkWithIcon
+                        href={sourceMapsDocLinks.bundlerPluginRepoLink}
+                      />
+                    ),
+                  }
+                )}
+              </p>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <p>
+                {t(
+                  "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
+                )}
+              </p>
+              <p>
+                {tct(
+                  'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+                  {
+                    bundlerPluginRepoLink: (
+                      <ExternalLinkWithIcon
+                        href={sourceMapsDocLinks.bundlerPluginRepoLink}
+                      />
+                    ),
+                  }
+                )}
+              </p>
+            </Fragment>
+          )}
           {defined(sourceMapsDocLinks.sentryCli) && (
             <p>
               {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
