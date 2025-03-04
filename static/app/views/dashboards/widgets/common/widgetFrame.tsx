@@ -8,12 +8,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
+import {TooltipIconTrigger} from '../../widgetCard/tooltipIconTrigger';
+import {WarningsList} from '../../widgetCard/warningsList';
 import {Widget} from '../widget/widget';
 import type {WidgetDescriptionProps} from '../widget/widgetDescription';
 
-import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
-import {WarningsList} from './warningsList';
 
 export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
