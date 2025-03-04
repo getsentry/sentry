@@ -8,24 +8,20 @@ import {unreachable} from 'sentry/utils/unreachable';
 type TagType = 'default' | 'info' | 'success' | 'warning' | 'danger' | 'promotion';
 
 interface ChonkTagProps extends Omit<TagProps, 'type'> {
-  type: TagType;
+  type?: TagType;
 }
+
+const LegacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
+  highlight: 'info',
+  error: 'danger',
+  white: 'default',
+  black: 'default',
+};
 
 export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
   return {
     ...props,
-    type:
-      props.type === 'highlight'
-        ? 'info'
-        : props.type === 'error'
-          ? 'danger'
-          : props.type === 'white'
-            ? 'default'
-            : props.type === 'black'
-              ? 'default'
-              : props.type === undefined
-                ? 'default'
-                : props.type,
+    type: props.type && LegacyMapping[props.type],
   };
 }
 
