@@ -586,12 +586,12 @@ function JobsWidget({query}: {query?: string}) {
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         });
 
         acc[1].data.push({
           value: failedJobsRateValue * spansInTimeBucket,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         });
 
         return acc;
