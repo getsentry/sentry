@@ -26,7 +26,7 @@ export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
 }
 
 export const TagPill = chonkStyled('div')<{
-  type: TagType;
+  type?: TagType;
 }>`
   ${p => ({...makeTagPillTheme(p.type, p.theme)})};
 
@@ -46,10 +46,11 @@ export const TagPill = chonkStyled('div')<{
 `;
 
 function makeTagPillTheme(
-  type: TagType,
+  type: TagType | undefined,
   theme: DO_NOT_USE_ChonkTheme
 ): React.CSSProperties {
   switch (type) {
+    case undefined:
     case 'default':
       return {
         background: theme.colors.dynamic.surface300,
