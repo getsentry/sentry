@@ -25,7 +25,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
@@ -79,6 +81,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
+  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
 
   const {
     data: groupStats = {},
@@ -176,7 +179,43 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     event,
     group,
   });
-  const releaseSeries = useReleaseMarkLineSeries({group});
+
+  const {releases = []} = useReleaseStats(
+    {
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+      },
+    },
+    {
+      staleTime: 0,
+    }
+  );
+
+  const releaseSeries = useReleaseMarkLineSeries({
+    group,
+    releases: hasReleaseBubblesSeries ? [] : releases,
+  });
+
+  const {
+    createReleaseBubbleHighlighter,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    minTime: eventSeries.length && (eventSeries[0]!.name as number),
+    maxTime: eventSeries.length && (eventSeries[eventSeries.length - 1]!.name as number),
+    bubbleSize: 4,
+    bubblePadding: {
+      x: 1,
+      y: 2,
+    },
+    releases,
+  });
   const flagSeries = useFlagSeries({
     query: {
       start: eventView.start,
@@ -249,7 +288,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
-    if (releaseSeries.markLine) {
+    if (releaseSeries?.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
@@ -363,8 +402,11 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       </SummaryContainer>
       <ChartContainer role="figure">
         <BarChart
+          {...releaseBubbleEventHandlers}
+          ref={createReleaseBubbleHighlighter}
           height={100}
           series={series}
+          additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
           legend={legend}
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
@@ -373,6 +415,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             right: 8,
             top: 20,
             bottom: 0,
+            ...releaseBubbleGrid,
           }}
           tooltip={{
             formatAxisLabel: (
@@ -403,6 +446,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
                 return formatAbbreviatedNumber(value);
               },
             },
+          }}
+          xAxis={{
+            ...releaseBubbleXAxis,
           }}
           {...chartZoomProps}
         />

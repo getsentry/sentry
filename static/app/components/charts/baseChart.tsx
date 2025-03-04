@@ -10,6 +10,7 @@ import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
+  CustomSeriesOption,
   ECharts,
   EChartsOption,
   GridComponentOption,
@@ -137,7 +138,7 @@ export interface BaseChartProps {
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
-  additionalSeries?: LineSeriesOption[];
+  additionalSeries?: Array<CustomSeriesOption | SeriesOption>;
   /**
    * If true, ignores height value and auto-scales chart to fit container height.
    */
