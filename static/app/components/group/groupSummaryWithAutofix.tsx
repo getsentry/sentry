@@ -97,7 +97,7 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
-  if (rootCauseDescription || solutionDescription || solutionIsLoading) {
+  if (rootCauseDescription) {
     return (
       <AutofixSummary
         rootCauseDescription={rootCauseDescription}
