@@ -163,7 +163,7 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
           extra: {
             highlightTerms,
             logColors,
-            useFullSeverityText: true,
+            useFullSeverityText: false,
             renderSeverityCircle: true,
           },
         })}
