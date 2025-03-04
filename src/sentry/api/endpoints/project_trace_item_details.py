@@ -17,6 +17,12 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 
 
+def convert_rpc_attribute_to_json(source: dict) -> dict:
+    for k, v in source.items():
+        if k.startswith("val"):
+            return {"type": k[3:].lower(), "value": v}
+
+
 @region_silo_endpoint
 class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
@@ -63,7 +69,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         resp_dict = {
             "itemId": resp["itemId"],
             "timestamp": resp["timestamp"],
-            "attributes": {attr["name"]: attr["value"] for attr in resp["attributes"]},
+            "attributes": {
+                attr["name"]: convert_rpc_attribute_to_json(attr["value"])
+                for attr in resp["attributes"]
+            },
         }
 
         return Response(resp_dict)
