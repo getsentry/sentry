@@ -187,12 +187,14 @@ def build_title_link(
 def incident_attachment_info(params: GetIncidentAttachmentInfoParams) -> AttachmentInfo:
     status = get_status_text(params.new_status)
 
-    text = get_incident_status_text(
-        params.snuba_query,
-        params.threshold_type,
-        params.comparison_delta,
-        str(params.metric_value),
-    )
+    text = ""
+    if params.metric_value is not None:
+        text = get_incident_status_text(
+            params.snuba_query,
+            params.threshold_type,
+            params.comparison_delta,
+            str(params.metric_value),
+        )
 
     if features.has("organizations:anomaly-detection-alerts", params.organization) and features.has(
         "organizations:anomaly-detection-rollout", params.organization
