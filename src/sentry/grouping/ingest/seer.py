@@ -381,23 +381,8 @@ def maybe_check_seer_for_matching_grouphash(
             )
             return None
 
-        # Find the GroupHash corresponding to the hash value sent to Seer
-        #
-        # TODO: There shouldn't actually be more than one hash in `all_grouphashes`, but
-        #   a) there's a bug in our precedence logic which leads both in-app and system stacktrace
-        #      hashes being marked as contributing and making it through to this point, and
-        #   b) because of how we used to compute secondary and primary hashes, we keep secondary
-        #      hashes even when we don't need them.
-        # Once those two problems are fixed, there will only be one hash passed to this function
-        # and we won't have to do this search to find the right one to update.
-        primary_hash = event.get_primary_hash()
-
-        grouphash_sent = list(
-            filter(lambda grouphash: grouphash.hash == primary_hash, all_grouphashes)
-        )[0]
-
         # Update the relevant GroupHash with Seer results
-        gh_metadata = grouphash_sent.metadata
+        gh_metadata = event_grouphash.metadata
         if gh_metadata:
 
             # TODO: This should never be true (anything created with `objects.create` should have an
