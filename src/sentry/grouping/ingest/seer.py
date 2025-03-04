@@ -37,7 +37,9 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def should_call_seer_for_grouping(
+    event: Event, variants: dict[str, BaseVariant], event_grouphash: GroupHash
+) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -366,7 +368,7 @@ def maybe_check_seer_for_matching_grouphash(
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
-    if should_call_seer_for_grouping(event, variants):
+    if should_call_seer_for_grouping(event, variants, event_grouphash):
         record_did_call_seer_metric(event, call_made=True, blocker="none")
 
         try:
