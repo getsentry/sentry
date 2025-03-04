@@ -48,7 +48,7 @@ type Props = {
 };
 
 export function getLineCoverage(
-  lines: Array<[number, string]>,
+  lines: Frame['context'],
   lineCov: LineCoverage[]
 ): [Array<Coverage | undefined>, boolean] {
   const keyedCoverage = keyBy(lineCov, 0);

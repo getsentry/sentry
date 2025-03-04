@@ -108,7 +108,7 @@ interface StacktraceLinkProps {
   /**
    * The line of code being linked
    */
-  line: string;
+  line: string | null;
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
@@ -293,7 +293,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
-    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );

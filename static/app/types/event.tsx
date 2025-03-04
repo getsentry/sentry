@@ -186,7 +186,7 @@ export enum LockType {
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
-  context: Array<[number, string]>;
+  context: Array<[number, string | null]>;
   filename: string | null;
   function: string | null;
   inApp: boolean;
