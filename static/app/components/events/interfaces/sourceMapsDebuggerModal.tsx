@@ -349,7 +349,7 @@ export function SourceMapsDebuggerModal({
               }/4)`}
               hidden={
                 !sourceResolutionResults.hasScrapingData ||
-                !isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+                isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
               }
             >
               <StyledProgressRing
