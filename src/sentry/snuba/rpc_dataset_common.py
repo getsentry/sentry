@@ -6,9 +6,13 @@ from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    Function,
+)
 
-from sentry.search.eap.columns import Function, ResolvedColumn, ResolvedFormula, ResolvedFunction
+from sentry.search.eap.columns import ResolvedColumn, ResolvedFormula, ResolvedFunction
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
