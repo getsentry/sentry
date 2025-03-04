@@ -375,6 +375,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(data[0]["topValues"]) == 1
         assert data[0]["topValues"][0]["value"] == "false"
         assert data[0]["topValues"][0]["count"] == 1
+        assert data[0]["totalValues"] == 1
 
         assert data[1]["key"] == "hello"
         assert len(data[1]["topValues"]) == 2
@@ -382,11 +383,13 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["topValues"][0]["count"] == 2
         assert data[1]["topValues"][1]["value"] == "true"
         assert data[1]["topValues"][1]["count"] == 1
+        assert data[1]["totalValues"] == 3
 
         assert data[2]["key"] == "world"
         assert len(data[2]["topValues"]) == 1
         assert data[2]["topValues"][0]["value"] == "true"
         assert data[2]["topValues"][0]["count"] == 1
+        assert data[2]["totalValues"] == 1
 
         # Use the key= queryparam to grab results for specific tags
         url = f"/api/0/issues/{event1.group.id}/tags/?key=hello&key=world&useFlagsBackend=1"
@@ -395,18 +398,8 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(response.data) == 2
 
         data = sorted(response.data, key=lambda r: r["key"])
-
         assert data[0]["key"] == "hello"
-        assert len(data[0]["topValues"]) == 2
-        assert data[0]["topValues"][0]["value"] == "false"
-        assert data[0]["topValues"][0]["count"] == 2
-        assert data[0]["topValues"][1]["value"] == "true"
-        assert data[0]["topValues"][1]["count"] == 1
-
         assert data[1]["key"] == "world"
-        assert len(data[1]["topValues"]) == 1
-        assert data[1]["topValues"][0]["value"] == "true"
-        assert data[1]["topValues"][0]["count"] == 1
 
     def test_flags_limit(self):
         for i in range(10):
@@ -424,6 +417,49 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 },
                 project_id=self.project.id,
             )
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "hello", "result": 3},
+                        ]
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "hello", "result": 4},
+                        ]
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        for _ in range(2):
+            self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "contexts": {
+                        "flags": {
+                            "values": [
+                                {"flag": "hello", "result": 7},
+                            ]
+                        }
+                    },
+                },
+                project_id=self.project.id,
+            )
 
         self.login_as(user=self.user)
         url = f"/api/0/issues/{event.group.id}/tags/?useFlagsBackend=1&limit=3"
@@ -432,6 +468,14 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(response.data) == 1
         assert response.data[0]["key"] == "hello"
         assert len(response.data[0]["topValues"]) == 3
+        assert response.data[0]["totalValues"] == 14
+
+        # Assert top values are the most seen values
+        top_values = sorted(response.data[0]["topValues"], key=lambda r: r["value"])
+        assert len(top_values) == 3
+        assert top_values[0]["value"] == "3"
+        assert top_values[1]["value"] == "4"
+        assert top_values[2]["value"] == "7"
 
     def test_flags_reserved_tag_key(self):
         # Flag backend should not handle reserved tag keys differently.
