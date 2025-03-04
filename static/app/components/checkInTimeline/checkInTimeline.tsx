@@ -80,8 +80,8 @@ export function CheckInTimeline<Status extends string>({
             <JobTick
               style={{left, width}}
               css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={isStarting}
-              roundedRight={isEnding}
+              roundedLeft={isStarting && left !== 0}
+              roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
