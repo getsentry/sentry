@@ -3,8 +3,6 @@ import {Fragment} from 'react';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useApiQuery} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
-import * as useApi from 'sentry/utils/useApi';
 
 type ResponseData = {
   value: number;
@@ -79,28 +77,26 @@ describe('queryClient', function () {
     });
 
     it('can return error state', async function () {
-      const requestError = new RequestError('GET', '/some/test/path', new Error());
-      requestError.message = 'something bad happened';
-
-      const api = new MockApiClient();
-      jest.spyOn(useApi, 'default').mockReturnValue(api);
-      jest.spyOn(api, 'requestPromise').mockRejectedValue(requestError);
+      MockApiClient.addMockResponse({
+        url: '/some/test/path',
+        statusCode: 500,
+      });
 
       function TestComponent() {
-        const {isError, error} = useApiQuery<ResponseData>(['/some/test/path'], {
+        const query = useApiQuery<ResponseData>(['/some/test/path'], {
           staleTime: 0,
         });
 
-        if (!isError) {
+        if (!query.isError) {
           return null;
         }
 
-        return <div>{error.message}</div>;
+        return <div>{query.error.message}</div>;
       }
 
       render(<TestComponent />);
 
-      expect(await screen.findByText('something bad happened')).toBeInTheDocument();
+      expect(await screen.findByText('GET /some/test/path 500')).toBeInTheDocument();
     });
   });
 });
