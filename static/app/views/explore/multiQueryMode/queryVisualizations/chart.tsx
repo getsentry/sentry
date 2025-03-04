@@ -17,7 +17,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
@@ -31,7 +31,7 @@ import {
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries, showConfidence} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -57,9 +57,12 @@ export function MultiQueryModeChart({
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
-  const confidence = useMemo(() => {
+  const [confidence, numSeries] = useMemo(() => {
     const series = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis]).filter(defined);
-    return combineConfidenceForSeries(series);
+    return [
+      combineConfidenceForSeries(series),
+      Math.min(series.length, DEFAULT_TOP_EVENTS),
+    ];
   }, [timeseriesResult.data, yAxes]);
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -120,7 +123,7 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const sampleCount = determineSeriesSampleCount(data, isTopN);
+  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
   const visualizationType =
     queryParts.chartType === ChartType.LINE
@@ -298,11 +301,13 @@ export function MultiQueryModeChart({
         />
       }
       Footer={
-        <ConfidenceFooter
-          sampleCount={sampleCount}
-          confidence={confidence}
-          topEvents={isTopN ? DEFAULT_TOP_EVENTS : undefined}
-        />
+        showConfidence(isSampled) && (
+          <ConfidenceFooter
+            sampleCount={sampleCount}
+            confidence={confidence}
+            topEvents={isTopN ? numSeries : undefined}
+          />
+        )
       }
     />
   );

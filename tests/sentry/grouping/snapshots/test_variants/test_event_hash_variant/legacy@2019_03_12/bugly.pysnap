@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:35.261070+00:00'
+created: '2025-02-26T00:33:37.734922+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -46,7 +46,7 @@ system:
             function (function name is not used if module or filename are available)
               "__kernel_rt_sigreturn"
           frame
-          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame
           frame
             function (function name is not used if module or filename are available)
               "kill"

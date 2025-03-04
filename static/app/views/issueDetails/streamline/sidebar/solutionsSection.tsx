@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -66,9 +66,7 @@ export default function SolutionsSection({
   const renderContent = () => {
     if (aiConfig.needsGenAIConsent) {
       return (
-        <Summary>
-          {t('Explore potential root causes and solutions with Sentry AI.')}
-        </Summary>
+        <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
       );
     }
 

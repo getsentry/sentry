@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -173,7 +173,7 @@ export function getUserOrgNavigationConfiguration({
         {
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
-          description: t('Set up your provider webhooks'),
+          description: t('Set up feature flag integrations'),
           badge: () => 'beta',
           show: ({organization}) =>
             !!organization && organization.features.includes('feature-flag-ui'),

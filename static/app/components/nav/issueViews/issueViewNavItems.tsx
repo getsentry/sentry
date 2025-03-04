@@ -35,6 +35,7 @@ export function IssueViewNavItems({
   const queryParams = location.query;
 
   const [views, setViews] = useState<IssueView[]>(loadedViews);
+  const [isDragging, setIsDragging] = useState(false);
 
   // If the `viewId` (from `/issues/views/:viewId`) is not found in the views array,
   // then redirect to the "All Issues" page
@@ -225,9 +226,12 @@ export function IssueViewNavItems({
             view={view}
             sectionRef={sectionRef}
             isActive={view.id === viewId}
+            isDragging={isDragging}
+            setIsDragging={setIsDragging}
             updateView={updatedView => handleUpdateView(view, updatedView)}
             deleteView={() => handleDeleteView(view)}
             duplicateView={() => handleDuplicateView(view)}
+            isLastView={views.length === 1}
           />
         </AnimatePresence>
       ))}

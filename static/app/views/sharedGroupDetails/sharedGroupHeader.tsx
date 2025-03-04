@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

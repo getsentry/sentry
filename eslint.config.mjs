@@ -411,6 +411,8 @@ export default typescript.config([
     rules: {
       'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
+      'no-unused-expressions': 'off', // Disabled in favor of @typescript-eslint/no-unused-expressions
+      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
 
       // Recommended overrides
       '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
@@ -501,8 +503,6 @@ export default typescript.config([
 
             // Internal packages.
             ['^(sentry-locale|sentry-images)(/.*|$)'],
-
-            ['^(getsentry-images)(/.*|$)'],
 
             ['^(app|sentry)(/.*|$)'],
 
@@ -656,6 +656,11 @@ export default typescript.config([
         {
           paths: [
             ...restrictedImportPaths,
+            {
+              name: 'sentry/components/button',
+              message:
+                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
+            },
             {
               name: 'sentry/utils/queryClient',
               message:

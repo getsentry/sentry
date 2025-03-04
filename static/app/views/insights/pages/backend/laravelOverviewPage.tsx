@@ -20,6 +20,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -85,11 +87,7 @@ export function LaravelOverviewPage() {
   const navigate = useNavigate();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -588,12 +586,12 @@ function JobsWidget({query}: {query?: string}) {
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         });
 
         acc[1].data.push({
           value: failedJobsRateValue * spansInTimeBucket,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         });
 
         return acc;
@@ -650,6 +648,13 @@ interface DiscoverQueryResponse {
   }>;
 }
 
+interface RouteControllerMapping {
+  'count(span.duration)': number;
+  'span.description': string;
+  transaction: string;
+  'transaction.method': string;
+}
+
 const errorRateColorThreshold = {
   danger: 0.1,
   warning: 0.05,
@@ -666,9 +671,53 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
 };
 
+const PathCell = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding: ${space(1)} ${space(2)};
+  justify-content: center;
+  gap: ${space(0.5)};
+`;
+
+const ControllerText = styled('div')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  min-width: 0px;
+`;
+
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  overflow: hidden;
+  white-space: nowrap;
+  padding: ${space(1)} ${space(2)};
+
+  &[data-color='danger'] {
+    color: ${p => p.theme.red400};
+  }
+  &[data-color='warning'] {
+    color: ${p => p.theme.yellow400};
+  }
+  &[data-align='right'] {
+    text-align: right;
+    justify-content: flex-end;
+  }
+`;
+
+const HeaderCell = styled(Cell)`
+  padding: 0;
+`;
+
 function RoutesTable({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
+  const theme = useTheme();
 
   const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
     [
@@ -696,8 +745,57 @@ function RoutesTable({query}: {query?: string}) {
     {staleTime: 0}
   );
 
+  // Get the list of transactions from the first request
+  const transactionPaths = useMemo(() => {
+    return (
+      transactionsRequest.data?.data.map(transactions => transactions.transaction) ?? []
+    );
+  }, [transactionsRequest.data]);
+
+  // Add transaction filter to route controller request
+  const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spans',
+          field: [
+            'span.description',
+            'transaction',
+            'transaction.method',
+            'count(span.duration)',
+          ],
+          query: `transaction.op:http.server span.op:http.route transaction:[${
+            transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
+          }]`,
+          referrer: 'api.explore.spans-aggregates-table',
+          sort: '-transaction',
+          per_page: 25,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      // Only fetch after we have the transactions data and there are transactions to look up
+      enabled: !!transactionsRequest.data?.data && transactionPaths.length > 0,
+    }
+  );
+
   const tableData = useMemo(() => {
-    return transactionsRequest.data?.data.map(transaction => ({
+    if (!transactionsRequest.data?.data) {
+      return [];
+    }
+
+    // Create a mapping of transaction path to controller
+    const controllerMap = new Map(
+      routeControllersRequest.data?.data.map(item => [
+        item.transaction,
+        item['span.description'],
+      ])
+    );
+
+    return transactionsRequest.data.data.map(transaction => ({
       method: transaction['http.method'],
       path: transaction.transaction,
       requests: transaction['count()'],
@@ -705,31 +803,31 @@ function RoutesTable({query}: {query?: string}) {
       p95: transaction['p95()'],
       errorRate: transaction['failure_rate()'],
       users: transaction['count_unique(user)'],
+      controller: controllerMap.get(transaction.transaction),
     }));
-  }, [transactionsRequest.data]);
+  }, [transactionsRequest.data, routeControllersRequest.data]);
 
   return (
     <PanelTable
       headers={[
         'Method',
         'Path',
-        <Cell key="requests">
+        <HeaderCell key="requests">
           <IconArrow direction="down" />
           Requests
-        </Cell>,
+        </HeaderCell>,
         'Error Rate',
         'AVG',
         'P95',
-        <Cell key="users" data-align="right">
+        <HeaderCell key="users" data-align="right">
           Users
-        </Cell>,
+        </HeaderCell>,
       ]}
       isLoading={transactionsRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
     >
       {tableData?.map(transaction => {
         const p95Color = getCellColor(transaction.p95, getP95Threshold(transaction.avg));
-
         const errorRateColor = getCellColor(
           transaction.errorRate,
           errorRateColorThreshold
@@ -738,7 +836,23 @@ function RoutesTable({query}: {query?: string}) {
         return (
           <Fragment key={transaction.method + transaction.path}>
             <Cell>{transaction.method}</Cell>
-            <Cell>{transaction.path}</Cell>
+            <PathCell>
+              {transaction.path}
+              {routeControllersRequest.isLoading ? (
+                <Placeholder height={theme.fontSizeSmall} width="200px" />
+              ) : (
+                transaction.controller && (
+                  <Tooltip
+                    title={transaction.controller}
+                    position="top"
+                    maxWidth={400}
+                    showOnlyOnOverflow
+                  >
+                    <ControllerText>{transaction.controller}</ControllerText>
+                  </Tooltip>
+                )
+              )}
+            </PathCell>
             <Cell>{formatAbbreviatedNumber(transaction.requests)}</Cell>
             <Cell data-color={errorRateColor}>
               {(transaction.errorRate * 100).toFixed(2)}%
@@ -757,20 +871,3 @@ function RoutesTable({query}: {query?: string}) {
     </PanelTable>
   );
 }
-const Cell = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  overflow: hidden;
-  white-space: nowrap;
-  &[data-color='danger'] {
-    color: ${p => p.theme.red400};
-  }
-  &[data-color='warning'] {
-    color: ${p => p.theme.yellow400};
-  }
-  &[data-align='right'] {
-    text-align: right;
-    justify-content: flex-end;
-  }
-`;

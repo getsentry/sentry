@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,13 +10,12 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -42,7 +41,6 @@ import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {isTimeSeriesOther} from './isTimeSeriesOther';
 import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 type VisualizationType = 'area' | 'line' | 'bar';
@@ -111,19 +109,32 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  let releaseSeries: Series | undefined = undefined;
-  if (props.releases) {
-    const onClick = (release: Release) => {
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: `/${encodeURIComponent(release.version)}/`,
-        })
-      );
-    };
+  const releaseSeries =
+    props.releases &&
+    ReleaseSeries(
+      theme,
+      props.releases,
+      function onReleaseClick(release: Release) {
+        navigate(
+          makeReleasesPathname({
+            organization,
+            path: `/${encodeURIComponent(release.version)}/`,
+          })
+        );
+      },
+      utc ?? false
+    );
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
-  }
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (e?.getEchartsInstance) {
+        registerWithWidgetSyncContext(e.getEchartsInstance());
+      }
+    },
+    [registerWithWidgetSyncContext]
+  );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -166,11 +177,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
   }
 
-  // Apply unit scaling to all series
-  const scaledSeries = props.timeSeries.map(timeSeries => {
-    return scaleTimeSeriesData(timeSeries, yAxisUnit);
-  });
-
   // Construct plottable items
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
 
@@ -180,7 +186,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : [];
 
   let seriesColorIndex = 0;
-  const plottables = scaledSeries.map(timeSeries => {
+  const plottables = props.timeSeries.map(timeSeries => {
     let color: string;
 
     if (timeSeries.color) {
@@ -197,21 +203,21 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
     if (props.visualizationType === 'area') {
       return new Area(timeSeries, {
-        dataCompletenessDelay,
+        delay: dataCompletenessDelay,
         color,
       });
     }
 
     if (props.visualizationType === 'bar') {
       return new Bars(timeSeries, {
-        dataCompletenessDelay,
+        delay: dataCompletenessDelay,
         color,
         stack: props.stacked ? GLOBAL_STACK_NAME : undefined,
       });
     }
 
     return new Line(timeSeries, {
-      dataCompletenessDelay,
+      delay: dataCompletenessDelay,
       color,
     });
   });
@@ -261,13 +267,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeSeries = scaledSeries.find(t => t.field === field);
-
-        return formatTooltipValue(
-          value,
-          timeSeries?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeSeries?.meta?.units?.[field] ?? undefined
-        );
+        return formatTooltipValue(value, yAxisFieldType, yAxisUnit ?? undefined);
       },
       nameFormatter: seriesName => {
         return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
@@ -277,34 +277,25 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = scaledSeries.length;
+  let visibleSeriesCount = plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
 
-  const dataSeries = plottables.flatMap(plottable => plottable.series);
+  const dataSeries = plottables.flatMap(plottable =>
+    plottable.toSeries({
+      color: plottable.config?.color!, // Colors are assigned from palette, above, so they're guaranteed to be there
+      unit: yAxisUnit,
+    })
+  );
 
   return (
     <BaseChart
-      ref={e => {
-        chartRef.current = e;
-
-        if (e?.getEchartsInstance) {
-          registerWithWidgetSyncContext(e.getEchartsInstance());
-        }
-      }}
+      ref={handleChartRef}
       autoHeightResize
-      series={[
-        ...dataSeries,
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
-      ].filter(defined)}
+      series={[...dataSeries, releaseSeries].filter(defined)}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See

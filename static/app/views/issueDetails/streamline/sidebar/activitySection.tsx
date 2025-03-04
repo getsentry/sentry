@@ -254,6 +254,12 @@ export default function StreamlinedActivitySection({
               <CommentsLink
                 to={filteredActivityLink}
                 aria-label={t('Number of comments: %s', group.numComments)}
+                onClick={() => {
+                  trackAnalytics('issue_details.activity_comments_link_clicked', {
+                    organization,
+                    num_comments: group.numComments,
+                  });
+                }}
               >
                 <IconChat
                   size="xs"

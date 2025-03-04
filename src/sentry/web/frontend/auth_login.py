@@ -541,6 +541,7 @@ class AuthLoginView(BaseView):
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
+            "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
