@@ -16,6 +16,14 @@ def human_desc(
     priority=None,
 ):
     # Returns a human readable description to display in the UI
+
+    action_type_to_string = {
+        AlertRuleTriggerAction.Type.PAGERDUTY.value: f"Send a {priority} PagerDuty notification to {target_display}",
+        AlertRuleTriggerAction.Type.SLACK.value: f"Send a Slack notification to {target_display}",
+        AlertRuleTriggerAction.Type.MSTEAMS.value: f"Send a Microsoft Teams notification to {target_display}",
+        AlertRuleTriggerAction.Type.SENTRY_APP.value: f"Send a notification via {target_display}",
+    }
+
     if priority:
         priority += " level"
 
@@ -25,18 +33,10 @@ def human_desc(
                 return "Send a notification to " + target.email
             elif target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 return "Send an email to members of #" + target.slug
-    elif action_type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
-        return f"Send a {priority} PagerDuty notification to " + target_display
-    elif action_type == AlertRuleTriggerAction.Type.SLACK.value:
-        return "Send a Slack notification to " + target_display
-    elif action_type == AlertRuleTriggerAction.Type.MSTEAMS.value:
-        return "Send a Microsoft Teams notification to " + target_display
-    elif action_type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
-        return "Send a notification via " + target_display
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if priority:
-            return f"Send a {priority} Opsgenie notification to " + target_display
-        return "Send an Opsgenie notification to " + target_display
+            return f"Send a {priority} Opsgenie notification to {target_display}"
+        return "Send an Opsgenie notification to {target_display}"
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
         if not target_display:
             logger.info(
@@ -44,6 +44,8 @@ def human_desc(
                 extra={"target_identifier": target_identifier},
             )
         return f"Send a Discord notification to {target_display}"
+    else:
+        return action_type_to_string[action_type]
 
 
 def get_identifier_from_action(action_type, target_identifier, target_display=None):
