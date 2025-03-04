@@ -263,7 +263,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
 export const useOpenSolutionsDrawer = (
   group: Group,
   project: Project,
-  event: Event,
+  event: Event | undefined,
   buttonRef?: React.RefObject<HTMLButtonElement>
 ) => {
   const {openDrawer} = useDrawer();
