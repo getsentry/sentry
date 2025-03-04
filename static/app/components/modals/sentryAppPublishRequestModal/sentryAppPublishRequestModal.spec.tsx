@@ -83,9 +83,7 @@ describe('SentryAppDetailsModal', function () {
   });
 
   it('renders new modal questions when feature flag is true', () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <SentryAppPublishRequestModal
@@ -119,9 +117,7 @@ describe('SentryAppDetailsModal', function () {
       url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
       method: 'POST',
     });
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <SentryAppPublishRequestModal
@@ -227,9 +223,7 @@ describe('SentryAppDetailsModal', function () {
   });
 
   it('allows users to select a list of categories', async () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <SentryAppPublishRequestModal
@@ -334,9 +328,7 @@ describe('SentryAppDetailsModal', function () {
     expect(closeModal).not.toHaveBeenCalled();
   });
   it('button is disabled if invalid urls are used', async () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <SentryAppPublishRequestModal
