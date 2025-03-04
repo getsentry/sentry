@@ -55,7 +55,7 @@ describe('createReleaseBuckets', () => {
   it('creates the correct buckets', () => {
     const {minTime, maxTime} = createTimeSeries(13);
     // let's change the last timeseries
-    const newEndingTs = maxTime + 2235;
+    const newEndingTs = maxTime! + 2235;
 
     const buckets = createReleaseBuckets(minTime, newEndingTs, []);
     expect(buckets).toEqual([
@@ -80,57 +80,48 @@ describe('createReleaseBuckets', () => {
     const releases = [
       {
         version: 'ui@0.1.2',
-        date: 1508208080000,
+        date: new Date(1508208080000).toISOString(),
       },
       {
         version: 'ui@0.1.22',
-        date: 1508208081323,
+        date: new Date(1508208081323).toISOString(),
       },
       {
         version: 'ui@0.1.3',
-        date: 1508208081423,
+        date: new Date(1508208081423).toISOString(),
       },
       {
         version: 'ui@0.1.4',
-        date: 1508208083000,
+        date: new Date(1508208083000).toISOString(),
       },
       {
         version: 'ui@0.1.41',
-        date: 1508208084269,
+        date: new Date(1508208084269).toISOString(),
       },
       {
         version: 'ui@0.1.51',
-        date: 1508208092816,
+        date: new Date(1508208092816).toISOString(),
       },
       {
         version: 'ui@0.1.52',
-        date: 1508208094230,
+        date: new Date(1508208094230).toISOString(),
       },
       {
         version: 'ui@0.1.53',
-        date: 1508208094235,
+        date: new Date(1508208094235).toISOString(),
       },
       {
         version: 'ui@0.1.54',
-        date: 1508208094235,
+        date: new Date(1508208094235).toISOString(),
       },
       // Should not be included
       {
         version: 'ui@0.1.6',
-        date: 1508208094236,
+        date: new Date(1508208094236).toISOString(),
       },
     ];
 
-    const buckets = createReleaseBuckets(
-      minTime,
-      newEndingTs,
-      releases
-
-      //   .map(release => ({
-      //   ...release,
-      //   timestamp: new Date(release.timestamp).toISOString(),
-      // }))
-    );
+    const buckets = createReleaseBuckets(minTime, newEndingTs, releases);
 
     expect(buckets).toEqual([
       [
@@ -139,9 +130,9 @@ describe('createReleaseBuckets', () => {
         1508208081424,
         3,
         [
-          {version: 'ui@0.1.2', date: 1508208080000},
-          {version: 'ui@0.1.22', date: 1508208081323},
-          {version: 'ui@0.1.3', date: 1508208081423},
+          {version: 'ui@0.1.2', date: new Date(1508208080000).toISOString()},
+          {version: 'ui@0.1.22', date: new Date(1508208081323).toISOString()},
+          {version: 'ui@0.1.3', date: new Date(1508208081423).toISOString()},
         ],
       ],
       [1508208081424, 0, 1508208082848, 0, []],
@@ -158,10 +149,10 @@ describe('createReleaseBuckets', () => {
         1508208094235,
         4,
         [
-          {version: 'ui@0.1.51', date: 1508208092816},
-          {version: 'ui@0.1.52', date: 1508208094230},
-          {version: 'ui@0.1.53', date: 1508208094235},
-          {version: 'ui@0.1.54', date: 1508208094235},
+          {version: 'ui@0.1.51', date: new Date(1508208092816).toISOString()},
+          {version: 'ui@0.1.52', date: new Date(1508208094230).toISOString()},
+          {version: 'ui@0.1.53', date: new Date(1508208094235).toISOString()},
+          {version: 'ui@0.1.54', date: new Date(1508208094235).toISOString()},
         ],
       ],
     ]);
