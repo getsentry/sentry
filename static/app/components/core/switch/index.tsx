@@ -37,11 +37,10 @@ const ToggleConfig = {
   },
 };
 
-const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
-const getTranslateX = (p: StyleProps) =>
-  p.checked
-    ? ToggleConfig[p.size ?? 'sm'].top + getSize(p) * 0.875
-    : ToggleConfig[p.size ?? 'sm'].top;
+const ToggleWrapperSize = {
+  sm: 16,
+  lg: 24,
+};
 
 const SwitchButton = styled('button')<StyleProps>`
   display: inline-block;
@@ -50,9 +49,9 @@ const SwitchButton = styled('button')<StyleProps>`
   border: 1px solid ${p => p.theme.border};
   position: relative;
   box-shadow: inset ${p => p.theme.dropShadowMedium};
-  height: ${getSize}px;
-  width: ${p => getSize(p) * 1.875}px;
-  border-radius: ${getSize}px;
+  height: ${p => ToggleWrapperSize[p.size ?? 'sm']}px;
+  width: ${p => ToggleWrapperSize[p.size ?? 'sm'] * 1.875}px;
+  border-radius: ${p => ToggleWrapperSize[p.size ?? 'sm']}px;
   transition:
     border 0.1s,
     box-shadow 0.1s;
@@ -76,7 +75,12 @@ const Toggle = styled('span')<StyleProps>`
   border-radius: 50%;
   transition: 0.25s all ease;
   top: ${p => ToggleConfig[p.size ?? 'sm'].top}px;
-  transform: translateX(${getTranslateX}px);
+  transform: translateX(
+    ${p =>
+      p.checked
+        ? ToggleConfig[p.size ?? 'sm'].top + ToggleWrapperSize[p.size ?? 'sm'] * 0.875
+        : ToggleConfig[p.size ?? 'sm'].top}px
+  );
   width: ${p => ToggleConfig[p.size ?? 'sm'].size}px;
   height: ${p => ToggleConfig[p.size ?? 'sm'].size}px;
 `;
