@@ -36,12 +36,12 @@ from sentry.api.event_search import SearchConfig
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AggregateDefinition,
     ColumnDefinitions,
     FormulaDefinition,
-    FunctionDefinition,
+    ResolvedAggregate,
     ResolvedColumn,
     ResolvedFormula,
-    ResolvedFunction,
     VirtualColumnDefinition,
 )
 from sentry.search.eap.types import SearchResolverConfig
@@ -65,7 +65,7 @@ class SearchResolver:
         field(default_factory=dict)
     )
     _resolved_function_cache: dict[
-        str, tuple[ResolvedFunction | ResolvedFormula, VirtualColumnDefinition | None]
+        str, tuple[ResolvedAggregate | ResolvedFormula, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
 
     @sentry_sdk.trace
@@ -553,7 +553,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_columns(self, selected_columns: list[str]) -> tuple[
-        list[ResolvedColumn | ResolvedFunction | ResolvedFormula],
+        list[ResolvedColumn | ResolvedAggregate | ResolvedFormula],
         list[VirtualColumnDefinition | None],
     ]:
         """Given a list of columns resolve them and get their context if applicable
@@ -590,7 +590,9 @@ class SearchResolver:
 
     def resolve_column(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn | ResolvedFunction | ResolvedFormula, VirtualColumnDefinition | None]:
+    ) -> tuple[
+        ResolvedColumn | ResolvedAggregate | ResolvedFormula, VirtualColumnDefinition | None
+    ]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -672,7 +674,7 @@ class SearchResolver:
     @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedFunction | ResolvedFormula], list[VirtualColumnDefinition | None]]:
+    ) -> tuple[list[ResolvedAggregate | ResolvedFormula], list[VirtualColumnDefinition | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -683,7 +685,7 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedFunction | ResolvedFormula, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedAggregate | ResolvedFormula, VirtualColumnDefinition | None]:
         if column in self._resolved_function_cache:
             return self._resolved_function_cache[column]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
@@ -698,9 +700,9 @@ class SearchResolver:
         alias = match.group("alias") or column
 
         # Get the function definition
-        function_definition: FunctionDefinition | FormulaDefinition
-        if function in self.definitions.functions:
-            function_definition = self.definitions.functions[function]
+        function_definition: AggregateDefinition | FormulaDefinition
+        if function in self.definitions.aggregates:
+            function_definition = self.definitions.aggregates[function]
         elif function in self.definitions.formulas:
             function_definition = self.definitions.formulas[function]
         else:
