@@ -21,6 +21,7 @@ def convert_rpc_attribute_to_json(source: dict) -> dict:
     for k, v in source.items():
         if k.startswith("val"):
             return {"type": k[3:].lower(), "value": v}
+    raise BadRequest(f"unknown field in protobuf: {source}")
 
 
 @region_silo_endpoint
