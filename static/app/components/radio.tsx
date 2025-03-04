@@ -1,28 +1,13 @@
-import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {growIn} from 'sentry/styles/animations';
 
-interface CheckedProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  disabled?: boolean;
+export interface RadioProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   radioSize?: 'small';
 }
 
-const checkedCss = (p: CheckedProps, theme: Theme) => css`
-  display: block;
-  width: ${p.radioSize === 'small' ? '0.5rem' : '0.875rem'};
-  height: ${p.radioSize === 'small' ? '0.5rem' : '0.875rem'};
-  border-radius: 50%;
-  background-color: ${theme.active};
-  animation: 0.2s ${growIn} ease;
-  opacity: ${p.disabled ? 0.4 : null};
-`;
-
-const Radio = styled((props: CheckedProps) => <input type="radio" {...props} />, {
-  shouldForwardProp: isPropValid,
-})`
+export const Radio = styled((props: RadioProps) => <input type="radio" {...props} />)`
   display: flex;
   padding: 0;
   width: ${p => (p.radioSize === 'small' ? '1rem' : '1.5rem')};
@@ -51,8 +36,12 @@ const Radio = styled((props: CheckedProps) => <input type="radio" {...props} />,
 
   &:checked:after {
     content: '';
-    ${p => checkedCss(p, p.theme)}
+    display: block;
+    width: ${p => (p.radioSize === 'small' ? '0.5rem' : '0.875rem')};
+    height: ${p => (p.radioSize === 'small' ? '0.5rem' : '0.875rem')};
+    border-radius: 50%;
+    background-color: ${p => p.theme.active};
+    animation: 0.2s ${growIn} ease;
+    opacity: ${p => (p.disabled ? 0.4 : null)};
   }
 `;
-
-export default Radio;

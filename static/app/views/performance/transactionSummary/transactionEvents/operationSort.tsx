@@ -6,7 +6,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
-import Radio from 'sentry/components/radio';
+import {Radio} from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';

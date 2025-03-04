@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import Radio from 'sentry/components/radio';
+import {Radio} from 'sentry/components/radio';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Radio from 'sentry/components/radio';
+import {Radio} from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';

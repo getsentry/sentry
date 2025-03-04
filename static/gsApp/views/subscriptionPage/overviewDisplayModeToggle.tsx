@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Radio from 'sentry/components/radio';
+import {Radio} from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
