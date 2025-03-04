@@ -197,7 +197,7 @@ class RedisSpansBufferV2:
         with self.client.pipeline(transaction=False) as p:
             for segment_id in segment_ids:
                 p.delete(segment_id)
-                p.delete(f"span-buf:hrs:{segment_id}".encode("ascii"))
+                p.delete(b"span-buf:hrs:" + segment_id)
 
                 # parse trace_id out of SegmentId, then remove from queue
                 trace_id = segment_id.split(b":")[3][:-1]
