@@ -60,7 +60,7 @@ def explode_segment(message: tuple[list[dict[str, Any]], Mapping[Partition, int]
         if span is not None:
             yield Value(
                 payload=KafkaPayload(key=None, value=orjson.dumps(span), headers=[]),
-                committable=committable if i == last else None,
+                committable=committable if i == last else {},
                 timestamp=None,
             )
 
