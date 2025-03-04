@@ -409,7 +409,7 @@ def run_trace_query(
     trace_attributes = [
         "parent_span",
         "description",
-        "op",
+        "span.op",
         "is_transaction",
         "transaction.span_id",
         "transaction",
