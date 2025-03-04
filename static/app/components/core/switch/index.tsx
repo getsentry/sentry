@@ -8,7 +8,6 @@ export interface SwitchProps {
    * Toggle color is always active.
    */
   forceActiveColor?: boolean;
-  forwardedRef?: React.Ref<HTMLButtonElement>;
   id?: string;
   isActive?: boolean;
   isDisabled?: boolean;
@@ -17,21 +16,23 @@ export interface SwitchProps {
 }
 
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
-  ({
-    forwardedRef,
-    size = 'sm',
-    isActive,
-    forceActiveColor,
-    isDisabled,
-    toggle,
-    id,
-    name,
-    className,
-    ...props
-  }: SwitchProps) => {
+  (
+    {
+      size = 'sm',
+      isActive,
+      forceActiveColor,
+      isDisabled,
+      toggle,
+      id,
+      name,
+      className,
+      ...props
+    }: SwitchProps,
+    ref
+  ) => {
     return (
       <SwitchButton
-        ref={forwardedRef}
+        ref={ref}
         id={id}
         name={name}
         type="button"
