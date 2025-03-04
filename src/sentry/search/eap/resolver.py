@@ -675,7 +675,7 @@ class SearchResolver:
     @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedAggregate | ResolvedFormula], list[VirtualColumnDefinition | None]]:
+    ) -> tuple[list[type[ResolvedFunction]], list[VirtualColumnDefinition | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
