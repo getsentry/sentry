@@ -53,9 +53,7 @@ def test_end_to_end_message_processing():
     # Assert the application gets the current time after appending the message and then attempts to
     # flush the buffer with the current time.
     cmd = next(gen)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == time.time
-    assert cmd.msg(1) == TryFlush(now=1)
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
     assert runtime.model.buffer == [
         ProcessedRecordingMessage(
             actions_event=ParsedEventMeta([], [], [], [], [], []),
@@ -117,8 +115,7 @@ def test_invalid_message_format():
     # Application tries to flush.
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == time.time
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
     assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
@@ -151,7 +148,7 @@ def test_invalid_recording_json():
     # Application tries to flush.
     cmd = next(gen)
     assert len(runtime.model.buffer) == 1
-    assert isinstance(cmd, Effect)
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
     assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
@@ -184,7 +181,7 @@ def test_missing_headers():
     # Application tries to flush.
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
-    assert isinstance(cmd, Effect)
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
     assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
@@ -215,8 +212,7 @@ def test_buffer_full_semantics():
 
     # Application tries to flush.
     cmd = next(gen)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == time.time
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
 
     # Assert the TryFlush msg produced by the runtime had no effect because the buffer was not full
     # and the wait interval was not exceeded.
@@ -231,8 +227,7 @@ def test_buffer_full_semantics():
 
     # Application tries to flush.
     cmd = next(gen)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == time.time
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
     assert cmd.msg(1) == TryFlush(now=1)
 
     # Assert a flush command is triggered from the msg produced by the runtime.
@@ -267,8 +262,7 @@ def test_buffer_timeout():
 
     # Application tries to flush.
     cmd = next(gen)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == time.time
+    assert cmd == Effect(fun=time.time, msg=TryFlush)
     assert cmd.msg(1) == TryFlush(now=1)
 
     # Assert the TryFlush msg produced by the runtime had no effect because the wait interval was
