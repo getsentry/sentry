@@ -5,6 +5,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
@@ -30,7 +31,7 @@ class MemberPermission(OrganizationPermission):
     def has_object_permission(
         self,
         request: Request,
-        view: object,
+        view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         if not super().has_object_permission(request, view, organization):

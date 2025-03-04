@@ -281,7 +281,7 @@ class BaseOrganizationEndpointTest(TestCase):
             user = self.user
         request.user = user
         request.auth = None
-        request.access = from_request(request, self.org)
+        request.access = from_request(drf_request_from_request(request), self.org)
         return request
 
 

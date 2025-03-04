@@ -1,17 +1,5 @@
 from __future__ import annotations
 
-from sentry.constants import ObjectStatus
-
-__all__ = [
-    "from_user",
-    "from_member",
-    "DEFAULT",
-    "from_user_and_rpc_user_org_context",
-    "from_user_and_api_user_org_context",
-    "from_rpc_member",
-    "from_api_member",
-]
-
 import abc
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
@@ -21,14 +9,15 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.auth.services.access.service import access_service
-from sentry.auth.services.auth import RpcAuthState, RpcMemberSsoState
+from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
-from sentry.auth.system import SystemToken, is_system_auth
-from sentry.models.apikey import ApiKey
+from sentry.auth.system import is_system_auth
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -42,6 +31,16 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
+
+__all__ = (
+    "from_user",
+    "from_member",
+    "DEFAULT",
+    "from_user_and_rpc_user_org_context",
+    "from_user_and_api_user_org_context",
+    "from_rpc_member",
+    "from_api_member",
+)
 
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
@@ -897,7 +896,7 @@ class NoAccess(OrganizationlessAccess):
 
 def from_request_org_and_scopes(
     *,
-    request: Any,
+    request: Request,
     rpc_user_org_context: RpcUserOrganizationContext | None = None,
     scopes: Iterable[str] | None = None,
 ) -> Access:
@@ -936,7 +935,7 @@ def from_request_org_and_scopes(
             scopes=superuser_scopes,
         )
 
-    if hasattr(request, "auth") and not request.user.is_authenticated:
+    if request.auth is not None and not request.user.is_authenticated:
         return from_rpc_auth(request.auth, rpc_user_org_context)
 
     return from_user_and_rpc_user_org_context(
@@ -970,7 +969,7 @@ def normalize_valid_user(user: User | RpcUser | AnonymousUser | None) -> User | 
 
 def from_user_and_rpc_user_org_context(
     *,
-    user: User | RpcUser | None,
+    user: User | AnonymousUser | RpcUser | None,
     rpc_user_org_context: RpcUserOrganizationContext | None = None,
     is_superuser: bool = False,
     is_staff: bool = False,
@@ -996,7 +995,7 @@ from_user_and_api_user_org_context = from_user_and_rpc_user_org_context
 
 
 def from_request(
-    request: Any, organization: Organization | None = None, scopes: Iterable[str] | None = None
+    request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
     is_staff = is_active_staff(request)
@@ -1043,7 +1042,7 @@ def from_request(
             permissions=access_service.get_permissions_for_user(request.user.id),
         )
 
-    if hasattr(request, "auth") and not request.user.is_authenticated:
+    if request.auth is not None and not request.user.is_authenticated:
         return from_auth(request.auth, organization)
 
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
@@ -1166,11 +1165,10 @@ def from_rpc_member(
 from_api_member = from_rpc_member
 
 
-def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
+def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
-    assert not isinstance(auth, SystemToken)
-    if auth.organization_id == organization.id:
+    elif auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
             auth.organization_id, settings.SENTRY_SCOPES, sso_is_valid=True
         )
@@ -1179,7 +1177,7 @@ def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
 
 
 def from_rpc_auth(
-    auth: ApiKey | SystemToken, rpc_user_org_context: RpcUserOrganizationContext
+    auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
