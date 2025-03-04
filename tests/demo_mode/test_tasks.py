@@ -27,7 +27,12 @@ class SyncArtifactBundlesTest(TestCase):
         self.source_proj_bar = self.create_project(organization=self.source_org, slug="bar")
         self.target_proj_baz = self.create_project(organization=self.target_org, slug="baz")
 
-    def set_up_artifact_bundle(self, organization: Organization, project: Project, date_uploaded):
+    def set_up_artifact_bundle(
+        self,
+        organization: Organization,
+        project: Project,
+        date_uploaded: timezone.datetime | None,
+    ):
         date_uploaded = date_uploaded or timezone.now()
         artifact_bundle = self.create_artifact_bundle(org=organization, date_uploaded=date_uploaded)
         project_artifact_bundle = ProjectArtifactBundle.objects.create(

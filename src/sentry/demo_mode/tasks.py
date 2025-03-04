@@ -26,11 +26,11 @@ def sync_artifact_bundles():
     source_org = Organization.objects.get(slug="demo")
     target_org = get_demo_org()
 
-    _sync_artifact_bundles(source_org, target_org)
+    _sync_artifact_bundles(source_org, target_org, None)
 
 
 def _sync_artifact_bundles(
-    source_org: Organization, target_org: Organization, period: timedelta = None
+    source_org: Organization, target_org: Organization, period: timedelta | None
 ):
     if not source_org or not target_org:
         return
@@ -72,10 +72,10 @@ def _sync_project_artifact_bundle(
     source_artifact_bundle: ArtifactBundle,
     target_artifact_bundle: ArtifactBundle,
 ):
-    source_project_artifact_bundle = ProjectArtifactBundle.objects.filter(
+    source_project_artifact_bundle = ProjectArtifactBundle.objects.get(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
-    ).first()
+    )
 
     target_project = _find_matching_project(
         source_project_artifact_bundle.project_id,
