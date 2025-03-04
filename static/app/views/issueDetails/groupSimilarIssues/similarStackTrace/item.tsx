@@ -6,7 +6,7 @@ import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';

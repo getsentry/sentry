@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
