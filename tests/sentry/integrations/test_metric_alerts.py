@@ -16,6 +16,21 @@ from sentry.testutils.helpers.datetime import freeze_time
 pytestmark = pytest.mark.sentry_metrics
 
 
+def incident_attachment_info_with_metric_value(incident, new_status, metric_value):
+    return incident_attachment_info(
+        name=incident.alert_rule.name,
+        open_period_identifier_id=incident.identifier,
+        action_identifier_id=incident.alert_rule.id,
+        organization=incident.organization,
+        threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
+        detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
+        snuba_query=incident.alert_rule.snuba_query,
+        comparison_delta=incident.alert_rule.comparison_delta,
+        new_status=new_status,
+        metric_value=metric_value,
+    )
+
+
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
     def test_returns_correct_info(self):
         alert_rule = self.create_alert_rule()
@@ -36,9 +51,16 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
         data = incident_attachment_info(
-            incident,
-            IncidentStatus.CLOSED,
-            metric_value,
+            name=alert_rule.name,
+            open_period_identifier_id=incident.identifier,
+            action_identifier_id=alert_rule.id,
+            organization=self.organization,
+            threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
+            detection_type=AlertRuleDetectionType(alert_rule.detection_type),
+            snuba_query=alert_rule.snuba_query,
+            comparison_delta=alert_rule.comparison_delta,
+            new_status=IncidentStatus.CLOSED,
+            metric_value=metric_value,
             notification_uuid=notification_uuid,
             referrer=referrer,
         )
@@ -46,7 +68,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "123 events in the last 10 minutes"
-        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer={referrer}&detection_type=static&notification_uuid={notification_uuid}"
@@ -85,13 +106,14 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         incident_trigger.update(date_modified=now)
 
         # Test the trigger "firing"
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value=4)
+        data = incident_attachment_info_with_metric_value(
+            incident, IncidentStatus.CRITICAL, metric_value=4
+        )
         assert data["title"] == "Critical: {}".format(
             alert_rule.name
         )  # Pulls from trigger, not incident
         assert data["status"] == "Critical"  # Should pull from the action/trigger.
         assert data["text"] == "4 events in the last 10 minutes"
-        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
@@ -102,11 +124,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
         # Test the trigger "resolving"
-        data = incident_attachment_info(incident, IncidentStatus.CLOSED, metric_value=4)
+        data = incident_attachment_info_with_metric_value(
+            incident, IncidentStatus.CLOSED, metric_value=4
+        )
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
-        assert data["date_started"] == date_started
         assert (
             data["title_link"]
             == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
@@ -117,7 +140,9 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
         # No trigger passed, uses incident as fallback
-        data = incident_attachment_info(incident, IncidentStatus.CLOSED, metric_value=4)
+        data = incident_attachment_info_with_metric_value(
+            incident, IncidentStatus.CLOSED, metric_value=4
+        )
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes"
@@ -152,7 +177,9 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         metric_value = 123.12
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
+        data = incident_attachment_info_with_metric_value(
+            incident, IncidentStatus.CRITICAL, metric_value
+        )
         assert (
             data["text"]
             == "Events 123% higher in the last 10 minutes compared to the same time one hour ago"
@@ -181,7 +208,9 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         metric_value = 123.12
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
+        data = incident_attachment_info_with_metric_value(
+            incident, IncidentStatus.CRITICAL, metric_value
+        )
         assert (
             data["text"]
             == "Events 123% higher in the last 10 minutes compared to the same time one hour ago"
@@ -208,7 +237,9 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         metric_value = 123.12
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
+        data = incident_attachment_info_with_metric_value(
+            incident, IncidentStatus.CRITICAL, metric_value
+        )
         assert (
             data["text"]
             == "Events 123% higher in the last 10 minutes compared to the same time 720 minutes ago"
@@ -272,12 +303,13 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_incident_trigger_sessions(self):
         self.create_incident_and_related_objects()
-        data = incident_attachment_info(self.incident, IncidentStatus.CRITICAL, 92)
+        data = incident_attachment_info_with_metric_value(
+            self.incident, IncidentStatus.CRITICAL, 92
+        )
 
         assert data["title"] == f"Critical: {self.alert_rule.name}"
         assert data["status"] == "Critical"
         assert data["text"] == "92% sessions crash free rate in the last hour"
-        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -285,11 +317,12 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_incident_trigger_sessions_resolve(self):
         self.create_incident_and_related_objects()
-        data = incident_attachment_info(self.incident, IncidentStatus.CLOSED, metric_value=100.0)
+        data = incident_attachment_info_with_metric_value(
+            self.incident, IncidentStatus.CLOSED, metric_value=100.0
+        )
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% sessions crash free rate in the last hour"
-        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -297,11 +330,12 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_incident_trigger_users(self):
         self.create_incident_and_related_objects(field="users")
-        data = incident_attachment_info(self.incident, IncidentStatus.CRITICAL, 92)
+        data = incident_attachment_info_with_metric_value(
+            self.incident, IncidentStatus.CRITICAL, 92
+        )
         assert data["title"] == f"Critical: {self.alert_rule.name}"
         assert data["status"] == "Critical"
         assert data["text"] == "92% users crash free rate in the last hour"
-        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -309,11 +343,12 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_incident_trigger_users_resolve(self):
         self.create_incident_and_related_objects(field="users")
-        data = incident_attachment_info(self.incident, IncidentStatus.CLOSED, metric_value=100.0)
+        data = incident_attachment_info_with_metric_value(
+            self.incident, IncidentStatus.CLOSED, metric_value=100.0
+        )
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last hour"
-        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -321,13 +356,12 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
     def test_with_daily_incident_trigger_users_resolve(self):
         self.create_daily_incident_and_related_objects(field="users")
-        data = incident_attachment_info(
+        data = incident_attachment_info_with_metric_value(
             self.daily_incident, IncidentStatus.CLOSED, metric_value=100.0
         )
         assert data["title"] == f"Resolved: {self.daily_alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last day"
-        assert data["date_started"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -352,7 +386,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, 0)
+        data = incident_attachment_info_with_metric_value(incident, IncidentStatus.CRITICAL, 0)
 
         assert data["title"] == f"Critical: {alert_rule.name}"
         assert data["status"] == "Critical"

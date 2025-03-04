@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from typing import Literal
 
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import (
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,
     ColumnWidth,
@@ -15,13 +19,23 @@ from sentry.integrations.msteams.card_builder.block import (
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
     data = incident_attachment_info(
-        incident,
-        new_status,
-        metric_value,
+        name=incident.alert_rule.name,
+        open_period_identifier_id=incident.identifier,
+        action_identifier_id=incident.alert_rule.id,
+        organization=incident.organization,
+        threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
+        detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
+        snuba_query=incident.alert_rule.snuba_query,
+        comparison_delta=incident.alert_rule.comparison_delta,
+        new_status=new_status,
+        metric_value=metric_value,
         notification_uuid=notification_uuid,
         referrer="metric_alert_msteams",
     )
@@ -29,11 +43,7 @@ def build_incident_attachment(
     colors: dict[str, Literal["good", "warning", "attention"]]
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = (
-        "Sentry Incident | {}".format(data["date_started"].strftime("%b %d"))
-        if data["date_started"] is not None
-        else "Sentry Incident"
-    )
+    footer_text = "Sentry Incident | {}".format(incident.date_started.strftime("%b %d"))
 
     return {
         "type": "AdaptiveCard",

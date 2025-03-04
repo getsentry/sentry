@@ -6,9 +6,16 @@ from typing import Any, TypedDict
 from django.db import router, transaction
 from django.http import Http404
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import (
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
@@ -91,11 +98,25 @@ def build_incident_attachment(
     incident,
     integration_key,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value: float | None = None,
     notfication_uuid: str | None = None,
 ) -> dict[str, Any]:
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
     data = incident_attachment_info(
-        incident, new_status, metric_value, notfication_uuid, referrer="metric_alert_pagerduty"
+        name=incident.alert_rule.name,
+        open_period_identifier_id=incident.identifier,
+        action_identifier_id=incident.alert_rule.id,
+        organization=incident.organization,
+        threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
+        detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
+        snuba_query=incident.alert_rule.snuba_query,
+        comparison_delta=incident.alert_rule.comparison_delta,
+        new_status=new_status,
+        metric_value=metric_value,
+        notification_uuid=notfication_uuid,
+        referrer="metric_alert_pagerduty",
     )
     severity = "info"
     if new_status == IncidentStatus.CRITICAL:
