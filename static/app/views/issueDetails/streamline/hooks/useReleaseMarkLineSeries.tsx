@@ -22,11 +22,7 @@ export function useReleaseMarkLineSeries({group}: {group: Group}) {
   const theme = useTheme();
   const eventView = useIssueDetailsEventView({group});
   const organization = useOrganization();
-  const {
-    data: releases = [],
-    isPending: isLoadingReleases,
-    error: releasesError,
-  } = useApiQuery<ReleaseStat[]>(
+  const {data: releases = []} = useApiQuery<ReleaseStat[]>(
     [
       `/organizations/${organization.slug}/releases/stats/`,
       {
@@ -43,14 +39,6 @@ export function useReleaseMarkLineSeries({group}: {group: Group}) {
       staleTime: 0,
     }
   );
-
-  if (isLoadingReleases || releasesError) {
-    return {
-      seriesName: t('Releases'),
-      markLine: {},
-      data: [],
-    };
-  }
 
   const markLine = MarkLine({
     animation: false,
