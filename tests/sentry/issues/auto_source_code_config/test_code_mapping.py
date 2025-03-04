@@ -134,6 +134,9 @@ class TestFrameInfo:
             pytest.param({"module": "foo"}, MissingModuleOrAbsPath),  # No abs_path
             pytest.param({"module": "foo", "abs_path": "hasDollar$Symbol"}, DoNotUseThisFrame),
             pytest.param(
+                {"module": "OtherActivity", "abs_path": "OtherActivity.java"}, DoNotUseThisFrame
+            ),
+            pytest.param(
                 {"module": "foo.no_upper_letter_class", "abs_path": "bar.java"},
                 FailedToExtractFilename,
             ),
