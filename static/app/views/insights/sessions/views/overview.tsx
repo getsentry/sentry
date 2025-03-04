@@ -37,6 +37,32 @@ export function SessionsOverview() {
   const {view} = useDomainViewFilters();
   const [filters, setFilters] = useState<string[]>(['']);
 
+  const SESSION_HEALTH_CHARTS = (
+    <Fragment>
+      {view === FRONTEND_LANDING_SUB_PATH ? (
+        <ModuleLayout.Third>
+          <ErrorFreeSessionsChart />
+        </ModuleLayout.Third>
+      ) : view === MOBILE_LANDING_SUB_PATH ? (
+        <ModuleLayout.Third>
+          <CrashFreeSessionChart />
+        </ModuleLayout.Third>
+      ) : undefined}
+      <ModuleLayout.Third>
+        <SessionHealthCountChart />
+      </ModuleLayout.Third>
+      <ModuleLayout.Third>
+        <SessionHealthRateChart />
+      </ModuleLayout.Third>
+      <ModuleLayout.Half>
+        <UserHealthCountChart />
+      </ModuleLayout.Half>
+      <ModuleLayout.Half>
+        <UserHealthRateChart />
+      </ModuleLayout.Half>
+    </Fragment>
+  );
+
   return (
     <React.Fragment>
       {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
@@ -63,21 +89,7 @@ export function SessionsOverview() {
             </ModuleLayout.Full>
             {view === MOBILE_LANDING_SUB_PATH && (
               <Fragment>
-                <ModuleLayout.Third>
-                  <CrashFreeSessionChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Third>
-                  <SessionHealthRateChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Third>
-                  <SessionHealthCountChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Half>
-                  <UserHealthCountChart />
-                </ModuleLayout.Half>
-                <ModuleLayout.Half>
-                  <UserHealthRateChart />
-                </ModuleLayout.Half>
+                {SESSION_HEALTH_CHARTS}
                 <ModuleLayout.Full>
                   <FilterWrapper>
                     <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
@@ -88,23 +100,7 @@ export function SessionsOverview() {
               </Fragment>
             )}
             {view === FRONTEND_LANDING_SUB_PATH && (
-              <Fragment>
-                <ModuleLayout.Third>
-                  <ErrorFreeSessionsChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Third>
-                  <SessionHealthRateChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Third>
-                  <SessionHealthCountChart />
-                </ModuleLayout.Third>
-                <ModuleLayout.Half>
-                  <UserHealthCountChart />
-                </ModuleLayout.Half>
-                <ModuleLayout.Half>
-                  <UserHealthRateChart />
-                </ModuleLayout.Half>
-              </Fragment>
+              <Fragment>{SESSION_HEALTH_CHARTS}</Fragment>
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
