@@ -582,7 +582,7 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         # Split the module at the first '$' character and take the part before it
         # If there's no '$', use the entire module
         file_path = module.split("$", 1)[0] if "$" in module else module
-        module_as_path = module.rsplit(".", 1)[0].replace(".", "/") + "/"
+        module_as_path = module.rsplit(".", 1)[0].replace(".", "/")
         return module_as_path, file_path.replace(".", "/")
 
     file_path = ""
@@ -599,8 +599,8 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         raise DoesNotFollowJavaPackageNamingConvention
 
     # If module has a dot, take everything before the last dot
-    module_as_path = module.rsplit(".", 1)[0].replace(".", "/") + "/"
-    file_path = module_as_path + abs_path_before_dot
+    module_as_path = module.rsplit(".", 1)[0].replace(".", "/")
+    file_path = f"{module_as_path}/{abs_path_before_dot}"
 
     # Add extension back if it exists
     if extension:

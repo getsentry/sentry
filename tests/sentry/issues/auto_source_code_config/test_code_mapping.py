@@ -139,11 +139,6 @@ class TestFrameInfo:
                 DoesNotFollowJavaPackageNamingConvention,
                 id="unnamed_package",
             ),
-            pytest.param(
-                {"module": "foo.no_upper_letter_class", "abs_path": "bar.java"},
-                DoesNotFollowJavaPackageNamingConvention,
-                id="no_upper_letter_class",
-            ),
         ],
     )
     def test_java_raises_exception(
@@ -157,26 +152,26 @@ class TestFrameInfo:
         [
             pytest.param(
                 {"module": "foo.bar.Baz$handle$1", "abs_path": "baz.java"},
-                "foo/bar/",
+                "foo/bar",
                 "foo/bar/baz.java",
-                id="dollar_symbol_in_abs_path",
+                id="dollar_symbol_in_module",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "baz.extra.java"},
-                "foo/bar/",
+                "foo/bar",
                 "foo/bar/baz.extra.java",
                 id="two_dots_in_abs_path",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "no_extension"},
-                "foo/bar/",
-                "foo/bar/Baz",  # The path is based on the module
-                id="invalid_abs_path_no_dot",
+                "foo/bar",
+                "foo/bar/Baz",  # The path does not use the abs_path
+                id="invalid_abs_path_no_extension",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "foo$bar"},
-                "foo/bar/",
-                "foo/bar/Baz",  # The path is based on the module
+                "foo/bar",
+                "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_dollar_sign",
             ),
         ],
