@@ -4,6 +4,8 @@ from typing import Any
 
 import rapidjson
 import sentry_sdk
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -17,6 +19,7 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_topic_codec(Topic.BUFFERED_SEGMENTS)
 
@@ -71,6 +74,13 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.pool = MultiprocessingPool(num_processes)
+
+        cluster_name = get_topic_definition(Topic.SNUBA_SPANS)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+        self.output_topic = ArroyoTopic(
+            get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
+        )
 
     def create_with_partitions(
         self,
