@@ -314,6 +314,30 @@ class ShouldCallSeerTest(TestCase):
             empty_frame_event, call_made=False, blocker="empty-stacktrace-string"
         )
 
+    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    def test_obeys_race_condition_skip(self, mock_record_did_call_seer: MagicMock) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        assert self.event.should_skip_seer is False
+        assert (
+            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+        )
+
+        self.event.should_skip_seer = True
+
+        # TODO: Replace the assert below with the commented-out assertions once we turn the skip on
+        # for real.
+        #
+        # assert (
+        #     should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
+        # )
+        # mock_record_did_call_seer.assert_any_call(
+        #     self.event, call_made=False, blocker="race_condition"
+        # )
+        assert (
+            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+        )
+
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_stacktrace_string_not_saved_in_event(
         self, mock_get_similarity_data: MagicMock
