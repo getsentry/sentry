@@ -4,10 +4,6 @@ import styled from '@emotion/styled';
 export interface SwitchProps {
   toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
-  /**
-   * Toggle color is always active.
-   */
-  forceActiveColor?: boolean;
   id?: string;
   isActive?: boolean;
   isDisabled?: boolean;
@@ -20,7 +16,6 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
     {
       size = 'sm',
       isActive,
-      forceActiveColor,
       isDisabled,
       toggle,
       id,
@@ -46,21 +41,13 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
         data-test-id="switch"
         {...props}
       >
-        <Toggle
-          isDisabled={isDisabled}
-          isActive={isActive}
-          forceActiveColor={forceActiveColor}
-          size={size}
-        />
+        <Toggle isDisabled={isDisabled} isActive={isActive} size={size} />
       </SwitchButton>
     );
   }
 );
 
-type StyleProps = Pick<
-  SwitchProps,
-  'size' | 'isActive' | 'forceActiveColor' | 'isDisabled'
->;
+type StyleProps = Pick<SwitchProps, 'size' | 'isActive' | 'isDisabled'>;
 
 const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
 const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 4 : 8);
@@ -103,7 +90,6 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p =>
-    p.isActive || p.forceActiveColor ? p.theme.active : p.theme.border};
+  background: ${p => (p.isActive ? p.theme.active : p.theme.border)};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
