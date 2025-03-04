@@ -8,7 +8,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 
-import {isADurationUnit, isASizeUnit} from '../common/typePredicates';
+import {isADurationUnit, isASizeUnit} from '../../common/typePredicates';
 
 export function formatTooltipValue(value: number, type: string, unit?: string): string {
   switch (type) {

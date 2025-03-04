@@ -12,7 +12,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 
-import {isADurationUnit, isARateUnit, isASizeUnit} from '../common/typePredicates';
+import {isADurationUnit, isARateUnit, isASizeUnit} from '../../common/typePredicates';
 
 import {formatYAxisDuration} from './formatYAxisDuration';
 
