@@ -3,7 +3,6 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {defined} from 'sentry/utils';
 import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {type ApiQueryKey, fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 
 interface Props {
   /**
@@ -94,7 +93,6 @@ export default function useFetchSequentialPages<Data>({
   initialCursor,
   perPage,
 }: Props): State<Data> {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
@@ -122,7 +120,7 @@ export default function useFetchSequentialPages<Data>({
           }
           const [data, , resp] = await queryClient.fetchQuery({
             queryKey,
-            queryFn: fetchDataQuery(api),
+            queryFn: fetchDataQuery<Data>,
             staleTime: Infinity,
           });
 
@@ -156,7 +154,7 @@ export default function useFetchSequentialPages<Data>({
         });
       }
     },
-    [api, initialCursor, getQueryKey, perPage, queryClient]
+    [initialCursor, getQueryKey, perPage, queryClient]
   );
 
   useEffect(() => {

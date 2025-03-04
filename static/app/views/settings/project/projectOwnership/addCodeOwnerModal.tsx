@@ -31,7 +31,6 @@ import {
   type UseMutationResult,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 
 type Props = {
   organization: Organization;
@@ -85,9 +84,6 @@ export default function AddCodeOwnerModal({
     {staleTime: Infinity, enabled: Boolean(codeMappingId)}
   );
 
-  const api = useApi({
-    persistInFlight: false,
-  });
   const mutation = useMutation<
     TCodeownersData,
     TCodeownersError,
@@ -95,7 +91,7 @@ export default function AddCodeOwnerModal({
     TCodeownersContext
   >({
     mutationFn: ([payload]: TCodeownersVariables) => {
-      return fetchMutation(api)([
+      return fetchMutation([
         'POST',
         `/projects/${organization.slug}/${project.slug}/codeowners/`,
         {},

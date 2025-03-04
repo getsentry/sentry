@@ -5,7 +5,6 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, QueryObserver, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -86,7 +85,6 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   responseReducer,
   bufferLimit = 50,
 }: Props<AggregatableQueryKey, Data>) {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
@@ -152,7 +150,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       const queryKey = getQueryKey(queuedAggregatableBatch);
       queryClient.fetchQuery({
         queryKey,
-        queryFn: fetchDataQuery(api),
+        queryFn: fetchDataQuery,
       });
 
       const observer = new QueryObserver(queryClient, {queryKey});
@@ -170,7 +168,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
     } catch (error) {
       onError?.(error);
     }
-  }, [api, bufferLimit, cache, cacheKey, getQueryKey, key, onError, queryClient]);
+  }, [bufferLimit, cache, cacheKey, getQueryKey, key, onError, queryClient]);
 
   const clearTimer = useCallback(() => {
     if (timer.current) {

@@ -4,17 +4,15 @@ import type {
   QueryFunctionContext,
   SetDataOptions,
   Updater,
-  UseInfiniteQueryResult as _UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
 import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
-import type {APIRequestMethod, ApiResult, Client, ResponseMeta} from 'sentry/api';
-import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import type {APIRequestMethod, ApiResult, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
@@ -26,20 +24,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
-// XXX: We need to set persistInFlight to disable query cancellation on
-//      unmount. The current implementation of our API client does not
-//      reject on query cancellation, which causes React Query to never
-//      update from the isLoading state. This matches the library default
-//      as well [0].
-//
-//      This is slightly different from our typical usage of our api client
-//      in components, where we do not want it to resolve, since we would
-//      then have to guard our setState's against being unmounted.
-//
-//      This has the advantage of storing the result in the cache as well.
-//
-//      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
-const PERSIST_IN_FLIGHT = true;
+const QUERY_API_CLIENT = new Client();
 
 export type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
@@ -123,12 +108,9 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   queryKey: ApiQueryKey,
   options: UseApiQueryOptions<TResponseData, TError>
 ): UseApiQueryResult<TResponseData, TError> {
-  const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-  const queryFn = fetchDataQuery(api);
-
   const {data, ...rest} = useQuery({
     queryKey,
-    queryFn,
+    queryFn: fetchDataQuery<TResponseData>,
     ...options,
   });
 
@@ -148,14 +130,11 @@ export function useApiQueries<TResponseData, TError = RequestError>(
   queryKeys: ApiQueryKey[],
   options: UseApiQueryOptions<TResponseData, TError>
 ): Array<UseApiQueryResult<TResponseData, TError>> {
-  const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-  const queryFn = fetchDataQuery(api);
-
   const results = useQueries({
     queries: queryKeys.map(queryKey => {
       return {
         queryKey,
-        queryFn,
+        queryFn: fetchDataQuery<TResponseData>,
         ...options,
       };
     }),
@@ -176,27 +155,24 @@ export function useApiQueries<TResponseData, TError = RequestError>(
 }
 
 /**
- * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `useApiQuery` or even the raw `useQuery` hook.
+ * This method can be used as a default `queryFn` with `useApiQuery`
+ * or even the raw `useQuery` hook.
  *
- * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
- * type into parts that will be passed into api.requestPromise
- *
- * See also: fetchInfiniteQuery & fetchMutation
+ * See also: fetchMutation
  */
-export function fetchDataQuery(api: Client) {
-  return function fetchDataQueryImpl(context: QueryFunctionContext<ApiQueryKey>) {
-    const [url, opts] = context.queryKey;
+export function fetchDataQuery<TResponseData = unknown>(
+  context: QueryFunctionContext<ApiQueryKey>
+): Promise<ApiResult<TResponseData>> {
+  const [url, opts] = context.queryKey;
 
-    return api.requestPromise(url, {
-      includeAllArgs: true,
-      host: opts?.host,
-      method: opts?.method ?? 'GET',
-      data: opts?.data,
-      query: opts?.query,
-      headers: opts?.headers,
-    });
-  };
+  return QUERY_API_CLIENT.requestPromise(url, {
+    includeAllArgs: true,
+    host: opts?.host,
+    method: opts?.method ?? 'GET',
+    data: opts?.data,
+    query: opts?.query,
+    headers: opts?.headers,
+  });
 }
 
 /**
@@ -241,35 +217,6 @@ export function setApiQueryData<TResponseData>(
   return newResponse[0];
 }
 
-/**
- * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `useInfiniteQuery` hook.
- *
- * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
- * type into parts that will be passed into api.requestPromise including the next
- * page cursor.
- *
- * See also: fetchDataQuery & fetchMutation
- */
-export function fetchInfiniteQuery<TResponseData>(api: Client) {
-  return function fetchInfiniteQueryImpl({
-    pageParam,
-    queryKey,
-  }: QueryFunctionContext<ApiQueryKey, undefined | ParsedHeader>): Promise<
-    ApiResult<TResponseData>
-  > {
-    const [url, endpointOptions] = queryKey;
-    return api.requestPromise(url, {
-      includeAllArgs: true,
-      headers: endpointOptions?.headers,
-      query: {
-        ...endpointOptions?.query,
-        cursor: pageParam?.cursor,
-      },
-    });
-  };
-}
-
 function parsePageParam(dir: 'previous' | 'next') {
   return ([, , resp]: ApiResult<unknown>) => {
     const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
@@ -291,17 +238,24 @@ export function useInfiniteApiQuery<TResponseData>({
   queryKey: ApiQueryKey;
   enabled?: boolean;
 }) {
-  const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-  const query = useInfiniteQuery({
+  return useInfiniteQuery({
     queryKey,
-    queryFn: fetchInfiniteQuery<TResponseData>(api),
+    queryFn: ({pageParam}): Promise<ApiResult<TResponseData>> => {
+      const [url, endpointOptions] = queryKey;
+      return QUERY_API_CLIENT.requestPromise(url, {
+        includeAllArgs: true,
+        headers: endpointOptions?.headers,
+        query: {
+          ...endpointOptions?.query,
+          cursor: pageParam?.cursor,
+        },
+      });
+    },
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
     enabled: enabled ?? true,
   });
-
-  return query;
 }
 
 type ApiMutationVariables<
@@ -314,26 +268,21 @@ type ApiMutationVariables<
   | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>, Data];
 
 /**
- * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `useMutation` hook.
+ * This method can be used as a default `mutationFn` with `useMutation` hook.
  *
- * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
- * type into parts that will be passed into api.requestPromise including different
- * `method` and supports putting & posting `data.
- *
- * See also: fetchDataQuery & fetchInfiniteQuery
+ * See also: fetchDataQuery
  */
-export function fetchMutation(api: Client) {
-  return function fetchMutationImpl(variables: ApiMutationVariables) {
-    const [method, url, opts, data] = variables;
+export function fetchMutation<TResponseData = unknown>(
+  variables: ApiMutationVariables
+): Promise<TResponseData> {
+  const [method, url, opts, data] = variables;
 
-    return api.requestPromise(url, {
-      method,
-      query: opts?.query,
-      headers: opts?.headers,
-      data,
-    });
-  };
+  return QUERY_API_CLIENT.requestPromise(url, {
+    method,
+    query: opts?.query,
+    headers: opts?.headers,
+    data,
+  });
 }
 
 export * from '@tanstack/react-query';
