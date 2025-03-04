@@ -159,7 +159,6 @@ describe('HTTPSummaryPage', function () {
       body: {
         'http_response_rate(3)': {
           data: [[1699908000, [{count: 0.2}]]],
-
           meta: {
             fields: {
               'http_response_rate(3)': 'percentage',
@@ -169,7 +168,6 @@ describe('HTTPSummaryPage', function () {
         },
         'http_response_rate(4)': {
           data: [[1699908000, [{count: 0.1}]]],
-
           meta: {
             fields: {
               'http_response_rate(4)': 'percentage',
@@ -179,7 +177,6 @@ describe('HTTPSummaryPage', function () {
         },
         'http_response_rate(5)': {
           data: [[1699908000, [{count: 0.3}]]],
-
           meta: {
             fields: {
               'http_response_rate(5)': 'percentage',
