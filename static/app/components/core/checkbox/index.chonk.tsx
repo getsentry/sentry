@@ -43,5 +43,6 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')`
   &:disabled:indeterminate + * {
     background-color: ${p => p.theme.colors.static.blue400};
     border: 1px solid ${p => p.theme.colors.static.blue400};
+    opacity: 0.6;
   }
 `;

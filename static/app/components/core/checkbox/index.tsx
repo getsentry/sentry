@@ -5,7 +5,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
-import * as ChonkInput from './index.chonk';
+import * as ChonkCheckbox from './index.chonk';
 
 type CheckboxConfig = {
   borderRadius: string;
@@ -100,9 +100,9 @@ const NativeHiddenCheckbox = withChonk(
     cursor: pointer;
 
     & + * {
+      box-shadow: ${p => p.theme.dropShadowMedium} inset;
       color: ${p => p.theme.textColor};
       border: 1px solid ${p => p.theme.gray200};
-      box-shadow: ${p => p.theme.dropShadowMedium} inset;
 
       svg {
         stroke: ${p => p.theme.white};
@@ -110,7 +110,6 @@ const NativeHiddenCheckbox = withChonk(
     }
 
     &:focus-visible + * {
-      border: 1px solid ${p => p.theme.focusBorder};
       box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
     }
 
@@ -136,7 +135,7 @@ const NativeHiddenCheckbox = withChonk(
       border: 1px solid ${p => p.theme.disabledBorder};
     }
   `,
-  ChonkInput.ChonkNativeHiddenCheckbox
+  ChonkCheckbox.ChonkNativeHiddenCheckbox
 );
 
 const FakeCheckbox = styled('div')<{
