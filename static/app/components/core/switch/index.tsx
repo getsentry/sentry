@@ -1,7 +1,8 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-export interface SwitchProps extends React.HTMLAttributes<HTMLButtonElement> {
+export interface SwitchProps
+  extends Omit<React.InputHTMLAttributes<HTMLButtonElement>, 'size' | 'type'> {
   toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   id?: string;
@@ -58,6 +59,11 @@ const SwitchButton = styled('button')<StyleProps>`
     border 0.1s,
     box-shadow 0.1s;
 
+  span {
+    background: ${p => (p.isActive ? p.theme.active : p.theme.border)};
+    opacity: ${p => (p.isDisabled ? 0.4 : null)};
+  }
+
   &[disabled] {
     cursor: not-allowed;
   }
@@ -79,6 +85,4 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p => (p.isActive ? p.theme.active : p.theme.border)};
-  opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
