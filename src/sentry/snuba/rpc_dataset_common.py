@@ -53,11 +53,12 @@ def is_aggregate(column: ResolvedColumn | ResolvedFunction | ResolvedFormula) ->
 
         if isinstance(definition, Column.BinaryFormula):
             return (
-                is_aggregate_definition(definition.left.aggregation)
-                or is_aggregate_definition(definition.right.aggregation)
-                or is_aggregate_definition(definition.left.conditional_aggregation)
+                is_aggregate_definition(definition.left.conditional_aggregation)
                 or is_aggregate_definition(definition.right.conditional_aggregation)
+                or is_aggregate_definition(definition.left.aggregation)
+                or is_aggregate_definition(definition.right.aggregation)
                 or is_aggregate_definition(definition.left.formula)
+                or is_aggregate_definition(definition.right.formula)
             )
 
         return False
