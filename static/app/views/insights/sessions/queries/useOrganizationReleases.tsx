@@ -118,6 +118,7 @@ export default function useOrganizationReleases({
               : undefined;
 
             return {
+              project: release.projects[0]!,
               release: release.shortVersion ?? release.version,
               date: release.dateCreated,
               adoption_stage: projSlug

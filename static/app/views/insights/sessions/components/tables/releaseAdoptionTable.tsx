@@ -1,25 +1,29 @@
-import {useCallback, useMemo} from 'react';
+import {type ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Duration from 'sentry/components/duration';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {AvatarProject} from 'sentry/types/project';
+import type {ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ReleaseProjectColumn} from 'sentry/views/releases/list/releaseCard';
 
 type ReleaseAdoptionItem = {
   adoption: number;
   adoption_stage: string;
   date: string;
   lifespan: number | undefined;
-  project_id: number;
+  project: ReleaseProject;
   release: string;
 };
 
@@ -35,6 +39,7 @@ type Column = GridColumnHeader<keyof ReleaseAdoptionItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseAdoptionItem>> = [
   {key: 'release', name: 'version'},
+  {key: 'project', name: 'project'},
   {key: 'date', name: 'date created'},
   {key: 'lifespan', name: 'lifespan'},
   {key: 'adoption', name: 'adoption'},
@@ -92,12 +97,20 @@ export default function ReleaseAdoptionTable({
         );
       }
 
+      if (column.key === 'project') {
+        return (
+          <ReleaseProjectColumn>
+            <ProjectBadge project={value as AvatarProject} avatarSize={16} />
+          </ReleaseProjectColumn>
+        );
+      }
+
       if (column.key === 'adoption') {
         return `${(value as number).toFixed(2)}%`;
       }
 
       if (!meta?.fields) {
-        return value;
+        return value as ReactNode;
       }
 
       const renderer = getFieldRenderer(column.key, meta.fields, false);
