@@ -24,8 +24,9 @@ type Props = {
 class ZendeskLink extends Component<Props> {
   componentDidMount() {
     const {organization, source} = this.props;
-    organization &&
+    if (organization) {
       trackGetsentryAnalytics('zendesk_link.viewed', {organization, source});
+    }
   }
 
   activateSupportWidget = (e: React.MouseEvent) => {

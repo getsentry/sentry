@@ -60,6 +60,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
       plan: subscription.planDetails,
       category,
       capitalize: false,
+      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
     return category === DataCategory.ATTACHMENTS
@@ -161,21 +162,24 @@ function UsageAlert({organization, subscription, usage}: Props) {
   }
 
   function renderExceededInfo() {
-    const exceededList = sortCategoriesWithKeys(subscription.categories).reduce(
-      (acc, [category, currentHistory]) => {
+    const exceededList = sortCategoriesWithKeys(subscription.categories)
+      .filter(
+        ([category]) =>
+          category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
+      )
+      .reduce((acc, [category, currentHistory]) => {
         if (currentHistory.usageExceeded) {
           acc.push(
             getPlanCategoryName({
               plan: subscription.planDetails,
               category,
               capitalize: false,
+              hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
             })
           );
         }
         return acc;
-      },
-      [] as string[]
-    );
+      }, [] as string[]);
 
     const quotasExceeded =
       exceededList.length > 0
@@ -184,6 +188,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
             plan: subscription.planDetails,
             category: DataCategory.ERRORS,
             capitalize: false,
+            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
           });
 
     return (

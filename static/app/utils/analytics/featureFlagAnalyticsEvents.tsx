@@ -6,6 +6,10 @@ export type FeatureFlagEventParameters = {
     numSuspectFlags: number;
     numTotalFlags: number;
   };
+  'flags.logs-paginated': {
+    direction: 'next' | 'prev';
+    surface: 'settings';
+  };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
     numFlags: number;
@@ -25,5 +29,6 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.table_rendered': 'Flag Table Rendered',
   'flags.cta_setup_button_clicked': 'Flag CTA Setup Button Clicked',
   'flags.cta_dismissed': 'Flag CTA Dismissed',
+  'flags.logs-paginated': 'Feature Flag Logs Paginated',
   'flags.view-setup-sidebar': 'Viewed Feature Flag Onboarding Sidebar',
 };

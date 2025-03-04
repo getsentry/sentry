@@ -25,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -278,6 +279,11 @@ function OrganizationMembersList() {
 
   const membersPageLinks = getResponseHeader?.('Link');
 
+  // hides other users in demo mode
+  const membersToShow = isDemoModeEnabled()
+    ? members.filter(({email}) => email === currentUser.email)
+    : members;
+
   const action = (
     <InviteMembersButtonHook
       organization={organization}
@@ -352,13 +358,13 @@ function OrganizationMembersList() {
         />
       </SearchWrapperWithFilter>
       <Panel data-test-id="org-member-list">
-        <MemberListHeader members={members} organization={organization} />
+        <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
           {isLoadingMembers ? (
             <LoadingIndicator />
           ) : (
             <Fragment>
-              {members.map(member => (
+              {membersToShow.map(member => (
                 <OrganizationMemberRow
                   key={member.id}
                   organization={organization}
@@ -380,7 +386,7 @@ function OrganizationMembersList() {
                   onLeave={handleLeave}
                 />
               ))}
-              {members.length === 0 && (
+              {membersToShow.length === 0 && (
                 <EmptyMessage>{t('No members found.')}</EmptyMessage>
               )}
             </Fragment>

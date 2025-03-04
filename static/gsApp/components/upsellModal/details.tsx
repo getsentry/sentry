@@ -273,7 +273,9 @@ class Body extends Component<Props, State> {
   }
 
   stopAutoRotate() {
-    this.autoRotateInterval && clearInterval(this.autoRotateInterval);
+    if (this.autoRotateInterval) {
+      clearInterval(this.autoRotateInterval);
+    }
   }
 
   showNextFeature = () =>

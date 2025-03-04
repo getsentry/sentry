@@ -38,7 +38,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
-SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.SNUBA_SPANS)
+SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.INGEST_SPANS)
 MAX_PAYLOAD_SIZE = 10 * 1000 * 1000  # 10 MB
 
 BATCH_SIZE = 100

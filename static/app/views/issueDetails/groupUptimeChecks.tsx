@@ -13,6 +13,8 @@ import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTabl
 import {useUptimeIssueAlertId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
+import {useUptimeRule} from '../insights/uptime/utils/useUptimeRule';
+
 export default function GroupUptimeChecks() {
   const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
@@ -29,6 +31,14 @@ export default function GroupUptimeChecks() {
 
   const canFetchUptimeChecks =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
+
+  const {data: uptimeRule} = useUptimeRule(
+    {
+      projectSlug: group?.project.slug ?? '',
+      uptimeRuleId: uptimeAlertId ?? '',
+    },
+    {enabled: canFetchUptimeChecks}
+  );
 
   const {data: uptimeChecks, getResponseHeader} = useUptimeChecks(
     {
@@ -47,7 +57,7 @@ export default function GroupUptimeChecks() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  if (isGroupPending || uptimeChecks === undefined) {
+  if (isGroupPending || uptimeChecks === undefined || uptimeRule === undefined) {
     return <LoadingIndicator />;
   }
 
@@ -67,7 +77,7 @@ export default function GroupUptimeChecks() {
         previousDisabled,
       }}
     >
-      <UptimeChecksGrid uptimeChecks={uptimeChecks} />
+      <UptimeChecksGrid uptimeRule={uptimeRule} uptimeChecks={uptimeChecks} />
     </EventListTable>
   );
 }

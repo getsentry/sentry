@@ -234,10 +234,13 @@ def process_segment(spans: list[dict[str, Any]]):
     # _nodestore_save_many(jobs=jobs, app_feature="transactions")          # N/A: nodestore is deprecated
     # _eventstream_insert_many(jobs)                                       # N/A: produced outside
     # _track_outcome_accepted_many(jobs)                                   # N/A: created by outcomes consumer
-    _detect_performance_problems(jobs, projects, is_standalone_spans=True)
-    _update_occurrence_group_type(jobs, projects)  # NB: exclusive to spans consumer
-    if options.get("standalone-spans.send-occurrence-to-platform.enable"):
-        _send_occurrence_to_platform(jobs, projects)
+
+    if options.get("standalone-spans.detect-performance-problems.enable"):
+        _detect_performance_problems(jobs, projects, is_standalone_spans=True)
+        _update_occurrence_group_type(jobs, projects)  # NB: exclusive to spans consumer
+        if options.get("standalone-spans.send-occurrence-to-platform.enable"):
+            _send_occurrence_to_platform(jobs, projects)
+
     _record_transaction_info(jobs, projects)
 
-    return jobs
+    return spans
