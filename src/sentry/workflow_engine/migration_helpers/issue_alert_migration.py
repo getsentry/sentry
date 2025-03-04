@@ -114,7 +114,7 @@ class IssueAlertMigrator:
             try:
                 if (
                     condition["id"] == EventUniqueUserFrequencyConditionWithConditions.id
-                ):  # special case
+                ):  # special case: this condition uses filters, so the migration needs to combine the filters into the condition
                     dcg_conditions.append(
                         create_event_unique_user_frequency_condition_with_conditions(
                             dict(condition), dcg, filters
@@ -127,7 +127,10 @@ class IssueAlertMigrator:
                     "workflow_engine.issue_alert_migration.error",
                     extra={"rule_id": self.rule.id, "error": str(e)},
                 )
-                continue
+                if self.is_dry_run:
+                    raise
+                else:
+                    continue
 
         filtered_data_conditions = [
             dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS
@@ -193,7 +196,7 @@ class IssueAlertMigrator:
             len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
         )
 
-        if no_conditions and not only_has_every_event_cond:
+        if not self.is_dry_run and no_conditions and not only_has_every_event_cond:
             raise Exception("No valid conditions, skipping migration")
 
         enabled = True
