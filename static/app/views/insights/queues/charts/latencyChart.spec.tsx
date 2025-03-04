@@ -2,22 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
-
 describe('latencyChart', () => {
   const organization = OrganizationFixture();
-
-  jest.mocked(useReleaseStats).mockReturnValue({
-    isLoading: false,
-    isPending: false,
-    isError: false,
-    error: null,
-    releases: [],
-  });
 
   let eventsStatsMock: jest.Mock;
 
