@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Input} from 'sentry/components/core/input/index';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix from 'sentry/components/stories/matrix';
 import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
@@ -29,7 +28,6 @@ export default storyBook('InputGroup', (story, APIReference) => {
           </InputGroup.LeadingItems>
           <InputGroup.Input placeholder="Search" />
         </InputGroup>
-        <Input placeholder="hodl" />
       </Fragment>
     );
   });
