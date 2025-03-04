@@ -6,44 +6,37 @@ export interface SwitchProps
   toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   id?: string;
-  isActive?: boolean;
-  isDisabled?: boolean;
   size?: 'sm' | 'lg';
 }
 
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
-  (
-    {size = 'sm', isActive, isDisabled, toggle, id, className, ...props}: SwitchProps,
-    ref
-  ) => {
+  ({size = 'sm', toggle, id, className, ...props}: SwitchProps, ref) => {
     return (
       <SwitchButton
         ref={ref}
         id={id}
+        data-test-id="switch"
         type="button"
         className={className}
-        onClick={isDisabled ? undefined : toggle}
         role="checkbox"
-        aria-checked={isActive}
-        disabled={isDisabled}
-        isActive={isActive}
+        aria-checked={props.checked}
         size={size}
-        data-test-id="switch"
+        onClick={props.disabled ? undefined : toggle}
         {...props}
       >
-        <Toggle isDisabled={isDisabled} isActive={isActive} size={size} />
+        <Toggle disabled={props.disabled} checked={props.checked} size={size} />
       </SwitchButton>
     );
   }
 );
 
-type StyleProps = Pick<SwitchProps, 'size' | 'isActive' | 'isDisabled'>;
+type StyleProps = Pick<SwitchProps, 'size' | 'checked' | 'disabled'>;
 
 const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
 const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 4 : 8);
 const getToggleTop = (p: StyleProps) => (p.size === 'sm' ? 1 : 3);
 const getTranslateX = (p: StyleProps) =>
-  p.isActive ? getToggleTop(p) + getSize(p) * 0.875 : getToggleTop(p);
+  p.checked ? getToggleTop(p) + getSize(p) * 0.875 : getToggleTop(p);
 
 const SwitchButton = styled('button')<StyleProps>`
   display: inline-block;
@@ -60,8 +53,8 @@ const SwitchButton = styled('button')<StyleProps>`
     box-shadow 0.1s;
 
   span {
-    background: ${p => (p.isActive ? p.theme.active : p.theme.border)};
-    opacity: ${p => (p.isDisabled ? 0.4 : null)};
+    background: ${p => (p.checked ? p.theme.active : p.theme.border)};
+    opacity: ${p => (p.disabled ? 0.4 : null)};
   }
 
   &[disabled] {

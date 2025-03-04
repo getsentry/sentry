@@ -27,13 +27,13 @@ export default storyBook('Switch', (story, APIReference) => {
         </p>
         <Label htmlFor="switch">
           {toggleOn ? 'Switch is on' : 'Switch is off'}
-          <Switch id="switch" toggle={() => setToggleOn(!toggleOn)} isActive={toggleOn} />
+          <Switch id="switch" toggle={() => setToggleOn(!toggleOn)} checked={toggleOn} />
         </Label>
         <p>
           You can pass a callback function into the <JSXProperty name="toggle" value />{' '}
           prop to control what happens when the toggle is clicked. Pair this with a{' '}
           <code>useState</code> or some other code to set the active state of the toggle,
-          which is controlled by the prop <JSXProperty name="isActive" value />.
+          which is controlled by the prop <JSXProperty name="checked" value />.
         </p>
       </Fragment>
     );
@@ -55,7 +55,7 @@ export default storyBook('Switch', (story, APIReference) => {
             id="lg-switch"
             toggle={() => setToggleOnL(!toggleOnL)}
             size="lg"
-            isActive={toggleOnL}
+            checked={toggleOnL}
           />
         </Label>
         <Label htmlFor="sm-switch">
@@ -64,7 +64,7 @@ export default storyBook('Switch', (story, APIReference) => {
             id="sm-switch"
             toggle={() => setToggleOnS(!toggleOnS)}
             size="sm"
-            isActive={toggleOnS}
+            checked={toggleOnS}
           />
         </Label>
       </Fragment>
