@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
 
 export default function SessionHealthChart() {
@@ -13,7 +13,7 @@ export default function SessionHealthChart() {
   };
 
   return (
-    <InsightsLineChartWidget
+    <InsightsAreaChartWidget
       title={t('Session Health Rate')}
       aliases={aliases}
       series={series}
