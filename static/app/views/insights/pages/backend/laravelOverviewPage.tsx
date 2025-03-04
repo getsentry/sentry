@@ -721,7 +721,7 @@ function QueriesWidget({query}: {query?: string}) {
       return {
         data:
           timeSeriesRequest.data[key]?.data.map(([time, [value]]) => ({
-            timestamp: new Date(time).toISOString(),
+            timestamp: new Date(time * 1000).toISOString(),
             value: value?.count!,
           })) ?? [],
         field: groupName,
