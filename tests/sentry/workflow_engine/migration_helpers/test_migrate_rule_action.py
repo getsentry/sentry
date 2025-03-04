@@ -1110,7 +1110,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
     def test_skip_failures_flag(self):
         """Test that the skip_failures flag skips invalid actions."""
-        action_data = [
+        action_data: list[dict[str, str | Any]] = [
             # Missing required fields, should skip
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
