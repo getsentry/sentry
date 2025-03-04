@@ -28,7 +28,6 @@ from sentry.workflow_engine.typings.notification_action import (
     EmailFieldMappingKeys,
     OnCallDataBlob,
     SentryAppDataBlob,
-    SentryAppFormConfigDataBlob,
     SlackDataBlob,
     TicketFieldMappingKeys,
     TicketingActionDataBlobHelper,
@@ -404,10 +403,10 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         raise ValueError(f"No target identifier key found for action type: {action.type}")
 
     @classmethod
-    def process_settings(cls, settings: list[SentryAppFormConfigDataBlob]) -> list[dict[str, Any]]:
+    def process_settings(cls, settings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         # Process each setting, removing None labels
         return [
-            {k: v for k, v in asdict(setting).items() if not (k == "label" and v is None)}
+            {k: v for k, v in setting.items() if not (k == "label" and v is None)}
             for setting in settings
         ]
 
@@ -416,7 +415,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         # Need to check for the settings key, if it exists, then we need to return the settings
         # It won't exist for legacy webhook actions, but will exist for sentry app actions
         if action.data.get("settings"):
-            blob = SentryAppDataBlob(**action.data)
-            settings = cls.process_settings(blob.settings)
+            blob = asdict(SentryAppDataBlob(**action.data))
+            settings = cls.process_settings(blob["settings"])
             return {"settings": settings}
         return {}

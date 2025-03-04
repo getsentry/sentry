@@ -744,7 +744,9 @@ class SentryAppDataBlob(DataBlob):
     Represents a Sentry App notification action.
     """
 
-    settings: list[SentryAppFormConfigDataBlob] = field(default_factory=list)
+    settings: list[SentryAppFormConfigDataBlob] = field(
+        default_factory=list[SentryAppFormConfigDataBlob]
+    )
 
     @classmethod
     def from_list(cls, data: list[dict[str, Any]] | None) -> SentryAppDataBlob:
