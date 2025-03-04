@@ -185,6 +185,7 @@
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "9.2.0-alpha.1",
     "@styled/typescript-styled-plugin": "^1.0.1",
+    "@tanstack/eslint-plugin-query": "^5.66.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.2.0",

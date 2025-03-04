@@ -11,6 +11,7 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
@@ -317,6 +318,16 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/tanstack/query',
+    plugins: {
+      '@tanstack/query': pluginQuery,
+    },
+    rules: {
+      ...pluginQuery.configs.recommended.rules,
+      '@tanstack/query/no-rest-destructuring': 'error',
     },
   },
   {
