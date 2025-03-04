@@ -6,9 +6,11 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.consumers.buffered.consumer import (
+    Append,
     Committed,
     Flush,
     FlushBuffer,
+    Skip,
     TryFlush,
     init,
     process,
@@ -44,7 +46,11 @@ def test_end_to_end_message_processing():
 
     gen = runtime.submit(message_bytes)
 
-    # Assert the runtime gets the current time after appending the message and then attempts to
+    # Assert the application does not append the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Append)
+
+    # Assert the application gets the current time after appending the message and then attempts to
     # flush the buffer with the current time.
     cmd = next(gen)
     assert isinstance(cmd, Effect)
@@ -70,19 +76,20 @@ def test_end_to_end_message_processing():
         )
     ]
 
-    # Give the runtime timestamps that are too early to flush (including the one the runtime wanted
-    # to generate).
+    # Give the application timestamps that are too early to flush (including the one the
+    # application wanted to generate).
     assert isinstance(gen.send(TryFlush(now=1)), Nothing)
     assert isinstance(gen.send(TryFlush(now=2)), Nothing)
     assert isinstance(gen.send(TryFlush(now=3)), Nothing)
+    assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
-    # Give the runtime a timestamp that will trigger a flush.
+    # Give the application a timestamp that will trigger a flush.
     cmd = gen.send(TryFlush(now=time.time() + 1))
     assert isinstance(cmd, Task)
     assert isinstance(cmd.msg, Flush)
 
-    # Assert the runtime triggered a buffer flush and forward the next msg to the runtime.
+    # Assert the application triggered a buffer flush and forward the next msg to the application.
     cmd = gen.send(cmd.msg)
     assert isinstance(cmd, Effect)
     assert cmd.fun == FlushBuffer(runtime.model)
@@ -102,27 +109,18 @@ def test_invalid_message_format():
 
     # We submit a message which can't be parsed and will not be buffered. Flush is not triggered.
     gen = runtime.submit(b"invalid")
+
+    # Assert the application does not append the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Skip)
+
+    # Application tries to flush.
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
+    assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
-
-    # Trigger a flush by submitting a time that exceeds the window.
-    cmd = gen.send(TryFlush(now=time.time() + 1))
-    assert isinstance(cmd, Task)
-    assert isinstance(cmd.msg, Flush)
-
-    # Send the flush message the runtime provided and assert that it produces a FlushBuffer
-    # effect.
-    cmd = gen.send(cmd.msg)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == FlushBuffer(runtime.model)
-
-    # Send the `Flushed` message with an arbitrary timestamp.
-    cmd = gen.send(cmd.msg(1))
-    assert runtime.model.last_flushed_at == 1
-    assert len(runtime.model.buffer) == 0
 
 
 def test_invalid_recording_json():
@@ -144,28 +142,18 @@ def test_invalid_recording_json():
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
 
-    # We submit a message which will not be buffered. Flush is not triggered.
     gen = runtime.submit(message_bytes)
+
+    # Assert the application appends the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Append)
+
+    # Application tries to flush.
     cmd = next(gen)
     assert len(runtime.model.buffer) == 1
     assert isinstance(cmd, Effect)
+    assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
-
-    # Trigger a flush by submitting a time that exceeds the window.
-    cmd = gen.send(TryFlush(now=time.time() + 1))
-    assert isinstance(cmd, Task)
-    assert isinstance(cmd.msg, Flush)
-
-    # Send the flush message the runtime provided and assert that it produces a FlushBuffer
-    # effect.
-    cmd = gen.send(cmd.msg)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == FlushBuffer(runtime.model)
-
-    # Send the `Flushed` message with an arbitrary timestamp.
-    cmd = gen.send(cmd.msg(1))
-    assert runtime.model.last_flushed_at == 1
-    assert len(runtime.model.buffer) == 0
 
 
 def test_missing_headers():
@@ -187,28 +175,18 @@ def test_missing_headers():
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
 
-    # We submit a message which will not be buffered. Flush is not triggered.
     gen = runtime.submit(message_bytes)
+
+    # Assert the application does not append the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Skip)
+
+    # Application tries to flush.
     cmd = next(gen)
     assert len(runtime.model.buffer) == 0
     assert isinstance(cmd, Effect)
+    assert cmd.msg(1) == TryFlush(now=1)
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
-
-    # Trigger a flush by submitting a time that exceeds the window.
-    cmd = gen.send(TryFlush(now=time.time() + 1))
-    assert isinstance(cmd, Task)
-    assert isinstance(cmd.msg, Flush)
-
-    # Send the flush message the runtime provided and assert that it produces a FlushBuffer
-    # effect.
-    cmd = gen.send(cmd.msg)
-    assert isinstance(cmd, Effect)
-    assert cmd.fun == FlushBuffer(runtime.model)
-
-    # Send the `Flushed` message with an arbitrary timestamp.
-    cmd = gen.send(cmd.msg(1))
-    assert runtime.model.last_flushed_at == 1
-    assert len(runtime.model.buffer) == 0
 
 
 def test_buffer_full_semantics():
@@ -229,8 +207,13 @@ def test_buffer_full_semantics():
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
 
-    # We submit a message which will be buffered but not flushed.
     gen = runtime.submit(message_bytes)
+
+    # Assert the application appends the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Append)
+
+    # Application tries to flush.
     cmd = next(gen)
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
@@ -241,6 +224,12 @@ def test_buffer_full_semantics():
 
     # We submit another message which will be buffered and trigger a flush.
     gen = runtime.submit(message_bytes)
+
+    # Assert the application appends the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Append)
+
+    # Application tries to flush.
     cmd = next(gen)
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
@@ -270,8 +259,13 @@ def test_buffer_timeout():
     }
     message_bytes = RECORDINGS_CODEC.encode(message)
 
-    # We submit a message which will be buffered but not flushed.
     gen = runtime.submit(message_bytes)
+
+    # Assert the application does not append the message to the buffer.
+    msg = next(gen)
+    assert isinstance(msg, Append)
+
+    # Application tries to flush.
     cmd = next(gen)
     assert isinstance(cmd, Effect)
     assert cmd.fun == time.time
