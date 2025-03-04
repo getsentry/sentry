@@ -523,7 +523,6 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
     servicehook: ServiceHook
     extras: dict[str, int | str] = {"installation_id": installation.id, "event": event}
-
     try:
         servicehook = ServiceHook.objects.get(
             organization_id=installation.organization_id, actor_id=installation.id

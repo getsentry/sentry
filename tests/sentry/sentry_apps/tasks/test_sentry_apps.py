@@ -26,6 +26,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
     installation_webhook,
@@ -501,6 +502,12 @@ class TestProcessResourceChange(TestCase):
 
 class TestSendResourceChangeWebhook(TestCase):
     def setUp(self):
+        pass
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:integrations-event-hooks")
+    def test_sends_webhooks_to_all_installs(self, mock_record, safe_urlopen):
         self.project = self.create_project()
         self.sentry_app_1 = self.create_sentry_app(
             organization=self.project.organization,
@@ -520,10 +527,6 @@ class TestSendResourceChangeWebhook(TestCase):
             slug=self.sentry_app_2.slug,
         )
 
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @with_feature("organizations:integrations-event-hooks")
-    def test_sends_webhooks_to_all_installs(self, mock_record, safe_urlopen):
         one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -562,6 +565,121 @@ class TestSendResourceChangeWebhook(TestCase):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:integrations-event-hooks")
+    def test_sends_webhooks_to_all_installs_success(self, mock_record, safe_urlopen):
+        self.project = self.create_project()
+        self.sentry_app_1 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://google.com",
+        )
+        self.install_1 = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app_1.slug
+        )
+        self.sentry_app_2 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://apple.com",
+        )
+        self.install_2 = self.create_sentry_app_installation(
+            organization=self.project.organization,
+            slug=self.sentry_app_2.slug,
+        )
+
+        one_min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert len(safe_urlopen.mock_calls) == 2
+        call_urls = [call.kwargs["url"] for call in safe_urlopen.mock_calls]
+        assert self.sentry_app_1.webhook_url in call_urls
+        assert self.sentry_app_2.webhook_url in call_urls
+
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (success) x2
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:integrations-event-hooks")
+    def test_sends_webhooks_with_send_webhook_sentry_failure(self, mock_record):
+
+        self.project = self.create_project()
+        self.sentry_app_1 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://google.com",
+        )
+        self.install_1 = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app_1.slug
+        )
+        with assume_test_silo_mode_of(ServiceHook):
+            servicehook = ServiceHook.objects.get(
+                organization_id=self.install_1.organization_id, actor_id=self.install_1.id
+            )
+            servicehook.events = []
+            servicehook.save()
+
+        one_min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure) x 1
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
 
@@ -927,9 +1045,10 @@ class TestWebhookRequests(TestCase):
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
-    def test_ignore_issue_alert(self, safe_urlopen):
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_ignore_issue_alert(self, mock_record, safe_urlopen):
         """
         Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
         """
@@ -942,6 +1061,7 @@ class TestWebhookRequests(TestCase):
                 send_webhooks(
                     installation=self.install, event="event.alert", data=data, actor=self.user
                 )
+
         assert not safe_urlopen.called
         assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
         assert len(self.integration_buffer._get_all_from_buffer()) == 0
