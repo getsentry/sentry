@@ -3,11 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {Radio} from 'sentry/components/core/radio';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Radio from 'sentry/components/radio';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

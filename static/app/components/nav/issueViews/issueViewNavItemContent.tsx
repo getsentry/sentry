@@ -43,10 +43,18 @@ export interface IssueViewNavItemContentProps {
    */
   isActive: boolean;
   /**
+   * Whether an item is being dragged.
+   */
+  isDragging: boolean;
+  /**
    * Whether the item is the last view in the list.
    * This will be removed once view sharing/starring is implemented.
    */
   isLastView: boolean;
+  /**
+   * A callback function that updates the isDragging state.
+   */
+  setIsDragging: (isDragging: boolean) => void;
   /**
    * A callback function that updates the view with new params.
    */
@@ -62,7 +70,6 @@ export interface IssueViewNavItemContentProps {
    */
   sectionRef?: React.RefObject<HTMLDivElement>;
 }
-
 export function IssueViewNavItemContent({
   view,
   sectionRef,
@@ -71,6 +78,8 @@ export function IssueViewNavItemContent({
   deleteView,
   duplicateView,
   isLastView,
+  isDragging,
+  setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -78,7 +87,6 @@ export function IssueViewNavItemContent({
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   const {projects} = useProjects();
 
@@ -130,8 +138,13 @@ export function IssueViewNavItemContent({
         setIsDragging(false);
         endInteraction();
       }}
+      layoutId={`${view.id}`}
       style={{
-        originY: '0px',
+        ...(isDragging
+          ? {}
+          : {
+              originY: '0px',
+            }),
       }}
     >
       <StyledSecondaryNavItem
