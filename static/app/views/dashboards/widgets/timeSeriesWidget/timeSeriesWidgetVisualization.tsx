@@ -359,7 +359,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         left: 2,
         top: showLegend ? 25 : 10,
         right: 8,
-        // See xAxis.axisLine/offset comments
         bottom: 0,
         containLabel: true,
         ...releaseBubbleGrid,
