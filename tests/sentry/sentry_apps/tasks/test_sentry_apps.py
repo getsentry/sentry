@@ -361,6 +361,22 @@ class TestProcessResourceChange(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_does_not_process_no_event(self, mock_record, safe_urlopen):
+        process_resource_change_bound(
+            action="created", sender="Error", instance_id=123, project_id=1, group_id=1
+        )
+        assert len(safe_urlopen.mock_calls) == 0
+
+        assert_failure_metric(mock_record, "process_resource_change.event_missing_event")
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_disallowed_event(self, mock_record, safe_urlopen):
         process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
@@ -550,21 +566,68 @@ class TestSendResourceChangeWebhook(TestCase):
                 eventstream_type=EventStreamEventType.Error,
             )
 
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:integrations-event-hooks")
+    def test_record_lifecycle_error_from_pubished_apps(self, mock_record, safe_urlopen):
+        self.project = self.create_project()
+        self.sentry_app_1 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://google.com",
+            published=True,
+        )
+        self.install_1 = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app_1.slug
+        )
+        self.sentry_app_2 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://apple.com",
+        )
+        self.install_2 = self.create_sentry_app_installation(
+            organization=self.project.organization,
+            slug=self.sentry_app_2.slug,
+        )
+
+        one_min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
         assert len(safe_urlopen.mock_calls) == 2
         call_urls = [call.kwargs["url"] for call in safe_urlopen.mock_calls]
         assert self.sentry_app_1.webhook_url in call_urls
         assert self.sentry_app_2.webhook_url in call_urls
 
-        assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (halt) x2
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) from unpublished app & (halt) from published app -> SEND_WEBHOOK (halt) x2
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
         )
+        # Because we only propogate up errors from send_and_save_webhook_request for published apps, unpublished apps will be recorded as successes
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=3
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
