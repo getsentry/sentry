@@ -10,10 +10,12 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import useApi from 'sentry/utils/useApi';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+import {getANRRateText} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -24,6 +26,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  platform?: PlatformKey;
   query?: string;
 };
 
@@ -33,6 +36,7 @@ export function ProjectAnrScoreCard({
   selection,
   location,
   query,
+  platform,
 }: Props) {
   const {environments, projects, datetime} = selection;
   const {start, end, period} = datetime;
@@ -138,10 +142,13 @@ export function ProjectAnrScoreCard({
     query: queryParams,
   };
 
+  const anrRateText = getANRRateText(platform);
+  const description = getSessionTermDescription(SessionTerm.ANR_RATE, platform || null);
+
   return (
     <BigNumberWidget
-      title={t('ANR Rate')}
-      description={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+      title={anrRateText}
+      description={description}
       value={value ?? undefined}
       previousPeriodValue={previousValue ?? undefined}
       field="anr_rate()"

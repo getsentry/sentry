@@ -472,6 +472,21 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
+  it('apple anr rate', function () {
+    const anrRateSessionTerm = getSessionTermDescription(SessionTerm.ANR_RATE, 'apple');
+    expect(anrRateSessionTerm).toBe(
+      'Percentage of unique users that experienced an App Hang error.'
+    );
+
+    const anrRateSessionTermiOS = getSessionTermDescription(
+      SessionTerm.ANR_RATE,
+      'apple-ios'
+    );
+    expect(anrRateSessionTermiOS).toBe(
+      'Percentage of unique users that experienced an App Hang error.'
+    );
+  });
+
   it('node-express terms', function () {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(

@@ -10,5 +10,21 @@ export function didProjectOrEnvironmentChange(location1: Location, location2: Lo
 }
 
 export function isPlatformANRCompatible(platform?: PlatformKey) {
+  return (
+    isPlatformForegroundANRCompatible(platform) ||
+    platform === 'apple' ||
+    platform === 'apple-ios'
+  );
+}
+
+export function isPlatformForegroundANRCompatible(platform?: PlatformKey) {
   return platform === 'javascript-electron' || platform === 'android';
+}
+
+export function getANRRateText(platform?: PlatformKey) {
+  if (platform === 'apple' || platform === 'apple-ios') {
+    return 'App Hang Rate';
+  }
+
+  return 'ANR Rate';
 }

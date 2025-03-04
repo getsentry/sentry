@@ -76,6 +76,28 @@ describe('ProjectDetail > ProjectCharts', () => {
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
   });
 
+  it('renders App Hang options for apple projects', async () => {
+    renderProjectCharts('apple');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+
+    expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
+    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
+  });
+
+  it('renders App Hang options for apple-ios projects', async () => {
+    renderProjectCharts('apple-ios');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+
+    expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
+    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
+  });
+
   it('does not render ANR options for non-compatible platforms', async () => {
     renderProjectCharts('python');
 
