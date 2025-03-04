@@ -53,8 +53,9 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
-import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
+import {getTopEvents} from 'sentry/views/dashboards/widgetBuilder/utils/getTopEvents';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -96,6 +97,7 @@ type WidgetCardChartProps = Pick<
     type: 'legendselectchanged';
   }>;
   onZoom?: EChartDataZoomHandler;
+  sampleCount?: number;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -278,6 +280,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       shouldResize,
       confidence,
       showConfidenceWarning,
+      sampleCount,
     } = this.props;
 
     if (errorMessage) {
@@ -304,7 +307,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <BigNumberResizeWrapper>
+          <BigNumberResizeWrapper noPadding={noPadding}>
             {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
         </TransitionChart>
@@ -531,9 +534,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                       </RenderedChartContainer>
 
                       {showConfidenceWarning && confidence && (
-                        <ConfidenceWarning
-                          query={widget.queries[0]?.conditions ?? ''}
+                        <ConfidenceFooter
                           confidence={confidence}
+                          sampleCount={sampleCount}
+                          topEvents={getTopEvents(widget)}
                         />
                       )}
                     </ChartWrapper>
@@ -575,10 +579,12 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   background-color: ${p => p.theme.surface300};
 `;
 
-const BigNumberResizeWrapper = styled('div')`
+const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
+  padding: ${p =>
+    p.noPadding ? `0` : `0${space(1)} ${space(3)} ${space(3)} ${space(3)}`};
 `;
 
 const BigNumber = styled('div')`
@@ -589,7 +595,6 @@ const BigNumber = styled('div')`
   min-height: 0;
   font-size: 32px;
   color: ${p => p.theme.headingColor};
-  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 
   * {
     text-align: left !important;
