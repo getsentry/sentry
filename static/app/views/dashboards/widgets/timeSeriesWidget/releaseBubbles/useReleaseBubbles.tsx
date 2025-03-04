@@ -151,6 +151,11 @@ function ReleaseBubbleSeries({
   theme,
   bubbleSize = DEFAULT_BUBBLE_SIZE,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
+  const totalReleases = buckets.reduce(
+    (acc, [, , , numReleases]) => acc + numReleases,
+    0
+  );
+  const avgReleases = totalReleases / buckets.length;
   /**
    * Renders release bubbles underneath the main chart
    */
@@ -202,7 +207,7 @@ function ReleaseBubbleSeries({
       style: {
         fill: theme.blue400,
         // TODO: figure out correct opacity calculations
-        opacity: Number(numberReleases) * 0.1,
+        opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
       emphasis: {
         style: {
