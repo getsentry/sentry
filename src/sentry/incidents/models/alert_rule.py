@@ -449,6 +449,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             Type.MSTEAMS.value,
             Type.OPSGENIE.value,
             Type.DISCORD.value,
+            Type.FAKE_LOG.value,
         )
     )
 
@@ -576,6 +577,10 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     @classmethod
     def get_registered_factories(cls) -> list[ActionHandlerFactory]:
+        logging.info(
+            "get_registered_factories:",
+            extra={"factories": cls._factory_registrations.by_action_service},
+        )
         return list(cls._factory_registrations.by_action_service.values())
 
     @classmethod

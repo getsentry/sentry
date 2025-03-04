@@ -175,6 +175,9 @@ export enum ActionType {
   OPSGENIE = 'opsgenie',
   DISCORD = 'discord',
   SENTRY_APP = 'sentry_app',
+  // Yet another redundant redefinition of the integration provider, this time specific
+  // to metric alerting targets.
+  FAKE_LOG = 'fake_log',
 }
 
 export const ActionLabel = {
@@ -187,6 +190,7 @@ export const ActionLabel = {
   [ActionType.OPSGENIE]: t('Opsgenie'),
   [ActionType.DISCORD]: t('Discord'),
   [ActionType.SENTRY_APP]: t('Notification'),
+  [ActionType.FAKE_LOG]: t('Fake Log'),
 };
 
 export enum TargetType {

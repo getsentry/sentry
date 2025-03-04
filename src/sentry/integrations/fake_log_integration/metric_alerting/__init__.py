@@ -3,8 +3,11 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.fake_log_integration.log_provider import FakeIntegrationClient
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
+from sentry.notifications.notify import register_notification_provider
 
 
+@register_notification_provider(ExternalProviders.FAKE_LOG)
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,

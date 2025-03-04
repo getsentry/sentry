@@ -21,6 +21,9 @@ const getPlaceholderForType = (type: ActionType) => {
       return 'service';
     case ActionType.OPSGENIE:
       return 'team';
+    // We hardcode this value in the frontend, which maps to an enum and label pair.
+    case ActionType.FAKE_LOG:
+      return 'log identifier';
     default:
       throw Error('Not implemented');
   }

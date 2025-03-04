@@ -19,7 +19,11 @@ class FakeLogAction(IntegrationEventAction):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.form_fields = {
-            "identifier": {"type": "string", "required": True},
+            "identifier": {
+                "type": "string",
+                "required": True,
+                "placeholder": "Enter logging identifier",
+            },
             "log_key": {
                 "type": "choice",
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
