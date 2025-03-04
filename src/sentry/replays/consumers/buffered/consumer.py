@@ -139,13 +139,13 @@ def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, None]]:
     match msg:
         case Append(item=item):
             model.buffer.append(item)
-            return (model, Effect(fun=time.time, msg=lambda now: TryFlush(now=now)))
+            return (model, Effect(fun=time.time, msg=TryFlush))
         case Skip():
-            return (model, Effect(fun=time.time, msg=lambda now: TryFlush(now=now)))
+            return (model, Effect(fun=time.time, msg=TryFlush))
         case Committed():
             return (model, Nothing())
         case Flush():
-            return (model, Effect(fun=FlushBuffer(model), msg=lambda now: Flushed(now=now)))
+            return (model, Effect(fun=FlushBuffer(model), msg=Flushed))
         case Flushed(now=now):
             model.buffer = []
             model.last_flushed_at = now
