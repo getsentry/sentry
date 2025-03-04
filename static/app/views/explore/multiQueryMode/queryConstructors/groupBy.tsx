@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
@@ -46,7 +47,13 @@ export function GroupBySection({query, index}: Props) {
   return (
     <Section data-test-id={`section-group-by-${index}`}>
       <SectionHeader>
-        <SectionLabel underlined={false}>{t('Group By')}</SectionLabel>
+        <Tooltip
+          title={t(
+            'Aggregate data by a key attribute to calculate averages, percentiles, count and more.'
+          )}
+        >
+          <SectionLabel>{t('Group By')}</SectionLabel>
+        </Tooltip>
       </SectionHeader>
       <StyledCompactSelect
         multiple
