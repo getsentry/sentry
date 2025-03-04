@@ -111,7 +111,10 @@ function wrappedSeverityTextRenderer(props: {
 
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
-  (props: {attribute_value: any; extra?: RendererExtra}) => React.ReactNode
+  (props: {
+    attribute_value: string | number | null;
+    extra?: RendererExtra;
+  }) => React.ReactNode
 > = {
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
     // Ensure extra is defined for the wrapped function
