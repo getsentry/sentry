@@ -180,7 +180,7 @@ function ReleaseCard({
                 <Tooltip
                   isHoverable
                   title={tct(
-                    'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read More].',
+                    'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
                       date: moment
                         .tz(

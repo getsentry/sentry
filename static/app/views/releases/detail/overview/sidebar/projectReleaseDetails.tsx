@@ -57,7 +57,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                 <Tooltip
                   skipWrapper
                   title={tct(
-                    'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read More].',
+                    'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
                       br: <br />,
                       code: <code />,
