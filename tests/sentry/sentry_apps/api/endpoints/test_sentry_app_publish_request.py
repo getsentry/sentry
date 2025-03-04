@@ -5,7 +5,6 @@ from django.urls import reverse
 from sentry.constants import SentryAppStatus
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -30,37 +29,8 @@ class SentryAppPublishRequestTest(APITestCase):
         self.url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
         self.login_as(user=self.user)
 
-    @mock.patch("sentry.utils.email.send_mail")
-    def test_publish_request(self, send_mail):
-        self.upload_logo()
-        self.upload_issue_link_logo()
-        response = self.client.post(
-            self.url,
-            format="json",
-            data={
-                "questionnaire": [
-                    {"question": "First question", "answer": "First response"},
-                    {"question": "Second question", "answer": "Second response"},
-                ]
-            },
-        )
-        assert response.status_code == 201
-        message = (
-            "User boop@example.com of organization my-org wants to publish testin"
-            "\n\n\n>First question\nFirst response"
-            "\n\n>Second question\nSecond response"
-        )
-        send_mail.assert_called_with(
-            "Sentry Integration Publication Request from my-org",
-            message,
-            "root@localhost",
-            ["partners@sentry.io"],
-            reply_to=[self.user.email],
-        )
-
-    @with_feature("organizations:streamlined-publishing-flow")
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_request_new_format(self, send):
+    def test_publish_request(self, send):
         self.upload_logo()
         self.upload_issue_link_logo()
         send.return_value = 2
@@ -77,7 +47,6 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.status_code == 201
         send.assert_called_with(to=["partners@sentry.io", self.user.email])
 
-    @with_feature("organizations:streamlined-publishing-flow")
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_request_email_fails(self, send):
         send.return_value = 0
@@ -99,7 +68,7 @@ class SentryAppPublishRequestTest(APITestCase):
         }
         send.assert_called_with(to=["partners@sentry.io", self.user.email])
 
-    @mock.patch("sentry.utils.email.send_mail")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_already_published(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(self.url, format="json")
@@ -107,7 +76,7 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.data["detail"] == "Cannot publish already published integration."
         send_mail.asssert_not_called()
 
-    @mock.patch("sentry.utils.email.send_mail")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_internal(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         response = self.client.post(self.url, format="json")
@@ -115,14 +84,14 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.data["detail"] == "Cannot publish internal integration."
         send_mail.asssert_not_called()
 
-    @mock.patch("sentry.utils.email.send_mail")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_no_logo(self, send_mail):
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data["detail"] == "Must upload a logo for the integration."
         send_mail.asssert_not_called()
 
-    @mock.patch("sentry.utils.email.send_mail")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_no_issue_link_logo(self, send_mail):
         """Test that you cannot submit a publication request for an issue link
         integration without having uploaded a black icon."""
@@ -135,7 +104,7 @@ class SentryAppPublishRequestTest(APITestCase):
         )
         send_mail.asssert_not_called()
 
-    @mock.patch("sentry.utils.email.send_mail")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_no_stacktrace_link_logo(self, send_mail):
         """Test that you cannot submit a publication request for a stacktrace link
         integration without having uploaded a black icon."""
