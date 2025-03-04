@@ -130,10 +130,10 @@ export function IntegrationServerlessRow({
       </NameWrapper>
       <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
       <StyledSwitch
-        isActive={serverlessFunction.enabled}
-        isDisabled={isSubmitting}
+        checked={serverlessFunction.enabled}
+        disabled={isSubmitting}
         size="sm"
-        toggle={handleToggle}
+        onClick={handleToggle}
       />
     </Item>
   );

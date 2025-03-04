@@ -27,7 +27,7 @@ export default storyBook('Switch', (story, APIReference) => {
         </p>
         <Label htmlFor="switch">
           {toggleOn ? 'Switch is on' : 'Switch is off'}
-          <Switch id="switch" toggle={() => setToggleOn(!toggleOn)} checked={toggleOn} />
+          <Switch id="switch" onClick={() => setToggleOn(!toggleOn)} checked={toggleOn} />
         </Label>
         <p>
           You can pass a callback function into the <JSXProperty name="toggle" value />{' '}
@@ -35,6 +35,19 @@ export default storyBook('Switch', (story, APIReference) => {
           <code>useState</code> or some other code to set the active state of the toggle,
           which is controlled by the prop <JSXProperty name="checked" value />.
         </p>
+        <p>
+          You can also pass a <JSXProperty name="disabled" value /> prop to disable the
+          toggle.
+        </p>
+        <Label htmlFor="switch-disabled">
+          {toggleOn ? 'Switch is on' : 'Switch is off'}
+          <Switch
+            id="switch-disabled"
+            onClick={() => setToggleOn(!toggleOn)}
+            checked={toggleOn}
+            disabled
+          />
+        </Label>
       </Fragment>
     );
   });
@@ -53,7 +66,7 @@ export default storyBook('Switch', (story, APIReference) => {
           Large switch
           <Switch
             id="lg-switch"
-            toggle={() => setToggleOnL(!toggleOnL)}
+            onClick={() => setToggleOnL(!toggleOnL)}
             size="lg"
             checked={toggleOnL}
           />
@@ -62,7 +75,7 @@ export default storyBook('Switch', (story, APIReference) => {
           Small switch
           <Switch
             id="sm-switch"
-            toggle={() => setToggleOnS(!toggleOnS)}
+            onClick={() => setToggleOnS(!toggleOnS)}
             size="sm"
             checked={toggleOnS}
           />

@@ -3,25 +3,21 @@ import styled from '@emotion/styled';
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLButtonElement>, 'size' | 'type'> {
-  toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   id?: string;
   size?: 'sm' | 'lg';
 }
 
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
-  ({size = 'sm', toggle, id, className, ...props}: SwitchProps, ref) => {
+  ({size = 'sm', ...props}: SwitchProps, ref) => {
     return (
       <SwitchButton
         ref={ref}
-        id={id}
         data-test-id="switch"
         type="button"
-        className={className}
         role="checkbox"
         aria-checked={props.checked}
         size={size}
-        onClick={props.disabled ? undefined : toggle}
         {...props}
       >
         <Toggle disabled={props.disabled} checked={props.checked} size={size} />
@@ -57,7 +53,8 @@ const SwitchButton = styled('button')<StyleProps>`
     opacity: ${p => (p.disabled ? 0.4 : null)};
   }
 
-  &[disabled] {
+  &:disabled {
+    pointer-events: none;
     cursor: not-allowed;
   }
 

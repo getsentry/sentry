@@ -79,7 +79,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
                   <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
                     <Switch
                       {...switchProps}
-                      toggle={(e: React.MouseEvent) => {
+                      onClick={(e: React.MouseEvent) => {
                         // If we have a `confirm` prop and enabling switch
                         // Then show confirm dialog, otherwise propagate change as normal
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
