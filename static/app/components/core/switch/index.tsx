@@ -18,13 +18,11 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
         size={size}
         {...props}
       >
-        <Toggle disabled={props.disabled} checked={props.checked} size={size} />
+        <Toggle checked={props.checked} size={size} />
       </SwitchButton>
     );
   }
 );
-
-type StyleProps = Pick<SwitchProps, 'size' | 'checked' | 'disabled'>;
 
 const ToggleConfig = {
   sm: {
@@ -42,7 +40,11 @@ const ToggleWrapperSize = {
   lg: 24,
 };
 
-const SwitchButton = styled('button')<StyleProps>`
+const SwitchButton = styled('button')<{
+  checked?: SwitchProps['checked'];
+  disabled?: SwitchProps['disabled'];
+  size?: SwitchProps['size'];
+}>`
   display: inline-block;
   background: none;
   padding: 0;
@@ -69,7 +71,10 @@ const SwitchButton = styled('button')<StyleProps>`
   }
 `;
 
-const Toggle = styled('span')<StyleProps>`
+const Toggle = styled('span')<{
+  checked?: SwitchProps['checked'];
+  size?: SwitchProps['size'];
+}>`
   display: block;
   position: absolute;
   border-radius: 50%;
