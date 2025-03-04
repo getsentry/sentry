@@ -55,11 +55,12 @@ def _process_message(message: Message[KafkaPayload]):
 
 def explode_segment(message: tuple[list[dict[str, Any]], Mapping[Partition, int]]):
     spans, committable = message
-    for span in spans:
+    last = len(spans) - 1
+    for i, span in enumerate(spans):
         if span is not None:
             yield Value(
                 payload=KafkaPayload(key=None, value=orjson.dumps(span), headers=[]),
-                committable=committable,
+                committable=committable if i == last else None,
                 timestamp=None,
             )
 
@@ -96,9 +97,9 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             next_step=CommitOffsets(commit),
         )
 
-        # WORKAROUND: Since https://github.com/getsentry/arroyo/pull/371, Unfold
-        # no longer passes through the commit and there is no way to access it
-        # from the generator function.
+        # XXX: Remove after https://github.com/getsentry/arroyo/pull/427: Unfold
+        # does not pass through the commit and there is no way to access it from
+        # the generator function.
         zip_commit = RunTask(
             function=lambda m: (m.payload, m.committable),
             next_step=Unfold(generator=explode_segment, next_step=produce_step),
