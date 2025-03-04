@@ -137,7 +137,7 @@ export function FeatureFlagDrawer({
             <KeyValueData.Card expandLeft contentItems={displayFlags} />
           </CardContainer>
         ) : (
-          <FeatureFlagDistributions group={group} search={search} />
+          <FeatureFlagDistributions group={group} search={search} orderBy={orderBy} />
         )}
       </EventDrawerBody>
     </EventDrawerContainer>

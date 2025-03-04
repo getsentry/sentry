@@ -1,22 +1,25 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import useGroupFlags from 'sentry/components/events/featureFlags/useGroupFlags';
+import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
+import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export default function FeatureFlagDistributions({
   group,
-  search = '',
+  search,
+  orderBy,
 }: {
   group: Group;
-  orderBy?: string;
-  search?: string;
+  orderBy: OrderBy;
+  search: string;
 }) {
   const environments = useEnvironmentsFromUrl();
 
@@ -41,8 +44,32 @@ export default function FeatureFlagDistributions({
     [data]
   );
 
+  const getSortedTags = useCallback(
+    (tags: GroupTag[]) => {
+      switch (orderBy) {
+        case OrderBy.NEWEST:
+          return tags.sort((a, b) => {
+            const timeA = new Date(a.topValues[0]!.lastSeen);
+            const timeB = new Date(b.topValues[0]!.lastSeen);
+            return timeB.getTime() - timeA.getTime();
+          });
+        case OrderBy.OLDEST:
+          return tags.sort((a, b) => {
+            const timeA = new Date(a.topValues[0]!.lastSeen);
+            const timeB = new Date(b.topValues[0]!.lastSeen);
+            return timeA.getTime() - timeB.getTime();
+          });
+        case OrderBy.Z_TO_A:
+          return tags.sort((a, b) => b.key.localeCompare(a.key));
+        default:
+          return tags.sort((a, b) => a.key.localeCompare(b.key));
+      }
+    },
+    [orderBy]
+  );
+
   const displayTags = useMemo(() => {
-    const sortedTags = data.sort((a, b) => a.key.localeCompare(b.key));
+    const sortedTags = getSortedTags(data);
     const searchedTags = sortedTags.filter(
       tag =>
         tag.key.includes(search) ||
@@ -51,7 +78,7 @@ export default function FeatureFlagDistributions({
         tagValues[tag.key].toLowerCase().includes(search.toLowerCase())
     );
     return searchedTags;
-  }, [data, search, tagValues]);
+  }, [data, getSortedTags, search, tagValues]);
 
   if (isPending) {
     return <LoadingIndicator />;
