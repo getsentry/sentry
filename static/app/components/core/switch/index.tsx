@@ -49,50 +49,54 @@ const SwitchWrapper = styled('div')`
   justify-content: flex-start;
 `;
 
-const NativeHiddenCheckbox = styled('input')<{
-  toggleSize: NonNullable<SwitchProps['size']>;
-}>`
-  position: absolute;
-  opacity: 0;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
+const NativeHiddenCheckbox = withChonk(
+  styled('input')<{
+    toggleSize: NonNullable<SwitchProps['size']>;
+  }>`
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
 
-  & + div {
-    > div {
-      background: ${p => p.theme.border};
-      transform: translateX(${p => ToggleConfig[p.toggleSize].top}px);
+    & + div {
+      > div {
+        background: ${p => p.theme.border};
+        transform: translateX(${p => ToggleConfig[p.toggleSize].top}px);
+      }
     }
-  }
 
-  &:checked + div {
-    > div {
-      background: ${p => p.theme.active};
-      transform: translateX(
-        ${p => ToggleConfig[p.toggleSize].top + ToggleWrapperSize[p.toggleSize] * 0.875}px
-      );
+    &:checked + div {
+      > div {
+        background: ${p => p.theme.active};
+        transform: translateX(
+          ${p =>
+            ToggleConfig[p.toggleSize].top + ToggleWrapperSize[p.toggleSize] * 0.875}px
+        );
+      }
     }
-  }
 
-  &:focus + div,
-  &:focus-visible + div {
-    outline: none;
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-
-    + div {
-      opacity: 0.4;
+    &:focus + div,
+    &:focus-visible + div {
+      outline: none;
+      border-color: ${p => p.theme.focusBorder};
+      box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
     }
-  }
-`;
+
+    &:disabled {
+      cursor: not-allowed;
+
+      + div {
+        opacity: 0.4;
+      }
+    }
+  `,
+  ChonkSwitch.ChonkNativeHiddenCheckbox
+);
 
 const FakeCheckbox = withChonk(
   styled('div')<{
