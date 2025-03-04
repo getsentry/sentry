@@ -138,7 +138,6 @@ class FrameInfo:
         return frame_file_path
 
     def frame_info_from_module(self, frame: Mapping[str, Any]) -> None:
-        # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
         if frame.get("module") and frame.get("abs_path"):
             stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
             self.stack_root = stack_root
@@ -573,39 +572,38 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     raise UnexpectedPathException("Could not find common root from paths")
 
 
+# Based on # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
 def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
     """This attempts to generate a modified module and a real path from a Java module name and filename.
-    Returns a tuple of (modified_module, real_path).
+    Returns a tuple of (stack_root, source_path).
     """
-    extension = abs_path.split(".", 1)[1] if "." in abs_path else ""
-
-    if abs_path.find("$") > -1:
+    # An `abs_path` is valid if it contains a `.` and doesn't contain a `$`.
+    if "$" in abs_path or "." not in abs_path:
         # Split the module at the first '$' character and take the part before it
         # If there's no '$', use the entire module
-        modified_module = module.split("$", 1)[0] if "$" in module else module
-        # Convert the module's dot notation to path notation
-        path = modified_module.replace(".", "/")
-        if extension:
-            path = f"{path}.{extension}"
-        return modified_module, path
+        file_path = module.split("$", 1)[0] if "$" in module else module
+        module_as_path = module.rsplit(".", 1)[0].replace(".", "/") + "/"
+        return module_as_path, file_path.replace(".", "/")
+
+    file_path = ""
+    module_as_path = ""
+
+    # Get the filename without extension
+    if "." in abs_path:
+        abs_path_before_dot, extension = abs_path.rsplit(".", 1)
+    else:
+        abs_path_before_dot = abs_path
+        extension = ""
 
     if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
-    package_name = None
-    temp_path = None
-    # Find the first uppercase letter after a period to identify class name
-    parts = module.split(".")
-    for i, part in enumerate(parts):
-        if part and part[0].isupper():
-            # Everything before this part is the package path
-            package_name = parts[:i]
-            if package_name:
-                # Convert package path to directory structure
-                temp_path = "/".join(package_name + [part]).split("$")[0]
-            break
+    # If module has a dot, take everything before the last dot
+    module_as_path = module.rsplit(".", 1)[0].replace(".", "/") + "/"
+    file_path = module_as_path + abs_path_before_dot
 
-    if package_name is None:
-        raise DoesNotFollowJavaPackageNamingConvention
+    # Add extension back if it exists
+    if extension:
+        file_path += f".{extension}"
 
-    return "/".join(package_name), f"{temp_path}.{extension}"
+    return module_as_path, file_path

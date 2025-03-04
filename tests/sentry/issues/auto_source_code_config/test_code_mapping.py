@@ -153,23 +153,40 @@ class TestFrameInfo:
             FrameInfo(frame, "java")
 
     @pytest.mark.parametrize(
-        "frame, expected_stack_root",
+        "frame, expected_stack_root, expected_normalized_path",
         [
             pytest.param(
-                {"module": "foo.bar.Bar$handle$1", "abs_path": "bar.java"},
-                "foo/bar",
+                {"module": "foo.bar.Baz$handle$1", "abs_path": "baz.java"},
+                "foo/bar/",
+                "foo/bar/baz.java",
                 id="dollar_symbol_in_abs_path",
             ),
             pytest.param(
-                {"module": "foo.ClassName", "abs_path": "no_extension"},
-                "foo",
-                id="no_extension",
+                {"module": "foo.bar.Baz", "abs_path": "baz.extra.java"},
+                "foo/bar/",
+                "foo/bar/baz.extra.java",
+                id="two_dots_in_abs_path",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "no_extension"},
+                "foo/bar/",
+                "foo/bar/Baz",  # The path is based on the module
+                id="invalid_abs_path_no_dot",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "foo$bar"},
+                "foo/bar/",
+                "foo/bar/Baz",  # The path is based on the module
+                id="invalid_abs_path_dollar_sign",
             ),
         ],
     )
-    def test_java_valid_frames(self, frame: dict[str, Any], expected_stack_root: str) -> None:
+    def test_java_valid_frames(
+        self, frame: dict[str, Any], expected_stack_root: str, expected_normalized_path: str
+    ) -> None:
         frame_info = FrameInfo(frame, "java")
         assert frame_info.stack_root == expected_stack_root
+        assert frame_info.normalized_path == expected_normalized_path
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",
