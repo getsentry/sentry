@@ -7,7 +7,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
-import Switch from 'sentry/components/switchButton';
+import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {

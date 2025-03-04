@@ -1,63 +1,66 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-type Props = {
+export interface SwitchProps {
   toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   /**
    * Toggle color is always active.
    */
   forceActiveColor?: boolean;
-  forwardedRef?: React.Ref<HTMLButtonElement>;
   id?: string;
   isActive?: boolean;
   isDisabled?: boolean;
-  isLoading?: boolean;
   name?: string;
   size?: 'sm' | 'lg';
-};
-
-function Switch({
-  forwardedRef,
-  size = 'sm',
-  isActive,
-  forceActiveColor,
-  isLoading,
-  isDisabled,
-  toggle,
-  id,
-  name,
-  className,
-  ...props
-}: Props) {
-  return (
-    <SwitchButton
-      ref={forwardedRef}
-      id={id}
-      name={name}
-      type="button"
-      className={className}
-      onClick={isDisabled ? undefined : toggle}
-      role="checkbox"
-      aria-checked={isActive}
-      isLoading={isLoading}
-      disabled={isDisabled}
-      isActive={isActive}
-      size={size}
-      data-test-id="switch"
-      {...props}
-    >
-      <Toggle
-        isDisabled={isDisabled}
-        isActive={isActive}
-        forceActiveColor={forceActiveColor}
-        size={size}
-      />
-    </SwitchButton>
-  );
 }
 
-type StyleProps = Partial<Props>;
+export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+  (
+    {
+      size = 'sm',
+      isActive,
+      forceActiveColor,
+      isDisabled,
+      toggle,
+      id,
+      name,
+      className,
+      ...props
+    }: SwitchProps,
+    ref
+  ) => {
+    return (
+      <SwitchButton
+        ref={ref}
+        id={id}
+        name={name}
+        type="button"
+        className={className}
+        onClick={isDisabled ? undefined : toggle}
+        role="checkbox"
+        aria-checked={isActive}
+        disabled={isDisabled}
+        isActive={isActive}
+        size={size}
+        data-test-id="switch"
+        {...props}
+      >
+        <Toggle
+          isDisabled={isDisabled}
+          isActive={isActive}
+          forceActiveColor={forceActiveColor}
+          size={size}
+        />
+      </SwitchButton>
+    );
+  }
+);
+
+type StyleProps = Pick<
+  SwitchProps,
+  'size' | 'isActive' | 'forceActiveColor' | 'isDisabled'
+>;
 
 const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
 const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 4 : 8);
@@ -104,7 +107,3 @@ const Toggle = styled('span')<StyleProps>`
     p.isActive || p.forceActiveColor ? p.theme.active : p.theme.border};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
-
-export default forwardRef<HTMLButtonElement, Props>((props, ref) => (
-  <Switch {...props} forwardedRef={ref} />
-));
