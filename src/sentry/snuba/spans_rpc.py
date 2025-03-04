@@ -80,7 +80,7 @@ def get_timeseries_query(
     resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
-    (aggregations, _) = resolver.resolve_aggregates(y_axes)
+    (aggregations, _) = resolver.resolve_functions(y_axes)
     (groupbys, _) = resolver.resolve_attributes(groupby)
     if extra_conditions is not None:
         if query is not None:

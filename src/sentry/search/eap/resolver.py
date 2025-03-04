@@ -597,7 +597,7 @@ class SearchResolver:
         resolve function"""
         match = fields.is_function(column)
         if match:
-            return self.resolve_aggregate(column, match)
+            return self.resolve_function(column, match)
         else:
             return self.resolve_attribute(column)
 
@@ -672,18 +672,18 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     @sentry_sdk.trace
-    def resolve_aggregates(
+    def resolve_functions(
         self, columns: list[str]
     ) -> tuple[list[ResolvedFormula | ResolvedAggregate], list[VirtualColumnDefinition | None]]:
-        """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
-        resolved_aggregates, resolved_contexts = [], []
+        """Helper function to resolve a list of functions instead of 1 attribute at a time"""
+        resolved_functions, resolved_contexts = [], []
         for column in columns:
-            aggregate, context = self.resolve_aggregate(column)
-            resolved_aggregates.append(aggregate)
+            function, context = self.resolve_function(column)
+            resolved_functions.append(function)
             resolved_contexts.append(context)
-        return resolved_aggregates, resolved_contexts
+        return resolved_functions, resolved_contexts
 
-    def resolve_aggregate(
+    def resolve_function(
         self, column: str, match: Match | None = None
     ) -> tuple[ResolvedFormula | ResolvedAggregate, VirtualColumnDefinition | None]:
         if column in self._resolved_function_cache:
@@ -692,7 +692,7 @@ class SearchResolver:
         if match is None:
             match = fields.is_function(column)
             if match is None:
-                raise InvalidSearchQuery(f"{column} is not an aggregate")
+                raise InvalidSearchQuery(f"{column} is not a function")
 
         function = match.group("function")
         columns = match.group("columns")
