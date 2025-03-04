@@ -75,22 +75,6 @@ export const LogDetailsTitle = styled('div')`
   user-select: none;
 `;
 
-export const LogAttributesTree = styled('div')`
-  display: grid;
-  grid-template-columns: min-content min-content min-content;
-  gap: ${space(1)};
-  width: 100%;
-
-  > div {
-    &:nth-of-type(6n + 4),
-    &:nth-of-type(6n + 5),
-    &:nth-of-type(6n + 6) {
-      background: ${p => p.theme.surface200};
-    }
-    padding: ${space(0.5)} ${space(1)};
-  }
-`;
-
 export const DetailsFooter = styled(StyledPanelItem)<{
   logColors: ReturnType<typeof getLogColors>;
   opaque?: boolean;

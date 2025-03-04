@@ -99,7 +99,7 @@ export function bodyRenderer(props: FieldRendererProps) {
 }
 
 function wrappedSeverityTextRenderer(props: {
-  attribute_value: any;
+  attribute_value: string | number | null;
   extra?: RendererExtra;
 }) {
   const extra = props.extra || {
