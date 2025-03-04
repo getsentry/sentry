@@ -264,13 +264,12 @@ class Client implements ApiNamespace.Client {
         response.callCount++;
 
         const errorResponse = Object.assign(
-          new RequestError(options.method || 'GET', url, new Error(), {
+          new RequestError(options.method || 'GET', url, new Error()),
+          {
             status: response.statusCode,
-            statusText: response.statusText,
             responseText: JSON.stringify(body),
             responseJSON: body,
-            getResponseHeader: header => response.headers[header]!,
-          }),
+          },
           {
             overrideMimeType: () => {},
             abort: () => {},
