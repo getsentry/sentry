@@ -23,7 +23,7 @@ import {
 } from 'sentry/views/explore/logs/utils';
 
 interface FieldRendererProps {
-  attribute_value: any;
+  attribute_value: string | number | null;
   extra: RendererExtra;
   tableResultLogRow?: OurLogsResponseItem;
 }

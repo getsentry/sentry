@@ -490,7 +490,7 @@ function getAttribute(
   // Replace the key name with the new key name
   const newKeyName = attributeKey.replace('sentry.', '');
 
-  const attributeValue = attribute.valStr ?? attribute.valFloat ?? attribute.valInt;
+  const attributeValue = attribute.value;
   if (!attributeValue) {
     return undefined;
   }

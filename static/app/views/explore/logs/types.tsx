@@ -2,7 +2,7 @@ type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
 // This enum is used to represent known fields or attributes in the logs response.
 export enum OurLogKnownFieldKey {
-  ID = 'id',
+  ID = 'sentry.item_id',
   BODY = 'log.body',
   SEVERITY_NUMBER = 'log.severity_number',
   SEVERITY_TEXT = 'log.severity_text',
