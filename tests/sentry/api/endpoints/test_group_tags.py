@@ -408,12 +408,34 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["topValues"][0]["value"] == "true"
         assert data[1]["topValues"][0]["count"] == 1
 
-    # TODO: Add this test after non-boolean flags are supported.
-    # def test_flags_limit(self):
-    #     pass
+    def test_flags_limit(self):
+        for i in range(10):
+            event = self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "contexts": {
+                        "flags": {
+                            "values": [
+                                {"flag": "hello", "result": i},
+                            ]
+                        }
+                    },
+                },
+                project_id=self.project.id,
+            )
+
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{event.group.id}/tags/?useFlagsBackend=1&limit=3"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["key"] == "hello"
+        assert len(response.data[0]["topValues"]) == 3
 
     def test_flags_reserved_tag_key(self):
         # Flag backend should not handle reserved tag keys differently.
+        # The `sentry:` prefix used for reserved tags should not be stripped from the input or stored.
         event1 = self.store_event(
             data={
                 "fingerprint": ["group-1"],
