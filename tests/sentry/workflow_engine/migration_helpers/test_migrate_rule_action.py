@@ -20,6 +20,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    SentryAppDataBlob,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_registry,
@@ -49,6 +50,24 @@ class TestNotificationActionMigrationUtils(TestCase):
                 and key != "id"
             ):
                 assert additional_fields.get(key) == value
+
+    def assert_sentry_app_form_config_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+        settings = action.data.get("settings", None)
+        settings_dict = compare_dict.get("settings", None)
+        if not settings or not settings_dict:
+            raise ValueError("Settings are required for SentryAppDataBlob")
+        for setting, setting_to_compare in zip(settings, settings_dict):
+            name = setting.get("name")
+            value = setting.get("value")
+            label = setting.get("label")
+            # Check that the name and value are present
+            if not name or not value:
+                raise ValueError("Name and value are required for SentryAppDataBlob")
+            assert name == setting_to_compare.get("name")
+            assert value == setting_to_compare.get("value")
+            assert label == setting_to_compare.get("label")
 
     def assert_action_data_blob(
         self,
@@ -82,6 +101,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             # Special handling for TicketDataBlob which has additional_fields
             if translator.blob_type == TicketDataBlob:
                 self.assert_ticketing_action_data_blob(action, compare_dict, exclude_keys)
+            elif translator.blob_type == SentryAppDataBlob:
+                self.assert_sentry_app_form_config_data_blob(action, compare_dict, exclude_keys)
             else:
                 # Original logic for other blob types
                 for field in translator.blob_type.__dataclass_fields__:
@@ -1052,6 +1073,17 @@ class TestNotificationActionMigrationUtils(TestCase):
                         },
                     ],
                 },
+            },
+            # Simple webhook sentry app with label
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system", "label": "System ID"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
             },
         ]
 

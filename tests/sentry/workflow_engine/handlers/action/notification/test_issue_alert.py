@@ -540,32 +540,40 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.detector2 = self.create_detector(project=self.project2)
 
+    def build_sentry_app_form_config_data_blob(
+        self, include_null_label: bool = True
+    ) -> list[dict[str, str | None]]:
+        blob: list[dict[str, str | None]] = [
+            {
+                "name": "opsgenieResponders",
+                "value": '[{ "id": "8132bcc6-e697-44b2-8b61-c044803f9e6e", "type": "team" }]',
+            },
+            {"name": "tagsToInclude", "value": "environment", "label": "Tags to Include"},
+            {"name": "opsgeniePriority", "value": "P2"},
+        ]
+
+        if include_null_label:
+            blob[0]["label"] = None
+
+        return blob
+
     def test_build_rule_action_blob_sentry_app(self):
-        data_blob = {
-            "settings": [
-                {
-                    "name": "opsgenieResponders",
-                    "value": '[{ "id": "8132bcc6-e697-44b2-8b61-c044803f9e6e", "type": "team" }]',
-                },
-                {
-                    "name": "tagsToInclude",
-                    "value": "environment",
-                },
-                {"name": "opsgeniePriority", "value": "P2"},
-            ],
-        }
+        data_blob = self.build_sentry_app_form_config_data_blob()
+        cleaned_data_blob = self.build_sentry_app_form_config_data_blob(include_null_label=False)
 
         # sentry app with settings
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            data=data_blob,
+            data={
+                "settings": data_blob,
+            },
             target_identifier=self.sentry_app.id,
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": data_blob["settings"],
+            "settings": cleaned_data_blob,
             "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
         }
 
@@ -573,14 +581,16 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            data=data_blob,
+            data={
+                "settings": data_blob,
+            },
             target_identifier=self.sentry_app.id,
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": data_blob["settings"],
+            "settings": cleaned_data_blob,
             "sentryAppInstallationUuid": self.sentry_app_installation2.uuid,
         }
 
