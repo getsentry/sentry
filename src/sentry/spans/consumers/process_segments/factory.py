@@ -55,8 +55,7 @@ def _process_message(message: Message[KafkaPayload]):
 def explode_segment(spans: list[dict[str, Any]]):
     for span in spans:
         if span is not None:
-            payload = rapidjson.dumps(span)
-            yield Value(KafkaPayload(None, payload, []), {}, None)
+            yield Value(KafkaPayload(None, rapidjson.dumps(span), []), {}, None)
 
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -78,9 +77,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         cluster_name = get_topic_definition(Topic.SNUBA_SPANS)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-        self.output_topic = ArroyoTopic(
-            get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
-        )
+        self.output_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
 
     def create_with_partitions(
         self,
