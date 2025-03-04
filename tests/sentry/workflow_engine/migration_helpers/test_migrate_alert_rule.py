@@ -165,6 +165,13 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     ).exists()
 
 
+def build_sentry_app_compare_blob(sentry_app_config: list[dict[str, str]]) -> list[dict[str, str]]:
+    """
+    Add the label to the config
+    """
+    return [{**config, "label": config.get("label", None)} for config in sentry_app_config]
+
+
 def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
     aarta = ActionAlertRuleTriggerAction.objects.get(
         alert_rule_trigger_action=alert_rule_trigger_action
@@ -184,7 +191,9 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
             assert action.data == {}
         else:
             assert action.data == {
-                "settings": alert_rule_trigger_action.sentry_app_config,
+                "settings": build_sentry_app_compare_blob(
+                    alert_rule_trigger_action.sentry_app_config
+                ),
             }
 
     if action_type == Action.Type.OPSGENIE:
@@ -926,7 +935,7 @@ class DualDeleteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
     def setUp(self):
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.metric_alert, label="critical", alert_threshold=200
+            alert_rule=self.metric_alert, label="critical"
         )
         self.alert_rule_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger
@@ -1138,6 +1147,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             {
                 "name": "mifu",
                 "value": "matcha",
+                "label": None,
             },
         ]
         assert action.target_display == "oolong"
