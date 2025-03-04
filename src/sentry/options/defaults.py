@@ -2102,8 +2102,12 @@ register(
 )
 
 # Killswitch for monitor check-ins
-register("crons.organization.disable-check-in", type=Sequence, default=[])
-
+register(
+    "crons.organization.disable-check-in",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Temporary killswitch to enable dispatching incident occurrences into the
 # incident_occurrence_consumer
