@@ -43,8 +43,7 @@ def java_frame_munger(frame: EventFrame) -> str | None:
         return None
 
     if "$" in frame.module:
-        parts = frame.module.split("$")
-        path = parts[0].replace(".", "/")
+        path = frame.module.split("$")[0].replace(".", "/")
         if frame.abs_path and frame.abs_path.count(".") == 1:
             # Append extension
             path = path + "." + frame.abs_path.split(".")[-1]
