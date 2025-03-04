@@ -33,7 +33,7 @@ function FeedbackConfigToggle({
         {t('Enable Screenshots')}
         <Switch
           id="screenshot"
-          onClick={onScreenshotToggle}
+          onChange={onScreenshotToggle}
           size="lg"
           checked={screenshotToggle}
         />

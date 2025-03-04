@@ -2,7 +2,7 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 export interface SwitchProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
   size?: 'sm' | 'lg';
 }
 

@@ -48,7 +48,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
       >
         <Switch
           size="lg"
-          onClick={handleSwitchMode}
+          onChange={handleSwitchMode}
           disabled={!hasAccess}
           checked={samplingMode === 'project'}
         />
