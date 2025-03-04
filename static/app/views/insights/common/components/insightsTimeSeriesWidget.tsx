@@ -38,7 +38,12 @@ export interface InsightsTimeSeriesWidgetProps {
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const pageFilters = usePageFilters();
-  const {releases} = useReleaseStats(pageFilters.selection);
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     visualizationType: props.visualizationType,

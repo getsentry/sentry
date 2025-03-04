@@ -62,6 +62,7 @@ export type ApiQueryKey =
         Record<string, any>,
         Record<string, any>
       >,
+      additionalKey?: string,
     ];
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
