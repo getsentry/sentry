@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated  # noqa S012
 from rest_framework.request import Request
 from rest_framework.response import Response
 
