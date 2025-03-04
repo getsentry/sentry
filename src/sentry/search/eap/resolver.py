@@ -686,7 +686,7 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedAggregate | ResolvedFormula, VirtualColumnDefinition | None]:
+    ) -> tuple[type[ResolvedFunction], VirtualColumnDefinition | None]:
         if column in self._resolved_function_cache:
             return self._resolved_function_cache[column]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
