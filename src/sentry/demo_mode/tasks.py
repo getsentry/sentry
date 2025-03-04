@@ -30,7 +30,7 @@ def sync_artifact_bundles():
 
 
 def _sync_artifact_bundles(
-    source_org: Organization, target_org: Organization, period: timedelta | None
+    source_org: Organization, target_org: Organization, period: timedelta | None = None
 ):
     if not source_org or not target_org:
         return

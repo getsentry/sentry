@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 
@@ -31,7 +31,7 @@ class SyncArtifactBundlesTest(TestCase):
         self,
         organization: Organization,
         project: Project,
-        date_uploaded: timezone.datetime | None,
+        date_uploaded: datetime | None = None,
     ):
         date_uploaded = date_uploaded or timezone.now()
         artifact_bundle = self.create_artifact_bundle(org=organization, date_uploaded=date_uploaded)
@@ -65,10 +65,9 @@ class SyncArtifactBundlesTest(TestCase):
 
         _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
 
-        target_artifact_bundles = ArtifactBundle.objects.filter(organization_id=self.target_org.id)
+        target_artifact_bundles = ArtifactBundle.objects.get(organization_id=self.target_org.id)
 
-        assert target_artifact_bundles.count() == 1
-        assert target_artifact_bundles.first().bundle_id == source_artifact_bundle.bundle_id
+        assert target_artifact_bundles.bundle_id == source_artifact_bundle.bundle_id
 
     def test_sync_artifact_bundles_does_not_touch_other_orgs(self):
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
@@ -105,7 +104,7 @@ class SyncArtifactBundlesTest(TestCase):
         target_artifact_bundles = ArtifactBundle.objects.filter(organization_id=self.target_org.id)
 
         assert target_artifact_bundles.count() == 1
-        assert target_artifact_bundles.first().bundle_id == source_artifact_bundle.bundle_id
+        assert target_artifact_bundles[0].bundle_id == source_artifact_bundle.bundle_id
 
     def test_sync_project_artifact_bundles(self):
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
