@@ -154,6 +154,13 @@ def create_or_update_grouphash_metadata_if_needed(
                     "hash": grouphash.hash,
                 },
             )
+            # If we've lost the race (to some other event with the same grouphash), our
+            # `grouphash.metadata` pointer may not point to a real record in the database, in which
+            # case we won't be able to store Seer results (if any). However, the fact that we lost
+            # implies that some other event won, and will be able to store the results. Given that,
+            # it's best to not call Seer at all with this event, both to avoid problems storing the
+            # results and to reduce load and preserve the project's Seer rate limit.
+            event.should_skip_seer = True
             return
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
