@@ -2,9 +2,9 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
+import {getCountStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate'}) {
+export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'}) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -20,7 +20,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
   };
 
   const {
-    data: sessionData,
+    data: userData,
     isPending,
     error,
   } = useApiQuery<SessionApiResponse>(
@@ -29,7 +29,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
       {
         query: {
           ...locationWithoutWidth.query,
-          field: ['sum(session)'],
+          field: ['count_unique(user)'],
           groupBy: ['session.status'],
         },
       },
@@ -37,7 +37,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
     {staleTime: 0}
   );
 
-  if (isPending || !sessionData) {
+  if (isPending || !userData) {
     return {
       series: [],
       isPending,
@@ -47,28 +47,28 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getSessionStatusSeries('healthy', sessionData.groups),
-    crashed: getSessionStatusSeries('crashed', sessionData.groups),
-    errored: getSessionStatusSeries('errored', sessionData.groups),
-    abnormal: getSessionStatusSeries('abnormal', sessionData.groups),
+    healthy: getCountStatusSeries('healthy', userData.groups),
+    crashed: getCountStatusSeries('crashed', userData.groups),
+    errored: getCountStatusSeries('errored', userData.groups),
+    abnormal: getCountStatusSeries('abnormal', userData.groups),
   };
 
   const createDatapoints = (data: number[]) =>
     data.map((count, idx) => {
-      const intervalTotal = sessionData.groups.reduce(
-        (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),
+      const intervalTotal = userData.groups.reduce(
+        (acc, group) => acc + (group.series['count_unique(user)']?.[idx] ?? 0),
         0
       );
 
       if (type === 'count') {
         return {
-          name: sessionData.intervals[idx] ?? '',
+          name: userData.intervals[idx] ?? '',
           value: intervalTotal > 0 ? count : 0,
         };
       }
 
       return {
-        name: sessionData.intervals[idx] ?? '',
+        name: userData.intervals[idx] ?? '',
         value: intervalTotal > 0 ? count / intervalTotal : 0,
       };
     });
@@ -78,10 +78,10 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
     status: keyof typeof statusData
   ) => ({
     data,
-    seriesName: `${status}_session_${type}`,
+    seriesName: `${status}_user_${type}`,
     meta: {
       fields: {
-        [`${status}_session_${type}`]:
+        [`${status}_user_${type}`]:
           type === 'count' ? ('number' as const) : ('percentage' as const),
         time: 'date' as const,
       },
