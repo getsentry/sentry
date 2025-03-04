@@ -1,4 +1,4 @@
-import {type Dispatch, Fragment, type SetStateAction, useCallback, useState} from 'react';
+import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -121,11 +121,11 @@ export default function AddCodeOwnerModal({
     gcTime: 0,
   });
 
-  const addFile = useCallback(() => {
+  const addFile = () => {
     if (codeownersFile) {
       mutation.mutate([{codeMappingId, raw: codeownersFile.raw}]);
     }
-  }, [codeMappingId, codeownersFile, mutation]);
+  };
 
   if (isCodeMappingsPending || isIntegrationsPending) {
     return <LoadingIndicator />;

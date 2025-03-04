@@ -28,14 +28,15 @@ function AccountSecurityWrapper({children}: Props) {
     queryFn: () => fetchOrganizations(api),
     staleTime: 0,
   });
+  const {refetch: refetchOrganizations} = orgRequest;
   const emailsRequest = useApiQuery<UserEmail[]>(['/users/me/emails/'], {staleTime: 0});
   const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
 
   const handleRefresh = useCallback(() => {
-    orgRequest.refetch();
+    refetchOrganizations();
     authenticatorsRequest.refetch();
     emailsRequest.refetch();
-  }, [orgRequest, authenticatorsRequest, emailsRequest]);
+  }, [refetchOrganizations, authenticatorsRequest, emailsRequest]);
 
   const disableAuthenticatorMutation = useMutation({
     mutationFn: async (auth: Authenticator) => {
