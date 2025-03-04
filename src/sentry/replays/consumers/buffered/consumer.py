@@ -6,6 +6,7 @@ after the buffer is flushed so we commit with a None value.
 """
 
 import contextlib
+import logging
 import time
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from dataclasses import dataclass
@@ -32,6 +33,8 @@ from sentry.replays.usecases.ingest import (
     process_recording_message,
     track_recording_metadata,
 )
+
+logger = logging.getLogger()
 
 # Types.
 
@@ -92,6 +95,7 @@ Msg = Append | Committed | Flush | Flushed | Skip | TryFlush
 
 
 def init(flags: Flags) -> tuple[Model, Cmd[Msg, None]]:
+    """Initialize the state of the consumer."""
     return (
         Model(
             buffer=[],
@@ -105,15 +109,33 @@ def init(flags: Flags) -> tuple[Model, Cmd[Msg, None]]:
 
 
 @sentry_sdk.trace
-def process(_: Model, message: bytes) -> Msg:
+def process(model: Model, message: bytes) -> Msg:
+    """Process raw bytes to structured output.
+
+    Some messages can not be parsed and their failures are known to the application. Other messages
+    can not be parsed and their failures are unknown to the application. In either case we don't
+    block ingestion for deterministic failures. We'll address the short-comings in a pull request.
+
+    This is a good place to DLQ messages within unknown failure modes. The DLQ does not exist
+    currently and so is not implemented here.
+    """
     try:
         item = process_recording_message(parse_recording_message(message))
         return Append(item=item)
+    except DropSilently:
+        return Skip()
     except Exception:
+        logger.exception("Could not process replay recording message.")  # Unmanaged effect.
         return Skip()
 
 
 def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, None]]:
+    """Grand central dispatch.
+
+    This is the brain of the consumer. Events are processed and sent here for handling. Msgs enter
+    and Cmds exit this function. If the sequence of messages and commands are in a specific order a
+    flush event will occur and the buffer will be committed.
+    """
     match msg:
         case Append(item=item):
             model.buffer.append(item)
@@ -133,6 +155,12 @@ def update(model: Model, msg: Msg) -> tuple[Model, Cmd[Msg, None]]:
 
 
 def subscription(model: Model) -> list[Sub[Msg]]:
+    """Platform event subscriptions.
+
+    This function registers the platform subscriptions we want to listen for. When the platform
+    decides its time to poll or shutdown the platform will emit those commands to the runtime and
+    the runtime will inform us (the application) so we can handle the situation approporiately.
+    """
     return [
         Join(msg=Flush),
         Poll(msg=lambda: TryFlush(now=time.time())),
