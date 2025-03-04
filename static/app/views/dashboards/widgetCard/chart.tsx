@@ -53,7 +53,6 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
-import {getTopEvents} from 'sentry/views/dashboards/widgetBuilder/utils/getTopEvents';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
@@ -488,6 +487,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
+    // Excluding Other uses a slightly altered regex to match the Other series name
+    // because the series names are formatted with widget IDs to avoid conflicts
+    // when deactivating them across widgets
+    const topEventsCountExcludingOther =
+      timeseriesResults?.length && widget.queries[0]?.columns.length
+        ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
+          (timeseriesResults?.some(
+            ({seriesName}) =>
+              shouldColorOther ||
+              seriesName?.match(new RegExp(`(?:.* : ${OTHER};)|^${OTHER};`))
+          )
+            ? 1
+            : 0)
+        : undefined;
     return (
       <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
@@ -537,7 +550,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                         <ConfidenceFooter
                           confidence={confidence}
                           sampleCount={sampleCount}
-                          topEvents={getTopEvents(widget)}
+                          topEvents={topEventsCountExcludingOther}
                         />
                       )}
                     </ChartWrapper>
