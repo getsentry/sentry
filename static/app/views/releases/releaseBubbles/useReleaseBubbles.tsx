@@ -32,7 +32,10 @@ import {
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/releases/releaseBubbles/createReleaseBubbleHighlighter';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import type {
+  Bucket,
+  ChartRendererProps,
+} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface CreateReleaseBubbleMouseListenersParams {
@@ -42,11 +45,7 @@ interface CreateReleaseBubbleMouseListenersParams {
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
   ) => void;
-  chartRenderer?: (rendererProps: {
-    end: Date;
-    releases: ReleaseMetaBasic[];
-    start: Date;
-  }) => ReactElement;
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
 /**
@@ -330,15 +329,34 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
+  /**
+   * The whitespace around the bubbles.
+   */
   bubblePadding?: number;
+  /**
+   * The size (height) of the bubble
+   */
   bubbleSize?: number;
-  chartRenderer?: (rendererProps: {
-    end: Date;
-    releases: ReleaseMetaBasic[];
-    start: Date;
-  }) => ReactElement;
+  /**
+   * This is a callback function that is used in ReleasesDrawer when rendering
+   * the chart inside of the drawer.
+   */
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  /**
+   * Number of desired bubbles/buckets to create
+   */
+  desiredBuckets?: number;
+  /**
+   * The maximum/latest timestamp of the chart's timeseries
+   */
   maxTime?: number;
+  /**
+   * The minimum/earliest timestamp of the chart's timeseries
+   */
   minTime?: number;
+  /**
+   * List of releases that will be grouped
+   */
   releases?: ReleaseMetaBasic[];
 }
 export function useReleaseBubbles({
@@ -348,6 +366,7 @@ export function useReleaseBubbles({
   maxTime,
   bubbleSize = 4,
   bubblePadding = 2,
+  desiredBuckets = 10,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
@@ -423,6 +442,7 @@ export function useReleaseBubbles({
         maxTime,
         finalTime: releasesMaxTime,
         releases,
+        desiredBuckets,
       })) ||
     [];
 

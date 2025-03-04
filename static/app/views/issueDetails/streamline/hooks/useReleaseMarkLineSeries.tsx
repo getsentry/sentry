@@ -3,42 +3,30 @@ import {useTheme} from '@emotion/react';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-interface ReleaseStat {
-  date: string;
-  version: string;
-}
-
-export function useReleaseMarkLineSeries({group}: {group: Group}) {
+export function useReleaseMarkLineSeries({
+  group,
+  releases,
+}: {
+  group: Group;
+  releases: ReleaseMetaBasic[];
+}) {
   const navigate = useNavigate();
   const theme = useTheme();
   const eventView = useIssueDetailsEventView({group});
   const organization = useOrganization();
-  const {data: releases = []} = useApiQuery<ReleaseStat[]>(
-    [
-      `/organizations/${organization.slug}/releases/stats/`,
-      {
-        query: {
-          project: eventView.project,
-          environment: eventView.environment,
-          start: eventView.start,
-          end: eventView.end,
-          statsPeriod: eventView.statsPeriod,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+
+  if (!releases.length) {
+    return null;
+  }
 
   const markLine = MarkLine({
     animation: false,
