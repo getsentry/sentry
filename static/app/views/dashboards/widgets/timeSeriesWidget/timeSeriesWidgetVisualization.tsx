@@ -143,9 +143,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   } = useReleaseBubbles({
     bubbleSize: RELEASE_BUBBLE_SIZE,
     chartRef,
-    chartRenderer: (rendererProps: Partial<TimeSeriesWidgetVisualizationProps>) => {
-      return <TimeSeriesWidgetVisualization {...props} {...rendererProps} />;
-    },
     highlightAreaColor: theme.blue400,
     minTime: minTime?.getTime(),
     maxTime: maxTime?.getTime(),
