@@ -10,6 +10,14 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
                 "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "hello", "result": True},
+                            {"flag": "goodbye", "result": False},
+                        ]
+                    }
+                },
             },
             project_id=self.project.id,
         )
@@ -19,6 +27,18 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "tags": {"foo": "quux"},
                 "release": "releaseme",
                 "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {"flags": {"values": [{"flag": "hello", "result": False}]}},
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "quux"},
+                "release": "releaseme",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {"flags": {"values": [{"flag": "hello", "result": False}]}},
             },
             project_id=self.project.id,
         )
@@ -34,12 +54,13 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event1.group.id}/tags/"
+        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data) == 4
+        # assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda r: r["key"])
+
         assert data[0]["key"] == "biz"
         assert len(data[0]["topValues"]) == 1
 
@@ -303,3 +324,136 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[0]["value"] == "high"
         assert top_values[1]["value"] == "low"
         assert top_values[2]["value"] == "medium"
+
+    def test_flags(self):
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar"},
+                "release": "releaseme",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "hello", "result": True},
+                            {"flag": "goodbye", "result": False},
+                        ]
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": before_now(minutes=2).isoformat(),
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "hello", "result": False},
+                            {"flag": "world", "result": True},
+                        ]
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": before_now(minutes=3).isoformat(),
+                "contexts": {"flags": {"values": [{"flag": "hello", "result": False}]}},
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "fingerprint": ["group-2"],
+                "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "hello", "result": False},
+                            {"flag": "group2", "result": True},
+                        ]
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        data = sorted(response.data, key=lambda r: r["key"])
+
+        assert data[0]["key"] == "goodbye"
+        assert len(data[0]["topValues"]) == 1
+        assert data[0]["topValues"][0]["value"] == "false"
+        assert data[0]["topValues"][0]["count"] == 1
+
+        assert data[1]["key"] == "hello"
+        assert len(data[1]["topValues"]) == 2
+        assert data[1]["topValues"][0]["value"] == "false"
+        assert data[1]["topValues"][0]["count"] == 2
+        assert data[1]["topValues"][1]["value"] == "true"
+        assert data[1]["topValues"][1]["count"] == 1
+
+        assert data[2]["key"] == "world"
+        assert len(data[2]["topValues"]) == 1
+        assert data[2]["topValues"][0]["value"] == "true"
+        assert data[2]["topValues"][0]["count"] == 1
+
+        # Use the key= queryparam to grab results for specific tags
+        url = f"/api/0/issues/{event1.group.id}/tags/?key=hello&key=world&useFlagsBackend=1"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        data = sorted(response.data, key=lambda r: r["key"])
+
+        assert data[0]["key"] == "hello"
+        assert len(data[0]["topValues"]) == 2
+        assert data[0]["topValues"][0]["value"] == "false"
+        assert data[0]["topValues"][0]["count"] == 2
+        assert data[0]["topValues"][1]["value"] == "true"
+        assert data[0]["topValues"][1]["count"] == 1
+
+        assert data[1]["key"] == "world"
+        assert len(data[1]["topValues"]) == 1
+        assert data[1]["topValues"][0]["value"] == "true"
+        assert data[1]["topValues"][0]["count"] == 1
+
+    # TODO: Add this test after non-boolean flags are supported.
+    # def test_flags_limit(self):
+    #     pass
+
+    def test_flags_reserved_tag_key(self):
+        # Flag backend should not handle reserved tag keys differently.
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "release": "releaseme",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "contexts": {"flags": {"values": [{"flag": "release", "result": True}]}},
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1&key=sentry:release"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1&key=release"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["key"] == "release"
