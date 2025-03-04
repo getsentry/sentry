@@ -141,7 +141,6 @@ module = [
     "sentry.incidents.endpoints.bases",
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
-    "sentry.incidents.endpoints.organization_incident_index",
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.bitbucket_server.integration",
     "sentry.integrations.example.integration",
