@@ -453,36 +453,37 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             organization_integration=self.oi,
             project=self.project,
             repo=self.repo,
-            # XXX: Discuss support for dot notation
-            # XXX: Discuss support for forgetting a last back slash
             stack_root="com/example/",
             source_root="src/com/example/",
             automatically_generated=False,
         )
-        assert (
-            convert_stacktrace_frame_path_to_source_path(
-                frame=EventFrame(
-                    filename="MainActivity.java",
-                    module="com.example.vu.android.MainActivity",
-                ),
-                code_mapping=code_mapping,
-                platform="java",
-                sdk_name="sentry.java.android",
+        for module, abs_path, expected_path in [
+            (
+                "com.example.vu.android.MainActivity",
+                "MainActivity.java",
+                "src/com/example/vu/android/MainActivity.java",
+            ),
+            (
+                "com.example.vu.android.MainActivity$$ExternalSyntheticLambda4",
+                "D8$$SyntheticClass",
+                # Extension not appended since abs_path did not contain one
+                "src/com/example/vu/android/MainActivity",
+            ),
+            (
+                "com.example.vu.android.empowerplant.MainFragment$3$1",
+                "MainFragment.java",
+                "src/com/example/vu/android/empowerplant/MainFragment.java",
+            ),
+        ]:
+            assert (
+                convert_stacktrace_frame_path_to_source_path(
+                    frame=EventFrame(filename=abs_path, abs_path=abs_path, module=module),
+                    code_mapping=code_mapping,
+                    platform="java",
+                    sdk_name="sentry.java.android",
+                )
+                == expected_path
             )
-            == "src/com/example/vu/android/MainActivity.java"
-        )
-        assert (
-            convert_stacktrace_frame_path_to_source_path(
-                frame=EventFrame(
-                    filename="D8$$SyntheticClass",
-                    module="com.example.vu.android.MainActivity$$ExternalSyntheticLambda4",
-                ),
-                code_mapping=code_mapping,
-                platform="java",
-                sdk_name="sentry.java.android",
-            )
-            == "src/com/example/vu/android/MainActivity.java"
-        )
 
     def test_convert_stacktrace_frame_path_to_source_path_backslashes(self) -> None:
         assert (

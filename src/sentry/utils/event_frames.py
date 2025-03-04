@@ -42,8 +42,13 @@ def java_frame_munger(frame: EventFrame) -> str | None:
     if not frame.filename or not frame.module:
         return None
 
-    if "$$" in frame.module:
-        return frame.module.split("$$")[0].replace(".", "/") + ".java"
+    if "$" in frame.module:
+        parts = frame.module.split("$")
+        path = parts[0].replace(".", "/")
+        if frame.abs_path and frame.abs_path.count(".") == 1:
+            # Append extension
+            path = path + "." + frame.abs_path.split(".")[-1]
+        return path
 
     if "/" not in str(frame.filename) and frame.module:
         # Replace the last module segment with the filename, as the
