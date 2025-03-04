@@ -11,6 +11,7 @@ import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from google.protobuf.message import Message as ProtobufMessage
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
@@ -277,6 +278,8 @@ def _make_rpc_request(
                     error.ParseFromString(http_resp.data)
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
+                    if http_resp.status == 404:
+                        raise NotFound() from SnubaRPCError(error)
                     raise SnubaRPCError(error)
                 return http_resp
 
