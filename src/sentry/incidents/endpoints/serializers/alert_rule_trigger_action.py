@@ -16,6 +16,8 @@ def human_desc(
     priority=None,
 ):
     # Returns a human readable description to display in the UI
+    if priority:
+        priority += " level"
 
     action_type_to_string = {
         AlertRuleTriggerAction.Type.PAGERDUTY.value: f"Send a {priority} PagerDuty notification to {target_display}",
@@ -23,9 +25,6 @@ def human_desc(
         AlertRuleTriggerAction.Type.MSTEAMS.value: f"Send a Microsoft Teams notification to {target_display}",
         AlertRuleTriggerAction.Type.SENTRY_APP.value: f"Send a notification via {target_display}",
     }
-
-    if priority:
-        priority += " level"
 
     if action_type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action_target:
