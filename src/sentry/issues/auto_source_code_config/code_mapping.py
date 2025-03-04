@@ -582,28 +582,15 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         # Split the module at the first '$' character and take the part before it
         # If there's no '$', use the entire module
         file_path = module.split("$", 1)[0] if "$" in module else module
-        module_as_path = module.rsplit(".", 1)[0].replace(".", "/")
-        return module_as_path, file_path.replace(".", "/")
-
-    file_path = ""
-    module_as_path = ""
-
-    # Get the filename without extension
-    if "." in abs_path:
-        abs_path_before_dot, extension = abs_path.rsplit(".", 1)
-    else:
-        abs_path_before_dot = abs_path
-        extension = ""
+        stack_root = module.rsplit(".", 1)[0].replace(".", "/")
+        return stack_root, file_path.replace(".", "/")
 
     if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
     # If module has a dot, take everything before the last dot
-    module_as_path = module.rsplit(".", 1)[0].replace(".", "/")
-    file_path = f"{module_as_path}/{abs_path_before_dot}"
+    # com.example.foo.Bar$InnerClass -> com/example/foo/
+    stack_root = module.rsplit(".", 1)[0].replace(".", "/")
+    file_path = f"{stack_root}/{abs_path}"
 
-    # Add extension back if it exists
-    if extension:
-        file_path += f".{extension}"
-
-    return module_as_path, file_path
+    return stack_root, file_path
