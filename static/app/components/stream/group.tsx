@@ -813,17 +813,18 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
+  margin-right: ${space(1)};
   flex: 1;
   width: 66.66%;
 
   ${p =>
     p.hasNewLayout &&
     css`
+      margin-right: ${space(4)};
       display: flex;
       flex-direction: column;
       justify-content: center;
-      font-size: ${p.theme.fontSizeMedium};
+      font-size: ${p.theme.fontSizeSmall};
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
