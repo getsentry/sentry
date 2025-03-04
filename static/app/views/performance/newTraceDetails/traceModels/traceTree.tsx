@@ -1227,7 +1227,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       if (type === 'ms' && isMissingInstrumentationNode(node)) {
-        return node.previous.value.span_id === id || node.next.value.span_id === id;
+        const spanId = isEAPSpanNode(node.previous)
+          ? node.previous.value.event_id
+          : node.previous.value.span_id;
+        return spanId === id;
       }
 
       if (type === 'error' && isTraceErrorNode(node)) {
@@ -1286,7 +1289,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return false;
       }
       if (isMissingInstrumentationNode(n)) {
-        return n.previous.value.span_id === eventId || n.next.value.span_id === eventId;
+        const spanId = isEAPSpanNode(n.previous)
+          ? n.previous.value.event_id
+          : n.previous.value.span_id;
+        return spanId === eventId;
       }
       if (isParentAutogroupedNode(n)) {
         return (
@@ -1804,7 +1810,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         {roots: 0, orphans: 0, javascriptRootTransactions: []}
       );
     } else {
-      throw new Error('Unknown trace type');
+      throw new Error('Unknown trace node type');
     }
 
     if (traceStats.roots === 0) {
@@ -1964,7 +1970,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   if (isMissingInstrumentationNode(n)) {
-    return `ms-${n.previous.value.span_id}`;
+    const spanId = isEAPSpanNode(n.previous)
+      ? n.previous.value.event_id
+      : n.previous.value.span_id;
+    return `ms-${spanId}`;
   }
 
   throw new Error('Not implemented');

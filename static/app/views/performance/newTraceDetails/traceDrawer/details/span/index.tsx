@@ -272,6 +272,9 @@ export function SpanNodeDetails({
           project={project}
           onTabScrollToNode={onTabScrollToNode}
         />
+        <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+          <div>TO DO: EAP Span Details</div>
+        </TraceDrawerComponents.BodyContainer>
       </TraceDrawerComponents.DetailContainer>
     );
   }

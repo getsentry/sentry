@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import type {EventTransaction} from 'sentry/types/event';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {TraceTree} from './traceTree';
 
@@ -22,6 +21,10 @@ function isTraceSpan(value: TraceTree.NodeValue): value is TraceTree.Span {
   );
 }
 
+function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
+}
+
 function isTraceAutogroup(
   value: TraceTree.NodeValue
 ): value is TraceTree.ChildrenAutogroup | TraceTree.SiblingAutogroup {
@@ -30,7 +33,7 @@ function isTraceAutogroup(
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   // Only collapse EAP spans if they are a segments/transactions
-  if (isEAPSpanNode(node)) {
+  if (isEAPSpan(node.value)) {
     return node.value.is_transaction;
   }
 
