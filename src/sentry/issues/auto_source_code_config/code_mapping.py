@@ -58,11 +58,7 @@ class MissingModuleOrAbsPath(Exception):
     pass
 
 
-class FailedToExtractFilename(Exception):
-    pass
-
-
-class DoNotUseThisFrame(Exception):
+class DoesNotFollowJavaPackageNamingConvention(Exception):
     pass
 
 
@@ -145,12 +141,9 @@ class FrameInfo:
         # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
         if frame.get("module") and frame.get("abs_path"):
             stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
-            if filepath:
-                self.stack_root = stack_root
-                self.raw_path = filepath
-                self.normalized_path = filepath
-            else:
-                raise FailedToExtractFilename("Investigate why it did not work.")
+            self.stack_root = stack_root
+            self.raw_path = filepath
+            self.normalized_path = filepath
         else:
             raise MissingModuleOrAbsPath("Investigate why the data is missing.")
 
@@ -245,10 +238,12 @@ class CodeMappingTreesHelper:
                 buckets[frame_filename.stack_root].append(frame_filename)
             except UnsupportedFrameInfo:
                 logger.warning("Frame's filepath not supported: %s", frame.get("filename"))
-            except (MissingModuleOrAbsPath, FailedToExtractFilename):
+            except MissingModuleOrAbsPath:
                 logger.warning("Do not panic. I'm collecting this data.")
             except NeedsExtension:
                 logger.warning("Needs extension: %s", frame.get("filename"))
+            except DoesNotFollowJavaPackageNamingConvention:
+                pass
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
@@ -578,17 +573,23 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     raise UnexpectedPathException("Could not find common root from paths")
 
 
-def get_path_from_module(module: str, abs_path: str) -> tuple[str | None, str | None]:
+def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
     """This converts a Java module name and filename into a real path."""
-    temp_path = None
-    generated_file_path = None
-    stack_root = None
-
     if abs_path.find("$") > -1:
-        raise DoNotUseThisFrame
+        raise DoesNotFollowJavaPackageNamingConvention
 
-    # Find the first uppercase letter after a period to identify class name
+    parts = abs_path.split(".")
+    if len(parts) != 2:  # file name + extension
+        raise DoesNotFollowJavaPackageNamingConvention
+    extension = parts[1]
+
     parts = module.split(".")
+    if len(parts) <= 1:
+        raise DoesNotFollowJavaPackageNamingConvention
+
+    package_name = None
+    temp_path = None
+    # Find the first uppercase letter after a period to identify class name
     for i, part in enumerate(parts):
         if part and part[0].isupper():
             # Everything before this part is the package path
@@ -596,11 +597,9 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str | None, str | 
             if package_name:
                 # Convert package path to directory structure
                 temp_path = "/".join(package_name + [part]).split("$")[0]
-                stack_root = "/".join(package_name)
-
-                if abs_path and abs_path.count(".") == 1:
-                    extension = abs_path.rsplit(".")[1]
-                    generated_file_path = f"{temp_path}.{extension}"
             break
 
-    return stack_root, generated_file_path
+    if package_name is None:
+        raise DoesNotFollowJavaPackageNamingConvention
+
+    return "/".join(package_name), f"{temp_path}.{extension}"

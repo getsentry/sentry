@@ -498,7 +498,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             # No code mapping will be stored, however, we get what would have been created
             code_mappings = self._process_and_assert_no_code_mapping(
                 repo_files=["src/com/example/foo/Bar.kt"],
-                frames=[{"module": "com.example.foo.Bar$handle$1", "abs_path": "Bar.kt"}],
+                frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
                 platform=self.platform,
             )
             assert len(code_mappings) == 1

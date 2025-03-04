@@ -14,8 +14,7 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
-    DoNotUseThisFrame,
-    FailedToExtractFilename,
+    DoesNotFollowJavaPackageNamingConvention,
     FrameInfo,
     MissingModuleOrAbsPath,
     NeedsExtension,
@@ -130,19 +129,30 @@ class TestFrameInfo:
     @pytest.mark.parametrize(
         "frame, expected_exception",
         [
-            pytest.param({}, MissingModuleOrAbsPath),  # No module
-            pytest.param({"module": "foo"}, MissingModuleOrAbsPath),  # No abs_path
-            pytest.param({"module": "foo", "abs_path": "hasDollar$Symbol"}, DoNotUseThisFrame),
+            pytest.param({}, MissingModuleOrAbsPath, id="no_module"),
+            pytest.param({"module": "foo"}, MissingModuleOrAbsPath, id="no_abs_path"),
             pytest.param(
-                {"module": "OtherActivity", "abs_path": "OtherActivity.java"}, DoNotUseThisFrame
+                {"module": "foo", "abs_path": "hasDollar$Symbol"},
+                DoesNotFollowJavaPackageNamingConvention,
+                id="dollar_symbol",
+            ),
+            pytest.param(
+                # Classes without declaring a package are placed in
+                # the unnamed package which cannot be imported.
+                # https://docs.oracle.com/javase/specs/jls/se8/html/jls-7.html#jls-7.4.2
+                {"module": "NoPackageName", "abs_path": "OtherActivity.java"},
+                DoesNotFollowJavaPackageNamingConvention,
+                id="unnamed_package",
             ),
             pytest.param(
                 {"module": "foo.no_upper_letter_class", "abs_path": "bar.java"},
-                FailedToExtractFilename,
+                DoesNotFollowJavaPackageNamingConvention,
+                id="no_upper_letter_class",
             ),
             pytest.param(
                 {"module": "foo.ClassName", "abs_path": "no_extension"},
-                FailedToExtractFilename,
+                DoesNotFollowJavaPackageNamingConvention,
+                id="no_extension",
             ),
         ],
     )
