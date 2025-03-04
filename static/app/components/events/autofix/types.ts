@@ -96,13 +96,13 @@ export type AutofixStep =
 interface BaseStep {
   id: string;
   index: number;
-  key: string;
   progress: AutofixProgressItem[];
   status: AutofixStatus;
   title: string;
   type: AutofixStepType;
   active_comment_thread?: CommentThread | null;
   completedMessage?: string;
+  key?: string;
   output_stream?: string | null;
 }
 
