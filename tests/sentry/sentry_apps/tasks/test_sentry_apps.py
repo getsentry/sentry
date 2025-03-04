@@ -99,8 +99,8 @@ MockFailureResponseInstance = MockResponse(
 MockResponseWithHeadersInstance = MockResponse(
     headers, html_content, "", True, 400, raiseStatusFalse, RequestMock()
 )
-MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, None)
-MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
+MockResponseInstance = MockResponse({}, b"{}", "", True, 200, raiseStatusFalse, None)
+MockResponse404 = MockResponse({}, b'{"bruh": "bruhhhhhhh"}', "", False, 404, raiseException, None)
 
 
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
@@ -551,6 +551,18 @@ class TestSendResourceChangeWebhook(TestCase):
         call_urls = [call.kwargs["url"] for call in safe_urlopen.mock_calls]
         assert self.sentry_app_1.webhook_url in call_urls
         assert self.sentry_app_2.webhook_url in call_urls
+
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (halt) x2
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
 
 
 @control_silo_test

@@ -138,7 +138,6 @@ def send_and_save_webhook_request(
         slug = sentry_app.slug_for_metrics
         url = url or sentry_app.webhook_url
         assert url is not None
-
         try:
             response = safe_urlopen(
                 url=url,
