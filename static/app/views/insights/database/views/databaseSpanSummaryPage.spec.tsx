@@ -10,9 +10,9 @@ import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/data
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({

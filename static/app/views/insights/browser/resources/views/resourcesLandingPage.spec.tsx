@@ -27,9 +27,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
+jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
