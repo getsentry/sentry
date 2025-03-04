@@ -179,12 +179,12 @@ describe('StreamGroup', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows first and last seen columns', function () {
+  it('shows lifespan column', function () {
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        withColumns={['firstSeen', 'lastSeen']}
+        withColumns={['lifespan']}
       />,
       {
         organization: OrganizationFixture({

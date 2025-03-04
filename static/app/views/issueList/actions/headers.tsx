@@ -39,14 +39,10 @@ function Headers({
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
-                {t('First Seen')}
+              <LifespanLabel breakpoint={COLUMN_BREAKPOINTS.LIFESPAN}>
+                {t('Lifespan')}
                 <HeaderDivider />
-              </TimestampLabel>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-                {t('Last Seen')}
-                <HeaderDivider />
-              </TimestampLabel>
+              </LifespanLabel>
             </Fragment>
           ) : null}
           {organization.features.includes('issue-stream-table-layout') ? (
@@ -179,16 +175,12 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const TimestampLabel = styled(IssueStreamHeaderLabel)`
-  width: 75px;
+const LifespanLabel = styled(IssueStreamHeaderLabel)`
+  width: 106px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   text-align: left;
-
-  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
-    display: none;
-  }
 `;
 
 const EventsOrUsersLabel = styled(ToolbarHeader)`
