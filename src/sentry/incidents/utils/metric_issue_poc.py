@@ -71,7 +71,7 @@ def construct_title(alert_rule: AlertRule, status: int) -> str:
 
     # Format the time window for the threshold
     time_window = alert_rule.snuba_query.time_window // 60
-    title = f"{label.upper()}: {aggregate}"
+    title = f"{label.capitalize()}: {aggregate}"
 
     # If the alert rule has a comparison delta, format the comparison string
     if alert_rule.comparison_delta:
