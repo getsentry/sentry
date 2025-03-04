@@ -131,10 +131,12 @@ class RepoTreesIntegration(ABC):
         remaining_requests = MINIMUM_REQUESTS_REMAINING
         try:
             remaining_requests = self.get_client().get_remaining_api_requests()
-        except ApiError:
+        except Exception:
             use_cache = True
             # Report so we can investigate
-            logger.warning("Loading trees from cache. Execution will continue. Check logs.")
+            logger.warning(
+                "Loading trees from cache. Execution will continue. Check logs.", exc_info=True
+            )
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
