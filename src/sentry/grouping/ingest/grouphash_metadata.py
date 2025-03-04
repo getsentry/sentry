@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import random
+from datetime import datetime
 from typing import Any, TypeIs, cast
 
 from sentry import features, options
@@ -178,11 +179,12 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Keep track of the most recent config which computed this hash, so that once a config is
         # deprecated, we can clear out the GroupHash records which are no longer being produced
-        if grouphash.metadata.latest_grouping_config != grouping_config:
+        current_latest_config = grouphash.metadata.latest_grouping_config
+        if _is_incoming_config_newer_than_current_latest(grouping_config, current_latest_config):
             updated_data = {"latest_grouping_config": grouping_config}
             db_hit_metadata = {
                 "reason": "old_grouping_config",
-                "current_config": grouphash.metadata.latest_grouping_config,
+                "current_config": current_latest_config,
                 "new_config": grouping_config,
             }
 
@@ -573,3 +575,28 @@ def check_grouphashes_for_positive_fingerprint_match(
         return False
 
     return fingerprint1 == fingerprint2
+
+
+def _is_incoming_config_newer_than_current_latest(
+    incoming_config: str | None, latest_config: str | None
+) -> bool:
+    # Handle records created before we were storing config
+    if latest_config is None:
+        return True
+    # This shouldn't happen, but just in case
+    if incoming_config is None:
+        return False
+
+    def _extract_date(config_id: str) -> datetime:
+        date_str = config_id.split(":")[1]
+        return datetime.fromisoformat(date_str)
+
+    try:
+        return _extract_date(incoming_config) > _extract_date(latest_config)
+    except Exception:
+        logger.exception(
+            "Unable to compare grouping config dates from configs '%s' and '%s'",
+            incoming_config,
+            latest_config,
+        )
+        return False
