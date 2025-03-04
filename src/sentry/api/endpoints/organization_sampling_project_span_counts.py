@@ -17,7 +17,8 @@ from sentry.sentry_metrics.querying.data import (
     run_queries,
 )
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
-from sentry.sentry_metrics.utils import STRING_NOT_FOUND, UseCaseID, resolve_weak
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.utils import STRING_NOT_FOUND, resolve_weak
 from sentry.snuba.metrics import SpanMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period
