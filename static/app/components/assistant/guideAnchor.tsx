@@ -1,5 +1,4 @@
 import {Component, Fragment, useEffect, useRef} from 'react';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
@@ -14,8 +13,8 @@ import {
 } from 'sentry/actionCreators/guides';
 import type {Guide} from 'sentry/components/assistant/types';
 import ButtonBar from 'sentry/components/buttonBar';
-import {Hovercard} from 'sentry/components/hovercard';
-import {TourAction, TourOverlayBody} from 'sentry/components/tours/components';
+import type {Hovercard} from 'sentry/components/hovercard';
+import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 import GuideStore from 'sentry/stores/guideStore';
@@ -146,7 +145,14 @@ class BaseGuideAnchor extends Component<Props, State> {
     }
   };
 
-  getHovercardBody() {
+  render() {
+    const {children, position, offset, containerClassName} = this.props;
+    const {active} = this.state;
+
+    if (!active) {
+      return children ? children : null;
+    }
+
     const {to} = this.props;
     const {currentGuide, step} = this.state;
     if (!currentGuide) {
@@ -159,18 +165,21 @@ class BaseGuideAnchor extends Component<Props, State> {
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
+    // offset is  missed
     return (
-      <TourOverlayBody
-        stepCount={currentStepCount}
-        stepTotal={totalStepCount}
+      <TourGuide
+        isOpen
         title={currentStep.title}
         description={currentStep.description}
+        stepCount={currentStepCount}
+        stepTotal={totalStepCount}
         handleDismiss={e => {
-          window.location.hash = '';
           this.handleDismiss(e);
+          window.location.hash = '';
         }}
+        wrapperComponent={GuideAnchorWrapper}
         actions={
-          <StyledButtonBar gap={1}>
+          <ButtonBar gap={1}>
             {lastStep ? (
               <TourAction size="xs" to={to} onClick={this.handleFinish}>
                 {currentStep.nextText ||
@@ -181,38 +190,14 @@ class BaseGuideAnchor extends Component<Props, State> {
                 {currentStep.nextText || t('Next')}
               </TourAction>
             )}
-          </StyledButtonBar>
+          </ButtonBar>
         }
-      />
-    );
-  }
-
-  render() {
-    const {children, position, offset, containerClassName} = this.props;
-    const {active} = this.state;
-
-    if (!active) {
-      return children ? children : null;
-    }
-
-    return (
-      <ClassNames>
-        {({css}) => (
-          <StyledHovercard
-            forceVisible
-            body={this.getHovercardBody()}
-            tipColor="lightModeBlack"
-            position={position}
-            offset={offset}
-            containerClassName={containerClassName}
-            bodyClassName={css`
-              padding: 0 !important;
-            `}
-          >
-            <ScrollToGuide>{children}</ScrollToGuide>
-          </StyledHovercard>
-        )}
-      </ClassNames>
+        className={containerClassName}
+        position={position}
+        offset={offset}
+      >
+        <ScrollToGuide>{children}</ScrollToGuide>
+      </TourGuide>
     );
   }
 }
@@ -238,12 +223,9 @@ function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
   return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
 }
 
+const GuideAnchorWrapper = styled('span')`
+  display: inline-block;
+  width: 100%;
+`;
+
 export default GuideAnchor;
-
-const StyledHovercard = styled(Hovercard)`
-  background-color: ${p => p.theme.inverted.surface400};
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  justify-content: flex-end;
-`;

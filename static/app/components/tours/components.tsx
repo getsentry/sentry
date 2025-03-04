@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Flex} from 'sentry/components/container/flex';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   type TourContextType,
@@ -15,6 +16,7 @@ import {
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
@@ -29,6 +31,10 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    * Whether the tour can be accessed by the user
    */
   isAvailable: TourState<T>['isAvailable'];
+  /**
+   * Whether the tour has been completed.
+   */
+  isCompleted: TourState<T>['isCompleted'];
   /**
    * The ordered list of Step IDs
    */
@@ -46,12 +52,14 @@ export interface TourContextProviderProps<T extends TourEnumType> {
 export function TourContextProvider<T extends TourEnumType>({
   children,
   isAvailable,
+  isCompleted,
   tourContext,
   omitBlur,
   orderedStepIds,
 }: TourContextProviderProps<T>) {
   const tourContextValue = useTourReducer<T>({
     isAvailable,
+    isCompleted,
     isRegistered: false,
     orderedStepIds,
     currentStepId: null,
@@ -100,6 +108,10 @@ export interface TourElementProps<T extends TourEnumType>
    */
   tourContext: React.Context<TourContextType<T> | null>;
   /**
+   * The actions to display in the tour element.
+   */
+  actions?: React.ReactNode;
+  /**
    * The position of the tour element.
    */
   position?: UseOverlayProps['position'];
@@ -129,8 +141,8 @@ function TourElementContent<T extends TourEnumType>({
   tourContextValue,
   position,
   className,
+  actions,
 }: TourElementContentProps<T>) {
-  const theme = useTheme();
   const {currentStepId, dispatch, orderedStepIds, handleStepRegistration} =
     tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
@@ -139,101 +151,132 @@ function TourElementContent<T extends TourEnumType>({
   const hasNextStep = stepCount < stepTotal;
   const isOpen = currentStepId === id;
 
-  const {triggerProps, triggerRef, overlayProps, arrowProps} = useOverlay({
-    isOpen,
-    position,
-    disableTrigger: true,
-  });
-  const element = triggerRef.current;
+  useEffect(() => handleStepRegistration({id}), [id, handleStepRegistration]);
 
-  useEffect(
-    () => handleStepRegistration({id, element}),
-    [id, element, handleStepRegistration]
+  const defaultActions = useMemo(
+    () => (
+      <ButtonBar gap={1}>
+        {hasPreviousStep && (
+          <TourAction size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
+            {t('Previous')}
+          </TourAction>
+        )}
+        {hasNextStep ? (
+          <TourAction size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
+            {t('Next')}
+          </TourAction>
+        ) : (
+          <TourAction size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
+            {t('Finish tour')}
+          </TourAction>
+        )}
+      </ButtonBar>
+    ),
+    [hasPreviousStep, hasNextStep, dispatch]
   );
 
   return (
+    <TourGuide
+      title={title}
+      description={description}
+      actions={defined(actions) ? actions : defaultActions}
+      className={className}
+      isOpen={isOpen}
+      position={position}
+      handleDismiss={() => dispatch({type: 'END_TOUR'})}
+      stepCount={stepCount}
+      stepTotal={stepTotal}
+    >
+      {children}
+    </TourGuide>
+  );
+}
+
+interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
+  children: React.ReactNode;
+  description: React.ReactNode;
+  isOpen: UseOverlayProps['isOpen'];
+  actions?: React.ReactNode;
+  handleDismiss?: (e: React.MouseEvent) => void;
+  offset?: UseOverlayProps['offset'];
+  position?: UseOverlayProps['position'];
+  stepCount?: number;
+  stepTotal?: number;
+  title?: React.ReactNode;
+  wrapperComponent?: React.ComponentType<{
+    'aria-expanded': React.AriaAttributes['aria-expanded'];
+    children: React.ReactNode;
+    ref: React.RefAttributes<HTMLElement>['ref'];
+  }>;
+}
+
+export function TourGuide({
+  children,
+  title,
+  description,
+  actions,
+  className,
+  isOpen,
+  position,
+  handleDismiss,
+  stepCount,
+  wrapperComponent,
+  stepTotal,
+  offset,
+}: TourGuideProps) {
+  const theme = useTheme();
+  const isStepCountVisible = defined(stepCount) && defined(stepTotal);
+  const isDismissVisible = defined(handleDismiss);
+  const isTopRowVisible = isStepCountVisible || isDismissVisible;
+  const {triggerProps, overlayProps, arrowProps} = useOverlay({
+    isOpen,
+    position,
+    offset,
+  });
+  const Wrapper = wrapperComponent ?? TourTriggerWrapper;
+
+  return (
     <Fragment>
-      <TourTriggerWrapper
+      <Wrapper
         className={className}
         ref={triggerProps.ref}
         aria-expanded={triggerProps['aria-expanded']}
       >
         {children}
-      </TourTriggerWrapper>
+      </Wrapper>
       {isOpen ? (
         <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-          <Overlay animated arrowProps={{...arrowProps, background: 'lightModeBlack'}}>
-            <TourOverlayBody
-              handleDismiss={() => dispatch({type: 'END_TOUR'})}
-              stepCount={stepCount}
-              stepTotal={stepTotal}
-              title={title}
-              description={description}
-              actions={
-                <ActionBar gap={1}>
-                  {hasPreviousStep && (
-                    <TourAction
-                      size="xs"
-                      onClick={() => dispatch({type: 'PREVIOUS_STEP'})}
-                    >
-                      {t('Previous')}
-                    </TourAction>
+          <TourOverlay
+            animated
+            arrowProps={{...arrowProps, background: 'lightModeBlack'}}
+          >
+            <TourBody>
+              {isTopRowVisible && (
+                <TopRow>
+                  {isStepCountVisible && (
+                    <div>
+                      {stepCount}/{stepTotal}
+                    </div>
                   )}
-                  {hasNextStep ? (
-                    <TourAction size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
-                      {t('Next')}
-                    </TourAction>
-                  ) : (
-                    <TourAction size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
-                      {t('Finish tour')}
-                    </TourAction>
+                  {isDismissVisible && (
+                    <TourCloseButton
+                      onClick={handleDismiss}
+                      icon={<IconClose style={{color: theme.inverted.textColor}} />}
+                      aria-label={t('Close')}
+                      borderless
+                      size="sm"
+                    />
                   )}
-                </ActionBar>
-              }
-            />
-          </Overlay>
+                </TopRow>
+              )}
+              {title && <TitleRow>{title}</TitleRow>}
+              {description && <div>{description}</div>}
+              {actions && <Flex justify="flex-end">{actions}</Flex>}
+            </TourBody>
+          </TourOverlay>
         </PositionWrapper>
       ) : null}
     </Fragment>
-  );
-}
-
-interface TourOverlayBodyProps {
-  description: React.ReactNode;
-  handleDismiss: (e: React.MouseEvent) => void;
-  stepCount: number;
-  stepTotal: number;
-  actions?: React.ReactNode;
-  title?: React.ReactNode;
-}
-
-export function TourOverlayBody({
-  stepCount,
-  stepTotal,
-  title,
-  description,
-  actions,
-  handleDismiss,
-}: TourOverlayBodyProps) {
-  const theme = useTheme();
-  return (
-    <TourBody>
-      <TopRow>
-        <div>
-          {stepCount}/{stepTotal}
-        </div>
-        <TourCloseButton
-          onClick={handleDismiss}
-          icon={<IconClose style={{color: theme.inverted.textColor}} />}
-          aria-label={t('Close')}
-          borderless
-          size="sm"
-        />
-      </TopRow>
-      {title && <TitleRow>{title}</TitleRow>}
-      {description && <div>{description}</div>}
-      {actions}
-    </TourBody>
   );
 }
 
@@ -245,13 +288,17 @@ const TourBody = styled('div')`
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.inverted.textColor};
   border-radius: ${p => p.theme.borderRadius};
-  max-width: 360px;
+  width: 360px;
 `;
 
 const TourCloseButton = styled(Button)`
   display: block;
   padding: 0;
   height: 14px;
+`;
+
+export const TourOverlay = styled(Overlay)`
+  width: 360px;
 `;
 
 const TopRow = styled('div')`
@@ -301,8 +348,4 @@ const TourTriggerWrapper = styled('div')`
       box-shadow: inset 0 0 0 3px ${p => p.theme.subText};
     }
   }
-`;
-
-const ActionBar = styled(ButtonBar)`
-  justify-content: flex-end;
 `;
