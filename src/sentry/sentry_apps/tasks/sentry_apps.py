@@ -123,90 +123,100 @@ def send_alert_webhook(
     additional_payload: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ):
-    group = Group.objects.get_from_cache(id=group_id)
-    assert group, "Group must exist to get related attributes"
-    project = Project.objects.get_from_cache(id=group.project_id)
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    extra = {
-        "sentry_app_id": sentry_app_id,
-        "project_slug": project.slug,
-        "organization_slug": organization.slug,
-        "rule": rule,
-    }
-
-    sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
-    if sentry_app is None:
-        logger.info("event_alert_webhook.missing_sentry_app", extra=extra)
-        return
-
-    installations = app_service.get_many(
-        filter=dict(
-            organization_id=organization.id,
-            app_ids=[sentry_app.id],
-            status=SentryAppInstallationStatus.INSTALLED,
-        )
-    )
-    if not installations:
-        logger.info("event_alert_webhook.missing_installation", extra=extra)
-        return
-    (install,) = installations
-
-    nodedata = nodestore.backend.get(
-        BaseEvent.generate_node_id(project_id=project.id, event_id=instance_id)
-    )
-
-    if not nodedata:
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type="send_alert_webhook",
+    ).capture() as lifecycle:
+        group = Group.objects.get_from_cache(id=group_id)
+        assert group, "Group must exist to get related attributes"
+        project = Project.objects.get_from_cache(id=group.project_id)
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
         extra = {
-            "event_id": instance_id,
-            "occurrence_id": occurrence_id,
+            "sentry_app_id": sentry_app_id,
+            "project_slug": project.slug,
+            "organization_slug": organization.slug,
             "rule": rule,
-            "sentry_app": sentry_app.slug,
-            "group_id": group_id,
         }
-        logger.info("send_alert_event.missing_event", extra=extra)
-        return
+        lifecycle.add_extras(extra)
 
-    occurrence = None
-    if occurrence_id:
-        occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
-
-        if not occurrence:
-            logger.info(
-                "send_alert_event.missing_occurrence",
-                extra={"occurrence_id": occurrence_id, "project_id": project.id},
-            )
+        sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+        if sentry_app is None:
+            lifecycle.record_failure("event_alert_webhook.missing_sentry_app")
             return
 
-    group_event = GroupEvent(
-        project_id=project.id,
-        event_id=instance_id,
-        group=group,
-        data=nodedata,
-        occurrence=occurrence,
-    )
-
-    event_context = _webhook_event_data(group_event, group.id, project.id)
-
-    data = {"event": event_context, "triggered_rule": rule}
-
-    # Attach extra payload to the webhook
-    if additional_payload_key and additional_payload:
-        data[additional_payload_key] = additional_payload
-
-    request_data = AppPlatformEvent(
-        resource="event_alert", action="triggered", install=install, data=data
-    )
-
-    send_and_save_webhook_request(sentry_app, request_data)
-
-    # On success, record analytic event for Alert Rule UI Component
-    if request_data.data.get("issue_alert"):
-        analytics.record(
-            "alert_rule_ui_component_webhook.sent",
-            organization_id=organization.id,
-            sentry_app_id=sentry_app_id,
-            event=f"{request_data.resource}.{request_data.action}",
+        installations = app_service.get_many(
+            filter=dict(
+                organization_id=organization.id,
+                app_ids=[sentry_app.id],
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
         )
+        if not installations:
+            lifecycle.record_failure("event_alert_webhook.missing_installation")
+            return
+        (install,) = installations
+
+        nodedata = nodestore.backend.get(
+            BaseEvent.generate_node_id(project_id=project.id, event_id=instance_id)
+        )
+
+        if not nodedata:
+            extra = {
+                "event_id": instance_id,
+                "occurrence_id": occurrence_id,
+                "rule": rule,
+                "sentry_app": sentry_app.slug,
+                "group_id": group_id,
+            }
+            lifecycle.record_failure(failure_reason="send_alert_event.missing_event", extra=extra)
+            return
+
+        occurrence = None
+        if occurrence_id:
+            occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
+
+            if not occurrence:
+                lifecycle.record_failure(
+                    failure_reason="send_alert_event.missing_occurrence",
+                    extra={"occurrence_id": occurrence_id, "project_id": project.id},
+                )
+                return
+
+        group_event = GroupEvent(
+            project_id=project.id,
+            event_id=instance_id,
+            group=group,
+            data=nodedata,
+            occurrence=occurrence,
+        )
+
+        event_context = _webhook_event_data(group_event, group.id, project.id)
+
+        data = {"event": event_context, "triggered_rule": rule}
+
+        # Attach extra payload to the webhook
+        if additional_payload_key and additional_payload:
+            data[additional_payload_key] = additional_payload
+
+        request_data = AppPlatformEvent(
+            resource="event_alert", action="triggered", install=install, data=data
+        )
+
+        try:
+            send_and_save_webhook_request(sentry_app, request_data)
+        except (ApiHostError, ApiTimeoutError, RequestException, ClientError) as e:
+            # record success as the preperation portion did not fail
+            lifecycle.record_success(e)
+            raise
+
+        # On success, record analytic event for Alert Rule UI Component
+        if request_data.data.get("issue_alert"):
+            analytics.record(
+                "alert_rule_ui_component_webhook.sent",
+                organization_id=organization.id,
+                sentry_app_id=sentry_app_id,
+                event=f"{request_data.resource}.{request_data.action}",
+            )
 
 
 def _process_resource_change(
