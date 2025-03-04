@@ -10,6 +10,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, Message, Partition, Value
 from sentry_kafka_schemas.codecs import Codec
@@ -52,10 +53,15 @@ def _process_message(message: Message[KafkaPayload]):
         sentry_sdk.capture_exception()
 
 
-def explode_segment(spans: list[dict[str, Any]]):
+def explode_segment(message: tuple[list[dict[str, Any]], Mapping[Partition, int]]):
+    spans, committable = message
     for span in spans:
         if span is not None:
-            yield Value(KafkaPayload(None, rapidjson.dumps(span), []), {}, None)
+            yield Value(
+                payload=KafkaPayload(key=None, value=rapidjson.dumps(span), headers=[]),
+                committable=committable,
+                timestamp=None,
+            )
 
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -74,10 +80,10 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.output_block_size = output_block_size
         self.pool = MultiprocessingPool(num_processes)
 
-        cluster_name = get_topic_definition(Topic.SNUBA_SPANS)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
+        producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
         self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-        self.output_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+        self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
     def create_with_partitions(
         self,
@@ -90,11 +96,17 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             next_step=CommitOffsets(commit),
         )
 
-        unfold_step = Unfold(generator=explode_segment, next_step=produce_step)
+        # WORKAROUND: Since https://github.com/getsentry/arroyo/pull/371, Unfold
+        # no longer passes through the commit and there is no way to access it
+        # from the generator function.
+        zip_commit = RunTask(
+            function=lambda m: (m.payload, m.committable),
+            next_step=Unfold(generator=explode_segment, next_step=produce_step),
+        )
 
         return run_task_with_multiprocessing(
             function=_process_message,
-            next_step=unfold_step,
+            next_step=zip_commit,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             pool=self.pool,

@@ -78,16 +78,16 @@ def test_segment_deserialized_correctly(mock_process_segment):
             )
         )
 
-        calls = [
-            mock.call({partition_1: 2}),
-            mock.call({partition_2: 2}),
-        ]
-
         strategy.poll()
         strategy.join(1)
         strategy.terminate()
 
+        calls = [
+            mock.call({partition_1: 2}),
+            mock.call({partition_2: 2}),
+        ]
         mock_commit.assert_has_calls(calls=calls, any_order=True)
+
         assert mock_process_segment.call_args.args[0] == segment_data["spans"]
 
         assert mock_producer.produce.call_count == 2
