@@ -103,10 +103,7 @@ def get_incident_status_text(
         agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
 
     if agg_text.startswith("%"):
-        if metric_value is not None:
-            metric_and_agg_text = f"{metric_value}{agg_text}"
-        else:
-            metric_and_agg_text = f"No{agg_text[1:]}"
+        metric_and_agg_text = f"{metric_value}{agg_text}"
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
@@ -136,7 +133,7 @@ def get_title(status: str, name: str) -> str:
 
 
 def build_title_link(
-    identifier_id: str, organization: Organization, params: TitleLinkParams
+    identifier_id: int, organization: Organization, params: TitleLinkParams
 ) -> str:
     """Builds the URL for an alert rule with the given parameters."""
     return organization.absolute_url(
@@ -252,7 +249,7 @@ def metric_alert_unfurl_attachment_info(
             and latest_incident.status != IncidentStatus.CLOSED
         ):
             # Without a selected incident, use latest incident if it is not resolved
-            incident_info = latest_incident
+            incident_info: Incident | None = latest_incident
         else:
             incident_info = selected_incident
 
