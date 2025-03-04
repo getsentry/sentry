@@ -82,36 +82,6 @@ describe('SentryAppDetailsModal', function () {
     expect(screen.getByRole('button', {name: 'Request Publication'})).toBeInTheDocument();
   });
 
-  it('renders new modal questions when feature flag is true', () => {
-    const organization = OrganizationFixture();
-
-    render(
-      <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
-        Header={p => <span>{p.children}</span>}
-        Footer={styledWrapper()}
-        Body={styledWrapper()}
-        CloseButton={makeCloseButton(() => {})}
-        organization={organization}
-        app={sentryApp}
-        onPublishSubmission={onPublishSubmission}
-      />
-    );
-
-    expect(screen.getByText('Publish Request Questionnaire')).toBeInTheDocument();
-    expect(screen.getByText('Questions to answer')).toBeInTheDocument();
-    expect(screen.getByText('Link to your documentation page.')).toBeInTheDocument();
-    expect(
-      screen.queryByText('What value does it offer customers?')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Request Publication'})).toBeInTheDocument();
-  });
   it('sends correctly formatted JSON for the modal flow', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
