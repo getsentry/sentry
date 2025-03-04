@@ -1,6 +1,5 @@
 from rest_framework import status
 from rest_framework.exceptions import ParseError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
@@ -32,7 +32,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     owner = ApiOwner.PERFORMANCE
 
     permission_classes = (
-        IsAuthenticated,
+        SentryIsAuthenticated,
         DiscoverSavedQueryPermission,
     )
 
