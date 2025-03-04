@@ -170,6 +170,7 @@ const GroupExtra = styled('div')<{hasNewLayout: boolean}>`
   ${p =>
     p.hasNewLayout &&
     css`
+      min-width: auto;
       color: ${p.theme.subText};
       & > a {
         color: ${p.theme.subText};
@@ -234,6 +235,8 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 const Location = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  min-width: 0;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default withOrganization(EventOrGroupExtraDetails);
