@@ -31,6 +31,7 @@ from sentry.incidents.logic import (
     AlertRuleTriggerLabelAlreadyUsedError,
     AlertTarget,
     ChannelLookupTimeoutError,
+    GetMetricIssueAggregatesParams,
     InvalidTriggerActionError,
     create_alert_rule,
     create_alert_rule_trigger,
@@ -46,7 +47,7 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
-    get_incident_aggregates,
+    get_metric_issue_aggregates,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
     translate_aggregate_field,
@@ -269,9 +270,8 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
         )
 
 
-class BaseIncidentAggregatesTest(BaseIncidentsTest):
-    @property
-    def project_incident(self):
+class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
+    def test_projects(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
@@ -279,12 +279,15 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
         self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
         self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
         self.create_event(self.now - timedelta(minutes=2), user={"id": 124})
-        return incident
-
-
-class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
-    def test_projects(self):
-        assert get_incident_aggregates(self.project_incident) == {"count": 4}
+        snuba_query = incident.alert_rule.snuba_query
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=[self.project.id],
+        )
+        assert get_metric_issue_aggregates(params) == {"count": 4}
 
     def test_is_unresolved_query(self):
         incident = self.create_incident(
@@ -298,7 +301,16 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         self.create_event(self.now - timedelta(minutes=4))
 
         event.group.update(status=GroupStatus.UNRESOLVED)
-        assert get_incident_aggregates(incident) == {"count": 4}
+
+        snuba_query = incident.alert_rule.snuba_query
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=[self.project.id],
+        )
+        assert get_metric_issue_aggregates(params) == {"count": 4}
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
@@ -322,7 +334,18 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
         )
         incident.update(alert_rule=alert_rule)
-        incident_aggregates = get_incident_aggregates(incident)
+        snuba_query = incident.alert_rule.snuba_query
+        project_ids = list(
+            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        )
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=project_ids,
+        )
+        incident_aggregates = get_metric_issue_aggregates(params)
         assert "count" in incident_aggregates
         assert incident_aggregates["count"] == 100.0
 

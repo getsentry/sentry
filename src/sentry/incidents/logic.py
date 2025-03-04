@@ -292,6 +292,13 @@ class BuildMetricQueryBuilderParams(BaseMetricIssueQueryParams):
     end_arg: datetime | None = None
 
 
+@dataclass
+class GetMetricIssueAggregatesParams(BaseMetricIssueQueryParams):
+    project_ids: list[int]
+    start_arg: datetime | None = None
+    end_arg: datetime | None = None
+
+
 def _build_metric_query_builder(
     params: BuildMetricQueryBuilderParams,
 ) -> BaseQueryBuilder:
@@ -355,47 +362,43 @@ def _calculate_open_period_time_range(
     return start, end
 
 
-def get_incident_aggregates(
-    incident: Incident,
-    start: datetime | None = None,
-    end: datetime | None = None,
+def get_metric_issue_aggregates(
+    params: GetMetricIssueAggregatesParams,
 ) -> dict[str, float | int]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
-    snuba_query = _unpack_snuba_query(incident.alert_rule)
     entity_subscription = get_entity_subscription_from_snuba_query(
-        snuba_query,
-        incident.organization_id,
-    )
-    project_ids = list(
-        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        params.snuba_query,
+        params.organization.id,
     )
 
     if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
         start, end = _calculate_open_period_time_range(
             CalculateOpenPeriodTimeRangeParams(
-                snuba_query=snuba_query,
-                date_started=incident.date_started,
-                current_end_date=incident.current_end_date,
-                organization=incident.organization,
-                start_arg=start,
-                end_arg=end,
+                snuba_query=params.snuba_query,
+                date_started=params.date_started,
+                current_end_date=params.current_end_date,
+                organization=params.organization,
+                start_arg=params.start_arg,
+                end_arg=params.end_arg,
             )
         )
 
-        params = SnubaParams(
-            environments=[snuba_query.environment],
-            projects=[Project.objects.get_from_cache(id=project_id) for project_id in project_ids],
-            organization=Organization.objects.get_from_cache(id=incident.organization_id),
+        snuba_params = SnubaParams(
+            environments=[params.snuba_query.environment],
+            projects=[
+                Project.objects.get_from_cache(id=project_id) for project_id in params.project_ids
+            ],
+            organization=params.organization,
             start=start,
             end=end,
         )
 
         try:
             results = spans_rpc.run_table_query(
-                params,
-                query_string=snuba_query.query,
+                snuba_params,
+                query_string=params.snuba_query.query,
                 selected_columns=[entity_subscription.aggregate],
                 orderby=None,
                 offset=0,
@@ -410,7 +413,7 @@ def get_incident_aggregates(
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
-                    "dataset": snuba_query.dataset,
+                    "dataset": params.snuba_query.dataset,
                     "entity": EntityKey.EAPSpans.value,
                 },
             )
@@ -418,14 +421,14 @@ def get_incident_aggregates(
     else:
         query_builder = _build_metric_query_builder(
             BuildMetricQueryBuilderParams(
-                snuba_query=snuba_query,
-                organization=incident.organization,
-                project_ids=project_ids,
+                snuba_query=params.snuba_query,
+                organization=params.organization,
+                project_ids=params.project_ids,
                 entity_subscription=entity_subscription,
-                date_started=incident.date_started,
-                current_end_date=incident.current_end_date,
-                start_arg=start,
-                end_arg=end,
+                date_started=params.date_started,
+                current_end_date=params.current_end_date,
+                start_arg=params.start_arg,
+                end_arg=params.end_arg,
             )
         )
         try:
@@ -434,7 +437,7 @@ def get_incident_aggregates(
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
-                    "dataset": snuba_query.dataset,
+                    "dataset": params.snuba_query.dataset,
                     "entity": get_entity_key_from_query_builder(query_builder).value,
                 },
             )
