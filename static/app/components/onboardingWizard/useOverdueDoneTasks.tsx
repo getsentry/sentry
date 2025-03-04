@@ -40,7 +40,10 @@ export function useOverdueDoneTasks({doneTasks}: {doneTasks: OnboardingTask[]}):
         completionSeen: true,
       });
     }
-  }, [overdueTasks, api, organization]);
+    // do not add overdueTasks and organization to the dependencies
+    // array as it is causing "maximum depth" error
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
 
   return {overdueTasks};
 }
