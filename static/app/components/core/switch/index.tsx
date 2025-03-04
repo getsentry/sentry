@@ -51,11 +51,6 @@ const SwitchButton = styled('button')<StyleProps>`
     opacity: ${p => (p.disabled ? 0.4 : null)};
   }
 
-  &:disabled {
-    pointer-events: none;
-    cursor: not-allowed;
-  }
-
   &:focus,
   &:focus-visible {
     outline: none;

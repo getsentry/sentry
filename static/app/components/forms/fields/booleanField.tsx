@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import Confirm from 'sentry/components/confirm';
-import {Switch} from 'sentry/components/core/switch';
+import {Switch, type SwitchProps} from 'sentry/components/core/switch';
 import FormField from 'sentry/components/forms/formField';
 import {Tooltip} from 'sentry/components/tooltip';
 
@@ -59,12 +59,12 @@ export default class BooleanField extends Component<BooleanFieldProps> {
           const handleChange = this.handleChange.bind(this, value, onChange, onBlur);
 
           const {type: _, ...propsWithoutType} = props;
-          const switchProps = {
+          const switchProps: SwitchProps = {
             ...propsWithoutType,
-            size: 'lg' as React.ComponentProps<typeof Switch>['size'],
-            isActive: !!value,
-            isDisabled: disabled,
-            toggle: handleChange,
+            size: 'lg' satisfies SwitchProps['size'],
+            checked: !!value,
+            disabled,
+            onClick: handleChange,
           };
 
           if (confirm) {
