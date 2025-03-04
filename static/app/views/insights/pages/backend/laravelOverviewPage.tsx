@@ -45,7 +45,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -53,6 +52,8 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
@@ -682,67 +683,49 @@ function QueriesWidget({query}: {query?: string}) {
     {staleTime: 0}
   );
 
-  const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
-    [
-      `/organizations/${organization.slug}/events-stats/`,
+  const timeSeriesRequest = useSpanMetricsTopNSeries({
+    search: new MutableSearch(
+      `span.group:[${queriesRequest.data?.data.map(item => item['span.group']).join(',')}]`
+    ),
+    fields: ['span.group', 'sum(span.self_time)'],
+    yAxis: ['sum(span.self_time)'],
+    sorts: [
       {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spansMetrics',
-          field: ['span.group', 'sum(span.self_time)'],
-          yAxis: ['sum(span.self_time)'],
-          query: `span.group:[${queriesRequest.data?.data.map(item => item['span.group']).join(',')}]`,
-          orderby: '-sum(span.self_time)',
-          topEvents: 3,
-        },
+        field: 'sum(span.self_time)',
+        kind: 'desc',
       },
     ],
-    {
-      staleTime: 0,
-      enabled: !!queriesRequest.data?.data,
-    }
-  );
+    topEvents: 3,
+    enabled: !!queriesRequest.data?.data,
+  });
 
-  const timeSeries = useMemo<TimeSeries[]>(() => {
-    if (
-      !timeSeriesRequest.data ||
-      !queriesRequest.data ||
-      'data' in timeSeriesRequest.data
-    ) {
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
+    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
       return [];
     }
 
-    const groupNameMap = new Map<string, string>(
-      queriesRequest.data.data.map(item => [item['span.group'], item['span.description']])
-    );
-
     return Object.keys(timeSeriesRequest.data).map(key => {
-      const groupName = groupNameMap.get(key) ?? key;
+      const seriesData = timeSeriesRequest.data[key]!;
       return {
-        data:
-          timeSeriesRequest.data[key]?.data.map(([time, [value]]) => ({
-            timestamp: new Date(time * 1000).toISOString(),
-            value: value?.count!,
-          })) ?? [],
-        field: groupName,
+        ...seriesData,
+        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
         meta: {
           fields: {
-            [groupName]:
-              timeSeriesRequest.data[key]?.meta?.fields?.sum_span_self_time ?? '',
+            [seriesData.seriesName]: 'duration',
           },
           units: {
-            [groupName]:
-              timeSeriesRequest.data[key]?.meta?.units?.sum_span_self_time ?? '',
+            [seriesData.seriesName]: 'millisecond',
           },
         },
       };
     });
-  }, [queriesRequest.data, timeSeriesRequest.data]);
+  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
 
   const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
   const error = timeSeriesRequest.error || queriesRequest.error;
 
-  const hasData = timeSeries.length > 0;
+  const hasData =
+    queriesRequest.data && queriesRequest.data.data.length > 0 && timeSeries.length > 0;
 
   return (
     <Widget
@@ -757,7 +740,13 @@ function QueriesWidget({query}: {query?: string}) {
         ) : (
           <TimeSeriesWidgetVisualization
             visualizationType="line"
-            timeSeries={timeSeries}
+            aliases={Object.fromEntries(
+              queriesRequest.data?.data.map(item => [
+                item['span.group'],
+                item['span.description'],
+              ]) ?? []
+            )}
+            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
           />
         )
       }
