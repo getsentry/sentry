@@ -109,6 +109,16 @@ export function useSetLogsQuery() {
   );
 }
 
+export function useSetLogsSearch() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (search: MutableSearch) => {
+      setPageParams({search});
+    },
+    [setPageParams]
+  );
+}
+
 export function useLogsSortBys() {
   const {sortBys} = useLogsPageParams();
   return sortBys;

@@ -9,11 +9,12 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.incidents.logic import get_incident_aggregates
+from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
+    IncidentProject,
     IncidentStatus,
     IncidentTrigger,
 )
@@ -81,7 +82,22 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
     else:
         start, end = None, None
 
-    return get_incident_aggregates(incident=incident, start=start, end=end).get("count")
+    organization = Organization.objects.get_from_cache(id=incident.organization_id)
+
+    project_ids = list(
+        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    )
+
+    params = GetMetricIssueAggregatesParams(
+        snuba_query=incident.alert_rule.snuba_query,
+        date_started=incident.date_started,
+        current_end_date=incident.current_end_date,
+        organization=organization,
+        project_ids=project_ids,
+        start_arg=start,
+        end_arg=end,
+    )
+    return get_metric_issue_aggregates(params).get("count")
 
 
 def get_incident_status_text(
@@ -103,10 +119,7 @@ def get_incident_status_text(
         agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
 
     if agg_text.startswith("%"):
-        if metric_value is not None:
-            metric_and_agg_text = f"{metric_value}{agg_text}"
-        else:
-            metric_and_agg_text = f"No{agg_text[1:]}"
+        metric_and_agg_text = f"{metric_value}{agg_text}"
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
@@ -136,7 +149,7 @@ def get_title(status: str, name: str) -> str:
 
 
 def build_title_link(
-    identifier_id: str, organization: Organization, params: TitleLinkParams
+    identifier_id: int, organization: Organization, params: TitleLinkParams
 ) -> str:
     """Builds the URL for an alert rule with the given parameters."""
     return organization.absolute_url(
@@ -252,7 +265,7 @@ def metric_alert_unfurl_attachment_info(
             and latest_incident.status != IncidentStatus.CLOSED
         ):
             # Without a selected incident, use latest incident if it is not resolved
-            incident_info = latest_incident
+            incident_info: Incident | None = latest_incident
         else:
             incident_info = selected_incident
 

@@ -1,4 +1,5 @@
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -27,7 +28,9 @@ export function SearchBarSection({query, index}: Props) {
   return (
     <Section data-test-id={`section-filter-${index}`}>
       <SectionHeader>
-        <SectionLabel underlined={false}>{t('Filter')}</SectionLabel>
+        <Tooltip title={t('Key attributes you would like to narrow results down to')}>
+          <SectionLabel>{t('Filter')}</SectionLabel>
+        </Tooltip>
       </SectionHeader>
       <EAPSpanSearchQueryBuilder
         projects={selection.projects}

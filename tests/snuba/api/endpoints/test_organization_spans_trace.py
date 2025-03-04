@@ -93,7 +93,19 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1},
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+
+    def test_ignore_project_param(self):
+        self.load_trace(is_eap=True)
+        with self.feature(self.FEATURES):
+            # The trace endpoint should ignore the project param
+            response = self.client_get(
+                data={"project": self.project.id},
             )
         assert response.status_code == 200, response.content
         data = response.data
