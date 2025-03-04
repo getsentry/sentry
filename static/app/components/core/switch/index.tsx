@@ -1,35 +1,24 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-export interface SwitchProps {
+export interface SwitchProps extends React.HTMLAttributes<HTMLButtonElement> {
   toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   id?: string;
   isActive?: boolean;
   isDisabled?: boolean;
-  name?: string;
   size?: 'sm' | 'lg';
 }
 
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
   (
-    {
-      size = 'sm',
-      isActive,
-      isDisabled,
-      toggle,
-      id,
-      name,
-      className,
-      ...props
-    }: SwitchProps,
+    {size = 'sm', isActive, isDisabled, toggle, id, className, ...props}: SwitchProps,
     ref
   ) => {
     return (
       <SwitchButton
         ref={ref}
         id={id}
-        name={name}
         type="button"
         className={className}
         onClick={isDisabled ? undefined : toggle}
