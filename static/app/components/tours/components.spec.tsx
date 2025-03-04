@@ -27,6 +27,7 @@ describe('Tour Components', () => {
       const {container: availableContainer} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -38,6 +39,7 @@ describe('Tour Components', () => {
       const {container: unavailableContainer} = render(
         <TourContextProvider
           isAvailable={false}
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -45,6 +47,21 @@ describe('Tour Components', () => {
         </TourContextProvider>
       );
       expect(within(unavailableContainer).getByText('Child Content')).toBeInTheDocument();
+    });
+
+    it('renders children regardless of completion', () => {
+      mockUseTourReducer.mockReturnValue(emptyTourContext);
+      render(
+        <TourContextProvider
+          isAvailable
+          isCompleted
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
+        >
+          <div>Child Content</div>
+        </TourContextProvider>
+      );
+      expect(screen.getByText('Child Content')).toBeInTheDocument();
     });
 
     it('does render blur based on omitBlur', () => {
@@ -55,6 +72,7 @@ describe('Tour Components', () => {
       });
       const {container: blurContainer} = render(
         <TourContextProvider
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
           tourContext={TestTourContext}
@@ -66,6 +84,7 @@ describe('Tour Components', () => {
 
       const {container: noBlurContainer} = render(
         <TourContextProvider
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
           tourContext={TestTourContext}
@@ -86,6 +105,7 @@ describe('Tour Components', () => {
       const {container: inactiveContainer} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -110,6 +130,7 @@ describe('Tour Components', () => {
       const {container: activeContainer} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -137,6 +158,7 @@ describe('Tour Components', () => {
       const {unmount: unmountFirstStep} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -171,6 +193,7 @@ describe('Tour Components', () => {
       const {unmount: unmountSecondStep} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -201,6 +224,7 @@ describe('Tour Components', () => {
       render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -230,6 +254,7 @@ describe('Tour Components', () => {
       render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -259,18 +284,9 @@ describe('Tour Components', () => {
           </TourElement>
         </TourContextProvider>
       );
-      expect(mockHandleStepRegistration).toHaveBeenCalledWith({
-        id: TestTour.NAME,
-        element: expect.any(HTMLElement),
-      });
-      expect(mockHandleStepRegistration).toHaveBeenCalledWith({
-        id: TestTour.EMAIL,
-        element: expect.any(HTMLElement),
-      });
-      expect(mockHandleStepRegistration).toHaveBeenCalledWith({
-        id: TestTour.PASSWORD,
-        element: expect.any(HTMLElement),
-      });
+      expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.NAME});
+      expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.EMAIL});
+      expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.PASSWORD});
     });
   });
 });
