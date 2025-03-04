@@ -4,9 +4,13 @@ import styled from '@emotion/styled';
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import type {
+  Bucket,
+  ChartRendererProps,
+} from 'sentry/views/releases/releaseBubbles/types';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
@@ -34,11 +38,7 @@ interface ReleasesDrawerListProps {
    * it to make the props more generic, e.g. pass start/end timestamps and do
    * the series manipulation when we call the bubble hook.
    */
-  chartRenderer?: (rendererProps: {
-    end: Date;
-    releases: ReleaseMetaBasic[];
-    start: Date;
-  }) => ReactElement;
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
 /**
@@ -67,6 +67,23 @@ export function ReleasesDrawerList({
               </Fragment>
             }
             Visualization={chartRenderer?.({
+              chartRef: (e: ReactEchartsRef | null) => {
+                if (e) {
+                  // When chart is mounted, zoom the chart into the relevant
+                  // bucket
+                  e.getEchartsInstance().dispatchAction({
+                    type: 'dataZoom',
+                    batch: [
+                      {
+                        // data value at starting location
+                        startValue: startTs,
+                        // data value at ending location
+                        endValue: endTs,
+                      },
+                    ],
+                  });
+                }
+              },
               releases,
               start,
               end,
@@ -84,6 +101,5 @@ export function ReleasesDrawerList({
 }
 
 const ChartContainer = styled('div')`
-  height: 220px;
   margin-bottom: ${space(2)};
 `;
