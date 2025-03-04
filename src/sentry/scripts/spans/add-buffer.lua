@@ -40,4 +40,10 @@ redis.call("setex", set_redirect_key, set_timeout, set_key)
 
 redis.call("expire", parent_set_redirect_key, set_timeout)
 
-return set_key
+local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
+local has_root_span = redis.call("get", has_root_span_key) == "1"
+if has_root_span or is_root_span then
+    redis.call("setex", has_root_span_key, set_timeout, "1")
+end
+
+return {set_key, has_root_span or is_root_span}

@@ -105,7 +105,7 @@ class RedisSpansBufferV2:
     def process_spans(self, spans: Sequence[Span], now: int):
         queue_keys = []
         queue_items = []
-        queue_item_timeouts = []
+        queue_item_has_root_span = []
 
         with self.client.pipeline(transaction=False) as p:
             for span in spans:
@@ -132,21 +132,24 @@ class RedisSpansBufferV2:
                     self.max_timeout,
                 )
 
-                if is_root_span:
-                    pq_timestamp = now + self.span_buffer_root_timeout
-                else:
-                    pq_timestamp = now + self.span_buffer_timeout
-
                 queue_keys.append(queue_key)
-                queue_item_timeouts.append(pq_timestamp)
 
-            results = p.execute()
-            for result in results:
-                queue_items.append(result)
+            results = iter(p.execute())
+            for item, has_root_span in results:
+                queue_items.append(item)
+                queue_item_has_root_span.append(has_root_span)
 
         with self.client.pipeline(transaction=False) as p:
-            for key, item, timeout in zip(queue_keys, queue_items, queue_item_timeouts):
-                p.zadd(key, {item: timeout})
+            for key, item, has_root_span in zip(queue_keys, queue_items, queue_item_has_root_span):
+                # if the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than
+                # usual.
+                if has_root_span:
+                    timestamp = now + self.span_buffer_root_timeout
+                else:
+                    timestamp = now + self.span_buffer_timeout
+
+                p.zadd(key, {item: timestamp})
                 p.expire(key, self.max_timeout)
 
             p.execute()
@@ -194,6 +197,7 @@ class RedisSpansBufferV2:
         with self.client.pipeline(transaction=False) as p:
             for segment_id in segment_ids:
                 p.delete(segment_id)
+                p.delete(f"span-buf:hrs:{segment_id}")
 
                 # parse trace_id out of SegmentId, then remove from queue
                 trace_id = segment_id.split(b":")[3][:-1]
