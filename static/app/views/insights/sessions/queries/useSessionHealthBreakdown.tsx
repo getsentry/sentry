@@ -3,6 +3,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const getStatusSeries = (status: string, groups: SessionApiResponse['groups']) =>
+  groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
+  [];
+
 export default function useSessionHealthBreakdown() {
   const location = useLocation();
   const organization = useOrganization();
@@ -43,10 +47,6 @@ export default function useSessionHealthBreakdown() {
       error,
     };
   }
-
-  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
-    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-    [];
 
   // Create a map of status to their data
   const statusData = {
