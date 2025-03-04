@@ -2,31 +2,17 @@ import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
-import type {PlottableData} from '../../common/types';
 import {splitSeriesIntoCompleteAndIncomplete} from '../splitSeriesIntoCompleteAndIncomplete';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
 import {
-  type AggregateTimePlottingOptions,
-  AggregateTimeSeries,
-} from './aggregateTimeSeries';
+  ContinuousTimeSeries,
+  type ContinuousTimeSeriesPlottingOptions,
+} from './continuousTimeSeries';
+import type {Plottable} from './plottable';
 
-interface LineConfig {
-  /**
-   * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
-   */
-  color?: string;
-  /**
-   * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
-   */
-  delay?: number;
-}
-
-/**
- * See documentation for `PlottableData` for an explanation.
- */
-export class Line extends AggregateTimeSeries<LineConfig> implements PlottableData {
-  toSeries(plottingOptions: AggregateTimePlottingOptions) {
+export class Line extends ContinuousTimeSeries implements Plottable {
+  toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {timeSeries, config = {}} = this;
 
     const {color, unit} = plottingOptions;
