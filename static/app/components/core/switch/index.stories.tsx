@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {Switch, type SwitchProps} from 'sentry/components/core/switch';
 import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
-
-import JSXProperty from '../../stories/jsxProperty';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/switch';

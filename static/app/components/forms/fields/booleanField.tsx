@@ -64,7 +64,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
             size: 'lg' satisfies SwitchProps['size'],
             checked: !!value,
             disabled,
-            onClick: handleChange,
+            onChange: handleChange,
           };
 
           if (confirm) {
