@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLButtonElement>, 'size' | 'type'> {
-  className?: string;
   size?: 'sm' | 'lg';
 }
 
