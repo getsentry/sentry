@@ -10,14 +10,6 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
                 "timestamp": before_now(minutes=1).isoformat(),
-                "contexts": {
-                    "flags": {
-                        "values": [
-                            {"flag": "hello", "result": True},
-                            {"flag": "goodbye", "result": False},
-                        ]
-                    }
-                },
             },
             project_id=self.project.id,
         )
@@ -27,18 +19,6 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "tags": {"foo": "quux"},
                 "release": "releaseme",
                 "timestamp": before_now(minutes=1).isoformat(),
-                "contexts": {"flags": {"values": [{"flag": "hello", "result": False}]}},
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "fingerprint": ["group-1"],
-                "tags": {"foo": "quux"},
-                "release": "releaseme",
-                "timestamp": before_now(minutes=1).isoformat(),
-                "contexts": {"flags": {"values": [{"flag": "hello", "result": False}]}},
             },
             project_id=self.project.id,
         )
@@ -54,13 +34,12 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1"
+        url = f"/api/0/issues/{event1.group.id}/tags/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        # assert len(response.data) == 4
+        assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda r: r["key"])
-
         assert data[0]["key"] == "biz"
         assert len(data[0]["topValues"]) == 1
 
