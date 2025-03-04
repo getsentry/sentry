@@ -29,16 +29,14 @@ function SchemaHintsList({
     return tags;
   }, [numberTags, stringTags, functionTags]);
 
-  const filterTagsWithoutTagPrefix = useMemo(() => {
-    return Object.keys(filterTags)
-      .map(tag => filterTags[tag])
-      .filter(tag => !tag?.key.startsWith('tags['));
+  const filterTagsList = useMemo(() => {
+    return Object.keys(filterTags).map(tag => filterTags[tag]);
   }, [filterTags]);
 
   // only show 8 tags for now until we have a better way to decide to display them
   const first8Tags = useMemo(() => {
-    return filterTagsWithoutTagPrefix.slice(0, 8);
-  }, [filterTagsWithoutTagPrefix]);
+    return filterTagsList.slice(0, 8);
+  }, [filterTagsList]);
 
   const tagHintsText = useMemo(() => {
     return first8Tags.map(tag => `${tag?.key} is ...`);
