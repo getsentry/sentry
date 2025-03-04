@@ -14,9 +14,14 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
+import {getTopEvents} from 'sentry/views/dashboards/widgetBuilder/utils/getTopEvents';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
-import {transformToSeriesMap} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {
+  convertEventsStatsToTimeSeriesData,
+  transformToSeriesMap,
+} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import type {DashboardFilters, Widget} from '../types';
 import {isEventsStats} from '../utils/isEventsStats';
@@ -56,20 +61,42 @@ function SpansWidgetQueries({
   const config = SpansConfig;
 
   const [confidence, setConfidence] = useState<Confidence | null>(null);
+  const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
 
   const afterFetchSeriesData = (result: SeriesResult) => {
     let seriesConfidence;
+    let seriesSampleCount;
+    const topEvents = getTopEvents(widget);
+
     if (isEventsStats(result)) {
       seriesConfidence = determineSeriesConfidence(result);
+      const {sampleCount: calculatedSampleCount} = determineSeriesSampleCountAndIsSampled(
+        [
+          convertEventsStatsToTimeSeriesData(
+            widget.queries[0]?.aggregates[0] ?? '',
+            result
+          )[1],
+        ],
+        !!topEvents
+      );
+      seriesSampleCount = calculatedSampleCount;
     } else {
       const dedupedYAxes = dedupeArray(widget.queries[0]?.aggregates ?? []);
       const seriesMap = transformToSeriesMap(result, dedupedYAxes);
       const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
+      const {sampleCount: calculatedSampleCount} = determineSeriesSampleCountAndIsSampled(
+        series,
+        !!topEvents
+      );
+      seriesSampleCount = calculatedSampleCount;
       seriesConfidence = combineConfidenceForSeries(series);
     }
+
     setConfidence(seriesConfidence);
+    setSampleCount(seriesSampleCount);
     onDataFetched?.({
       confidence: seriesConfidence,
+      sampleCount: seriesSampleCount,
     });
   };
 
@@ -91,6 +118,7 @@ function SpansWidgetQueries({
           children({
             ...props,
             confidence,
+            sampleCount,
           })
         }
       </GenericWidgetQueries>

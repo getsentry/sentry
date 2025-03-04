@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
@@ -57,10 +57,11 @@ class CheckoutOverview extends Component<Props> {
 
   handleChange = () => {
     const {onUpdate} = this.props;
-    this.nextPlan &&
+    if (this.nextPlan) {
       onUpdate({
         plan: this.nextPlan.id,
       });
+    }
   };
 
   renderDataOptions = () => {

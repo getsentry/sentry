@@ -116,6 +116,9 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <UnreadIndicator data-test-id="unread-issue-indicator" />
+      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
         <Checkbox
           id={group.id}
@@ -603,6 +606,17 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('firstSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
+          <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
+        </TimestampWrapper>
+      )}
+      {withColumns.includes('lastSeen') && (
+        <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+          <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
+        </TimestampWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -641,16 +655,6 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
-          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
@@ -737,7 +741,20 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 86px;
+
+      &:not(:hover):not(:focus-within):not(:has(input:checked)) {
+        ${CheckboxLabel} {
+          ${p.theme.visuallyHidden};
+        }
+      }
+
+      &:hover,
+      &:focus-within {
+        ${UnreadIndicator} {
+          ${p.theme.visuallyHidden};
+        }
+      }
 
       [data-issue-title-link] {
         &::before {
@@ -1047,4 +1064,13 @@ const ProgressColumn = styled('div')`
 // Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
+  margin-left: ${space(3)};
+  margin-top: ${space(1.5)};
 `;

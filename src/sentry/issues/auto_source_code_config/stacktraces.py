@@ -37,6 +37,7 @@ def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
     if exceptions:
         return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
 
-    # This section is only used as part of the tests
-    # Ideally, we should fix the tests to pass the correct data
-    return [data["stacktrace"]]
+    if "stacktrace" in data:
+        return [data["stacktrace"]]
+
+    return []

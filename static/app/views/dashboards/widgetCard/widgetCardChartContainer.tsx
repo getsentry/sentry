@@ -110,6 +110,7 @@ export function WidgetCardChartContainer({
         loading,
         timeseriesResultsTypes,
         confidence,
+        sampleCount,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -167,6 +168,7 @@ export function WidgetCardChartContainer({
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
+              sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
             />
           </Fragment>

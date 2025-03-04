@@ -22,7 +22,7 @@ import type {
   RouteComponentProps,
   RouteContextInterface,
 } from './legacyReactRouter';
-import type {Member, Organization} from './organization';
+import type {Member, Organization, OrgRole} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
 
@@ -205,7 +205,6 @@ export type ComponentHooks = {
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
   'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
-  'component:performance-quota-exceeded-alert': () => React.ComponentType | null;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -232,6 +231,7 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
   'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 

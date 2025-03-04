@@ -5,6 +5,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -159,9 +160,18 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_deletes_missing_views(self) -> None:
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+
+        # Verify that no starred views exist initially
+        assert len(starred_views) == 0
+
         views = self.client.get(self.url).data
 
         update_custom_view_three = views[2]
+        # Store the ID of the view we're going to delete
+        deleted_view_id = views[1]["id"]
 
         views.pop(1)
         response = self.get_success_response(self.organization.slug, views=views)
@@ -174,6 +184,22 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         # The first view should remain unchanged
         assert are_views_equal(response.data[0], views[0])
         assert are_views_equal(response.data[1], update_custom_view_three)
+
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        assert len(starred_views) == len(response.data)
+        for idx, view in enumerate(response.data):
+            assert starred_views[idx].position == idx
+            assert starred_views[idx].position == view["position"]
+            assert str(starred_views[idx].group_search_view.id) == view["id"]
+
+        # Verify that the deleted view is no longer in the starred table
+        assert not GroupSearchViewStarred.objects.filter(
+            organization=self.organization,
+            user_id=self.user.id,
+            group_search_view_id=deleted_view_id,
+        ).exists()
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -194,6 +220,15 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert response.data[3]["query"] == "is:unresolved"
         assert response.data[3]["querySort"] == "date"
 
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        assert len(starred_views) == len(response.data)
+        for idx, view in enumerate(response.data):
+            assert starred_views[idx].position == idx
+            assert starred_views[idx].position == view["position"]
+            assert str(starred_views[idx].group_search_view.id) == view["id"]
+
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_reorder_views(self) -> None:
@@ -213,6 +248,15 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert are_views_equal(response.data[0], view_two)
         assert are_views_equal(response.data[1], view_one)
         assert are_views_equal(response.data[2], views[2])
+
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        assert len(starred_views) == len(response.data)
+        for idx, view in enumerate(response.data):
+            assert starred_views[idx].position == idx
+            assert starred_views[idx].position == view["position"]
+            assert str(starred_views[idx].group_search_view.id) == view["id"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -263,6 +307,15 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert response.data[0]["name"] == "New Name"
         assert response.data[0]["query"] == "is:resolved"
         assert response.data[0]["querySort"] == "freq"
+
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        assert len(starred_views) == len(response.data)
+        for idx, view in enumerate(response.data):
+            assert starred_views[idx].position == idx
+            assert starred_views[idx].position == view["position"]
+            assert str(starred_views[idx].group_search_view.id) == view["id"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -342,6 +395,15 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert response.data[1]["query"] == view_one["query"]
         assert response.data[1]["querySort"] == view_one["querySort"]
         assert are_views_equal(response.data[2], views[2])
+
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        assert len(starred_views) == len(response.data)
+        for idx, view in enumerate(response.data):
+            assert starred_views[idx].position == idx
+            assert starred_views[idx].position == view["position"]
+            assert str(starred_views[idx].group_search_view.id) == view["id"]
 
 
 class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
