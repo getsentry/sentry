@@ -1,7 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -72,16 +71,17 @@ export function GroupDetailsLayout({
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)<{
+const StyledLayoutBody = styled('div')<{
   sidebarOpen: boolean;
 }>`
-  padding: 0 !important;
-  gap: 0 !important;
-  align-content: stretch;
-  grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
+  display: grid;
+  background-color: ${p => p.theme.background};
+  grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, auto) 325px' : '1fr')};
 
   @media (max-width: ${p => p.theme.breakpoints.large}) {
-    display: block;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
   }
 `;
 
