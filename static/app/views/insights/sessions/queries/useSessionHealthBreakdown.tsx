@@ -2,10 +2,7 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-const getStatusSeries = (status: string, groups: SessionApiResponse['groups']) =>
-  groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-  [];
+import {getStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useSessionHealthBreakdown() {
   const location = useLocation();
@@ -86,7 +83,7 @@ export default function useSessionHealthBreakdown() {
     },
   });
 
-  // Create all series at once
+  // Wrap all session rate data in a series
   const series = Object.entries(statusData).map(([status, data]) =>
     createSeries(createDatapoints(data), status as keyof typeof statusData)
   );
