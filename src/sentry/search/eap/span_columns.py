@@ -78,7 +78,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="sentry.normalized_description",
             internal_name="sentry.description",
             search_type="string",
-            secondary_alias=True,
         ),
         # Message maps to description, this is to allow wildcard searching
         ResolvedColumn(
