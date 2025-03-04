@@ -37,7 +37,7 @@ interface SpanSearchQueryBuilderProps {
   projects?: PageFilters['projects'];
 }
 
-const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
