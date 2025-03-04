@@ -504,6 +504,17 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
+        if error:
+            # Setting a tag here cause I don't want to spam errors, but trying to narrow down why we're retrying on
+            # timeouts
+            try:
+                error_class = error.__class__
+                module = error_class.__module__
+                name = error_class.__name__
+                sentry_sdk.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+            except Exception:
+                pass
+
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise error.with_traceback(_stacktrace)
 
