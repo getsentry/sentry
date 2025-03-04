@@ -5,6 +5,7 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -24,7 +25,7 @@ from sentry.users.services.user.service import user_service
 class UserPermission(DemoSafePermission):
 
     def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
+        self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
 
         if user is None or request.user.id == user.id:
@@ -93,7 +94,7 @@ class OrganizationUserPermission(UserAndStaffPermission):
         return org_mapping.organization_id
 
     def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
+        self, request: Request, view: APIView, user: User | RpcUser | None = None
     ) -> bool:
         if super().has_object_permission(request, view, user):
             return True

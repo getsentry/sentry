@@ -4,6 +4,10 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence
 const LOW_CONFIDENCE_THRESHOLD = 0.25;
@@ -115,4 +119,42 @@ export function combineConfidence(a: Confidence, b: Confidence): Confidence {
   }
 
   return 'high';
+}
+
+export function determineIsSampled(
+  data: MultiSeriesEventsStats | EventsStats
+): boolean | null {
+  let hasSampledInterval = false;
+  let hasUnsampledInterval = false;
+
+  function resolve(sampleRate: number | null) {
+    if (!defined(sampleRate)) {
+      return;
+    }
+    if (sampleRate === 1) {
+      hasUnsampledInterval = true;
+    } else {
+      hasSampledInterval = true;
+    }
+  }
+
+  if (isEventsStats(data)) {
+    for (const sampleRate of data.meta?.accuracy?.samplingRate || []) {
+      if (defined(sampleRate)) {
+        resolve(sampleRate.value);
+      }
+    }
+  }
+
+  if (isMultiSeriesEventsStats(data)) {
+    for (const stats of Object.values(data)) {
+      for (const sampleRate of stats.meta?.accuracy?.samplingRate || []) {
+        if (defined(sampleRate)) {
+          resolve(sampleRate.value);
+        }
+      }
+    }
+  }
+
+  return hasSampledInterval ? true : hasUnsampledInterval ? false : null;
 }

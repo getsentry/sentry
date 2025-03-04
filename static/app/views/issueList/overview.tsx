@@ -7,7 +7,6 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
@@ -27,7 +26,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel, SavedSearch} from 'sentry/types/group';
-import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -39,6 +38,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -65,7 +65,6 @@ import type {QueryCounts} from './utils';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   FOR_REVIEW_QUERIES,
-  getTabs,
   getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
@@ -178,6 +177,7 @@ function IssueListOverview({router}: Props) {
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
   const prefersStackedNav = usePrefersStackedNav();
+  const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
     useSavedSearches();
@@ -375,45 +375,6 @@ function IssueListOverview({router}: Props) {
     }
   }, [pageLinks, realtimeActive]);
 
-  const trackTabViewed = useCallback(
-    (newGroupIds: string[], data: Group[], numHits: number | null) => {
-      const endpointParams = getEndpointParams();
-      const tabQueriesWithCounts = getTabsWithCounts();
-      const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
-        ? endpointParams.query
-        : null;
-      const tab = getTabs().find(([tabQuery]) => currentTabQuery === tabQuery)?.[1];
-
-      const numPerfIssues = newGroupIds.filter(
-        groupId => GroupStore.get(groupId)?.issueCategory === IssueCategory.PERFORMANCE
-      ).length;
-      // First and last seen are only available after the group has fetched stats
-      // Number of issues shown whose first seen is more than 30 days ago
-      const numOldIssues = data.filter((group: BaseGroup) =>
-        moment(new Date(group.firstSeen)).isBefore(moment().subtract(30, 'd'))
-      ).length;
-      // number of issues shown whose first seen is less than 7 days
-      const numNewIssues = data.filter((group: BaseGroup) =>
-        moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
-      ).length;
-
-      trackAnalytics('issues_tab.viewed', {
-        organization,
-        tab: tab?.analyticsName,
-        page: parsePageQueryParam(location, 0),
-        query,
-        num_perf_issues: numPerfIssues,
-        num_old_issues: numOldIssues,
-        num_new_issues: numNewIssues,
-        num_issues: data.length,
-        total_issues_count: numHits,
-        issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
-        sort,
-      });
-    },
-    [organization, location, getEndpointParams, query, sort]
-  );
-
   const fetchCounts = useCallback(
     (currentQueryCount: number, fetchAllCounts: boolean) => {
       const newQueryCounts: QueryCounts = {...queryCounts};
@@ -504,7 +465,6 @@ function IssueListOverview({router}: Props) {
 
         if (data) {
           GroupStore.onPopulateStats(newGroupIds, data);
-          trackTabViewed(newGroupIds, data, queryCount);
         }
       } catch (e) {
         setError(parseApiError(e));
@@ -518,7 +478,7 @@ function IssueListOverview({router}: Props) {
         }
       }
     },
-    [getEndpointParams, api, organization.slug, trackTabViewed, queryCount]
+    [getEndpointParams, api, organization.slug]
   );
 
   const fetchData = useCallback(
@@ -646,10 +606,18 @@ function IssueListOverview({router}: Props) {
     ]
   );
 
+  useDisableRouteAnalytics(issuesLoading);
+  useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
   useRouteAnalyticsParams({
+    page: parsePageQueryParam(location, 0),
+    query,
+    num_issues: groups.length,
+    total_issues_count: queryCount,
     issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
+    sort,
+    realtime_active: realtimeActive,
+    is_view: urlParams.viewId ? true : false,
   });
-  useDisableRouteAnalytics();
 
   // Update polling status
   useEffect(() => {

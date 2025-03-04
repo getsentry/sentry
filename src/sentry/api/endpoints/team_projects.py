@@ -230,13 +230,14 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 "target_object": project.id,
             }
 
-            if request.data.get("origin"):
+            origin = request.data.get("origin")
+            if origin:
                 self.create_audit_entry(
                     **common_audit_data,
                     event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
                     data={
                         **project.get_audit_log_data(),
-                        "origin": request.data.get("origin"),
+                        "origin": origin,
                     },
                 )
             else:
@@ -250,6 +251,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 project=project,
                 user=request.user,
                 default_rules=result.get("default_rules", True),
+                origin=origin,
                 sender=self,
             )
 

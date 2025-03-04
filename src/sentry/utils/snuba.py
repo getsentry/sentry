@@ -504,6 +504,17 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
+        if error:
+            # Setting a tag here cause I don't want to spam errors, but trying to narrow down why we're retrying on
+            # timeouts
+            try:
+                error_class = error.__class__
+                module = error_class.__module__
+                name = error_class.__name__
+                sentry_sdk.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+            except Exception:
+                pass
+
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise error.with_traceback(_stacktrace)
 
@@ -1187,6 +1198,9 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
+            bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
+            if bytes_scanned is not None:
+                span.set_measurement(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():

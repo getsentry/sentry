@@ -1,6 +1,11 @@
-import React from 'react';
+import React, {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -15,6 +20,8 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
+import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -25,6 +32,7 @@ export function SessionsOverview() {
   };
 
   const {view} = useDomainViewFilters();
+  const [filters, setFilters] = useState<string[]>(['']);
 
   return (
     <React.Fragment>
@@ -39,22 +47,44 @@ export function SessionsOverview() {
                 <ModulePageFilterBar
                   moduleName={ModuleName.SESSIONS}
                   extraFilters={<SubregionSelector />}
+                  onProjectChange={() => {
+                    setFilters(['']);
+                  }}
                 />
+                <Alert type="info" icon={<IconInfo />} showIcon>
+                  {t(
+                    `This page is a temporary spot to put experimental release charts and tables currently in development. We will move things around eventually, but for now, it's a spot where we can put everything and get quick feedback.`
+                  )}
+                </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
-            {view === MOBILE_LANDING_SUB_PATH ? (
-              <ModuleLayout.Half>
-                <CrashFreeSessionChart />
-              </ModuleLayout.Half>
-            ) : (
-              <ModuleLayout.Third>
-                <ErrorFreeSessionsChart />
-              </ModuleLayout.Third>
+            {view === MOBILE_LANDING_SUB_PATH && (
+              <Fragment>
+                <ModuleLayout.Half>
+                  <CrashFreeSessionChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Half>
+                  <SessionHealthRateChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Full>
+                  <FilterWrapper>
+                    <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+                  </FilterWrapper>
+                  <ReleaseAdoption filters={filters} />
+                  <ReleaseHealth filters={filters} />
+                </ModuleLayout.Full>
+              </Fragment>
             )}
-            <ModuleLayout.Full>
-              <ReleaseAdoption />
-              <ReleaseHealth />
-            </ModuleLayout.Full>
+            {view === FRONTEND_LANDING_SUB_PATH && (
+              <Fragment>
+                <ModuleLayout.Third>
+                  <ErrorFreeSessionsChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  <SessionHealthRateChart />
+                </ModuleLayout.Third>
+              </Fragment>
+            )}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
@@ -74,3 +104,8 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
+
+const FilterWrapper = styled('div')`
+  display: flex;
+  margin: ${space(2)} 0;
+`;

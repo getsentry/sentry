@@ -62,7 +62,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
         total_checksum = sha1(bundle_file).hexdigest()
 
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         response = self.client.post(
@@ -92,7 +92,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -116,7 +116,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
     def test_dif_error_response(self):
         bundle_file = b"invalid"
         total_checksum = sha1(bundle_file).hexdigest()
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -144,7 +144,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
         total_checksum = sha1(bundle_file).hexdigest()
 
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         response = self.client.post(
