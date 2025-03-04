@@ -1,7 +1,8 @@
-import {forwardRef, useImperativeHandle, useLayoutEffect, useRef} from 'react';
+import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxConfig = {
@@ -30,14 +31,14 @@ export interface CheckboxProps
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({checked = false, size = 'sm', className, ...props}, ref) => {
-    const nativeCheckboxRef = useRef<HTMLInputElement>(null);
-    useImperativeHandle(ref, () => nativeCheckboxRef.current as HTMLInputElement);
-
-    useLayoutEffect(() => {
-      if (nativeCheckboxRef.current) {
-        nativeCheckboxRef.current.indeterminate = checked === 'indeterminate';
-      }
-    }, [checked]);
+    const nativeCheckBoxRef = useCallback(
+      (node: HTMLInputElement | null) => {
+        if (node) {
+          node.indeterminate = checked === 'indeterminate';
+        }
+      },
+      [checked]
+    );
 
     const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
       className,
@@ -47,7 +48,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     return (
       <CheckboxWrapper size={size} {...wrapperProps}>
         <NativeHiddenCheckbox
-          ref={nativeCheckboxRef}
+          ref={mergeRefs([nativeCheckBoxRef, ref])}
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
           {...props}
