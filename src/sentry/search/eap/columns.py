@@ -174,7 +174,7 @@ class FunctionDefinition:
         alias: str,
         search_type: constants.SearchType,
         resolved_argument: AttributeKey | Any | None,
-    ) -> type[ResolvedFunction]:
+    ) -> ResolvedFormula | ResolvedAggregate:
         raise NotImplementedError()
 
 
@@ -184,7 +184,7 @@ class AggregateDefinition(FunctionDefinition):
 
     def resolve(
         self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
-    ) -> type[ResolvedFunction]:
+    ) -> ResolvedAggregate:
         return ResolvedAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
@@ -199,7 +199,7 @@ class AggregateDefinition(FunctionDefinition):
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[[Any], Any]
+    formula_resolver: Callable[[Any], Column.BinaryFormula]
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
@@ -210,7 +210,7 @@ class FormulaDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_argument: AttributeKey | Any | None,
-    ) -> type[ResolvedFunction]:
+    ) -> ResolvedFormula:
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,

@@ -42,7 +42,6 @@ from sentry.search.eap.columns import (
     ResolvedAggregate,
     ResolvedColumn,
     ResolvedFormula,
-    ResolvedFunction,
     VirtualColumnDefinition,
 )
 from sentry.search.eap.types import SearchResolverConfig
@@ -66,7 +65,7 @@ class SearchResolver:
         field(default_factory=dict)
     )
     _resolved_function_cache: dict[
-        str, tuple[type[ResolvedFunction], VirtualColumnDefinition | None]
+        str, tuple[ResolvedFormula | ResolvedAggregate, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
 
     @sentry_sdk.trace
@@ -675,7 +674,7 @@ class SearchResolver:
     @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[type[ResolvedFunction]], list[VirtualColumnDefinition | None]]:
+    ) -> tuple[list[ResolvedFormula | ResolvedAggregate], list[VirtualColumnDefinition | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -686,7 +685,7 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[type[ResolvedFunction], VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedFormula | ResolvedAggregate, VirtualColumnDefinition | None]:
         if column in self._resolved_function_cache:
             return self._resolved_function_cache[column]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
