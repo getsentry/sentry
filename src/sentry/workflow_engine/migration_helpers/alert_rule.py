@@ -276,11 +276,7 @@ def migrate_metric_data_conditions(
         )
         raise MissingDataConditionGroup
 
-    threshold_type = (
-        Condition.GREATER
-        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-        else Condition.LESS
-    )
+    threshold_type = get_threshold_type(alert_rule.threshold_type)
     condition_result = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
 
     detector_trigger = DataCondition.objects.create(
@@ -341,6 +337,26 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
     return resolve_threshold
 
 
+def get_threshold_type(threshold_type: int) -> Condition:
+    return (
+        Condition.GREATER
+        if threshold_type == AlertRuleThresholdType.ABOVE.value
+        else Condition.LESS
+    )
+
+
+def get_resolve_threshold_type(threshold_type: int) -> Condition:
+    """
+    Set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
+    e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
+    """
+    return (
+        Condition.LESS_OR_EQUAL
+        if threshold_type == AlertRuleThresholdType.ABOVE.value
+        else Condition.GREATER_OR_EQUAL
+    )
+
+
 def migrate_resolve_threshold_data_conditions(
     alert_rule: AlertRule,
 ) -> tuple[DataCondition, DataCondition]:
@@ -358,13 +374,7 @@ def migrate_resolve_threshold_data_conditions(
         logger.error("workflow_condition_group does not exist", extra={"detector": detector})
         raise MissingDataConditionGroup
 
-    # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
-    # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
-    threshold_type = (
-        Condition.LESS_OR_EQUAL
-        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-        else Condition.GREATER_OR_EQUAL
-    )
+    threshold_type = get_resolve_threshold_type(alert_rule.threshold_type)
 
     if alert_rule.resolve_threshold is not None:
         resolve_threshold = alert_rule.resolve_threshold
