@@ -1,26 +1,49 @@
+import {forwardRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {chonkRadioStyles} from 'sentry/components/core/radio/index.chonk';
 import {growIn} from 'sentry/styles/animations';
 
 export interface RadioProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
+  nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
   size?: 'sm';
 }
 
-export const Radio = styled((props: RadioProps) => {
-  const {size: _, ...rest} = props;
-  return <input type="radio" {...rest} />;
-})`
+export const Radio = styled(
+  forwardRef<HTMLInputElement, RadioProps>(
+    (
+      {
+        // Do not forward `size` since it's used for custom styling, not as the
+        // native `size` attribute (for that, use `nativeSize` instead)
+        size: _size,
+        // Use `nativeSize` as the native `size` attribute
+        nativeSize,
+        ...props
+      },
+      ref
+    ) => <input type="radio" {...props} ref={ref} size={nativeSize} />
+  ),
+  {
+    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  }
+)`
+  ${p => (p.theme.isChonk ? chonkRadioStyles(p as any) : inputStyles(p))}
+`;
+
+const inputStyles = (p: RadioProps & {theme: Theme}) => css`
   display: flex;
   padding: 0;
-  width: ${p => (p.size === 'sm' ? '1rem' : '1.5rem')};
-  height: ${p => (p.size === 'sm' ? '1rem' : '1.5rem')};
+  width: ${p.size === 'sm' ? '1rem' : '1.5rem'};
+  height: ${p.size === 'sm' ? '1rem' : '1.5rem'};
   position: relative;
   border-radius: 50%;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowMedium};
+  border: 1px solid ${p.theme.border};
+  box-shadow: inset ${p.theme.dropShadowMedium};
   background: none;
   appearance: none;
   transition:
@@ -33,18 +56,18 @@ export const Radio = styled((props: RadioProps) => {
   &:focus,
   &:focus-visible {
     outline: none;
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
+    border-color: ${p.theme.focusBorder};
+    box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
   }
 
   &:checked:after {
     content: '';
     display: block;
-    width: ${p => (p.size === 'sm' ? '0.5rem' : '0.875rem')};
-    height: ${p => (p.size === 'sm' ? '0.5rem' : '0.875rem')};
+    width: ${p.size === 'sm' ? '0.5rem' : '0.875rem'};
+    height: ${p.size === 'sm' ? '0.5rem' : '0.875rem'};
     border-radius: 50%;
-    background-color: ${p => p.theme.active};
+    background-color: ${p.theme.active};
     animation: 0.2s ${growIn} ease;
-    opacity: ${p => (p.disabled ? 0.4 : null)};
+    opacity: ${p.disabled ? 0.4 : null};
   }
 `;

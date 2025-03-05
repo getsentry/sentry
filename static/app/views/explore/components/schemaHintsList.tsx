@@ -8,6 +8,7 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
+import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
@@ -32,11 +33,16 @@ function SchemaHintsList({
     return tags;
   }, [numberTags, stringTags, functionTags]);
 
-  const filterTagsList = useMemo(() => {
-    return Object.keys(filterTags).map(tag => filterTags[tag]);
+  // sort tags by the order they show up in the query builder
+  const filterTagsSorted = useMemo(() => {
+    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children);
+    const sectionSortedTags = sectionKeys.map(key => filterTags[key]).filter(Boolean);
+    const otherKeys = Object.keys(filterTags).filter(key => !sectionKeys.includes(key));
+    const otherTags = otherKeys.map(key => filterTags[key]).filter(Boolean);
+    return [...sectionSortedTags, ...otherTags];
   }, [filterTags]);
 
-  const [visibleHints, setVisibleHints] = useState(filterTagsList);
+  const [visibleHints, setVisibleHints] = useState(filterTagsSorted);
 
   useEffect(() => {
     // debounce calculation to prevent 'flickering' when resizing
@@ -50,7 +56,7 @@ function SchemaHintsList({
       const gap = 8;
       const averageHintWidth = 250;
 
-      const visibleItems = filterTagsList.filter((_hint, index) => {
+      const visibleItems = filterTagsSorted.filter((_hint, index) => {
         const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
         if (!element) {
           // add in a new hint if there is enough space
@@ -79,7 +85,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [filterTagsList]);
+  }, [filterTagsSorted]);
 
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
@@ -120,7 +126,7 @@ const SchemaHintOption = styled(Button)`
   flex-wrap: wrap;
 
   /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
+  min-width: fit-content;
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};

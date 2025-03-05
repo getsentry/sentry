@@ -111,7 +111,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     });
 
   const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
-    data: Array<{count_unique: number}>;
+    data: Array<{'count_unique(user)': number}>;
   }>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -133,7 +133,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       staleTime: 60_000,
     }
   );
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 
   const {series: eventSeries, count: eventCount} = useMemo(() => {
