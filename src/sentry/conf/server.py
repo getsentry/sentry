@@ -838,6 +838,7 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
+    "sentry.demo_mode.tasks",
 )
 
 # Enable split queue routing
