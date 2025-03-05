@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Switch} from 'sentry/components/core/switch';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,7 +13,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Switch from 'sentry/components/switchButton';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -182,9 +182,9 @@ function AccountSubscriptions() {
                         <div>
                           <Switch
                             id={`${subscription.email}-${subscription.listId}`}
-                            isActive={subscription.subscribed}
+                            checked={subscription.subscribed}
                             size="lg"
-                            toggle={() => handleToggle(subscription)}
+                            onClick={() => handleToggle(subscription)}
                           />
                         </div>
                       </PanelItem>

@@ -589,7 +589,7 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=213,
-        name="WORFKLOW_ADD",
+        name="WORKFLOW_ADD",
         api_name="workflow.add",
         template="added workflow {name}",
     )
@@ -597,7 +597,7 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=214,
-        name="WORFKLOW_EDIT",
+        name="WORKFLOW_EDIT",
         api_name="workflow.edit",
         template="edited workflow {name}",
     )
@@ -605,7 +605,7 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=215,
-        name="WORFKLOW_REMOVE",
+        name="WORKFLOW_REMOVE",
         api_name="workflow.remove",
         template="removed workflow {name}",
     )

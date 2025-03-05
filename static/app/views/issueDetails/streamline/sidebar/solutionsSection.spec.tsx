@@ -130,7 +130,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2); // whatsWrong and Open Autofix
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3); // whatsWrong, possibleCause, and Open Autofix
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
@@ -199,7 +199,7 @@ describe('SolutionsSection', () => {
   });
 
   describe('Solutions Hub button text', () => {
-    it('shows "Set Up Sentry AI" when AI needs setup', async () => {
+    it('shows "Set Up Seer" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
@@ -227,10 +227,10 @@ describe('SolutionsSection', () => {
       });
 
       expect(
-        screen.getByText('Explore potential root causes and solutions with Sentry AI.')
+        screen.getByText('Explore potential root causes and solutions with Seer.')
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Set Up Sentry AI'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
@@ -376,9 +376,7 @@ describe('SolutionsSection', () => {
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Set Up Sentry AI'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set Up Autofix'})
       ).not.toBeInTheDocument();

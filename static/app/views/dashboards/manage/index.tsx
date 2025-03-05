@@ -12,6 +12,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
+import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -22,7 +23,6 @@ import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Switch from 'sentry/components/switchButton';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -447,9 +447,9 @@ function ManageDashboards() {
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
-                          isActive={showTemplates}
+                          checked={showTemplates}
                           size="lg"
-                          toggle={toggleTemplates}
+                          onClick={toggleTemplates}
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />

@@ -6,6 +6,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {LinkButton} from 'sentry/components/button';
+import {Switch} from 'sentry/components/core/switch';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
@@ -15,7 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Switch from 'sentry/components/switchButton';
 import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,7 +60,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
         </small>
       }
     >
-      <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
+      <Switch checked={hook.status === 'active'} size="lg" onClick={onToggleActive} />
     </FieldGroup>
   );
 }

@@ -1,36 +1,47 @@
 import Color from 'color';
+import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import BarSeries from 'sentry/components/charts/series/barSeries';
 
-import type {TimeSeries} from '../../common/types';
 import {markDelayedData} from '../markDelayedData';
 import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
-import {Plottable} from './plottable';
+import {
+  ContinuousTimeSeries,
+  type ContinuousTimeSeriesConfig,
+  type ContinuousTimeSeriesPlottingOptions,
+} from './continuousTimeSeries';
+import type {Plottable} from './plottable';
 
-interface BarsOptions {
-  color?: string;
-  dataCompletenessDelay?: number;
+interface BarsConfig extends ContinuousTimeSeriesConfig {
+  /**
+   * Stack name. If provided, bar plottables with the same stack will be stacked visually.
+   */
   stack?: string;
 }
 
-export class Bars extends Plottable<BarsOptions> {
-  toSeries(timeSeries: TimeSeries, options: BarsOptions) {
-    const markedSeries = markDelayedData(timeSeries, options.dataCompletenessDelay ?? 0);
+export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
+  toSeries(
+    plottingOptions: ContinuousTimeSeriesPlottingOptions
+  ): Array<BarSeriesOption | LineSeriesOption> {
+    const {timeSeries, config = {}} = this;
+
+    const color = plottingOptions.color ?? config.color ?? undefined;
+    const scaledTimeSeries = this.scaleToUnit(plottingOptions.unit);
+
+    const markedSeries = markDelayedData(scaledTimeSeries, config.delay ?? 0);
 
     return [
       BarSeries({
-        name: markedSeries.field,
-        color: markedSeries.color,
-        stack: options.stack ?? GLOBAL_STACK_NAME,
+        name: timeSeries.field,
+        color,
+        stack: config.stack ?? GLOBAL_STACK_NAME,
         animation: false,
         itemStyle: {
           color: params => {
             const datum = markedSeries.data[params.dataIndex]!;
 
-            return datum.delayed
-              ? Color(options.color).lighten(0.5).string()
-              : options.color!;
+            return datum.delayed ? Color(color).lighten(0.5).string() : color!;
           },
           opacity: 1.0,
         },

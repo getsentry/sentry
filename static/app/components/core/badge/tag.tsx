@@ -12,15 +12,12 @@ import * as ChonkTag from './tag.chonk';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  | 'white'
-  | 'black';
+  'default' | 'info' | 'success' | 'warning' | 'error' | 'promotion' | 'highlight';
+
+/**
+ * @deprecated Do not use these tag types
+ */
+type DeprecatedTagType = 'white' | 'black';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
@@ -34,7 +31,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Dictates color scheme of the tag.
    */
-  type?: TagType;
+  type?: TagType | DeprecatedTagType;
 }
 
 export const Tag = forwardRef<HTMLDivElement, TagProps>(

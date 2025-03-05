@@ -22,6 +22,7 @@ export const Table = React.forwardRef<HTMLTableElement, TableProps>(
 
 const _TableWrapper = styled(Body)`
   overflow-x: hidden;
+  margin: 0;
 `;
 
 const _Table = styled(Grid)<{height?: string | number; scrollable?: boolean}>`

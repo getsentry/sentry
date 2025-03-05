@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 import type {Location} from 'history';
 
-import SwitchButton from 'sentry/components/switchButton';
+import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -158,7 +158,7 @@ export function ToggleOnDemand() {
       }}
     >
       {t('On-demand metrics')}
-      <SwitchButton isActive={onDemand.forceOnDemand} size="sm" toggle={toggle} />
+      <Switch checked={onDemand.forceOnDemand} size="sm" onClick={toggle} />
     </FlexContainer>
   );
 }

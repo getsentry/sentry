@@ -22,6 +22,8 @@ import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
+const {error} = Sentry._experiment_log;
+
 // In minutes
 export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
@@ -102,12 +104,8 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['invalid-duration-for-interval']);
-        Sentry.captureException(
-          new Error('Invalid duration supplied to interval function')
-        );
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      error`Invalid duration supplied to interval function. (minutes: ${minutes})`;
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -120,7 +118,14 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues' | 'spans';
+export type Fidelity =
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'metrics'
+  | 'issues'
+  | 'spans'
+  | 'spans-low';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -132,6 +137,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     metrics: metricsFidelityLadder,
     issues: issuesFidelityLadder,
     spans: spansFidelityLadder,
+    'spans-low': spansLowFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -192,6 +198,17 @@ const spansFidelityLadder = new GranularityLadder([
   [SIX_HOURS, '15m'],
   [ONE_HOUR, '5m'],
   [0, '1m'],
+]);
+
+const spansLowFidelityLadder = new GranularityLadder([
+  [THIRTY_DAYS, '1d'],
+  [TWO_WEEKS, '12h'],
+  [ONE_WEEK, '4h'],
+  [FORTY_EIGHT_HOURS, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '10m'],
+  [0, '5m'],
 ]);
 
 /**

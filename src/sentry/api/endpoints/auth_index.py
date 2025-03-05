@@ -190,7 +190,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
             curl -X ###METHOD### -u username:password ###URL###
         """
-        if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
+        if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if is_demo_user(request.user):

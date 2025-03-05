@@ -1,14 +1,15 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {getInterval} from 'sentry/components/charts/utils';
+import {type Fidelity, getInterval} from 'sentry/components/charts/utils';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -28,7 +29,11 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -44,17 +49,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
-import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
@@ -87,11 +99,7 @@ export function LaravelOverviewPage() {
   const navigate = useNavigate();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -108,17 +116,6 @@ export function LaravelOverviewPage() {
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
-  const getWidgetContainerProps = (widgetSetting: PerformanceWidgetSetting) => ({
-    eventView,
-    location,
-    withStaticFilters,
-    index: 0,
-    chartCount: 1,
-    allowedCharts: [widgetSetting],
-    defaultChartSetting: widgetSetting,
-    rowChartSettings: [widgetSetting],
-    setRowChartSettings: () => {},
-  });
 
   return (
     <Feature
@@ -177,20 +174,10 @@ export function LaravelOverviewPage() {
                       <JobsWidget query={derivedQuery} />
                     </JobsContainer>
                     <QueriesContainer>
-                      <WidgetContainer
-                        {...getWidgetContainerProps(
-                          PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
-                        )}
-                        chartHeight={88}
-                      />
+                      <QueriesWidget query={derivedQuery} />
                     </QueriesContainer>
                     <CachesContainer>
-                      <WidgetContainer
-                        {...getWidgetContainerProps(
-                          PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
-                        )}
-                        chartHeight={88}
-                      />
+                      <CachesWidget query={derivedQuery} />
                     </CachesContainer>
                   </WidgetGrid>
                   <RoutesTable query={derivedQuery} />
@@ -385,7 +372,11 @@ function IssuesWidget({
   );
 }
 
-function usePageFilterChartParams() {
+function usePageFilterChartParams({
+  granularity = 'spans',
+}: {
+  granularity?: Fidelity;
+} = {}) {
   const {selection} = usePageFilters();
 
   const normalizedDateTime = useMemo(
@@ -395,14 +386,14 @@ function usePageFilterChartParams() {
 
   return {
     ...normalizedDateTime,
-    interval: getInterval(selection.datetime, 'low'),
+    interval: getInterval(selection.datetime, granularity),
     project: selection.projects,
   };
 }
 
 function RequestsWidget({query}: {query?: string}) {
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
   const theme = useTheme();
 
   const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
@@ -412,7 +403,7 @@ function RequestsWidget({query}: {query?: string}) {
         query: {
           ...pageFilterChartParams,
           dataset: 'spans',
-          field: ['http.status_code', 'count(span.duration)'],
+          field: ['trace.status', 'count(span.duration)'],
           yAxis: 'count(span.duration)',
           orderby: '-count(span.duration)',
           partial: 1,
@@ -425,49 +416,59 @@ function RequestsWidget({query}: {query?: string}) {
     {staleTime: 0}
   );
 
-  const getTimeSeries = useCallback(
-    (codePrefix: string, color?: string): DiscoverSeries | undefined => {
-      if (!data) {
-        return undefined;
-      }
-
-      const filteredSeries = Object.keys(data)
-        .filter(key => key.startsWith(codePrefix))
-        .map(key => data[key]!);
-
-      const firstSeries = filteredSeries[0];
+  const combineTimeSeries = useCallback(
+    (
+      seriesData: EventsStats[],
+      color: string,
+      fieldName: string
+    ): DiscoverSeries | undefined => {
+      const firstSeries = seriesData[0];
       if (!firstSeries) {
         return undefined;
       }
 
-      const field = `${codePrefix}xx`;
-
       return {
         data: firstSeries.data.map(([time], index) => ({
-          name: new Date(time).toISOString(),
-          value: filteredSeries.reduce(
+          name: new Date(time * 1000).toISOString(),
+          value: seriesData.reduce(
             (acc, series) => acc + series.data[index]?.[1][0]?.count!,
             0
           ),
         })),
-        seriesName: `${codePrefix}xx`,
+        seriesName: fieldName,
         meta: {
           fields: {
-            [field]: 'integer',
+            [fieldName]: 'integer',
           },
           units: {},
         },
         color,
       } satisfies DiscoverSeries;
     },
-    [data]
+    []
   );
 
   const timeSeries = useMemo(() => {
-    return [getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
-      series => !!series
-    );
-  }, [getTimeSeries, theme.error, theme.gray200]);
+    return [
+      combineTimeSeries(
+        [data?.ok].filter(series => !!series),
+        theme.gray200,
+        '2xx'
+      ),
+      combineTimeSeries(
+        [data?.invalid_argument, data?.internal_error].filter(series => !!series),
+        theme.error,
+        '5xx'
+      ),
+    ].filter(series => !!series);
+  }, [
+    combineTimeSeries,
+    data?.internal_error,
+    data?.invalid_argument,
+    data?.ok,
+    theme.error,
+    theme.gray200,
+  ]);
 
   return (
     <InsightsBarChartWidget
@@ -512,7 +513,7 @@ function DurationWidget({query}: {query?: string}) {
       return {
         data: series.data.map(([time, [value]]) => ({
           value: value?.count!,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         })),
         seriesName: field,
         meta: series.meta as EventsMetaType,
@@ -541,7 +542,9 @@ function DurationWidget({query}: {query?: string}) {
 
 function JobsWidget({query}: {query?: string}) {
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const pageFilterChartParams = usePageFilterChartParams({
+    granularity: 'low',
+  });
   const theme = useTheme();
 
   const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
@@ -586,16 +589,16 @@ function JobsWidget({query}: {query?: string}) {
       (acc, [time, [value]], index) => {
         const spansInTimeBucket = getSpansInTimeBucket(index);
         const okJobsRateValue = value?.count! || 0;
-        const failedJobsRateValue = value?.count ? 1 - value.count : 0;
+        const failedJobsRateValue = value?.count ? 1 - value.count : 1;
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         });
 
         acc[1].data.push({
           value: failedJobsRateValue * spansInTimeBucket,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         });
 
         return acc;
@@ -640,6 +643,290 @@ function JobsWidget({query}: {query?: string}) {
   );
 }
 
+interface QueriesDiscoverQueryResponse {
+  data: Array<{
+    'avg(span.self_time)': number;
+    'project.id': string;
+    'span.description': string;
+    'span.group': string;
+    'span.op': string;
+    'sum(span.self_time)': number;
+    'time_spent_percentage()': number;
+    transaction: string;
+  }>;
+}
+
+function QueriesWidget({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+
+  const queriesRequest = useApiQuery<QueriesDiscoverQueryResponse>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spansMetrics',
+          field: [
+            'span.op',
+            'span.group',
+            'project.id',
+            'span.description',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+            'transaction',
+          ],
+          query: `has:span.description span.module:db ${query}`,
+          sort: '-time_spent_percentage()',
+          per_page: 3,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const timeSeriesRequest = useSpanMetricsTopNSeries({
+    search: new MutableSearch(
+      // Cannot use transaction:[value1, value2] syntax as
+      // MutableSearch might escape it to transactions:"[value1, value2]" for some values
+      queriesRequest.data?.data
+        .map(item => `span.group:"${item['span.group']}"`)
+        .join(' OR ') || ''
+    ),
+    fields: ['span.group', 'sum(span.self_time)'],
+    yAxis: ['sum(span.self_time)'],
+    sorts: [
+      {
+        field: 'sum(span.self_time)',
+        kind: 'desc',
+      },
+    ],
+    topEvents: 3,
+    enabled: !!queriesRequest.data?.data,
+  });
+
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
+    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+      return [];
+    }
+
+    return Object.keys(timeSeriesRequest.data).map(key => {
+      const seriesData = timeSeriesRequest.data[key]!;
+      return {
+        ...seriesData,
+        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
+        meta: {
+          fields: {
+            [seriesData.seriesName]: 'duration',
+          },
+          units: {
+            [seriesData.seriesName]: 'millisecond',
+          },
+        },
+      };
+    });
+  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
+
+  const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
+  const error = timeSeriesRequest.error || queriesRequest.error;
+
+  const hasData =
+    queriesRequest.data && queriesRequest.data.data.length > 0 && timeSeries.length > 0;
+
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title="Slow Queries" />}
+      Visualization={
+        isLoading ? (
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+        ) : error ? (
+          <Widget.WidgetError error={error} />
+        ) : !hasData ? (
+          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
+        ) : (
+          <TimeSeriesWidgetVisualization
+            visualizationType="line"
+            aliases={Object.fromEntries(
+              queriesRequest.data?.data.map(item => [
+                item['span.group'],
+                item['span.description'],
+              ]) ?? []
+            )}
+            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+          />
+        )
+      }
+      Footer={
+        hasData && (
+          <WidgetFooterTable>
+            {queriesRequest.data?.data.map(item => (
+              <Fragment key={item['span.description']}>
+                <OverflowCell>
+                  <SpanDescriptionCell
+                    projectId={Number(item['project.id'])}
+                    group={item['span.group']}
+                    description={item['span.description']}
+                    moduleName={ModuleName.DB}
+                  />
+                  <ControllerText>{item.transaction}</ControllerText>
+                </OverflowCell>
+                <TimeSpentCell
+                  percentage={item['time_spent_percentage()']}
+                  total={item['sum(span.self_time)']}
+                  op={item['span.op']}
+                />
+              </Fragment>
+            ))}
+          </WidgetFooterTable>
+        )
+      }
+    />
+  );
+}
+
+function CachesWidget({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+
+  const cachesRequest = useApiQuery<{
+    data: Array<{
+      'cache_miss_rate()': number;
+      'project.id': string;
+      transaction: string;
+    }>;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spansMetrics',
+          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          query: `span.op:[cache.get_item,cache.get] ${query}`,
+          sort: '-cache_miss_rate()',
+          per_page: 4,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const timeSeriesRequest = useSpanMetricsTopNSeries({
+    search: new MutableSearch(
+      // Cannot use transaction:[value1, value2] syntax as
+      // MutableSearch might escape it to transactions:"[value1, value2]" for some values
+      cachesRequest.data?.data
+        .map(item => `transaction:"${item.transaction}"`)
+        .join(' OR ') || ''
+    ),
+    fields: ['transaction', 'cache_miss_rate()'],
+    yAxis: ['cache_miss_rate()'],
+    sorts: [
+      {
+        field: 'cache_miss_rate()',
+        kind: 'desc',
+      },
+    ],
+    topEvents: 4,
+    enabled: !!cachesRequest.data?.data,
+  });
+
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
+    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+      return [];
+    }
+
+    return Object.keys(timeSeriesRequest.data).map(key => {
+      const seriesData = timeSeriesRequest.data[key]!;
+      return {
+        ...seriesData,
+        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
+        meta: {
+          fields: {
+            [seriesData.seriesName]: 'percentage',
+          },
+          units: {
+            [seriesData.seriesName]: '%',
+          },
+        },
+      };
+    });
+  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
+
+  const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
+  const error = timeSeriesRequest.error || cachesRequest.error;
+
+  const hasData =
+    cachesRequest.data && cachesRequest.data.data.length > 0 && timeSeries.length > 0;
+
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title="Caches" />}
+      Visualization={
+        isLoading ? (
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+        ) : error ? (
+          <Widget.WidgetError error={error} />
+        ) : !hasData ? (
+          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
+        ) : (
+          <TimeSeriesWidgetVisualization
+            visualizationType="line"
+            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+          />
+        )
+      }
+      Footer={
+        hasData && (
+          <WidgetFooterTable>
+            {cachesRequest.data?.data.map(item => (
+              <Fragment key={item.transaction}>
+                <OverflowCell>
+                  <Link
+                    to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+                  >
+                    {item.transaction}
+                  </Link>
+                </OverflowCell>
+                <span>{(item['cache_miss_rate()'] * 100).toFixed(2)}%</span>
+              </Fragment>
+            ))}
+          </WidgetFooterTable>
+        )
+      }
+    />
+  );
+}
+
+const OverflowCell = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  min-width: 0px;
+`;
+
+const WidgetFooterTable = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  margin: -${space(1)} -${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  & > * {
+    padding: ${space(1)} ${space(1)};
+  }
+
+  & > *:nth-child(2n + 1) {
+    padding-left: ${space(2)};
+  }
+
+  & > *:nth-child(2n) {
+    padding-right: ${space(2)};
+  }
+
+  & > *:not(:nth-last-child(-n + 2)) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+`;
+
 interface DiscoverQueryResponse {
   data: Array<{
     'avg(transaction.duration)': number;
@@ -648,6 +935,7 @@ interface DiscoverQueryResponse {
     'failure_rate()': number;
     'http.method': string;
     'p95()': number;
+    'project.id': string;
     transaction: string;
   }>;
 }
@@ -675,23 +963,8 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
 };
 
-const PathCell = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${space(1)} ${space(2)};
-  justify-content: center;
-  gap: ${space(0.5)};
-`;
-
-const ControllerText = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
-  min-width: 0px;
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(5, max-content);
 `;
 
 const Cell = styled('div')`
@@ -718,6 +991,22 @@ const HeaderCell = styled(Cell)`
   padding: 0;
 `;
 
+const PathCell = styled(Cell)`
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: ${space(0.5)};
+  min-width: 0px;
+`;
+
+const ControllerText = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
+  min-width: 0px;
+`;
+
 function RoutesTable({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -732,6 +1021,7 @@ function RoutesTable({query}: {query?: string}) {
           dataset: 'metrics',
           field: [
             'http.method',
+            'project.id',
             'transaction',
             'avg(transaction.duration)',
             'p95()',
@@ -756,7 +1046,6 @@ function RoutesTable({query}: {query?: string}) {
     );
   }, [transactionsRequest.data]);
 
-  // Add transaction filter to route controller request
   const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -770,10 +1059,10 @@ function RoutesTable({query}: {query?: string}) {
             'transaction.method',
             'count(span.duration)',
           ],
+          // Add transaction filter to route controller request
           query: `transaction.op:http.server span.op:http.route transaction:[${
             transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
           }]`,
-          referrer: 'api.explore.spans-aggregates-table',
           sort: '-transaction',
           per_page: 25,
         },
@@ -801,18 +1090,19 @@ function RoutesTable({query}: {query?: string}) {
 
     return transactionsRequest.data.data.map(transaction => ({
       method: transaction['http.method'],
-      path: transaction.transaction,
+      transaction: transaction.transaction,
       requests: transaction['count()'],
       avg: transaction['avg(transaction.duration)'],
       p95: transaction['p95()'],
       errorRate: transaction['failure_rate()'],
       users: transaction['count_unique(user)'],
       controller: controllerMap.get(transaction.transaction),
+      projectId: transaction['project.id'],
     }));
   }, [transactionsRequest.data, routeControllersRequest.data]);
 
   return (
-    <PanelTable
+    <StyledPanelTable
       headers={[
         'Method',
         'Path',
@@ -838,10 +1128,32 @@ function RoutesTable({query}: {query?: string}) {
         );
 
         return (
-          <Fragment key={transaction.method + transaction.path}>
+          <Fragment key={transaction.method + transaction.transaction}>
             <Cell>{transaction.method}</Cell>
             <PathCell>
-              {transaction.path}
+              <Tooltip
+                title={transaction.transaction}
+                position="top"
+                maxWidth={400}
+                showOnlyOnOverflow
+                skipWrapper
+              >
+                <Link
+                  css={css`
+                    ${theme.overflowEllipsis};
+                    min-width: 0px;
+                  `}
+                  to={transactionSummaryRouteWithQuery({
+                    organization,
+                    transaction: transaction.transaction,
+                    view: 'backend',
+                    projectID: transaction.projectId,
+                    query: {},
+                  })}
+                >
+                  {transaction.transaction}
+                </Link>
+              </Tooltip>
               {routeControllersRequest.isLoading ? (
                 <Placeholder height={theme.fontSizeSmall} width="200px" />
               ) : (
@@ -851,6 +1163,7 @@ function RoutesTable({query}: {query?: string}) {
                     position="top"
                     maxWidth={400}
                     showOnlyOnOverflow
+                    skipWrapper
                   >
                     <ControllerText>{transaction.controller}</ControllerText>
                   </Tooltip>
@@ -872,6 +1185,6 @@ function RoutesTable({query}: {query?: string}) {
           </Fragment>
         );
       })}
-    </PanelTable>
+    </StyledPanelTable>
   );
 }

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Switch from 'sentry/components/switchButton';
+import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -19,11 +19,11 @@ function ReplayConfigToggle({
     <SwitchWrapper>
       <SwitchItem htmlFor="mask">
         {t('Mask All Text')}
-        <Switch id="mask" toggle={onMaskToggle} size="lg" isActive={maskToggle} />
+        <Switch id="mask" onClick={onMaskToggle} size="lg" checked={maskToggle} />
       </SwitchItem>
       <SwitchItem htmlFor="block">
         {t('Block All Media')}
-        <Switch id="block" toggle={onBlockToggle} size="lg" isActive={blockToggle} />
+        <Switch id="block" onClick={onBlockToggle} size="lg" checked={blockToggle} />
       </SwitchItem>
     </SwitchWrapper>
   );
