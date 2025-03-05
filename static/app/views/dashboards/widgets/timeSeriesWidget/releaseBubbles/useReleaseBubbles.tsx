@@ -65,18 +65,22 @@ function createReleaseBubbleMouseListeners({
         return;
       }
 
-      const {data} = params;
+      // `data` is typed as Record<string, any> by ECharts, with no generics
+      // to override
+      const data = params.data as unknown as Bucket;
 
       // "Full Screen View" for Insights opens in a modal, close before opening
       // drawer.
       closeModal();
 
+      const oldPath = window.location.pathname;
+      console.log('open drawer', window.location.pathname);
       openDrawer(
         () => (
           <ReleasesDrawer
-            startTs={data[0]}
-            endTs={data[2]}
-            releases={data[4]}
+            startTs={data.start}
+            endTs={data.end}
+            releases={data.releases}
             buckets={buckets}
             chartRenderer={chartRenderer}
           />
@@ -108,6 +112,8 @@ function createReleaseBubbleMouseListeners({
         return;
       }
 
+      const data = params.data as unknown as Bucket;
+
       // Create an empty series that has a `markArea` which is then
       // rectangular area of the "release bucket" that was hovered over (in
       // the release bubbles). This is drawn on the main chart so that users
@@ -123,10 +129,10 @@ function createReleaseBubbleMouseListeners({
               data: [
                 [
                   {
-                    xAxis: params.data.start,
+                    xAxis: data.start,
                   },
                   {
-                    xAxis: params.data.end,
+                    xAxis: data.end,
                   },
                 ],
               ],
