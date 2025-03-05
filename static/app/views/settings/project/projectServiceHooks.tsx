@@ -60,7 +60,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
         </small>
       }
     >
-      <Switch checked={hook.status === 'active'} size="lg" onClick={onToggleActive} />
+      <Switch checked={hook.status === 'active'} size="lg" onChange={onToggleActive} />
     </FieldGroup>
   );
 }

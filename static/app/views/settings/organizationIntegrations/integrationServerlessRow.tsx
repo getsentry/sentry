@@ -133,7 +133,7 @@ export function IntegrationServerlessRow({
         checked={serverlessFunction.enabled}
         disabled={isSubmitting}
         size="sm"
-        onClick={handleToggle}
+        onChange={handleToggle}
       />
     </Item>
   );

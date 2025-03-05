@@ -184,7 +184,7 @@ function AccountSubscriptions() {
                             id={`${subscription.email}-${subscription.listId}`}
                             checked={subscription.subscribed}
                             size="lg"
-                            onClick={() => handleToggle(subscription)}
+                            onChange={() => handleToggle(subscription)}
                           />
                         </div>
                       </PanelItem>
