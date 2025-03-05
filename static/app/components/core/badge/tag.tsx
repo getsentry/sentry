@@ -6,18 +6,19 @@ import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkTag from './tag.chonk';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  | 'white'
-  | 'black';
+  'default' | 'info' | 'success' | 'warning' | 'error' | 'promotion' | 'highlight';
+
+/**
+ * @deprecated Do not use these tag types
+ */
+type DeprecatedTagType = 'white' | 'black';
+
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Icon on the left side.
@@ -30,7 +31,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Dictates color scheme of the tag.
    */
-  type?: TagType;
+  type?: TagType | DeprecatedTagType;
 }
 
 export const Tag = forwardRef<HTMLDivElement, TagProps>(
@@ -64,8 +65,8 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
   }
 );
 
-const StyledTag = styled('div')<{
-  type: TagType;
+const TagPill = styled('div')<{
+  type: NonNullable<TagProps['type']>;
 }>`
   font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${p => p.theme.tag[p.type].background};
@@ -84,6 +85,8 @@ const StyledTag = styled('div')<{
     color: currentColor;
   }
 `;
+
+const StyledTag = withChonk(TagPill, ChonkTag.TagPill, ChonkTag.chonkTagPropMapping);
 
 const Text = styled('div')`
   overflow: hidden;

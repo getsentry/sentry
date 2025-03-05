@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
@@ -17,6 +18,7 @@ import {
 const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 const LOGS_CURSOR_KEY = 'logsCursor';
 interface LogsPageParams {
+  readonly cursor: string;
   readonly fields: string[];
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
@@ -35,9 +37,10 @@ export function LogsPageParamsProvider({children}: {children: React.ReactNode}) 
   const search = new MutableSearch(logsQuery);
   const fields = getLogFieldsFromLocation(location);
   const sortBys = getLogSortBysFromLocation(location, fields);
+  const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider value={{fields, search, sortBys}}>
+    <LogsPageParamsContext.Provider value={{fields, search, sortBys, cursor}}>
       {children}
     </LogsPageParamsContext.Provider>
   );
@@ -56,6 +59,7 @@ const decodeLogsQuery = (location: Location): string => {
 function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
   const target: Location = {...location, query: {...location.query}};
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
+  updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
   return target;
 }
@@ -129,6 +133,21 @@ export function useLogsFields() {
   return fields;
 }
 
+export function useLogsCursor() {
+  const {cursor} = useLogsPageParams();
+  return cursor;
+}
+
+export function useSetLogsCursor() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback<CursorHandler>(
+    cursor => {
+      setPageParams({cursor});
+    },
+    [setPageParams]
+  );
+}
+
 export function useSetLogsSortBys() {
   const setPageParams = useSetLogsPageParams();
   const currentPageSortBys = useLogsSortBys();
@@ -154,6 +173,14 @@ export function useSetLogsSortBys() {
     },
     [setPageParams, currentPageSortBys]
   );
+}
+
+function getLogCursorFromLocation(location: Location): string {
+  if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
+    return '';
+  }
+
+  return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
 interface ToggleableSortBy {

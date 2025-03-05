@@ -6,9 +6,9 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
+import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import type {TimeSeries} from '../../common/types';
-import {scaleTimeSeriesData} from '../scaleTimeSeriesData';
 
 export type ContinuousTimeSeriesConfig = {
   /**
@@ -52,7 +52,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   get needsColor(): boolean {
-    return Boolean(this.config?.color);
+    return !this.config?.color;
   }
 
   get dataType(): AggregationOutputType {

@@ -908,8 +908,8 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.EMAIL
             ).slug,
-            "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
-            "target_identifier": "test@test.com",
+            "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+            "target_identifier": self.user.id,
         }
 
     @cached_property
@@ -952,6 +952,15 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert not serializer.is_valid()
         assert serializer.errors == errors
+
+    def test_simple(self):
+        serializer = AlertRuleTriggerActionSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid()
+        assert serializer.validated_data["type"] == AlertRuleTriggerAction.Type.EMAIL.value
+        assert (
+            serializer.validated_data["target_type"] == AlertRuleTriggerAction.TargetType.USER.value
+        )
+        assert serializer.validated_data["target_identifier"] == str(self.user.id)
 
     def test_validation_no_params(self):
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data={})

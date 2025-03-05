@@ -19,10 +19,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AggregateDefinition,
     ArgumentDefinition,
     ColumnDefinitions,
     FormulaDefinition,
-    FunctionDefinition,
     ResolvedColumn,
     VirtualColumnDefinition,
     datetime_processor,
@@ -471,8 +471,8 @@ FORMULA_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
     "http_response_rate": http_response_rate
 }
 
-SPAN_FUNCTION_DEFINITIONS = {
-    "sum": FunctionDefinition(
+SPAN_AGGREGATE_DEFINITIONS = {
+    "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="duration",
         arguments=[
@@ -487,7 +487,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "avg": FunctionDefinition(
+    "avg": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
@@ -503,7 +503,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "avg_sample": FunctionDefinition(
+    "avg_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
@@ -520,7 +520,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
         extrapolation=False,
     ),
-    "count": FunctionDefinition(
+    "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         default_search_type="integer",
@@ -537,7 +537,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "count_sample": FunctionDefinition(
+    "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         default_search_type="integer",
@@ -555,7 +555,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
         extrapolation=False,
     ),
-    "p50": FunctionDefinition(
+    "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
         default_search_type="duration",
         arguments=[
@@ -570,7 +570,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "p50_sample": FunctionDefinition(
+    "p50_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
         default_search_type="duration",
         arguments=[
@@ -586,7 +586,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
         extrapolation=False,
     ),
-    "p75": FunctionDefinition(
+    "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,
         default_search_type="duration",
         arguments=[
@@ -601,7 +601,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "p90": FunctionDefinition(
+    "p90": AggregateDefinition(
         internal_function=Function.FUNCTION_P90,
         default_search_type="duration",
         arguments=[
@@ -616,7 +616,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "p95": FunctionDefinition(
+    "p95": AggregateDefinition(
         internal_function=Function.FUNCTION_P95,
         default_search_type="duration",
         arguments=[
@@ -631,7 +631,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "p99": FunctionDefinition(
+    "p99": AggregateDefinition(
         internal_function=Function.FUNCTION_P99,
         default_search_type="duration",
         arguments=[
@@ -646,7 +646,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "p100": FunctionDefinition(
+    "p100": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
         arguments=[
@@ -661,7 +661,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "max": FunctionDefinition(
+    "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
         arguments=[
@@ -677,7 +677,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "min": FunctionDefinition(
+    "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
         default_search_type="duration",
         arguments=[
@@ -693,7 +693,7 @@ SPAN_FUNCTION_DEFINITIONS = {
             )
         ],
     ),
-    "count_unique": FunctionDefinition(
+    "count_unique": AggregateDefinition(
         internal_function=Function.FUNCTION_UNIQ,
         default_search_type="integer",
         infer_search_type_from_arguments=False,
@@ -721,7 +721,7 @@ SPAN_FORMULA_DEFINITIONS = {
 }
 
 SPAN_DEFINITIONS = ColumnDefinitions(
-    functions=SPAN_FUNCTION_DEFINITIONS,
+    aggregates=SPAN_AGGREGATE_DEFINITIONS,
     formulas=SPAN_FORMULA_DEFINITIONS,
     columns=SPAN_ATTRIBUTE_DEFINITIONS,
     contexts=SPAN_VIRTUAL_CONTEXTS,

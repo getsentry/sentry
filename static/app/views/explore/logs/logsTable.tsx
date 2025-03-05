@@ -4,14 +4,17 @@ import {useTheme} from '@emotion/react';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import {LOGS_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {
+  useLogsCursor,
   useLogsSearch,
   useLogsSortBys,
+  useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
@@ -54,9 +57,12 @@ type LogsRowProps = {
 
 export function LogsTable() {
   const search = useLogsSearch();
-  const {data, isError, isPending} = useExploreLogsTable({
+  const cursor = useLogsCursor();
+  const setCursor = useSetLogsCursor();
+  const {data, isError, isPending, pageLinks} = useExploreLogsTable({
     limit: 100,
     search,
+    cursor,
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -72,64 +78,71 @@ export function LogsTable() {
     ];
 
   return (
-    <StyledPanel>
-      <LogPanelContent>
-        {headers.map((header, index) => {
-          const direction = sortBys.find(s => s.field === header.field)?.kind;
-          return (
-            <HeaderCell
-              key={index}
-              align={header.align}
-              lightText
-              onClick={() => setSortBys([{field: header.field}])}
-            >
-              {header.label}
-              {defined(direction) && (
-                <IconArrow
-                  size="xs"
-                  direction={
-                    direction === 'desc' ? 'down' : direction === 'asc' ? 'up' : undefined
-                  }
-                />
-              )}
-            </HeaderCell>
-          );
-        })}
-        {isPending && (
-          <StyledPanelItem span={3} overflow>
-            <LoadingIndicator />
-          </StyledPanelItem>
-        )}
-        {isError && (
-          <StyledPanelItem span={3} overflow>
-            <EmptyStreamWrapper>
-              <IconWarning color="gray300" size="lg" />
-            </EmptyStreamWrapper>
-          </StyledPanelItem>
-        )}
-        {isEmpty && (
-          <StyledPanelItem span={3} overflow>
-            <EmptyStateWarning withIcon>
-              <EmptyStateText size="fontSizeExtraLarge">
-                {t('No logs found')}
-              </EmptyStateText>
-              <EmptyStateText size="fontSizeMedium">
-                {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                  docSearchProps: (
-                    <ExternalLink href={LOGS_PROPS_DOCS_URL}>
-                      {t('docs for search properties')}
-                    </ExternalLink>
-                  ),
-                })}
-              </EmptyStateText>
-            </EmptyStateWarning>
-          </StyledPanelItem>
-        )}
-        {data?.map((row, index) => (
-          <LogsRow key={index} dataRow={row} highlightTerms={highlightTerms} />
-        ))}
-      </LogPanelContent>
-    </StyledPanel>
+    <Fragment>
+      <StyledPanel>
+        <LogPanelContent>
+          {headers.map((header, index) => {
+            const direction = sortBys.find(s => s.field === header.field)?.kind;
+            return (
+              <HeaderCell
+                key={index}
+                align={header.align}
+                lightText
+                onClick={() => setSortBys([{field: header.field}])}
+              >
+                {header.label}
+                {defined(direction) && (
+                  <IconArrow
+                    size="xs"
+                    direction={
+                      direction === 'desc'
+                        ? 'down'
+                        : direction === 'asc'
+                          ? 'up'
+                          : undefined
+                    }
+                  />
+                )}
+              </HeaderCell>
+            );
+          })}
+          {isPending && (
+            <StyledPanelItem span={3} overflow>
+              <LoadingIndicator />
+            </StyledPanelItem>
+          )}
+          {isError && (
+            <StyledPanelItem span={3} overflow>
+              <EmptyStreamWrapper>
+                <IconWarning color="gray300" size="lg" />
+              </EmptyStreamWrapper>
+            </StyledPanelItem>
+          )}
+          {isEmpty && (
+            <StyledPanelItem span={3} overflow>
+              <EmptyStateWarning withIcon>
+                <EmptyStateText size="fontSizeExtraLarge">
+                  {t('No logs found')}
+                </EmptyStateText>
+                <EmptyStateText size="fontSizeMedium">
+                  {tct('Try adjusting your filters or refer to [docSearchProps].', {
+                    docSearchProps: (
+                      <ExternalLink href={LOGS_PROPS_DOCS_URL}>
+                        {t('docs for search properties')}
+                      </ExternalLink>
+                    ),
+                  })}
+                </EmptyStateText>
+              </EmptyStateWarning>
+            </StyledPanelItem>
+          )}
+          {data?.map((row, index) => (
+            <LogsRow key={index} dataRow={row} highlightTerms={highlightTerms} />
+          ))}
+        </LogPanelContent>
+      </StyledPanel>
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+    </Fragment>
   );
 }
 
@@ -163,7 +176,7 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
           extra: {
             highlightTerms,
             logColors,
-            useFullSeverityText: true,
+            useFullSeverityText: false,
             renderSeverityCircle: true,
           },
         })}

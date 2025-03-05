@@ -51,7 +51,7 @@ export default function PublishIssueModal({
   const isPublished = group?.isPublic;
   const hasStreamlinedUI = useHasStreamlinedUI();
   const handleShare = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement> | null, reshare?: boolean) => {
+    (e: React.ChangeEvent<HTMLInputElement> | null, reshare?: boolean) => {
       e?.preventDefault();
       setLoading(true);
       onToggle();
@@ -100,9 +100,9 @@ export default function PublishIssueModal({
             </div>
             <Switch
               aria-label={isPublished ? t('Unpublish') : t('Publish')}
-              isActive={isPublished}
+              checked={isPublished}
               size="lg"
-              toggle={handleShare}
+              onChange={handleShare}
             />
           </SwitchWrapper>
           {(!group || loading) && (

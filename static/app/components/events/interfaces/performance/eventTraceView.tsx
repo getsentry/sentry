@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
@@ -14,7 +13,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
@@ -116,7 +114,7 @@ function EventTraceViewInner({
           event={event}
         />
         <IssuesTraceOverlayContainer
-          href={getHrefFromTraceTarget(traceTarget)}
+          to={getHrefFromTraceTarget(traceTarget)}
           onClick={() => {
             trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
               organization,
@@ -144,8 +142,6 @@ function getHrefFromTraceTarget(traceTarget: LocationDescriptor) {
 }
 
 function OneOtherIssueEvent({event}: {event: Event}) {
-  const location = useLocation();
-  const organization = useOrganization();
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({event});
   useRouteAnalyticsParams(oneOtherIssueEvent ? {has_related_trace_issue: true} : {});
 
@@ -153,25 +149,9 @@ function OneOtherIssueEvent({event}: {event: Event}) {
     return null;
   }
 
-  const traceTarget = generateTraceTarget(
-    event,
-    organization,
-    {
-      ...location,
-      query: {
-        ...location.query,
-        groupId: event.groupID,
-      },
-    },
-    TraceViewSources.ISSUE_DETAILS
-  );
-
   return (
     <Fragment>
-      <span>
-        {t('One other issue appears in the same trace. ')}
-        <Link to={traceTarget}>{t('View Full Trace')}</Link>
-      </span>
+      <span>{t('One other issue appears in the same trace.')}</span>
       <TraceIssueEvent event={oneOtherIssueEvent} />
     </Fragment>
   );
@@ -181,7 +161,7 @@ const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
 
-const IssuesTraceOverlayContainer = styled(ExternalLink)`
+const IssuesTraceOverlayContainer = styled(Link)`
   position: absolute;
   inset: 0;
   z-index: 10;
@@ -227,7 +207,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       actions={
         <LinkButton
           size="xs"
-          href={getHrefFromTraceTarget(traceTarget)}
+          to={getHrefFromTraceTarget(traceTarget)}
           analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
           analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
         >
