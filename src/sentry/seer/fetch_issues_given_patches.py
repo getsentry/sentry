@@ -113,9 +113,10 @@ def _get_issues_for_file(
     # Fetch an initial, candidate set of groups.
     group_ids: list[int] = list(
         Group.objects.filter(
-            first_seen__gte=datetime.now(UTC) - timedelta(days=90),
+            first_seen__gte=datetime.now(UTC) - timedelta(weeks=52),
+            # TODO(kddubey): prolly decrease this
             last_seen__gte=event_timestamp_start,
-            status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED],
+            status__in=[GroupStatus.UNRESOLVED],
             project__in=projects,
         )
         .order_by("-times_seen")
