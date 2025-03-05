@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -60,9 +61,8 @@ import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/setting
 import {ModuleName} from 'sentry/views/insights/types';
 import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
-import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
@@ -112,17 +112,6 @@ export function LaravelOverviewPage() {
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
-  const getWidgetContainerProps = (widgetSetting: PerformanceWidgetSetting) => ({
-    eventView,
-    location,
-    withStaticFilters,
-    index: 0,
-    chartCount: 1,
-    allowedCharts: [widgetSetting],
-    defaultChartSetting: widgetSetting,
-    rowChartSettings: [widgetSetting],
-    setRowChartSettings: () => {},
-  });
 
   return (
     <Feature
@@ -184,12 +173,7 @@ export function LaravelOverviewPage() {
                       <QueriesWidget query={derivedQuery} />
                     </QueriesContainer>
                     <CachesContainer>
-                      <WidgetContainer
-                        {...getWidgetContainerProps(
-                          PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
-                        )}
-                        chartHeight={88}
-                      />
+                      <CachesWidget query={derivedQuery} />
                     </CachesContainer>
                   </WidgetGrid>
                   <RoutesTable query={derivedQuery} />
@@ -674,7 +658,6 @@ function QueriesWidget({query}: {query?: string}) {
             'transaction',
           ],
           query: `has:span.description span.module:db ${query}`,
-          referrer: 'api.performance.generic-widget-chart.most-time-spent-db-queries',
           sort: '-time_spent_percentage()',
           per_page: 3,
         },
@@ -685,7 +668,11 @@ function QueriesWidget({query}: {query?: string}) {
 
   const timeSeriesRequest = useSpanMetricsTopNSeries({
     search: new MutableSearch(
-      `span.group:[${queriesRequest.data?.data.map(item => item['span.group']).join(',')}]`
+      // Cannot use transaction:[value1, value2] syntax as
+      // MutableSearch might escape it to transactions:"[value1, value2]" for some values
+      queriesRequest.data?.data
+        .map(item => `span.group:"${item['span.group']}"`)
+        .join(' OR ') || ''
     ),
     fields: ['span.group', 'sum(span.self_time)'],
     yAxis: ['sum(span.self_time)'],
@@ -778,6 +765,120 @@ function QueriesWidget({query}: {query?: string}) {
   );
 }
 
+function CachesWidget({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+
+  const cachesRequest = useApiQuery<{
+    data: Array<{
+      'cache_miss_rate()': number;
+      'project.id': string;
+      transaction: string;
+    }>;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spansMetrics',
+          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          query: `span.op:[cache.get_item,cache.get] ${query}`,
+          sort: '-cache_miss_rate()',
+          per_page: 4,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const timeSeriesRequest = useSpanMetricsTopNSeries({
+    search: new MutableSearch(
+      // Cannot use transaction:[value1, value2] syntax as
+      // MutableSearch might escape it to transactions:"[value1, value2]" for some values
+      cachesRequest.data?.data
+        .map(item => `transaction:"${item.transaction}"`)
+        .join(' OR ') || ''
+    ),
+    fields: ['transaction', 'cache_miss_rate()'],
+    yAxis: ['cache_miss_rate()'],
+    sorts: [
+      {
+        field: 'cache_miss_rate()',
+        kind: 'desc',
+      },
+    ],
+    topEvents: 4,
+    enabled: !!cachesRequest.data?.data,
+  });
+
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
+    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+      return [];
+    }
+
+    return Object.keys(timeSeriesRequest.data).map(key => {
+      const seriesData = timeSeriesRequest.data[key]!;
+      return {
+        ...seriesData,
+        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
+        meta: {
+          fields: {
+            [seriesData.seriesName]: 'percentage',
+          },
+          units: {
+            [seriesData.seriesName]: '%',
+          },
+        },
+      };
+    });
+  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
+
+  const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
+  const error = timeSeriesRequest.error || cachesRequest.error;
+
+  const hasData =
+    cachesRequest.data && cachesRequest.data.data.length > 0 && timeSeries.length > 0;
+
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title="Caches" />}
+      Visualization={
+        isLoading ? (
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+        ) : error ? (
+          <Widget.WidgetError error={error} />
+        ) : !hasData ? (
+          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
+        ) : (
+          <TimeSeriesWidgetVisualization
+            visualizationType="line"
+            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+          />
+        )
+      }
+      Footer={
+        hasData && (
+          <WidgetFooterTable>
+            {cachesRequest.data?.data.map(item => (
+              <Fragment key={item.transaction}>
+                <OverflowCell>
+                  <Link
+                    to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+                  >
+                    {item.transaction}
+                  </Link>
+                </OverflowCell>
+                <span>{(item['cache_miss_rate()'] * 100).toFixed(2)}%</span>
+              </Fragment>
+            ))}
+          </WidgetFooterTable>
+        )
+      }
+    />
+  );
+}
+
 const OverflowCell = styled('div')`
   ${p => p.theme.overflowEllipsis};
   min-width: 0px;
@@ -814,6 +915,7 @@ interface DiscoverQueryResponse {
     'failure_rate()': number;
     'http.method': string;
     'p95()': number;
+    'project.id': string;
     transaction: string;
   }>;
 }
@@ -898,6 +1000,7 @@ function RoutesTable({query}: {query?: string}) {
           dataset: 'metrics',
           field: [
             'http.method',
+            'project.id',
             'transaction',
             'avg(transaction.duration)',
             'p95()',
@@ -922,7 +1025,6 @@ function RoutesTable({query}: {query?: string}) {
     );
   }, [transactionsRequest.data]);
 
-  // Add transaction filter to route controller request
   const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -936,6 +1038,7 @@ function RoutesTable({query}: {query?: string}) {
             'transaction.method',
             'count(span.duration)',
           ],
+          // Add transaction filter to route controller request
           query: `transaction.op:http.server span.op:http.route transaction:[${
             transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
           }]`,
@@ -966,13 +1069,14 @@ function RoutesTable({query}: {query?: string}) {
 
     return transactionsRequest.data.data.map(transaction => ({
       method: transaction['http.method'],
-      path: transaction.transaction,
+      transaction: transaction.transaction,
       requests: transaction['count()'],
       avg: transaction['avg(transaction.duration)'],
       p95: transaction['p95()'],
       errorRate: transaction['failure_rate()'],
       users: transaction['count_unique(user)'],
       controller: controllerMap.get(transaction.transaction),
+      projectId: transaction['project.id'],
     }));
   }, [transactionsRequest.data, routeControllersRequest.data]);
 
@@ -1003,10 +1107,20 @@ function RoutesTable({query}: {query?: string}) {
         );
 
         return (
-          <Fragment key={transaction.method + transaction.path}>
+          <Fragment key={transaction.method + transaction.transaction}>
             <Cell>{transaction.method}</Cell>
             <PathCell>
-              {transaction.path}
+              <Link
+                to={transactionSummaryRouteWithQuery({
+                  organization,
+                  transaction: transaction.transaction,
+                  view: 'backend',
+                  projectID: transaction.projectId,
+                  query: {},
+                })}
+              >
+                {transaction.transaction}
+              </Link>
               {routeControllersRequest.isLoading ? (
                 <Placeholder height={theme.fontSizeSmall} width="200px" />
               ) : (
