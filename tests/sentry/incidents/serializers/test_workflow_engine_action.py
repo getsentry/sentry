@@ -84,7 +84,7 @@ class TestActionSerializer(TestCase):
             self.sentry_app_action, self.user, WorkflowEngineActionSerializer()
         )
         assert serialized_action["type"] == "sentry_app"
-        assert serialized_action["alertRuleTriggerId"] == str(self.sentry_app_trigger_action.id)
+        assert serialized_action["alertRuleTriggerId"] == str(self.sentry_app_trigger.id)
         assert serialized_action["targetType"] == "sentry_app"
         assert serialized_action["targetIdentifier"] == sentry_app.id
         assert serialized_action["sentryAppId"] == sentry_app.id
