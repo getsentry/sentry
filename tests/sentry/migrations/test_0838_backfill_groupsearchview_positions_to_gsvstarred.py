@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillGroupSearchViewPositionsTest(TestMigrations):
-    migrate_from = "0836_create_groupsearchviewstarred_table"
-    migrate_to = "0837_backfill_groupsearchview_positions_to_gsvstarred"
+    migrate_from = "0837_create_groupsearchviewlastseen_table"
+    migrate_to = "0838_backfill_groupsearchview_positions_to_gsvstarred"
 
     def setup_initial_state(self):
         self.user = self.create_user()
