@@ -25,7 +25,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
 
     @freeze_time("2025-03-03 14:52:37")
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_update_last_seen_success(self) -> None:
+    def test_update_last_visited_success(self) -> None:
         assert (
             GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
@@ -38,43 +38,43 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         response = self.client.post(self.url)
         assert response.status_code == 204
 
-        # Verify the last_seen record was created
-        last_seen = GroupSearchViewLastVisited.objects.get(
+        # Verify the last_visited record was created
+        visited_view = GroupSearchViewLastVisited.objects.get(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=self.view,
         )
-        assert last_seen.last_seen == timezone.now()
+        assert visited_view.last_visited == timezone.now()
 
     @freeze_time("2025-03-03 14:52:37")
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_update_existing_last_seen(self) -> None:
-        # Create an initial last_seen record with an old timestamp
+    def test_update_existing_last_visited(self) -> None:
+        # Create an initial last_visited record with an old timestamp
         with freeze_time("2025-02-03 14:52:37"):
             GroupSearchViewLastVisited.objects.create(
                 organization=self.organization,
                 user_id=self.user.id,
                 group_search_view=self.view,
-                last_seen=timezone.now(),
+                last_visited=timezone.now(),
             )
 
-        # Update the last_seen timestamp
+        # Update the last_visited timestamp
         response = self.client.post(self.url)
         assert response.status_code == 204
 
-        # Verify the last_seen record was updated
-        last_seen = GroupSearchViewLastVisited.objects.get(
+        # Verify the last_visited record was updated
+        visited_view = GroupSearchViewLastVisited.objects.get(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=self.view,
         )
-        assert last_seen.last_seen == timezone.now()
-        assert last_seen.last_seen.year == 2025  # Verify it's the new timestamp
-        assert last_seen.last_seen.month == 3
-        assert last_seen.last_seen.day == 3
-        assert last_seen.last_seen.hour == 14
-        assert last_seen.last_seen.minute == 52
-        assert last_seen.last_seen.second == 37
+        assert visited_view.last_visited == timezone.now()
+        assert visited_view.last_visited.year == 2025  # Verify it's the new timestamp
+        assert visited_view.last_visited.month == 3
+        assert visited_view.last_visited.day == 3
+        assert visited_view.last_visited.hour == 14
+        assert visited_view.last_visited.minute == 52
+        assert visited_view.last_visited.second == 37
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_nonexistent_view(self) -> None:
@@ -101,19 +101,19 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         response = self.client.post(url)
         assert response.status_code == 204
 
-        # Verify the last_seen record was created for the current user
-        last_seen = GroupSearchViewLastVisited.objects.get(
+        # Verify the last_visited record was created for the current user
+        visited_view = GroupSearchViewLastVisited.objects.get(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=view,
         )
-        assert last_seen is not None
+        assert visited_view is not None
 
     def test_update_without_feature_flag(self) -> None:
         response = self.client.post(self.url)
         assert response.status_code == 404
 
-        # Verify no last_seen record was created
+        # Verify no last_visited record was created
         assert not GroupSearchViewLastVisited.objects.filter(
             organization=self.organization,
             user_id=self.user.id,
