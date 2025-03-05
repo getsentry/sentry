@@ -9,6 +9,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @region_silo_model
-class Action(DefaultFieldsModel):
+class Action(DefaultFieldsModel, JSONConfigBase):
     """
     Actions are actions that can be taken if the conditions of a DataConditionGroup are satisfied.
     Examples include: detectors emitting events, sending notifications, creating an issue in the Issue Platform, etc.
