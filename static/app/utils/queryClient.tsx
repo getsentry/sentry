@@ -218,27 +218,31 @@ export function getApiQueryData<TResponseData>(
 export function setApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey,
-  updater: Updater<TResponseData, TResponseData>,
+  updater: Updater<TResponseData | undefined, TResponseData | undefined>,
   options?: SetDataOptions
 ): TResponseData | undefined {
-  const previous = queryClient.getQueryData<ApiResult<TResponseData>>(queryKey);
+  const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
+    queryKey,
+    previous => {
+      const [prevData, prevStatusText, prevResponse] = previous ?? [
+        undefined,
+        undefined,
+        undefined,
+      ];
+      const newData =
+        typeof updater === 'function'
+          ? (updater as (input?: TResponseData) => TResponseData | undefined)(prevData)
+          : updater;
 
-  const newData =
-    typeof updater === 'function'
-      ? (updater as (input?: TResponseData) => TResponseData)(previous?.[0])
-      : updater;
+      if (newData === undefined) {
+        return previous;
+      }
+      return [newData, prevStatusText, prevResponse];
+    },
+    options
+  );
 
-  const [_prevdata, prevStatusText, prevResponse] = previous ?? [
-    undefined,
-    undefined,
-    undefined,
-  ];
-
-  const newResponse: ApiResult<TResponseData> = [newData, prevStatusText, prevResponse];
-
-  queryClient.setQueryData(queryKey, newResponse, options);
-
-  return newResponse[0];
+  return updateResult?.[0];
 }
 
 /**

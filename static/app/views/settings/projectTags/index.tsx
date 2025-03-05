@@ -69,7 +69,7 @@ function ProjectTags(props: Props) {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
         [`/projects/${organization.slug}/${projectId}/tags/`],
-        oldTags => oldTags.filter(tag => tag.key !== key)
+        oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
     onError: () => {

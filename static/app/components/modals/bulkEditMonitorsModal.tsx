@@ -84,8 +84,8 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     setSelectedMonitors([]);
 
     if (resp?.updated) {
-      setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-        return oldMonitorList.map(
+      setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+        return oldMonitorList?.map(
           monitor =>
             resp.updated.find(newMonitor => newMonitor.slug === monitor.slug) ?? monitor
         );

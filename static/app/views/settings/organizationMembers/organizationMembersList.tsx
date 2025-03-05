@@ -175,15 +175,14 @@ function OrganizationMembersList() {
     setApiQueryData<Member[]>(
       queryClient,
       getInviteRequestsQueryKey({organization}),
-      curentInviteRequests => {
-        const newInviteRequests = curentInviteRequests.map(request => {
+      currentInviteRequests => {
+        return currentInviteRequests?.map(request => {
           if (request.id === id) {
             return {...request, ...data};
           }
 
           return request;
         });
-        return newInviteRequests;
       }
     );
   };

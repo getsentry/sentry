@@ -162,7 +162,8 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     setApiQueryData<IssueAlertRule>(
       queryClient,
       getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-      alertRule => ({...alertRule, snooze, snoozeCreatedBy, snoozeForEveryone})
+      alertRule =>
+        alertRule ? {...alertRule, snooze, snoozeCreatedBy, snoozeForEveryone} : undefined
     );
   }
 
@@ -183,7 +184,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       setApiQueryData<IssueAlertRule>(
         queryClient,
         getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        alertRule => ({...alertRule, disableDate: undefined})
+        alertRule => (alertRule ? {...alertRule, disableDate: undefined} : undefined)
       );
 
       addSuccessMessage(t('Successfully updated'));
@@ -203,7 +204,8 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       setApiQueryData<IssueAlertRule>(
         queryClient,
         getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        alertRule => ({...alertRule, disableDate: undefined, status: 'active'})
+        alertRule =>
+          alertRule ? {...alertRule, disableDate: undefined, status: 'active'} : undefined
       );
 
       addSuccessMessage(t('Successfully re-enabled'));
