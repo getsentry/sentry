@@ -45,7 +45,7 @@ function SchemaHintsList({
         return;
       }
 
-      const containerWidth = schemaHintsContainerRef.current.offsetWidth;
+      const containerWidth = schemaHintsContainerRef.current.clientWidth;
       let currentWidth = 0;
       const gap = 8;
       const averageHintWidth = 250;
