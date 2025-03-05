@@ -13,6 +13,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
+from sentry.replays.consumers.buffered.factory import PlatformStrategyFactory
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.consumers.recording_buffered import (
     RecordingBufferedStrategyFactory,
@@ -581,3 +582,8 @@ class SeparateIOComputeRecordingTestCase(RecordingTestCase):
             {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
         ):
             super().test_invalid_message()
+
+
+class BufferedRunTimeConsumerTestCase(RecordingTestCase):
+    def processing_factory(self):
+        return PlatformStrategyFactory(max_buffer_length=8, max_buffer_wait=1, max_workers=8)
