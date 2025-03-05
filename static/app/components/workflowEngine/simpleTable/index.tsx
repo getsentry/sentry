@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {type CSSProperties, useCallback, useRef} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {
@@ -14,7 +14,10 @@ import {
 export interface ColumnConfig<Cell> {
   Header: () => React.ReactNode;
   Cell?: (props: {value: Cell}) => React.ReactNode;
+  /** @default 1fr */
+  width?: CSSProperties['gridTemplateColumns'];
 }
+
 interface TableProps<
   Data extends Record<string, unknown>,
   ColumnId extends string = keyof Data extends string ? keyof Data : string,
@@ -46,7 +49,12 @@ export function SimpleTable<
     <Panel>
       <Grid
         ref={tableRef}
-        style={{gridTemplateColumns: `repeat(${columnIds.length}, minmax(0, 1fr))`}}
+        /** override grid-template-columns */
+        style={{
+          gridTemplateColumns: columnIds
+            .map(colId => columns?.[colId]?.width ?? 'minmax(0, 1fr)')
+            .join(' '),
+        }}
       >
         <GridHead>
           <GridRow data-row="header">

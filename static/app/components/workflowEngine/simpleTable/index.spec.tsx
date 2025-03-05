@@ -13,6 +13,12 @@ function cell(output: string) {
     Cell: ({value}: any) => `${output}: ${value}`,
   };
 }
+function width(value: string) {
+  return {
+    Header: () => 'header',
+    width: value,
+  };
+}
 describe('SimpleTable component', function () {
   it('renders cells', function () {
     render(
@@ -77,5 +83,22 @@ describe('SimpleTable component', function () {
     expect(screen.getByRole('cell', {name: 'test-cell-a: 0'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'test-cell-b: 1'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'test-cell-c: 2'})).toBeInTheDocument();
+  });
+
+  it('allows custom column widths', function () {
+    render(
+      <SimpleTable
+        columns={{a: width('2fr'), b: width('150px'), c: width('300px')}}
+        data={[
+          {a: 0, b: 1, c: 2},
+          {a: 1, b: 2, c: 3},
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toHaveStyle(
+      'grid-template-columns: 2fr 150px 300px'
+    );
   });
 });
