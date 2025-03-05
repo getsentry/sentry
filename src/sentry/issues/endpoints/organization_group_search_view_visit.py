@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.groupsearchview import GroupSearchView
-from sentry.models.groupsearchviewlastseen import GroupSearchViewLastSeen
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.organization import Organization
 
 
@@ -42,11 +42,11 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         # Create or update the last_seen timestamp
-        GroupSearchViewLastSeen.objects.create_or_update(
+        GroupSearchViewLastVisited.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
             group_search_view=view,
-            values={"last_seen": timezone.now()},
+            values={"last_visited": timezone.now()},
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
