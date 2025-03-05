@@ -73,7 +73,8 @@ export function SidebarMenu({
   return (
     <SidebarItem>
       <DropdownMenu
-        position="right-end"
+        position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
+        shouldApplyMinWidth={false}
         trigger={(props, isOpen) => {
           return (
             <NavButton
