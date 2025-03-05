@@ -31,6 +31,12 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
             owner=self.actor,
         )
 
+        self.trigger = self.create_alert_rule_trigger(
+            alert_rule=self.alert_rule,
+            label="critical",
+            alert_threshold=100.0,
+        )
+
         self.incident = self.create_incident(
             organization=self.organization,
             projects=[self.project],
@@ -92,7 +98,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
 
     def test_construct_title(self):
         title = construct_title(self.alert_rule, self.incident.status)
-        assert title == "CRITICAL: Number of events in the last 10 minutes above threshold"
+        assert title == "Critical: Number of events in the last 10 minutes above 100"
 
         alert_rule = self.create_alert_rule(
             organization=self.organization,
@@ -108,7 +114,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         title = construct_title(alert_rule, self.incident.status)
         assert (
             title
-            == "CRITICAL: Number of users affected in the last 10 minutes greater than same time one hour ago"
+            == "Critical: Number of users affected in the last 10 minutes greater than same time one hour ago"
         )
 
         alert_rule = self.create_alert_rule(
@@ -122,4 +128,4 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         )
 
         title = construct_title(alert_rule, 10)
-        assert title == "WARNING: Crash free session rate in the last 10 minutes below threshold"
+        assert title == "Warning: Crash free session rate in the last 10 minutes below threshold"

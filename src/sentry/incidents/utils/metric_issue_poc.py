@@ -67,34 +67,34 @@ def construct_title(alert_rule: AlertRule, status: int) -> str:
     else:
         higher_or_lower = "less than" if alert_rule.comparison_delta else "below"
 
-    label = INCIDENT_STATUS[IncidentStatus(status)].lower()
+    label = INCIDENT_STATUS[IncidentStatus(status)]
 
     # Format the time window for the threshold
-    time_window = alert_rule.snuba_query.time_window // 60
-    title = f"{label.capitalize()}: {aggregate}"
+    time_window = format_duration_idiomatic(alert_rule.snuba_query.time_window // 60)
 
     # If the alert rule has a comparison delta, format the comparison string
+    comparison: str | int | float = "threshold"
     if alert_rule.comparison_delta:
         comparison_delta_minutes = alert_rule.comparison_delta // 60
-        comparison_string = TEXT_COMPARISON_DELTA.get(
-            comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
+        comparison = TEXT_COMPARISON_DELTA.get(
+            comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago "
         )
-        return _(
-            f"{title} in the last {format_duration_idiomatic(time_window)} {higher_or_lower} {comparison_string}"
-        )
+    else:
+        # Otherwise, check if there is a trigger with a threshold
+        trigger = AlertRuleTrigger.objects.filter(id=alert_rule.id, label=label.lower()).first()
+        if trigger:
+            threshold = trigger.alert_threshold
+            comparison = int(threshold) if threshold % 1 == 0 else threshold
 
-    trigger = AlertRuleTrigger.objects.filter(id=alert_rule.id, label=label.lower()).first()
-    if not trigger:
-        return _(
-            f"{title} in the last {format_duration_idiomatic(time_window)} {higher_or_lower} threshold"
-        )
-
-    threshold = trigger.alert_threshold
-    if threshold % 1 == 0:
-        threshold = int(threshold)
-
+    template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
     return _(
-        f"{title} {higher_or_lower} {threshold} in the last {format_duration_idiomatic(time_window)}"
+        template.format(
+            label=label.capitalize(),
+            metric=aggregate,
+            higher_or_lower=higher_or_lower,
+            comparison=comparison,
+            time_window=time_window,
+        )
     )
 
 
