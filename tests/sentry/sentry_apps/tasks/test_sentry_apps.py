@@ -639,7 +639,7 @@ class TestSendResourceChangeWebhook(TestCase):
             mock_record,
             [
                 f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_404",
-                ClientError(status_code=404, url="example.com"),
+                ClientError(status_code="404", url="example.com"),
                 f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_404",
             ],
         )
