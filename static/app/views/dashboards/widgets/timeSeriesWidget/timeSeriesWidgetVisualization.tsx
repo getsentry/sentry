@@ -27,7 +27,6 @@ import type {
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -135,11 +134,25 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   }
 
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      registerWithWidgetSyncContext(e.getEchartsInstance());
+    },
+    [registerWithWidgetSyncContext]
+  );
+
   const {
     releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
+    handleChartMount,
   } = useReleaseBubbles({
     bubbleSize: RELEASE_BUBBLE_SIZE,
     chartRef,
@@ -148,6 +161,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     maxTime: maxTime?.getTime(),
     releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
     theme,
+    onChartMount: handleChartRef,
   });
 
   const releaseSeries = props.releases
@@ -167,26 +181,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           utc ?? false
         )
     : null;
-
-  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
-
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef) => {
-      chartRef.current = e;
-
-      if (!e?.getEchartsInstance) {
-        return;
-      }
-
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
-      if (hasReleaseBubblesSeries) {
-        createReleaseBubbleHighlighter(echartsInstance);
-      }
-    },
-    [hasReleaseBubblesSeries, registerWithWidgetSyncContext]
-  );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -345,7 +339,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={handleChartRef}
+      ref={handleChartMount}
       {...releaseBubbleEventHandlers}
       autoHeightResize
       series={[...dataSeries, releaseSeries].filter(defined)}

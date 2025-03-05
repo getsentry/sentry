@@ -69,4 +69,8 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
   }
 
   echartsInstance.getZr().on('mousemove', handleMouseMove);
+
+  return function highlighterCleanup() {
+    echartsInstance.getZr().off('mousemove', handleMouseMove);
+  };
 }
