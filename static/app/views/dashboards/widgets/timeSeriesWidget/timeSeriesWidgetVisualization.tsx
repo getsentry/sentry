@@ -118,7 +118,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     saveOnZoom: true,
   });
 
-  // Determine out chart Y axis type and units
+  // Determine our chart Y axis type and units
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
