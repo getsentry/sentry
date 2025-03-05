@@ -10,6 +10,7 @@ import {
   isJSProfile,
   isSampledProfile,
   isSchema,
+  isSentryAndroidContinuousProfileChunk,
   isSentryContinuousProfile,
   isSentryContinuousProfileChunk,
   isSentrySampledProfile,
@@ -22,6 +23,7 @@ import type {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {
+  createAndroidContinuousProfileFrameIndex,
   createContinuousProfileFrameIndex,
   createFrameIndex,
   createSentrySampleProfileFrameIndex,
@@ -67,6 +69,15 @@ export function importProfile(
     try {
       if (isSentryContinuousProfileChunk(input)) {
         scope.setTag('profile.type', 'sentry-continuous');
+        if (isSentryAndroidContinuousProfileChunk(input)) {
+          return importAndroidContinuousProfileChunk(input, traceID, {
+            span,
+            type,
+            frameFilter,
+            activeThreadId,
+            continuous: true,
+          });
+        }
         return importSentryContinuousProfileChunk(input, traceID, {
           span,
           type,
@@ -238,6 +249,168 @@ export function importSchema(
         profileIds: input.shared.profile_ids ?? input.shared.profiles,
       })
     ),
+  };
+}
+
+export function eventedProfileToSampledProfile(
+  input: ReadonlyArray<Readonly<Profiling.EventedProfile>>
+): Pick<
+  Readonly<Profiling.SentryContinousProfileChunk>['profile'],
+  'samples' | 'stacks' | 'thread_metadata'
+> {
+  const stacks: Profiling.SentrySampledProfile['profile']['stacks'] = [];
+  const samples: Profiling.SentrySampledProfileChunkSample[] = [];
+  const thread_metadata: Profiling.SentrySampledProfile['profile']['thread_metadata'] =
+    {};
+
+  for (const profile of input) {
+    let stackId = 0;
+    const stack: number[] = [];
+
+    thread_metadata[profile.threadID] = {
+      name: profile.name,
+    };
+
+    for (const current of profile.events) {
+      if (current.type === 'O') {
+        stack.push(current.frame);
+      } else if (current.type === 'C') {
+        const poppedFrame = stack.pop();
+
+        if (poppedFrame === undefined) {
+          throw new Error('Stack underflow');
+        }
+        if (poppedFrame !== current.frame) {
+          throw new Error('Stack mismatch');
+        }
+      } else {
+        throw new TypeError('Unknown event type, expected O or C, got ' + current.type);
+      }
+
+      samples.push({
+        stack_id: stackId,
+        thread_id: String(profile.threadID),
+        timestamp: current.at,
+      });
+
+      stacks[stackId] = stack.slice();
+      stackId++;
+    }
+
+    if (stack.length > 0) {
+      samples.push({
+        stack_id: stackId,
+        thread_id: String(profile.threadID),
+        timestamp: profile.events[profile.events.length - 1]!.at,
+      });
+      stacks[stackId] = stack.slice();
+      stackId++;
+    }
+  }
+
+  return {
+    samples,
+    stacks,
+    thread_metadata,
+  };
+}
+
+export function importAndroidContinuousProfileChunk(
+  input: Profiling.SentryAndroidContinuousProfileChunk,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createAndroidContinuousProfileFrameIndex(
+    input.shared.frames,
+    input.metadata.platform
+  );
+
+  const frames: Profiling.SentrySampledProfileFrame[] = [];
+  for (const frame of input.shared.frames) {
+    frames.push({
+      in_app: frame.is_application ?? false,
+      filename: frame.file,
+      abs_path: frame.path,
+      module: frame.module,
+      package: frame.package,
+      column: frame.columnNumber ?? frame?.col ?? frame?.column,
+      symbol: frame.symbol,
+      lineno: frame.lineNumber,
+      colno: frame.columnNumber,
+      function: frame.name,
+    });
+  }
+
+  const samplesByThread: Record<
+    string,
+    Profiling.SentryContinousProfileChunk['profile']['samples']
+  > = {};
+
+  const convertedProfile = eventedProfileToSampledProfile(input.profiles);
+
+  // @todo(jonas): implement measurements
+  const minTimestamp = minTimestampInChunk({...convertedProfile, frames}, {});
+
+  for (const sample of convertedProfile.samples) {
+    if (!samplesByThread[sample.thread_id]) {
+      samplesByThread[sample.thread_id] = [];
+    }
+    samplesByThread[sample.thread_id]!.push(sample);
+  }
+
+  for (const key in samplesByThread) {
+    samplesByThread[key]!.sort((a, b) => a.timestamp - b.timestamp);
+  }
+
+  const profiles: ContinuousProfile[] = [];
+  let activeProfileIndex = input.activeProfileIndex ?? 0;
+
+  for (const key in samplesByThread) {
+    const profile: Profiling.ContinuousProfile = {
+      ...input,
+      ...convertedProfile,
+      frames,
+      samples: samplesByThread[key]!,
+    };
+
+    if (options.activeThreadId && key === options.activeThreadId) {
+      activeProfileIndex = profiles.length;
+    }
+
+    profiles.push(
+      wrapWithSpan(
+        options.span,
+        () =>
+          ContinuousProfile.FromProfile(profile, frameIndex, {
+            minTimestamp,
+            type: options.type,
+            frameFilter: options.frameFilter,
+          }),
+        {
+          op: 'profile.import',
+          description: 'continuous',
+        }
+      )
+    );
+  }
+
+  return {
+    traceID,
+    name: '',
+    type: 'continuous',
+    transactionID: null,
+    activeProfileIndex,
+    profiles,
+    // @TODO(jonas): implement this
+    measurements: {},
+    // measurements: measurementsFromContinuousMeasurements(
+    //   input.measurements ?? {},
+    //   minTimestamp
+    // ),
+    metadata: {
+      platform: input.metadata.platform,
+      projectID: input.metadata.projectID,
+    },
   };
 }
 
