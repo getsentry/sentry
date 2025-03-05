@@ -118,7 +118,6 @@ module = [
     "sentry.api.endpoints.organization_events_facets_performance",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
-    "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_projects",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.endpoints.organization_request_project_creation",
