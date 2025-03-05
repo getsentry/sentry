@@ -53,5 +53,3 @@ export const TextArea = styled(Input.withComponent(TextAreaControl), {
       min-height: unset;
     `}
 ` as unknown as typeof TextAreaControl;
-
-export default TextArea as unknown as typeof TextAreaControl;
