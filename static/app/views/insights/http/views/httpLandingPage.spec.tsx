@@ -182,6 +182,14 @@ describe('HTTPLandingPage', function () {
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/second',
+          },
+        },
       },
     });
 
@@ -198,6 +206,14 @@ describe('HTTPLandingPage', function () {
           [1699907700, [{count: 710.2}]],
           [1699908000, [{count: 116.8}]],
         ],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'duration',
+          },
+          units: {
+            'avg(span.duration)': 'millisecond',
+          },
+        },
       },
     });
 
@@ -212,12 +228,30 @@ describe('HTTPLandingPage', function () {
       body: {
         'http_response_rate(3)': {
           data: [[1699908000, [{count: 0.2}]]],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'percentage',
+            },
+            units: {},
+          },
         },
         'http_response_rate(4)': {
           data: [[1699908000, [{count: 0.1}]]],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'percentage',
+            },
+            units: {},
+          },
         },
         'http_response_rate(5)': {
           data: [[1699908000, [{count: 0.3}]]],
+          meta: {
+            fields: {
+              'http_response_rate(5)': 'percentage',
+            },
+            units: {},
+          },
         },
       },
     });

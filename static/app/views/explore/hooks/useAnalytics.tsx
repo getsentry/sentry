@@ -23,7 +23,7 @@ import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
-const {info} = Sentry._experiment_log;
+const {info, fmt} = Sentry._experiment_log;
 
 export function useTrackAnalytics({
   queryType,
@@ -100,23 +100,20 @@ export function useTrackAnalytics({
       page_source,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    info`trace.explorer.metadata:
-      organization: ${organization}
+    info(fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
       dataset: ${dataset}
       query: ${query}
-      visualizes: ${visualizes}
-      title: ${title}
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
       queryType: ${queryType}
-      result_length: ${aggregatesTableResult.result.data?.length}
-      result_missing_root: ${0}
+      result_length: ${String(aggregatesTableResult.result.data?.length || 0)}
       user_queries: ${search.formatString()}
-      user_queries_count: ${search.tokens.length}
-      visualizes_count: ${visualizes.length}
-      title: ${title}
-      has_exceeded_performance_usage_limit: ${hasExceededPerformanceUsageLimit}
+      user_queries_count: ${String(String(search.tokens).length)}
+      visualizes_count: ${String(String(visualizes).length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
-    `;
+    `);
   }, [
     organization,
     dataset,
@@ -167,23 +164,20 @@ export function useTrackAnalytics({
       page_source,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    info`trace.explorer.metadata:
-      organization: ${organization}
+    info(fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
       dataset: ${dataset}
       query: ${query}
-      visualizes: ${visualizes}
-      title: ${title}
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
       queryType: ${queryType}
-      result_length: ${spansTableResult.result.data?.length}
-      result_missing_root: ${0}
+      result_length: ${String(spansTableResult.result.data?.length || 0)}
       user_queries: ${search.formatString()}
-      user_queries_count: ${search.tokens.length}
-      visualizes_count: ${visualizes.length}
-      title: ${title}
-      has_exceeded_performance_usage_limit: ${hasExceededPerformanceUsageLimit}
+      user_queries_count: ${String(search.tokens.length)}
+      visualizes_count: ${String(visualizes.length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
-    `;
+    `);
   }, [
     organization,
     dataset,

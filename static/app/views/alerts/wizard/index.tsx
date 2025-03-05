@@ -19,6 +19,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
@@ -116,15 +117,18 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               disabled={!hasFeature}
               priority="primary"
               to={{
-                pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert
-                    ? AlertRuleType.METRIC
-                    : alertOption === 'uptime_monitor'
-                      ? AlertRuleType.UPTIME
-                      : alertOption === 'crons_monitor'
-                        ? AlertRuleType.CRONS
-                        : AlertRuleType.ISSUE
-                }/`,
+                pathname: makeAlertsPathname({
+                  organization,
+                  path: `/new/${
+                    isMetricAlert
+                      ? AlertRuleType.METRIC
+                      : alertOption === 'uptime_monitor'
+                        ? AlertRuleType.UPTIME
+                        : alertOption === 'crons_monitor'
+                          ? AlertRuleType.CRONS
+                          : AlertRuleType.ISSUE
+                  }/`,
+                }),
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
                   project: projectSlug,

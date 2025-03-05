@@ -24,6 +24,7 @@ from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -592,6 +593,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 GroupSeen,
                 GroupShare,
                 GroupSearchView,
+                GroupSearchViewLastVisited,
                 GroupSearchViewStarred,
                 GroupSubscription,
                 IncidentActivity,
