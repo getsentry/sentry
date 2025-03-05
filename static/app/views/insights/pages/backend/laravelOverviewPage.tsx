@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -949,23 +949,8 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
 };
 
-const PathCell = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${space(1)} ${space(2)};
-  justify-content: center;
-  gap: ${space(0.5)};
-  min-width: 200px;
-`;
-
-const ControllerText = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0px;
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(5, max-content);
 `;
 
 const Cell = styled('div')`
@@ -990,6 +975,22 @@ const Cell = styled('div')`
 
 const HeaderCell = styled(Cell)`
   padding: 0;
+`;
+
+const PathCell = styled(Cell)`
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: ${space(0.5)};
+  min-width: 0px;
+`;
+
+const ControllerText = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
+  min-width: 0px;
 `;
 
 function RoutesTable({query}: {query?: string}) {
@@ -1087,7 +1088,7 @@ function RoutesTable({query}: {query?: string}) {
   }, [transactionsRequest.data, routeControllersRequest.data]);
 
   return (
-    <PanelTable
+    <StyledPanelTable
       headers={[
         'Method',
         'Path',
@@ -1116,17 +1117,29 @@ function RoutesTable({query}: {query?: string}) {
           <Fragment key={transaction.method + transaction.transaction}>
             <Cell>{transaction.method}</Cell>
             <PathCell>
-              <Link
-                to={transactionSummaryRouteWithQuery({
-                  organization,
-                  transaction: transaction.transaction,
-                  view: 'backend',
-                  projectID: transaction.projectId,
-                  query: {},
-                })}
+              <Tooltip
+                title={transaction.transaction}
+                position="top"
+                maxWidth={400}
+                showOnlyOnOverflow
+                skipWrapper
               >
-                {transaction.transaction}
-              </Link>
+                <Link
+                  css={css`
+                    ${theme.overflowEllipsis};
+                    min-width: 0px;
+                  `}
+                  to={transactionSummaryRouteWithQuery({
+                    organization,
+                    transaction: transaction.transaction,
+                    view: 'backend',
+                    projectID: transaction.projectId,
+                    query: {},
+                  })}
+                >
+                  {transaction.transaction}
+                </Link>
+              </Tooltip>
               {routeControllersRequest.isLoading ? (
                 <Placeholder height={theme.fontSizeSmall} width="200px" />
               ) : (
@@ -1136,6 +1149,7 @@ function RoutesTable({query}: {query?: string}) {
                     position="top"
                     maxWidth={400}
                     showOnlyOnOverflow
+                    skipWrapper
                   >
                     <ControllerText>{transaction.controller}</ControllerText>
                   </Tooltip>
@@ -1157,6 +1171,6 @@ function RoutesTable({query}: {query?: string}) {
           </Fragment>
         );
       })}
-    </PanelTable>
+    </StyledPanelTable>
   );
 }
