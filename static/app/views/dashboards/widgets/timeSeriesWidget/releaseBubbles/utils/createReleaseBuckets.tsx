@@ -42,7 +42,7 @@ export function createReleaseBuckets(
     // Ending timestamp will clump in the remaining bits if it's not
     // evenly distributed
     const bucketEndTs = i === desiredBuckets - 1 ? maxTime : bucketStartTs + interval;
-    buckets.push([bucketStartTs, 0, bucketEndTs, 0, []]);
+    buckets.push({start: bucketStartTs, end: bucketEndTs, releases: []});
   }
 
   // Loop through releases and update its bucket's counters
@@ -56,17 +56,14 @@ export function createReleaseBuckets(
     const releaseTs = new Date(release.date).getTime();
     const bucketIndex = Math.floor((releaseTs - minTime) / interval);
     const currentBucket = buckets[bucketIndex];
-    const bucketEndTs = currentBucket?.[2];
+    const bucketEndTs = currentBucket?.end;
 
     // Note we need to check that the release ts is within the ending bounds, solely for
     // the last bucket, as the last buckets width can be less than the
     // others. (i.e. if the total time difference is not perfectly divible by
     // `desiredBuckets`, the last bucket will be the remainder)
     if (bucketEndTs && releaseTs <= bucketEndTs) {
-      // Update numReleases
-      currentBucket[3] = currentBucket[3] + 1;
-      // Update the list of releases
-      currentBucket[4].push(release);
+      currentBucket.releases.push(release);
     }
   }
 

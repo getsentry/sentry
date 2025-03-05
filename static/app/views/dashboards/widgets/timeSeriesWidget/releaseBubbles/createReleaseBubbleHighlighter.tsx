@@ -33,9 +33,9 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
       return;
     }
 
-    const bucketIndex = buckets.findIndex(([bucketStart, _, bucketEnd]: Bucket) => {
+    const bucketIndex = buckets.findIndex(({start, end}: Bucket) => {
       const ts = pointInGrid[0] ?? -1;
-      return ts >= bucketStart && ts < bucketEnd;
+      return ts >= start && ts < end;
     });
 
     // Already highlighted, no need to do anything

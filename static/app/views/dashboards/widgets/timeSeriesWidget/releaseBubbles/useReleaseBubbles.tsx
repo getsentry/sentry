@@ -121,10 +121,10 @@ function createReleaseBubbleMouseListeners({
               data: [
                 [
                   {
-                    xAxis: params.data[0],
+                    xAxis: params.data.start,
                   },
                   {
-                    xAxis: params.data[2],
+                    xAxis: params.data.end,
                   },
                 ],
               ],
@@ -153,11 +153,15 @@ function ReleaseBubbleSeries({
   theme,
   bubbleSize = DEFAULT_BUBBLE_SIZE,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
-  const totalReleases = buckets.reduce(
-    (acc, [, , , numReleases]) => acc + numReleases,
-    0
-  );
+  const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
+  const data = buckets.map(({start, end, releases}) => ({
+    value: [start, 0, end, releases.length],
+    start,
+    end,
+    releases,
+  }));
+
   /**
    * Renders release bubbles underneath the main chart
    */
@@ -165,15 +169,17 @@ function ReleaseBubbleSeries({
     _params: CustomSeriesRenderItemParams,
     api: CustomSeriesRenderItemAPI
   ) => {
-    // api.value(index) returns the value at Bucket[index]
-    // Unfortunately, it seems only integer values are allowed, it'll otherwise
-    // return NaN (this could be due to the chart being a timeseries).
-    //
-    // Because we are drawing rectangles with a known height, we don't care
-    // about the y-value (which I think is the 2nd tuple value passed to
-    // `api.coord()`).
-    const [bubbleStartX, bubbleStartY] = api.coord([api.value(0), 0]);
-    const [bubbleEndX, bubbleEndY] = api.coord([api.value(2), 0]);
+    const dataItem = data[_params.dataIndex];
+
+    if (!dataItem) {
+      return null;
+    }
+
+    // Use the start/end timestamps to get the chart coordinates to draw the
+    // bubble. The 2nd tuple passed to `api.coord()` is always 0 because we
+    // don't care about the y-coordinate as the bubbles have a static height.
+    const [bubbleStartX, bubbleStartY] = api.coord([dataItem.start, 0]);
+    const [bubbleEndX, bubbleEndY] = api.coord([dataItem.end, 0]);
 
     if (
       !defined(bubbleStartX) ||
@@ -184,7 +190,7 @@ function ReleaseBubbleSeries({
       return null;
     }
 
-    const numberReleases = api.value(3);
+    const numberReleases = dataItem.releases.length;
 
     // Width between two timestamps for timeSeries
     const width = bubbleEndX - bubbleStartX;
@@ -223,7 +229,7 @@ function ReleaseBubbleSeries({
     id: BUBBLE_SERIES_ID,
     type: 'custom',
     renderItem: renderReleaseBubble,
-    data: buckets,
+    data,
     tooltip: {
       trigger: 'item',
       position: 'bottom',
@@ -235,7 +241,7 @@ function ReleaseBubbleSeries({
         }
 
         const bucket = params.data as Bucket;
-        const numberReleases = Number(bucket[3]);
+        const numberReleases = bucket.releases.length;
         return `
 <div class="tooltip-series">
 <div>

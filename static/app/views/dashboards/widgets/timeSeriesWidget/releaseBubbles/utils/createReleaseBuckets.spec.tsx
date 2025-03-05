@@ -59,16 +59,16 @@ describe('createReleaseBuckets', () => {
 
     const buckets = createReleaseBuckets(minTime, newEndingTs, []);
     expect(buckets).toEqual([
-      [1508208080000, 0, 1508208081424, 0, []],
-      [1508208081424, 0, 1508208082848, 0, []],
-      [1508208082848, 0, 1508208084272, 0, []],
-      [1508208084272, 0, 1508208085696, 0, []],
-      [1508208085696, 0, 1508208087120, 0, []],
-      [1508208087120, 0, 1508208088544, 0, []],
-      [1508208088544, 0, 1508208089968, 0, []],
-      [1508208089968, 0, 1508208091392, 0, []],
-      [1508208091392, 0, 1508208092816, 0, []],
-      [1508208092816, 0, 1508208094235, 0, []],
+      {start: 1508208080000, end: 1508208081424, releases: []},
+      {start: 1508208081424, end: 1508208082848, releases: []},
+      {start: 1508208082848, end: 1508208084272, releases: []},
+      {start: 1508208084272, end: 1508208085696, releases: []},
+      {start: 1508208085696, end: 1508208087120, releases: []},
+      {start: 1508208087120, end: 1508208088544, releases: []},
+      {start: 1508208088544, end: 1508208089968, releases: []},
+      {start: 1508208089968, end: 1508208091392, releases: []},
+      {start: 1508208091392, end: 1508208092816, releases: []},
+      {start: 1508208092816, end: 1508208094235, releases: []},
     ]);
   });
 
@@ -124,37 +124,37 @@ describe('createReleaseBuckets', () => {
     const buckets = createReleaseBuckets(minTime, newEndingTs, releases);
 
     expect(buckets).toEqual([
-      [
-        1508208080000,
-        0,
-        1508208081424,
-        3,
-        [
+      {
+        start: 1508208080000,
+        end: 1508208081424,
+        releases: [
           {version: 'ui@0.1.2', date: new Date(1508208080000).toISOString()},
           {version: 'ui@0.1.22', date: new Date(1508208081323).toISOString()},
           {version: 'ui@0.1.3', date: new Date(1508208081423).toISOString()},
         ],
-      ],
-      [1508208081424, 0, 1508208082848, 0, []],
-      [1508208082848, 0, 1508208084272, 2, [expect.any(Object), expect.any(Object)]],
-      [1508208084272, 0, 1508208085696, 0, []],
-      [1508208085696, 0, 1508208087120, 0, []],
-      [1508208087120, 0, 1508208088544, 0, []],
-      [1508208088544, 0, 1508208089968, 0, []],
-      [1508208089968, 0, 1508208091392, 0, []],
-      [1508208091392, 0, 1508208092816, 0, []],
-      [
-        1508208092816,
-        0,
-        1508208094235,
-        4,
-        [
+      },
+      {start: 1508208081424, end: 1508208082848, releases: []},
+      {
+        start: 1508208082848,
+        end: 1508208084272,
+        releases: [expect.any(Object), expect.any(Object)],
+      },
+      {start: 1508208084272, end: 1508208085696, releases: []},
+      {start: 1508208085696, end: 1508208087120, releases: []},
+      {start: 1508208087120, end: 1508208088544, releases: []},
+      {start: 1508208088544, end: 1508208089968, releases: []},
+      {start: 1508208089968, end: 1508208091392, releases: []},
+      {start: 1508208091392, end: 1508208092816, releases: []},
+      {
+        start: 1508208092816,
+        end: 1508208094235,
+        releases: [
           {version: 'ui@0.1.51', date: new Date(1508208092816).toISOString()},
           {version: 'ui@0.1.52', date: new Date(1508208094230).toISOString()},
           {version: 'ui@0.1.53', date: new Date(1508208094235).toISOString()},
           {version: 'ui@0.1.54', date: new Date(1508208094235).toISOString()},
         ],
-      ],
+      },
     ]);
   });
 });
