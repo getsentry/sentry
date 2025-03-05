@@ -8,6 +8,7 @@ from jsonschema import ValidationError, validate
 
 class JSONConfigBase(models.Model):
     config = models.JSONField(db_default={})
+    config_schema: dict[str, Any] = {}
 
     def validate_config(self, schema: dict[str, Any]) -> None:
         try:
