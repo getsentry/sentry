@@ -34,7 +34,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravelOverviewPage';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,

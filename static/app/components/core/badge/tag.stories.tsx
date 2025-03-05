@@ -28,8 +28,6 @@ export default storyBook('Tag', (story, APIReference) => {
           <Tag type="error">Error</Tag>
           <Tag type="warning">Warning</Tag>
           <Tag type="info">Info</Tag>
-          <Tag type="black">Black</Tag>
-          <Tag type="white">White</Tag>
           <Tag type="promotion">Promotion</Tag>
           <Tag type="highlight">Highlight</Tag>
         </SizingWindow>

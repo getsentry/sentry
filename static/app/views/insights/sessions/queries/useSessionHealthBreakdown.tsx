@@ -2,9 +2,9 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
+import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useSessionHealthBreakdown() {
+export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate'}) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -47,10 +47,10 @@ export default function useSessionHealthBreakdown() {
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getStatusSeries('healthy', sessionData.groups),
-    crashed: getStatusSeries('crashed', sessionData.groups),
-    errored: getStatusSeries('errored', sessionData.groups),
-    abnormal: getStatusSeries('abnormal', sessionData.groups),
+    healthy: getSessionStatusSeries('healthy', sessionData.groups),
+    crashed: getSessionStatusSeries('crashed', sessionData.groups),
+    errored: getSessionStatusSeries('errored', sessionData.groups),
+    abnormal: getSessionStatusSeries('abnormal', sessionData.groups),
   };
 
   const createDatapoints = (data: number[]) =>
@@ -59,6 +59,13 @@ export default function useSessionHealthBreakdown() {
         (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),
         0
       );
+
+      if (type === 'count') {
+        return {
+          name: sessionData.intervals[idx] ?? '',
+          value: intervalTotal > 0 ? count : 0,
+        };
+      }
 
       return {
         name: sessionData.intervals[idx] ?? '',
@@ -71,15 +78,14 @@ export default function useSessionHealthBreakdown() {
     status: keyof typeof statusData
   ) => ({
     data,
-    seriesName: `${status}_session_rate`,
+    seriesName: `${status}_session_${type}`,
     meta: {
       fields: {
-        [`${status}_session_rate`]: 'percentage' as const,
+        [`${status}_session_${type}`]:
+          type === 'count' ? ('number' as const) : ('percentage' as const),
         time: 'date' as const,
       },
-      units: {
-        [`${status}_session_rate`]: '%',
-      },
+      units: {},
     },
   });
 
