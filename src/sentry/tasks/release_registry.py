@@ -47,6 +47,11 @@ def fetch_release_registry_data(**kwargs):
 
     More details about the registry: https://github.com/getsentry/sentry-release-registry/
     """
+    logger.info(
+        "release_registry.fetch.starting",
+        extra={"release_registry_baseurl": str(settings.SENTRY_RELEASE_REGISTRY_BASEURL)},
+    )
+
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
         logger.warning("Release registry URL is not specified, skipping the task.")
         return
@@ -61,4 +66,8 @@ def fetch_release_registry_data(**kwargs):
 
     # AWS Layers
     layer_data = _fetch_registry_url("/aws-lambda-layers")
+    logger.info(
+        "release_registry.fetch.aws-lambda-layers",
+        extra={"layer_data": layer_data},
+    )
     cache.set(LAYER_INDEX_CACHE_KEY, layer_data, CACHE_TTL)
