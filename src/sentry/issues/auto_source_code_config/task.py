@@ -193,26 +193,38 @@ def create_repos_and_code_mappings(
                 sample_rate=1.0,
             )
 
-        created = False
+        extra = {
+            "project_id": project.id,
+            "stack_root": code_mapping.stacktrace_root,
+            "repository_name": code_mapping.repo.name,
+        }
+        # The project and stack_root are unique together
+        existing_code_mappings = RepositoryProjectPathConfig.objects.filter(
+            project=project, stack_root=code_mapping.stacktrace_root
+        )
+        if existing_code_mappings.exists():
+            logger.warning("Investigate.", extra=extra)
+            continue
+
         if not dry_run:
-            # The project and stack_root are unique together
-            _, created = RepositoryProjectPathConfig.objects.get_or_create(
+            if repository is None:  # This is mostly to appease the type checker
+                logger.warning("Investigate.", extra=extra)
+                continue
+
+            RepositoryProjectPathConfig.objects.create(
                 project=project,
                 stack_root=code_mapping.stacktrace_root,
-                defaults={
-                    "repository": repository,
-                    "organization_integration_id": organization_integration.id,
-                    "integration_id": organization_integration.integration_id,
-                    "organization_id": organization_integration.organization_id,
-                    "source_root": code_mapping.source_path,
-                    "default_branch": code_mapping.repo.branch,
-                    "automatically_generated": True,
-                },
+                repository=repository,
+                organization_integration_id=organization_integration.id,
+                integration_id=organization_integration.integration_id,
+                organization_id=organization_integration.organization_id,
+                source_root=code_mapping.source_path,
+                default_branch=code_mapping.repo.branch,
+                automatically_generated=True,
             )
 
-        if created or dry_run:
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.code_mapping.created",
-                tags={"platform": platform, "dry_run": dry_run},
-                sample_rate=1.0,
-            )
+        metrics.incr(
+            key=f"{METRIC_PREFIX}.code_mapping.created",
+            tags={"platform": platform, "dry_run": dry_run},
+            sample_rate=1.0,
+        )
