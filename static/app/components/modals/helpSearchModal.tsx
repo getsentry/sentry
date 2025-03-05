@@ -1,10 +1,11 @@
 import {ClassNames, css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Input} from 'sentry/components/core/input';
 import HelpSearch from 'sentry/components/helpSearch';
 import Hook from 'sentry/components/hook';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -39,7 +40,9 @@ function HelpSearchModal({
                 border-top: 1px solid ${theme.border};
               `}
             renderInput={({getInputProps}) => (
-              <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
+              <InputWrapper>
+                <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
+              </InputWrapper>
             )}
             resultFooter={
               <Hook name="help-modal:footer" {...{organization, closeModal}} />
@@ -50,6 +53,22 @@ function HelpSearchModal({
     </Body>
   );
 }
+
+const InputWrapper = styled('div')`
+  padding: ${space(0.25)};
+`;
+
+const Input = styled('input')`
+  width: 100%;
+  padding: ${space(1)};
+  border: none;
+  border-radius: 8px;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
+`;
 
 export const modalCss = css`
   [role='document'] {
