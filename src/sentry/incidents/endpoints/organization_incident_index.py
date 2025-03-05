@@ -55,11 +55,12 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_alert_rule = request.GET.get("alertRule")
         query_include_snapshots = request.GET.get("includeSnapshots")
         if query_alert_rule is not None:
-            alert_rule_ids = [int(query_alert_rule)]
+            query_alert_rule_id = int(query_alert_rule)
+            alert_rule_ids = [query_alert_rule_id]
             if query_include_snapshots:
                 snapshot_alerts = list(
                     AlertRuleActivity.objects.filter(
-                        previous_alert_rule=query_alert_rule,
+                        previous_alert_rule=query_alert_rule_id,
                         type=AlertRuleActivityType.SNAPSHOT.value,
                     )
                 )
@@ -67,16 +68,16 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                     alert_rule_ids.append(snapshot_alert.alert_rule_id)
             incidents = incidents.filter(alert_rule__in=alert_rule_ids)
 
-        query_start = request.GET.get("start")
-        if query_start is not None:
+        query_start_s = request.GET.get("start")
+        if query_start_s is not None:
             # exclude incidents closed before the window
-            query_start = ensure_aware(parse_date(query_start))
+            query_start = ensure_aware(parse_date(query_start_s))
             incidents = incidents.exclude(date_closed__lt=query_start)
 
-        query_end = request.GET.get("end")
-        if query_end is not None:
+        query_end_s = request.GET.get("end")
+        if query_end_s is not None:
             # exclude incidents started after the window
-            query_end = ensure_aware(parse_date(query_end))
+            query_end = ensure_aware(parse_date(query_end_s))
             incidents = incidents.exclude(date_started__gt=query_end)
 
         query_status = request.GET.get("status")
