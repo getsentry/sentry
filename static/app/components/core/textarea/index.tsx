@@ -39,7 +39,7 @@ const TextAreaControl = forwardRef(function TextAreaControl(
 
 TextAreaControl.displayName = 'TextAreaControl';
 
-const TextArea = styled(Input.withComponent(TextAreaControl), {
+export const TextArea = styled(Input.withComponent(TextAreaControl), {
   shouldForwardProp: (p: string) =>
     ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p),
 })`
@@ -52,6 +52,4 @@ const TextArea = styled(Input.withComponent(TextAreaControl), {
       height: unset;
       min-height: unset;
     `}
-`;
-
-export default TextArea as unknown as typeof TextAreaControl;
+` as unknown as typeof TextAreaControl;
