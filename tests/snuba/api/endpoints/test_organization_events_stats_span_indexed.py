@@ -1272,7 +1272,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_interval_larger_than_period(self):
+    def test_interval_larger_than_period_uses_default_period(self):
         response = self._do_request(
             data={
                 "start": self.day_ago,

@@ -575,6 +575,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     comparison_delta=comparison_delta,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 ),
                 status=200,
             )
