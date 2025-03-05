@@ -62,6 +62,7 @@ export type ApiQueryKey =
         Record<string, any>,
         Record<string, any>
       >,
+      additionalKey?: string,
     ];
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
@@ -287,9 +288,11 @@ function parsePageParam(dir: 'previous' | 'next') {
 export function useInfiniteApiQuery<TResponseData>({
   queryKey,
   enabled,
+  staleTime,
 }: {
   queryKey: ApiQueryKey;
   enabled?: boolean;
+  staleTime?: number;
 }) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const query = useInfiniteQuery({
@@ -299,6 +302,7 @@ export function useInfiniteApiQuery<TResponseData>({
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
     enabled: enabled ?? true,
+    staleTime,
   });
 
   return query;

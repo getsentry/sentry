@@ -13,6 +13,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', function () {
   const organization = OrganizationFixture({
@@ -73,6 +76,14 @@ describe('HTTPLandingPage', function () {
     hasMore: null,
     fetchError: null,
     initiallyLoaded: false,
+  });
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 
   beforeEach(function () {
