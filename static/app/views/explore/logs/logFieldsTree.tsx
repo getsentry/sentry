@@ -365,7 +365,10 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
       return;
     }
     const newSearch = search.copy();
-    newSearch.addFilterValue(originalAttribute.attribute_key, String(content.value));
+    newSearch.addFilterValue(
+      originalAttribute.original_attribute_key,
+      String(content.value)
+    );
     setLogsSearch(newSearch);
   }, [originalAttribute, content.value, setLogsSearch, search]);
 
