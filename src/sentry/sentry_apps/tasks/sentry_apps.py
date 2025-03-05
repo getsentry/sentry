@@ -70,7 +70,7 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError, SentryAppSentryError),
+    ignore=(ClientError, SentryAppSentryError, AssertionError),
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -314,8 +314,9 @@ def process_resource_change_bound(
         _process_resource_change(
             action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
         )
-    except SentryAppSentryError as e:
+    except (AssertionError, SentryAppSentryError) as e:
         sentry_sdk.capture_exception(e)
+        return
 
 
 @instrumented_task(
