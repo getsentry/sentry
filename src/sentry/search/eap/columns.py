@@ -106,6 +106,10 @@ class VirtualColumnDefinition:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedFunction(ResolvedAttribute):
+    """
+    A Function should be used as a non-attribute column, this means an aggregate or formula is a type of function.
+    The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
+    """
 
     @property
     def proto_definition(
@@ -120,6 +124,12 @@ class ResolvedFunction(ResolvedAttribute):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedFormula(ResolvedFunction):
+    """
+    A formula is a type of function that may accept a parameter, it divides an attribute, aggregate or formula by another.
+    The FormulaDefinition contains a method `resolve`, which takes in the argument passed into the function and returns the resolved formula.
+    For example if the user queries for `http_response_rate(5), the FormulaDefinition calles `resolve` with the argument `5` and returns the `ResolvedFormula`.
+    """
+
     formula: Column.BinaryFormula
 
     @property
@@ -130,6 +140,11 @@ class ResolvedFormula(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedAggregate(ResolvedFunction):
+    """
+    An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
+    Examples of this are `sum()` and `avg()`.
+    """
+
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
@@ -152,6 +167,10 @@ class ResolvedAggregate(ResolvedFunction):
 
 @dataclass(kw_only=True)
 class FunctionDefinition:
+    """
+    The FunctionDefinition is a base class for defining a function, a function is a non-attribute column.
+    """
+
     # The list of arguments for this function
     arguments: list[ArgumentDefinition]
     # The search_type the argument should be the default type for this column
