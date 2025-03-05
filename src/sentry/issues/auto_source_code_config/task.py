@@ -22,14 +22,13 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
-from .constants import DRY_RUN_PLATFORMS
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
     get_installation,
 )
 from .stacktraces import get_frames_to_process
-from .utils import supported_platform
+from .utils import is_dry_run_platform, supported_platform
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +79,7 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
-        if platform not in DRY_RUN_PLATFORMS:
+        if not is_dry_run_platform(platform):
             set_project_codemappings(code_mappings, installation, project, platform)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
