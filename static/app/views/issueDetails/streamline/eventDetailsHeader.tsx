@@ -94,9 +94,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               <DateFilter
                 triggerProps={{
                   borderless: true,
-                  style: {
-                    borderRadius: 0,
-                  },
+                  style: {borderRadius: 0},
                 }}
               />
               <Flex>

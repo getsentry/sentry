@@ -28,11 +28,11 @@ export function NewIssueExperienceButton() {
   } = useIssueDetailsTour();
 
   // XXX: We use a ref to track the previous state of tour completion
-  // since we only show the banner when the tour goes from uncompleted to completed.
+  // since we only show the banner when the tour goes from incomplete to complete
   const isTourCompletedRef = useRef(isTourCompleted);
   const [isReminderVisible, setIsReminderVisible] = useState(false);
   useEffect(() => {
-    // If the tour becomes completed, and started off uncompleted, show the reminder.
+    // If the tour becomes completed, and started off incomplete, show the reminder.
     if (isTourCompleted && !isTourCompletedRef.current) {
       setIsReminderVisible(true);
     }
