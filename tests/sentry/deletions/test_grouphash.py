@@ -9,13 +9,11 @@ from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.tasks.unmerge import unmerge
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:grouphash-metadata-creation")
 class DeleteGroupHashTest(TestCase):
     def test_deleting_group_deletes_grouphash_and_metadata(self):
         event = self.store_event(data={"message": "Dogs are great!"}, project_id=self.project.id)
