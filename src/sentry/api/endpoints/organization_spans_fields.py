@@ -28,7 +28,10 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_columns import SPAN_DEFINITIONS, translate_internal_to_public_alias
+from sentry.search.eap.span_column_definitions.span_definitions import (
+    SPAN_DEFINITIONS,
+    translate_internal_to_public_alias,
+)
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
