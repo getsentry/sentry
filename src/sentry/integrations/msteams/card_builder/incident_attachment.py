@@ -5,7 +5,6 @@ from typing import Literal
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import (
     AlertContext,
-    OpenPeriodParams,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -28,10 +27,11 @@ def build_incident_attachment(
 
     data = incident_attachment_info(
         AlertContext.from_alert_rule_incident(incident.alert_rule),
-        OpenPeriodParams.from_incident(incident),
+        open_period_identifier=incident.identifier,
         organization=incident.organization,
         snuba_query=incident.alert_rule.snuba_query,
         metric_value=metric_value,
+        new_status=new_status,
         notification_uuid=notification_uuid,
         referrer="metric_alert_msteams",
     )

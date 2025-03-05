@@ -11,7 +11,6 @@ from sentry.integrations.discord.message_builder.base.embed.base import DiscordM
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
 from sentry.integrations.metric_alerts import (
     AlertContext,
-    OpenPeriodParams,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -38,10 +37,11 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
 
         data = incident_attachment_info(
             AlertContext.from_alert_rule_incident(self.alert_rule),
-            OpenPeriodParams.from_incident(self.incident),
+            open_period_identifier=self.incident.identifier,
             organization=self.incident.organization,
             snuba_query=self.alert_rule.snuba_query,
             metric_value=self.metric_value,
+            new_status=self.new_status,
             notification_uuid=notification_uuid,
             referrer="metric_alert_discord",
         )

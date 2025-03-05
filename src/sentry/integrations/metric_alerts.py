@@ -66,19 +66,6 @@ class TitleLinkParams(TypedDict, total=False):
 
 
 @dataclass
-class OpenPeriodParams:
-    open_period_identifier_id: int
-    new_status: IncidentStatus
-
-    @classmethod
-    def from_incident(cls, incident: Incident) -> OpenPeriodParams:
-        return cls(
-            open_period_identifier_id=incident.identifier,
-            new_status=IncidentStatus(incident.status),
-        )
-
-
-@dataclass
 class AlertContext:
     name: str
     action_identifier_id: int
@@ -204,14 +191,15 @@ def build_title_link(
 
 def incident_attachment_info(
     alert_context: AlertContext,
-    open_period_params: OpenPeriodParams,
+    open_period_identifier: int,
     organization: Organization,
     snuba_query: SnubaQuery,
+    new_status: IncidentStatus,
     metric_value: float | None = None,
     referrer: str = "metric_alert",
     notification_uuid: str | None = None,
 ) -> AttachmentInfo:
-    status = get_status_text(open_period_params.new_status)
+    status = get_status_text(new_status)
 
     text = ""
     if metric_value is not None:
@@ -230,7 +218,7 @@ def incident_attachment_info(
     title = get_title(status, alert_context.name)
 
     title_link_params: TitleLinkParams = {
-        "alert": str(open_period_params.open_period_identifier_id),
+        "alert": str(open_period_identifier),
         "referrer": referrer,
         "detection_type": alert_context.detection_type.value,
     }

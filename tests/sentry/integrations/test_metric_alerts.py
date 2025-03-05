@@ -7,11 +7,7 @@ from django.utils import timezone
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
-from sentry.integrations.metric_alerts import (
-    AlertContext,
-    OpenPeriodParams,
-    incident_attachment_info,
-)
+from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
@@ -29,10 +25,8 @@ def incident_attachment_info_with_metric_value(incident, new_status, metric_valu
             detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
             comparison_delta=incident.alert_rule.comparison_delta,
         ),
-        OpenPeriodParams(
-            open_period_identifier_id=incident.identifier,
-            new_status=new_status,
-        ),
+        open_period_identifier=incident.identifier,
+        new_status=new_status,
         organization=incident.organization,
         snuba_query=incident.alert_rule.snuba_query,
         metric_value=metric_value,
@@ -66,10 +60,8 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
                 detection_type=AlertRuleDetectionType(alert_rule.detection_type),
                 comparison_delta=alert_rule.comparison_delta,
             ),
-            OpenPeriodParams(
-                open_period_identifier_id=incident.identifier,
-                new_status=IncidentStatus.CLOSED,
-            ),
+            open_period_identifier=incident.identifier,
+            new_status=IncidentStatus.CLOSED,
             organization=incident.organization,
             snuba_query=alert_rule.snuba_query,
             metric_value=metric_value,

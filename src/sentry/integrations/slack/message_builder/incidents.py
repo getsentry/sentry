@@ -3,7 +3,6 @@ from datetime import datetime
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import (
     AlertContext,
-    OpenPeriodParams,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -55,10 +54,11 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
 
         data = incident_attachment_info(
             AlertContext.from_alert_rule_incident(self.incident.alert_rule),
-            OpenPeriodParams.from_incident(self.incident),
+            self.incident.identifier,
             organization=self.incident.organization,
             snuba_query=self.incident.alert_rule.snuba_query,
             metric_value=self.metric_value,
+            new_status=self.new_status,
             notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )
