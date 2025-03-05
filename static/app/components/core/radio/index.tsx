@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {chonkRadioStyles} from 'sentry/components/core/radio/index.chonk';
 import {growIn} from 'sentry/styles/animations';
 
 export interface RadioProps
@@ -29,7 +30,7 @@ export const Radio = styled(
     shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
   }
 )`
-  ${p => inputStyles(p as any)}
+  ${p => (p.theme.isChonk ? chonkRadioStyles(p as any) : inputStyles(p))}
 `;
 
 const inputStyles = (p: RadioProps & {theme: Theme}) => css`
