@@ -17,7 +17,7 @@ function urlEscapeHex(hex: string) {
 }
 
 export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
-  toggleSize: NonNullable<SwitchProps['size']>;
+  nativeSize: NonNullable<SwitchProps['size']>;
 }>`
   position: absolute;
   opacity: 0;
@@ -48,8 +48,8 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
       background: ${p => p.theme.colors.dynamic.surface500};
       border: 1px solid ${p => p.theme.colors.dynamic.surface100};
 
-      width: ${p => ToggleButtonSize[p.toggleSize].width}px;
-      height: ${p => ToggleButtonSize[p.toggleSize].height}px;
+      width: ${p => ToggleButtonSize[p.nativeSize].width}px;
+      height: ${p => ToggleButtonSize[p.nativeSize].height}px;
       position: absolute;
       top: 0;
       left: 0;
@@ -62,12 +62,12 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
         position: absolute;
         content: '';
         display: block;
-        width: ${p => ToggleButtonSize[p.toggleSize].icon}px;
-        height: ${p => ToggleButtonSize[p.toggleSize].icon}px;
-        top: ${p => ToggleButtonSize[p.toggleSize].iconOffset}px;
-        left: ${p => ToggleButtonSize[p.toggleSize].iconOffset}px;
+        width: ${p => ToggleButtonSize[p.nativeSize].icon}px;
+        height: ${p => ToggleButtonSize[p.nativeSize].icon}px;
+        top: ${p => ToggleButtonSize[p.nativeSize].iconOffset}px;
+        left: ${p => ToggleButtonSize[p.nativeSize].iconOffset}px;
         background-repeat: no-repeat;
-        background-size: ${p => ToggleButtonSize[p.toggleSize].icon}px ${p => ToggleButtonSize[p.toggleSize].icon}px;
+        background-size: ${p => ToggleButtonSize[p.nativeSize].icon}px ${p => ToggleButtonSize[p.nativeSize].icon}px;
         transition: transform 500ms linear(0, 0.877 9.4%, 1.08 14.6%, 0.993 30.8%, 1);
         background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.secondary)}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
       }
@@ -84,7 +84,7 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
     > div {
       background: ${p => p.theme.colors.dynamic.surface500};
       border: 1px solid ${p => p.theme.colors.dynamic.blue100};
-      transform: translateY(-1px) translateX(${p => ToggleWrapperSize[p.toggleSize].width - ToggleButtonSize[p.toggleSize].width}px);
+      transform: translateY(-1px) translateX(${p => ToggleWrapperSize[p.nativeSize].width - ToggleButtonSize[p.nativeSize].width}px);
 
       &:after {
         background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.accent)}" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');
