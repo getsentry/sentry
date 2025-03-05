@@ -204,11 +204,13 @@ export function useTrace(
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.limit, options.timestamp]);
-  const mode = queryParams.demo ? 'demo' : undefined;
+
+  const isDemoMode = Boolean(queryParams.demo);
+  const isEAPEnabled = organization.features.includes('trace-spans-format');
+  const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const demoTrace = useDemoTrace(queryParams.demo, organization);
 
-  const enableEAPTraceQuery = organization.features.includes('trace-spans-format');
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
@@ -216,11 +218,7 @@ export function useTrace(
     ],
     {
       staleTime: Infinity,
-      enabled:
-        !!options.traceSlug &&
-        !!organization.slug &&
-        mode !== 'demo' &&
-        !enableEAPTraceQuery,
+      enabled: hasValidTrace && !isDemoMode && !isEAPEnabled,
     }
   );
 
@@ -231,13 +229,9 @@ export function useTrace(
     ],
     {
       staleTime: Infinity,
-      enabled:
-        !!options.traceSlug &&
-        !!organization.slug &&
-        mode !== 'demo' &&
-        enableEAPTraceQuery,
+      enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
     }
   );
 
-  return mode === 'demo' ? demoTrace : enableEAPTraceQuery ? eapTraceQuery : traceQuery;
+  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
 }

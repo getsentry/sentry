@@ -95,7 +95,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       value &&
       (('end_timestamp' in value && typeof value.end_timestamp === 'number') ||
         ('timestamp' in value && typeof value.timestamp === 'number')) &&
-      // Finish this
       'start_timestamp' in value &&
       typeof value.start_timestamp === 'number'
     ) {

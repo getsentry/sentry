@@ -2043,7 +2043,7 @@ function traceQueueIterator(
   ) => void
 ) {
   if (!isTraceSplitResult(trace)) {
-    // Finish this
+    // Eap spans are not sorted by default
     const spans = [...trace].sort((a, b) => a.start_timestamp - b.start_timestamp);
     for (const span of spans) {
       visitor(root, span);

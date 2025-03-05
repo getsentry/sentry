@@ -9,7 +9,6 @@ import type {
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
-  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -175,14 +174,6 @@ export function assertSpanNode(
 ): asserts node is TraceTreeNode<TraceTree.Span> {
   if (!isSpanNode(node)) {
     throw new Error('node is not a span');
-  }
-}
-
-export function assertEAPSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
-  if (!isEAPSpanNode(node)) {
-    throw new Error('node is not an eap span');
   }
 }
 
