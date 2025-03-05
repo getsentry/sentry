@@ -199,7 +199,7 @@ function getFrame(
 }
 
 export default function displayRawContent(
-  data: StacktraceType,
+  data: StacktraceType | null,
   platform?: string,
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false
