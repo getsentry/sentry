@@ -1,4 +1,4 @@
-import {type ReactElement, useCallback, useEffect, useRef} from 'react';
+import type {ReactElement} from 'react';
 import type {Theme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -8,7 +8,6 @@ import type {
   CustomSeriesRenderItemReturn,
 } from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
@@ -25,7 +24,6 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BUBBLE_SERIES_ID} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
-import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
 import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -264,6 +262,7 @@ Tap to view
 }
 
 interface UseReleaseBubblesParams {
+  chartRef: React.RefObject<ReactEchartsRef>;
   /**
    * Color of the highlighted area in main chart when mousehovers over a bubble
    */
@@ -273,13 +272,10 @@ interface UseReleaseBubblesParams {
   chartRenderer?: (rendererProps: Partial<TimeSeriesWidgetVisualizationProps>) => any;
   maxTime?: number;
   minTime?: number;
-  /**
-   * This is a ref callback function that is called on mount/unmount.
-   */
-  onChartMount?: (e: ReactEchartsRef) => void;
   releases?: ReleaseMetaBasic[];
 }
 export function useReleaseBubbles({
+  chartRef,
   chartRenderer,
   highlightAreaColor,
   releases,
@@ -287,12 +283,9 @@ export function useReleaseBubbles({
   maxTime,
   theme,
   bubbleSize,
-  onChartMount,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
-  const highlighterCleanupRef = useRef<(() => void) | null>(null);
   const {openDrawer} = useDrawer();
-  const chartRef = useRef<EChartsReactCore | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const buckets =
     (hasReleaseBubbles &&
@@ -302,40 +295,8 @@ export function useReleaseBubbles({
       createReleaseBuckets(minTime, maxTime, releases)) ||
     [];
 
-  useEffect(() => {
-    // Cleanup highlighter on unmount
-    const cleanupFn = highlighterCleanupRef.current;
-    return () => {
-      if (typeof cleanupFn === 'function') {
-        cleanupFn();
-      }
-    };
-  }, []);
-
-  const handleChartMount = useCallback(
-    (e: ReactEchartsRef) => {
-      // Need to call this regardless of `hasReleaseBubbles`, since this hook
-      // needs to act as a proxy to capture the chart ref.
-      onChartMount?.(e);
-
-      chartRef.current = e;
-
-      if (!e?.getEchartsInstance) {
-        return;
-      }
-
-      if (hasReleaseBubbles) {
-        highlighterCleanupRef.current = createReleaseBubbleHighlighter(
-          e.getEchartsInstance()
-        );
-      }
-    },
-    [hasReleaseBubbles, onChartMount]
-  );
-
   if (!releases || !buckets.length) {
     return {
-      handleChartMount,
       releaseBubbleEventHandlers: {},
       ReleaseBubbleSeries: null,
       releaseBubbleXAxis: {},
@@ -344,8 +305,6 @@ export function useReleaseBubbles({
   }
 
   return {
-    handleChartMount,
-
     /**
      * An object map of eCharts event handlers. These should be spread onto a Chart component
      */
