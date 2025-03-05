@@ -25,6 +25,7 @@ from sentry.relocation.services.relocation_export.service import (
     ControlRelocationExportService,
     RegionRelocationExportService,
 )
+from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, uuid_to_identifier
 from sentry.utils.db import atomic_transaction
 
@@ -41,7 +42,6 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
-        from sentry.relocation.tasks.process import fulfill_cross_region_export_request
 
         logger_data = {
             "uuid": relocation_uuid,
@@ -81,7 +81,6 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         encrypted_contents: bytes | None,
         encrypted_bytes: list[int] | None = None,
     ) -> None:
-        from sentry.relocation.tasks.process import uploading_complete
 
         with atomic_transaction(
             using=(

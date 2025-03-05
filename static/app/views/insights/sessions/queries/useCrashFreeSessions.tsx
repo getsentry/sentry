@@ -4,6 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useCrashFreeSessions() {
   const location = useLocation();
@@ -48,10 +49,6 @@ export default function useCrashFreeSessions() {
     };
   }
 
-  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
-    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-    [];
-
   // Maps release to its API response groups
   const releaseGroupMap = new Map<string, typeof sessionData.groups>();
 
@@ -92,19 +89,21 @@ export default function useCrashFreeSessions() {
     const groups = releaseGroupMap.get(release)!;
 
     // Get all status series at once and calculate crash-free session percentage for each interval
-    const seriesData = getStatusSeries('crashed', groups).map((crashedCount, idx) => {
-      const intervalTotal = [
-        crashedCount,
-        getStatusSeries('abnormal', groups)[idx] || 0,
-        getStatusSeries('crashed', groups)[idx] || 0,
-        getStatusSeries('healthy', groups)[idx] || 0,
-      ].reduce((sum, val) => sum + val, 0);
+    const seriesData = getSessionStatusSeries('crashed', groups).map(
+      (crashedCount, idx) => {
+        const intervalTotal = [
+          crashedCount,
+          getSessionStatusSeries('abnormal', groups)[idx] || 0,
+          getSessionStatusSeries('crashed', groups)[idx] || 0,
+          getSessionStatusSeries('healthy', groups)[idx] || 0,
+        ].reduce((sum, val) => sum + val, 0);
 
-      return {
-        name: sessionData.intervals[idx] ?? '',
-        value: intervalTotal > 0 ? 1 - crashedCount / intervalTotal : 1,
-      };
-    });
+        return {
+          name: sessionData.intervals[idx] ?? '',
+          value: intervalTotal > 0 ? 1 - crashedCount / intervalTotal : 1,
+        };
+      }
+    );
 
     return {
       data: seriesData,

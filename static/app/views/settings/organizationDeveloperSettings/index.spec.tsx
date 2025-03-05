@@ -145,20 +145,37 @@ describe('Organization Developer Settings', function () {
       expect(dialog).toBeInTheDocument();
       const questionnaire = [
         {
-          answer: 'Answer 0',
-          question: 'What does your integration do? Please be as detailed as possible.',
-        },
-        {answer: 'Answer 1', question: 'What value does it offer customers?'},
-        {
-          answer: 'Answer 2',
-          question: 'Do you operate the web service your integration communicates with?',
-        },
-        {
-          answer: 'Answer 3',
+          answer: 'yep',
           question:
-            'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
+            'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+        },
+        {
+          answer: 'the coolest integration ever',
+          question:
+            'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations .',
+        },
+        {
+          answer: 'https://example.com',
+          question: 'Link to your documentation page.',
+        },
+        {
+          answer: 'https://example.com',
+          question:
+            'Link to a video showing installation, setup and user flow for your submission.',
+        },
+        {
+          answer: 'example@example.com',
+          question: 'Email address for user support.',
         },
       ];
+      await userEvent.click(
+        screen.getByRole('textbox', {
+          name: 'Select what category best describes your integration. Documentation for reference.',
+        })
+      );
+
+      expect(screen.getByText('Deployment')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('Deployment'));
 
       for (const {question, answer} of questionnaire) {
         const element = within(dialog).getByRole('textbox', {name: question});
@@ -167,16 +184,45 @@ describe('Organization Developer Settings', function () {
 
       const requestPublishButton =
         await within(dialog).findByLabelText('Request Publication');
-      expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
+      expect(requestPublishButton).toBeEnabled();
 
       await userEvent.click(requestPublishButton);
 
-      expect(mock).toHaveBeenCalledWith(
-        `/sentry-apps/${sentryApp.slug}/publish-request/`,
-        expect.objectContaining({
-          data: {questionnaire},
-        })
-      );
+      expect(mock).toHaveBeenCalledTimes(1);
+      const [url, {method, data}] = mock.mock.calls[0];
+      expect(url).toBe(`/sentry-apps/${sentryApp.slug}/publish-request/`);
+      expect(method).toBe('POST');
+      expect(data).toEqual({
+        questionnaire: expect.arrayContaining([
+          {
+            question:
+              'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+            answer: 'yep',
+          },
+          {
+            question:
+              'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
+            answer: 'the coolest integration ever',
+          },
+          {
+            question: 'Select what category best describes your integration.',
+            answer: 'deployment',
+          },
+          {
+            question: 'Link to your documentation page.',
+            answer: 'https://example.com',
+          },
+          {
+            question: 'Email address for user support.',
+            answer: 'example@example.com',
+          },
+          {
+            question:
+              'Link to a video showing installation, setup and user flow for your submission.',
+            answer: 'https://example.com',
+          },
+        ]),
+      });
     });
   });
 
