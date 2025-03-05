@@ -494,7 +494,7 @@ function getAttribute(
   const newKeyName = attributeKey.replace('sentry.', '');
 
   const attributeValue = attribute.value;
-  if (!attributeValue) {
+  if (!defined(attributeValue)) {
     return undefined;
   }
 
