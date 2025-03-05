@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -41,7 +42,7 @@ function CommandPalette({Body}: ModalRenderProps) {
                 <InputGroup.LeadingItems>
                   <IconSearch size="sm" />
                 </InputGroup.LeadingItems>
-                <InputGroup.Input
+                <InputWithoutFocusStyles
                   autoFocus
                   {...getInputProps({
                     type: 'text',
@@ -58,6 +59,16 @@ function CommandPalette({Body}: ModalRenderProps) {
 }
 
 export default CommandPalette;
+
+const InputWithoutFocusStyles = styled(InputGroup.Input)`
+  &:focus,
+  &:active,
+  &:hover {
+    outline: none;
+    box-shadow: none;
+    border: none;
+  }
+`;
 
 export const modalCss = css`
   [role='document'] {
