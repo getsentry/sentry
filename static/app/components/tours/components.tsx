@@ -17,7 +17,9 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
@@ -118,14 +120,19 @@ export interface TourElementProps<T extends TourEnumType>
 }
 
 export function TourElement<T extends TourEnumType>({
+  children,
   tourContext,
   ...props
 }: TourElementProps<T>) {
   const tourContextValue = useContext(tourContext);
   if (!tourContextValue) {
-    throw new Error('Must be used within a TourContextProvider');
+    return children;
   }
-  return <TourElementContent {...props} tourContextValue={tourContextValue} />;
+  return (
+    <TourElementContent {...props} tourContextValue={tourContextValue}>
+      {children}
+    </TourElementContent>
+  );
 }
 
 interface TourElementContentProps<T extends TourEnumType>
@@ -228,11 +235,13 @@ export function TourGuide({
   offset,
 }: TourGuideProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
   const {triggerProps, overlayProps, arrowProps} = useOverlay({
+    shouldApplyMinWidth: false,
     isOpen,
     position,
     offset,
@@ -241,11 +250,12 @@ export function TourGuide({
   // Scroll the overlay into view when it opens
   useEffect(() => {
     if (isOpen) {
+      trackAnalytics('tour-guide.open', {organization, id});
       document
         ?.getElementById(id ?? '')
         ?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
     }
-  }, [isOpen, id]);
+  }, [isOpen, id, organization]);
 
   const Wrapper = wrapperComponent ?? TourTriggerWrapper;
 
@@ -270,7 +280,10 @@ export function TourGuide({
                   <div>{countText}</div>
                   {isDismissVisible && (
                     <TourCloseButton
-                      onClick={handleDismiss}
+                      onClick={e => {
+                        trackAnalytics('tour-guide.close', {organization, id});
+                        handleDismiss(e);
+                      }}
                       icon={<IconClose style={{color: theme.inverted.textColor}} />}
                       aria-label={t('Close')}
                       borderless
@@ -359,6 +372,7 @@ const TourTriggerWrapper = styled('div')`
     &:after {
       content: '';
       position: absolute;
+      z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
       box-shadow: inset 0 0 0 3px ${p => p.theme.subText};

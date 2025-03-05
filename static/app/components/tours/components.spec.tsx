@@ -233,7 +233,7 @@ describe('Tour Components', () => {
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
-          <TourElement
+          <TourElement<TestTour>
             id={TestTour.PASSWORD}
             title="Test Title"
             description="Test Description"
@@ -263,7 +263,7 @@ describe('Tour Components', () => {
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
-          <TourElement
+          <TourElement<TestTour>
             tourContext={TestTourContext}
             id={TestTour.NAME}
             title="Name"
@@ -271,7 +271,7 @@ describe('Tour Components', () => {
           >
             Name
           </TourElement>
-          <TourElement
+          <TourElement<TestTour>
             tourContext={TestTourContext}
             id={TestTour.EMAIL}
             title="Email"
@@ -279,7 +279,7 @@ describe('Tour Components', () => {
           >
             Email
           </TourElement>
-          <TourElement
+          <TourElement<TestTour>
             tourContext={TestTourContext}
             id={TestTour.PASSWORD}
             title="Password"

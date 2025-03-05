@@ -52,7 +52,7 @@ export default storyBook('Tours', story => {
         and 'right/l' keys will navigate between steps.
       </p>
       <TourProvider>
-        <TourElement
+        <TourElement<MyTour>
           id={MyTour.NAME}
           title={'Name Time!'}
           description={'This is the description of the name tour step.'}
@@ -60,7 +60,7 @@ export default storyBook('Tours', story => {
         >
           <Input placeholder="Step 1: Name" />
         </TourElement>
-        <TourElement
+        <TourElement<MyTour>
           id={MyTour.EMAIL}
           title={'Email Time!'}
           description={'This is the description of the email tour step.'}
@@ -68,7 +68,7 @@ export default storyBook('Tours', story => {
         >
           <Input placeholder="Step 2: Email" type="email" />
         </TourElement>
-        <TourElement
+        <TourElement<MyTour>
           id={MyTour.PASSWORD}
           title={'Password Time!'}
           description={'This is the description of the password tour step.'}
@@ -146,7 +146,7 @@ function useMyTour(): TourContextType<MyTour> {
 <Input placeholder="Name" />
 
 // After...
-<TourElement
+<TourElement<MyTour>
   tourContext={MyTourContext}
   id={MyTour.NAME}
   title={'Name Time!'}
@@ -183,7 +183,7 @@ function useMyTour(): TourContextType<MyTour> {
       </CodeSnippet>
       <br />
       <TourProvider>
-        <TourElement
+        <TourElement<MyTour>
           tourContext={MyTourContext}
           id={MyTour.NAME}
           title={'Name Time!'}
@@ -191,7 +191,7 @@ function useMyTour(): TourContextType<MyTour> {
         >
           <Input placeholder="Step 1: Name" />
         </TourElement>
-        <TourElement
+        <TourElement<MyTour>
           tourContext={MyTourContext}
           id={MyTour.EMAIL}
           title={'Email Time!'}
