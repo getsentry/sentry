@@ -35,6 +35,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface FlagDrawerProps {
   event: Event;
@@ -71,6 +72,11 @@ export function FeatureFlagDrawer({
     [hydratedFlags, orderBy, search, tab]
   );
 
+  const organization = useOrganization();
+  const issueFlagsEnabled = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
+
   const actions = (
     <ButtonBar gap={1}>
       <InputGroup>
@@ -93,24 +99,29 @@ export function FeatureFlagDrawer({
         setSortBy={setSortBy}
         setOrderBy={setOrderBy}
       />
-
-      <SegmentedControl
-        size="xs"
-        value={tab}
-        onChange={newTab => {
-          if (newTab === 'eventFlags') {
-            setSortBy(initialSortBy);
-            setOrderBy(initialOrderBy);
-          } else {
-            setSortBy(SortBy.ALPHABETICAL);
-            setOrderBy(OrderBy.A_TO_Z);
-          }
-          setTab(newTab);
-        }}
-      >
-        <SegmentedControl.Item key="eventFlags">{t('Event Flags')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="issueFlags">{t('Issue Flags')}</SegmentedControl.Item>
-      </SegmentedControl>
+      {issueFlagsEnabled && (
+        <SegmentedControl
+          size="xs"
+          value={tab}
+          onChange={newTab => {
+            if (newTab === 'eventFlags') {
+              setSortBy(initialSortBy);
+              setOrderBy(initialOrderBy);
+            } else {
+              setSortBy(SortBy.ALPHABETICAL);
+              setOrderBy(OrderBy.A_TO_Z);
+            }
+            setTab(newTab);
+          }}
+        >
+          <SegmentedControl.Item key="eventFlags">
+            {t('Event Flags')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="issueFlags">
+            {t('Issue Flags')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      )}
     </ButtonBar>
   );
 
@@ -137,7 +148,7 @@ export function FeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        {tab === 'eventFlags' ? (
+        {tab === 'eventFlags' || !issueFlagsEnabled ? (
           <CardContainer numCols={1}>
             <KeyValueData.Card expandLeft contentItems={displayFlags} />
           </CardContainer>
