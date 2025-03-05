@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -32,8 +31,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {LogsIssuesSection} from 'sentry/views/explore/logs/logsIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -198,18 +196,7 @@ export default function BreadcrumbsDataSection({
           )}
         </ErrorBoundary>
       </InterimSection>
-      <Feature features={['ourlogs-enabled']}>
-        <InterimSection
-          key="logs"
-          type={SectionKey.LOGS}
-          title={t('Logs')}
-          data-test-id="logs-data-section"
-        >
-          <LogsPageParamsProvider traceId={event.contexts.trace?.trace_id}>
-            <LogsTable />
-          </LogsPageParamsProvider>
-        </InterimSection>
-      </Feature>
+      <LogsIssuesSection />
     </Fragment>
   );
 }

@@ -34,13 +34,13 @@ import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-export function LogsTable() {
+export function LogsTable({perPage = 100}: {perPage?: number}) {
   const search = useLogsSearch();
   const cursor = useLogsCursor();
   const setCursor = useSetLogsCursor();
   const fields = useLogsFields();
   const {data, isError, isPending, pageLinks, meta} = useExploreLogsTable({
-    limit: 100,
+    limit: perPage,
     search,
     cursor,
   });
