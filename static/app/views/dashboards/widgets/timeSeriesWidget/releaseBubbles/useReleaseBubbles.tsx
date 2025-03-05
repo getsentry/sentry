@@ -73,8 +73,6 @@ function createReleaseBubbleMouseListeners({
       // drawer.
       closeModal();
 
-      const oldPath = window.location.pathname;
-      console.log('open drawer', window.location.pathname);
       openDrawer(
         () => (
           <ReleasesDrawer
