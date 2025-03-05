@@ -997,6 +997,7 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue("demo_mode", routing_key="demo_mode"),
 ]
 
 from celery.schedules import crontab
