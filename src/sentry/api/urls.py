@@ -176,6 +176,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
@@ -1734,6 +1735,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/$",
         OrganizationGroupSearchViewDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/visit/$",
+        OrganizationGroupSearchViewVisitEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-visit",
     ),
     # Pinned and saved search
     re_path(
