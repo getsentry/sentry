@@ -44,12 +44,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
@@ -173,12 +181,7 @@ export function LaravelOverviewPage() {
                       <JobsWidget query={derivedQuery} />
                     </JobsContainer>
                     <QueriesContainer>
-                      <WidgetContainer
-                        {...getWidgetContainerProps(
-                          PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
-                        )}
-                        chartHeight={88}
-                      />
+                      <QueriesWidget query={derivedQuery} />
                     </QueriesContainer>
                     <CachesContainer>
                       <WidgetContainer
@@ -636,6 +639,173 @@ function JobsWidget({query}: {query?: string}) {
   );
 }
 
+interface QueriesDiscoverQueryResponse {
+  data: Array<{
+    'avg(span.self_time)': number;
+    'project.id': string;
+    'span.description': string;
+    'span.group': string;
+    'span.op': string;
+    'sum(span.self_time)': number;
+    'time_spent_percentage()': number;
+    transaction: string;
+  }>;
+}
+
+function QueriesWidget({query}: {query?: string}) {
+  const organization = useOrganization();
+  const pageFilterChartParams = usePageFilterChartParams();
+
+  const queriesRequest = useApiQuery<QueriesDiscoverQueryResponse>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spansMetrics',
+          field: [
+            'span.op',
+            'span.group',
+            'project.id',
+            'span.description',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+            'transaction',
+          ],
+          query: `has:span.description span.module:db ${query}`,
+          referrer: 'api.performance.generic-widget-chart.most-time-spent-db-queries',
+          sort: '-time_spent_percentage()',
+          per_page: 3,
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const timeSeriesRequest = useSpanMetricsTopNSeries({
+    search: new MutableSearch(
+      `span.group:[${queriesRequest.data?.data.map(item => item['span.group']).join(',')}]`
+    ),
+    fields: ['span.group', 'sum(span.self_time)'],
+    yAxis: ['sum(span.self_time)'],
+    sorts: [
+      {
+        field: 'sum(span.self_time)',
+        kind: 'desc',
+      },
+    ],
+    topEvents: 3,
+    enabled: !!queriesRequest.data?.data,
+  });
+
+  const timeSeries = useMemo<DiscoverSeries[]>(() => {
+    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+      return [];
+    }
+
+    return Object.keys(timeSeriesRequest.data).map(key => {
+      const seriesData = timeSeriesRequest.data[key]!;
+      return {
+        ...seriesData,
+        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
+        meta: {
+          fields: {
+            [seriesData.seriesName]: 'duration',
+          },
+          units: {
+            [seriesData.seriesName]: 'millisecond',
+          },
+        },
+      };
+    });
+  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
+
+  const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
+  const error = timeSeriesRequest.error || queriesRequest.error;
+
+  const hasData =
+    queriesRequest.data && queriesRequest.data.data.length > 0 && timeSeries.length > 0;
+
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title="Slow Queries" />}
+      Visualization={
+        isLoading ? (
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+        ) : error ? (
+          <Widget.WidgetError error={error} />
+        ) : !hasData ? (
+          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
+        ) : (
+          <TimeSeriesWidgetVisualization
+            visualizationType="line"
+            aliases={Object.fromEntries(
+              queriesRequest.data?.data.map(item => [
+                item['span.group'],
+                item['span.description'],
+              ]) ?? []
+            )}
+            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+          />
+        )
+      }
+      Footer={
+        hasData && (
+          <WidgetFooterTable>
+            {queriesRequest.data?.data.map(item => (
+              <Fragment key={item['span.description']}>
+                <OverflowCell>
+                  <SpanDescriptionCell
+                    projectId={Number(item['project.id'])}
+                    group={item['span.group']}
+                    description={item['span.description']}
+                    moduleName={ModuleName.DB}
+                  />
+                  <ControllerText>{item.transaction}</ControllerText>
+                </OverflowCell>
+                <TimeSpentCell
+                  percentage={item['time_spent_percentage()']}
+                  total={item['sum(span.self_time)']}
+                  op={item['span.op']}
+                />
+              </Fragment>
+            ))}
+          </WidgetFooterTable>
+        )
+      }
+    />
+  );
+}
+
+const OverflowCell = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  min-width: 0px;
+`;
+
+const WidgetFooterTable = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  margin: -${space(1)} -${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  & > * {
+    padding: ${space(1)} ${space(1)};
+  }
+
+  & > *:nth-child(2n + 1) {
+    padding-left: ${space(2)};
+  }
+
+  & > *:nth-child(2n) {
+    padding-right: ${space(2)};
+  }
+
+  & > *:not(:nth-last-child(-n + 2)) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+`;
+
 interface DiscoverQueryResponse {
   data: Array<{
     'avg(transaction.duration)': number;
@@ -677,6 +847,7 @@ const PathCell = styled('div')`
   padding: ${space(1)} ${space(2)};
   justify-content: center;
   gap: ${space(0.5)};
+  min-width: 200px;
 `;
 
 const ControllerText = styled('div')`
@@ -686,7 +857,6 @@ const ControllerText = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 200px;
   min-width: 0px;
 `;
 
@@ -769,7 +939,6 @@ function RoutesTable({query}: {query?: string}) {
           query: `transaction.op:http.server span.op:http.route transaction:[${
             transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
           }]`,
-          referrer: 'api.explore.spans-aggregates-table',
           sort: '-transaction',
           per_page: 25,
         },
