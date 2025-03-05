@@ -116,23 +116,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     organization.features.includes('release-bubbles-ui') && !props.showReleaseLines;
 
   // find min/max timestamp of *all* timeSeries
-  let minTime: Date | undefined;
-  let maxTime: Date | undefined;
-  for (const currentSeries of props.timeSeries) {
-    if (currentSeries.data.length < 2) {
-      continue;
-    }
-
-    const firstData = currentSeries.data[0];
-    const lastData = currentSeries.data[currentSeries.data.length - 1];
-    // I hope `data` is sorted
-    if (!minTime || new Date(firstData!.timestamp) < minTime) {
-      minTime = new Date(firstData!.timestamp);
-    }
-    if (!maxTime || new Date(lastData!.timestamp) > maxTime) {
-      maxTime = new Date(lastData!.timestamp);
-    }
-  }
+  const allTimestamps = props.timeSeries
+    .flatMap(timeSeries => timeSeries.data)
+    .map(datum => datum.timestamp)
+    .toSorted();
+  const earliestTimeStamp = allTimestamps.at(0);
+  const latestTimeStamp = allTimestamps.at(-1);
 
   const {
     createReleaseBubbleHighlighter,
@@ -144,8 +133,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     bubbleSize: RELEASE_BUBBLE_SIZE,
     chartRef,
     highlightAreaColor: theme.blue400,
-    minTime: minTime?.getTime(),
-    maxTime: maxTime?.getTime(),
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
     theme,
   });
