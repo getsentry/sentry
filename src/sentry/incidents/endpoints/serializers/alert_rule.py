@@ -271,7 +271,9 @@ class AlertRuleSerializer(Serializer):
             "query": obj.snuba_query.query,
             "aggregate": aggregate,
             "thresholdType": obj.threshold_type,
-            "resolveThreshold": translate_threshold(obj, obj.resolve_threshold),
+            "resolveThreshold": translate_threshold(
+                obj.comparison_delta, obj.threshold_type, obj.resolve_threshold
+            ),
             # TODO: Start having the frontend expect seconds
             "timeWindow": obj.snuba_query.time_window / 60,
             "environment": env.name if env else None,
