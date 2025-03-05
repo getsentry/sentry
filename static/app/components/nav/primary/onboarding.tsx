@@ -1,7 +1,5 @@
 import {useEffect, useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -11,10 +9,13 @@ import {
   SidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
+import {
+  PrimaryButtonOverlay,
+  usePrimaryButtonOverlay,
+} from 'sentry/components/nav/primary/primaryButtonOverlay';
 import {NavLayout} from 'sentry/components/nav/types';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import ProgressRing from 'sentry/components/progressRing';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
@@ -27,7 +28,6 @@ import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay from 'sentry/utils/useOverlay';
 import {useUser} from 'sentry/utils/useUser';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -56,10 +56,7 @@ function OnboardingItem({
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = useOverlay({
-    offset: 8,
-    position: 'right-end',
-    isDismissable: true,
+  } = usePrimaryButtonOverlay({
     isOpen: isActive,
     onOpenChange: newIsOpen => {
       if (newIsOpen) {
@@ -109,13 +106,9 @@ function OnboardingItem({
           )}
         </NavButton>
         {isOpen && (
-          <FocusScope autoFocus restoreFocus>
-            <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-              <ScrollableOverlay>
-                <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
-              </ScrollableOverlay>
-            </PositionWrapper>
-          </FocusScope>
+          <PrimaryButtonOverlay overlayProps={overlayProps}>
+            <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
+          </PrimaryButtonOverlay>
         )}
       </SidebarItem>
     </GuideAnchor>
@@ -212,10 +205,3 @@ export function PrimaryNavigationOnboarding() {
     />
   );
 }
-
-const ScrollableOverlay = styled(Overlay)`
-  min-height: 300px;
-  max-height: 60vh;
-  overflow-y: auto;
-  width: 400px;
-`;

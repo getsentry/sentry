@@ -1,7 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
@@ -9,7 +6,10 @@ import {
   SidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {
+  PrimaryButtonOverlay,
+  usePrimaryButtonOverlay,
+} from 'sentry/components/nav/primary/primaryButtonOverlay';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
@@ -25,7 +25,6 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay from 'sentry/utils/useOverlay';
 
 const MARK_SEEN_DELAY = 1000;
 
@@ -121,17 +120,11 @@ export function PrimaryNavigationWhatsNew() {
     [broadcasts]
   );
 
-  const theme = useTheme();
-
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = useOverlay({
-    offset: 8,
-    position: 'right-end',
-    isDismissable: true,
-  });
+  } = usePrimaryButtonOverlay();
 
   return (
     <SidebarItem>
@@ -146,20 +139,10 @@ export function PrimaryNavigationWhatsNew() {
         )}
       </SidebarButton>
       {isOpen && (
-        <FocusScope autoFocus restoreFocus>
-          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-            <ScrollableOverlay>
-              <WhatsNewContent unseenPostIds={unseenPostIds} />
-            </ScrollableOverlay>
-          </PositionWrapper>
-        </FocusScope>
+        <PrimaryButtonOverlay overlayProps={overlayProps}>
+          <WhatsNewContent unseenPostIds={unseenPostIds} />
+        </PrimaryButtonOverlay>
       )}
     </SidebarItem>
   );
 }
-
-const ScrollableOverlay = styled(Overlay)`
-  max-height: 60vh;
-  width: 400px;
-  overflow-y: auto;
-`;
