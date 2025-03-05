@@ -137,7 +137,7 @@ def send_alert_webhook(
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         extra = {
             "sentry_app_id": sentry_app_id,
-            "project_slug": project.slug,
+            "project_id": project.id,
             "organization_slug": organization.slug,
             "rule": rule,
         }
@@ -145,8 +145,7 @@ def send_alert_webhook(
 
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
         if sentry_app is None:
-            lifecycle.record_failure("send_alert_event.missing_sentry_app")
-            return
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
 
         installations = app_service.get_many(
             filter=dict(
@@ -156,8 +155,7 @@ def send_alert_webhook(
             )
         )
         if not installations:
-            lifecycle.record_failure("send_alert_event.missing_installation")
-            return
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
         (install,) = installations
 
         nodedata = nodestore.backend.get(
@@ -172,19 +170,19 @@ def send_alert_webhook(
                 "sentry_app": sentry_app.slug,
                 "group_id": group_id,
             }
-            lifecycle.record_failure(failure_reason="send_alert_event.missing_event", extra=extra)
-            return
+            raise SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.MISSING_EVENT, webhook_context=extra
+            )
 
         occurrence = None
         if occurrence_id:
             occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
 
             if not occurrence:
-                lifecycle.record_failure(
-                    failure_reason="send_alert_event.missing_occurrence",
-                    extra={"occurrence_id": occurrence_id, "project_id": project.id},
+                raise SentryAppSentryError(
+                    message=SentryAppWebhookFailureReason.MISSING_ISSUE_OCCURRENCE,
+                    webhook_context={"occurrence_id": occurrence_id, "project_id": project.id},
                 )
-                return
 
         group_event = GroupEvent(
             project_id=project.id,
