@@ -569,7 +569,7 @@ function JobsWidget({query}: {query?: string}) {
       (acc, [time, [value]], index) => {
         const spansInTimeBucket = getSpansInTimeBucket(index);
         const okJobsRateValue = value?.count! || 0;
-        const failedJobsRateValue = value?.count ? 1 - value.count : 0;
+        const failedJobsRateValue = value?.count ? 1 - value.count : 1;
 
         acc[0].data.push({
           value: okJobsRateValue * spansInTimeBucket,
