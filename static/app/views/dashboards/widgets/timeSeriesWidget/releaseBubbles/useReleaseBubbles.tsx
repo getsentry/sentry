@@ -24,6 +24,7 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BUBBLE_SERIES_ID} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
+import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
 import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -297,6 +298,7 @@ export function useReleaseBubbles({
 
   if (!releases || !buckets.length) {
     return {
+      createReleaseBubbleHighlighter: () => {},
       releaseBubbleEventHandlers: {},
       ReleaseBubbleSeries: null,
       releaseBubbleXAxis: {},
@@ -305,6 +307,8 @@ export function useReleaseBubbles({
   }
 
   return {
+    createReleaseBubbleHighlighter,
+
     /**
      * An object map of eCharts event handlers. These should be spread onto a Chart component
      */

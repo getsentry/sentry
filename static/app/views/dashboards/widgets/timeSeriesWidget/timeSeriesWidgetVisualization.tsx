@@ -27,7 +27,6 @@ import type {
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -136,6 +135,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   const {
+    createReleaseBubbleHighlighter,
     releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
@@ -185,7 +185,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         createReleaseBubbleHighlighter(echartsInstance);
       }
     },
-    [hasReleaseBubblesSeries, registerWithWidgetSyncContext]
+    [
+      hasReleaseBubblesSeries,
+      createReleaseBubbleHighlighter,
+      registerWithWidgetSyncContext,
+    ]
   );
 
   const chartZoomProps = useChartZoom({
