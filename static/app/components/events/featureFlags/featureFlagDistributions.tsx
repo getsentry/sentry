@@ -95,12 +95,7 @@ export default function FeatureFlagDistributions({
     <Wrapper>
       <Container>
         {displayTags.map((tag, tagIdx) => (
-          <TagDistribution
-            tag={tag}
-            key={tagIdx}
-            groupId={group.id}
-            allowPrefetch={false}
-          />
+          <TagDistribution tag={tag} key={tagIdx} />
         ))}
       </Container>
     </Wrapper>
