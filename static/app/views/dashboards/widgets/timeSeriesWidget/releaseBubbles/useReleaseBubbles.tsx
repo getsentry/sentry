@@ -313,7 +313,7 @@ export function useReleaseBubbles({
     createReleaseBubbleHighlighter,
 
     /**
-     * An object map of eCharts event handlers. These should be spread onto a Chart component
+     * An object map of ECharts event handlers. These should be spread onto a Chart component
      */
     releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
       buckets,
@@ -334,7 +334,7 @@ export function useReleaseBubbles({
     }),
 
     /**
-     * eCharts xAxis configuration. Spread/override charts `xAxis` prop
+     * ECharts xAxis configuration. Spread/override charts `xAxis` prop
      */
     releaseBubbleXAxis: {
       // configure `axisLine` and `offset` to move axis line below 0 so that
@@ -344,7 +344,7 @@ export function useReleaseBubbles({
     },
 
     /**
-     * eCharts grid configuration. Spread/override charts `grid` prop
+     * ECharts grid configuration. Spread/override charts `grid` prop
      */
     releaseBubbleGrid: {
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
