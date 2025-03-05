@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import options
 from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 
 SUPPORTED_RUNTIMES = [
@@ -112,6 +113,17 @@ def get_option_value(function, option):
     cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
     key = f"aws-layer:{prefix}"
     cache_value = cache_options.get(key)
+
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_context(
+                "aws_lambda_cache",
+                {
+                    "cache_options": cache_options,
+                    "key": key,
+                },
+            )
+            sentry_sdk.capture_message("Fetching aws layer from cache")
 
     if cache_value is None:
         raise IntegrationError(f"Could not find cache value with key {key}")
