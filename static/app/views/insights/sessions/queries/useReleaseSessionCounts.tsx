@@ -56,7 +56,9 @@ export default function useReleaseSessionCounts() {
     releaseGroupMap.get(release)!.push(group);
   });
 
-  const series = Array.from(releaseGroupMap.keys()).map(release => {
+  const releaseKeys = Array.from(releaseGroupMap.keys());
+
+  const series = releaseKeys.map(release => {
     const groups = releaseGroupMap.get(release)!;
 
     // Calculate total sessions for each interval
@@ -85,5 +87,5 @@ export default function useReleaseSessionCounts() {
     };
   });
 
-  return {series, releases: Array.from(releaseGroupMap.keys()), isPending, error};
+  return {series, releases: releaseKeys, isPending, error};
 }
