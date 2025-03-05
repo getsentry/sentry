@@ -13,13 +13,14 @@ import {
 import {ReleaseDrawerTable} from 'sentry/components/releases/releasesDrawerTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReleaseMetaBasic} from 'sentry/types/release';
 import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 interface ReleasesDrawerProps {
   /**
-   * This is a list of the release buckets used by eCharts to draw the release bubbles.
+   * This is a list of the release buckets used by ECharts to draw the release bubbles.
    * Currently unused, but we can use this to traverse through the release buckets within the drawer
    */
   buckets: Bucket[];
@@ -27,7 +28,7 @@ interface ReleasesDrawerProps {
   /**
    * A list of releases in the current release bucket
    */
-  releases: Release[];
+  releases: ReleaseMetaBasic[];
   startTs: number;
   /**
    * A renderer function that returns a chart. It is called with the trimmed
