@@ -104,7 +104,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
-            {...(organization.features.includes('release-bubbles-ui') ? {releases} : {})}
+            {...(organization.features.includes('release-bubbles-ui')
+              ? {releases, showReleaseAs: 'bubble'}
+              : {})}
             {...visualizationProps}
           />
         }
