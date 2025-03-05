@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -15,6 +16,10 @@ import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useIssueDetailsTour} from 'sentry/views/issueDetails/issueDetailsTour';
+import {
+  IssueDetailsTourModal,
+  IssueDetailsTourModalCss,
+} from 'sentry/views/issueDetails/issueDetailsTourModal';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
@@ -26,6 +31,8 @@ export function NewIssueExperienceButton() {
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
   } = useIssueDetailsTour();
+
+  const isPromoVisible = isTourAvailable && isTourRegistered && !isTourCompleted;
 
   // XXX: We use a ref to track the previous state of tour completion
   // since we only show the banner when the tour goes from incomplete to complete
@@ -56,6 +63,23 @@ export function NewIssueExperienceButton() {
       organization,
     });
   }, [mutate, organization, hasStreamlinedUI]);
+
+  useEffect(() => {
+    if (isPromoVisible) {
+      openModal(
+        props => (
+          <IssueDetailsTourModal
+            {...props}
+            handleStartTour={() => {
+              props.closeModal();
+              tourDispatch({type: 'START_TOUR'});
+            }}
+          />
+        ),
+        {modalCss: IssueDetailsTourModalCss}
+      );
+    }
+  }, [isPromoVisible, tourDispatch]);
 
   // We hide the toggle if the org...
   if (
