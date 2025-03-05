@@ -10,6 +10,7 @@ import {PlanTier} from 'getsentry/types';
 
 type PlanIds = keyof typeof AM1_PLANS &
   keyof typeof AM2_PLANS &
+  keyof typeof AM3_PLANS &
   keyof typeof MM1_PLANS &
   keyof typeof MM2_PLANS;
 
