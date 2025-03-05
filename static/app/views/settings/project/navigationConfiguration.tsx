@@ -1,4 +1,3 @@
-import {Badge} from 'sentry/components/core/badge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -70,7 +69,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
           show: () => !!organization?.features?.includes('dev-toolbar-ui'),
-          badge: () => <Badge type="beta">Beta</Badge>,
+          badge: () => 'beta',
         },
       ],
     },
@@ -126,7 +125,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
-          badge: () => <Badge type="beta">Beta</Badge>,
+          badge: () => 'beta',
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],
