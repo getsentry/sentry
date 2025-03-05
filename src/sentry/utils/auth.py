@@ -16,6 +16,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
@@ -24,7 +25,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.demo_mode import is_demo_mode_enabled, is_demo_user
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")

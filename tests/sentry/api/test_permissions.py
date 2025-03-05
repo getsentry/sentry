@@ -7,10 +7,10 @@ from sentry.api.permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
+from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.demo_mode import READONLY_SCOPES
 
 
 class PermissionsTest(DRFPermissionTestCase):

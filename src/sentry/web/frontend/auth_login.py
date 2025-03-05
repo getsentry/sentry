@@ -19,6 +19,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.demo_mode.utils import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.http import get_server_hostname
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.authprovider import AuthProvider
@@ -38,7 +39,6 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
-from sentry.utils.demo_mode import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url

@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
+from sentry.demo_mode.utils import get_demo_org, get_demo_user, is_demo_org, is_demo_user
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils.demo_mode import get_demo_org, get_demo_user, is_demo_org, is_demo_user
 
 
 @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
@@ -83,7 +83,7 @@ def test_get_demo_user_demo_mode_disabled():
 @django_db_all
 def test_get_demo_user_demo_mode_enabled():
     user = Factories.create_user(id=1)
-    with patch("sentry.utils.demo_mode.User.objects.get", return_value=user) as mock_user_get:
+    with patch("sentry.demo_mode.utils.User.objects.get", return_value=user) as mock_user_get:
         assert get_demo_user() == user
         mock_user_get.assert_called_once_with(id=1)
 
@@ -98,6 +98,6 @@ def test_get_demo_org_demo_mode_disabled():
 @django_db_all
 def test_get_demo_org_demo_mode_enabled():
     org = Factories.create_organization(id=1)
-    with patch("sentry.utils.demo_mode.Organization.objects.get", return_value=org) as mock_org_get:
+    with patch("sentry.demo_mode.utils.Organization.objects.get", return_value=org) as mock_org_get:
         assert get_demo_org() == org
         mock_org_get.assert_called_once_with(id=1)

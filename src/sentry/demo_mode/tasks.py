@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import options
+from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ProjectArtifactBundle,
@@ -15,7 +16,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils.db import atomic_transaction
-from sentry.utils.demo_mode import get_demo_org, is_demo_mode_enabled
 
 
 @instrumented_task(
