@@ -25,6 +25,7 @@ from sentry.search.eap.columns import (
     FormulaDefinition,
     ResolvedColumn,
     VirtualColumnDefinition,
+    boolean_processor,
     datetime_processor,
     project_context_constructor,
     project_term_resolver,
@@ -220,6 +221,13 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.timestamp",
             search_type="string",
             processor=datetime_processor,
+        ),
+        ResolvedColumn(
+            public_alias="cache.hit",
+            internal_name="cache.hit",
+            search_type="boolean",
+            internal_type=AttributeKey.Type.TYPE_DOUBLE,
+            processor=boolean_processor,
         ),
         ResolvedColumn(
             public_alias=PRECISE_START_TS,

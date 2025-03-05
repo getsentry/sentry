@@ -265,6 +265,10 @@ def datetime_processor(datetime_string: str) -> str:
     return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
 
 
+def boolean_processor(value: int) -> bool:
+    return value != 0
+
+
 def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
     def context_constructor(params: SnubaParams) -> VirtualColumnContext:
         return VirtualColumnContext(
