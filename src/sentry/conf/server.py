@@ -2959,6 +2959,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-transactions": "default",
     "ingest-transactions-dlq": "default",
     "ingest-transactions-backlog": "default",
+    "ingest-spans": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
