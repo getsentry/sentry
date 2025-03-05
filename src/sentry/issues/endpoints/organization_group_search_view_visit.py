@@ -22,14 +22,14 @@ class MemberPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
 
     def post(self, request: Request, organization: Organization, view_id: str) -> Response:
         """
-        Update the last_seen timestamp for a GroupSearchView for the current organization member.
+        Update the last_visited timestamp for a GroupSearchView for the current organization member.
         """
         if not features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
@@ -41,7 +41,7 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # Create or update the last_seen timestamp
+        # Create or update the last_visited timestamp
         GroupSearchViewLastVisited.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
