@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -38,7 +39,8 @@ function SchemaHintsList({
   const [visibleHints, setVisibleHints] = useState(filterTagsList);
 
   useEffect(() => {
-    const calculateVisibleHints = () => {
+    // debounce calculation to prevent 'flickering' when resizing
+    const calculateVisibleHints = debounce(() => {
       if (!schemaHintsContainerRef.current) {
         return;
       }
@@ -66,7 +68,7 @@ function SchemaHintsList({
       });
 
       setVisibleHints(visibleItems);
-    };
+    }, 100);
 
     // initial calculation
     calculateVisibleHints();
