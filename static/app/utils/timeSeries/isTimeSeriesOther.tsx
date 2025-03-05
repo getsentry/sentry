@@ -1,4 +1,4 @@
-import type {TimeSeries} from '../common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 const OTHER = 'Other';
 const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);

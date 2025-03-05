@@ -1,4 +1,4 @@
-import type {TimeSeries} from '../common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function shiftTimeSeriesToNow(timeSeries: TimeSeries): TimeSeries {
   const currentTimestamp = new Date().getTime();

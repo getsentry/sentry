@@ -6,9 +6,9 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
+import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import type {TimeSeries} from '../../common/types';
-import {scaleTimeSeriesData} from '../scaleTimeSeriesData';
 
 export type ContinuousTimeSeriesConfig = {
   /**
