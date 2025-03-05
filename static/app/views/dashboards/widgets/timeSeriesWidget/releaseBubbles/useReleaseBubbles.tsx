@@ -23,21 +23,19 @@ import type {
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BUBBLE_SERIES_ID} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
+import {
+  BUBBLE_AREA_SERIES_ID,
+  BUBBLE_SERIES_ID,
+  DEFAULT_BUBBLE_SIZE,
+  RELEASE_BUBBLE_X_HALF_PADDING,
+  RELEASE_BUBBLE_X_PADDING,
+  RELEASE_BUBBLE_Y_HALF_PADDING,
+  RELEASE_BUBBLE_Y_PADDING,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
 import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-
-const BUBBLE_AREA_SERIES_ID = '__release_bubble_area__';
-const DEFAULT_BUBBLE_SIZE = 14;
-
-// "padding" around the bubbles as it is drawn on canvas vs CSS, this may need
-// to move into `renderReleaseBubble` if it needs to be customizable
-const RELEASE_BUBBLE_Y_PADDING = 8;
-const RELEASE_BUBBLE_Y_HALF_PADDING = RELEASE_BUBBLE_Y_PADDING / 2;
-const RELEASE_BUBBLE_X_PADDING = 2;
-const RELEASE_BUBBLE_X_HALF_PADDING = RELEASE_BUBBLE_X_PADDING / 2;
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
