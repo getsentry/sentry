@@ -25,6 +25,8 @@ export type TraceSearchResult = {
   value: TraceTreeNode<TraceTree.NodeValue>;
 };
 
+const {info, fmt} = Sentry._experiment_log;
+
 /**
  * Evaluates the infix token representation against the token list. The logic is the same as
  * if we were evaluating arithmetics expressions with the caveat that we have to handle and edge
@@ -134,6 +136,7 @@ export function searchInTraceTreeTokens(
           bool = token;
           if (stack.length < 2) {
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
+            info(fmt`Unbalanced tree - missing left or right token`);
             if (typeof handle.id === 'number') {
               window.cancelAnimationFrame(handle.id);
             }
@@ -155,6 +158,7 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing boolean token'
       );
+      info(fmt`Invalid state in searchInTraceTreeTokens, missing boolean token`);
       if (typeof handle.id === 'number') {
         window.cancelAnimationFrame(handle.id);
       }
@@ -165,6 +169,7 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing left or right token'
       );
+      info(fmt`Invalid state in searchInTraceTreeTokens, missing left or right token`);
       if (typeof handle.id === 'number') {
         window.cancelAnimationFrame(handle.id);
       }
@@ -393,6 +398,7 @@ function evaluateValueDate<T extends Token.VALUE_ISO_8601_DATE>(
     }
     default: {
       Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      info(fmt`Unsupported operator for number filter, got ${operator}`);
       return false;
     }
   }
@@ -426,6 +432,7 @@ function evaluateValueNumber<T extends Token.VALUE_DURATION | Token.VALUE_NUMBER
     }
     default: {
       Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      info(fmt`Unsupported operator for number filter, got ${operator}`);
       return false;
     }
   }
@@ -485,6 +492,7 @@ function resolveValueFromKey(
       case Token.KEY_EXPLICIT_TAG:
       default: {
         Sentry.captureMessage(`Unsupported key type for filter, got ${token.key.type}`);
+        info(fmt`Unsupported key type for filter, got ${token.key.type}`);
       }
     }
 

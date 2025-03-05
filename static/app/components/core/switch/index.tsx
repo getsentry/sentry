@@ -1,8 +1,12 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkSwitch from './index.chonk';
+
 export interface SwitchProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
   size?: 'sm' | 'lg';
 }
 
@@ -45,75 +49,85 @@ const SwitchWrapper = styled('div')`
   justify-content: flex-start;
 `;
 
-const NativeHiddenCheckbox = styled('input')<{
-  nativeSize: NonNullable<SwitchProps['size']>;
-}>`
-  position: absolute;
-  opacity: 0;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
+const NativeHiddenCheckbox = withChonk(
+  styled('input')<{
+    nativeSize: NonNullable<SwitchProps['size']>;
+  }>`
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
 
-  & + div {
-    > div {
-      background: ${p => p.theme.border};
-      transform: translateX(${p => ToggleConfig[p.nativeSize].top}px);
+    & + div {
+      > div {
+        background: ${p => p.theme.border};
+        transform: translateX(${p => ToggleConfig[p.nativeSize].top}px);
+      }
     }
-  }
 
-  &:checked + div {
-    > div {
-      background: ${p => p.theme.active};
-      transform: translateX(
-        ${p => ToggleConfig[p.nativeSize].top + ToggleWrapperSize[p.nativeSize] * 0.875}px
-      );
+    &:checked + div {
+      > div {
+        background: ${p => p.theme.active};
+        transform: translateX(
+          ${p =>
+            ToggleConfig[p.nativeSize].top + ToggleWrapperSize[p.nativeSize] * 0.875}px
+        );
+      }
     }
-  }
 
-  &:focus + div,
-  &:focus-visible + div {
-    outline: none;
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-
-    + div {
-      opacity: 0.4;
+    &:focus + div,
+    &:focus-visible + div {
+      outline: none;
+      border-color: ${p => p.theme.focusBorder};
+      box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
     }
-  }
-`;
 
-const FakeCheckbox = styled('div')<{
-  size: NonNullable<SwitchProps['size']>;
-}>`
-  position: relative;
-  display: inline-block;
-  border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowMedium};
-  height: ${p => ToggleWrapperSize[p.size]}px;
-  width: ${p => ToggleWrapperSize[p.size] * 1.875}px;
-  border-radius: ${p => ToggleWrapperSize[p.size]}px;
-  pointer-events: none;
+    &:disabled {
+      cursor: not-allowed;
 
-  transition:
-    border 0.1s,
-    box-shadow 0.1s;
-`;
+      + div {
+        opacity: 0.4;
+      }
+    }
+  `,
+  ChonkSwitch.ChonkNativeHiddenCheckbox
+);
 
-const FakeCheckboxButton = styled('div')<{
-  size: NonNullable<SwitchProps['size']>;
-}>`
-  position: absolute;
-  transition: 0.25s all ease;
-  border-radius: 50%;
-  top: ${p => ToggleConfig[p.size].top}px;
-  width: ${p => ToggleConfig[p.size].size}px;
-  height: ${p => ToggleConfig[p.size].size}px;
-`;
+const FakeCheckbox = withChonk(
+  styled('div')<{
+    size: NonNullable<SwitchProps['size']>;
+  }>`
+    position: relative;
+    display: inline-block;
+    border: 1px solid ${p => p.theme.border};
+    box-shadow: inset ${p => p.theme.dropShadowMedium};
+    height: ${p => ToggleWrapperSize[p.size]}px;
+    width: ${p => ToggleWrapperSize[p.size] * 1.875}px;
+    border-radius: ${p => ToggleWrapperSize[p.size]}px;
+    pointer-events: none;
+
+    transition:
+      border 0.1s,
+      box-shadow 0.1s;
+  `,
+  ChonkSwitch.ChonkFakeCheckbox
+);
+
+const FakeCheckboxButton = withChonk(
+  styled('div')<{
+    size: NonNullable<SwitchProps['size']>;
+  }>`
+    position: absolute;
+    transition: 0.25s all ease;
+    border-radius: 50%;
+    top: ${p => ToggleConfig[p.size].top}px;
+    width: ${p => ToggleConfig[p.size].size}px;
+    height: ${p => ToggleConfig[p.size].size}px;
+  `,
+  ChonkSwitch.ChonkFakeCheckboxButton
+);
