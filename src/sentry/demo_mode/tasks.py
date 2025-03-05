@@ -17,6 +17,7 @@ from sentry.utils.demo_mode import get_demo_org, is_demo_mode_enabled
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_artifact_bundles",
+    queue="demo_mode",
 )
 def sync_artifact_bundles():
 

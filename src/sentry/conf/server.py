@@ -1278,6 +1278,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
     },
+    "demo_mode_sync_artifact_bundles": {
+        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+        # Run every hour
+        "schedule": crontab(minute="0", hour="*/1"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
