@@ -659,6 +659,11 @@ urlpatterns += [
                     name="sentry-customer-domain-feature-flags-settings",
                 ),
                 re_path(
+                    r"^stats/",
+                    react_page_view,
+                    name="sentry-customer-domain-stats-settings",
+                ),
+                re_path(
                     r"^developer-settings/",
                     react_page_view,
                     name="sentry-customer-domain-developer-settings-settings",
