@@ -42,9 +42,17 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
 class SentryAppWebhookFailureReason(StrEnum):
     """Reasons why sentry app webhooks can fail"""
 
+    # Preperation fail
     MISSING_SENTRY_APP = "missing_sentry_app"
     MISSING_INSTALLATION = "missing_installation"
     MISSING_EVENT = "missing_event"
     INVALID_EVENT = "invalid_event"
     MISSING_SERVICEHOOK = "missing_servicehook"
     EVENT_NOT_IN_SERVCEHOOK = "event_not_in_servicehook"
+
+
+class SentryAppWebhookHaltReason(StrEnum):
+    """Reasons why sentry app webhooks can halt"""
+
+    GOT_CLIENT_ERROR = "got_client_error"
+    INTEGRATOR_ERROR = "integrator_error"

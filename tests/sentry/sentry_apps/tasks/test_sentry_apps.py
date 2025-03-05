@@ -24,7 +24,7 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
-from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason
+from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -43,6 +43,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.asserts import (
     assert_count_of_metric,
     assert_failure_metric,
+    assert_many_halt_metrics,
     assert_success_metric,
 )
 from sentry.testutils.cases import TestCase
@@ -383,8 +384,10 @@ class TestProcessResourceChange(TestCase):
     def test_does_not_process_disallowed_event(self, mock_record, safe_urlopen):
         process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
-        assert_failure_metric(mock_record, SentryAppSentryError(message="invalid_event"))
 
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT)
+        )
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
@@ -632,6 +635,14 @@ class TestSendResourceChangeWebhook(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=3
         )
+        assert_many_halt_metrics(
+            mock_record,
+            [
+                f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_404",
+                ClientError(status_code=404, url="example.com"),
+                f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_404",
+            ],
+        )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -737,6 +748,9 @@ class TestSendResourceChangeWebhook(TestCase):
             )
 
         assert_success_metric(mock_record)
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
+        )
         # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure) x 1
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2

@@ -15,6 +15,7 @@ from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.organization import Organization
+from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
@@ -187,16 +188,20 @@ def send_and_save_webhook_request(
             record_response_for_disabling_integration(sentry_app, org_id, response)
 
         if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
-            lifecycle.record_halt(halt_reason="send_and_save_webhook_request.got-503")
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
+            )
             raise ApiHostError.from_request(response.request)
 
         elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
-            lifecycle.record_halt(halt_reason="send_and_save_webhook_request.got-504")
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
+            )
             raise ApiTimeoutError.from_request(response.request)
 
         elif 400 <= response.status_code < 500:
             lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.got-{response.status_code}"
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}"
             )
             raise ClientError(response.status_code, url, response=response)
 

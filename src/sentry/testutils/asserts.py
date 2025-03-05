@@ -121,3 +121,15 @@ def assert_count_of_metric(mock_record, outcome, outcome_count):
         0,
     )
     assert calls == outcome_count
+
+
+# Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
+def assert_many_halt_metrics(mock_record, messages_or_errors):
+    halts = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
+    )
+    for halt, error_msg in zip(halts, messages_or_errors):
+        if isinstance(error_msg, Exception):
+            assert isinstance(halt.args[1], type(error_msg))
+        else:
+            assert halt.args[1] == error_msg
