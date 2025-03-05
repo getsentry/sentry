@@ -40,8 +40,7 @@ export const chonkInputStyles = ({
   },
 
   '&:focus, &:focus-visible, :focus-within': {
-    outline: 'none',
-    boxShadow: `0 0 0 2px ${theme.background}, 0 0 0 4px ${theme.focusBorder}`,
+    ...theme.focusRing,
   },
   "&[type='number']": {
     appearance: 'textfield',
