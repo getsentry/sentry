@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ProjectArtifactBundle,
@@ -19,23 +20,27 @@ from sentry.utils.demo_mode import get_demo_org, is_demo_mode_enabled
 )
 def sync_artifact_bundles():
 
-    if not is_demo_mode_enabled():
+    if (
+        not options.get("sentry.demo_mode.sync_artifact_bundles.enable")
+        or not is_demo_mode_enabled()
+    ):
         return
 
-    # TODO: get the source org from the options
-    source_org = Organization.objects.get(slug="demo")
+    source_org_id = options.get("sentry.demo_mode.sync_artifact_bundles.source_org_id")
+    source_org = Organization.objects.get(id=source_org_id)
+
     target_org = get_demo_org()
 
-    _sync_artifact_bundles(source_org, target_org, None)
+    lookback_days = options.get("sentry.demo_mode.sync_artifact_bundles.lookback_days")
+
+    _sync_artifact_bundles(source_org, target_org, lookback_days)
 
 
-def _sync_artifact_bundles(
-    source_org: Organization, target_org: Organization, period: timedelta | None = None
-):
+def _sync_artifact_bundles(source_org: Organization, target_org: Organization, lookback_days=1):
     if not source_org or not target_org:
         return
 
-    cutoff_date = timezone.now() - period if period else timezone.now() - timedelta(days=1)
+    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     artifact_bundles = ArtifactBundle.objects.filter(
         Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
