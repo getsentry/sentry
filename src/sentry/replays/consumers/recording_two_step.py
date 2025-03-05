@@ -72,6 +72,8 @@ def commit_message(message: Message[ProcessedRecordingMessage]) -> None:
             return None
         except GCS_RETRYABLE_ERRORS:
             raise
+        except DropSilently:
+            return None
         except Exception:
             logger.exception("Failed to commit replay recording message.")
             return None
