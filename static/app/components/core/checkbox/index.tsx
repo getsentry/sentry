@@ -4,6 +4,9 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkCheckbox from './index.chonk';
 
 type CheckboxConfig = {
   borderRadius: string;
@@ -85,49 +88,56 @@ const CheckboxWrapper = styled('div')<{
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
 `;
 
-const NativeHiddenCheckbox = styled('input')`
-  position: absolute;
-  opacity: 0;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
+const NativeHiddenCheckbox = withChonk(
+  styled('input')`
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
 
-  & + * {
-    color: ${p => p.theme.textColor};
-    border: 1px solid ${p => p.theme.gray200};
-  }
+    & + * {
+      box-shadow: ${p => p.theme.dropShadowMedium} inset;
+      color: ${p => p.theme.textColor};
+      border: 1px solid ${p => p.theme.gray200};
 
-  &:focus-visible + * {
-    border: 1px solid ${p => p.theme.focusBorder};
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
+      svg {
+        stroke: ${p => p.theme.white};
+      }
+    }
 
-  &:checked:focus-visible + *,
-  &:indeterminate:focus-visible + * {
-    box-shadow: ${p => p.theme.focus} 0 0 0 3px;
-  }
+    &:focus-visible + * {
+      box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
+    }
 
-  &:disabled + * {
-    background-color: ${p => p.theme.backgroundSecondary};
-    border: 1px solid ${p => p.theme.disabledBorder};
-  }
+    &:checked:focus-visible + *,
+    &:indeterminate:focus-visible + * {
+      box-shadow: ${p => p.theme.focus} 0 0 0 3px;
+    }
 
-  &:checked + *,
-  &:indeterminate + * {
-    background-color: ${p => p.theme.active};
-    color: ${p => p.theme.white};
-  }
+    &:disabled + * {
+      background-color: ${p => p.theme.backgroundSecondary};
+      border: 1px solid ${p => p.theme.disabledBorder};
+    }
 
-  &:disabled:checked + *,
-  &:disabled:indeterminate + * {
-    background-color: ${p => p.theme.disabled};
-    border: 1px solid ${p => p.theme.disabledBorder};
-  }
-`;
+    &:checked + *,
+    &:indeterminate + * {
+      background-color: ${p => p.theme.active};
+      color: ${p => p.theme.white};
+    }
+
+    &:disabled:checked + *,
+    &:disabled:indeterminate + * {
+      background-color: ${p => p.theme.disabled};
+      border: 1px solid ${p => p.theme.disabledBorder};
+    }
+  `,
+  ChonkCheckbox.ChonkNativeHiddenCheckbox
+);
 
 const FakeCheckbox = styled('div')<{
   size: FormSize;
@@ -137,7 +147,6 @@ const FakeCheckbox = styled('div')<{
   align-items: center;
   justify-content: center;
   color: inherit;
-  box-shadow: ${p => p.theme.dropShadowMedium} inset;
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
@@ -151,6 +160,5 @@ const CheckboxIcon = styled('svg')<{size: string}>`
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke: ${p => p.theme.white};
   stroke-width: calc(1.4px + ${p => p.size} * 0.04);
 `;
