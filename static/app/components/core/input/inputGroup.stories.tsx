@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Input} from 'sentry/components/core/input/index';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix from 'sentry/components/stories/matrix';
 import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
@@ -21,15 +20,46 @@ export default storyBook('InputGroup', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Input" /> component comes in different sizes:
+          The <JSXNode name="InputGroup" /> component comes in different sizes:
         </p>
-        <InputGroup>
-          <InputGroup.LeadingItems disablePointerEvents>
-            <IconSearch />
-          </InputGroup.LeadingItems>
-          <InputGroup.Input placeholder="Search" />
-        </InputGroup>
-        <Input placeholder="hodl" />
+        <Grid>
+          <div>
+            <code>md (default)</code>
+            <InputGroup>
+              <InputGroup.LeadingItems disablePointerEvents>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input size="md" placeholder="Search" />
+              <InputGroup.TrailingItems disablePointerEvents>
+                <IconAttachment />
+              </InputGroup.TrailingItems>
+            </InputGroup>
+          </div>
+          <div>
+            <code>sm</code>
+            <InputGroup>
+              <InputGroup.LeadingItems disablePointerEvents>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input size="sm" placeholder="Search" />
+              <InputGroup.TrailingItems disablePointerEvents>
+                <IconAttachment />
+              </InputGroup.TrailingItems>
+            </InputGroup>
+          </div>
+          <div>
+            <code>xs</code>
+            <InputGroup>
+              <InputGroup.LeadingItems disablePointerEvents>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input size="xs" placeholder="Search" />
+              <InputGroup.TrailingItems disablePointerEvents>
+                <IconAttachment />
+              </InputGroup.TrailingItems>
+            </InputGroup>
+          </div>
+        </Grid>
       </Fragment>
     );
   });

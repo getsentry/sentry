@@ -1,17 +1,18 @@
-import type {ComponentProps} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Switch} from 'sentry/components/core/switch';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import type {PropMatrix} from 'sentry/components/stories/matrix';
-import Matrix from 'sentry/components/stories/matrix';
-import Switch from 'sentry/components/switchButton';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook('Switch', story => {
-  story('Basics', () => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/core/switch';
+
+export default storyBook('Switch', (story, APIReference) => {
+  APIReference(types.Switch);
+  story('Default', () => {
     const [toggleOn, setToggleOn] = useState(false);
     return (
       <Fragment>
@@ -24,10 +25,10 @@ export default storyBook('Switch', story => {
           Here we are specifying the label with an HTML <code>label</code> element, which
           is also accessibility friendly -- clicking the label also affects the toggle!
         </p>
-        <SwitchItem htmlFor="switch">
+        <Label htmlFor="switch">
           {toggleOn ? 'Switch is on' : 'Switch is off'}
           <Switch id="switch" toggle={() => setToggleOn(!toggleOn)} isActive={toggleOn} />
-        </SwitchItem>
+        </Label>
         <p>
           You can pass a callback function into the <JSXProperty name="toggle" value />{' '}
           prop to control what happens when the toggle is clicked. Pair this with a{' '}
@@ -38,16 +39,17 @@ export default storyBook('Switch', story => {
     );
   });
 
-  story('size', () => {
+  story('Size', () => {
     const [toggleOnL, setToggleOnL] = useState(false);
     const [toggleOnS, setToggleOnS] = useState(false);
+
     return (
       <Fragment>
         <p>
           The <JSXProperty name="size" value /> prop has two options: <code>"sm"</code>{' '}
           and <code>"lg"</code>. The default value is <code>"sm"</code>.
         </p>
-        <SwitchItem htmlFor="lg-switch">
+        <Label htmlFor="lg-switch">
           Large switch
           <Switch
             id="lg-switch"
@@ -55,8 +57,8 @@ export default storyBook('Switch', story => {
             size="lg"
             isActive={toggleOnL}
           />
-        </SwitchItem>
-        <SwitchItem htmlFor="sm-switch">
+        </Label>
+        <Label htmlFor="sm-switch">
           Small switch
           <Switch
             id="sm-switch"
@@ -64,56 +66,13 @@ export default storyBook('Switch', story => {
             size="sm"
             isActive={toggleOnS}
           />
-        </SwitchItem>
-      </Fragment>
-    );
-  });
-
-  story('Other props', () => {
-    const propMatrix: PropMatrix<ComponentProps<typeof Switch>> = {
-      forceActiveColor: [true, false],
-      isDisabled: [true, false],
-    };
-
-    const [toggleOn, setToggleOn] = useState(false);
-    const [toggleOnTwo, setToggleOnTwo] = useState(false);
-
-    return (
-      <Fragment>
-        <p>
-          The <JSXProperty name="forceActiveColor" value />
-          and <JSXProperty name="isDisabled" value /> props can be used to force a single
-          state.
-        </p>
-        <Matrix
-          render={props => (
-            <Switch
-              {...props}
-              toggle={
-                !props.isDisabled
-                  ? !props.forceActiveColor
-                    ? () => setToggleOn(!toggleOn)
-                    : () => setToggleOnTwo(!toggleOnTwo)
-                  : () => {}
-              }
-              isActive={
-                !props.isDisabled
-                  ? !props.forceActiveColor
-                    ? toggleOn
-                    : toggleOnTwo
-                  : false
-              }
-            />
-          )}
-          propMatrix={propMatrix}
-          selectedProps={['forceActiveColor', 'isDisabled']}
-        />
+        </Label>
       </Fragment>
     );
   });
 });
 
-const SwitchItem = styled('label')`
+const Label = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
