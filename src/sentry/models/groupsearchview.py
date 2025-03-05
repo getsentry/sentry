@@ -53,7 +53,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     organization = FlexibleForeignKey("sentry.Organization")
 
     visibility = models.CharField(
-        max_length=16, default=Visibility.OWNER, choices=Visibility.as_choices()
+        max_length=16, db_default=Visibility.OWNER, choices=Visibility.as_choices()
     )
 
     query = models.TextField()
