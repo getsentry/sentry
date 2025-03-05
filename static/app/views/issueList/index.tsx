@@ -26,6 +26,9 @@ function IssueListContainer({children}: Props) {
       <PageFiltersContainer
         skipLoadLastUsed={!useGlobalPageFilters}
         disablePersistence={!useGlobalPageFilters}
+        skipInitializeUrlParams={organization.features.includes(
+          'issue-stream-custom-views'
+        )}
       >
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
       </PageFiltersContainer>
