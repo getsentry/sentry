@@ -1,14 +1,11 @@
-import type React from 'react';
 import {forwardRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
 import {space} from 'sentry/styles/space';
 
-interface Props extends React.ComponentProps<typeof InputGroup.Input> {}
-
-export const PercentInput = forwardRef<HTMLInputElement, Props>(
+export const PercentInput = forwardRef<HTMLInputElement, InputProps>(
   function PercentInput(props, ref) {
     return (
       <InputGroup
