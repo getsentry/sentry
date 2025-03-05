@@ -21,7 +21,7 @@ from sentry.replays.usecases.ingest import (
 logger = logging.getLogger(__name__)
 
 
-class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class RecordingTwoStepStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self, max_pending_futures: int = 256, num_threads: int = 16) -> None:
         self.max_pending_futures = max_pending_futures
         self.num_threads = num_threads
