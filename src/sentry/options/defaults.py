@@ -3101,3 +3101,20 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "sentry.demo_mode.sync_artifact_bundles.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.source_org_id",
+    default=None,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.lookback_days",
+    default=1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)

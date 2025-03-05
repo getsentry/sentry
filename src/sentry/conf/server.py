@@ -838,6 +838,7 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
+    "sentry.demo_mode.tasks",
 )
 
 # Enable split queue routing
@@ -997,6 +998,7 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue("demo_mode", routing_key="demo_mode"),
 ]
 
 from celery.schedules import crontab
@@ -1277,6 +1279,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.uptime.detectors.tasks.schedule_detections",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
+    },
+    "demo_mode_sync_artifact_bundles": {
+        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+        # Run every hour
+        "schedule": crontab(minute="0", hour="*/1"),
     },
 }
 
