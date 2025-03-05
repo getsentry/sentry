@@ -353,7 +353,6 @@ class ShouldCallSeerTest(TestCase):
 
 
 @apply_feature_flag_on_cls("organizations:grouping-hybrid-fingerprint-seer-usage")
-@apply_feature_flag_on_cls("organizations:grouphash-metadata-creation")
 class GetSeerSimilarIssuesTest(TestCase):
     def create_new_event(
         self,

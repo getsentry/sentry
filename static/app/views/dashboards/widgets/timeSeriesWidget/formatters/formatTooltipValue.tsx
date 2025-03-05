@@ -1,41 +1,27 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {
-  DurationUnit,
-  RATE_UNIT_LABELS,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {DurationUnit, type RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 
-import {isADurationUnit, isARateUnit, isASizeUnit} from '../common/typePredicates';
+import {isADurationUnit, isASizeUnit} from '../../common/typePredicates';
 
-import {formatYAxisDuration} from './formatYAxisDuration';
-
-export function formatYAxisValue(value: number, type: string, unit?: string): string {
-  if (value === 0) {
-    return '0';
-  }
-
+export function formatTooltipValue(value: number, type: string, unit?: string): string {
   switch (type) {
     case 'integer':
-      return formatAbbreviatedNumber(value);
     case 'number':
       return value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, 3);
+      return formatPercentage(value, 2);
     case 'duration': {
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
-      const durationInMilliseconds = convertDuration(
-        value,
-        durationUnit,
-        DurationUnit.MILLISECOND
-      );
-      return formatYAxisDuration(durationInMilliseconds);
+      const durationInSeconds = convertDuration(value, durationUnit, DurationUnit.SECOND);
+
+      return getDuration(durationInSeconds, 2, true);
     }
     case 'size': {
       const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;
@@ -47,17 +33,12 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
 
       return formatter(sizeInBytes);
     }
-    case 'rate': {
+    case 'rate':
       // Always show rate in the original dataset's unit. If the unit is not
       // appropriate, always convert the unit in the original dataset first.
       // This way, named rate functions like `epm()` will be shows in per minute
       // units
-      const rateUnit = isARateUnit(unit) ? unit : RateUnit.PER_SECOND;
-      return `${value.toLocaleString(undefined, {
-        notation: 'compact',
-        maximumSignificantDigits: 6,
-      })}${RATE_UNIT_LABELS[rateUnit]}`;
-    }
+      return formatRate(value, unit as RateUnit);
     default:
       return value.toString();
   }

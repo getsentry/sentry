@@ -19,11 +19,11 @@ function ReplayConfigToggle({
     <SwitchWrapper>
       <SwitchItem htmlFor="mask">
         {t('Mask All Text')}
-        <Switch id="mask" toggle={onMaskToggle} size="lg" isActive={maskToggle} />
+        <Switch id="mask" onChange={onMaskToggle} size="lg" checked={maskToggle} />
       </SwitchItem>
       <SwitchItem htmlFor="block">
         {t('Block All Media')}
-        <Switch id="block" toggle={onBlockToggle} size="lg" isActive={blockToggle} />
+        <Switch id="block" onChange={onBlockToggle} size="lg" checked={blockToggle} />
       </SwitchItem>
     </SwitchWrapper>
   );
