@@ -513,7 +513,7 @@ class UsageStatsOrganization<
             <Flex align="center" gap={space(1)}>
               <strong>{t('Show client-discarded data:')}</strong>
               <Switch
-                onClick={() => {
+                onChange={() => {
                   handleChangeState({clientDiscard: !clientDiscard});
                 }}
                 checked={clientDiscard}

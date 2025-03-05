@@ -158,7 +158,7 @@ export function ToggleOnDemand() {
       }}
     >
       {t('On-demand metrics')}
-      <Switch checked={onDemand.forceOnDemand} size="sm" onClick={toggle} />
+      <Switch checked={onDemand.forceOnDemand} size="sm" onChange={toggle} />
     </FlexContainer>
   );
 }
