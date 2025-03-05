@@ -47,6 +47,10 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
 
         transformer = MetricsAPIQueryResultsTransformer()
 
+        # Try to resolve the `target_project_id` tag first, as otherwise the query will
+        # fail to resolve the column and raise a validation error.
+        # When the tag is not present, we can simply return with an empty result set, as this
+        # means that there are no spans ingested yet.
         if resolve_weak(UseCaseID.SPANS, organization.id, "target_project_id") == STRING_NOT_FOUND:
             results = transformer.transform([])
             return Response(status=200, data=results)
