@@ -2,10 +2,9 @@
 {% load sentry_assets %}
 
 {% block css %}
-{% if show_login_banner %}
+{% if show_login_banner or show_partner_login_banner %}
 <style type="text/css">
   .alert-banner {
-    background: rgb(255, 219, 74);
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
     display: flex;
@@ -13,6 +12,7 @@
     border-radius: 4px;
     margin-bottom: 4px;
   }
+
   .alert-message {
     margin-left: 1rem;
     margin-right: 1rem;
@@ -25,8 +25,20 @@
     font-size: 16px;
     font-family: Rubik;
   }
+
+  /* Default alert banner color */
+  .alert-banner.default {
+    background: rgb(255, 219, 74);
+  }
+
+  /* Partner login banner color */
+  .alert-banner.partner {
+    background: #6c5fc7;
+    color: white;
+  }
+
   @media only screen and (max-width: 1025px) {
-    .alert-banner {
+    .alert-banner.default {
       display: none;
     }
   }
@@ -74,8 +86,14 @@
       {% endwith %}
     {% endfor %}
   </div>
-{% elif show_login_banner %}
-  <div class="alert-banner">
+  {% elif show_partner_login_banner %}
+  <div class="alert-banner partner">
+    <div class="alert-message">
+      Complete your registration by checking your inbox for our email and following the sign-in link.
+    </div>
+  </div>
+  {% elif show_login_banner %}
+  <div class="alert-banner default">
     <div class="alert-message">
       Ship it, break it, fix it—live! Hands-on workshop debugging with Lazar. &nbsp<a target="_blank" href="https://sentry.io/resources/instrument-monitor-fix-workshop/">RSVP for March 12.</a>
     </div>

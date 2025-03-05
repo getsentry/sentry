@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import Prism from 'prismjs';
 
+import type {Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -203,12 +204,12 @@ const tokenizeSourceContext = ({
 
 // Some events have context lines with newline characters at the end,
 // so we need to remove them to be consistent.
-const normalizeLineEndings = (line?: string) => {
+const normalizeLineEndings = (line?: string | null) => {
   return line?.replaceAll(/\r?\n/g, '') ?? '';
 };
 
 const convertContextLines = (
-  contextLines: Array<[number, string]>,
+  contextLines: Frame['context'],
   executedLineNo: number | null
 ) => {
   if (!executedLineNo) {
@@ -249,7 +250,7 @@ export const usePrismTokensSourceContext = ({
 }: {
   fileExtension: string;
   lineNo: number | null;
-  contextLines?: Array<[number, string]>;
+  contextLines?: Frame['context'];
 }) => {
   const organization = useOrganization({allowNull: true});
 
