@@ -7,6 +7,7 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
+import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
@@ -29,14 +30,20 @@ function SchemaHintsList({
     return tags;
   }, [numberTags, stringTags, functionTags]);
 
-  const filterTagsList = useMemo(() => {
-    return Object.keys(filterTags).map(tag => filterTags[tag]);
+  // sort tags by the order they show up in the query builder
+  const filterTagsSorted = useMemo(() => {
+    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children);
+    const sectionSortedTags = sectionKeys.map(key => filterTags[key]).filter(Boolean);
+    const otherKeys = Object.keys(filterTags).filter(key => !sectionKeys.includes(key));
+    const otherTags = otherKeys.map(key => filterTags[key]).filter(Boolean);
+    return [...sectionSortedTags, ...otherTags];
   }, [filterTags]);
 
   // only show 8 tags for now until we have a better way to decide to display them
+  // TODO: use resize observer to dynamically show more/less tags
   const first8Tags = useMemo(() => {
-    return filterTagsList.slice(0, 8);
-  }, [filterTagsList]);
+    return filterTagsSorted.slice(0, 8);
+  }, [filterTagsSorted]);
 
   const tagHintsText = useMemo(() => {
     return first8Tags.map(tag => `${tag?.key} is ...`);
@@ -57,6 +64,7 @@ const SchemaHintsContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  overflow: hidden;
 `;
 
 const SchemaHintOption = styled(Button)`
@@ -72,7 +80,7 @@ const SchemaHintOption = styled(Button)`
   flex-wrap: wrap;
 
   /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
+  min-width: fit-content;
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
