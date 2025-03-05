@@ -132,11 +132,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   } = useReleaseBubbles({
     bubbleSize: RELEASE_BUBBLE_SIZE,
     chartRef,
-    highlightAreaColor: theme.blue400,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
-    theme,
   });
 
   const releaseSeries = props.releases

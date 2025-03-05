@@ -1,5 +1,5 @@
 import type {ReactElement} from 'react';
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
@@ -267,11 +267,6 @@ Tap to view
 
 interface UseReleaseBubblesParams {
   chartRef: React.RefObject<ReactEchartsRef>;
-  /**
-   * Color of the highlighted area in main chart when mousehovers over a bubble
-   */
-  highlightAreaColor: string;
-  theme: Theme;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: Partial<TimeSeriesWidgetVisualizationProps>) => any;
   maxTime?: number;
@@ -281,15 +276,14 @@ interface UseReleaseBubblesParams {
 export function useReleaseBubbles({
   chartRef,
   chartRenderer,
-  highlightAreaColor,
   releases,
   minTime,
   maxTime,
-  theme,
   bubbleSize,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
+  const theme = useTheme();
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const buckets =
     (hasReleaseBubbles &&
@@ -318,7 +312,7 @@ export function useReleaseBubbles({
     releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
       buckets,
       chartRenderer,
-      color: highlightAreaColor,
+      color: theme.blue400,
       openDrawer,
     }),
 
