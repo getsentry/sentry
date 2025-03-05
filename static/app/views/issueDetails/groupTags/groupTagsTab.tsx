@@ -52,17 +52,10 @@ export function GroupTagsTab() {
     refetch: refetchGroup,
   } = useGroup({groupId: params.groupId});
 
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupTags({
+  const {data, isPending, isError, refetch} = useGroupTags({
     groupId: group?.id,
     environment: environments,
   });
-
-  const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
   if (isPending || isGroupPending) {
     return <LoadingIndicator />;
@@ -87,6 +80,7 @@ export function GroupTagsTab() {
     };
   };
 
+  const alphabeticalTags = data.toSorted((a, b) => a.key.localeCompare(b.key));
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
