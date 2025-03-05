@@ -76,7 +76,7 @@ async function app() {
   const {bootstrap} = await bootstrapImport;
   const config = await bootstrap();
 
-  if (config.sentryMode !== 'SAAS') {
+  if (config.sentryMode === 'SELF_HOSTED') {
     const {initializeMain} = await initalizeMainImport;
     initializeMain(config);
     return;
