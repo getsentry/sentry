@@ -43,6 +43,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.asserts import (
     assert_count_of_metric,
     assert_failure_metric,
+    assert_halt_metric,
     assert_many_halt_metrics,
     assert_success_metric,
 )
@@ -442,6 +443,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         # SLO validation
         assert_success_metric(mock_record=mock_record)
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{404}",
+        )
         # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
