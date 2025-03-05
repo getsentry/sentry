@@ -186,18 +186,20 @@ function TourElementContent<T extends TourEnumType>({
       handleDismiss={() => dispatch({type: 'END_TOUR'})}
       stepCount={stepCount}
       stepTotal={stepTotal}
+      id={`${id}`}
     >
       {children}
     </TourGuide>
   );
 }
 
-interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
+interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id'> {
   children: React.ReactNode;
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
   actions?: React.ReactNode;
   handleDismiss?: (e: React.MouseEvent) => void;
+  id?: string;
   offset?: UseOverlayProps['offset'];
   position?: UseOverlayProps['position'];
   stepCount?: number;
@@ -216,6 +218,7 @@ export function TourGuide({
   description,
   actions,
   className,
+  id,
   isOpen,
   position,
   handleDismiss,
@@ -233,6 +236,16 @@ export function TourGuide({
     position,
     offset,
   });
+
+  // Scroll the overlay into view when it opens
+  useEffect(() => {
+    if (isOpen) {
+      document
+        .getElementById(id ?? '')
+        ?.scrollIntoView({block: 'center', behavior: 'smooth'});
+    }
+  }, [isOpen, id]);
+
   const Wrapper = wrapperComponent ?? TourTriggerWrapper;
 
   return (
@@ -250,7 +263,7 @@ export function TourGuide({
             animated
             arrowProps={{...arrowProps, background: 'lightModeBlack'}}
           >
-            <TourBody>
+            <TourBody id={id}>
               {isTopRowVisible && (
                 <TopRow>
                   {isStepCountVisible && (
