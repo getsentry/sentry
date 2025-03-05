@@ -189,11 +189,12 @@ export type AutofixTimelineEvent = {
 };
 
 export type AutofixSolutionTimelineEvent = {
-  code_snippet_and_analysis: string;
-  relevant_code_file: AutofixRelevantCodeFile;
-  timeline_item_type: 'internal_code';
+  timeline_item_type: 'internal_code' | 'human_instruction';
   title: string;
+  code_snippet_and_analysis?: string;
+  is_active?: boolean;
   is_most_important_event?: boolean;
+  relevant_code_file?: AutofixRelevantCodeFile;
 };
 
 export type AutofixRootCauseData = {
