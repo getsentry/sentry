@@ -14,7 +14,9 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
+    DoesNotFollowJavaPackageNamingConvention,
     FrameInfo,
+    MissingModuleOrAbsPath,
     NeedsExtension,
     UnexpectedPathException,
     UnsupportedFrameInfo,
@@ -123,6 +125,63 @@ class TestFrameInfo:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
             with pytest.raises(NeedsExtension):
                 FrameInfo({"filename": filepath})
+
+    @pytest.mark.parametrize(
+        "frame, expected_exception",
+        [
+            pytest.param({}, MissingModuleOrAbsPath, id="no_module"),
+            pytest.param({"module": "foo"}, MissingModuleOrAbsPath, id="no_abs_path"),
+            pytest.param(
+                # Classes without declaring a package are placed in
+                # the unnamed package which cannot be imported.
+                # https://docs.oracle.com/javase/specs/jls/se8/html/jls-7.html#jls-7.4.2
+                {"module": "NoPackageName", "abs_path": "OtherActivity.java"},
+                DoesNotFollowJavaPackageNamingConvention,
+                id="unnamed_package",
+            ),
+        ],
+    )
+    def test_java_raises_exception(
+        self, frame: dict[str, Any], expected_exception: type[Exception]
+    ) -> None:
+        with pytest.raises(expected_exception):
+            FrameInfo(frame, "java")
+
+    @pytest.mark.parametrize(
+        "frame, expected_stack_root, expected_normalized_path",
+        [
+            pytest.param(
+                {"module": "foo.bar.Baz$handle$1", "abs_path": "baz.java"},
+                "foo/bar",
+                "foo/bar/baz.java",
+                id="dollar_symbol_in_module",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "baz.extra.java"},
+                "foo/bar",
+                "foo/bar/baz.extra.java",
+                id="two_dots_in_abs_path",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "no_extension"},
+                "foo/bar",
+                "foo/bar/Baz",  # The path does not use the abs_path
+                id="invalid_abs_path_no_extension",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "foo$bar"},
+                "foo/bar",
+                "foo/bar/Baz",  # The path does not use the abs_path
+                id="invalid_abs_path_dollar_sign",
+            ),
+        ],
+    )
+    def test_java_valid_frames(
+        self, frame: dict[str, Any], expected_stack_root: str, expected_normalized_path: str
+    ) -> None:
+        frame_info = FrameInfo(frame, "java")
+        assert frame_info.stack_root == expected_stack_root
+        assert frame_info.normalized_path == expected_normalized_path
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",
@@ -453,36 +512,37 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             organization_integration=self.oi,
             project=self.project,
             repo=self.repo,
-            # XXX: Discuss support for dot notation
-            # XXX: Discuss support for forgetting a last back slash
             stack_root="com/example/",
             source_root="src/com/example/",
             automatically_generated=False,
         )
-        assert (
-            convert_stacktrace_frame_path_to_source_path(
-                frame=EventFrame(
-                    filename="MainActivity.java",
-                    module="com.example.vu.android.MainActivity",
-                ),
-                code_mapping=code_mapping,
-                platform="java",
-                sdk_name="sentry.java.android",
+        for module, abs_path, expected_path in [
+            (
+                "com.example.vu.android.MainActivity",
+                "MainActivity.java",
+                "src/com/example/vu/android/MainActivity.java",
+            ),
+            (
+                "com.example.vu.android.MainActivity$$ExternalSyntheticLambda4",
+                "D8$$SyntheticClass",
+                # Extension not appended since abs_path did not contain one
+                "src/com/example/vu/android/MainActivity",
+            ),
+            (
+                "com.example.vu.android.empowerplant.MainFragment$3$1",
+                "MainFragment.java",
+                "src/com/example/vu/android/empowerplant/MainFragment.java",
+            ),
+        ]:
+            assert (
+                convert_stacktrace_frame_path_to_source_path(
+                    frame=EventFrame(filename=abs_path, abs_path=abs_path, module=module),
+                    code_mapping=code_mapping,
+                    platform="java",
+                    sdk_name="sentry.java.android",
+                )
+                == expected_path
             )
-            == "src/com/example/vu/android/MainActivity.java"
-        )
-        assert (
-            convert_stacktrace_frame_path_to_source_path(
-                frame=EventFrame(
-                    filename="D8$$SyntheticClass",
-                    module="com.example.vu.android.MainActivity$$ExternalSyntheticLambda4",
-                ),
-                code_mapping=code_mapping,
-                platform="java",
-                sdk_name="sentry.java.android",
-            )
-            == "src/com/example/vu/android/MainActivity.java"
-        )
 
     def test_convert_stacktrace_frame_path_to_source_path_backslashes(self) -> None:
         assert (
