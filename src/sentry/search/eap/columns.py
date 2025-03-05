@@ -4,6 +4,10 @@ from datetime import datetime
 from typing import Any
 
 from dateutil.tz import tz
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -77,29 +81,12 @@ class ArgumentDefinition:
     argument_types: set[constants.SearchType] | None = None
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
+    # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
+    is_attribute: bool = True
+    # Validator to check if the value is allowed for this argument
+    validator: Callable[[Any], Any] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
-
-
-@dataclass
-class FunctionDefinition:
-    internal_function: Function.ValueType
-    # The list of arguments for this function
-    arguments: list[ArgumentDefinition]
-    # The search_type the argument should be the default type for this column
-    default_search_type: constants.SearchType
-    # Try to infer the search type from the function arguments
-    infer_search_type_from_arguments: bool = True
-    # The internal rpc type for this function, optional as it can mostly be inferred from search_type
-    internal_type: AttributeKey.Type.ValueType | None = None
-    # Processor is the function run in the post process step to transform a row into the final result
-    processor: Callable[[Any], Any] | None = None
-    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
-    extrapolation: bool = True
-
-    @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
-        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
 @dataclass
@@ -119,6 +106,45 @@ class VirtualColumnDefinition:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedFunction(ResolvedAttribute):
+    """
+    A Function should be used as a non-attribute column, this means an aggregate or formula is a type of function.
+    The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
+    """
+
+    @property
+    def proto_definition(
+        self,
+    ) -> Column.BinaryFormula | AttributeAggregation | AttributeConditionalAggregation:
+        raise NotImplementedError()
+
+    @property
+    def proto_type(self) -> AttributeKey.Type.ValueType:
+        return constants.DOUBLE
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedFormula(ResolvedFunction):
+    """
+    A formula is a type of function that may accept a parameter, it divides an attribute, aggregate or formula by another.
+    The FormulaDefinition contains a method `resolve`, which takes in the argument passed into the function and returns the resolved formula.
+    For example if the user queries for `http_response_rate(5), the FormulaDefinition calles `resolve` with the argument `5` and returns the `ResolvedFormula`.
+    """
+
+    formula: Column.BinaryFormula
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        """The definition of this function as needed by the RPC"""
+        return self.formula
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedAggregate(ResolvedFunction):
+    """
+    An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
+    Examples of this are `sum()` and `avg()`.
+    """
+
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
@@ -138,13 +164,80 @@ class ResolvedFunction(ResolvedAttribute):
             ),
         )
 
-    @property
-    def proto_type(self) -> AttributeKey.Type.ValueType:
-        """The rpc always returns functions as floats, especially count() even though it should be an integer
 
-        see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
-        """
-        return constants.DOUBLE
+@dataclass(kw_only=True)
+class FunctionDefinition:
+    """
+    The FunctionDefinition is a base class for defining a function, a function is a non-attribute column.
+    """
+
+    # The list of arguments for this function
+    arguments: list[ArgumentDefinition]
+    # The search_type the argument should be the default type for this column
+    default_search_type: constants.SearchType
+    # Try to infer the search type from the function arguments
+    infer_search_type_from_arguments: bool = True
+    # The internal rpc type for this function, optional as it can mostly be inferred from search_type
+    internal_type: AttributeKey.Type.ValueType | None = None
+    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    extrapolation: bool = True
+    # Processor is the function run in the post process step to transform a row into the final result
+    processor: Callable[[Any], Any] | None = None
+
+    @property
+    def required_arguments(self) -> list[ArgumentDefinition]:
+        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_argument: AttributeKey | Any | None,
+    ) -> ResolvedFormula | ResolvedAggregate:
+        raise NotImplementedError()
+
+
+@dataclass(kw_only=True)
+class AggregateDefinition(FunctionDefinition):
+    internal_function: Function.ValueType
+
+    def resolve(
+        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+    ) -> ResolvedAggregate:
+        return ResolvedAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            extrapolation=self.extrapolation,
+            argument=resolved_argument,
+        )
+
+
+@dataclass(kw_only=True)
+class FormulaDefinition(FunctionDefinition):
+    # A function that takes in the resolved argument and returns a Column.BinaryFormula
+    formula_resolver: Callable[[Any], Column.BinaryFormula]
+
+    @property
+    def required_arguments(self) -> list[ArgumentDefinition]:
+        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_argument: AttributeKey | Any | None,
+    ) -> ResolvedFormula:
+        return ResolvedFormula(
+            public_alias=alias,
+            search_type=search_type,
+            formula=self.formula_resolver(resolved_argument),
+            argument=resolved_argument,
+            internal_type=self.internal_type,
+            processor=self.processor,
+        )
 
 
 def simple_sentry_field(field) -> ResolvedColumn:
@@ -197,7 +290,8 @@ def project_term_resolver(
 
 @dataclass(frozen=True)
 class ColumnDefinitions:
-    functions: dict[str, FunctionDefinition]
+    aggregates: dict[str, AggregateDefinition]
+    formulas: dict[str, FormulaDefinition]
     columns: dict[str, ResolvedColumn]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType

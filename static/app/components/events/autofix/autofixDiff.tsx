@@ -4,6 +4,7 @@ import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import {TextArea} from 'sentry/components/core/textarea';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
@@ -12,7 +13,6 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
-import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';

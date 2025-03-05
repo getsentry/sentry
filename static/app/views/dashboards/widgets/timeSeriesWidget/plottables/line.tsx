@@ -1,31 +1,30 @@
 import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {splitSeriesIntoCompleteAndIncomplete} from 'sentry/utils/timeSeries/splitSeriesIntoCompleteAndIncomplete';
+import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
-import type {TimeSeries} from '../../common/types';
-import {splitSeriesIntoCompleteAndIncomplete} from '../splitSeriesIntoCompleteAndIncomplete';
-import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
+import {
+  ContinuousTimeSeries,
+  type ContinuousTimeSeriesPlottingOptions,
+} from './continuousTimeSeries';
+import type {Plottable} from './plottable';
 
-import {Plottable} from './plottable';
+export class Line extends ContinuousTimeSeries implements Plottable {
+  toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
+    const {timeSeries, config = {}} = this;
 
-interface LineOptions {
-  color?: string;
-  dataCompletenessDelay?: number;
-}
+    const color = plottingOptions.color ?? config.color ?? undefined;
+    const scaledSeries = this.scaleToUnit(plottingOptions.unit);
 
-export class Line extends Plottable<LineOptions> {
-  toSeries(timeSeries: TimeSeries, options: LineOptions) {
     const [completeTimeSeries, incompleteTimeSeries] =
-      splitSeriesIntoCompleteAndIncomplete(
-        timeSeries,
-        options.dataCompletenessDelay ?? 0
-      );
+      splitSeriesIntoCompleteAndIncomplete(scaledSeries, config.delay ?? 0);
 
     const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions = {
       name: timeSeries.field,
-      color: options.color,
+      color,
       animation: false,
     };
 

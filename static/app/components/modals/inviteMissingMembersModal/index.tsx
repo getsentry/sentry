@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';

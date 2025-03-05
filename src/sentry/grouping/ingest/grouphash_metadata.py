@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 import random
+from datetime import datetime
 from typing import Any, TypeIs, cast
 
-from sentry import features, options
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
@@ -109,9 +110,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 
 def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
     # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled") or not features.has(
-        "organizations:grouphash-metadata-creation", project.organization
-    ):
+    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
         return False
 
     # While we're backfilling metadata for existing grouphash records, if the load is too high, we
@@ -154,6 +153,13 @@ def create_or_update_grouphash_metadata_if_needed(
                     "hash": grouphash.hash,
                 },
             )
+            # If we've lost the race (to some other event with the same grouphash), our
+            # `grouphash.metadata` pointer may not point to a real record in the database, in which
+            # case we won't be able to store Seer results (if any). However, the fact that we lost
+            # implies that some other event won, and will be able to store the results. Given that,
+            # it's best to not call Seer at all with this event, both to avoid problems storing the
+            # results and to reduce load and preserve the project's Seer rate limit.
+            event.should_skip_seer = True
             return
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
@@ -171,11 +177,12 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Keep track of the most recent config which computed this hash, so that once a config is
         # deprecated, we can clear out the GroupHash records which are no longer being produced
-        if grouphash.metadata.latest_grouping_config != grouping_config:
+        current_latest_config = grouphash.metadata.latest_grouping_config
+        if _is_incoming_config_newer_than_current_latest(grouping_config, current_latest_config):
             updated_data = {"latest_grouping_config": grouping_config}
             db_hit_metadata = {
                 "reason": "old_grouping_config",
-                "current_config": grouphash.metadata.latest_grouping_config,
+                "current_config": current_latest_config,
                 "new_config": grouping_config,
             }
 
@@ -217,7 +224,8 @@ def create_or_update_grouphash_metadata_if_needed(
             logger.info(
                 "grouping.grouphash_metadata.handle_existing_grouphash",
                 extra={
-                    "grouphash": grouphash.id,
+                    "grouphash_id": grouphash.id,
+                    "hash": grouphash.hash,
                     "group_id": grouphash.group_id,
                     "reason": db_hit_metadata["reason"],
                 },
@@ -565,3 +573,28 @@ def check_grouphashes_for_positive_fingerprint_match(
         return False
 
     return fingerprint1 == fingerprint2
+
+
+def _is_incoming_config_newer_than_current_latest(
+    incoming_config: str | None, latest_config: str | None
+) -> bool:
+    # Handle records created before we were storing config
+    if latest_config is None:
+        return True
+    # This shouldn't happen, but just in case
+    if incoming_config is None:
+        return False
+
+    def _extract_date(config_id: str) -> datetime:
+        date_str = config_id.split(":")[1]
+        return datetime.fromisoformat(date_str)
+
+    try:
+        return _extract_date(incoming_config) > _extract_date(latest_config)
+    except Exception:
+        logger.exception(
+            "Unable to compare grouping config dates from configs '%s' and '%s'",
+            incoming_config,
+            latest_config,
+        )
+        return False

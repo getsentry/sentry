@@ -477,13 +477,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Separate compute and IO.
-register(
-    "replay.consumer.separate-compute-and-io-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Used for internal dogfooding of a reduced timeout on rage/dead clicks.
 register(
     "replay.rage-click.experimental-timeout.org-id-list",
@@ -870,6 +863,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of platforms that will run in dry-run mode by default.
+register(
+    "issues.auto_source_code_config.dry-run-platforms",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 #  Percentage of orgs that will be put into a bucket using the split rate below.
 register(
@@ -2102,8 +2102,12 @@ register(
 )
 
 # Killswitch for monitor check-ins
-register("crons.organization.disable-check-in", type=Sequence, default=[])
-
+register(
+    "crons.organization.disable-check-in",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Temporary killswitch to enable dispatching incident occurrences into the
 # incident_occurrence_consumer
@@ -2155,6 +2159,20 @@ register(
     "crons.system_incidents.tick_decision_window",
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Determines how many check-ins per-minute will be allowed per monitor. This is
+# used when computing the QuotaConfig for the DataCategory.MONITOR (check-ins)
+#
+# See the sentry.monitors.rate_limt module for more details.
+#
+# XXX(epurkhiser): Remember a single check-in may often consist of two check-in
+# messages, one for IN_PROGRESS and another for OK.
+register(
+    "crons.per_monitor_rate_limit",
+    type=Int,
+    default=6,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -2660,6 +2678,11 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.detect-performance-problems.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.profile-process-messages.rate",
     type=Float,
     default=0.0,
@@ -3077,4 +3100,21 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.demo_mode.sync_artifact_bundles.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.source_org_id",
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.lookback_days",
+    default=1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

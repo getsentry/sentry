@@ -4,7 +4,6 @@ import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -13,6 +12,7 @@ import type {
   SelectSection,
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Checkbox, type CheckboxProps} from 'sentry/components/core/checkbox';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ export interface HybridFilterProps<Value extends SelectKey>
   onChange: (selected: Value[]) => void;
   value: Value[];
   checkboxWrapper?: (
-    renderCheckbox: (props: React.ComponentProps<typeof Checkbox>) => React.ReactNode
+    renderCheckbox: (props: CheckboxProps) => React.ReactNode
   ) => React.ReactNode;
   /**
    * Whether to disable the commit action in multiple selection mode. When true, the
@@ -174,7 +174,7 @@ export function HybridFilter<Value extends SelectKey>({
       ...option,
       hideCheck: true,
       trailingItems: ({isFocused, isSelected, disabled}) => {
-        function TrailingCheckbox(props: React.ComponentProps<typeof Checkbox>) {
+        function TrailingCheckbox(props: CheckboxProps) {
           return (
             <CheckWrap
               visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}

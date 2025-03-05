@@ -163,7 +163,7 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 export const COLUMN_BREAKPOINTS = {
   ISSUE: undefined, // Issue column is always visible
   TREND: commonTheme.breakpoints.small,
-  AGE: commonTheme.breakpoints.xlarge,
+  LIFESPAN: commonTheme.breakpoints.medium,
   SEEN: commonTheme.breakpoints.xlarge,
   EVENTS: commonTheme.breakpoints.medium,
   USERS: commonTheme.breakpoints.medium,

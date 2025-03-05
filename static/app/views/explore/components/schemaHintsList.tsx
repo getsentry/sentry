@@ -31,13 +31,11 @@ function SchemaHintsList({
     return tags;
   }, [numberTags, stringTags, functionTags]);
 
-  const filterTagsWithoutTagPrefix = useMemo(() => {
-    return Object.keys(filterTags)
-      .map(tag => filterTags[tag])
-      .filter(tag => !tag?.key.startsWith('tags['));
+  const filterTagsList = useMemo(() => {
+    return Object.keys(filterTags).map(tag => filterTags[tag]);
   }, [filterTags]);
 
-  const [visibleHints, setVisibleHints] = useState(filterTagsWithoutTagPrefix);
+  const [visibleHints, setVisibleHints] = useState(filterTagsList);
 
   useEffect(() => {
     const calculateVisibleHints = () => {
@@ -50,7 +48,7 @@ function SchemaHintsList({
       const gap = 8;
       const averageHintWidth = 250;
 
-      const visibleItems = filterTagsWithoutTagPrefix.filter((_hint, index) => {
+      const visibleItems = filterTagsList.filter((_hint, index) => {
         const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
         if (!element) {
           if (containerWidth - currentWidth >= averageHintWidth) {
@@ -77,7 +75,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [filterTagsWithoutTagPrefix]);
+  }, [filterTagsList]);
 
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>

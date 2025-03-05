@@ -34,7 +34,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravelOverviewPage';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -121,11 +121,7 @@ function GenericBackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
   const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields

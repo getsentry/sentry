@@ -230,13 +230,7 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
-            if (
-                features.has(
-                    "organizations:slack-threads-refactor-uptime",
-                    group.organization,
-                )
-                and group.issue_category == GroupCategory.UPTIME
-            ):
+            if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
                 if features.has(
