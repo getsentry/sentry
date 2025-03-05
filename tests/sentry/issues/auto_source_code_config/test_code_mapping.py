@@ -14,7 +14,9 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
+    DoesNotFollowJavaPackageNamingConvention,
     FrameInfo,
+    MissingModuleOrAbsPath,
     NeedsExtension,
     UnexpectedPathException,
     UnsupportedFrameInfo,
@@ -123,6 +125,63 @@ class TestFrameInfo:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
             with pytest.raises(NeedsExtension):
                 FrameInfo({"filename": filepath})
+
+    @pytest.mark.parametrize(
+        "frame, expected_exception",
+        [
+            pytest.param({}, MissingModuleOrAbsPath, id="no_module"),
+            pytest.param({"module": "foo"}, MissingModuleOrAbsPath, id="no_abs_path"),
+            pytest.param(
+                # Classes without declaring a package are placed in
+                # the unnamed package which cannot be imported.
+                # https://docs.oracle.com/javase/specs/jls/se8/html/jls-7.html#jls-7.4.2
+                {"module": "NoPackageName", "abs_path": "OtherActivity.java"},
+                DoesNotFollowJavaPackageNamingConvention,
+                id="unnamed_package",
+            ),
+        ],
+    )
+    def test_java_raises_exception(
+        self, frame: dict[str, Any], expected_exception: type[Exception]
+    ) -> None:
+        with pytest.raises(expected_exception):
+            FrameInfo(frame, "java")
+
+    @pytest.mark.parametrize(
+        "frame, expected_stack_root, expected_normalized_path",
+        [
+            pytest.param(
+                {"module": "foo.bar.Baz$handle$1", "abs_path": "baz.java"},
+                "foo/bar",
+                "foo/bar/baz.java",
+                id="dollar_symbol_in_module",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "baz.extra.java"},
+                "foo/bar",
+                "foo/bar/baz.extra.java",
+                id="two_dots_in_abs_path",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "no_extension"},
+                "foo/bar",
+                "foo/bar/Baz",  # The path does not use the abs_path
+                id="invalid_abs_path_no_extension",
+            ),
+            pytest.param(
+                {"module": "foo.bar.Baz", "abs_path": "foo$bar"},
+                "foo/bar",
+                "foo/bar/Baz",  # The path does not use the abs_path
+                id="invalid_abs_path_dollar_sign",
+            ),
+        ],
+    )
+    def test_java_valid_frames(
+        self, frame: dict[str, Any], expected_stack_root: str, expected_normalized_path: str
+    ) -> None:
+        frame_info = FrameInfo(frame, "java")
+        assert frame_info.stack_root == expected_stack_root
+        assert frame_info.normalized_path == expected_normalized_path
 
     @pytest.mark.parametrize(
         "frame_filename, prefix",

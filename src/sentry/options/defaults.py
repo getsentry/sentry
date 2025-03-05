@@ -870,6 +870,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of platforms that will run in dry-run mode by default.
+register(
+    "issues.auto_source_code_config.dry-run-platforms",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 #  Percentage of orgs that will be put into a bucket using the split rate below.
 register(
