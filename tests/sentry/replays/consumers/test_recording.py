@@ -22,7 +22,6 @@ from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.options import override_options
 
 
 def test_multiprocessing_strategy():
@@ -512,72 +511,3 @@ class RecordingBufferedTestCase(RecordingTestCase):
             max_buffer_size_in_bytes=1000,
             max_buffer_time_in_seconds=1000,
         )
-
-
-class SeparateIOComputeRecordingTestCase(RecordingTestCase):
-
-    def test_compressed_segment_ingestion(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_compressed_segment_ingestion()
-
-    def test_event_with_replay_video(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_event_with_replay_video()
-
-    def test_event_with_replay_video_packed(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_event_with_replay_video_packed()
-
-    def test_uncompressed_segment_ingestion(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_uncompressed_segment_ingestion()
-
-    def test_invalid_json(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_json()
-
-    def test_invalid_payload_invalid_headers(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_payload_invalid_headers()
-
-    def test_invalid_payload_invalid_unicode_codepoint(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_payload_invalid_unicode_codepoint()
-
-    def test_invalid_payload_malformed_headers(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_payload_malformed_headers()
-
-    def test_invalid_payload_missing_headers(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_payload_missing_headers()
-
-    def test_invalid_payload_type(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_payload_type()
-
-    def test_invalid_message(self):
-        with override_options(
-            {"replay.consumer.separate-compute-and-io-org-ids": [self.organization.id]}
-        ):
-            super().test_invalid_message()

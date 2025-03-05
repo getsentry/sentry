@@ -406,7 +406,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable feature to load quota exceeded banner in new trace view.
     manager.add("organizations:trace-view-quota-exceeded-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use span only trace endpoint.
-    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new traces onboarding guide.
     manager.add("organizations:traces-onboarding-guide", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load traces schema hints.

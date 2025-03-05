@@ -3,10 +3,9 @@ import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Input} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 function CommandPalette({Body}: ModalRenderProps) {
@@ -38,15 +37,13 @@ function CommandPalette({Body}: ModalRenderProps) {
                 border-top: 1px solid ${theme.border};
               `}
             renderInput={({getInputProps}) => (
-              <InputWrapper>
-                <StyledInput
-                  autoFocus
-                  {...getInputProps({
-                    type: 'text',
-                    placeholder: t('Search for projects, teams, settings, etc\u{2026}'),
-                  })}
-                />
-              </InputWrapper>
+              <InputWithoutFocusStyles
+                autoFocus
+                {...getInputProps({
+                  type: 'text',
+                  placeholder: t('Search for projects, teams, settings, etc\u{2026}'),
+                })}
+              />
             )}
           />
         )}
@@ -57,30 +54,18 @@ function CommandPalette({Body}: ModalRenderProps) {
 
 export default CommandPalette;
 
-export const modalCss = css`
-  [role='document'] {
-    padding: 0;
+const InputWithoutFocusStyles = styled(InputGroup.Input)`
+  &:focus,
+  &:active,
+  &:hover {
+    outline: none;
+    box-shadow: none;
+    border: none;
   }
 `;
 
-const InputWrapper = styled('div')`
-  padding: ${space(0.25)};
-`;
-
-const StyledInput = styled(Input)`
-  width: 100%;
-  padding: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-
-  outline: none;
-  border: none;
-  box-shadow: none;
-
-  :focus,
-  :active,
-  :hover {
-    outline: none;
-    border: none;
-    box-shadow: none;
+export const modalCss = css`
+  [role='document'] {
+    padding: 0;
   }
 `;

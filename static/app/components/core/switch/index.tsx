@@ -1,109 +1,119 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-export interface SwitchProps {
-  toggle: React.MouseEventHandler<HTMLButtonElement>;
-  className?: string;
-  /**
-   * Toggle color is always active.
-   */
-  forceActiveColor?: boolean;
-  id?: string;
-  isActive?: boolean;
-  isDisabled?: boolean;
-  name?: string;
+export interface SwitchProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'> {
   size?: 'sm' | 'lg';
 }
 
-export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
-  (
-    {
-      size = 'sm',
-      isActive,
-      forceActiveColor,
-      isDisabled,
-      toggle,
-      id,
-      name,
-      className,
-      ...props
-    }: SwitchProps,
-    ref
-  ) => {
+export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
+  ({size = 'sm', ...props}: SwitchProps, ref) => {
     return (
-      <SwitchButton
-        ref={ref}
-        id={id}
-        name={name}
-        type="button"
-        className={className}
-        onClick={isDisabled ? undefined : toggle}
-        role="checkbox"
-        aria-checked={isActive}
-        disabled={isDisabled}
-        isActive={isActive}
-        size={size}
-        data-test-id="switch"
-        {...props}
-      >
-        <Toggle
-          isDisabled={isDisabled}
-          isActive={isActive}
-          forceActiveColor={forceActiveColor}
-          size={size}
-        />
-      </SwitchButton>
+      <SwitchWrapper>
+        {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
+         * so we need to use a different name, or somehow tell emotion to not create a type intersection.
+         */}
+        <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
+        <FakeCheckbox size={size}>
+          <FakeCheckboxButton size={size} />
+        </FakeCheckbox>
+      </SwitchWrapper>
     );
   }
 );
 
-type StyleProps = Pick<
-  SwitchProps,
-  'size' | 'isActive' | 'forceActiveColor' | 'isDisabled'
->;
+const ToggleConfig = {
+  sm: {
+    size: 12,
+    top: 1,
+  },
+  lg: {
+    size: 16,
+    top: 3,
+  },
+};
 
-const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
-const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 4 : 8);
-const getToggleTop = (p: StyleProps) => (p.size === 'sm' ? 1 : 3);
-const getTranslateX = (p: StyleProps) =>
-  p.isActive ? getToggleTop(p) + getSize(p) * 0.875 : getToggleTop(p);
+const ToggleWrapperSize = {
+  sm: 16,
+  lg: 24,
+};
 
-const SwitchButton = styled('button')<StyleProps>`
-  display: inline-block;
-  background: none;
-  padding: 0;
-  border: 1px solid ${p => p.theme.border};
+const SwitchWrapper = styled('div')`
   position: relative;
-  box-shadow: inset ${p => p.theme.dropShadowMedium};
-  height: ${getSize}px;
-  width: ${p => getSize(p) * 1.875}px;
-  border-radius: ${getSize}px;
-  transition:
-    border 0.1s,
-    box-shadow 0.1s;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: flex-start;
+`;
 
-  &[disabled] {
-    cursor: not-allowed;
+const NativeHiddenCheckbox = styled('input')<{
+  nativeSize: NonNullable<SwitchProps['size']>;
+}>`
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+
+  & + div {
+    > div {
+      background: ${p => p.theme.border};
+      transform: translateX(${p => ToggleConfig[p.nativeSize].top}px);
+    }
   }
 
-  &:focus,
-  &:focus-visible {
+  &:checked + div {
+    > div {
+      background: ${p => p.theme.active};
+      transform: translateX(
+        ${p => ToggleConfig[p.nativeSize].top + ToggleWrapperSize[p.nativeSize] * 0.875}px
+      );
+    }
+  }
+
+  &:focus + div,
+  &:focus-visible + div {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
   }
+
+  &:disabled {
+    cursor: not-allowed;
+
+    + div {
+      opacity: 0.4;
+    }
+  }
 `;
 
-const Toggle = styled('span')<StyleProps>`
-  display: block;
+const FakeCheckbox = styled('div')<{
+  size: NonNullable<SwitchProps['size']>;
+}>`
+  position: relative;
+  display: inline-block;
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
+  height: ${p => ToggleWrapperSize[p.size]}px;
+  width: ${p => ToggleWrapperSize[p.size] * 1.875}px;
+  border-radius: ${p => ToggleWrapperSize[p.size]}px;
+  pointer-events: none;
+
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
+`;
+
+const FakeCheckboxButton = styled('div')<{
+  size: NonNullable<SwitchProps['size']>;
+}>`
   position: absolute;
-  border-radius: 50%;
   transition: 0.25s all ease;
-  top: ${getToggleTop}px;
-  transform: translateX(${getTranslateX}px);
-  width: ${getToggleSize}px;
-  height: ${getToggleSize}px;
-  background: ${p =>
-    p.isActive || p.forceActiveColor ? p.theme.active : p.theme.border};
-  opacity: ${p => (p.isDisabled ? 0.4 : null)};
+  border-radius: 50%;
+  top: ${p => ToggleConfig[p.size].top}px;
+  width: ${p => ToggleConfig[p.size].size}px;
+  height: ${p => ToggleConfig[p.size].size}px;
 `;

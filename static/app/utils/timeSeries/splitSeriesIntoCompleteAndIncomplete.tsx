@@ -1,6 +1,9 @@
 import partition from 'lodash/partition';
 
-import type {TimeSeries, TimeSeriesItem} from '../common/types';
+import type {
+  TimeSeries,
+  TimeSeriesItem,
+} from 'sentry/views/dashboards/widgets/common/types';
 
 import {markDelayedData} from './markDelayedData';
 

@@ -5,11 +5,6 @@ export type TourEnumType = string | number;
 
 export interface TourStep<T extends TourEnumType> {
   /**
-   * The element to focus on when the tour step is active.
-   * This is usually set within the TourElement component, which wraps the focused element.
-   */
-  element: HTMLElement | null;
-  /**
    * Unique ID for the tour step.
    */
   id: T;
@@ -36,6 +31,10 @@ type TourSetRegistrationAction = {
   isRegistered: boolean;
   type: 'SET_REGISTRATION';
 };
+type TourSetCompletionAction = {
+  isCompleted: boolean;
+  type: 'SET_COMPLETION';
+};
 
 export type TourAction<T extends TourEnumType> =
   | TourStartAction<T>
@@ -43,7 +42,8 @@ export type TourAction<T extends TourEnumType> =
   | TourPreviousStepAction
   | TourSetStepAction<T>
   | TourEndAction
-  | TourSetRegistrationAction;
+  | TourSetRegistrationAction
+  | TourSetCompletionAction;
 
 export interface TourState<T extends TourEnumType> {
   /**
@@ -55,6 +55,10 @@ export interface TourState<T extends TourEnumType> {
    */
   isAvailable: boolean;
   /**
+   * Whether the tour has been completed.
+   */
+  isCompleted: boolean;
+  /**
    * Whether every step of the tour has been registered in the DOM.
    */
   isRegistered: boolean;
@@ -64,6 +68,8 @@ export interface TourState<T extends TourEnumType> {
   orderedStepIds: readonly T[];
 }
 
+// XXX: TourSteps are currently just IDs, so we could use a set here instead, but we're using a
+// dictionary in case we ever want to add more data to the steps.
 type TourRegistry<T extends TourEnumType> = {
   [key in T]: TourStep<T> | null;
 };
@@ -72,7 +78,7 @@ function tourReducer<T extends TourEnumType>(
   state: TourState<T>,
   action: TourAction<T>
 ): TourState<T> {
-  const completeTourState = {...state, currentStepId: null};
+  const completeTourState = {...state, currentStepId: null, isCompleted: true};
   switch (action.type) {
     case 'START_TOUR': {
       // If the tour is not available, or not all steps are registered, do nothing
@@ -86,6 +92,7 @@ function tourReducer<T extends TourEnumType>(
       if (action.stepId && startStepIndex !== -1) {
         return {
           ...state,
+          isCompleted: false,
           currentStepId: action.stepId ?? null,
         };
       }
@@ -93,6 +100,7 @@ function tourReducer<T extends TourEnumType>(
       if (state.orderedStepIds[0]) {
         return {
           ...state,
+          isCompleted: false,
           currentStepId: state.orderedStepIds[0] ?? null,
         };
       }
@@ -135,6 +143,8 @@ function tourReducer<T extends TourEnumType>(
       };
     case 'END_TOUR':
       return completeTourState;
+    case 'SET_COMPLETION':
+      return {...state, isCompleted: action.isCompleted};
     case 'SET_REGISTRATION':
       return {...state, isRegistered: action.isRegistered};
     default:
@@ -174,6 +184,7 @@ export function useTourReducer<T extends TourEnumType>(
       currentStepId: state.currentStepId,
       isAvailable: state.isAvailable,
       isRegistered: state.isRegistered,
+      isCompleted: state.isCompleted,
       orderedStepIds: state.orderedStepIds,
     }),
     [
@@ -182,6 +193,7 @@ export function useTourReducer<T extends TourEnumType>(
       state.currentStepId,
       state.isAvailable,
       state.isRegistered,
+      state.isCompleted,
       state.orderedStepIds,
     ]
   );

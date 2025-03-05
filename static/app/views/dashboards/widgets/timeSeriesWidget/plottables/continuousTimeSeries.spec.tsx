@@ -7,7 +7,7 @@ import type {Plottable} from './plottable';
 
 describe('ContinuousTimeSeries', () => {
   describe('isEmpty', () => {
-    it('plottables as not empty', () => {
+    it('marks normal plottables as not empty', () => {
       const timeSeries = TimeSeriesFixture();
 
       const plottable = new Dots(timeSeries);

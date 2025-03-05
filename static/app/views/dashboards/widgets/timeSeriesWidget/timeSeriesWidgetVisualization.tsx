@@ -33,11 +33,11 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {Aliases, LegendSelection, Release} from '../common/types';
 
+import {formatSeriesName} from './formatters/formatSeriesName';
+import {formatTooltipValue} from './formatters/formatTooltipValue';
+import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
+import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
-import {formatSeriesName} from './formatSeriesName';
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatXAxisTimestamp} from './formatXAxisTimestamp';
-import {formatYAxisValue} from './formatYAxisValue';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
