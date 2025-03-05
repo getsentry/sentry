@@ -248,7 +248,7 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('transaction.duration');
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
   });
 
@@ -272,17 +272,46 @@ describe('Visualize', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'field (no aggregate)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'field'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    // The column selection is automatically opened for aggregates
     await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'transaction.duration'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
+  });
+
+  it('automatically opens the column selection for aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p50'}));
+
+    // Indicate that the column selection is open, and multiple options are available
+    expect(
+      screen.getByRole('option', {name: 'transaction.duration'})
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
 
   it('allows setting an equation in tables', async () => {
@@ -600,11 +629,9 @@ describe('Visualize', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
 
-    // Being unable to choose "field (no aggregate)" in the aggregate selection means that the
+    // Being unable to choose "field" in the aggregate selection means that the
     // individual field is not allowed, i.e. only aggregates appear.
-    expect(
-      screen.queryByRole('option', {name: 'field (no aggregate)'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'field'})).not.toBeInTheDocument();
   });
 
   it('updates only the selected field', async () => {
@@ -1006,7 +1033,7 @@ describe('Visualize', () => {
 
     // Component automatically populates the selection as a column
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'message'
@@ -1068,6 +1095,38 @@ describe('Visualize', () => {
     ).toHaveTextContent('crash_free_rate');
   });
 
+  it('shows all of the fields as columns but disables the ones that are not valid for the aggregate', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['p50(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
+    // Assert options that are strings, not typically valid for p50, are rendered but disabled
+    expect(screen.getByRole('option', {name: 'message'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'message'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    const options = screen.getAllByText('string');
+    expect(options.length).toBeGreaterThan(1);
+    expect(
+      new Set(options.map(option => option.closest('li')?.getAttribute('aria-disabled')))
+    ).toEqual(new Set(['true']));
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
@@ -1121,7 +1180,9 @@ describe('Visualize', () => {
 
       const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
-      expect(within(listbox).queryByText('span.description')).not.toBeInTheDocument();
+      expect(
+        within(listbox).getByRole('option', {name: 'span.description'})
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('shows the correct aggregate options', async () => {

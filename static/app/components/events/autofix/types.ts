@@ -47,12 +47,21 @@ export type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+export type AutofixUpdateEndpointResponse = {
+  run_id: number;
+  message?: string;
+  status?: 'success' | 'error';
+};
+
 export type AutofixRepository = {
   default_branch: string;
   external_id: string;
+  integration_id: string;
   name: string;
   provider: string;
   url: string;
+  is_readable?: boolean;
+  is_writeable?: boolean;
 };
 
 export type AutofixData = {
@@ -171,18 +180,18 @@ export type AutofixRelevantCodeFile = {
 
 export type AutofixTimelineEvent = {
   code_snippet_and_analysis: string;
-  is_most_important_event: boolean;
   relevant_code_file: AutofixRelevantCodeFile;
   timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
   title: string;
+  is_most_important_event?: boolean;
 };
 
 export type AutofixSolutionTimelineEvent = {
   code_snippet_and_analysis: string;
-  is_new_event: boolean;
   relevant_code_file: AutofixRelevantCodeFile;
-  timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
+  timeline_item_type: 'internal_code';
   title: string;
+  is_most_important_event?: boolean;
 };
 
 export type AutofixRootCauseData = {

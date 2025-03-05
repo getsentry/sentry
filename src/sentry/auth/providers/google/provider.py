@@ -35,6 +35,7 @@ class GoogleOAuth2Login(OAuth2Login):
 
 class GoogleOAuth2Provider(OAuth2Provider):
     name = "Google"
+    key = "google"
 
     def __init__(self, domain=None, domains=None, version=None, **config):
         if domain:
@@ -76,7 +77,7 @@ class GoogleOAuth2Provider(OAuth2Provider):
             FetchUser(domains=self.domains, version=self.version),
         ]
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):

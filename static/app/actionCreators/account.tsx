@@ -3,6 +3,7 @@ import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {User} from 'sentry/types/user';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(
@@ -46,11 +47,15 @@ export function updateUser(user: User | ChangeAvatarUser) {
   ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
-export async function logout(api: Client, redirectUrl = '/auth/login/') {
+export async function logout(api: Client, redirectUrl?: string) {
   const data = await api.requestPromise('/auth/', {method: 'DELETE'});
 
   // If there's a URL for SAML Single-logout, redirect back to IdP
-  window.location.assign(data?.sloUrl || redirectUrl);
+  window.location.assign(data?.sloUrl || getRedirectUrl(redirectUrl));
+}
+
+function getRedirectUrl(redirectUrl = '/auth/login/') {
+  return isDemoModeEnabled() ? 'https://sentry.io' : redirectUrl;
 }
 
 export function removeAuthenticator(api: Client, userId: string, authId: string) {

@@ -25,32 +25,69 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
   }
 
   if (confidence === 'low') {
-    return isTopN
-      ? tct(
-          '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample(s) ([lowAccuracy])',
+    if (isTopN) {
+      if (sampleCount === 1) {
+        return tct(
+          '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample ([lowAccuracy])',
           {
             topEvents,
             sampleCount: <Count value={sampleCount} />,
             lowAccuracy: <LowAccuracy />,
           }
-        )
-      : tct('* Chart extrapolated from [sampleCount] sample(s) ([lowAccuracy])', {
+        );
+      }
+      return tct(
+        '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples ([lowAccuracy])',
+        {
+          topEvents,
           sampleCount: <Count value={sampleCount} />,
           lowAccuracy: <LowAccuracy />,
-        });
+        }
+      );
+    }
+
+    if (sampleCount === 1) {
+      return tct('* Chart extrapolated from [sampleCount] sample ([lowAccuracy])', {
+        sampleCount: <Count value={sampleCount} />,
+        lowAccuracy: <LowAccuracy />,
+      });
+    }
+
+    return tct('* Chart extrapolated from [sampleCount] samples ([lowAccuracy])', {
+      sampleCount: <Count value={sampleCount} />,
+      lowAccuracy: <LowAccuracy />,
+    });
   }
 
-  return isTopN
-    ? tct(
-        '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample(s)',
+  if (isTopN) {
+    if (sampleCount === 1) {
+      return tct(
+        '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
         {
           topEvents,
           sampleCount: <Count value={sampleCount} />,
         }
-      )
-    : tct('* Chart extrapolated from [sampleCount] sample(s)', {
+      );
+    }
+
+    return tct(
+      '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples',
+      {
+        topEvents,
         sampleCount: <Count value={sampleCount} />,
-      });
+      }
+    );
+  }
+
+  if (sampleCount === 1) {
+    return tct('* Chart extrapolated from [sampleCount] sample', {
+      sampleCount: <Count value={sampleCount} />,
+    });
+  }
+
+  return tct('* Chart extrapolated from [sampleCount] samples', {
+    sampleCount: <Count value={sampleCount} />,
+  });
 }
 
 function LowAccuracy() {

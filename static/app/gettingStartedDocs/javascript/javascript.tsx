@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import {IntegrationOptions} from 'sentry/components/events/featureFlags/utils';
+import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -64,62 +64,128 @@ const platformOptions = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
-type FlagOptions = {
-  importStatement: string; // feature flag SDK import
-  integration: string; // what's in the integrations array
-  sdkInit: string; // code to register with feature flag SDK
+
+type FeatureFlagConfiguration = {
+  integrationName: string;
+  makeConfigureCode: (dsn: string) => string;
+  makeVerifyCode: () => string;
+  packageName: string;
 };
 
-const FLAG_OPTIONS: Record<IntegrationOptions, FlagOptions> = {
-  [IntegrationOptions.LAUNCHDARKLY]: {
-    importStatement: `import * as LaunchDarkly from 'launchdarkly-js-client-sdk';`,
-    integration: 'launchDarklyIntegration()',
-    sdkInit: `const ldClient = LaunchDarkly.initialize(
-    'my-client-ID',
-    {kind: 'user', key: 'my-user-context-key'},
-    {inspectors: [Sentry.buildLaunchDarklyFlagUsedHandler()]}
-);
+const FEATURE_FLAG_CONFIGURATION_MAP: Record<
+  FeatureFlagProviderEnum,
+  FeatureFlagConfiguration
+> = {
+  [FeatureFlagProviderEnum.GENERIC]: {
+    integrationName: `featureFlagsIntegration`,
+    packageName: '',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 
-// Evaluates a flag
-const flagVal = ldClient.variation('my-flag', false);`,
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [Sentry.featureFlagsIntegration()],
+});`,
+    makeVerifyCode:
+      () => `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
+if (flagsIntegration) {
+  flagsIntegration.addFeatureFlag("test-flag", false);
+} else {
+  // Something went wrong, check your DSN and/or integrations
+}
+Sentry.captureException(new Error("Something went wrong!"));`,
   },
-  [IntegrationOptions.OPENFEATURE]: {
-    importStatement: `import { OpenFeature } from '@openfeature/web-sdk';`,
-    integration: 'openFeatureIntegration()',
-    sdkInit: `const client = OpenFeature.getClient();
-client.addHooks(new Sentry.OpenFeatureIntegrationHook());
 
-// Evaluating flags will record the result on the Sentry client.
-const result = client.getBooleanValue('my-flag', false);`,
+  [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
+    integrationName: `launchDarklyIntegration`,
+    packageName: 'launchdarkly-js-client-sdk',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import * as LaunchDarkly from "launchdarkly-js-client-sdk";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [Sentry.launchDarklyIntegration()],
+});
+
+const ldClient = LaunchDarkly.initialize(
+  "my-client-ID",
+  { kind: "user", key: "my-user-context-key" },
+  { inspectors: [Sentry.buildLaunchDarklyFlagUsedHandler()] },
+);`,
+
+    makeVerifyCode: () => `// You may have to wait for your client to initialize first.
+ldClient?.variation("test-flag", false);
+Sentry.captureException(new Error("Something went wrong!"));`,
   },
-  [IntegrationOptions.UNLEASH]: {
-    importStatement: `import { UnleashClient } from 'unleash-proxy-client';`,
-    integration: 'unleashIntegration({unleashClientClass: UnleashClient})',
-    sdkInit: `const unleash = new UnleashClient({
+
+  [FeatureFlagProviderEnum.OPENFEATURE]: {
+    integrationName: `openFeatureIntegration`,
+    packageName: '@openfeature/web-sdk',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import { OpenFeature } from "@openfeature/web-sdk";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [Sentry.openFeatureIntegration()],
+});
+
+OpenFeature.setProvider(new MyProviderOfChoice());
+OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());`,
+
+    makeVerifyCode: () => `const client = OpenFeature.getClient();
+const result = client.getBooleanValue("test-flag", false);
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
+
+  [FeatureFlagProviderEnum.STATSIG]: {
+    integrationName: `statsigIntegration`,
+    packageName: '@statsig/js-client',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import { StatsigClient } from "@statsig/js-client";
+
+const statsigClient = new StatsigClient(
+  YOUR_SDK_KEY,
+  { userID: "my-user-id" },
+  {},
+); // see Statsig SDK reference.
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [
+    Sentry.statsigIntegration({ featureFlagClient: statsigClient }),
+  ],
+});`,
+
+    makeVerifyCode:
+      () => `await statsigClient.initializeAsync(); // or statsigClient.initializeSync();
+
+const result = statsigClient.checkGate("my-feature-gate");
+Sentry.captureException(new Error("something went wrong"));`,
+  },
+
+  [FeatureFlagProviderEnum.UNLEASH]: {
+    integrationName: `unleashIntegration`,
+    packageName: 'unleash-proxy-client',
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
+import { UnleashClient } from "unleash-proxy-client";
+
+Sentry.init({
+  dsn: "${dsn}",
+  integrations: [
+    Sentry.unleashIntegration({ featureFlagClientClass: UnleashClient }),
+  ],
+});
+
+const unleash = new UnleashClient({
   url: "https://<your-unleash-instance>/api/frontend",
   clientKey: "<your-client-side-token>",
   appName: "my-webapp",
 });
 
-unleash.start();
+unleash.start();`,
 
-// Evaluate a flag with a default value. You may have to wait for your client to synchronize first.
+    makeVerifyCode: () => `// You may have to wait for your client to synchronize first.
 unleash.isEnabled("test-flag");
-
 Sentry.captureException(new Error("Something went wrong!"));`,
-  },
-  [IntegrationOptions.GENERIC]: {
-    importStatement: ``,
-    integration: 'featureFlagsIntegration()',
-    sdkInit: `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>('FeatureFlags');
-
-if (flagsIntegration) {
-  flagsIntegration.addFeatureFlag('test-flag', false);
-} else {
-  // Something went wrong, check your DSN and/or integrations
-}
-
-Sentry.captureException(new Error('Something went wrong!'));`,
   },
 };
 
@@ -675,38 +741,67 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
-  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'Add [name] to your integrations list, and then register with your feature flag SDK.',
-        {
-          name: (
-            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration}`}</code>
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'JavaScript',
-          code: `
-${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].importStatement}
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
+    const {integrationName, makeConfigureCode, makeVerifyCode, packageName} =
+      FEATURE_FLAG_CONFIGURATION_MAP[
+        featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
+      ]!;
 
-// Register with Sentry
-Sentry.init({
-  dsn: "${dsn.public}",
-  integrations: [
-    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration},
-  ],
-});
+    const installConfig = [
+      {
+        language: 'bash',
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: `npm install --save @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `yarn add @sentry/browser ${packageName}`,
+          },
+        ],
+      },
+    ];
 
-// Register with your feature flag SDK
-${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].sdkInit}
-`,
-        },
-      ],
-    },
-  ],
+    return [
+      {
+        type: StepType.INSTALL,
+        description: t('Install Sentry and the selected feature flag SDK.'),
+        configurations: installConfig,
+      },
+      {
+        type: StepType.CONFIGURE,
+        description: tct(
+          'Add [name] to your integrations list, and initialize your feature flag SDK.',
+          {
+            name: <code>{integrationName}</code>,
+          }
+        ),
+        configurations: [
+          {
+            language: 'JavaScript',
+            code: makeConfigureCode(dsn.public),
+          },
+        ],
+      },
+      {
+        type: StepType.VERIFY,
+        description: t(
+          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+        ),
+        configurations: [
+          {
+            language: 'JavaScript',
+            code: makeVerifyCode(),
+          },
+        ],
+      },
+    ];
+  },
   verify: () => [],
   nextSteps: () => [],
 };

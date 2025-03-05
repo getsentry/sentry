@@ -15,6 +15,7 @@ import {
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -46,9 +47,6 @@ type Params = DocsParams<PlatformOptions>;
 
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
-
-const getAutoInstallSnippet = () =>
-  `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ios`;
 
 const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
@@ -220,8 +218,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: getAutoInstallSnippet(),
+                code: getWizardInstallSnippet({
+                  platform: 'ios',
+                  params,
+                }),
               },
             ],
           },
@@ -266,8 +266,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? [
           {
             type: StepType.CONFIGURE,
-            description: t(
-              'The Sentry wizard will automatically patch your application:'
+            description: (
+              <p>{t('The Sentry wizard will automatically patch your application:')}</p>
             ),
             configurations: [
               {
@@ -306,15 +306,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       )}
                     </ListItem>
                   </List>
-                ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
-                    ),
-                    stepsBelow: <strong />,
-                  }
                 ),
               },
             ],

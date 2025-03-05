@@ -5,10 +5,10 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
 import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -133,11 +133,10 @@ function AutofixInsightCard({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
-    const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
     updateInsight({
       message: editText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCardAboveIndex,
+      retain_insight_card_index: index,
     });
   };
 
@@ -483,7 +482,7 @@ function ChainLink({
     updateInsight({
       message: newInsightText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCount - 1,
+      retain_insight_card_index: insightCount,
     });
     setNewInsightText('');
   };

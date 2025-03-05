@@ -113,6 +113,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
+    Referrer.API_EXPLORE_COMPARE_SERIES.value,
 }
 
 
@@ -302,7 +303,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         granularity_secs=rollup,
                         config=SearchResolverConfig(
                             auto_fields=False,
-                            use_aggregate_conditions=False,
+                            use_aggregate_conditions=True,
                         ),
                     )
                 return scoped_dataset.top_events_timeseries(
@@ -339,7 +340,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=True,
                     ),
                     comparison_delta=comparison_delta,
                 )

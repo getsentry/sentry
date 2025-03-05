@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:13.599705+00:00'
+created: '2025-02-26T00:34:05.494750+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app:
           frame (non app frame)
             function*
               "TppWorkpExecuteCallback"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
           frame (non app frame)

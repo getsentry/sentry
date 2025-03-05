@@ -307,7 +307,7 @@ export async function demoEmailModal(options: DemoEmailModalOptions) {
   const mod = await import('sentry/components/modals/demoEmailModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {closeEvents: 'none', modalCss});
 }
 
 export async function openDashboardWidgetQuerySelectorModal(

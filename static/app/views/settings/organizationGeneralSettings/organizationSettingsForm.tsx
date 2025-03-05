@@ -7,7 +7,7 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -120,16 +120,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
-      ...(organization.features.includes('sentry-rollback-settings')
-        ? [
-            {
-              name: 'rollbackEnabled',
-              type: 'boolean',
-              label: t('2024 Sentry Rollback'),
-              help: t('Allow organization members to view their year in review'),
-            } as FieldObject,
-          ]
-        : []),
     ];
     return formsConfig;
   }, [access, organization]);

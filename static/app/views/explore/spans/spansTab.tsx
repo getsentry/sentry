@@ -2,9 +2,9 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -29,6 +29,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
+import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -57,6 +58,8 @@ import {
 } from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
+
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -136,14 +139,6 @@ export function SpansTabContentImpl({
     [timeseriesResult.data, visualizes]
   );
 
-  const tableError =
-    queryType === 'aggregate'
-      ? aggregatesTableResult.result.error?.message ?? ''
-      : queryType === 'traces'
-        ? tracesTableResult.result.error?.message ?? ''
-        : spansTableResult.result.error?.message ?? '';
-  const chartError = timeseriesResult.error?.message ?? '';
-
   const [expanded, setExpanded] = useState(true);
 
   useAnalytics({
@@ -154,8 +149,20 @@ export function SpansTabContentImpl({
     timeseriesResult,
   });
 
+  const resultsLength =
+    {
+      aggregate: aggregatesTableResult.result.data?.length,
+      samples: spansTableResult.result.data?.length,
+      traces: tracesTableResult.result.data?.data?.length,
+    }[queryType] ?? 0;
+
+  const hasResults = !!resultsLength;
+
   return (
-    <Body withToolbar={expanded}>
+    <Body
+      withToolbar={expanded}
+      withHints={organization.features.includes('traces-schema-hints')}
+    >
       <TopSection>
         <StyledPageFilterBar condensed>
           <ProjectPageFilter />
@@ -204,17 +211,22 @@ export function SpansTabContentImpl({
           />
         )}
       </TopSection>
+      <Feature features="organizations:traces-schema-hints">
+        <HintsSection>
+          <SchemaHintsList
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
+            numberTags={numberTags}
+            stringTags={stringTags}
+          />
+        </HintsSection>
+      </Feature>
       <SideSection withToolbar={expanded}>
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {(tableError || chartError) && (
-          <Alert.Container>
-            <Alert type="error" showIcon>
-              {tableError || chartError}
-            </Alert>
-          </Alert.Container>
-        )}
+        {!hasResults && <QuotaExceededAlert referrer="explore" />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
@@ -320,14 +332,14 @@ function checkIsAllowedSelection(
   return selectedMinutes <= maxPickableMinutes;
 }
 
-const Body = styled(Layout.Body)<{withToolbar: boolean}>`
+const Body = styled(Layout.Body)<{withHints: boolean; withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     ${p =>
       p.withToolbar
         ? `grid-template-columns: 300px minmax(100px, auto);`
         : `grid-template-columns: 0px minmax(100px, auto);`}
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
     transition: 700ms;
@@ -349,6 +361,21 @@ const TopSection = styled('div')`
 const SideSection = styled('aside')<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p => !p.withToolbar && 'overflow: hidden;'}
+  }
+`;
+
+const HintsSection = styled('div')`
+  display: grid;
+  /* This is to ensure the hints section spans all the columns */
+  grid-column: 1/-1;
+  margin-bottom: ${space(2)};
+  margin-top: -4px;
+  height: fit-content;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr;
+    margin-bottom: 0;
+    margin-top: 0;
   }
 `;
 

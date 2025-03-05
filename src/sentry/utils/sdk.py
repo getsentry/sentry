@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import sys
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
@@ -14,6 +14,7 @@ from rest_framework.request import Request
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
 from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -25,7 +26,6 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-from sentry.utils.flag import FlagPoleIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/detect_performance_issues/factory.py",
+    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -83,6 +83,11 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
+}
+
+SAMPLED_ROUTES = {
+    "/_warmup/": 0.0,
+    "/api/0/auth/validate/": 0.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -174,9 +179,9 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    # dont sample warmup requests
-    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
-        return 0.0
+    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+        return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
@@ -223,7 +228,16 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         return None
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    num_of_spans = len(event["spans"])
+    if isinstance(event["spans"], AnnotatedValue):
+        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
+        # complain. The TypeError should be unreachable.
+        if isinstance(event["spans"].value, Sized):
+            num_of_spans = len(event["spans"].value)
+        else:
+            raise TypeError("Expected a list of spans.")
+    else:
+        num_of_spans = len(event["spans"])
+
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
@@ -461,7 +475,6 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
-            FlagPoleIntegration(),
         ],
         **sdk_options,
     )

@@ -1,13 +1,15 @@
+import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
@@ -113,11 +115,12 @@ function ProjectApdexScoreCard(props: Props) {
 
   const cardHelp = getTermHelp(organization, PerformanceTerm.APDEX);
 
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
   if (!hasTransactions || !organization.features.includes('performance-view')) {
     return (
       <Widget
-        Title={<Widget.WidgetTitle title={cardTitle} />}
-        Actions={<Widget.WidgetDescription description={cardHelp} />}
+        Title={Title}
         Visualization={
           <ActionWrapper>
             <MissingPerformanceButtons organization={organization} />
@@ -127,23 +130,53 @@ function ProjectApdexScoreCard(props: Props) {
     );
   }
 
+  if (isLoading || !defined(apdex)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Button size="xs" onClick={refetch}>
+              {t('Retry')}
+            </Button>
+          </Widget.WidgetToolbar>
+        }
+        Visualization={<Widget.WidgetError error={error} />}
+      />
+    );
+  }
+
   return (
-    <BigNumberWidget
-      title={cardTitle}
-      description={cardHelp}
-      value={apdex}
-      previousPeriodValue={previousApdex}
-      field="apdex()"
-      meta={{
-        fields: {
-          'apdex()': 'number',
-        },
-        units: {},
-      }}
-      preferredPolarity="+"
-      isLoading={isLoading}
-      error={error ?? undefined}
-      onRetry={refetch}
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={apdex}
+          previousPeriodValue={previousApdex}
+          field="apdex()"
+          meta={{
+            fields: {
+              'apdex()': 'number',
+            },
+            units: {},
+          }}
+          preferredPolarity="+"
+        />
+      }
     />
   );
 }

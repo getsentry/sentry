@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import {type AnimationProps, motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Automation} from 'sentry/views/automations/components/automationListRow';
 import type {Detector} from 'sentry/views/detectors/components/detectorListRow';
 
-// TODO: Adjust to work for automations once type is available
-export function useBulkActions(detectors: Detector[]) {
+export function useBulkActions(items: Detector[] | Automation[]) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const detectorIds = useMemo(() => detectors.map(detector => detector.id), [detectors]);
+  const itemIds = useMemo(() => items.map(item => item.id), [items]);
 
   const handleSelect = useCallback((id: string, checked: boolean): void => {
     if (checked) {
@@ -23,17 +23,17 @@ export function useBulkActions(detectors: Detector[]) {
   }, []);
 
   const toggleSelectAll = useCallback((): void => {
-    if (selectedRows.length === detectors.length) {
+    if (selectedRows.length === items.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(detectorIds);
+      setSelectedRows(itemIds);
     }
-  }, [selectedRows, detectors, detectorIds]);
+  }, [selectedRows, items, itemIds]);
 
   const bulkActionsVisible = useMemo(() => selectedRows.length > 0, [selectedRows]);
   const isSelectAllChecked = useMemo(
-    () => selectedRows.length === detectors.length,
-    [selectedRows, detectors]
+    () => selectedRows.length === items.length,
+    [selectedRows, items]
   );
 
   return {

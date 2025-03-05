@@ -61,6 +61,8 @@ SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
 REPLAY_ALIAS = "replay"
+MESSAGING_OPERATION_TYPE_ALIAS = "messaging.operation.type"
+MESSAGING_OPERATION_NAME_ALIAS = "messaging.operation.name"
 
 
 class ThresholdDict(TypedDict):
@@ -376,6 +378,8 @@ DEFAULT_METRIC_TAGS = {
     "span.op",
     "trace.status",
     "messaging.destination.name",
+    "messaging.operation.name",
+    "messaging.operation.type",
 }
 SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"

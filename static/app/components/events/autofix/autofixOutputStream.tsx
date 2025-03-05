@@ -5,8 +5,8 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -172,7 +172,7 @@ export function AutofixOutputStream({
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
-                {isProcessing && <StyledLoadingIndicator mini size={14} />}
+                <StyledLoadingIndicator mini size={14} isProcessing={isProcessing} />
               </ActiveLogWrapper>
             )}
             {!responseRequired && stream && (
@@ -312,7 +312,8 @@ const StyledButton = styled(Button)`
   z-index: 2;
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const StyledLoadingIndicator = styled(LoadingIndicator)<{isProcessing?: boolean}>`
   position: relative;
   top: ${space(0.5)};
+  opacity: ${p => (p.isProcessing ? 1 : 0)};
 `;

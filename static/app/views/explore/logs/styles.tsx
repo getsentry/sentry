@@ -7,15 +7,17 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
+import {unreachable} from 'sentry/utils/unreachable';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
 export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
 `;
 
-export const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
+export const HeaderCell = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
+  cursor: pointer;
 `;
 
 export const StyledPanelItem = styled(PanelItem)<{
@@ -67,9 +69,10 @@ export const DetailsGrid = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const DetailsSubGrid = styled('div')`
-  display: grid;
-  grid-template-columns: min-content min-content;
+export const LogDetailsTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  user-select: none;
 `;
 
 export const DetailsFooter = styled(StyledPanelItem)<{
@@ -97,16 +100,6 @@ export const DetailsFooter = styled(StyledPanelItem)<{
       : `
           ${p.logColors.backgroundLight}
         `};
-`;
-
-export const DetailsLabel = styled('div')`
-  font-weight: 600;
-  min-width: 100px;
-  color: ${p => p.theme.gray300};
-`;
-
-export const DetailsValue = styled('div')`
-  word-break: break-word;
 `;
 
 export const StyledChevronButton = styled(Button)`
@@ -227,9 +220,4 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       unreachable(level);
       throw new Error(`Invalid log type, got ${level}`);
   }
-}
-
-// One day we'll have `match`.
-function unreachable(x: never) {
-  return x;
 }

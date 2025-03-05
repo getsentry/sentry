@@ -1,84 +1,31 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.permissions import SAFE_METHODS, BasePermission
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
-from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.organizations.services.organization import (
-    RpcOrganization,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.organizations.services.organization import organization_service
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils import demo_mode
-
-if TYPE_CHECKING:
-    from sentry.models.organization import Organization
 
 
-class DemoUserPermission(SentryPermission):
-    """
-    A permission class that extends `SentryPermission` to provide read-only access for users
-    in a demo mode. This class modifies the access control logic to ensure that users identified
-    as read-only can only perform safe operations, such as GET and HEAD requests, on resources.
-    """
-
-    def determine_access(
-        self,
-        request: Request,
-        organization: RpcUserOrganizationContext | Organization | RpcOrganization,
-    ) -> None:
-
-        org_context: RpcUserOrganizationContext | None
-        if isinstance(organization, RpcUserOrganizationContext):
-            org_context = organization
-        else:
-            org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=request.user.id if request.user else None
-            )
-
-        if org_context is None:
-            assert False, "Failed to fetch organization in determine_access"
-
-        if demo_mode.is_demo_user(request.user):
-            if org_context.member and demo_mode.is_demo_mode_enabled():
-                org_context.member.scopes = list(demo_mode.get_readonly_scopes())
-
-        return super().determine_access(request, org_context)
-
-    def has_permission(self, request: Request, view: object) -> bool:
-        if demo_mode.is_demo_user(request.user):
-            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
-                return False
-
-        return super().has_permission(request, view)
-
-    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
-        if demo_mode.is_demo_user(request.user):
-            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
-                return False
-
-        return super().has_object_permission(request, view, obj)
-
-
-class UserPermission(DemoUserPermission):
+class UserPermission(DemoSafePermission):
 
     def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
+        self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
 
         if user is None or request.user.id == user.id:
@@ -147,7 +94,7 @@ class OrganizationUserPermission(UserAndStaffPermission):
         return org_mapping.organization_id
 
     def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
+        self, request: Request, view: APIView, user: User | RpcUser | None = None
     ) -> bool:
         if super().has_object_permission(request, view, user):
             return True

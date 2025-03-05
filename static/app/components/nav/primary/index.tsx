@@ -2,24 +2,23 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import Hook from 'sentry/components/hook';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {CollapseButton} from 'sentry/components/nav/primary/collapse';
-import {SidebarLink, SidebarMenu} from 'sentry/components/nav/primary/components';
-import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
+import {SeparatorItem, SidebarLink} from 'sentry/components/nav/primary/components';
+import {PrimaryNavigationHelp} from 'sentry/components/nav/primary/help';
+import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
+import {PrimaryNavigationServiceIncidents} from 'sentry/components/nav/primary/serviceIncidents';
+import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconQuestion,
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -55,16 +54,15 @@ export function PrimaryNavigationItems() {
           to={`/${prefix}/issues/`}
           analyticsKey="issues"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
-          forceLabel
         >
           <IconIssues />
         </SidebarLink>
 
         <SidebarLink
           to={`/${prefix}/explore/traces/`}
+          activeTo={`/${prefix}/explore`}
           analyticsKey="explore"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
-          forceLabel
         >
           <IconSearch />
         </SidebarLink>
@@ -76,9 +74,9 @@ export function PrimaryNavigationItems() {
         >
           <SidebarLink
             to={`/${prefix}/dashboards/`}
+            activeTo={`/${prefix}/dashboard`}
             analyticsKey="customizable-dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
-            forceLabel
           >
             <IconDashboard />
           </SidebarLink>
@@ -87,69 +85,15 @@ export function PrimaryNavigationItems() {
         <Feature features={['performance-view']}>
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
+            activeTo={`/${prefix}/insights`}
             analyticsKey="insights-domains"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
-            forceLabel
           >
             <IconGraph />
           </SidebarLink>
         </Feature>
-      </SidebarBody>
 
-      <SidebarFooter>
-        <WhatsNew />
-        <SidebarMenu
-          items={[
-            {
-              key: 'search',
-              label: t('Search Support, Docs and More'),
-              onAction() {
-                openHelpSearchModal({organization});
-              },
-            },
-            {
-              key: 'resources',
-              label: t('Resources'),
-              children: [
-                {
-                  key: 'help-center',
-                  label: t('Help Center'),
-                  to: 'https://sentry.zendesk.com/hc/en-us',
-                },
-                {
-                  key: 'docs',
-                  label: t('Documentation'),
-                  to: 'https://docs.sentry.io',
-                },
-              ],
-            },
-            {
-              key: 'help',
-              label: t('Get Help'),
-              children: [
-                {
-                  key: 'support',
-                  label: t('Contact Support'),
-                  to: `mailto:${ConfigStore.get('supportEmail')}`,
-                },
-                {
-                  key: 'github',
-                  label: t('Sentry on GitHub'),
-                  to: 'https://github.com/getsentry/sentry/issues',
-                },
-                {
-                  key: 'discord',
-                  label: t('Join our Discord'),
-                  to: 'https://discord.com/invite/sentry',
-                },
-              ],
-            },
-          ]}
-          analyticsKey="help"
-          label={t('Help')}
-        >
-          <IconQuestion />
-        </SidebarMenu>
+        <SeparatorItem />
 
         <SidebarLink
           to={`/${prefix}/settings/${organization.slug}/`}
@@ -159,8 +103,21 @@ export function PrimaryNavigationItems() {
         >
           <IconSettings />
         </SidebarLink>
+      </SidebarBody>
 
-        <CollapseButton />
+      <SidebarFooter>
+        <PrimaryNavigationHelp />
+
+        <SeparatorItem />
+
+        <PrimaryNavigationWhatsNew />
+        <Hook
+          name="sidebar:bottom-items"
+          organization={organization}
+          orientation="left"
+        />
+        <PrimaryNavigationServiceIncidents />
+        <PrimaryNavigationOnboarding />
       </SidebarFooter>
     </Fragment>
   );
@@ -177,13 +134,12 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   align-items: stretch;
   gap: ${space(0.5)};
   width: 100%;
-  color: rgba(255, 255, 255, 0.85);
 
   ${p =>
     !p.isMobile &&
     css`
       align-items: center;
-      gap: ${space(1)};
+      gap: ${space(0.5)};
     `}
 
   ${p =>
@@ -195,7 +151,6 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
 
 const SidebarFooterWrapper = styled('div')`
   position: relative;
-  border-top: 1px solid ${p => p.theme.translucentGray200};
   display: flex;
   flex-direction: row;
   align-items: stretch;

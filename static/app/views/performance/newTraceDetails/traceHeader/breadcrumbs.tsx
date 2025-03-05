@@ -9,7 +9,10 @@ import type {
   RoutableModuleNames,
   URLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  DOMAIN_VIEW_BASE_URL,
+} from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -89,13 +92,24 @@ function getPerformanceBreadCrumbs(
 ) {
   const crumbs: Crumb[] = [];
 
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
+
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
-  crumbs.push({
-    label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
-    to: getBreadCrumbTarget(performanceUrl, location.query, organization),
-  });
+  if (!view && hasPerfLandingRemovalFlag) {
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
+    });
+  } else {
+    crumbs.push({
+      label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
+      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+    });
+  }
 
   switch (location.query.tab) {
     case Tab.EVENTS:

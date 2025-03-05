@@ -1,7 +1,15 @@
+"""
+IMPORTANT:
+
+If you make changes here that affect what's stored, increment GROUPHASH_METADATA_SCHEMA_VERSION in
+the `GroupHash` model file, so that existing records will get updated with the new data.
+"""
+
 from __future__ import annotations
 
 import logging
 import random
+from datetime import datetime
 from typing import Any, TypeIs, cast
 
 from sentry import features, options
@@ -29,7 +37,11 @@ from sentry.grouping.variants import (
     VariantsByDescriptor,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
+from sentry.models.grouphashmetadata import (
+    GROUPHASH_METADATA_SCHEMA_VERSION,
+    GroupHashMetadata,
+    HashBasis,
+)
 from sentry.models.project import Project
 from sentry.types.grouphash_metadata import (
     ChecksumHashingMetadata,
@@ -42,7 +54,6 @@ from sentry.types.grouphash_metadata import (
     TemplateHashingMetadata,
 )
 from sentry.utils import json, metrics
-from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
 
@@ -121,105 +132,199 @@ def create_or_update_grouphash_metadata_if_needed(
     grouping_config: str,
     variants: dict[str, BaseVariant],
 ) -> None:
-    # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
-    # we'll have to override the metadata creation date for them.
+    db_hit_metadata: dict[str, Any] = {}
 
-    if grouphash_is_new:
-        with metrics.timer(
-            "grouping.grouphashmetadata.get_hash_basis_and_metadata"
-        ) as metrics_timer_tags:
-            hash_basis, hashing_metadata = get_hash_basis_and_metadata(
-                event, project, variants, metrics_timer_tags
+    if not grouphash.metadata:
+        # Use `get_or_create` rather than just `create` (even though the fact that we landed in this
+        # branch implies no record exists) in order to guard against race coditions without the need
+        # for a lock
+        grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+
+        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
+
+        if not created:
+            logger.info(
+                "grouphash_metadata.creation_race_condition.record_exists",
+                extra={
+                    "grouphash_metadata_id": grouphash_metadata.id,
+                    "linked_metadata_id": grouphash.metadata.id if grouphash.metadata else None,
+                    "grouphash_id": grouphash.id,
+                    "grouphash_is_new": grouphash_is_new,
+                    "event_id": event.event_id,
+                    "hash_basis": new_data["hash_basis"],
+                    "hash": grouphash.hash,
+                },
+            )
+            # If we've lost the race (to some other event with the same grouphash), our
+            # `grouphash.metadata` pointer may not point to a real record in the database, in which
+            # case we won't be able to store Seer results (if any). However, the fact that we lost
+            # implies that some other event won, and will be able to store the results. Given that,
+            # it's best to not call Seer at all with this event, both to avoid problems storing the
+            # results and to reduce load and preserve the project's Seer rate limit.
+            event.should_skip_seer = True
+            return
+
+        db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
+
+        if not grouphash_is_new:
+            # If we're adding metadata to an existing grouphash, override the creation date so it
+            # doesn't default to now
+            new_data["date_added"] = None
+
+        grouphash_metadata.update(**new_data)
+
+    # Update data in existing metadata record if needed
+    else:
+        updated_data: dict[str, Any] = {}
+
+        # Keep track of the most recent config which computed this hash, so that once a config is
+        # deprecated, we can clear out the GroupHash records which are no longer being produced
+        current_latest_config = grouphash.metadata.latest_grouping_config
+        if _is_incoming_config_newer_than_current_latest(grouping_config, current_latest_config):
+            updated_data = {"latest_grouping_config": grouping_config}
+            db_hit_metadata = {
+                "reason": "old_grouping_config",
+                "current_config": current_latest_config,
+                "new_config": grouping_config,
+            }
+
+        # If the metadata was gathered under an old schema, get new data and bump the schema version
+        if grouphash.metadata.schema_version != GROUPHASH_METADATA_SCHEMA_VERSION:
+            updated_data.update(
+                # This includes `schema_version`
+                get_grouphash_metadata_data(event, project, variants, grouping_config)
             )
 
-        GroupHashMetadata.objects.create(
-            grouphash=grouphash,
-            latest_grouping_config=grouping_config,
-            hash_basis=hash_basis,
-            hashing_metadata=hashing_metadata,
-            platform=event.platform,
-        )
-    elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
-        # Keep track of the most recent config which computed this hash, so that once a
-        # config is deprecated, we can clear out the GroupHash records which are no longer
-        # being produced
-        grouphash.metadata.update(latest_grouping_config=grouping_config)
+            db_hit_metadata.update(
+                {
+                    "reason": (
+                        "outdated_schema"
+                        if not db_hit_metadata.get("reason")
+                        else "config_and_schema"
+                    ),
+                    # TODO: Any time during or after May 2025, confirm that all metadata records
+                    # have been backfilled with a schema version (or deleted because their groups
+                    # aged out). If so, we can get rid of the best-guess logic here.
+                    "current_version": grouphash.metadata.schema_version
+                    or grouphash.metadata.get_best_guess_schema_version(),
+                    "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+                }
+            )
+
+        # Only hit the DB if there's something to change
+        if updated_data:
+            grouphash.metadata.update(**updated_data)
+
+    # If we did something, collect a metric
+    if db_hit_metadata:
+        metrics.incr("grouping.grouphash_metadata.db_hit", tags=db_hit_metadata)
+
+        if db_hit_metadata["reason"] not in ["new_grouphash", "missing_metadata"]:
+            # Temporary log to get a sense of how often we're encountering a race condition and
+            # backfilling the same grouphash more than once. Note that this data won't be reliable
+            # until we increase the sample rate to 100%.
+            logger.info(
+                "grouping.grouphash_metadata.handle_existing_grouphash",
+                extra={
+                    "grouphash_id": grouphash.id,
+                    "hash": grouphash.hash,
+                    "group_id": grouphash.group_id,
+                    "reason": db_hit_metadata["reason"],
+                },
+            )
 
 
-def get_hash_basis_and_metadata(
+def get_grouphash_metadata_data(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
-    metrics_timer_tags: MutableTags,
-) -> tuple[HashBasis, HashingMetadata]:
-    hashing_metadata: HashingMetadata = {}
-    # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
-    # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
-    # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
-    # there's a better way?
-    contributors = get_contributing_variant_and_component(variants)
-    contributing_variant: Any = contributors[0]
-    contributing_component: Any = contributors[1]
+    grouping_config: str,
+) -> dict[str, Any]:
+    with metrics.timer(
+        "grouping.grouphashmetadata.get_grouphash_metadata_data"
+    ) as metrics_timer_tags:
+        base_data = {
+            "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+            "latest_grouping_config": grouping_config,
+            "platform": event.platform or "unknown",
+        }
+        hashing_metadata: HashingMetadata = {}
 
-    # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever method
-    # was used before the extra fingerprint was added. We classify events with hybrid fingerprints
-    # by the `{{ default }}` portion of their grouping, so strip the prefix before doing the
-    # look-up.
-    is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
-    method_description = contributing_variant.description.replace("modified ", "")
+        # If we've landed here as the result of secondary grouping, we won't actually have any
+        # variants data from which to derive hash basis or hashing metadata, but we still want to
+        # collect grouping config (so we know it's an outdated hash), schema version (to forestall
+        # any race-condition-y attempts to update the data), and platform (to make whatever
+        # querying we do more complete).
+        if not variants:
+            return base_data
 
-    try:
-        hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
-    except KeyError:
-        logger.exception(
-            "Encountered unknown grouping method '%s'.",
-            contributing_variant.description,
-            extra={"project": project.id, "event_id": event.event_id},
-        )
-        return (HashBasis.UNKNOWN, {})
+        # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
+        # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
+        # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
+        # there's a better way?
+        contributors = get_contributing_variant_and_component(variants)
+        contributing_variant: Any = contributors[0]
+        contributing_component: Any = contributors[1]
 
-    metrics_timer_tags["hash_basis"] = hash_basis
+        # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever
+        # method was used before the extra fingerprint was added. We classify events with hybrid
+        # fingerprints by the `{{ default }}` portion of their grouping, so strip the prefix before
+        # doing the look-up.
+        is_hybrid_fingerprint = contributing_variant.description.startswith("modified")
+        method_description = contributing_variant.description.replace("modified ", "")
 
-    # Gather different metadata depending on the grouping method
+        try:
+            hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
+        except KeyError:
+            logger.exception(
+                "Encountered unknown grouping method '%s'.",
+                contributing_variant.description,
+                extra={"project": project.id, "event_id": event.event_id},
+            )
+            return {**base_data, "hash_basis": HashBasis.UNKNOWN, "hashing_metadata": {}}
 
-    if hash_basis == HashBasis.STACKTRACE:
-        hashing_metadata = _get_stacktrace_hashing_metadata(
-            contributing_variant, contributing_component
-        )
+        metrics_timer_tags["hash_basis"] = hash_basis
 
-    elif hash_basis == HashBasis.MESSAGE:
-        hashing_metadata = _get_message_hashing_metadata(contributing_component)
+        # Gather different metadata depending on the grouping method
 
-    elif hash_basis == HashBasis.FINGERPRINT:
-        hashing_metadata = _get_fingerprint_hashing_metadata(contributing_variant)
+        if hash_basis == HashBasis.STACKTRACE:
+            hashing_metadata = _get_stacktrace_hashing_metadata(
+                contributing_variant, contributing_component
+            )
 
-    elif hash_basis == HashBasis.SECURITY_VIOLATION:
-        hashing_metadata = _get_security_hashing_metadata(contributing_component)
+        elif hash_basis == HashBasis.MESSAGE:
+            hashing_metadata = _get_message_hashing_metadata(contributing_component)
 
-    elif hash_basis == HashBasis.TEMPLATE:
-        hashing_metadata = _get_template_hashing_metadata(contributing_component)
+        elif hash_basis == HashBasis.FINGERPRINT:
+            hashing_metadata = _get_fingerprint_hashing_metadata(contributing_variant)
 
-    elif hash_basis == HashBasis.CHECKSUM:
-        hashing_metadata = _get_checksum_hashing_metadata(contributing_variant)
+        elif hash_basis == HashBasis.SECURITY_VIOLATION:
+            hashing_metadata = _get_security_hashing_metadata(contributing_component)
 
-    elif hash_basis == HashBasis.FALLBACK:
-        hashing_metadata = _get_fallback_hashing_metadata(
-            # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but
-            # theoretically on track for 3.14), we can mark `VariantsByDescriptor` as closed and
-            # annotate `variants` as a `VariantsByDescriptor` instance in the spot where it's created
-            # and in all of the spots where it gets passed function to function. (Without the
-            # closed-ness, the return values of `.items()` and `.values()` don't get typed as
-            # `BaseVariant`, so for now we need to keep `variants` typed as `dict[str, BaseVariant]`
-            # until we get here.)
-            cast(VariantsByDescriptor, variants)
-        )
+        elif hash_basis == HashBasis.TEMPLATE:
+            hashing_metadata = _get_template_hashing_metadata(contributing_component)
 
-    if is_hybrid_fingerprint:
-        hashing_metadata.update(
-            _get_fingerprint_hashing_metadata(contributing_variant, is_hybrid=True)
-        )
+        elif hash_basis == HashBasis.CHECKSUM:
+            hashing_metadata = _get_checksum_hashing_metadata(contributing_variant)
 
-    return hash_basis, hashing_metadata
+        elif hash_basis == HashBasis.FALLBACK:
+            hashing_metadata = _get_fallback_hashing_metadata(
+                # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but
+                # theoretically on track for 3.14), we can mark `VariantsByDescriptor` as closed and
+                # annotate `variants` as a `VariantsByDescriptor` instance in the spot where it's
+                # created and in all of the spots where it gets passed function to function.
+                # (Without the closed-ness, the return values of `.items()` and `.values()` don't
+                # get typed as `BaseVariant`, so for now we need to keep `variants` typed as
+                # `dict[str, BaseVariant]` until we get here.)
+                cast(VariantsByDescriptor, variants)
+            )
+
+        if is_hybrid_fingerprint:
+            hashing_metadata.update(
+                _get_fingerprint_hashing_metadata(contributing_variant, is_hybrid=True)
+            )
+
+        return {**base_data, "hash_basis": hash_basis, "hashing_metadata": hashing_metadata}
 
 
 def record_grouphash_metadata_metrics(
@@ -470,3 +575,28 @@ def check_grouphashes_for_positive_fingerprint_match(
         return False
 
     return fingerprint1 == fingerprint2
+
+
+def _is_incoming_config_newer_than_current_latest(
+    incoming_config: str | None, latest_config: str | None
+) -> bool:
+    # Handle records created before we were storing config
+    if latest_config is None:
+        return True
+    # This shouldn't happen, but just in case
+    if incoming_config is None:
+        return False
+
+    def _extract_date(config_id: str) -> datetime:
+        date_str = config_id.split(":")[1]
+        return datetime.fromisoformat(date_str)
+
+    try:
+        return _extract_date(incoming_config) > _extract_date(latest_config)
+    except Exception:
+        logger.exception(
+            "Unable to compare grouping config dates from configs '%s' and '%s'",
+            incoming_config,
+            latest_config,
+        )
+        return False

@@ -301,6 +301,8 @@ export default typescript.config([
     ...importPlugin.flatConfigs.recommended,
     name: 'plugin/import',
     rules: {
+      // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
+      ...importPlugin.flatConfigs.recommended.rules,
       'import/newline-after-import': 'error', // https://prettier.io/docs/en/rationale.html#empty-lines
       'import/no-absolute-path': 'error',
       'import/no-amd': 'error',
@@ -309,9 +311,6 @@ export default typescript.config([
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
-
-      // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
-      ...importPlugin.flatConfigs.recommended.rules,
       'import/default': 'off', // Disabled in favor of typescript-eslint
       'import/named': 'off', // Disabled in favor of typescript-eslint
       'import/namespace': 'off', // Disabled in favor of typescript-eslint
@@ -412,6 +411,8 @@ export default typescript.config([
     rules: {
       'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
+      'no-unused-expressions': 'off', // Disabled in favor of @typescript-eslint/no-unused-expressions
+      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
 
       // Recommended overrides
       '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
@@ -420,7 +421,6 @@ export default typescript.config([
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-unsafe-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Strict overrides
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -503,8 +503,6 @@ export default typescript.config([
 
             // Internal packages.
             ['^(sentry-locale|sentry-images)(/.*|$)'],
-
-            ['^(getsentry-images)(/.*|$)'],
 
             ['^(app|sentry)(/.*|$)'],
 
@@ -658,6 +656,11 @@ export default typescript.config([
         {
           paths: [
             ...restrictedImportPaths,
+            {
+              name: 'sentry/components/button',
+              message:
+                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
+            },
             {
               name: 'sentry/utils/queryClient',
               message:

@@ -3,11 +3,11 @@ import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {StoryTitle} from 'sentry/stories/storyBook';
+import {StorySection, StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
@@ -20,7 +20,7 @@ export function StoryTypes(props: StoryTypesProps) {
   const nodes = usePropTree(props.types?.props ?? {}, query);
 
   return (
-    <Fragment>
+    <StorySection>
       <StoryTitle>API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
@@ -87,7 +87,7 @@ export function StoryTypes(props: StoryTypesProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Fragment>
+    </StorySection>
   );
 }
 

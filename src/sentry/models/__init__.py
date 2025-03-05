@@ -53,6 +53,7 @@ from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
+from .groupsearchviewstarred import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
@@ -95,7 +96,6 @@ from .releasefile import *  # NOQA
 from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
-from .relocation import *  # NOQA
 from .repository import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
