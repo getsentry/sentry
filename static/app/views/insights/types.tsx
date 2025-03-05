@@ -299,7 +299,7 @@ export enum SpanIndexedField {
   IS_TRANSACTION = 'is_transaction',
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
-  NORAMLIZED_DESCRIPTION = 'sentry.normalized_description',
+  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
 }
 
 export type SpanIndexedResponse = {
