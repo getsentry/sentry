@@ -35,6 +35,11 @@ export function createReleaseBuckets(
   // [minDate, maxDate]. Last bucket always ends at maxDate and does not
   // necessarily have the same bucket width as the other buckets.
   const timeDiff = maxTime - minTime;
+
+  if (timeDiff <= 0) {
+    return [];
+  }
+
   const interval = Math.ceil(timeDiff / desiredBuckets);
 
   for (let i = 0; i < desiredBuckets; i++) {

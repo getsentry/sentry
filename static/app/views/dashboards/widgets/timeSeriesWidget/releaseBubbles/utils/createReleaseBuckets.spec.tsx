@@ -1,63 +1,26 @@
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
 
-function createTimeSeries(numItems: number, intervalMs = 1000, start = new Date()) {
-  const timeSeries = [
-    {
-      data: Array.from(Array(numItems)).map((_, i) => ({
-        value: 0, // don't care about value
-        timestamp: new Date(start.getTime() + i * intervalMs).toISOString(),
-      })),
-    },
-  ];
-
-  // find min/max timestamp of *all* timeSeries
-  let minTime: Date | undefined;
-  let maxTime: Date | undefined;
-
-  for (const currentSeries of timeSeries) {
-    if (currentSeries.data.length < 2) {
-      continue;
-    }
-
-    const firstData = currentSeries.data[0];
-    const lastData = currentSeries.data[currentSeries.data.length - 1];
-    // I hope `data` is sorted
-    if (!minTime || new Date(firstData!.timestamp) < minTime) {
-      minTime = new Date(firstData!.timestamp);
-    }
-    if (!maxTime || new Date(lastData!.timestamp) > maxTime) {
-      maxTime = new Date(lastData!.timestamp);
-    }
-  }
-
-  return {minTime: minTime?.getTime(), maxTime: maxTime?.getTime()};
-}
-
 describe('createReleaseBuckets', () => {
+  const now = Date.now();
   it.each([
-    [0, 0],
-    [1, 0],
-    [2, 10],
-    [10, 10],
-    [20, 10],
-    [50, 10],
-    [100, 10],
-    [300, 10],
+    [now, now, 10, 0],
+    [undefined, now, 10, 0],
+    [now, undefined, 10, 0],
+    [now, now + 1000, 10, 10],
+    [now, now + 1000, 20, 20],
   ])(
-    'creates correct # of buckets for timeSeries with %d items',
-    (numItems, expectedBuckets) => {
-      const {minTime, maxTime} = createTimeSeries(numItems);
-      const buckets = createReleaseBuckets(minTime, maxTime, []);
+    'creates correct # of buckets for timeSeries with [min, max] of [%d, %d] and %d desired buckets',
+    (minTime, maxTime, desiredBuckets, expectedBuckets) => {
+      const buckets = createReleaseBuckets(minTime, maxTime, [], desiredBuckets);
       expect(buckets).toHaveLength(expectedBuckets);
     }
   );
 
   it('creates the correct buckets', () => {
-    const {minTime, maxTime} = createTimeSeries(13);
-    // let's change the last timeseries
-    const newEndingTs = maxTime! + 2235;
+    const minTime = Date.now();
+    const maxTime = Date.now() + 12 * 1000 + 2235;
 
-    const buckets = createReleaseBuckets(minTime, newEndingTs, []);
+    const buckets = createReleaseBuckets(minTime, maxTime, []);
     expect(buckets).toEqual([
       {start: 1508208080000, end: 1508208081424, releases: []},
       {start: 1508208081424, end: 1508208082848, releases: []},
@@ -73,9 +36,8 @@ describe('createReleaseBuckets', () => {
   });
 
   it('buckets releases correctly', () => {
-    const {minTime, maxTime} = createTimeSeries(13);
-    // let's change the last timeseries
-    const newEndingTs = maxTime + 2235;
+    const minTime = Date.now();
+    const maxTime = Date.now() + 12 * 1000 + 2235;
 
     const releases = [
       {
@@ -121,7 +83,7 @@ describe('createReleaseBuckets', () => {
       },
     ];
 
-    const buckets = createReleaseBuckets(minTime, newEndingTs, releases);
+    const buckets = createReleaseBuckets(minTime, maxTime, releases);
 
     expect(buckets).toEqual([
       {
