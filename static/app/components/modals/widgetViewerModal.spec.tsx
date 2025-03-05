@@ -847,6 +847,35 @@ describe('Modals -> WidgetViewerModal', function () {
         await waitForMetaToHaveBeenCalled();
         expect(eventsStatsMock).toHaveBeenCalledTimes(1);
       });
+
+      it('appends the orderby to the query if it is not already selected as an aggregate', async function () {
+        const eventsStatsMock = mockEventsStats();
+        mockEvents();
+
+        const widget = WidgetFixture({
+          widgetType: WidgetType.TRANSACTIONS,
+          queries: [
+            {
+              orderby: '-epm()',
+              aggregates: ['count()'],
+              columns: ['country'],
+              conditions: '',
+              name: '',
+            },
+          ],
+        });
+
+        await renderModal({initialData, widget});
+        expect(await screen.findByText('epm()')).toBeInTheDocument();
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: ['country', 'count()', 'epm()'],
+            }),
+          })
+        );
+      });
     });
 
     describe('Table Widget', function () {
