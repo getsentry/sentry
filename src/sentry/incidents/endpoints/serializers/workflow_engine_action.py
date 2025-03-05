@@ -6,6 +6,7 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.notifications.models.notificationaction import ActionService
+from sentry.workflow_engine.handlers.action.notification.handler import MetricAlertRegistryInvoker
 from sentry.workflow_engine.models import ActionAlertRuleTriggerAction
 
 
@@ -19,6 +20,7 @@ class WorkflowEngineActionSerializer(Serializer):
         aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
         priority = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
+        target = MetricAlertRegistryInvoker.target(obj)
         result = {
             "id": str(aarta.alert_rule_trigger_action.id),
             "alertRuleTriggerId": str(aarta.alert_rule_trigger_action.alert_rule_trigger.id),
@@ -37,7 +39,7 @@ class WorkflowEngineActionSerializer(Serializer):
                 type_value,
                 obj.target_type,
                 obj.target_identifier,
-                obj.target,
+                target,
                 obj.target_display,
                 obj.target_identifier,
                 priority,
