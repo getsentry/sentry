@@ -16,7 +16,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
 from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_column_definitions.span_definitions import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams

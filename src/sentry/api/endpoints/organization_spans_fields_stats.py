@@ -15,7 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_column_definitions.span_definitions import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
