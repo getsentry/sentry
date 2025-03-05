@@ -11,7 +11,7 @@ interface ChonkTagProps extends Omit<TagProps, 'type'> {
   type?: TagType;
 }
 
-const LegacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
+const legacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
   highlight: 'info',
   error: 'danger',
   white: 'default',
@@ -21,7 +21,7 @@ const LegacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
 export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
   return {
     ...props,
-    type: props.type && LegacyMapping[props.type],
+    type: props.type && legacyMapping[props.type],
   };
 }
 
