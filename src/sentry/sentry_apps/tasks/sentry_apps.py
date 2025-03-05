@@ -393,19 +393,37 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 def workflow_notification(
     installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
 ) -> None:
-    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
-    if not webhook_data:
-        return
-    install, issue, user = webhook_data
-    data = kwargs.get("data", {})
-    data.update({"issue": serialize(issue)})
-    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
-    analytics.record(
-        f"sentry_app.issue.{type}",
-        user_id=user_id,
-        group_id=issue_id,
-        installation_id=installation_id,
-    )
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type="workflow_notification",
+    ).capture() as lifecycle:
+        try:
+            webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+        except SentryAppSentryError as e:
+            sentry_sdk.capture_exception(e)
+            raise
+
+        install, issue, user = webhook_data
+        data = kwargs.get("data", {})
+        data.update({"issue": serialize(issue)})
+        try:
+            send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+        except SentryAppSentryError as e:
+            # record success as the preperation portion did not fail
+            lifecycle.record_success()
+            sentry_sdk.capture_exception(e)
+            raise
+        except (ApiHostError, ApiTimeoutError, RequestException, ClientError):
+            # record success as the preperation portion did not fail
+            lifecycle.record_success()
+            raise
+
+        analytics.record(
+            f"sentry_app.issue.{type}",
+            user_id=user_id,
+            group_id=issue_id,
+            installation_id=installation_id,
+        )
 
 
 @instrumented_task(
@@ -447,20 +465,28 @@ def get_webhook_data(
     extra = {"installation_id": installation_id, "issue_id": issue_id}
     install = app_service.installation_by_id(id=installation_id)
     if not install:
-        logger.info("workflow_notification.missing_installation", extra=extra)
-        return None
+        raise SentryAppSentryError(
+            message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
+            webhook_context=extra,
+        )
 
     try:
         issue = Group.objects.get(id=issue_id)
     except Group.DoesNotExist:
         logger.info("workflow_notification.missing_issue", extra=extra)
-        return None
+        raise SentryAppSentryError(
+            message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
+            webhook_context=extra,
+        )
 
     user = None
     if user_id:
         user = user_service.get_user(user_id=user_id)
         if not user:
-            logger.info("workflow_notification.missing_user", extra=extra)
+            raise SentryAppSentryError(
+                message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_USER}",
+                webhook_context=extra,
+            )
 
     return (install, issue, user)
 
