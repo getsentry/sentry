@@ -18,8 +18,9 @@ export default function Resources({configResources, eventPlatform, group}: Props
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ...(configResources.linksByPlatform[eventPlatform ?? ''] ?? []),
+    ...(configResources.linksByPlatform[
+      (eventPlatform ?? '') as keyof typeof configResources.linksByPlatform
+    ] ?? []),
   ];
 
   return (

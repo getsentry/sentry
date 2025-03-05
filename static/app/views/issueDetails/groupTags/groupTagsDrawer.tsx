@@ -79,8 +79,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
 
   const tagValues = useMemo(
     () =>
-      data.reduce((valueMap, tag) => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      data.reduce<Record<string, string>>((valueMap, tag) => {
         valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
         return valueMap;
       }, {}),
@@ -99,8 +98,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        tagValues[tag.key].includes(search)
+        tagValues[tag.key]?.includes(search)
     );
     return searchedTags;
   }, [data, search, tagValues, highlightTagKeys]);

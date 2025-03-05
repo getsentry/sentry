@@ -93,8 +93,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
               organization,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              content: TabName[key],
+              content: TabName[key as keyof typeof TabName]!,
             });
           }}
           items={[
