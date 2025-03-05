@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import type {OnboardingTask} from 'sentry/types/onboarding';
@@ -28,21 +28,24 @@ export function useOverdueDoneTasks({doneTasks}: {doneTasks: OnboardingTask[]}):
     );
   }, [doneTasks]);
 
+  const safeDependencies = useRef({overdueTasks, organization});
+
   useEffect(() => {
-    if (!overdueTasks.length) {
+    safeDependencies.current = {overdueTasks, organization};
+  });
+
+  useEffect(() => {
+    if (!safeDependencies.current.overdueTasks.length) {
       return;
     }
 
     // Mark overdue tasks as seen, so we can try to mark the onboarding as complete.
-    for (const overdueTask of overdueTasks) {
-      updateOnboardingTask(api, organization, {
+    for (const overdueTask of safeDependencies.current.overdueTasks) {
+      updateOnboardingTask(api, safeDependencies.current.organization, {
         task: overdueTask.task,
         completionSeen: true,
       });
     }
-    // do not add overdueTasks and organization to the dependencies
-    // array as it is causing "maximum depth" error
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
 
   return {overdueTasks};
