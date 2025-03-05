@@ -78,7 +78,9 @@ class BaseDeriveCodeMappings(TestCase):
             code_mapping = code_mappings[0]
             assert code_mapping.stack_root == expected_stack_root
             assert code_mapping.source_root == expected_source_root
-            mock_incr.assert_called_with("code_mappings.created", tags={"platform": event.platform})
+            mock_incr.assert_called_with(
+                key="code_mappings.created", tags={"platform": event.platform}, sample_rate=1.0
+            )
 
     def _process_and_assert_no_code_mapping(
         self,
