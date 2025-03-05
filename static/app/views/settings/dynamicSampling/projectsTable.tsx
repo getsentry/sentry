@@ -140,7 +140,7 @@ export function ProjectsTable({
           <p>{emptyMessage}</p>
         </EmptyStateWarning>
       )}
-      {!isLoading && items.length && (
+      {!isLoading && items.length > 0 && (
         <SizingWrapper style={{height: `${estimatedListSize}px`}}>
           <AutoSizer>
             {({width, height}) => (

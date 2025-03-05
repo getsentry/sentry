@@ -19,6 +19,7 @@ from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidatorResponse,
 )
 from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
@@ -239,6 +240,12 @@ def _update_existing_view(
             gsv.time_filters = view["timeFilters"]
 
         gsv.save()
+        GroupSearchViewStarred.objects.update_or_create(
+            organization=org,
+            user_id=user_id,
+            group_search_view=gsv,
+            defaults={"position": position},
+        )
     except GroupSearchView.DoesNotExist:
         # It is possible – though unlikely under normal circumstances – for a view to come in that
         # doesn't exist anymore. If, for example, the user has the issue stream open in separate
@@ -263,3 +270,10 @@ def _create_view(
     )
     if "projects" in view:
         gsv.projects.set(view["projects"] or [])
+
+    GroupSearchViewStarred.objects.create(
+        organization=org,
+        user_id=user_id,
+        group_search_view=gsv,
+        position=position,
+    )

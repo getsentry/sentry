@@ -579,7 +579,8 @@ interface OnboardingSidebarContentProps {
 }
 
 export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProps) {
-  const {gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks();
+  const {gettingStartedTasks, beyondBasicsTasks, allTasks, doneTasks} =
+    useOnboardingTasks();
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -598,12 +599,8 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
     )?.task;
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
-  const allTasksCompleted = [...gettingStartedTasks, ...beyondBasicsTasks].every(
-    findCompleteTasks
-  );
-
   return (
-    <Content>
+    <Content data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -629,7 +626,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
           group="beyond_basics"
         />
       )}
-      {allTasksCompleted && (
+      {allTasks.length === doneTasks.length && (
         <CompletionCelebrationText>
           <div>{t('Good job, you’re all done here!')}</div>
           {t('Now get out of here and write some broken code.')}

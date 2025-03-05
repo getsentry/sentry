@@ -98,7 +98,12 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
-  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+  const hasPerfLandingRemovalFlag = organization.features?.includes(
+    'insights-performance-landing-removal'
+  );
+  const performanceUrl = hasPerfLandingRemovalFlag
+    ? `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`
+    : `${getPerformanceBaseUrl(organization.slug)}/`;
 
   if (isDemoModeEnabled()) {
     return [
@@ -111,6 +116,16 @@ export function getOnboardingTasks({
         skippable: false,
         actionType: 'app',
         location: `/organizations/${organization.slug}/issues/`,
+        display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
+      },
+      {
+        task: OnboardingTaskKey.SIDEBAR_GUIDE,
+        title: t('Check out the different tabs'),
+        description: t('Press the start button for a guided tour through each tab.'),
+        skippable: false,
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/projects/`,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -138,16 +153,6 @@ export function getOnboardingTasks({
           organization,
           path: '/',
         }),
-        display: true,
-        group: OnboardingTaskGroup.GETTING_STARTED,
-      },
-      {
-        task: OnboardingTaskKey.SIDEBAR_GUIDE,
-        title: t('Check out the different tabs'),
-        description: t('Press the start button for a guided tour through each tab.'),
-        skippable: false,
-        actionType: 'app',
-        location: `/organizations/${organization.slug}/projects/`,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },

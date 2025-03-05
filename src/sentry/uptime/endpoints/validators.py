@@ -5,13 +5,12 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -20,13 +19,14 @@ from sentry.uptime.models import (
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
+    MaxUrlsForDomainReachedException,
     UptimeMonitorNoSeatAvailable,
+    check_url_limits,
     create_project_uptime_subscription,
     update_project_uptime_subscription,
 )
 from sentry.utils.audit import create_audit_entry
 
-MAX_MONITORS_PER_DOMAIN = 100
 """
 The bounding upper limit on how many ProjectUptimeSubscription's can exist for
 a single domain + suffix.
@@ -127,11 +127,6 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
 
     def validate(self, attrs):
-        if features.has("organization:uptime-create-disabled", self.context["organization"]):
-            raise serializers.ValidationError(
-                "The uptime feature is disabled for your organization"
-            )
-
         headers = []
         method = "GET"
         body = None
@@ -155,15 +150,12 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         return attrs
 
     def validate_url(self, url):
-        url_parts = extract_domain_parts(url)
-        existing_count = ProjectUptimeSubscription.objects.filter(
-            uptime_subscription__url_domain=url_parts.domain,
-            uptime_subscription__url_domain_suffix=url_parts.suffix,
-        ).count()
-
-        if existing_count >= MAX_MONITORS_PER_DOMAIN:
+        try:
+            check_url_limits(url)
+        except MaxUrlsForDomainReachedException as e:
             raise serializers.ValidationError(
-                f"The domain *.{url_parts.domain}.{url_parts.suffix} has already been used in {MAX_MONITORS_PER_DOMAIN} uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
+                f"The domain *.{e.domain}.{e.suffix} has already been used in {e.max_urls} uptime monitoring alerts, "
+                "which is the limit. You cannot create any additional alerts for this domain."
             )
         return url
 

@@ -1,16 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {setMockDate} from 'sentry-test/utils';
 
-import * as taskConfig from 'sentry/components/onboardingWizard/taskConfig';
-import * as useOnboardingTasks from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import ConfigStore from 'sentry/stores/configStore';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -25,17 +21,12 @@ function renderMockRequests(organization: Organization) {
     },
   });
 
-  const mutateOnboardingTasksMock = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/onboarding-tasks/`,
-    method: 'POST',
-  });
-
   const mutateUserOptionsMock = MockApiClient.addMockResponse({
     url: `/users/me/`,
     method: 'PUT',
   });
 
-  return {getOnboardingTasksMock, mutateUserOptionsMock, mutateOnboardingTasksMock};
+  return {getOnboardingTasksMock, mutateUserOptionsMock};
 }
 
 describe('Onboarding Status', function () {
@@ -83,7 +74,6 @@ describe('Onboarding Status', function () {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Onboarding'})).toBeInTheDocument();
     expect(screen.getByText('1 completed task')).toBeInTheDocument();
     expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
 
@@ -241,56 +231,5 @@ describe('Onboarding Status', function () {
     );
 
     expect(mockActivateSidebar).toHaveBeenCalled();
-  });
-
-  it('panel is skipped if all tasks are done and completionSeen is overdue', function () {
-    const organization = OrganizationFixture({
-      id: organizationId,
-      features: ['onboarding'],
-    });
-
-    setMockDate(new Date('2025-02-26'));
-
-    const allTasks = taskConfig
-      .getOnboardingTasks({organization, projects: [ProjectFixture()]})
-      .filter(task =>
-        [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.SECOND_PLATFORM].includes(
-          task.task
-        )
-      );
-
-    const doneTasks: OnboardingTask[] = allTasks.map(task => ({
-      ...task,
-      status: 'complete',
-      dateCompleted: '2025-02-11',
-      completionSeen: undefined,
-    }));
-
-    jest.spyOn(useOnboardingTasks, 'useOnboardingTasks').mockReturnValue({
-      allTasks: doneTasks,
-      beyondBasicsTasks: [],
-      completeTasks: [],
-      doneTasks,
-      gettingStartedTasks: [],
-      refetch: jest.fn(),
-    });
-
-    const {mutateOnboardingTasksMock} = renderMockRequests(organization);
-
-    render(
-      <OnboardingStatus
-        currentPanel=""
-        onShowPanel={jest.fn()}
-        hidePanel={jest.fn()}
-        collapsed
-        orientation="left"
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(mutateOnboardingTasksMock).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('button', {name: 'Onboarding'})).not.toBeInTheDocument();
   });
 });

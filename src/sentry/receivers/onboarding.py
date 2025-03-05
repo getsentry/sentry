@@ -18,7 +18,6 @@ from sentry.models.organizationonboardingtask import (
     OrganizationOnboardingTask,
 )
 from sentry.models.project import Project
-from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -58,7 +57,7 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 @project_created.connect(weak=False)
-def record_new_project(project, user=None, user_id=None, **kwargs):
+def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
@@ -90,6 +89,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        origin=origin,
         project_id=project.id,
         platform=project.platform,
         updated_empty_state=features.has(
@@ -129,7 +129,6 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @first_event_received.connect(weak=False)
@@ -280,7 +279,6 @@ def record_first_replay(project, **kwargs):
             platform=project.platform,
         )
         logger.info("record_first_replay_analytics_end")
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @first_flag_received.connect(weak=False)
@@ -415,7 +413,7 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.create_or_update(
         organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
@@ -425,8 +423,6 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
             "data": {"invited_member_id": organization_member_id},
         },
     )
-    if created or rows_affected:
-        try_mark_onboarding_complete(organization_id)
 
 
 def record_release_received(project, event, **kwargs):
@@ -456,7 +452,6 @@ def record_release_received(project, event, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
 event_processed.connect(record_release_received, weak=False)
@@ -528,7 +523,6 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -572,7 +566,7 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
     if rule_type == "metric":
         return
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
         task=OnboardingTask.ALERT_RULE,
         values={
@@ -582,9 +576,6 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
             "date_completed": django_timezone.now(),
         },
     )
-
-    if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @integration_added.connect(weak=False)
@@ -617,4 +608,3 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
-    try_mark_onboarding_complete(organization_id)

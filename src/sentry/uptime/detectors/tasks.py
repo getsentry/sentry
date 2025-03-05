@@ -146,7 +146,7 @@ def process_project_url_ranking(project: Project, project_url_count: int) -> boo
 
     found_url = False
 
-    for url, url_count in get_candidate_urls_for_project(project)[:5]:
+    for url, url_count in get_candidate_urls_for_project(project, limit=5):
         if process_candidate_url(project, project_url_count, url, url_count):
             found_url = True
             break
@@ -220,11 +220,9 @@ def process_candidate_url(
             "project": project.id,
         },
     )
-    if (
-        features.has("organizations:uptime-automatic-subscription-creation", project.organization)
-        and features.has("organizations:uptime", project.organization)
-        and not features.has("organizations:uptime-create-disabled", project.organization)
-    ):
+    if features.has(
+        "organizations:uptime-automatic-subscription-creation", project.organization
+    ) and features.has("organizations:uptime", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         uptime_monitor = monitor_url_for_project(project, url)
         # Disable auto-detection on this project and organization now that we've successfully found a hostname

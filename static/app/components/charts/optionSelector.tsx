@@ -8,7 +8,7 @@ import type {
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 

@@ -34,6 +34,14 @@ interface SidebarItemDropdownProps {
   forceLabel?: boolean;
 }
 
+interface SidebarButtonProps {
+  analyticsKey: string;
+  children: React.ReactNode;
+  label: string;
+  buttonProps?: React.HTMLAttributes<HTMLElement>;
+  onClick?: MouseEventHandler<HTMLElement>;
+}
+
 export function SidebarItem({
   children,
   ...props
@@ -65,7 +73,8 @@ export function SidebarMenu({
   return (
     <SidebarItem>
       <DropdownMenu
-        position="right-end"
+        position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
+        shouldApplyMinWidth={false}
         trigger={(props, isOpen) => {
           return (
             <NavButton
@@ -125,6 +134,35 @@ export function SidebarLink({
         {showLabel ? label : null}
       </NavLink>
     </SidebarItem>
+  );
+}
+
+export function SidebarButton({
+  analyticsKey,
+  children,
+  buttonProps = {},
+  onClick,
+  label,
+}: SidebarButtonProps) {
+  const organization = useOrganization();
+  const {layout} = useNavContext();
+  const showLabel = layout === NavLayout.MOBILE;
+
+  return (
+    <NavButton
+      {...buttonProps}
+      isMobile={layout === NavLayout.MOBILE}
+      aria-label={showLabel ? undefined : label}
+      onClick={(e: React.MouseEvent<HTMLElement>) => {
+        trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization});
+        buttonProps.onClick?.(e);
+        onClick?.(e);
+      }}
+    >
+      <InteractionStateLayer />
+      {children}
+      {showLabel ? label : null}
+    </NavButton>
   );
 }
 

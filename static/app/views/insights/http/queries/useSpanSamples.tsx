@@ -74,6 +74,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           project: selection.projects,
           ...dateConditions,
           ...{utc: selection.datetime.utc},
+          environment: selection.environments,
           lowerBound: min,
           firstBound: max && max * (1 / 3),
           secondBound: max && max * (2 / 3),

@@ -8,9 +8,9 @@ import {vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Switch} from 'sentry/components/core/switch';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -320,9 +320,9 @@ export function DeprecatedAggregateFlamegraph(
             </Button>
             <Flex align="center" gap={space(1)}>
               <span>{t('Hide System Frames')}</span>
-              <SwitchButton
-                toggle={() => props.setHideSystemFrames(!props.hideSystemFrames)}
-                isActive={props.hideSystemFrames}
+              <Switch
+                onChange={() => props.setHideSystemFrames(!props.hideSystemFrames)}
+                checked={props.hideSystemFrames}
               />
             </Flex>
           </Flex>

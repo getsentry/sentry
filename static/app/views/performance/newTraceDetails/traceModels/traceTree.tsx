@@ -46,6 +46,8 @@ import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 import {TraceTreeNode} from './traceTreeNode';
 
+const {info, fmt} = Sentry._experiment_log;
+
 /**
  *
  * This file implements the tree data structure that is used to represent a trace. We do
@@ -454,6 +456,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         Sentry.withScope(scope => {
           scope.setFingerprint(['trace-span-id-hash-collision']);
           scope.captureMessage('Span ID hash collision detected');
+          info(fmt`Span ID hash collision detected: ${span.span_id}`);
         });
       }
 
@@ -492,6 +495,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           scope.captureMessage(
             'Span is a parent of its own transaction, this should not be possible'
           );
+          info(fmt`Span is a parent of its own transaction, this should not be possible`);
         });
         continue;
       }
@@ -1167,6 +1171,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       Sentry.withScope(scope => {
         scope.setFingerprint(['trace-view-path-error']);
         scope.captureMessage('Invalid path to trace tree node ');
+        info(fmt`Invalid path to trace tree node: ${path}`);
       });
       return null;
     }
@@ -1412,6 +1417,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             Sentry.withScope(scope => {
               scope.setFingerprint(['trace-view-transaction-parent']);
               scope.captureMessage('Failed to find parent transaction when zooming out');
+              info(fmt`Failed to find parent transaction when zooming out`);
             });
             continue;
           }
@@ -1598,6 +1604,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         Sentry.withScope(scope => {
           scope.setFingerprint(['trace-view-expand-to-path-error']);
           scope.captureMessage('Failed to expand to path');
+          info(fmt`Failed to expand to path`);
           scope.captureException(e);
         });
       });

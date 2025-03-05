@@ -639,69 +639,24 @@ class AssembleStacktraceComponentTest(TestCase):
 
             assert frame_component.hint == expected_hint, f"frame {i} has incorrect `hint` value"
 
-    def test_uses_results_from_rust_enhancers_simple(self):
+    def test_uses_or_ignores_rust_results_as_appropriate(self):
         """
-        Test that the `contributing` and `hint` results from the rust enhancers are used for both
-        frame and stacktrace components.
-        """
-        frame_components = [
-            # All four types of frames (all combos of app vs system, contributing vs not), twice
-            # each because in each case there are three possible hints rust could send back
-            in_app_frame(contributes=True, hint=None),
-            in_app_frame(contributes=True, hint=None),
-            in_app_frame(contributes=False, hint=None),
-            in_app_frame(contributes=False, hint=None),
-            system_frame(contributes=True, hint=None),
-            system_frame(contributes=True, hint=None),
-            system_frame(contributes=False, hint=None),
-            system_frame(contributes=False, hint=None),
-        ]
-
-        rust_frame_results = [
-            # All of these change the `contributes` value of their respective frames, to show that
-            # it's the rust value which gets used in the end. Note that in the cases where the hint
-            # is about the in-app-ness of the frame, it means that both a `+/-group` rule applied
-            # and a `+/-app` rule applied, with the latter second, such that its "marked in/out of
-            # app" hint overwrote the "ignored/unignored" hint. Note that egardless of the hint, the
-            # first value in each tuple is a `contributes` value, not an `in_app` value.
-            (False, "ignored by stacktrace rule (...)"),
-            (False, "marked in-app by stacktrace rule (...)"),
-            (True, "un-ignored by stacktrace rule (...)"),
-            (True, "marked in-app by stacktrace rule (...)"),
-            (False, "ignored by stacktrace rule (...)"),
-            (False, "marked out of app by stacktrace rule (...)"),
-            (True, "un-ignored by stacktrace rule (...)"),
-            (True, "marked out of app by stacktrace rule (...)"),
-        ]
-
-        enhancements = Enhancements.from_config_string("")
-        mock_rust_enhancements = MockRustEnhancements(
-            frame_results=rust_frame_results,
-            stacktrace_results=(True, "some stacktrace hint"),
-        )
-
-        with mock.patch.object(enhancements, "rust_enhancements", mock_rust_enhancements):
-            stacktrace_component = enhancements.assemble_stacktrace_component(
-                variant_name="system",
-                frame_components=frame_components,
-                frames=[{}] * 8,
-                platform="javascript",
-                exception_data={},
-            )
-
-            self.assert_frame_values_match_expected(
-                stacktrace_component, expected_frame_results=rust_frame_results
-            )
-
-            assert stacktrace_component.contributes is True
-            assert stacktrace_component.hint == "some stacktrace hint"
-
-    def test_always_marks_app_variant_system_frames_non_contributing(self):
-        """
-        Test that the rust results are used or ignored as appropriate when handling the app variant,
-        and are always used when handling the system variant.
+        Test that the rust results are used or ignored as appropriate:
+            - App variant frames never contribute if they're out of app
+            - App variant frame hints for system frames are only used if they relate to in-app-ness
+            - System variant frame hints are only used if they relate to ignoring/un-ignoring
+            - In all other cases, the frame results from rust are used
+            - For both variants, the rust stacktrace results are used. (There's one exception to
+              this rule, but it needs its own test - see
+              `test_marks_app_stacktrace_non_contributing_if_no_in_app_frames` below.)
         """
         app_variant_frame_components = [
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
             system_frame(contributes=False, hint="non app frame"),
             system_frame(contributes=False, hint="non app frame"),
             system_frame(contributes=False, hint="non app frame"),
@@ -710,6 +665,12 @@ class AssembleStacktraceComponentTest(TestCase):
             system_frame(contributes=False, hint="non app frame"),
         ]
         system_variant_frame_components = [
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
             system_frame(contributes=True, hint=None),
             system_frame(contributes=True, hint=None),
             system_frame(contributes=True, hint=None),
@@ -718,10 +679,26 @@ class AssembleStacktraceComponentTest(TestCase):
             system_frame(contributes=True, hint=None),
         ]
 
+        # Notes:
+        # - Regardless of the hint, the first value in each tuple is a `contributes` value, not an
+        #   `in_app` value.
+        # - Half of these change the `contributes` value of their respective frames, to show that
+        #   it's the rust value which gets used in the end.
+        # - In cases where the hint is about the in-app-ness of the frame, and the `contributes`
+        #   value doesn't seem to match, it means that both a `+/-group` rule and a `+/-app` rule
+        #   applied, with the latter second, such that its "marked in/out of app" hint overwrote the
+        #   "ignored/unignored" hint.
         rust_frame_results = [
+            # All the possible results which could be sent back for in-app frames (IOW, everything
+            # but "marked out of app").
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by stacktrace rule (...)"),
+            (True, None),
             # All the possible results which could be sent back for system frames (IOW, everything
-            # but "marked in-app"). See more detail about possible hints in both the
-            # `Enhancements.assemble_stacktrace_component` code and the `test_simple` test above.
+            # but "marked in-app").
             (False, "ignored by stacktrace rule (...)"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, None),
@@ -731,8 +708,16 @@ class AssembleStacktraceComponentTest(TestCase):
         ]
 
         app_expected_frame_results = [
-            # None of the frames contributes, because they're all out of app, and the rust hint is
-            # only used when it relates to a `-app` rule.
+            # With the in-app frames, all of the rust results are used
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by stacktrace rule (...)"),
+            (True, None),
+            # With the system frames, none of them contributes (regardless of what rust says),
+            # because they're all out of app, and the rust hint is only used when it relates to a
+            # `-app` rule.
             (False, "non app frame"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, "non app frame"),
@@ -740,11 +725,28 @@ class AssembleStacktraceComponentTest(TestCase):
             (False, "marked out of app by stacktrace rule (...)"),
             (False, "non app frame"),
         ]
-        # The system variant just takes its values straight from rust
-        system_expected_frame_results = rust_frame_results
+        system_expected_frame_results = [
+            # For all frames in this variant, the rust hint is used when it relates to a `+/-group`
+            # rule, but not when it relates to a `+/-app` rule
+            (False, "ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, None),
+            (True, None),
+            (False, "ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, None),
+            (True, None),
+        ]
 
         enhancements = Enhancements.from_config_string("")
-        mock_rust_enhancements = MockRustEnhancements(frame_results=rust_frame_results)
+        mock_rust_enhancements = MockRustEnhancements(
+            frame_results=rust_frame_results,
+            stacktrace_results=(True, "some stacktrace hint"),
+        )
 
         with mock.patch.object(enhancements, "rust_enhancements", mock_rust_enhancements):
             app_stacktrace_component = enhancements.assemble_stacktrace_component(
@@ -768,6 +770,11 @@ class AssembleStacktraceComponentTest(TestCase):
             self.assert_frame_values_match_expected(
                 system_stacktrace_component, expected_frame_results=system_expected_frame_results
             )
+
+            assert app_stacktrace_component.contributes is True
+            assert app_stacktrace_component.hint == "some stacktrace hint"
+            assert system_stacktrace_component.contributes is True
+            assert system_stacktrace_component.hint == "some stacktrace hint"
 
     def test_marks_app_stacktrace_non_contributing_if_no_in_app_frames(self):
         """

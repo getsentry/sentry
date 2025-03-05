@@ -15,7 +15,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -28,6 +28,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {showConfidence} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -135,7 +136,10 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const sampleCount = determineSeriesSampleCount(data, isTopN);
+      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
+        data,
+        isTopN
+      );
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -148,6 +152,7 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
+        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -284,11 +289,14 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
+                dataset === DiscoverDatasets.SPANS_EAP_RPC &&
+                showConfidence(chartInfo.isSampled) && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
                     confidence={chartInfo.confidence}
-                    topEvents={topEvents}
+                    topEvents={
+                      topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
+                    }
                   />
                 )
               }

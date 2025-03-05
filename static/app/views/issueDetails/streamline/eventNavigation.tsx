@@ -93,8 +93,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
               organization,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              content: TabName[key],
+              content: TabName[key as keyof typeof TabName]!,
             });
           }}
           items={[
@@ -201,7 +200,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_events_clicked"
                 analyticsEventName="Issue Details: All Events Clicked"
               >
-                {t('All %s', issueTypeConfig.customCopy.eventUnits)}
+                {t('View More %s', issueTypeConfig.customCopy.eventUnits)}
               </LinkButton>
             )}
             {issueTypeConfig.pages.openPeriods.enabled && (
@@ -214,7 +213,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_open_periods_clicked"
                 analyticsEventName="Issue Details: All Open Periods Clicked"
               >
-                {t('All Open Periods')}
+                {t('View More Open Periods')}
               </LinkButton>
             )}
             {issueTypeConfig.pages.checkIns.enabled && (
@@ -227,7 +226,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_checks_ins_clicked"
                 analyticsEventName="Issue Details: All Checks-Ins Clicked"
               >
-                {t('All Check-Ins')}
+                {t('View More Check-Ins')}
               </LinkButton>
             )}
             {issueTypeConfig.pages.uptimeChecks.enabled && (
@@ -240,7 +239,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_uptime_checks_clicked"
                 analyticsEventName="Issue Details: All Uptime Checks Clicked"
               >
-                {t('All Uptime Checks')}
+                {t('View More Uptime Checks')}
               </LinkButton>
             )}
           </Fragment>
@@ -256,7 +255,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.discover_clicked"
                 analyticsEventName="Issue Details: Discover Clicked"
               >
-                {t('Discover')}
+                {t('Open in Discover')}
               </LinkButton>
             )}
             <LinkButton

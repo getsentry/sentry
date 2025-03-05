@@ -387,6 +387,9 @@ class OAuth2CallbackView(PipelineView):
                 )
                 return pipeline.error(ERR_INVALID_STATE)
 
+            if code is None:
+                return pipeline.error("no code was provided")
+
         # separate lifecycle event inside exchange_token
         data = self.exchange_token(request, pipeline, code)
 

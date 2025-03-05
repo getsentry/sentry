@@ -231,11 +231,14 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
+    '\\.(css|less|png|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
+    '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
 
     // Disable echarts in test, since they're very slow and take time to

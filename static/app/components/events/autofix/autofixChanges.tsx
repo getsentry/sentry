@@ -14,6 +14,7 @@ import {
   type AutofixChangesStep,
   type AutofixCodebaseChange,
   AutofixStatus,
+  type AutofixUpdateEndpointResponse,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -203,11 +204,17 @@ function CreatePRsButton({
         },
       });
     },
-    onSuccess: () => {
-      addSuccessMessage(t('Created pull requests.'));
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      setHasClickedCreatePr(false);
-      onBusyStateChange(false);
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedCreatePr(false);
+        onBusyStateChange(false);
+      } else {
+        addSuccessMessage(t('Created pull requests.'));
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+        setHasClickedCreatePr(false);
+        onBusyStateChange(false);
+      }
     },
     onError: () => {
       setHasClickedCreatePr(false);
@@ -273,7 +280,12 @@ function CreateBranchButton({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedPushToBranch(false);
+        onBusyStateChange(false);
+      }
       addSuccessMessage(t('Pushed to branches.'));
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       setHasClickedPushToBranch(false);

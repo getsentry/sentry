@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:36.803315+00:00'
+created: '2025-02-26T00:32:12.004668+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -39,7 +39,7 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "memory"
               function*
@@ -47,6 +47,6 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               function*
                 "std::terminate"

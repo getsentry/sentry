@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,7 +15,7 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -24,6 +24,7 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
+import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -32,16 +33,14 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {Aliases, LegendSelection, Release, TimeSeries} from '../common/types';
 
+import {formatSeriesName} from './formatters/formatSeriesName';
+import {formatTooltipValue} from './formatters/formatTooltipValue';
+import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
+import {formatYAxisValue} from './formatters/formatYAxisValue';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
-import {formatSeriesName} from './formatSeriesName';
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatXAxisTimestamp} from './formatXAxisTimestamp';
-import {formatYAxisValue} from './formatYAxisValue';
-import {isTimeSeriesOther} from './isTimeSeriesOther';
 import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 type VisualizationType = 'area' | 'line' | 'bar';
@@ -126,6 +125,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       utc ?? false
     );
 
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (e?.getEchartsInstance) {
+        registerWithWidgetSyncContext(e.getEchartsInstance());
+      }
+    },
+    [registerWithWidgetSyncContext]
+  );
+
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
@@ -167,11 +177,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
   }
 
-  // Apply unit scaling to all series
-  const scaledSeries = props.timeSeries.map(timeSeries => {
-    return scaleTimeSeriesData(timeSeries, yAxisUnit);
-  });
-
   // Construct plottable items
   const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
 
@@ -181,7 +186,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : [];
 
   let seriesColorIndex = 0;
-  const plottables = scaledSeries.map(timeSeries => {
+  const plottables = props.timeSeries.map(timeSeries => {
     let color: string;
 
     if (timeSeries.color) {
@@ -198,21 +203,21 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
     if (props.visualizationType === 'area') {
       return new Area(timeSeries, {
-        dataCompletenessDelay,
+        delay: dataCompletenessDelay,
         color,
       });
     }
 
     if (props.visualizationType === 'bar') {
       return new Bars(timeSeries, {
-        dataCompletenessDelay,
+        delay: dataCompletenessDelay,
         color,
         stack: props.stacked ? GLOBAL_STACK_NAME : undefined,
       });
     }
 
     return new Line(timeSeries, {
-      dataCompletenessDelay,
+      delay: dataCompletenessDelay,
       color,
     });
   });
@@ -262,13 +267,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeSeries = scaledSeries.find(t => t.field === field);
-
-        return formatTooltipValue(
-          value,
-          timeSeries?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeSeries?.meta?.units?.[field] ?? undefined
-        );
+        return formatTooltipValue(value, yAxisFieldType, yAxisUnit ?? undefined);
       },
       nameFormatter: seriesName => {
         return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
@@ -278,24 +277,23 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = scaledSeries.length;
+  let visibleSeriesCount = plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
 
-  const dataSeries = plottables.flatMap(plottable => plottable.series);
+  const dataSeries = plottables.flatMap(plottable =>
+    plottable.toSeries({
+      color: plottable.config?.color!, // Colors are assigned from palette, above, so they're guaranteed to be there
+      unit: yAxisUnit,
+    })
+  );
 
   return (
     <BaseChart
-      ref={e => {
-        chartRef.current = e;
-
-        if (e?.getEchartsInstance) {
-          registerWithWidgetSyncContext(e.getEchartsInstance());
-        }
-      }}
+      ref={handleChartRef}
       autoHeightResize
       series={[...dataSeries, releaseSeries].filter(defined)}
       grid={{

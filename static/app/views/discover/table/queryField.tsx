@@ -2,7 +2,7 @@ import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';

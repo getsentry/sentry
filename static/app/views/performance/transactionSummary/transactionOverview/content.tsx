@@ -268,7 +268,6 @@ function OTelSummaryContentInner({
           />
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
-            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}

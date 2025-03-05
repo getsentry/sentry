@@ -1,6 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
-import FeatureBadge from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -134,10 +134,7 @@ export const getAlertWizardCategories = (org: Organization) => {
       ],
     });
 
-    if (
-      org.features.includes('uptime') &&
-      !org.features.includes('uptime-create-disabled')
-    ) {
+    if (org.features.includes('uptime')) {
       result.push({
         categoryHeading: t('Uptime Monitoring'),
         options: ['uptime_monitor'],

@@ -11,6 +11,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
   const organization = useOrganization();
   const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
+
   return (
     <ToggleContainer
       sidebarOpen={isSidebarOpen ?? true}

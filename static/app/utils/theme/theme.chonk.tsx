@@ -1,3 +1,4 @@
+import type React from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled, {
   type CreateStyledComponent,
@@ -9,6 +10,7 @@ import color from 'color';
 import commonTheme, {
   type ColorMapping,
   darkTheme,
+  type FormTheme,
   generateAlertTheme,
   generateButtonTheme,
   generateLevelTheme,
@@ -17,6 +19,69 @@ import commonTheme, {
   generateThemeUtils,
   lightTheme,
 } from 'sentry/utils/theme';
+
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: 32,
+      minHeight: 32,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
+      height: 28,
+      minHeight: 28,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xs: {
+      height: 24,
+      minHeight: 24,
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
+  },
+
+  /**
+   * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    sm: {
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+    xs: {
+      paddingLeft: 6,
+      paddingRight: 6,
+      paddingTop: 4,
+      paddingBottom: 4,
+    },
+  },
+  formRadius: {
+    md: {
+      borderRadius: '6px',
+    },
+    sm: {
+      borderRadius: '5px',
+    },
+    xs: {
+      borderRadius: '4px',
+    },
+  },
+};
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
 function generateChonkTokens(colorScheme: typeof lightColors) {
@@ -364,7 +429,7 @@ const generateAliases = (
   /**
    * Primary text color
    */
-  textColor: tokens.content.secondary,
+  textColor: tokens.content.primary,
 
   /**
    * Text that should not have as much emphasis
@@ -701,9 +766,18 @@ const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColo
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
 interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
-  colors: typeof lightColors;
+  colors: typeof lightColors & {
+    background: ReturnType<typeof generateChonkTokens>['background'];
+    border: ReturnType<typeof generateChonkTokens>['border'];
+    content: ReturnType<typeof generateChonkTokens>['content'];
+  };
+  focusRing: {
+    boxShadow: React.CSSProperties['boxShadow'];
+    outline: React.CSSProperties['outline'];
+  };
   isChonk: true;
   radius: typeof radius;
+
   space: typeof space;
 }
 
@@ -712,6 +786,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
+  ...formTheme,
   ...chonkLightColorMapping,
   ...lightAliases,
   ...lightShadows,
@@ -723,6 +798,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   space,
   radius,
+  focusRing: {
+    outline: 'none',
+    boxShadow: `0 0 0 2px transparent, 0 0 0 4px ${lightAliases.focusBorder}`,
+  },
+
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
   alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
@@ -742,7 +822,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
   stacktraceActiveText: lightTheme.stacktraceActiveText,
 
-  colors: lightColors,
+  colors: {
+    ...lightColors,
+    content: generateChonkTokens(lightColors).content,
+    background: generateChonkTokens(lightColors).background,
+    border: generateChonkTokens(lightColors).border,
+  },
 
   sidebar: {
     // @TODO: these colors need to be ported
@@ -755,6 +840,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
+  ...formTheme,
   ...chonkDarkColorMapping,
   ...darkAliases,
   ...darkShadows,
@@ -762,6 +848,13 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   inverted: {
     ...chonkDarkColorMapping,
     ...darkAliases,
+  },
+
+  space,
+  radius,
+  focusRing: {
+    outline: 'none',
+    boxShadow: `0 0 0 2px transparent, 0 0 0 4px ${darkAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
@@ -780,10 +873,13 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
   stacktraceActiveText: darkTheme.stacktraceActiveText,
 
-  colors: darkColors,
+  colors: {
+    ...darkColors,
+    content: generateChonkTokens(darkColors).content,
+    background: generateChonkTokens(darkColors).background,
+    border: generateChonkTokens(darkColors).border,
+  },
 
-  space,
-  radius,
   sidebar: {
     // @TODO: these colors need to be ported
     ...darkTheme.sidebar,

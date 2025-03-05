@@ -53,6 +53,11 @@ export type SpanSampleRow = {
   [SpanIndexedField.INP]?: number;
   [SpanIndexedField.CLS]?: number;
   [SpanIndexedField.LCP]?: number;
+  [SpanIndexedField.FCP]?: number;
+  [SpanIndexedField.TTFB]?: number;
+  [SpanIndexedField.LCP_ELEMENT]?: string;
+  [SpanIndexedField.SPAN_OP]?: string;
+  [SpanIndexedField.CLS_SOURCE]?: string;
 };
 
 export type SpanSampleRowWithScore = SpanSampleRow & {
