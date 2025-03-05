@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -39,6 +39,13 @@ export function IssueViewTab({
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
   const {views} = state;
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
+
+  useEffect(() => {
+    if (initialTabKey !== TEMPORARY_TAB_KEY && view.id === initialTabKey) {
+      updateViewLastVisited({viewId: view.id});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDuplicateView = () => {
     const newViewId = generateTempViewId();
