@@ -397,6 +397,7 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
   subscription.reservedBudgetCategories = ['spans', 'spansIndexed'];
   subscription.reservedBudgets = [
     ReservedBudgetFixture({
+      id: '11',
       reservedBudget: 100_000_00,
       totalReservedSpend: 60_000_00,
       freeBudget: 0,
