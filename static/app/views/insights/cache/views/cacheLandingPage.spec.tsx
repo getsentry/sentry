@@ -325,6 +325,7 @@ const setRequestMocks = (organization: Organization) => {
           time: 'date',
           cache_miss_rate: 'percentage',
         },
+        units: {},
       },
     },
   });
@@ -347,6 +348,7 @@ const setRequestMocks = (organization: Organization) => {
           time: 'date',
           cache_miss_rate: 'percentage',
         },
+        units: {},
       },
     },
   });
@@ -369,6 +371,7 @@ const setRequestMocks = (organization: Organization) => {
           time: 'date',
           spm_14400: 'rate',
         },
+        units: {},
       },
     },
   });
