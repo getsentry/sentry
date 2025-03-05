@@ -105,6 +105,7 @@ export function Step({
                   groupId={groupId}
                   runId={runId}
                   solution={step.solution}
+                  description={step.description}
                   solutionSelected={step.solution_selected}
                   customSolution={step.custom_solution}
                   repos={repos}

@@ -24,6 +24,7 @@ import {
 import {IconCheckmark, IconClose, IconEdit, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -117,6 +118,7 @@ type AutofixSolutionProps = {
   solutionSelected: boolean;
   changesDisabled?: boolean;
   customSolution?: string;
+  description?: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -148,10 +150,12 @@ function SolutionDescription({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  description,
 }: {
   groupId: string;
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
+  description?: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
@@ -177,6 +181,9 @@ function SolutionDescription({
         )}
       </AnimatePresence>
       <div ref={containerRef}>
+        {description && (
+          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}} />
+        )}
         <AutofixTimeline events={solution} activeColor="green400" />
       </div>
     </SolutionDescriptionWrapper>
@@ -240,6 +247,7 @@ function CopySolutionButton({
 
 function AutofixSolutionDisplay({
   solution,
+  description,
   groupId,
   runId,
   previousDefaultStepIndex,
@@ -406,6 +414,7 @@ function AutofixSolutionDisplay({
           ) : (
             <SolutionDescription
               solution={solution}
+              description={description}
               groupId={groupId}
               runId={runId}
               previousDefaultStepIndex={previousDefaultStepIndex}
