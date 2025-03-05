@@ -45,8 +45,7 @@ export const chonkRadioStyles = (
   },
 
   '&:focus-visible': {
-    outline: 'none',
-    boxShadow: `0 0 0 2px ${props.theme.background}, 0 0 0 4px ${props.theme.focusBorder}`,
+    ...props.theme.focusRing,
   },
 
   '&:checked': {
