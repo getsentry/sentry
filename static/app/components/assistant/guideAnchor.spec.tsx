@@ -90,7 +90,7 @@ describe('GuideAnchor', function () {
       url: '/assistant/',
     });
 
-    await userEvent.click(screen.getByLabelText('Dismiss'));
+    await userEvent.click(screen.getByRole('button', {name: 'Close'}));
 
     expect(dismissMock).toHaveBeenCalledWith(
       '/assistant/',

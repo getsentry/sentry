@@ -1,6 +1,11 @@
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {TourContextProvider, TourElement} from 'sentry/components/tours/components';
+import {
+  TourAction,
+  TourContextProvider,
+  TourElement,
+  TourGuide,
+} from 'sentry/components/tours/components';
 import {
   emptyTourContext,
   ORDERED_TEST_TOUR,
@@ -27,6 +32,7 @@ describe('Tour Components', () => {
       const {container: availableContainer} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -38,6 +44,7 @@ describe('Tour Components', () => {
       const {container: unavailableContainer} = render(
         <TourContextProvider
           isAvailable={false}
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -45,6 +52,21 @@ describe('Tour Components', () => {
         </TourContextProvider>
       );
       expect(within(unavailableContainer).getByText('Child Content')).toBeInTheDocument();
+    });
+
+    it('renders children regardless of completion', () => {
+      mockUseTourReducer.mockReturnValue(emptyTourContext);
+      render(
+        <TourContextProvider
+          isAvailable
+          isCompleted
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
+        >
+          <div>Child Content</div>
+        </TourContextProvider>
+      );
+      expect(screen.getByText('Child Content')).toBeInTheDocument();
     });
 
     it('does render blur based on omitBlur', () => {
@@ -55,6 +77,7 @@ describe('Tour Components', () => {
       });
       const {container: blurContainer} = render(
         <TourContextProvider
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
           tourContext={TestTourContext}
@@ -66,6 +89,7 @@ describe('Tour Components', () => {
 
       const {container: noBlurContainer} = render(
         <TourContextProvider
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
           tourContext={TestTourContext}
@@ -86,6 +110,7 @@ describe('Tour Components', () => {
       const {container: inactiveContainer} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -110,6 +135,7 @@ describe('Tour Components', () => {
       const {container: activeContainer} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -137,6 +163,7 @@ describe('Tour Components', () => {
       const {unmount: unmountFirstStep} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -171,6 +198,7 @@ describe('Tour Components', () => {
       const {unmount: unmountSecondStep} = render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -201,6 +229,7 @@ describe('Tour Components', () => {
       render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -230,6 +259,7 @@ describe('Tour Components', () => {
       render(
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
@@ -259,18 +289,68 @@ describe('Tour Components', () => {
           </TourElement>
         </TourContextProvider>
       );
-      expect(mockHandleStepRegistration).toHaveBeenCalledWith({
-        id: TestTour.NAME,
-        element: expect.any(HTMLElement),
+      expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.NAME});
+      expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.EMAIL});
+      expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.PASSWORD});
+    });
+  });
+
+  describe('TourGuide', () => {
+    it('just renders the children when closed', () => {
+      const mockScrollIntoView = jest.fn();
+      Element.prototype.scrollIntoView = mockScrollIntoView;
+
+      render(
+        <TourGuide
+          isOpen={false}
+          title="Test Title"
+          description="Test Description"
+          actions={<TourAction>Test Action</TourAction>}
+          handleDismiss={jest.fn()}
+          stepCount={50}
+          stepTotal={100}
+          id={'test-id'}
+        >
+          <div>Child Element</div>
+        </TourGuide>
+      );
+
+      expect(screen.getByText('Child Element')).toBeInTheDocument();
+      expect(mockScrollIntoView).not.toHaveBeenCalled();
+      expect(screen.queryByText('Test Title')).not.toBeInTheDocument();
+    });
+
+    it('renders the content of the tour guide', async () => {
+      const mockScrollIntoView = jest.fn();
+      const mockHandleDismiss = jest.fn();
+      Element.prototype.scrollIntoView = mockScrollIntoView;
+
+      render(
+        <TourGuide
+          isOpen
+          title="Test Title"
+          description="Test Description"
+          actions={<TourAction>Test Action</TourAction>}
+          handleDismiss={mockHandleDismiss}
+          stepCount={50}
+          stepTotal={100}
+          id={'test-id'}
+        >
+          <div>Child Element</div>
+        </TourGuide>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      expect(screen.getByText('Test Description')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
+      expect(screen.getByText('50/100')).toBeInTheDocument();
+      expect(screen.getByText('Child Element')).toBeInTheDocument();
+      expect(mockScrollIntoView).toHaveBeenCalledWith({
+        block: 'center',
+        behavior: 'smooth',
       });
-      expect(mockHandleStepRegistration).toHaveBeenCalledWith({
-        id: TestTour.EMAIL,
-        element: expect.any(HTMLElement),
-      });
-      expect(mockHandleStepRegistration).toHaveBeenCalledWith({
-        id: TestTour.PASSWORD,
-        element: expect.any(HTMLElement),
-      });
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      expect(mockHandleDismiss).toHaveBeenCalled();
     });
   });
 });
