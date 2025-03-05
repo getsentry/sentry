@@ -271,6 +271,8 @@ export function eventedProfileToSampledProfile(
       name: profile.name,
     };
 
+    let currentTimestamp = profile.events[0]!.at;
+
     for (const current of profile.events) {
       if (current.type === 'O') {
         stack.push(current.frame);
@@ -287,21 +289,24 @@ export function eventedProfileToSampledProfile(
         throw new TypeError('Unknown event type, expected O or C, got ' + current.type);
       }
 
-      samples.push({
-        stack_id: stackId,
-        thread_id: String(profile.threadID),
-        timestamp: current.at,
-      });
+      if (current.at !== currentTimestamp) {
+        samples.push({
+          stack_id: stackId,
+          thread_id: String(profile.threadID),
+          timestamp: current.at * 1e-9,
+        });
 
-      stacks[stackId] = stack.slice();
-      stackId++;
+        stacks[stackId] = stack.slice();
+        stackId++;
+        currentTimestamp = current.at;
+      }
     }
 
     if (stack.length > 0) {
       samples.push({
         stack_id: stackId,
         thread_id: String(profile.threadID),
-        timestamp: profile.events[profile.events.length - 1]!.at,
+        timestamp: profile.events[profile.events.length - 1]!.at * 1e-9,
       });
       stacks[stackId] = stack.slice();
       stackId++;
@@ -367,7 +372,6 @@ export function importAndroidContinuousProfileChunk(
 
   for (const key in samplesByThread) {
     const profile: Profiling.ContinuousProfile = {
-      ...input,
       ...convertedProfile,
       frames,
       samples: samplesByThread[key]!,
