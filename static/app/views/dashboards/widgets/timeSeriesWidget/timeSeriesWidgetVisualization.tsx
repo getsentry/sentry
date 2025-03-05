@@ -114,6 +114,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartRef,
+    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+      const trimmedSeries = props.timeSeries.map(series => ({
+        ...series,
+        data: series.data.filter(dataItem => {
+          const ts = new Date(dataItem.timestamp).getTime();
+          return ts >= trimStart && ts <= trimEnd;
+        }),
+      }));
+      return (
+        <TimeSeriesWidgetVisualization
+          {...props}
+          timeSeries={trimmedSeries}
+          showReleaseAs="line"
+        />
+      );
+    },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
