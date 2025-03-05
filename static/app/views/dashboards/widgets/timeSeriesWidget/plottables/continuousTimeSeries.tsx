@@ -52,7 +52,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   get needsColor(): boolean {
-    return Boolean(this.config?.color);
+    return !this.config?.color;
   }
 
   get dataType(): AggregationOutputType {
