@@ -320,7 +320,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                       flex-shrink: 0;
                       margin-left: 6;
                     `}
-                    onClick={this.handleToggleSubfilters.bind(this, key)}
+                    onChange={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />
                 </FilterGridItem>

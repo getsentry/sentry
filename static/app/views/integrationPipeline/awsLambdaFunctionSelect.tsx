@@ -133,7 +133,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
                 <StyledSwitch
                   size="lg"
                   name="toggleAll"
-                  onClick={this.handleToggle}
+                  onChange={this.handleToggle}
                   checked={this.allStatesToggled}
                 />
               </Tooltip>

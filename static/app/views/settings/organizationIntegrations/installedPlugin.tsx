@@ -161,7 +161,7 @@ export class InstalledPlugin extends Component<Props> {
               </div>
               <Switch
                 checked={projectItem.enabled}
-                onClick={() =>
+                onChange={() =>
                   this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
                 }
                 disabled={!hasAccess}
