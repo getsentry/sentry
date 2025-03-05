@@ -81,7 +81,10 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
-  showReleaseLines?: boolean;
+  /**
+   * Show releases as either lines per release or a bubble for a group of releases.
+   */
+  showReleaseAs?: 'bubble' | 'line';
   /**
    * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
    */
@@ -113,7 +116,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const organization = useOrganization();
   const navigate = useNavigate();
   const hasReleaseBubbles =
-    organization.features.includes('release-bubbles-ui') && !props.showReleaseLines;
+    organization.features.includes('release-bubbles-ui') &&
+    props.showReleaseAs === 'bubble';
 
   // find min/max timestamp of *all* timeSeries
   const allTimestamps = props.timeSeries
