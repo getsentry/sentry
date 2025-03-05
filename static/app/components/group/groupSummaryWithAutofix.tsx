@@ -127,7 +127,7 @@ function AutofixSummary({
       id: 'root_cause_description',
       title: t('Root cause'),
       insight: rootCauseDescription,
-      icon: <IconFocus size="sm" color="pink300" />,
+      icon: <IconFocus size="sm" color="pink400" />,
       onClick: openSolutionsDrawer,
     },
 
@@ -137,7 +137,7 @@ function AutofixSummary({
             id: 'solution_description',
             title: t('Solution'),
             insight: solutionDescription,
-            icon: <IconFix size="sm" color="green300" />,
+            icon: <IconFix size="sm" color="green400" />,
             isLoading: solutionIsLoading,
             onClick: openSolutionsDrawer,
           },
