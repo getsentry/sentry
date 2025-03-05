@@ -69,6 +69,12 @@ describe('destinationSummaryPage', () => {
       method: 'GET',
       body: {
         data: [[1699907700, [{count: 0.2}]]],
+        meta: {
+          fields: {'avg(span.duration)': 'duration'},
+          units: {
+            'avg(span.duration)': 'millisecond',
+          },
+        },
       },
     });
   });
