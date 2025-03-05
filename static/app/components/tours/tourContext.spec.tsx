@@ -8,7 +8,6 @@ import {
 import {type TourState, useTourReducer} from 'sentry/components/tours/tourContext';
 
 describe('useTourReducer', () => {
-  const mockElement = document.createElement('div');
   const initialState: TourState<TestTour> = {
     ...emptyTourContext,
     orderedStepIds: ORDERED_TEST_TOUR,
@@ -17,9 +16,7 @@ describe('useTourReducer', () => {
     const {result} = renderHook(() => useTourReducer<TestTour>(initialState));
     const {handleStepRegistration} = result.current;
     act(() => {
-      ORDERED_TEST_TOUR.forEach(stepId =>
-        handleStepRegistration({id: stepId, element: mockElement})
-      );
+      ORDERED_TEST_TOUR.forEach(stepId => handleStepRegistration({id: stepId}));
     });
     return result;
   }
@@ -31,12 +28,12 @@ describe('useTourReducer', () => {
     // Should be false before any steps are registered
     expect(result.current.isRegistered).toBe(false);
     act(() => {
-      unregister = handleStepRegistration({id: TestTour.NAME, element: mockElement});
-      handleStepRegistration({id: TestTour.EMAIL, element: mockElement});
+      unregister = handleStepRegistration({id: TestTour.NAME});
+      handleStepRegistration({id: TestTour.EMAIL});
     });
     // Should not switch until all steps have been registered
     expect(result.current.isRegistered).toBe(false);
-    act(() => handleStepRegistration({id: TestTour.PASSWORD, element: mockElement}));
+    act(() => handleStepRegistration({id: TestTour.PASSWORD}));
     // Should switch when all steps have been registered
     expect(result.current.isRegistered).toBe(true);
     act(() => unregister());

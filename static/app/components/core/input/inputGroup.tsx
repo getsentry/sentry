@@ -21,8 +21,8 @@ import {
   InputItemsWrap,
   type InputStyleProps,
 } from 'sentry/components/core/input/inputGroup.chonk';
-import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
-import _TextArea from 'sentry/components/forms/controls/textarea';
+import type {TextAreaProps} from 'sentry/components/core/textarea';
+import {TextArea as _TextArea} from 'sentry/components/core/textarea';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
