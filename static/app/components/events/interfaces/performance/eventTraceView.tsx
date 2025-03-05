@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -114,7 +114,7 @@ function EventTraceViewInner({
           event={event}
         />
         <IssuesTraceOverlayContainer
-          href={getHrefFromTraceTarget(traceTarget)}
+          to={getHrefFromTraceTarget(traceTarget)}
           onClick={() => {
             trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
               organization,
@@ -161,7 +161,7 @@ const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
 
-const IssuesTraceOverlayContainer = styled(ExternalLink)`
+const IssuesTraceOverlayContainer = styled(Link)`
   position: absolute;
   inset: 0;
   z-index: 10;
@@ -207,7 +207,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       actions={
         <LinkButton
           size="xs"
-          href={getHrefFromTraceTarget(traceTarget)}
+          to={getHrefFromTraceTarget(traceTarget)}
           analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
           analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
         >
