@@ -442,7 +442,7 @@ class EmailAuthBackend(ModelBackend):
         return None
 
 
-def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
+def construct_link_with_query(path: str, query_params: Mapping[str, str | None]) -> str:
     """
     constructs a link with url encoded query params given a base path
     """

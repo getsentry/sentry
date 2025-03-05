@@ -389,14 +389,9 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request: Request, *args, **kwargs):
+    def has_permission(self, request: Request, *args, **kwargs) -> bool:
         # To let the app mark the installation as installed, we don't care about permissions
-        if (
-            hasattr(request, "user")
-            and hasattr(request.user, "is_sentry_app")
-            and request.user.is_sentry_app
-            and request.method == "PUT"
-        ):
+        if request.user.is_authenticated and request.user.is_sentry_app and request.method == "PUT":
             return True
         return super().has_permission(request, *args, **kwargs)
 

@@ -192,7 +192,6 @@ module = [
     "sentry.utils.committers",
     "sentry.web.frontend.auth_login",
     "sentry.web.frontend.auth_organization_login",
-    "sentry.web.frontend.base",
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.shared_group_details",
     "sentry_plugins.bitbucket.mixins",

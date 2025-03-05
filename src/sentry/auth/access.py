@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import features, roles
@@ -896,7 +897,7 @@ class NoAccess(OrganizationlessAccess):
 
 def from_request_org_and_scopes(
     *,
-    request: Request,
+    request: HttpRequest,
     rpc_user_org_context: RpcUserOrganizationContext | None = None,
     scopes: Iterable[str] | None = None,
 ) -> Access:
