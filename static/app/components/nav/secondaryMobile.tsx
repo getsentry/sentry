@@ -33,10 +33,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
 
 const SecondaryMobileWrapper = styled('div')`
   position: relative;
-  border-right: 1px solid ${p => p.theme.translucentGray200};
-  background: ${p => p.theme.surface300};
   height: 100%;
-  overflow-y: auto;
 
   display: grid;
   grid-template-areas:
@@ -50,7 +47,7 @@ const GroupHeader = styled('h2')`
   position: sticky;
   top: 0;
   z-index: 1;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.surface200};
   display: flex;
   align-items: center;
   padding: ${space(2)} ${space(1)};
@@ -64,6 +61,7 @@ const ContentWrapper = styled('div')`
   align-items: stretch;
   justify-content: space-between;
   flex-direction: column;
+  overflow-y: auto;
 `;
 
 const HeaderLabel = styled('div')`
