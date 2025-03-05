@@ -29,7 +29,11 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MultiSeriesEventsStats, Organization} from 'sentry/types/organization';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -389,7 +393,7 @@ function usePageFilterChartParams({
 
 function RequestsWidget({query}: {query?: string}) {
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
   const theme = useTheme();
 
   const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
@@ -399,7 +403,7 @@ function RequestsWidget({query}: {query?: string}) {
         query: {
           ...pageFilterChartParams,
           dataset: 'spans',
-          field: ['http.status_code', 'count(span.duration)'],
+          field: ['trace.status', 'count(span.duration)'],
           yAxis: 'count(span.duration)',
           orderby: '-count(span.duration)',
           partial: 1,
@@ -412,49 +416,59 @@ function RequestsWidget({query}: {query?: string}) {
     {staleTime: 0}
   );
 
-  const getTimeSeries = useCallback(
-    (codePrefix: string, color?: string): DiscoverSeries | undefined => {
-      if (!data) {
-        return undefined;
-      }
-
-      const filteredSeries = Object.keys(data)
-        .filter(key => key.startsWith(codePrefix))
-        .map(key => data[key]!);
-
-      const firstSeries = filteredSeries[0];
+  const combineTimeSeries = useCallback(
+    (
+      seriesData: EventsStats[],
+      color: string,
+      fieldName: string
+    ): DiscoverSeries | undefined => {
+      const firstSeries = seriesData[0];
       if (!firstSeries) {
         return undefined;
       }
 
-      const field = `${codePrefix}xx`;
-
       return {
         data: firstSeries.data.map(([time], index) => ({
           name: new Date(time * 1000).toISOString(),
-          value: filteredSeries.reduce(
+          value: seriesData.reduce(
             (acc, series) => acc + series.data[index]?.[1][0]?.count!,
             0
           ),
         })),
-        seriesName: `${codePrefix}xx`,
+        seriesName: fieldName,
         meta: {
           fields: {
-            [field]: 'integer',
+            [fieldName]: 'integer',
           },
           units: {},
         },
         color,
       } satisfies DiscoverSeries;
     },
-    [data]
+    []
   );
 
   const timeSeries = useMemo(() => {
-    return [getTimeSeries('2', theme.gray200), getTimeSeries('5', theme.error)].filter(
-      series => !!series
-    );
-  }, [getTimeSeries, theme.error, theme.gray200]);
+    return [
+      combineTimeSeries(
+        [data?.ok].filter(series => !!series),
+        theme.gray200,
+        '2xx'
+      ),
+      combineTimeSeries(
+        [data?.invalid_argument, data?.internal_error].filter(series => !!series),
+        theme.error,
+        '5xx'
+      ),
+    ].filter(series => !!series);
+  }, [
+    combineTimeSeries,
+    data?.internal_error,
+    data?.invalid_argument,
+    data?.ok,
+    theme.error,
+    theme.gray200,
+  ]);
 
   return (
     <InsightsBarChartWidget
