@@ -3118,7 +3118,6 @@ register(
 register(
     "sentry.demo_mode.sync_artifact_bundles.source_org_id",
     type=Int,
-    default=None,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
