@@ -5,6 +5,8 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {TourElement} from 'sentry/components/tours/components';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -12,6 +14,10 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
@@ -47,52 +53,62 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
-    <Side>
-      <GuideAnchor target="issue_sidebar_releases" position="left">
-        <FirstLastSeenSection group={group} />
-      </GuideAnchor>
-      <StyledBreak />
-      {((organization.features.includes('gen-ai-features') &&
-        issueTypeConfig.issueSummary.enabled &&
-        !organization.hideAiFeatures) ||
-        issueTypeConfig.resources) && (
-        <SolutionsSection group={group} project={project} event={event} />
+    <TourElement<IssueDetailsTour>
+      tourContext={IssueDetailsTourContext}
+      id={IssueDetailsTour.SIDEBAR}
+      title={t('Share updates')}
+      description={t(
+        'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
       )}
-      {event && (
-        <ErrorBoundary mini>
-          <ExternalIssueList group={group} event={event} project={project} />
-        </ErrorBoundary>
-      )}
-      <StreamlinedActivitySection group={group} />
-      {showPeopleSection && (
-        <Fragment>
-          <StyledBreak />
-          <PeopleSection
-            userParticipants={userParticipants}
-            teamParticipants={teamParticipants}
-            viewers={viewers}
-          />
-        </Fragment>
-      )}
-      {issueTypeConfig.similarIssues.enabled && (
-        <Fragment>
-          <StyledBreak />
-          <SimilarIssuesSidebarSection />
-        </Fragment>
-      )}
-      {issueTypeConfig.mergedIssues.enabled && (
-        <Fragment>
-          <StyledBreak />
-          <MergedIssuesSidebarSection />
-        </Fragment>
-      )}
-      {issueTypeConfig.detector.enabled && (
-        <Fragment>
-          <StyledBreak />
-          <DetectorSection group={group} project={project} />
-        </Fragment>
-      )}
-    </Side>
+      position="left-start"
+    >
+      <Side>
+        <GuideAnchor target="issue_sidebar_releases" position="left">
+          <FirstLastSeenSection group={group} />
+        </GuideAnchor>
+        <StyledBreak />
+        {((organization.features.includes('gen-ai-features') &&
+          issueTypeConfig.issueSummary.enabled &&
+          !organization.hideAiFeatures) ||
+          issueTypeConfig.resources) && (
+          <SolutionsSection group={group} project={project} event={event} />
+        )}
+        {event && (
+          <ErrorBoundary mini>
+            <ExternalIssueList group={group} event={event} project={project} />
+          </ErrorBoundary>
+        )}
+        <StreamlinedActivitySection group={group} />
+        {showPeopleSection && (
+          <Fragment>
+            <StyledBreak />
+            <PeopleSection
+              userParticipants={userParticipants}
+              teamParticipants={teamParticipants}
+              viewers={viewers}
+            />
+          </Fragment>
+        )}
+        {issueTypeConfig.similarIssues.enabled && (
+          <Fragment>
+            <StyledBreak />
+            <SimilarIssuesSidebarSection />
+          </Fragment>
+        )}
+        {issueTypeConfig.mergedIssues.enabled && (
+          <Fragment>
+            <StyledBreak />
+            <MergedIssuesSidebarSection />
+          </Fragment>
+        )}
+        {issueTypeConfig.detector.enabled && (
+          <Fragment>
+            <StyledBreak />
+            <DetectorSection group={group} project={project} />
+          </Fragment>
+        )}
+      </Side>
+    </TourElement>
   );
 }
 

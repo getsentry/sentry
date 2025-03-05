@@ -12,6 +12,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
+import {TourContextProvider} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -52,6 +53,11 @@ import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
+import {
+  type IssueDetailsTour,
+  IssueDetailsTourContext,
+  ORDERED_ISSUE_DETAILS_TOUR,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
@@ -707,6 +713,7 @@ function GroupDetailsContent({
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
   const api = useApi();
+  const location = useLocation();
   const organization = useOrganization();
   const [injectedEvent, setInjectedEvent] = useState(null);
   const {
@@ -791,12 +798,19 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   }
 
   return (
-    <GroupDetailsContent
-      {...props}
-      project={projectWithFallback}
-      group={props.group}
-      event={props.event ?? injectedEvent}
-    />
+    <TourContextProvider<IssueDetailsTour>
+      isAvailable={location.hash === '#tour'}
+      isCompleted={false}
+      orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+      tourContext={IssueDetailsTourContext}
+    >
+      <GroupDetailsContent
+        {...props}
+        project={projectWithFallback}
+        group={props.group}
+        event={props.event ?? injectedEvent}
+      />
+    </TourContextProvider>
   );
 }
 
