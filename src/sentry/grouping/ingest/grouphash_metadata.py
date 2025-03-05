@@ -12,7 +12,7 @@ import random
 from datetime import datetime
 from typing import Any, TypeIs, cast
 
-from sentry import features, options
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
@@ -110,9 +110,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 
 def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
     # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled") or not features.has(
-        "organizations:grouphash-metadata-creation", project.organization
-    ):
+    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
         return False
 
     # While we're backfilling metadata for existing grouphash records, if the load is too high, we
