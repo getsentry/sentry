@@ -13,7 +13,7 @@ const ToggleButtonSize = {
 
 /** We inject hex colors as background image, which requires escaping the hex characters */
 function urlEscapeHex(hex: string) {
-  return hex.replace('#', '%23');
+  return hex.replace(/#/g, '%23');
 }
 
 export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
