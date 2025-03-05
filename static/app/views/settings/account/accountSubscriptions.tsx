@@ -182,9 +182,9 @@ function AccountSubscriptions() {
                         <div>
                           <Switch
                             id={`${subscription.email}-${subscription.listId}`}
-                            isActive={subscription.subscribed}
+                            checked={subscription.subscribed}
                             size="lg"
-                            toggle={() => handleToggle(subscription)}
+                            onClick={() => handleToggle(subscription)}
                           />
                         </div>
                       </PanelItem>

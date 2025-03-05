@@ -100,9 +100,9 @@ export default function PublishIssueModal({
             </div>
             <Switch
               aria-label={isPublished ? t('Unpublish') : t('Publish')}
-              isActive={isPublished}
+              checked={isPublished}
               size="lg"
-              toggle={handleShare}
+              onClick={handleShare}
             />
           </SwitchWrapper>
           {(!group || loading) && (
