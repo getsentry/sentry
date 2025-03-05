@@ -1052,6 +1052,12 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
     },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+        "options": {"expires": 3600},
+    },
 }
 
 # Most tasks run in the regions
