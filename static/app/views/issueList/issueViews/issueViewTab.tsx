@@ -41,7 +41,11 @@ export function IssueViewTab({
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
 
   useEffect(() => {
-    if (initialTabKey !== TEMPORARY_TAB_KEY && view.id === initialTabKey) {
+    if (
+      initialTabKey !== TEMPORARY_TAB_KEY &&
+      !initialTabKey.startsWith('default') &&
+      view.id === initialTabKey
+    ) {
       updateViewLastVisited({viewId: view.id});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
