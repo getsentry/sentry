@@ -68,6 +68,7 @@ import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
 import {
   isAutogroupedNode,
+  isEAPTraceNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isTraceNode,
@@ -324,7 +325,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       if (node) {
         // The new ui has the trace info and web vitals in the bottom drawer and
         // we don't treat the trace node as a clickable node
-        if (isTraceNode(node) && hasTraceNewUi) {
+        if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
           return;
         }
 
@@ -382,7 +383,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // The new ui has the trace info and web vitals in the bottom drawer and
       // we don't treat the trace node as a clickable node
-      if (isTraceNode(node) && hasTraceNewUi) {
+      if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',

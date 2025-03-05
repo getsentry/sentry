@@ -67,6 +67,7 @@ import {
   isAutogroupedNode,
   isCollapsedNode,
   isEAPSpanNode,
+  isEAPTraceNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -681,7 +682,7 @@ function RenderTraceRow(props: {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
-  if (isTraceNode(node)) {
+  if (isTraceNode(node) || isEAPTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
   }
 
