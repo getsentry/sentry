@@ -5,7 +5,7 @@ Helpful commands:
 
     - Run the consumer.
         - `sentry run consumer ingest-replay-recordings --consumer-group 0`
-        - `sentry run consumer ingest-replay-recordings-buffered --consumer-group 0`
+        - `sentry run consumer ingest-replay-recordings-two-step --consumer-group 0`
     - Check if offsets are committed correctly.
         - `docker exec -it kafka-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group 0`
 """
