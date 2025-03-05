@@ -18,13 +18,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 def incident_attachment_info_with_metric_value(incident, new_status, metric_value):
     return incident_attachment_info(
-        AlertContext(
-            name=incident.alert_rule.name,
-            action_identifier_id=incident.alert_rule.id,
-            threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
-            detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
-            comparison_delta=incident.alert_rule.comparison_delta,
-        ),
+        AlertContext.from_alert_rule_incident(incident.alert_rule),
         open_period_identifier=incident.identifier,
         new_status=new_status,
         organization=incident.organization,
@@ -53,13 +47,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
         data = incident_attachment_info(
-            AlertContext(
-                name=alert_rule.name,
-                action_identifier_id=alert_rule.id,
-                threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
-                detection_type=AlertRuleDetectionType(alert_rule.detection_type),
-                comparison_delta=alert_rule.comparison_delta,
-            ),
+            AlertContext.from_alert_rule_incident(incident.alert_rule),
             open_period_identifier=incident.identifier,
             new_status=IncidentStatus.CLOSED,
             organization=incident.organization,
