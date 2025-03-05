@@ -97,6 +97,7 @@ function createReleaseBubbleMouseListeners({
         return;
       }
 
+      // Clear the `markArea` that was drawn during mouse over
       instance.setOption({
         series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
       });
@@ -109,6 +110,10 @@ function createReleaseBubbleMouseListeners({
         return;
       }
 
+      // Create an empty series that has a `markArea` which is then
+      // rectangular area of the "release bucket" that was hovered over (in
+      // the release bubbles). This is drawn on the main chart so that users
+      // can visualize the time block of the set of relases.
       instance.setOption({
         series: [
           {

@@ -33,6 +33,7 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
       return;
     }
 
+    // Try to find the bucket that the mouse is hovered over
     const bucketIndex = buckets.findIndex(({start, end}: Bucket) => {
       const ts = pointInGrid[0] ?? -1;
       return ts >= start && ts < end;
@@ -44,7 +45,7 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
     }
 
     // If next bucket is not already highlighted, clear all existing
-    // highlights.
+    // highlights. We also want to clear if bucket was *not* found.
     if (!highlightedBuckets.has(bucketIndex)) {
       highlightedBuckets.forEach(dataIndex => {
         echartsInstance.dispatchAction({
