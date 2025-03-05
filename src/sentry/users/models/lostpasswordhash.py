@@ -79,7 +79,7 @@ class LostPasswordHash(Model):
         subject = "Password Recovery"
         template = "recover_account"
         if mode == "set_password":
-            subject = "Set Password for Your Sentry.io Account"
+            subject = "Set Password for your Sentry.io Account"
             template = "set_password"
         elif mode == "relocate_account":
             template = "relocate_account"
