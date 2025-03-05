@@ -76,6 +76,12 @@ FEATURES = [
         """,
         IntegrationFeatures.STACKTRACE_LINK,
     ),
+    FeatureDescription(
+        """
+        Import your Bitbucket [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -92,6 +98,8 @@ scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
 class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
+    codeowners_locations = [".bitbucket/CODEOWNERS"]
+
     @property
     def integration_name(self) -> str:
         return "bitbucket"
@@ -183,6 +191,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
         ]
     )
 
