@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.demo_mode.tasks import _sync_artifact_bundles
@@ -133,3 +134,13 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_release_bundle.dist_name == source_release_bundle.dist_name
         assert target_release_bundle.release_name == source_release_bundle.release_name
         assert target_release_bundle.organization_id == self.target_org.id
+
+    def test_sync_artifact_bunles_rolls_back_on_error(self):
+        self.set_up_artifact_bundle(self.source_org, self.source_proj_bar)
+
+        with pytest.raises(Project.DoesNotExist):
+            _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
+
+        assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
+        assert not ProjectArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
+        assert not ReleaseArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()

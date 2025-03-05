@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import router
 from django.db.models import Q
 from django.utils import timezone
 
@@ -9,9 +10,11 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
+from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.utils.db import atomic_transaction
 from sentry.utils.demo_mode import get_demo_org, is_demo_mode_enabled
 
 
@@ -60,18 +63,33 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
 
 
 def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Organization):
-    target_artifact_bundle = ArtifactBundle.objects.create(
-        organization_id=target_org.id,
-        bundle_id=source_artifact_bundle.bundle_id,
-        artifact_count=source_artifact_bundle.artifact_count,
-        date_last_modified=source_artifact_bundle.date_last_modified,
-        date_uploaded=source_artifact_bundle.date_uploaded,
-        file=source_artifact_bundle.file,
-        indexing_state=source_artifact_bundle.indexing_state,
-    )
+    with atomic_transaction(
+        using=(
+            router.db_for_write(ArtifactBundle),
+            router.db_for_write(FileBlobOwner),
+            router.db_for_write(ProjectArtifactBundle),
+            router.db_for_write(ReleaseArtifactBundle),
+        )
+    ):
+        blobs = source_artifact_bundle.file.blobs.all()
+        for blob in blobs:
+            FileBlobOwner.objects.create(
+                organization_id=target_org.id,
+                blob_id=blob.id,
+            )
 
-    _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
-    _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+        target_artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=target_org.id,
+            bundle_id=source_artifact_bundle.bundle_id,
+            artifact_count=source_artifact_bundle.artifact_count,
+            date_last_modified=source_artifact_bundle.date_last_modified,
+            date_uploaded=source_artifact_bundle.date_uploaded,
+            file=source_artifact_bundle.file,
+            indexing_state=source_artifact_bundle.indexing_state,
+        )
+
+        _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+        _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
 
 
 def _sync_project_artifact_bundle(
