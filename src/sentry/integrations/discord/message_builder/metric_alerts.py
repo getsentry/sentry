@@ -3,11 +3,7 @@ from __future__ import annotations
 import time
 from datetime import datetime
 
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleDetectionType,
-    AlertRuleThresholdType,
-)
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
@@ -41,17 +37,8 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
             self.metric_value = get_metric_count_from_incident(self.incident)
 
         data = incident_attachment_info(
-            AlertContext(
-                name=self.alert_rule.name,
-                action_identifier_id=self.alert_rule.id,
-                threshold_type=AlertRuleThresholdType(self.alert_rule.threshold_type),
-                detection_type=AlertRuleDetectionType(self.alert_rule.detection_type),
-                comparison_delta=self.alert_rule.comparison_delta,
-            ),
-            OpenPeriodParams(
-                open_period_identifier_id=self.incident.identifier,
-                new_status=self.new_status,
-            ),
+            AlertContext.from_alert_rule_incident(self.alert_rule),
+            OpenPeriodParams.from_incident(self.incident),
             organization=self.incident.organization,
             snuba_query=self.alert_rule.snuba_query,
             metric_value=self.metric_value,

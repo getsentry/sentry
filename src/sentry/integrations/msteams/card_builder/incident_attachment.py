@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Literal
 
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import (
     AlertContext,
@@ -28,17 +27,8 @@ def build_incident_attachment(
         metric_value = get_metric_count_from_incident(incident)
 
     data = incident_attachment_info(
-        AlertContext(
-            name=incident.alert_rule.name,
-            action_identifier_id=incident.alert_rule.id,
-            threshold_type=AlertRuleThresholdType(incident.alert_rule.threshold_type),
-            detection_type=AlertRuleDetectionType(incident.alert_rule.detection_type),
-            comparison_delta=incident.alert_rule.comparison_delta,
-        ),
-        OpenPeriodParams(
-            open_period_identifier_id=incident.identifier,
-            new_status=new_status,
-        ),
+        AlertContext.from_alert_rule_incident(incident.alert_rule),
+        OpenPeriodParams.from_incident(incident),
         organization=incident.organization,
         snuba_query=incident.alert_rule.snuba_query,
         metric_value=metric_value,

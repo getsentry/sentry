@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
@@ -68,6 +70,13 @@ class OpenPeriodParams:
     open_period_identifier_id: int
     new_status: IncidentStatus
 
+    @classmethod
+    def from_incident(cls, incident: Incident) -> OpenPeriodParams:
+        return cls(
+            open_period_identifier_id=incident.identifier,
+            new_status=IncidentStatus(incident.status),
+        )
+
 
 @dataclass
 class AlertContext:
@@ -76,6 +85,16 @@ class AlertContext:
     threshold_type: AlertRuleThresholdType | None
     detection_type: AlertRuleDetectionType
     comparison_delta: int | None
+
+    @classmethod
+    def from_alert_rule_incident(cls, alert_rule: AlertRule) -> AlertContext:
+        return cls(
+            name=alert_rule.name,
+            action_identifier_id=alert_rule.id,
+            threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
+            detection_type=AlertRuleDetectionType(alert_rule.detection_type),
+            comparison_delta=alert_rule.comparison_delta,
+        )
 
 
 def logo_url() -> str:
