@@ -51,6 +51,7 @@ function SchemaHintsList({
       const visibleItems = filterTagsList.filter((_hint, index) => {
         const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
         if (!element) {
+          // add in a new hint if there is enough space
           if (containerWidth - currentWidth >= averageHintWidth) {
             currentWidth += averageHintWidth + (index > 0 ? gap : 0);
             return true;
@@ -67,6 +68,7 @@ function SchemaHintsList({
       setVisibleHints(visibleItems);
     };
 
+    // initial calculation
     calculateVisibleHints();
 
     const resizeObserver = new ResizeObserver(calculateVisibleHints);
