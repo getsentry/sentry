@@ -372,8 +372,8 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'tour-guide.close': {id: string};
-  'tour-guide.open': {id: string};
+  'tour-guide.close': {id?: string};
+  'tour-guide.open': {id?: string};
   'whats_new.link_clicked': Pick<Broadcast, 'title'> &
     Partial<Pick<Broadcast, 'category'>>;
 };
