@@ -19,7 +19,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
 
-  const {data, isError, isPending} = useOurlogs(
+  const {data, isError, isPending, pageLinks} = useOurlogs(
     {
       ...options,
       sorts: sortBys,
@@ -29,7 +29,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
     'api.logs-tab.view'
   );
 
-  return {data, isError, isPending};
+  return {data, isError, isPending, pageLinks};
 }
 
 export interface AttributeAnyValue {
