@@ -20,7 +20,7 @@ export function useUpdateGroupSearchViewLastVisited(
     ...options,
     mutationFn: ({viewId}: UpdateGroupSearchViewLastVisitedVariables) => {
       return api.requestPromise(
-        `/organizations/${organization.slug}/group-search-view/visit/${viewId}/`,
+        `/organizations/${organization.slug}/group-search-views/${viewId}/visit/`,
         {
           method: 'POST',
         }
