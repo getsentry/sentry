@@ -19,8 +19,8 @@ import FeatureFlagDistributions from 'sentry/components/events/featureFlags/feat
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
-  type OrderBy,
-  type SortBy,
+  OrderBy,
+  SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
@@ -93,6 +93,24 @@ export function FeatureFlagDrawer({
         setSortBy={setSortBy}
         setOrderBy={setOrderBy}
       />
+
+      <SegmentedControl
+        size="xs"
+        value={tab}
+        onChange={newTab => {
+          if (newTab === 'eventFlags') {
+            setSortBy(initialSortBy);
+            setOrderBy(initialOrderBy);
+          } else {
+            setSortBy(SortBy.ALPHABETICAL);
+            setOrderBy(OrderBy.A_TO_Z);
+          }
+          setTab(newTab);
+        }}
+      >
+        <SegmentedControl.Item key="eventFlags">{t('Event Flags')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="issueFlags">{t('Issue Flags')}</SegmentedControl.Item>
+      </SegmentedControl>
     </ButtonBar>
   );
 
@@ -116,20 +134,7 @@ export function FeatureFlagDrawer({
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{t('Feature Flags')}</Header>
-
-        <SegmentedControl size="xs" value={tab} onChange={setTab}>
-          <SegmentedControl.Item key="eventFlags">
-            {t('Event Flags')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="issueFlags">
-            {t('Issue Flags')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
-
-        {/* Empty div for bottom-left grid cell */}
-        <div />
-
-        <div style={{marginTop: space(1)}}>{actions}</div>
+        {actions}
       </EventNavigator>
       <EventDrawerBody>
         {tab === 'eventFlags' ? (
