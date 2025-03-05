@@ -148,7 +148,6 @@ module = [
     "sentry.integrations.jira.integration",
     "sentry.integrations.jira.webhooks.base",
     "sentry.integrations.jira.webhooks.issue_updated",
-    "sentry.integrations.jira_server.integration",
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
     "sentry.integrations.msteams.notifications",

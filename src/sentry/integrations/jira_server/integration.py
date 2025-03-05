@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -114,6 +114,49 @@ metadata = IntegrationMetadata(
 )
 
 
+class _Project(TypedDict):
+    value: str
+    label: str
+
+
+class _AddDropDown(TypedDict):
+    emptyMessage: str
+    noResultsMessage: str
+    items: list[_Project]
+
+
+class _Choices(TypedDict):
+    choices: list[tuple[str, str]]
+    placeholder: str
+
+
+class _MappedSelectors(TypedDict):
+    on_resolve: _Choices
+    on_unresolve: _Choices
+
+
+class _ColumnLabels(TypedDict):
+    on_resolve: str
+    on_unresolve: str
+
+
+class _Config(TypedDict):
+    name: str
+    type: str
+    label: str
+    help: str | str
+    placeholder: NotRequired[str]
+    choices: NotRequired[list[tuple[str, str]]]
+    addButtonText: NotRequired[str]
+    addDropdown: NotRequired[_AddDropDown]
+    mappedSelectors: NotRequired[_MappedSelectors]
+    columnLabels: NotRequired[_ColumnLabels]
+    mappedColumnLabel: NotRequired[str]
+    formatMessageValue: NotRequired[bool]
+    disabled: NotRequired[bool]
+    disabledReason: NotRequired[str]
+
+
 class InstallationForm(forms.Form):
     url = forms.CharField(
         label=_("Jira URL"),
@@ -200,6 +243,9 @@ class OAuthLoginView(PipelineView):
             return pipeline.next_step()
 
         config = pipeline.fetch_state("installation_data")
+        if config is None:
+            return pipeline.error("Missing installation_data")
+
         client = JiraServerSetupClient(
             config.get("url"),
             config.get("consumer_key"),
@@ -237,6 +283,9 @@ class OAuthCallbackView(PipelineView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         config = pipeline.fetch_state("installation_data")
+        if config is None:
+            return pipeline.error("Missing installation_data")
+
         client = JiraServerSetupClient(
             config.get("url"),
             config.get("consumer_key"),
@@ -298,7 +347,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         )
 
     def get_organization_config(self):
-        configuration = [
+        configuration: list[_Config] = [
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",
@@ -384,7 +433,9 @@ class JiraServerIntegration(IssueSyncIntegration):
             configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
             configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
 
-            projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
+            projects: list[_Project] = [
+                {"value": p["id"], "label": p["name"]} for p in client.get_projects_list()
+            ]
             configuration[0]["addDropdown"]["items"] = projects
         except ApiError:
             configuration[0]["disabled"] = True
@@ -395,9 +446,12 @@ class JiraServerIntegration(IssueSyncIntegration):
         context = organization_service.get_organization_by_id(
             id=self.organization_id, include_teams=False, include_projects=False
         )
-        organization = context.organization
+        if context is not None:
+            organization = context.organization
+            has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+        else:
+            has_issue_sync = False
 
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:
             for field in configuration:
                 field["disabled"] = True
@@ -450,10 +504,12 @@ class JiraServerIntegration(IssueSyncIntegration):
             data[self.issues_ignored_fields_key] = ignored_fields_list
 
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def get_config_data(self):
         config = self.org_integration.config
@@ -473,7 +529,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         )
         return config
 
-    def sync_metadata(self):
+    def sync_metadata(self) -> None:
         client = self.get_client()
 
         try:
@@ -491,7 +547,11 @@ class JiraServerIntegration(IssueSyncIntegration):
             avatar = projects[0]["avatarUrls"]["48x48"]
             self.model.metadata.update({"icon": avatar})
 
-        self.model.save()
+        integration_service.update_integration(
+            integration_id=self.model.id,
+            name=self.model.name,
+            metadata=self.model.metadata,
+        )
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super().get_link_issue_config(group, **kwargs)
@@ -564,8 +624,9 @@ class JiraServerIntegration(IssueSyncIntegration):
         quoted_comment = self.create_comment_attribution(user_id, comment)
         return self.get_client().create_comment(issue_id, quoted_comment)
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
+        assert user is not None
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
@@ -651,13 +712,15 @@ class JiraServerIntegration(IssueSyncIntegration):
             or schema["type"] == "issuelink"
         ):
             fieldtype = "select"
-            organization = (
-                group.organization
-                if group
-                else organization_service.get_organization_by_id(
+            if group is not None:
+                organization = group.organization
+            else:
+                ctx = organization_service.get_organization_by_id(
                     id=self.organization_id, include_teams=False, include_projects=False
-                ).organization
-            )
+                )
+                assert ctx is not None
+                organization = ctx.organization
+
             fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
@@ -717,7 +780,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
+    def get_create_issue_config(self, group: Group | None, user: User, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -1284,9 +1347,12 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 "jira-server.webhook.failed",
                 extra={"error": str(err), "external_id": external_id},
             )
-            try:
-                details = next(x for x in err.json["messages"][0].values())
-            except (KeyError, TypeError, StopIteration):
+            if err.json is None:
                 details = ""
+            else:
+                try:
+                    details = next(x for x in err.json["messages"][0].values())
+                except (KeyError, TypeError, StopIteration):
+                    details = ""
             message = f"Could not create issue webhook in Jira. {details}"
             raise IntegrationError(message)

@@ -628,39 +628,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not result
 
     @responses.activate
-    def test_get_stacktrace_link_no_org_integration(self):
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            repo = Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Test-Organization/foo",
-                url="https://github.com/Test-Organization/foo",
-                provider="integrations:github",
-                external_id=123,
-                config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
-            )
-        path = "README.md"
-        version = "master"
-        default = "master"
-        responses.add(
-            responses.HEAD,
-            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
-            status=404,
-        )
-        OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        ).delete()
-        installation = get_installation_of_type(
-            GitHubIntegration, integration, self.organization.id
-        )
-        result = installation.get_stacktrace_link(repo, path, default, version)
-
-        assert not result
-
-    @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)

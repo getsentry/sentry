@@ -353,10 +353,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             ]
             # After ignoring "customfield_10200", it no longer shows up
             assert self.installation.org_integration is not None
-            self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.installation.org_integration.id,
                 config={"issues_ignored_fields": ["customfield_10200"]},
             )
+            assert org_integration is not None
+            self.installation.org_integration = org_integration
             fields = self.installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
             assert field_names == [
@@ -392,10 +394,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         assert group is not None
 
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(
@@ -425,10 +429,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         group = event.group
         assert group is not None
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
@@ -454,10 +460,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         group = event.group
         assert group is not None
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
@@ -495,10 +503,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         group = event.group
         assert group is not None
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             mock_get_issue_fields_return_value = orjson.loads(
@@ -540,10 +550,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         label_default = "hi"
 
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
