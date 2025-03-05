@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
@@ -30,7 +30,6 @@ export function useReleaseStats(
   queryOptions: {staleTime: number} = {staleTime: Infinity}
 ) {
   const organization = useOrganization();
-  const currentNumberPages = useRef(0);
 
   const {
     isLoading,
@@ -56,15 +55,15 @@ export function useReleaseStats(
       'load-all',
     ],
     ...queryOptions,
-    enabled: currentNumberPages.current < maxPages,
   });
 
+  const currentNumberPages = data?.pages.length ?? 0;
+
   useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages.current + 1 < maxPages) {
+    if (!isFetching && hasNextPage && currentNumberPages + 1 < maxPages) {
       fetchNextPage();
-      currentNumberPages.current++;
     }
-  }, [isFetching, hasNextPage, fetchNextPage, maxPages]);
+  }, [isFetching, hasNextPage, fetchNextPage, maxPages, currentNumberPages]);
 
   return {
     isLoading,
