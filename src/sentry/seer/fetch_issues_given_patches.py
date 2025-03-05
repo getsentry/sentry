@@ -93,6 +93,7 @@ def _get_issues_for_file(
     event_timestamp_start: datetime,
     event_timestamp_end: datetime,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
+    run_id: int | None = None,
 ) -> list[dict[str, Any]]:
     """
     Fetch issues with their latest event if its stacktrace frames match the function names
@@ -218,7 +219,7 @@ def _get_issues_for_file(
     except Exception:
         logger.exception(
             "Seer fetch issues given patches Snuba query error",
-            extra={"query": request.to_dict()["query"]},
+            extra={"query": request.to_dict()["query"], "run_id": run_id},
         )
         return []
 
@@ -268,6 +269,7 @@ def get_issues_with_event_details_for_file(
     sentry_filenames: list[str],
     function_names: list[str],
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
+    run_id: int | None = None,
 ) -> list[dict[str, Any]]:
     event_timestamp_start = datetime.now(UTC) - timedelta(days=NUM_DAYS_AGO)
     event_timestamp_end = datetime.now(UTC)
@@ -278,6 +280,7 @@ def get_issues_with_event_details_for_file(
         event_timestamp_start,
         event_timestamp_end,
         max_num_issues_per_file=max_num_issues_per_file,
+        run_id=run_id,
     )
     issues = _add_event_details(
         projects, issues_result_set, event_timestamp_start, event_timestamp_end
@@ -339,6 +342,7 @@ def get_issues_related_to_file_patches(
     external_id: str,
     pr_files: list[PrFile],
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
+    run_id: int | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """
     Get the top issues related to each file by looking at matches between functions in the patch
@@ -358,6 +362,7 @@ def get_issues_related_to_file_patches(
                 "organization_id": organization_id,
                 "provider": provider,
                 "external_id": external_id,
+                "run_id": run_id,
             },
         )
         return {}
@@ -373,24 +378,25 @@ def get_issues_related_to_file_patches(
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
 
     for file in pullrequest_files:
-        logger.info("Processing file", extra={"file": file.filename})
+        logger_extra = {"file": file.filename, "run_id": run_id}
+        logger.info("Processing file", extra=logger_extra)
 
         projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
             organization_id, repo_id, file.filename
         )
         if not projects:
-            logger.error("No projects", extra={"file": file.filename})
+            logger.error("No projects", extra=logger_extra)
             continue
 
         file_extension = file.filename.split(".")[-1]
         if file_extension not in patch_parsers:
-            logger.warning("No language parser", extra={"file": file.filename})
+            logger.warning("No language parser", extra=logger_extra)
             continue
         language_parser = patch_parsers[file_extension]
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
         if not function_names:
-            logger.warning("No function names", extra={"file": file.filename})
+            logger.warning("No function names", extra=logger_extra)
             continue
 
         issues = get_issues_with_event_details_for_file(
@@ -398,11 +404,12 @@ def get_issues_related_to_file_patches(
             list(sentry_filenames),
             list(function_names),
             max_num_issues_per_file=max_num_issues_per_file,
+            run_id=run_id,
         )
         if issues:
-            logger.info("Found issues", extra={"file": file.filename, "num_issues": len(issues)})
+            logger.info("Found issues", extra=logger_extra | {"num_issues": len(issues)})
         else:
-            logger.warning("No issues found", extra={"file": file.filename})
+            logger.warning("No issues found", extra=logger_extra)
         filename_to_issues[file.filename] = issues
 
     return filename_to_issues
