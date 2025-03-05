@@ -63,7 +63,7 @@ trace root
 
 exports[`TraceTree eap trace assembles tree from eap trace 1`] = `
 "
-unknown node
+eap trace root
   span.op - span.description
     span.op - span.description
 "

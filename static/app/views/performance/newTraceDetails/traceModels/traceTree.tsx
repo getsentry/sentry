@@ -1227,10 +1227,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       if (type === 'ms' && isMissingInstrumentationNode(node)) {
-        const spanId = isEAPSpanNode(node.previous)
-          ? node.previous.value.event_id
-          : node.previous.value.span_id;
-        return spanId === id;
+        return node.previous.value.span_id === id || node.next.value.span_id === id;
       }
 
       if (type === 'error' && isTraceErrorNode(node)) {
@@ -1289,10 +1286,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return false;
       }
       if (isMissingInstrumentationNode(n)) {
-        const spanId = isEAPSpanNode(n.previous)
-          ? n.previous.value.event_id
-          : n.previous.value.span_id;
-        return spanId === eventId;
+        return n.previous.value.span_id === eventId || n.next.value.span_id === eventId;
       }
       if (isParentAutogroupedNode(n)) {
         return (
@@ -1810,7 +1804,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         {roots: 0, orphans: 0, javascriptRootTransactions: []}
       );
     } else {
-      throw new Error('Unknown trace node type');
+      throw new Error('Unknown trace type');
     }
 
     if (traceStats.roots === 0) {
@@ -1954,8 +1948,9 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isTransactionNode(n)) {
     return `txn-${n.value.event_id}`;
   }
-  if (isSpanNode(n)) {
-    return `span-${n.value.span_id}`;
+  if (isSpanNode(n) || isEAPSpanNode(n)) {
+    const spanId = isEAPSpanNode(n) ? n.value.event_id : n.value.span_id;
+    return `span-${spanId}`;
   }
   if (isTraceNode(n)) {
     return `trace-root`;
@@ -1970,10 +1965,7 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   if (isMissingInstrumentationNode(n)) {
-    const spanId = isEAPSpanNode(n.previous)
-      ? n.previous.value.event_id
-      : n.previous.value.span_id;
-    return `ms-${spanId}`;
+    return `ms-${n.previous.value.span_id}`;
   }
 
   throw new Error('Not implemented');
@@ -2023,6 +2015,10 @@ function printTraceTreeNode(
   }
   if (isTraceNode(t)) {
     return padding + 'trace root';
+  }
+
+  if (isEAPTraceNode(t)) {
+    return padding + 'eap trace root';
   }
 
   if (isTraceErrorNode(t)) {
