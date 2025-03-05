@@ -13,6 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.seer.anomaly_detection.types import StoreDataResponse
@@ -91,7 +92,12 @@ class OpsgenieActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert data["message"] == alert_rule.name
@@ -145,7 +151,12 @@ class OpsgenieActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert data["message"] == alert_rule.name
@@ -189,7 +200,14 @@ class OpsgenieActionHandlerTest(FireTest):
                 json={},
                 status=202,
             )
-            expected_payload = build_incident_attachment(incident, new_status, metric_value=1000)
+            expected_payload = build_incident_attachment(
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                open_period_identifier=incident.identifier,
+                organization=incident.organization,
+                snuba_query=incident.alert_rule.snuba_query,
+                new_status=new_status,
+                metric_value=1000,
+            )
             expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 
         handler = OpsgenieActionHandler(self.action, incident, self.project)

@@ -1,11 +1,7 @@
 from datetime import datetime
 
-from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import (
-    AlertContext,
-    get_metric_count_from_incident,
-    incident_attachment_info,
-)
+from sentry.incidents.models.incident import IncidentStatus
+from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import (
     INCIDENT_COLOR_MAPPING,
@@ -13,6 +9,8 @@ from sentry.integrations.slack.message_builder.types import (
     SlackBody,
 )
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.models.organization import Organization
+from sentry.snuba.models import SnubaQuery
 
 
 def get_started_at(timestamp: datetime | None) -> str:
@@ -26,8 +24,12 @@ def get_started_at(timestamp: datetime | None) -> str:
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
-        incident: Incident,
+        alert_context: AlertContext,
+        open_period_identifier: int,
+        organization: Organization,
+        snuba_query: SnubaQuery,
         new_status: IncidentStatus,
+        date_started: datetime,
         metric_value: float | None = None,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
@@ -41,29 +43,29 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         :param [method]: Either "fire" or "resolve".
         """
         super().__init__()
-        self.incident = incident
+        self.alert_context = alert_context
+        self.open_period_identifier = open_period_identifier
+        self.organization = organization
+        self.snuba_query = snuba_query
         self.metric_value = metric_value
         self.new_status = new_status
+        self.date_started = date_started
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
 
     def build(self) -> SlackBody:
-        # (iamrajjoshi): Need this check since the type hint is wrong.
-        if self.metric_value is None:
-            self.metric_value = get_metric_count_from_incident(self.incident)
-
         data = incident_attachment_info(
-            AlertContext.from_alert_rule_incident(self.incident.alert_rule),
-            self.incident.identifier,
-            organization=self.incident.organization,
-            snuba_query=self.incident.alert_rule.snuba_query,
-            metric_value=self.metric_value,
+            alert_context=self.alert_context,
+            open_period_identifier=self.open_period_identifier,
+            organization=self.organization,
+            snuba_query=self.snuba_query,
             new_status=self.new_status,
+            metric_value=self.metric_value,
             notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )
 
-        incident_text = f"{data['text']}\n{get_started_at(self.incident.date_started)}"
+        incident_text = f"{data['text']}\n{get_started_at(self.date_started)}"
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]
