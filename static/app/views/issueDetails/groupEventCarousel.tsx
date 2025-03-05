@@ -390,6 +390,13 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <strong>Event ID:</strong>
               <Button
                 aria-label={t('Copy')}
+                analyticsEventKey="issue_details.copy_event_id_clicked"
+                analyticsEventName="Issue Details: Copy Event ID Clicked"
+                analyticsParams={{
+                  ...getAnalyticsDataForGroup(group),
+                  ...getAnalyticsDataForEvent(event),
+                  streamline: false,
+                }}
                 borderless
                 onClick={copyEventId}
                 size="zero"

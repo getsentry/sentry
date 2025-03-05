@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -359,10 +359,15 @@ export function redirectToPerformanceHomepage(
   organization: Organization,
   location: Location
 ) {
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug),
+      pathname: hasPerfLandingRemovalFlag
+        ? getPerformanceBaseUrl(organization.slug, 'backend')
+        : getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

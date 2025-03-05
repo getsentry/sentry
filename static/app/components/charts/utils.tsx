@@ -22,6 +22,8 @@ import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
+const {error} = Sentry._experiment_log;
+
 // In minutes
 export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
@@ -42,7 +44,7 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 export function truncationFormatter(
   value: string,
   truncate: number | boolean | undefined,
-  escaped: boolean = true
+  escaped = true
 ): string {
   // Whitespace characters such as newlines and tabs can
   // mess up the formatting in legends where it's part of
@@ -102,12 +104,8 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['invalid-duration-for-interval']);
-        Sentry.captureException(
-          new Error('Invalid duration supplied to interval function')
-        );
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      error`Invalid duration supplied to interval function. (minutes: ${minutes})`;
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }

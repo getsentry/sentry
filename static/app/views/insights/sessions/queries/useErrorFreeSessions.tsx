@@ -2,10 +2,23 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useErrorFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
+
+  const locationWithoutWidth = {
+    ...location,
+    query: {
+      ...location.query,
+      width_health_table: undefined,
+      width_adoption_table: undefined,
+      cursor_health_table: undefined,
+      cursor_adoption_table: undefined,
+    },
+  };
+
   const {
     data: sessionData,
     isPending,
@@ -15,7 +28,7 @@ export default function useErrorFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...location.query,
+          ...locationWithoutWidth.query,
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },
@@ -24,28 +37,16 @@ export default function useErrorFreeSessions() {
     {staleTime: 0}
   );
 
-  if (isPending) {
+  if (isPending || !sessionData) {
     return {
       series: [],
-      isPending: true,
+      isPending,
       error,
     };
   }
-
-  if (!sessionData && !isPending) {
-    return {
-      series: [],
-      isPending: false,
-      error,
-    };
-  }
-
-  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
-    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-    [];
 
   // Returns series data not grouped by release
-  const seriesData = getStatusSeries('healthy', sessionData.groups).map(
+  const seriesData = getSessionStatusSeries('healthy', sessionData.groups).map(
     (healthyCount, idx) => {
       const intervalTotal = sessionData.groups.reduce(
         (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),

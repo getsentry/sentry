@@ -4,7 +4,7 @@ from typing import Any, ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -58,17 +58,17 @@ class OnboardingTaskStatus:
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
-        if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(organization_id=organization_id, task=task, **kwargs)
-                    return True
-            except IntegrityError:
-                pass
 
+        if cache.get(cache_key) is None:
+            _, created = self.create_or_update(
+                organization_id=organization_id,
+                task=task,
+                values=kwargs,
+            )
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
-
+            if created:
+                return True
         return False
 
 

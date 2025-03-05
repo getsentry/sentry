@@ -1,3 +1,4 @@
+import {Button} from 'sentry/components/button';
 import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -6,11 +7,12 @@ import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -120,6 +122,8 @@ function ProjectStabilityScoreCard(props: Props) {
     null
   );
 
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
   const {crashFreeRate, previousCrashFreeRate, isLoading, error, refetch} =
     useCrashFreeRate(props);
 
@@ -133,35 +137,73 @@ function ProjectStabilityScoreCard(props: Props) {
 
   if (hasSessions === false) {
     return (
-      <WidgetFrame title={cardTitle} description={cardHelp}>
-        <ActionWrapper>
-          <MissingReleasesButtons
-            organization={organization}
-            health
-            platform={props.project?.platform}
-          />
-        </ActionWrapper>
-      </WidgetFrame>
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Widget.WidgetDescription description={cardHelp} />
+          </Widget.WidgetToolbar>
+        }
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons
+              organization={organization}
+              health
+              platform={props.project?.platform}
+            />
+          </ActionWrapper>
+        }
+      />
+    );
+  }
+
+  if (isLoading || !defined(score)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Button size="xs" onClick={refetch}>
+              {t('Retry')}
+            </Button>
+          </Widget.WidgetToolbar>
+        }
+        Visualization={<Widget.WidgetError error={error} />}
+      />
     );
   }
 
   return (
-    <BigNumberWidget
-      title={cardTitle}
-      description={cardHelp}
-      value={score ? score / 100 : undefined}
-      previousPeriodValue={previousScore ? previousScore / 100 : undefined}
-      field={`${props.field}()`}
-      meta={{
-        fields: {
-          [`${props.field}()`]: 'percentage',
-        },
-        units: {},
-      }}
-      preferredPolarity="+"
-      isLoading={isLoading}
-      error={error ?? undefined}
-      onRetry={refetch}
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={score / 100}
+          previousPeriodValue={previousScore ? previousScore / 100 : undefined}
+          field={`${props.field}()`}
+          meta={{
+            fields: {
+              [`${props.field}()`]: 'percentage',
+            },
+            units: {},
+          }}
+          preferredPolarity="+"
+        />
+      }
     />
   );
 }

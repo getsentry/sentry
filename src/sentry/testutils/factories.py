@@ -1955,6 +1955,7 @@ class Factories:
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
+        host_provider_name: str,
         interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
         method,
@@ -1975,6 +1976,7 @@ class Factories:
             url_domain=url_domain,
             url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
+            host_provider_name=host_provider_name,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -2019,10 +2021,14 @@ class Factories:
 
     @staticmethod
     def create_uptime_subscription_region(
-        subscription: UptimeSubscription, region_slug: str
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode,
     ) -> UptimeSubscriptionRegion:
         return UptimeSubscriptionRegion.objects.create(
-            uptime_subscription=subscription, region_slug=region_slug
+            uptime_subscription=subscription,
+            region_slug=region_slug,
+            mode=mode,
         )
 
     @staticmethod

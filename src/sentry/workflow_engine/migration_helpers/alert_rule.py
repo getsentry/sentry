@@ -2,6 +2,8 @@ import dataclasses
 import logging
 from typing import Any
 
+from django.forms import ValidationError
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -13,7 +15,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.integrations.services.integration import integration_service
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -49,8 +51,18 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
-LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_identifier", "target_type"]
-ACTION_DATA_FIELDS = ["type", "sentry_app_id", "sentry_app_config"]
+TYPE_TO_PROVIDER = {
+    ActionService.EMAIL.value: Action.Type.EMAIL,
+    ActionService.PAGERDUTY.value: Action.Type.PAGERDUTY,
+    ActionService.SLACK.value: Action.Type.SLACK,
+    ActionService.MSTEAMS.value: Action.Type.MSTEAMS,
+    ActionService.SENTRY_APP.value: Action.Type.SENTRY_APP,
+    ActionService.OPSGENIE.value: Action.Type.OPSGENIE,
+    ActionService.DISCORD.value: Action.Type.DISCORD,
+}
+
+# XXX: "target_identifier" is not here because there is special logic to handle it
+LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_type"]
 
 
 class MissingDataConditionGroup(Exception):
@@ -61,30 +73,12 @@ class UnresolvableResolveThreshold(Exception):
     pass
 
 
-class InvalidActionType(Exception):
-    pass
-
-
 class CouldNotCreateDataSource(Exception):
     pass
 
 
-def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
-    if alert_rule_trigger_action.sentry_app_id:
-        return Action.Type.SENTRY_APP
-
-    elif alert_rule_trigger_action.integration_id:
-        integration = integration_service.get_integration(
-            integration_id=alert_rule_trigger_action.integration_id
-        )
-        if not integration:
-            return None
-        try:
-            return Action.Type(integration.provider)
-        except Exception:
-            return None
-    else:
-        return Action.Type.EMAIL
+def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> Action.Type | None:
+    return TYPE_TO_PROVIDER.get(alert_rule_trigger_action.type, None)
 
 
 def build_sentry_app_data_blob(
@@ -144,7 +138,7 @@ def get_target_identifier(
     if action_type == Action.Type.SENTRY_APP:
         # Ensure we have a valid sentry_app_id
         if not alert_rule_trigger_action.sentry_app_id:
-            raise InvalidActionType(
+            raise ValidationError(
                 f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
             )
         return str(alert_rule_trigger_action.sentry_app_id)
@@ -218,7 +212,9 @@ def migrate_metric_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {alert_rule_trigger_action.id}"
+        )
 
     # Ensure action_type is Action.Type before passing to functions
     action_type_enum = Action.Type(action_type)
@@ -498,7 +494,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=False,
+        active=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
@@ -696,16 +692,18 @@ def dual_update_migrated_alert_rule_trigger_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {trigger_action.id}"
+        )
+    data = build_action_data_blob(trigger_action, action_type)
+    target_identifier = get_target_identifier(trigger_action, action_type)
     updated_action_fields["type"] = action_type
-    data = action.data.copy()
+    updated_action_fields["data"] = data
+    updated_action_fields["target_identifier"] = target_identifier
+
     for field in LEGACY_ACTION_FIELDS:
         if field in updated_fields:
             updated_action_fields[field] = updated_fields[field]
-    for field in ACTION_DATA_FIELDS:
-        if field in updated_fields:
-            data[field] = updated_fields[field]
-    updated_action_fields["data"] = data
 
     action.update(**updated_action_fields)
     return action
@@ -741,7 +739,7 @@ def dual_delete_migrated_alert_rule(
     except AlertRuleDetector.DoesNotExist:
         # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
-            "alert rule was not dual written, returning early",
+            "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": alert_rule.id},
         )
         return

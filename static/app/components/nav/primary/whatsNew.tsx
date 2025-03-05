@@ -1,15 +1,15 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
 
-import useDrawer from 'sentry/components/globalDrawer';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useNavContext} from 'sentry/components/nav/context';
 import {
-  NavButton,
+  SidebarButton,
   SidebarItem,
-  SidebarItemBadge,
+  SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
-import {NavLayout} from 'sentry/components/nav/types';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useOverlay from 'sentry/utils/useOverlay';
 
 const MARK_SEEN_DELAY = 1000;
 
@@ -113,43 +114,52 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
   );
 }
 
-export function WhatsNew() {
-  const ref = useRef<HTMLButtonElement>(null);
-  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+export function PrimaryNavigationWhatsNew() {
   const {data: broadcasts = []} = useFetchBroadcasts();
   const unseenPostIds = useMemo(
     () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
     [broadcasts]
   );
 
-  const {layout} = useNavContext();
-  const showLabel = layout === NavLayout.MOBILE;
+  const theme = useTheme();
+
+  const {
+    isOpen,
+    triggerProps: overlayTriggerProps,
+    overlayProps,
+  } = useOverlay({
+    offset: 8,
+    position: 'right-end',
+    isDismissable: true,
+  });
 
   return (
     <SidebarItem>
-      <NavButton
-        ref={ref}
-        onClick={() => {
-          if (isDrawerOpen) {
-            closeDrawer();
-          } else {
-            openDrawer(() => <WhatsNewContent unseenPostIds={unseenPostIds} />, {
-              ariaLabel: t("What's New"),
-              shouldCloseOnInteractOutside: el => !ref.current?.contains(el),
-            });
-          }
-        }}
-        aria-label={showLabel ? undefined : t("What's New")}
+      <SidebarButton
+        analyticsKey="broadcasts"
+        label={t("What's New")}
+        buttonProps={overlayTriggerProps}
       >
-        <InteractionStateLayer />
         <IconBroadcast />
-        {showLabel && <span>{t("What's New")}</span>}
         {unseenPostIds.length > 0 && (
-          <SidebarItemBadge data-test-id="whats-new-badge">
-            {unseenPostIds.length}
-          </SidebarItemBadge>
+          <SidebarItemUnreadIndicator data-test-id="whats-new-unread-indicator" />
         )}
-      </NavButton>
+      </SidebarButton>
+      {isOpen && (
+        <FocusScope autoFocus restoreFocus>
+          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+            <ScrollableOverlay>
+              <WhatsNewContent unseenPostIds={unseenPostIds} />
+            </ScrollableOverlay>
+          </PositionWrapper>
+        </FocusScope>
+      )}
     </SidebarItem>
   );
 }
+
+const ScrollableOverlay = styled(Overlay)`
+  max-height: 60vh;
+  width: 400px;
+  overflow-y: auto;
+`;

@@ -270,16 +270,20 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
 
-            should_dual_write = features.has(
-                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+            # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
+            should_dual_write = (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+                )
+                and alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
             )
             if should_dual_write:
                 migrate_alert_rule(alert_rule, user)
 
             self._handle_triggers(alert_rule, triggers)
             if should_dual_write:
-                # create the resolution data triggers once we've migrated the critical/warning triggers
                 migrate_resolve_threshold_data_conditions(alert_rule)
+
             return alert_rule
 
     def update(self, instance, validated_data):
@@ -319,8 +323,9 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
-                dual_delete_migrated_alert_rule_trigger(trigger)
-                delete_alert_rule_trigger(trigger)
+                with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
+                    dual_delete_migrated_alert_rule_trigger(trigger)
+                    delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:
                 if "id" in trigger_data:

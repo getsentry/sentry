@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
-import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
+import {Alert} from 'sentry/components/core/alert';
+import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalInfo';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -20,8 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration?: string;
-  provider?: string;
-  skipConfig?: boolean;
+  skipEvalTracking?: boolean;
 }
 
 export function FeatureFlagOnboardingLayout({
@@ -33,8 +32,7 @@ export function FeatureFlagOnboardingLayout({
   projectKeyId,
   configType = 'onboarding',
   integration = '',
-  provider = '',
-  skipConfig,
+  skipEvalTracking,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -42,7 +40,7 @@ export function FeatureFlagOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [skipSteps, setSkipSteps] = useState(skipConfig);
+  const [hideSteps, setHideSteps] = useState(skipEvalTracking);
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -95,28 +93,32 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        {!skipConfig ? null : (
+        {skipEvalTracking ? (
           <Alert.Container>
             <Alert type="info" showIcon>
               <Flex gap={space(3)}>
                 {t(
                   'Feature flag integration detected. Please follow the remaining steps.'
                 )}
-                <Button onClick={() => setSkipSteps(!skipSteps)}>
-                  {skipSteps ? t('Show Full Guide') : t('Hide Full Guide')}
+                <Button onClick={() => setHideSteps(!hideSteps)}>
+                  {hideSteps ? t('Show Full Guide') : t('Hide Full Guide')}
                 </Button>
               </Flex>
             </Alert>
           </Alert.Container>
-        )}
-        {!skipSteps && (
+        ) : null}
+        {hideSteps ? null : (
           <Steps>
             {steps.map(step => (
               <Step key={step.title ?? step.type} {...step} />
             ))}
+            <StyledLinkButton to="/issues/" priority="primary">
+              {t('Take me to Issues')}
+            </StyledLinkButton>
           </Steps>
         )}
-        <OnboardingIntegrationSection provider={provider} integration={integration} />
+        <Divider />
+        <OnboardingAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
@@ -126,6 +128,10 @@ const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  align-self: flex-start;
 `;
 
 const Wrapper = styled('div')`
@@ -139,5 +145,19 @@ const Wrapper = styled('div')`
     h5 {
       margin-bottom: 0;
     }
+  }
+`;
+
+const Divider = styled('div')`
+  position: relative;
+  margin-top: ${space(3)};
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    height: 1px;
+    left: 0;
+    right: 0;
+    background: ${p => p.theme.border};
   }
 `;

@@ -7,14 +7,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
+import {Input} from 'sentry/components/core/input';
 import {
-  PROVIDER_OPTION_TO_URLS,
-  ProviderOptions,
+  PROVIDER_TO_SETUP_WEBHOOK_URL,
+  WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
-import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -26,11 +26,11 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
+import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags/changeTracking';
 import type {
   CreateSecretQueryVariables,
   CreateSecretResponse,
-} from 'sentry/views/settings/featureFlags/newProviderForm';
+} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 
 export default function OnboardingIntegrationSection({
   provider,
@@ -120,7 +120,9 @@ export default function OnboardingIntegrationSection({
                 {
                   link: (
                     <ExternalLink
-                      href={PROVIDER_OPTION_TO_URLS[provider as ProviderOptions]}
+                      href={
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
+                      }
                     />
                   ),
                 }
@@ -138,7 +140,7 @@ export default function OnboardingIntegrationSection({
         </SubSection>
         <SubSection>
           <div>
-            {provider === ProviderOptions.UNLEASH
+            {provider === WebhookProviderEnum.UNLEASH
               ? t(
                   `During the process of creating a webhook integration, you'll be given the option to add an authorization header. This is a string (or "secret") that you choose so that Sentry can verify requests from your feature flag service. Paste your authorization string below.`
                 )

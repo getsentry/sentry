@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -31,7 +32,7 @@ from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketActio
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
-from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
@@ -39,7 +40,9 @@ from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.utils import metrics
-from sentry.workflow_engine.migration_helpers.rule import delete_migrated_issue_alert
+from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
+    delete_migrated_issue_alert,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -364,16 +367,24 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        rule.update(status=ObjectStatus.PENDING_DELETION)
-        RuleActivity.objects.create(
-            rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-        )
-        scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+        rule_id = rule.id
 
-        if features.has(
-            "organizations:workflow-engine-issue-alert-dual-write", project.organization
-        ):
-            delete_migrated_issue_alert(rule)
+        with transaction.atomic(router.db_for_write(Rule)):
+            rule.update(status=ObjectStatus.PENDING_DELETION)
+            RuleActivity.objects.create(
+                rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+            )
+            scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+
+            if features.has(
+                "organizations:workflow-engine-issue-alert-dual-write", project.organization
+            ):
+                workflow_id = delete_migrated_issue_alert(rule)
+                if workflow_id:
+                    logger.info(
+                        "workflow_engine.issue_alert.deleted",
+                        extra={"rule_id": rule_id, "workflow_id": workflow_id},
+                    )
 
         self.create_audit_entry(
             request=request,

@@ -1,5 +1,8 @@
+import {Fragment} from 'react';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {
   ColoredLogCircle,
   ColoredLogText,
@@ -9,54 +12,133 @@ import {
   WrappingText,
 } from 'sentry/views/explore/logs/styles';
 import {
+  type OurLogFieldKey,
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+import {
   getLogSeverityLevel,
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
 
-export function severityCircleRenderer(
-  severityNumber: number,
-  severityText: string,
-  logColors: ReturnType<typeof getLogColors>
-) {
-  const level = getLogSeverityLevel(severityNumber, severityText);
-  const levelLabel = severityLevelToText(level);
+interface FieldRendererProps {
+  attribute_value: string | number | null;
+  extra: RendererExtra;
+  tableResultLogRow?: OurLogsResponseItem;
+}
+
+export interface RendererExtra {
+  highlightTerms: string[];
+  logColors: ReturnType<typeof getLogColors>;
+  renderSeverityCircle?: boolean;
+  useFullSeverityText?: boolean;
+  wrapBody?: boolean;
+}
+
+function SeverityCircle(props: {
+  level: SeverityLevel;
+  levelLabel: string;
+  logColors: ReturnType<typeof getLogColors>;
+  severityText: string;
+}) {
   return (
-    <Tooltip skipWrapper disabled={level === SeverityLevel.UNKNOWN} title={levelLabel}>
-      <ColoredLogCircle logColors={logColors}>{severityText}</ColoredLogCircle>
+    <Tooltip
+      skipWrapper
+      disabled={props.level === SeverityLevel.UNKNOWN}
+      title={props.levelLabel}
+    >
+      <ColoredLogCircle logColors={props.logColors}>
+        {props.severityText}
+      </ColoredLogCircle>
     </Tooltip>
   );
 }
 
-export function severityTextRenderer(
-  severityNumber: number,
-  severityText: string,
-  logColors: ReturnType<typeof getLogColors>,
-  useFullSeverityText: boolean = false
-) {
-  const level = getLogSeverityLevel(severityNumber, severityText);
-  const levelLabel = useFullSeverityText ? level : severityLevelToText(level);
-  return <ColoredLogText logColors={logColors}>[{levelLabel}]</ColoredLogText>;
+export function severityTextRenderer(props: FieldRendererProps) {
+  const attribute_value = props.attribute_value as string;
+  const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
+  const severityNumber = _severityNumber ? Number(_severityNumber) : null;
+  const useFullSeverityText = props.extra.useFullSeverityText ?? false;
+  const level = getLogSeverityLevel(severityNumber, attribute_value);
+  const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
+  const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
+  return (
+    <Fragment>
+      {renderSeverityCircle && (
+        <SeverityCircle
+          level={level}
+          levelLabel={levelLabel}
+          severityText={attribute_value}
+          logColors={props.extra.logColors}
+        />
+      )}
+
+      <ColoredLogText logColors={props.extra.logColors}>[{levelLabel}]</ColoredLogText>
+    </Fragment>
+  );
 }
 
-export function TimestampRenderer({timestamp}: {timestamp: string}) {
+export function TimestampRenderer(props: FieldRendererProps) {
   return (
     <LogDate>
-      <DateTime seconds date={timestamp} />
+      <DateTime seconds date={props.attribute_value} />
     </LogDate>
   );
 }
 
-export function bodyRenderer(
-  body: string,
-  highlightTerms: string[],
-  wrap: boolean = false
-) {
-  const highlightTerm = highlightTerms[0] ?? '';
+export function bodyRenderer(props: FieldRendererProps) {
+  const attribute_value = props.attribute_value as string;
+  const highlightTerm = props.extra.highlightTerms[0] ?? '';
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
-    <WrappingText wrap={wrap}>
-      <LogsHighlight text={highlightTerm}>{body}</LogsHighlight>
+    <WrappingText wrap={props.extra.wrapBody}>
+      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
     </WrappingText>
   );
 }
+
+function wrappedSeverityTextRenderer(props: {
+  attribute_value: string | number | null;
+  extra?: RendererExtra;
+}) {
+  const extra = props.extra || {
+    highlightTerms: [],
+    logColors: {} as ReturnType<typeof getLogColors>,
+  };
+  return severityTextRenderer({...props, extra});
+}
+
+export const LogAttributesRendererMap: Record<
+  OurLogFieldKey,
+  (props: {
+    attribute_value: string | number | null;
+    extra?: RendererExtra;
+  }) => React.ReactNode
+> = {
+  [OurLogKnownFieldKey.TIMESTAMP]: props => {
+    // Ensure extra is defined for the wrapped function
+    const extra = props.extra || {
+      highlightTerms: [],
+      logColors: {} as ReturnType<typeof getLogColors>,
+    };
+    return TimestampRenderer({...props, extra});
+  },
+  [OurLogKnownFieldKey.SEVERITY_TEXT]: wrappedSeverityTextRenderer,
+  [OurLogKnownFieldKey.SENTRY_SEVERITY_TEXT]: wrappedSeverityTextRenderer,
+};
+
+export const LogAttributesHumanLabel: Record<OurLogFieldKey, string> = {
+  [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
+  [OurLogKnownFieldKey.SEVERITY_TEXT]: t('Severity'),
+};
+
+export const HiddenLogAttributes: OurLogFieldKey[] = [
+  OurLogKnownFieldKey.SEVERITY_NUMBER,
+  OurLogKnownFieldKey.ID,
+  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.PROJECT_ID,
+  OurLogKnownFieldKey.SENTRY_ORGANIZATION_ID,
+  OurLogKnownFieldKey.SENTRY_PROJECT_ID,
+  OurLogKnownFieldKey.SENTRY_ITEM_TYPE,
+];

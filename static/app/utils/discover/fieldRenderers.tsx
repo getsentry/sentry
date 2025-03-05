@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -63,6 +64,7 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 
 import {decodeScalar} from '../queryString';
 
@@ -366,6 +368,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  adoption_stage: SpecialField;
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
@@ -381,6 +384,7 @@ type SpecialFields = {
   replayId: SpecialField;
   'span.description': SpecialField;
   'span.status_code': SpecialField;
+  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -489,6 +493,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  span_id: {
+    sortField: 'span_id',
+    renderFunc: data => {
+      const id: string | unknown = data?.span_id;
       if (typeof id !== 'string') {
         return null;
       }
@@ -701,6 +716,19 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{emptyValue}</Container>;
     },
   },
+  adoption_stage: {
+    sortField: 'adoption_stage',
+    renderFunc: data => {
+      const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
+      return data.adoption_stage && label ? (
+        <Tooltip title={label.tooltipTitle} isHoverable>
+          <Tag type={label.type}>{label.name}</Tag>
+        </Tooltip>
+      ) : (
+        <Container>{emptyValue}</Container>
+      );
+    },
+  },
   release: {
     sortField: 'release',
     renderFunc: (data, {organization}) =>
@@ -826,7 +854,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const projectThresholdConfig = 'project_threshold_config';
-    let countMiserableUserField: string = '';
+    let countMiserableUserField = '';
 
     let miseryLimit: number | undefined = parseInt(
       userMiseryField.split('(').pop()?.slice(0, -1) || '',
@@ -1064,7 +1092,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export function getFieldRenderer(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1109,7 +1137,7 @@ type FieldTypeFormatterRenderFunctionPartial = (
 export function getFieldFormatter(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName] || meta.fields?.[fieldName];

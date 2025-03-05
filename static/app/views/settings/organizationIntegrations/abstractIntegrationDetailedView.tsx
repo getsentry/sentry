@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import type {AlertProps} from 'sentry/components/alert';
-import {Alert} from 'sentry/components/alert';
-import Tag from 'sentry/components/badge/tag';
+import type {AlertProps} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';

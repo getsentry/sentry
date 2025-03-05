@@ -6,25 +6,25 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 
 const TAB_MAX_COUNT = 99;
 
 const constructCountTimeFrame = (
-  pageFilters: PageFilters['datetime']
+  timeFilters: PageFilters['datetime']
 ): {
   end?: string;
   start?: string;
   statsPeriod?: string;
 } => {
-  if (pageFilters.period) {
-    return {statsPeriod: pageFilters.period};
+  if (timeFilters.period) {
+    return {statsPeriod: timeFilters.period};
   }
   return {
-    ...(pageFilters.start ? {start: getUtcDateString(pageFilters.start)} : {}),
-    ...(pageFilters.end ? {end: getUtcDateString(pageFilters.end)} : {}),
+    ...(timeFilters.start ? {start: getUtcDateString(timeFilters.start)} : {}),
+    ...(timeFilters.end ? {end: getUtcDateString(timeFilters.end)} : {}),
+    ...(timeFilters.utc ? {utc: timeFilters.utc} : {}),
   };
 };
 
@@ -34,7 +34,6 @@ interface IssueViewQueryCountProps {
 
 export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
   const theme = useTheme();
 
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
@@ -47,9 +46,9 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   } = useFetchIssueCounts({
     orgSlug: organization.slug,
     query: [view.unsavedChanges?.query ?? view.query],
-    project: pageFilters.selection.projects,
-    environment: pageFilters.selection.environments,
-    ...constructCountTimeFrame(pageFilters.selection.datetime),
+    project: view.unsavedChanges?.projects ?? view.projects,
+    environment: view.unsavedChanges?.environments ?? view.environments,
+    ...constructCountTimeFrame(view.unsavedChanges?.timeFilters ?? view.timeFilters),
   });
 
   // The endpoint's response type looks like this: { <query1>: <count>, <query2>: <count> }

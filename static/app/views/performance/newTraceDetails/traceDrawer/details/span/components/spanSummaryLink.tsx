@@ -95,7 +95,7 @@ const StyledIconGraph = styled(IconGraph)`
   margin-right: ${space(0.5)};
 `;
 
-const resourceSummaryAvailable = (op: string = '') =>
+const resourceSummaryAvailable = (op = '') =>
   ['resource.script', 'resource.css'].includes(op);
 
 export default SpanSummaryLink;

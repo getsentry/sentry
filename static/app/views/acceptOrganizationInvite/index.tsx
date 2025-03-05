@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -107,6 +107,7 @@ function ExistingMemberAlert() {
 }
 
 function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
+  const sentryUrl = ConfigStore.get('links').sentryUrl;
   return (
     <Fragment>
       <p data-test-id="2fa-warning">
@@ -116,7 +117,11 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
         )}
       </p>
       <Actions>
-        <LinkButton priority="primary" to="/settings/account/security/">
+        <LinkButton
+          external
+          priority="primary"
+          href={`${sentryUrl}/settings/account/security/`}
+        >
           {t('Configure Two-Factor Auth')}
         </LinkButton>
       </Actions>

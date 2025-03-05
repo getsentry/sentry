@@ -100,10 +100,13 @@
       "sentry/*": ["static/app/*"],
       "sentry-fixture/*": ["tests/js/fixtures/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
+      "getsentry-test/*": ["tests/js/getsentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
-      "sentry-fonts/*": ["static/fonts/*"]
+      "sentry-fonts/*": ["static/fonts/*"],
+      "getsentry/*": ["static/gsApp/*"],
+      "getsentry-images/*": ["static/images/*"]
     },
 
     "plugins": [
@@ -112,7 +115,7 @@
       { "name": "@styled/typescript-styled-plugin" }
     ]
   },
-  "include": ["../static/app", "../tests/js"],
+  "include": ["../static/app", "../static/gsApp", "../tests/js"],
   "exclude": ["../node_modules", "../**/*.benchmark.ts"],
   "ts-node": {
     "transpileOnly": true

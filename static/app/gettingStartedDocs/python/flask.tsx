@@ -23,8 +23,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[flask]'`;
 
-const getSdkSetupSnippet = (params: Params) => `
-import sentry_sdk
+const getSdkSetupSnippet = (params: Params) => `import sentry_sdk
 from flask import Flask
 
 sentry_sdk.init(
@@ -103,8 +102,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
+          code: `${getSdkSetupSnippet(params)}
 app = Flask(__name__)
 `,
         },
@@ -136,8 +134,7 @@ app = Flask(__name__)
         {
           language: 'python',
 
-          code: `
-${getSdkSetupSnippet(params)}
+          code: `${getSdkSetupSnippet(params)}
 app = Flask(__name__)
 
 @app.route("/")
@@ -179,13 +176,13 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure the Sentry SDK, initialize it in your [code:settings.py] file:',
-        {code: <code />}
-      ),
       configurations: [
         {
           language: 'python',
+          description: tct(
+            'To configure the Sentry SDK, initialize it in your [code:settings.py] file:',
+            {code: <code />}
+          ),
           code: `
 import sentry-sdk
 
@@ -222,14 +219,6 @@ sentry_sdk.init(
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
-          ),
-        }
-      ),
-      additionalInfo: tct(
-        'You have the option to manually construct a transaction using [link:custom instrumentation].',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
           ),
         }
       ),

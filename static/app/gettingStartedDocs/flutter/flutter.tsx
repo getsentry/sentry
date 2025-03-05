@@ -1,9 +1,12 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -15,12 +18,44 @@ import {
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
-type Params = DocsParams;
+export enum InstallationMode {
+  AUTO = 'auto',
+  MANUAL = 'manual',
+}
 
-const getInstallSnippet = (params: Params) => `
-dependencies:
-  sentry_flutter: ^${getPackageVersion(params, 'sentry.dart.flutter', '7.8.0')}`;
+const platformOptions = {
+  installationMode: {
+    label: t('Installation Mode'),
+    items: [
+      {
+        label: t('Auto'),
+        value: InstallationMode.AUTO,
+      },
+      {
+        label: t('Manual'),
+        value: InstallationMode.MANUAL,
+      },
+    ],
+    defaultValue:
+      navigator.userAgent.indexOf('Win') !== -1
+        ? InstallationMode.MANUAL
+        : InstallationMode.AUTO,
+  },
+} satisfies BasePlatformOptions;
+
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
+
+const isAutoInstall = (params: Params) =>
+  params.platformOptions?.installationMode === InstallationMode.AUTO;
+
+const getManualInstallSnippet = (params: Params) => {
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  return `dependencies:
+  sentry_flutter: ^${version}`;
+};
 
 const getConfigureSnippet = (params: Params) => `
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -119,99 +154,144 @@ const getConfigureReplaySnippet = () => `
 options.experimental.replay.maskAllText = true;
 options.experimental.replay.maskAllImages = true;`;
 
-const onboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'Sentry captures data by using an SDK within your application’s runtime. Add the following to your [pubspec: pubspec.yaml]',
-        {
-          pubspec: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'YAML',
-              value: 'yaml',
-              language: 'yaml',
-              filename: 'pubspec.yaml',
-              partialLoading: params.sourcePackageRegistries?.isLoading,
-              code: getInstallSnippet(params),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct('Import [sentryFlutter: sentry_flutter] and initialize it', {
-        sentryFlutter: <code />,
-      }),
-      configurations: [
-        ...(params.isProfilingSelected
-          ? [
-              {
-                description: t(
-                  'Flutter Profiling alpha is available for iOS and macOS since SDK version 7.12.0.'
-                ),
-              },
-            ]
-          : []),
-        {
-          code: [
-            {
-              label: 'Dart',
-              value: 'dart',
-              language: 'dart',
-              filename: 'main.dart',
-              code: getConfigureSnippet(params),
-            },
-          ],
-          additionalInfo: params.isPerformanceSelected ? (
-            <Fragment>
-              <p>{configureAdditionalInfo}</p>
-              <Alert type="info">
-                {t(
-                  'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
-                )}
-              </Alert>
-            </Fragment>
-          ) : (
-            configureAdditionalInfo
-          ),
-        },
-      ],
-    },
-  ],
-  verify: (params: Params) => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Create an intentional error, so you can test that everything is working. In the example below, pressing the button will throw an exception:'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'Dart',
-              value: 'dart',
-              language: 'dart',
-              code: getVerifySnippet(),
-            },
-          ],
-        },
-      ],
-    },
-    ...(params.isPerformanceSelected
+const onboarding: OnboardingConfig<PlatformOptions> = {
+  install: params =>
+    isAutoInstall(params)
       ? [
           {
-            title: t('Tracing'),
+            type: StepType.INSTALL,
+            description: tct(
+              'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
+              {
+                wizardLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/flutter/#install" />
+                ),
+              }
+            ),
+            configurations: [
+              {
+                code: getWizardInstallSnippet({
+                  platform: 'flutter',
+                  params,
+                }),
+              },
+              {
+                description: (
+                  <Fragment>
+                    <p>
+                      {t(
+                        'The Sentry wizard will automatically patch your project with the following:'
+                      )}
+                    </p>
+                    <List symbol="bullet">
+                      <ListItem>
+                        {tct(
+                          'Configure the SDK with your DSN and performance monitoring options in your [main:main.dart] file.',
+                          {
+                            main: <code />,
+                          }
+                        )}
+                      </ListItem>
+                      <ListItem>
+                        {tct(
+                          'Update your [pubspec:pubspec.yaml] with the Sentry package',
+                          {
+                            pubspec: <code />,
+                          }
+                        )}
+                      </ListItem>
+                      <ListItem>
+                        {t('Add an example error to verify your setup')}
+                      </ListItem>
+                    </List>
+                  </Fragment>
+                ),
+              },
+            ],
+          },
+        ]
+      : [
+          {
+            type: StepType.INSTALL,
+            description: tct(
+              'Sentry captures data by using an SDK within your application. Add the following to your [pubspec:pubspec.yaml]',
+              {
+                pubspec: <code />,
+              }
+            ),
+            configurations: [
+              {
+                code: [
+                  {
+                    label: 'YAML',
+                    value: 'yaml',
+                    language: 'yaml',
+                    filename: 'pubspec.yaml',
+                    partialLoading: params.sourcePackageRegistries?.isLoading,
+                    code: getManualInstallSnippet(params),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+  configure: params =>
+    isAutoInstall(params)
+      ? []
+      : [
+          {
+            type: StepType.CONFIGURE,
+            description: tct(
+              'Import [sentryFlutter: sentry_flutter] and initialize it in your [main:main.dart]',
+              {
+                sentryFlutter: <code />,
+                main: <code />,
+              }
+            ),
+            configurations: [
+              ...(params.isProfilingSelected
+                ? [
+                    {
+                      description: t(
+                        'Flutter Profiling alpha is available for iOS and macOS since SDK version 7.12.0.'
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                code: [
+                  {
+                    label: 'Dart',
+                    value: 'dart',
+                    language: 'dart',
+                    filename: 'main.dart',
+                    code: getConfigureSnippet(params),
+                  },
+                ],
+                additionalInfo: params.isPerformanceSelected ? (
+                  <Fragment>
+                    <p>{configureAdditionalInfo}</p>
+                    <Alert type="info">
+                      {t(
+                        'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
+                      )}
+                    </Alert>
+                  </Fragment>
+                ) : (
+                  configureAdditionalInfo
+                ),
+              },
+            ],
+          },
+        ],
+  verify: params =>
+    isAutoInstall(params)
+      ? []
+      : [
+          {
+            type: StepType.VERIFY,
             description: t(
-              "You'll be able to monitor the performance of your app using the SDK. For example:"
+              'Create an intentional error, so you can test that everything is working. In the example below, pressing the button will throw an exception:'
             ),
             configurations: [
               {
@@ -220,43 +300,70 @@ const onboarding: OnboardingConfig = {
                     label: 'Dart',
                     value: 'dart',
                     language: 'dart',
-                    code: getPerformanceSnippet(),
+                    code: getVerifySnippet(),
                   },
                 ],
-                additionalInfo: tct(
-                  'To learn more about the API and automatic instrumentations, check out the [perfDocs: tracing documentation].',
-                  {
-                    perfDocs: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
-                    ),
-                  }
-                ),
               },
             ],
           },
-        ]
-      : []),
-  ],
+          ...(params.isPerformanceSelected
+            ? [
+                {
+                  title: t('Tracing'),
+                  description: t(
+                    "You'll be able to monitor the performance of your app using the SDK. For example:"
+                  ),
+                  configurations: [
+                    {
+                      code: [
+                        {
+                          label: 'Dart',
+                          value: 'dart',
+                          language: 'dart',
+                          code: getPerformanceSnippet(),
+                        },
+                      ],
+                      additionalInfo: tct(
+                        'To learn more about the API and automatic instrumentations, check out the [perfDocs: tracing documentation].',
+                        {
+                          perfDocs: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
+                          ),
+                        }
+                      ),
+                    },
+                  ],
+                },
+              ]
+            : []),
+        ],
   nextSteps: () => [
     {
-      name: t('Debug Symbols'),
+      name: t('Upload Debug Symbols'),
       description: t(
-        'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and triage issues faster.'
+        'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
       ),
       link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
     },
     {
-      name: t('Source Context'),
+      name: t('Distributed Tracing'),
       description: t(
-        "If Sentry has access to your application's source code, it can show snippets of code source context around the location of stack frames, which helps to quickly pinpoint problematic code."
+        'Connect all your services by configuring your endpoints in the Sentry init.'
       ),
-      link: 'https://docs.sentry.io/platforms/flutter/upload-debug/#uploading-source-context-for-flutter-android-ios-and-macos',
+      link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
+    },
+    {
+      name: t('Connect your Git Repo'),
+      description: t(
+        'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
+      ),
+      link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
     },
   ],
 };
 
-const replayOnboarding: OnboardingConfig = {
-  install: (params: Params) => [
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -270,7 +377,7 @@ const replayOnboarding: OnboardingConfig = {
               label: 'YAML',
               value: 'yaml',
               language: 'yaml',
-              code: getInstallSnippet(params),
+              code: getManualInstallSnippet(params),
             },
           ],
         },
@@ -324,10 +431,11 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
+  platformOptions,
   replayOnboarding,
 };
 

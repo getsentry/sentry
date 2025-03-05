@@ -80,8 +80,8 @@ export function CheckInTimeline<Status extends string>({
             <JobTick
               style={{left, width}}
               css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={isStarting}
-              roundedRight={isEnding}
+              roundedLeft={isStarting && left !== 0}
+              roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
@@ -141,6 +141,8 @@ export function MockCheckInTimeline<Status extends string>({
 const TimelineContainer = styled('div')`
   position: relative;
   height: 14px;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const JobTick = styled('div')<{
@@ -148,10 +150,8 @@ const JobTick = styled('div')<{
   roundedRight: boolean;
 }>`
   position: absolute;
-  top: calc(50% + 1px);
   width: 4px;
   height: 14px;
-  transform: translateY(-50%);
   opacity: 0.7;
 
   ${p =>

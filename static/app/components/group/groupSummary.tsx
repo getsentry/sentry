@@ -19,6 +19,7 @@ import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfi
 
 const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
 const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
+// These thresholds were used when embedding the cause and computing simliarities.
 
 interface GroupSummaryData {
   groupId: string;
@@ -49,7 +50,7 @@ export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
   project: Project,
-  forceEvent: boolean = false
+  forceEvent = false
 ) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, event, project);
@@ -189,7 +190,7 @@ export function GroupSummary({
             title: t('Possible cause'),
             insight: data?.possibleCause,
             icon: <IconFocus size="sm" />,
-            showWhenLoading: false,
+            showWhenLoading: true,
           },
         ]
       : []),

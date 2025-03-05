@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -19,6 +22,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -143,7 +147,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
@@ -281,7 +285,7 @@ class DiscordInstallPipeline(PipelineView):
         self.params = params
         super().__init__()
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
             state = pipeline.fetch_state(key="discord") or {}
             redirect_uri = (
@@ -296,7 +300,7 @@ class DiscordInstallPipeline(PipelineView):
                 }
             )
             redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return self.redirect(redirect_uri)
+            return HttpResponseRedirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])

@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -102,7 +102,11 @@ export function DataSetStep({
         {t('Spans')}{' '}
         <FeatureBadge
           type="beta"
-          title={t('This feature is available for early adopters and the UX may change')}
+          tooltipProps={{
+            title: t(
+              'This feature is available for early adopters and the UX may change'
+            ),
+          }}
         />
       </FeatureBadgeAlignmentWrapper>
     );

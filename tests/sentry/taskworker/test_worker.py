@@ -3,6 +3,7 @@ import time
 from multiprocessing import Event
 from unittest import mock
 
+import grpc
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -133,6 +134,44 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.assert_called_with(
                 task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
             )
+
+    def test_run_once_with_update_failure(self) -> None:
+        # Cover the scenario where update_task fails a few times in a row
+        # We should retain the result until RPC succeeds.
+        max_runtime = 5
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
+        with mock.patch.object(taskworker, "client") as mock_client:
+
+            def update_task_response(*args, **kwargs):
+                if mock_client.update_task.call_count <= 2:
+                    # Use setattr() because internally grpc uses _InactiveRpcError
+                    # but it isn't exported.
+                    err = grpc.RpcError("update task failed")
+                    setattr(err, "code", lambda: grpc.StatusCode.UNAVAILABLE)
+                    raise err
+                return None
+
+            def get_task_response(*args, **kwargs):
+                # Only one task that fails to update
+                if mock_client.get_task.call_count == 1:
+                    return SIMPLE_TASK
+                return None
+
+            mock_client.update_task.side_effect = update_task_response
+            mock_client.get_task.side_effect = get_task_response
+
+            # Run until the update has 'completed'
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 3:
+                    break
+                if time.time() - start > max_runtime:
+                    raise AssertionError("Timeout waiting for get_task to be called")
+
+            taskworker.shutdown()
+            assert mock_client.get_task.called
+            assert mock_client.update_task.call_count == 3
 
 
 def test_child_worker_complete() -> None:

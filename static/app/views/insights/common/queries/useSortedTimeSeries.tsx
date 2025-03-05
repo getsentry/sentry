@@ -205,7 +205,7 @@ export function transformToSeriesMap(
     }, {} as SeriesMap);
 }
 
-function convertEventsStatsToTimeSeriesData(
+export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
   alias?: string
@@ -227,6 +227,8 @@ function convertEventsStatsToTimeSeriesData(
       },
     },
     confidence: determineSeriesConfidence(seriesData),
+    sampleCount: seriesData.meta?.accuracy?.sampleCount,
+    samplingRate: seriesData.meta?.accuracy?.samplingRate,
   };
 
   return [seriesData.order ?? 0, serie];

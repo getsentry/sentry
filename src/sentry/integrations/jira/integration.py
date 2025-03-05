@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -29,9 +29,11 @@ from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -116,9 +118,15 @@ CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
+MAX_PER_PROJECT_QUERIES = 10
+
+
+class JiraProjectMapping(TypedDict):
+    value: str
+    label: str
+
 
 class JiraIntegration(IssueSyncIntegration):
-    comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
@@ -131,7 +139,105 @@ class JiraIntegration(IssueSyncIntegration):
         return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self) -> list[dict[str, Any]]:
-        configuration: list[dict[str, Any]] = [
+        configuration: list[dict[str, Any]] = self._get_organization_config_default_values()
+
+        client = self.get_client()
+
+        try:
+            projects: list[JiraProjectMapping] = [
+                JiraProjectMapping(value=p["id"], label=p["name"])
+                for p in client.get_projects_list()
+            ]
+            self._set_status_choices_in_organization_config(configuration, projects)
+            configuration[0]["addDropdown"]["items"] = projects
+        except ApiError:
+            configuration[0]["disabled"] = True
+            configuration[0]["disabledReason"] = _(
+                "Unable to communicate with the Jira instance. You may need to reinstall the addon."
+            )
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+        if not has_issue_sync:
+            for field in configuration:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return configuration
+
+    def _set_status_choices_in_organization_config(
+        self, configuration: list[dict[str, Any]], jira_projects: list[JiraProjectMapping]
+    ) -> list[dict[str, Any]]:
+        """
+        Set the status choices in the provided organization config.
+        This will mutate the provided config object and replace the existing
+        mappedSelectors field with the status choices.
+
+        Optionally, if the organization has the feature flag
+        organizations:jira-per-project-statuses enabled, we will set the status
+        choices per-project for the organization.
+        """
+        client = self.get_client()
+
+        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES and features.has(
+            "organizations:jira-per-project-statuses", self.organization
+        ):
+            # If we have less projects than the max query limit, and the feature
+            # flag is enabled for the organization, we can query the statuses
+            # for each project. This ensures we don't display statuses that are
+            # not applicable to each project when it won't result in us hitting
+            # Atlassian rate limits.
+            try:
+                for project in jira_projects:
+                    project_id = project["value"]
+                    project_statuses = client.get_project_statuses(project_id).get("values", [])
+                    statuses = [(c["id"], c["name"]) for c in project_statuses]
+                    configuration[0]["mappedSelectors"][project_id] = {
+                        "on_resolve": {"choices": statuses},
+                        "on_unresolve": {"choices": statuses},
+                    }
+
+                configuration[0]["perItemMapping"] = True
+
+                return configuration
+            except ApiError as e:
+                if isinstance(e, ApiRateLimitedError):
+                    logger.info(
+                        "jira.get-project-statuses.rate-limited",
+                        extra={
+                            "org_id": self.organization_id,
+                            "integration_id": self.model.id,
+                            "project_count": len(jira_projects),
+                        },
+                    )
+                raise
+
+        # Fallback logic to the global statuses per project. This may occur if
+        # there are too many projects we need to fetch.
+        logger.info(
+            "jira.get-project-statuses.fallback",
+            extra={
+                "org_id": self.organization_id,
+                "integration_id": self.model.id,
+                "project_count": len(jira_projects),
+            },
+        )
+        statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
+        configuration[0]["mappedSelectors"] = {
+            "on_resolve": {"choices": statuses},
+            "on_unresolve": {"choices": statuses},
+        }
+
+        return configuration
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        return [
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",
@@ -145,10 +251,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "noResultsMessage": _("Could not find Jira project"),
                     "items": [],  # Populated with projects
                 },
-                "mappedSelectors": {
-                    "on_resolve": {"choices": [], "placeholder": _("Select a status")},
-                    "on_unresolve": {"choices": [], "placeholder": _("Select a status")},
-                },
+                "mappedSelectors": {},
                 "columnLabels": {
                     "on_resolve": _("When resolved"),
                     "on_unresolve": _("When unresolved"),
@@ -210,36 +313,6 @@ class JiraIntegration(IssueSyncIntegration):
             },
         ]
 
-        client = self.get_client()
-
-        try:
-            statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
-            configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
-            configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
-
-            projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
-            configuration[0]["addDropdown"]["items"] = projects
-        except ApiError:
-            configuration[0]["disabled"] = True
-            configuration[0]["disabledReason"] = _(
-                "Unable to communicate with the Jira instance. You may need to reinstall the addon."
-            )
-
-        context = organization_service.get_organization_by_id(
-            id=self.organization_id, include_projects=False, include_teams=False
-        )
-        organization = context.organization
-
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
-        if not has_issue_sync:
-            for field in configuration:
-                field["disabled"] = True
-                field["disabledReason"] = _(
-                    "Your organization does not have access to this feature"
-                )
-
-        return configuration
-
     def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
@@ -288,12 +361,23 @@ class JiraIntegration(IssueSyncIntegration):
             config=config,
         )
 
+    def _filter_active_projects(self, project_mappings: Sequence[IntegrationExternalProject]):
+        project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
+
+        return [pm for pm in project_mappings if pm.external_id in project_ids_set]
+
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
+        project_mappings: Sequence[IntegrationExternalProject] = (
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            )
         )
         sync_status_forward = {}
+
+        if features.has("organizations:jira-per-project-statuses", self.organization):
+            project_mappings = self._filter_active_projects(project_mappings)
+
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
                 "on_unresolve": pm.unresolved_status,
@@ -921,7 +1005,9 @@ class JiraIntegration(IssueSyncIntegration):
                 },
             )
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
@@ -1018,7 +1104,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return []
 
     def build_integration(self, state):

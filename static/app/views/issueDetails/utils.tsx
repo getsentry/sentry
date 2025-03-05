@@ -10,6 +10,7 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
@@ -38,6 +39,8 @@ export function markEventSeen(
     },
     {}
   );
+
+  IssueListCacheStore.markGroupAsSeen(groupId);
 }
 
 export function useDefaultIssueEvent() {
@@ -278,9 +281,9 @@ export function useHasStreamlinedUI() {
     return location.query.streamline === '1';
   }
 
-  // If the organzation option is set, it determines which interface is used.
-  if (defined(organization.streamlineOnly)) {
-    return organization.streamlineOnly;
+  // If the organzation option is set to true, the new UI is used.
+  if (organization.streamlineOnly) {
+    return true;
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI

@@ -1,13 +1,15 @@
+import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
@@ -146,34 +148,74 @@ function ProjectVelocityScoreCard(props: Props) {
 
   const cardHelp = t('The number of releases for this project.');
 
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
   if (!isLoading && noReleaseEver) {
     return (
-      <WidgetFrame title={cardTitle} description={cardHelp}>
-        <ActionWrapper>
-          <MissingReleasesButtons organization={organization} />
-        </ActionWrapper>
-      </WidgetFrame>
+      <Widget
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Widget.WidgetDescription description={cardHelp} />
+          </Widget.WidgetToolbar>
+        }
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons organization={organization} />
+          </ActionWrapper>
+        }
+      />
+    );
+  }
+
+  if (isLoading || !defined(currentReleases)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Button size="xs" onClick={refetch}>
+              {t('Retry')}
+            </Button>
+          </Widget.WidgetToolbar>
+        }
+        Visualization={<Widget.WidgetError error={error} />}
+      />
     );
   }
 
   return (
-    <BigNumberWidget
-      title={cardTitle}
-      description={cardHelp}
-      value={currentReleases?.length}
-      previousPeriodValue={previousReleases?.length}
-      field="count()"
-      maximumValue={API_LIMIT}
-      meta={{
-        fields: {
-          'count()': 'number',
-        },
-        units: {},
-      }}
-      preferredPolarity="+"
-      isLoading={isLoading}
-      error={error ?? undefined}
-      onRetry={refetch}
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={currentReleases?.length}
+          previousPeriodValue={previousReleases?.length}
+          field="count()"
+          maximumValue={API_LIMIT}
+          meta={{
+            fields: {
+              'count()': 'number',
+            },
+            units: {},
+          }}
+          preferredPolarity="+"
+        />
+      }
     />
   );
 }

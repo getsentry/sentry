@@ -1228,3 +1228,46 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
+
+    def test_top_events_filters_out_groupby_even_when_its_just_one_row(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count(span.self_time)",
+                "field": ["transaction", "count(span.self_time)"],
+                "query": "count(span.self_time):>4",
+                "orderby": ["-count_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 5,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0

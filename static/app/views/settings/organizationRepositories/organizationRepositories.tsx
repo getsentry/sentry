@@ -1,5 +1,5 @@
-import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -25,11 +25,13 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
   return (
     <div>
       <SettingsPageHeader title={t('Repositories')} />
-      <AlertLink to={`/settings/${organization.slug}/integrations/`}>
-        {t(
-          'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
-        )}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink type="info" to={`/settings/${organization.slug}/integrations/`}>
+          {t(
+            'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+          )}
+        </AlertLink>
+      </AlertLink.Container>
       {!hasItemList && (
         <div className="m-b-2">
           <TextBlock>

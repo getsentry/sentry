@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:33.326055+00:00'
+created: '2025-02-26T00:32:08.758780+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -29,7 +29,7 @@ contributing variants:
     component:
       system*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+          frame*
             module*
               "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
             function* (trimmed javascript function)

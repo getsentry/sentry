@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
@@ -26,6 +26,8 @@ from sentry.organizations.services.organization import (
 from sentry.utils import auth, demo_mode
 
 if TYPE_CHECKING:
+    from rest_framework.views import APIView
+
     from sentry.models.organization import Organization
 
 
@@ -64,56 +66,6 @@ class StaffPermission(BasePermission):
         return is_active_staff(request)
 
 
-class StaffPermissionMixin:
-    """
-    Sentry endpoints that should be accessible by staff but have an existing permission
-    class (that is not StaffPermission) require this mixin because staff does not give
-    any scopes.
-    NOTE: This mixin MUST be the leftmost parent class in the child class declaration in
-    order to work properly. See 'OrganizationAndStaffPermission' for an example of this or
-    https://www.python.org/download/releases/2.3/mro/ to learn more.
-    """
-
-    staff_allowed_methods = {"GET", "POST", "PUT", "DELETE"}
-
-    def has_permission(self, request, *args, **kwargs) -> bool:
-        """
-        Calls the parent class's has_permission method. If it returns False or
-        raises an exception and the method is allowed by the mixin, we then check
-        if the request is from an active staff. Raised exceptions are not caught
-        if the request is not allowed by the mixin or from an active staff.
-        """
-        try:
-            if super().has_permission(request, *args, **kwargs):
-                return True
-        except Exception:
-            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
-                raise
-            return True
-        return request.method in self.staff_allowed_methods and is_active_staff(request)
-
-    def has_object_permission(self, request, *args, **kwargs) -> bool:
-        """
-        Calls the parent class's has_object_permission method. If it returns False or
-        raises an exception and the method is allowed by the mixin, we then check
-        if the request is from an active staff. Raised exceptions are not caught
-        if the request is not allowed by the mixin or from an active staff.
-        """
-        try:
-            if super().has_object_permission(request, *args, **kwargs):
-                return True
-        except Exception:
-            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
-                raise
-            return True
-        return request.method in self.staff_allowed_methods and is_active_staff(request)
-
-    def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
-        return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
-            request
-        )
-
-
 # NOTE(schew2381): This is a temporary permission that does NOT perform an OR
 # between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
 # if the option is enabled for the user, and otherwise checks SuperuserPermission. We
@@ -150,9 +102,9 @@ class ScopedPermission(BasePermission):
         "DELETE": (),
     }
 
-    def has_permission(self, request: Request, view: object) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         # session-based auth has all scopes for a logged in user
-        if not getattr(request, "auth", None):
+        if not request.auth:
             return request.user.is_authenticated
 
         if is_org_auth_token_auth(request.auth):
@@ -162,11 +114,12 @@ class ScopedPermission(BasePermission):
             # where a project is available to update the project_last_used_id.
             update_org_auth_token_last_used(request.auth, [])
 
-        allowed_scopes: set[str] = set(self.scope_map.get(request.method, []))
+        assert request.method is not None
+        allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         return False
 
 
@@ -274,14 +227,120 @@ class SentryPermission(ScopedPermission):
                 raise MemberDisabledOverLimit(organization)
 
 
+class StaffPermissionMixin(SentryPermission):
+    """
+    Sentry endpoints that should be accessible by staff but have an existing permission
+    class (that is not StaffPermission) require this mixin because staff does not give
+    any scopes.
+    NOTE: This mixin MUST be the leftmost parent class in the child class declaration in
+    order to work properly. See 'OrganizationAndStaffPermission' for an example of this or
+    https://www.python.org/download/releases/2.3/mro/ to learn more.
+    """
+
+    staff_allowed_methods = {"GET", "POST", "PUT", "DELETE"}
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        """
+        Calls the parent class's has_permission method. If it returns False or
+        raises an exception and the method is allowed by the mixin, we then check
+        if the request is from an active staff. Raised exceptions are not caught
+        if the request is not allowed by the mixin or from an active staff.
+        """
+        try:
+            if super().has_permission(request, view):
+                return True
+        except Exception:
+            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
+                raise
+            return True
+        return request.method in self.staff_allowed_methods and is_active_staff(request)
+
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
+        """
+        Calls the parent class's has_object_permission method. If it returns False or
+        raises an exception and the method is allowed by the mixin, we then check
+        if the request is from an active staff. Raised exceptions are not caught
+        if the request is not allowed by the mixin or from an active staff.
+        """
+        try:
+            if super().has_object_permission(request, view, obj):
+                return True
+        except Exception:
+            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
+                raise
+            return True
+        return request.method in self.staff_allowed_methods and is_active_staff(request)
+
+    def is_not_2fa_compliant(
+        self, request: Request, organization: RpcOrganization | Organization
+    ) -> bool:
+        return super().is_not_2fa_compliant(request, organization) and not is_active_staff(request)
+
+
+class DemoSafePermission(SentryPermission):
+    """
+    A permission class that extends `SentryPermission` to provide read-only access for users
+    in a demo mode. This class modifies the access control logic to ensure that users identified
+    as read-only can only perform safe operations, such as GET and HEAD requests, on resources.
+    """
+
+    def determine_access(
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization,
+    ) -> None:
+
+        org_context: RpcUserOrganizationContext | None = None
+        if isinstance(organization, RpcUserOrganizationContext):
+            org_context = organization
+        else:
+            org_context = organization_service.get_organization_by_id(
+                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+            )
+
+        assert org_context is not None, "Failed to fetch organization in determine_access"
+
+        if demo_mode.is_demo_user(request.user):
+            if org_context.member and demo_mode.is_demo_mode_enabled():
+                readonly_scopes = demo_mode.get_readonly_scopes()
+                org_context.member.scopes = sorted(readonly_scopes)
+                request.access = access.from_request_org_and_scopes(
+                    request=request,
+                    rpc_user_org_context=org_context,
+                    scopes=readonly_scopes,
+                )
+
+            return
+
+        return super().determine_access(request, org_context)
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+                return False
+
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
+        if demo_mode.is_demo_user(request.user):
+            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+                return False
+
+        return super().has_object_permission(request, view, obj)
+
+
 class SentryIsAuthenticated(IsAuthenticated):
-    def has_permission(self, request: Request, view: object) -> bool:
+    """
+    Used to deny access for demo users in both view and object permission checks.
+    """
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
         if demo_mode.is_demo_user(request.user):
             return False
 
         return super().has_permission(request, view)
 
-    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         if demo_mode.is_demo_user(request.user):
             return False
 

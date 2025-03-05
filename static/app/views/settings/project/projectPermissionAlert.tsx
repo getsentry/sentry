@@ -1,5 +1,5 @@
 import Access from 'sentry/components/acl/access';
-import {Alert, type AlertProps} from 'sentry/components/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
@@ -33,5 +33,3 @@ export function ProjectPermissionAlert({
     </Access>
   );
 }
-
-export default ProjectPermissionAlert;

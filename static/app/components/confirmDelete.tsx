@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 
 interface Props

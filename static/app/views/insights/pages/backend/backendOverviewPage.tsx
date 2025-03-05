@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -33,6 +34,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravelOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -56,7 +58,7 @@ import {
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
@@ -88,6 +90,27 @@ export const BACKEND_COLUMN_TITLES = [
 
 function BackendOverviewPage() {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const selectedProjects: Project[] = useMemo(
+    () => getSelectedProjectList(selection.projects, projects),
+    [projects, selection.projects]
+  );
+
+  const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
+  if (
+    selectedProject?.platform === 'php-laravel' &&
+    organization.features.includes('laravel-insights')
+  ) {
+    return <LaravelOverviewPage />;
+  }
+
+  return <GenericBackendOverviewPage />;
+}
+
+function GenericBackendOverviewPage() {
+  const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
   const {projects} = useProjects();
@@ -98,11 +121,7 @@ function BackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
   const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
@@ -287,7 +306,10 @@ function BackendOverviewPage() {
               )}
 
               {showOnboarding && (
-                <Onboarding project={onboardingProject} organization={organization} />
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

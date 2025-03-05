@@ -12,7 +12,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import QuestionTooltip from '../questionTooltip';
 
-import {useTimelineCursor} from './timelineCursor';
+import {type CursorOffsets, useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
 
@@ -115,7 +115,11 @@ export function GridLineLabels({
       ))}
       {timeWindowConfig.showUnderscanHelp && (
         <TimeLabelContainer
-          left={timeWindowConfig.timelineWidth}
+          left={
+            labelPosition === 'left-top'
+              ? timeWindowConfig.timelineWidth
+              : timeWindowConfig.timelineWidth - 12
+          }
           labelPosition={labelPosition}
         >
           <QuestionTooltip
@@ -141,6 +145,15 @@ interface GridLineOverlayProps {
    */
   allowZoom?: boolean;
   className?: string;
+  /**
+   * Configures clamped offsets on the left and right of the cursor overlay
+   * element when enabled. May be useful in scenarios where you do not want the
+   * overlay to cover some additional UI elements
+   */
+  cursorOffsets?: CursorOffsets;
+  /**
+   * Configres where the timeline labels are displayed
+   */
   labelPosition?: LabelPosition;
   /**
    * Enable the timeline cursor
@@ -157,6 +170,7 @@ export function GridLineOverlay({
   showCursor,
   additionalUi,
   stickyCursor,
+  cursorOffsets,
   allowZoom,
   className,
   labelPosition = 'left-top',
@@ -183,7 +197,8 @@ export function GridLineOverlay({
           start: dateFromPosition(startX).startOf('minute').toDate(),
           end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
-        router
+        router,
+        {keepCursor: true}
       ),
     [dateFromPosition, router]
   );
@@ -197,6 +212,7 @@ export function GridLineOverlay({
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
     enabled: !!showCursor && !selectionIsActive,
     sticky: stickyCursor,
+    offsets: cursorOffsets,
     labelText: makeCursorLabel,
   });
 
@@ -291,7 +307,7 @@ export const Gridline = styled('div')<{labelPosition: LabelPosition; left: numbe
   ${p =>
     p.labelPosition === 'center-bottom' &&
     css`
-      height: 4px;
+      height: 6px;
       width: 1px;
       border-radius: 1px;
       background: ${p.theme.translucentBorder};
@@ -309,7 +325,16 @@ const TimeLabelContainer = styled('div')<{
   display: flex;
   align-items: center;
   height: 100%;
-  padding-left: ${space(1)};
+  ${p =>
+    p.labelPosition === 'left-top' &&
+    css`
+      padding-left: ${space(1)};
+    `}
+  ${p =>
+    p.labelPosition === 'center-bottom' &&
+    css`
+      padding-top: ${space(1)};
+    `}
   ${p =>
     p.labelPosition === 'center-bottom' &&
     // Skip the translation for the first label
@@ -329,7 +354,6 @@ const TimeLabel = styled(DateTime)`
 const Underscan = styled('div')<{labelPosition: LabelPosition}>`
   position: absolute;
   right: 0;
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
   background-size: 3px 3px;
   background-image: linear-gradient(
     45deg,

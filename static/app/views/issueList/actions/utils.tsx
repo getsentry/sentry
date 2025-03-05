@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -163,7 +163,7 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 export const COLUMN_BREAKPOINTS = {
   ISSUE: undefined, // Issue column is always visible
   TREND: commonTheme.breakpoints.small,
-  AGE: commonTheme.breakpoints.xlarge,
+  LIFESPAN: commonTheme.breakpoints.medium,
   SEEN: commonTheme.breakpoints.xlarge,
   EVENTS: commonTheme.breakpoints.medium,
   USERS: commonTheme.breakpoints.medium,

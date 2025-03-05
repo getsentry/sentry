@@ -101,10 +101,10 @@ describe('StreamGroup', function () {
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
-    const data: GroupStatusResolution = {
+    const data = {
       status: GroupStatus.RESOLVED,
       statusDetails: {},
-    };
+    } satisfies GroupStatusResolution;
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
@@ -179,12 +179,12 @@ describe('StreamGroup', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows first and last seen columns', function () {
+  it('shows lifespan column', function () {
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        withColumns={['firstSeen', 'lastSeen']}
+        withColumns={['lifespan']}
       />,
       {
         organization: OrganizationFixture({
@@ -225,5 +225,17 @@ describe('StreamGroup', function () {
         },
       });
     });
+  });
+
+  it('displays unread indicator when issue is unread', async function () {
+    GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
+
+    render(<StreamGroup id="1337" query="is:unresolved" />, {
+      organization: OrganizationFixture({
+        features: ['issue-stream-table-layout'],
+      }),
+    });
+
+    expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();
   });
 });

@@ -16,11 +16,12 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Input} from 'sentry/components/core/input';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -32,7 +33,6 @@ import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
@@ -67,9 +67,9 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
@@ -468,8 +468,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+      makeAlertsPathname({
+        path: `/rules/${project.slug}/${rule.id}/details/`,
+        organization,
       })
     );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
@@ -601,7 +602,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   handleCancel = () => {
     const {organization, router} = this.props;
 
-    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
+    router.push(
+      makeAlertsPathname({
+        path: `/rules/`,
+        organization,
+      })
+    );
   };
 
   hasError = (field: string) => {
@@ -907,22 +913,25 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     // We want this to open in a new tab to not lose the current state of the rule editor
     return (
-      <AlertLink
-        openInNewTab
-        priority="error"
-        icon={<IconNot color="red300" />}
-        href={normalizeUrl(
-          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
-        )}
-      >
-        {tct(
-          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
-          {
-            alertName: duplicateName,
-            projectName: project.name,
-          }
-        )}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink
+          openInNewTab
+          type="error"
+          trailingItems={<IconNot color="red300" />}
+          href={makeAlertsPathname({
+            path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
+            organization,
+          })}
+        >
+          {tct(
+            'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
+            {
+              alertName: duplicateName,
+              projectName: project.name,
+            }
+          )}
+        </AlertLink>
+      </AlertLink.Container>
     );
   }
 

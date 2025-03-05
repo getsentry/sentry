@@ -7,6 +7,7 @@
  * - Light and dark theme definitions
  * - Theme type exports
  */
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
@@ -345,26 +346,12 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
 });
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
-  muted: {
-    background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
-    color: 'inherit',
-  },
   info: {
-    background: colors.blue300,
-    backgroundLight: colors.blue100,
     border: colors.blue200,
-    borderHover: colors.blue300,
+    background: colors.blue300,
     color: colors.blue400,
-  },
-  warning: {
-    background: colors.yellow300,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
+    backgroundLight: colors.blue100,
+    borderHover: colors.blue300,
   },
   success: {
     background: colors.green300,
@@ -372,6 +359,20 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
     border: colors.green200,
     borderHover: colors.green300,
     color: colors.green400,
+  },
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    borderHover: alias.border,
+    color: 'inherit',
+  },
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
+    borderHover: colors.yellow300,
+    color: colors.yellow400,
   },
   error: {
     background: colors.red300,
@@ -394,49 +395,6 @@ export const generateLevelTheme = (colors: Colors): LevelColors => ({
   fatal: colors.red300,
   default: colors.gray300,
   unknown: colors.gray200,
-});
-
-export const generateBadgeTheme = (colors: Colors): BadgeColors => ({
-  default: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  alpha: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.pink300,
-    color: colors.white,
-  },
-  beta: {
-    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
-    indicatorColor: colors.purple300,
-    color: colors.white,
-  },
-  new: {
-    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
-    indicatorColor: colors.green300,
-    color: colors.white,
-  },
-  experimental: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  internal: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  warning: {
-    background: colors.yellow300,
-    indicatorColor: colors.yellow300,
-    color: colors.gray500,
-  },
-  gray: {
-    background: `rgba(43, 34, 51, 0.08)`,
-    indicatorColor: `rgba(43, 34, 51, 0.08)`,
-    color: colors.gray500,
-  },
 });
 
 export const generateTagTheme = (colors: Colors): TagColors => ({
@@ -567,7 +525,7 @@ const lightColors: Colors = {
   lightModeWhite: '#FFFFFF',
 
   surface100: '#F5F3F7',
-  surface200: '#FAF9FB',
+  surface200: '#F7F6F9',
   surface300: '#FFFFFF',
   surface400: '#FFFFFF',
 
@@ -583,7 +541,7 @@ const lightColors: Colors = {
 
   gray500: '#2B2233',
   gray400: '#3E3446',
-  gray300: '#80708F',
+  gray300: '#71637E',
   gray200: '#E0DCE5',
   gray100: '#F0ECF3',
 
@@ -737,25 +695,6 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-type Badge =
-  | 'default'
-  | 'alpha'
-  | 'beta'
-  | 'warning'
-  | 'new'
-  | 'experimental'
-  // @TODO(jonasbadalic): What is gray a tag type?
-  | 'gray'
-  | 'internal';
-
-type BadgeColors = {
-  [key in Badge]: {
-    background: string;
-    color: string;
-    indicatorColor: string;
-  };
-};
-
 type Tag =
   | 'default'
   | 'promotion'
@@ -864,62 +803,90 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
 
 export type FormSize = 'xs' | 'sm' | 'md';
 
-type FormSizes = {
-  [key in FormSize]: {
-    fontSize: string;
-    height: number;
-    lineHeight: string;
-    minHeight: number;
+export type FormTheme = {
+  form: {
+    [key in FormSize]: {
+      fontSize: string;
+      height: number;
+      lineHeight: string;
+      minHeight: number;
+    };
+  };
+  formPadding: {
+    [key in FormSize]: {
+      paddingBottom: number;
+      paddingLeft: number;
+      paddingRight: number;
+      paddingTop: number;
+    };
+  };
+  formRadius: {
+    [key in FormSize]: {
+      borderRadius: string;
+    };
   };
 };
 
-const formSizes: FormSizes = {
-  md: {
-    height: 38,
-    minHeight: 38,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: 38,
+      minHeight: 38,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
+      height: 32,
+      minHeight: 32,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xs: {
+      height: 26,
+      minHeight: 26,
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
   },
-  sm: {
-    height: 32,
-    minHeight: 32,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
-  },
-  xs: {
-    height: 26,
-    minHeight: 26,
-    fontSize: '0.75rem',
-    lineHeight: '0.875rem',
-  },
-} as const;
 
-type FormPaddingSizes = {
-  [key in FormSize]: {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  };
-};
-const formPaddingSizes: FormPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
+  /**
+   * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
   },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 6,
-    paddingTop: 6,
-    paddingBottom: 6,
+  formRadius: {
+    md: {
+      borderRadius: '6px',
+    },
+    sm: {
+      borderRadius: '6px',
+    },
+    xs: {
+      borderRadius: '6px',
+    },
   },
 };
 
@@ -1033,6 +1000,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    tour: {
+      blur: 10100,
+      element: 10101,
+      overlay: 10102,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 2,
@@ -1045,12 +1018,12 @@ const commonTheme = {
 
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
-  fontSizeRelativeSmall: '0.9em',
-  fontSizeExtraSmall: '11px',
-  fontSizeSmall: '12px',
-  fontSizeMedium: '14px',
-  fontSizeLarge: '16px',
-  fontSizeExtraLarge: '18px',
+  fontSizeRelativeSmall: '0.9em' as const,
+  fontSizeExtraSmall: '11px' as const,
+  fontSizeSmall: '12px' as const,
+  fontSizeMedium: '14px' as const,
+  fontSizeLarge: '16px' as const,
+  fontSizeExtraLarge: '18px' as const,
 
   codeFontSize: '13px',
   headerFontSize: '22px',
@@ -1066,22 +1039,10 @@ const commonTheme = {
   },
 
   /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: formSizes,
-
-  /**
    * Padding for buttons
    * @TODO(jonasbadalic) This should exist on button component
    */
   buttonPadding: buttonPaddingSizes,
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: formPaddingSizes,
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
@@ -1089,12 +1050,6 @@ const commonTheme = {
   // @TODO(jonasbadalic) Do these need to be here?
   outcome,
   dataCategory,
-
-  charts: {
-    // We have an array that maps `number + 1` --> list of `number` colors
-    getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-  },
 };
 
 // Light and dark theme definitions
@@ -1104,6 +1059,7 @@ const darkAliases = generateThemeAliases(darkColors);
 export const lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
@@ -1113,7 +1069,6 @@ export const lightTheme = {
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
@@ -1141,6 +1096,7 @@ export const lightTheme = {
 export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
@@ -1150,7 +1106,6 @@ export const darkTheme: typeof lightTheme = {
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
@@ -1178,6 +1133,12 @@ export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 
+export type StrictCSSObject = {
+  [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
+} & Partial<{
+  [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+}>;
+
 /**
  * Do not import theme values directly as they only define light color theme.
  * Consuming it directly means that you won't get the correct colors in dark mode.
@@ -1185,12 +1146,3 @@ export type ColorOrAlias = keyof Aliases | Color;
  */
 const commonThemeExport = {...commonTheme};
 export default commonThemeExport;
-
-/**
- * Configure Emotion to use our theme
- */
-declare module '@emotion/react' {
-  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  type SentryTheme = typeof lightTheme;
-  export interface Theme extends SentryTheme {}
-}

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,14 +15,11 @@ type Props = {
 function AlertMessage({alert, system}: Props) {
   const handleClose = () => AlertStore.closeAlert(alert);
 
-  const {url, message, type, opaque} = alert;
-
   return (
     <Alert
-      type={type}
+      type={alert.type}
       showIcon
       system={system}
-      opaque={opaque}
       trailingItems={
         <StyledCloseButton
           icon={<IconClose size="sm" />}
@@ -33,7 +30,11 @@ function AlertMessage({alert, system}: Props) {
         />
       }
     >
-      {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
+      {alert.url ? (
+        <ExternalLink href={alert.url}>{alert.message}</ExternalLink>
+      ) : (
+        alert.message
+      )}
     </Alert>
   );
 }

@@ -20,6 +20,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    SentryAppDataBlob,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_registry,
@@ -49,6 +50,24 @@ class TestNotificationActionMigrationUtils(TestCase):
                 and key != "id"
             ):
                 assert additional_fields.get(key) == value
+
+    def assert_sentry_app_form_config_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+        settings = action.data.get("settings", None)
+        settings_dict = compare_dict.get("settings", None)
+        if not settings or not settings_dict:
+            raise ValueError("Settings are required for SentryAppDataBlob")
+        for setting, setting_to_compare in zip(settings, settings_dict):
+            name = setting.get("name")
+            value = setting.get("value")
+            label = setting.get("label")
+            # Check that the name and value are present
+            if not name or not value:
+                raise ValueError("Name and value are required for SentryAppDataBlob")
+            assert name == setting_to_compare.get("name")
+            assert value == setting_to_compare.get("value")
+            assert label == setting_to_compare.get("label")
 
     def assert_action_data_blob(
         self,
@@ -82,6 +101,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             # Special handling for TicketDataBlob which has additional_fields
             if translator.blob_type == TicketDataBlob:
                 self.assert_ticketing_action_data_blob(action, compare_dict, exclude_keys)
+            elif translator.blob_type == SentryAppDataBlob:
+                self.assert_sentry_app_form_config_data_blob(action, compare_dict, exclude_keys)
             else:
                 # Original logic for other blob types
                 for field in translator.blob_type.__dataclass_fields__:
@@ -203,7 +224,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -222,7 +243,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -315,7 +336,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -368,7 +389,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -425,7 +446,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -489,7 +510,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_opsgenie_action_migration(self):
         action_data = [
@@ -543,7 +564,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_github_action_migration(self):
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
@@ -564,7 +585,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_azure_devops_migration(self):
         action_data = AZURE_DEVOPS_ACTION_DATA_BLOBS
@@ -581,7 +602,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_email_migration(self):
         action_data = EMAIL_ACTION_DATA_BLOBS
@@ -612,7 +633,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_plugin_action_migration(self):
         action_data = [
@@ -684,7 +705,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
@@ -891,7 +912,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_jira_server_action_migration(self):
         action_data = JIRA_SERVER_ACTION_DATA_BLOBS
@@ -920,7 +941,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_sentry_app_action_migration(self):
         app = self.create_sentry_app(
@@ -1053,6 +1074,17 @@ class TestNotificationActionMigrationUtils(TestCase):
                     ],
                 },
             },
+            # Simple webhook sentry app with label
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system", "label": "System ID"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
         ]
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
@@ -1079,4 +1111,74 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+
+    def test_dry_run_flag(self):
+        """Test that the dry_run flag prevents database writes."""
+        action_data = [
+            {
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test-channel",
+                "channel_id": "C123456",
+                "uuid": "test-uuid",
+            }
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+        assert len(actions) == 1
+        assert Action.objects.count() == 0
+
+        # With dry_run=False (default)
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.target_display == "#test-channel"
+        assert action.target_identifier == "C123456"
+
+    def test_skip_failures_flag(self):
+        """Test that the skip_failures flag skips invalid actions."""
+        action_data: list[dict[str, str | Any]] = [
+            # Missing required fields, should skip
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "fake-uuid",
+            },
+            # Invalid action type, should skip
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "fake-uuid",
+            },
+            # Invalid action type, should skip
+            {
+                "id": "sentry.rules.actions.nodsfsd.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "fake-uuid",
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system"},
+                ],
+            },
+            # Valid action, should not skip
+            {
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test",
+                "channel_id": "C123",
+                "uuid": "test-uuid",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=False)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.target_display == "#test"
+        assert action.target_identifier == "C123"
+        assert action.integration_id == 1

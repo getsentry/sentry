@@ -63,6 +63,8 @@ export enum SpanMetricsField {
   CLIENT_ADDRESS = 'client.address',
   BROWSER_NAME = 'browser.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  PRECISE_START_TS = 'precise.start_ts',
+  PRECISE_FINISH_TS = 'precise.finish_ts',
 }
 
 export type SpanNumberFields =
@@ -74,7 +76,9 @@ export type SpanNumberFields =
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
   | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
-  | SpanMetricsField.CACHE_ITEM_SIZE;
+  | SpanMetricsField.CACHE_ITEM_SIZE
+  | SpanMetricsField.PRECISE_START_TS
+  | SpanMetricsField.PRECISE_FINISH_TS;
 
 export type SpanStringFields =
   | 'span_id'
@@ -96,7 +100,16 @@ export type SpanStringFields =
   | 'span.ai.pipeline.group'
   | 'project'
   | 'messaging.destination.name'
-  | 'user';
+  | 'user'
+  | 'user.display'
+  | 'user.id'
+  | 'user.email'
+  | 'user.username'
+  | 'user.ip'
+  | 'replayId'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -267,7 +280,11 @@ export enum SpanIndexedField {
   CLS_SCORE = 'measurements.score.cls',
   CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   TTFB = 'measurements.ttfb',
+  TTFB_SCORE = 'measurements.score.ttfb',
+  TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
   FCP = 'measurements.fcp',
+  FCP_SCORE = 'measurements.score.fcp',
+  FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
@@ -280,6 +297,8 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
   IS_TRANSACTION = 'is_transaction',
+  LCP_ELEMENT = 'lcp.element',
+  CLS_SOURCE = 'cls.source.1',
 }
 
 export type SpanIndexedResponse = {
@@ -350,6 +369,12 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.CLS]: number;
   [SpanIndexedField.CLS_SCORE]: number;
   [SpanIndexedField.CLS_SCORE_RATIO]: number;
+  [SpanIndexedField.TTFB]: number;
+  [SpanIndexedField.TTFB_SCORE]: number;
+  [SpanIndexedField.TTFB_SCORE_RATIO]: number;
+  [SpanIndexedField.FCP]: number;
+  [SpanIndexedField.FCP_SCORE]: number;
+  [SpanIndexedField.FCP_SCORE_RATIO]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
@@ -361,6 +386,8 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
+  [SpanIndexedField.LCP_ELEMENT]: string;
+  [SpanIndexedField.CLS_SOURCE]: string;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
@@ -440,13 +467,3 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
-
-export type OurlogsFields = {
-  'log.body': string;
-  'log.severity_number': number;
-  'log.severity_text': string;
-  'sentry.organization_id': number;
-  'sentry.project_id': number;
-  'sentry.span_id': string;
-  timestamp: string;
-};

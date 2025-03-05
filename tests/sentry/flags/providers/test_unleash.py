@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, UnleashProvider
 
 
@@ -24,6 +25,7 @@ def test_handle_update_no_email():
     assert items[0]["created_by_type"] == 1
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["unleash"]
     assert items[0]["tags"] == {
         "environment": "development",
         "project": "default",
@@ -52,6 +54,7 @@ def test_handle_update_with_email():
     assert items[0]["created_by_type"] == 0
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["unleash"]
     assert items[0]["tags"] == {
         "environment": "development",
         "project": "default",
@@ -113,6 +116,7 @@ def test_handle_no_tags():
     assert items[0]["created_by_type"] == 0
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["unleash"]
     assert items[0]["tags"] == {}
 
 

@@ -5,7 +5,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceIt
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
+from sentry.search.eap.columns import ResolvedColumn, ResolvedFormula, ResolvedFunction
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
@@ -16,7 +16,9 @@ from sentry.utils.snuba import process_value
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
+def categorize_column(column: ResolvedColumn | ResolvedFunction | ResolvedFormula) -> Column:
+    if isinstance(column, ResolvedFormula):
+        return Column(formula=column.proto_definition, label=column.public_alias)
     if isinstance(column, ResolvedFunction):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
     else:
@@ -111,6 +113,9 @@ def run_table_query(
             assert len(column_value.results) == len(column_value.reliabilities), Exception(
                 "Length of rpc results do not match length of rpc reliabilities"
             )
+        sentry_sdk.set_measurement(
+            f"SearchResolver.result_size.{attribute}", len(column_value.results)
+        )
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
@@ -128,5 +133,6 @@ def run_table_query(
                 final_confidence[index][attribute] = CONFIDENCES.get(
                     column_value.reliabilities[index], None
                 )
+    sentry_sdk.set_measurement("SearchResolver.result_size.final_data", len(final_data))
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}

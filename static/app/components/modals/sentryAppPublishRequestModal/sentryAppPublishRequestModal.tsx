@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option
@@ -60,37 +61,17 @@ function transformData(data: Record<string, any>, model: FormModel) {
 
 type Props = ModalRenderProps & {
   app: SentryApp;
+  onPublishSubmission: () => void;
   organization: Organization;
 };
 
 export function SentryAppPublishRequestModal(props: Props) {
-  const [form] = useState<FormModel>(() => new FormModel({transformData}));
-  const {app, closeModal, Header, Body, organization} = props;
-  const isNewModalVisible = organization.features.includes(`streamlined-publishing-flow`);
+  const [formModel] = useState<FormModel>(() => new FormModel({transformData}));
+  const {app, closeModal, Header, Body, onPublishSubmission} = props;
 
   const formFields = () => {
-    const permissions = getPermissionSelectionsFromScopes(app.scopes);
-
-    const permissionQuestionBaseText =
-      'Please justify why you are requesting each of the following permissions: ';
-    const permissionQuestionPlainText = `${permissionQuestionBaseText}${permissions.join(
-      ', '
-    )}.`;
-
-    const permissionLabel = (
-      <Fragment>
-        <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
-        {permissions.map((permission, i) => (
-          <Fragment key={permission}>
-            {i > 0 && ', '}
-            <Permission>{permission}</Permission>
-          </Fragment>
-        ))}
-        .
-      </Fragment>
-    );
-
-    const newModalFields: React.ComponentProps<typeof JsonForm>['fields'] = [
+    // No translations since we need to be able to read this email :)
+    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -146,7 +127,7 @@ export function SentryAppPublishRequestModal(props: Props) {
         name: 'question2',
       },
       {
-        type: 'string',
+        type: 'url',
         required: true,
         label: t('Link to your documentation page.'),
         meta: 'Link to your documentation page.',
@@ -154,73 +135,38 @@ export function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question3',
+        validate: ({id, form}) =>
+          !safeURL(form[id])
+            ? [[id, t('Invalid link: URL must start with https://')]]
+            : [],
       },
       {
-        type: 'string',
+        type: 'email',
+        required: true,
+        label: t('Email address for user support.'),
+        meta: 'Email address for user support.',
+        autosize: true,
+        rows: 1,
+        inline: false,
+        name: 'supportEmail',
+      },
+      {
+        type: 'url',
         required: true,
         label: t(
-          'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube'
+          'Link to a video showing installation, setup and user flow for your submission.'
         ),
-        meta: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+        meta: 'Link to a video showing installation, setup and user flow for your submission.',
         autosize: true,
         rows: 1,
         inline: false,
         name: 'question4',
+        validate: ({id, form}) =>
+          !safeURL(form[id])
+            ? [[id, t('Invalid link: URL must start with https://')]]
+            : [],
       },
     ];
-
-    const oldModalFields: React.ComponentProps<typeof JsonForm>['fields'] = [
-      {
-        type: 'textarea',
-        required: true,
-        label: t('What does your integration do? Please be as detailed as possible.'),
-        meta: 'What does your integration do? Please be as detailed as possible.',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question5',
-      },
-      {
-        type: 'textarea',
-        required: true,
-        label: t('What value does it offer customers?'),
-        meta: 'What value does it offer customers?',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question6',
-      },
-      {
-        type: 'textarea',
-        required: true,
-        label: t('Do you operate the web service your integration communicates with?'),
-        meta: 'Do you operate the web service your integration communicates with?',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question7',
-      },
-    ];
-
-    // Only add the permissions question if there are perms to add
-    if (permissions.length > 0) {
-      oldModalFields.push({
-        type: 'textarea',
-        required: true,
-        label: permissionLabel,
-        labelText: permissionQuestionPlainText,
-        autosize: true,
-        rows: 1,
-        inline: false,
-        meta: permissionQuestionPlainText,
-        name: 'question8',
-      });
-    }
-
-    // No translations since we need to be able to read this email :)
-    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = isNewModalVisible
-      ? newModalFields
-      : oldModalFields;
 
     return baseFields;
   };
@@ -228,6 +174,7 @@ export function SentryAppPublishRequestModal(props: Props) {
   const handleSubmitSuccess = () => {
     addSuccessMessage(t('Request to publish %s successful.', app.slug));
     closeModal();
+    onPublishSubmission();
   };
 
   const handleSubmitError = (err: any) => {
@@ -250,15 +197,30 @@ export function SentryAppPublishRequestModal(props: Props) {
   const renderFooter = () => {
     return (
       <Footer>
-        {t(
-          'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.'
-        )}
+        <FooterParagraph>
+          {t(
+            'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
+          )}
+        </FooterParagraph>
+        <FooterParagraph>
+          {t(
+            'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
+          )}
+        </FooterParagraph>
+        <FooterParagraph>
+          {t(
+            'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
+          )}
+        </FooterParagraph>
+        <p>{t('Thank you for contributing to the Sentry community!')}</p>
       </Footer>
     );
   };
   return (
     <Fragment>
-      <Header>{t('Publish Request Questionnaire')}</Header>
+      <Header>
+        <h1>{t('Publish Request Questionnaire')}</h1>
+      </Header>
       <Body>
         <Explanation>
           {t(
@@ -272,14 +234,12 @@ export function SentryAppPublishRequestModal(props: Props) {
           apiEndpoint={endpoint}
           onSubmitSuccess={handleSubmitSuccess}
           onSubmitError={handleSubmitError}
-          model={form}
+          model={formModel}
           submitLabel={t('Request Publication')}
           onCancel={closeModal}
         >
-          <JsonForm
-            forms={forms}
-            renderFooter={isNewModalVisible ? renderFooter : () => <Fragment />}
-          />
+          <JsonForm forms={forms} />
+          {renderFooter()}
         </Form>
       </Body>
     </Fragment>
@@ -288,17 +248,13 @@ export function SentryAppPublishRequestModal(props: Props) {
 
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
-  font-size: 18px;
-`;
-
-const PermissionLabel = styled('span')`
-  line-height: 24px;
-`;
-
-const Permission = styled('code')`
-  line-height: 24px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Footer = styled('div')`
-  padding: ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const FooterParagraph = styled(`p`)`
+  margin-bottom: ${space(1)};
 `;

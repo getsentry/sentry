@@ -1,8 +1,8 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
@@ -43,7 +43,6 @@ type Props = {
 };
 
 function AppStartup({additionalFilters, chartHeight}: Props) {
-  const theme = useTheme();
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
@@ -178,7 +177,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     yAxes: Y_AXES,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2) ?? [],
+    colorPalette: getChartColorPalette(TOP_SCREENS - 2),
     releaseEvents,
     topTransactions,
   });

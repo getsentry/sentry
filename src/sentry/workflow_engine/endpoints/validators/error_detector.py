@@ -52,9 +52,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                 config={},
             )
 
-            project: Project | None = detector.project
-            if not project:
-                raise serializers.ValidationError("Error detector must have a project")
+            project: Project = detector.project
 
             # update configs, which are project options. continue using them
             for config in validated_data:
@@ -67,7 +65,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                 request=self.context["request"],
                 organization=self.context["organization"],
                 target_object=detector.id,
-                event=audit_log.get_event_id("WORKFLOW_ENGINE_DETECTOR_ADD"),
+                event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
         return detector

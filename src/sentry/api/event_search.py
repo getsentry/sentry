@@ -227,6 +227,50 @@ def translate_wildcard(pat: str) -> str:
     return "^" + res + "$"
 
 
+def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
+    """
+    Translate a wildcard pattern to clickhouse pattern.
+
+    See https://clickhouse.com/docs/en/sql-reference/functions/string-search-functions#like
+    """
+    chars: list[str] = []
+
+    i = 0
+    n = len(pattern)
+
+    while i < n:
+        c = pattern[i]
+        i += 1
+        if c == "\\" and i < n:
+            c = pattern[i]
+            if c not in {"*"}:
+                raise InvalidSearchQuery(f"Unexpected escape character: {c}")
+            chars.append(c)
+            i += 1
+        elif c == "*":
+            # sql uses % as the wildcard character
+            chars.append("%")
+        elif c in {"%", "_"}:
+            # these are special characters and need to be escaped
+            chars.append("\\")
+            chars.append(c)
+        else:
+            chars.append(c)
+
+    return "".join(chars)
+
+
+def wrap_free_text(string: str, autowrap: bool) -> str:
+    if not autowrap:
+        return string
+    # Free text already had wildcarding on it, leave it alone
+    if string.startswith("*") or string.endswith("*"):
+        return string
+    # Otherwise always wrap it with wildcarding
+    else:
+        return f"*{string}*"
+
+
 def translate_escape_sequences(string: str) -> str:
     """
     A non-wildcard pattern can contain escape sequences that we need to handle.
@@ -571,6 +615,9 @@ class SearchConfig:
     # Which key we should return any free text under
     free_text_key = "message"
 
+    # Whether to wrap free_text_keys in asterisks
+    wildcard_free_text: bool = False
+
     @classmethod
     def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
@@ -674,13 +721,22 @@ class SearchVisitor(NodeVisitor):
     def visit_free_text(self, node, children):
         if not children[0]:
             return None
-        return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(children[0]))
+        # Free text searches need to be treated like they were wildcards
+        return SearchFilter(
+            SearchKey(self.config.free_text_key),
+            "=",
+            SearchValue(wrap_free_text(children[0], self.config.wildcard_free_text)),
+        )
 
     def visit_paren_group(self, node, children):
         if not self.config.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
+            return SearchFilter(
+                SearchKey(self.config.free_text_key),
+                "=",
+                SearchValue(wrap_free_text(node.text, self.config.wildcard_free_text)),
+            )
 
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
@@ -883,7 +939,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
+            result_type = self.get_function_result_type(search_key.name)
 
             if result_type == "duration" or result_type in DURATION_UNITS:
                 aggregate_value = parse_duration(*search_value)
@@ -924,7 +980,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
+            result_type = self.get_function_result_type(search_key.name)
             if result_type == "percentage":
                 aggregate_value = parse_percentage(search_value)
         except ValueError:
