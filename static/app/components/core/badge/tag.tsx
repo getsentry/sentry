@@ -66,7 +66,7 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
 );
 
 const TagPill = styled('div')<{
-  type: TagType;
+  type: NonNullable<TagProps['type']>;
 }>`
   font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${p => p.theme.tag[p.type].background};
