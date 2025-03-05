@@ -293,6 +293,7 @@ export function TourGuide({
   );
 }
 
+/* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
 const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
@@ -302,6 +303,10 @@ const TourBody = styled('div')`
   color: ${p => p.theme.inverted.textColor};
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
+  a {
+    color: ${p => p.theme.inverted.textColor};
+    text-decoration: underline;
+  }
 `;
 
 const TourCloseButton = styled(Button)`
