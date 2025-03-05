@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFormula, ResolvedFunction
+from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
 from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
@@ -76,11 +76,11 @@ def get_timeseries_query(
     config: SearchResolverConfig,
     granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
-) -> tuple[TimeSeriesRequest, list[ResolvedFunction | ResolvedFormula], list[ResolvedColumn]]:
+) -> tuple[TimeSeriesRequest, list[ResolvedFormula | ResolvedAggregate], list[ResolvedColumn]]:
     resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
-    (aggregations, _) = resolver.resolve_aggregates(y_axes)
+    (aggregations, _) = resolver.resolve_functions(y_axes)
     (groupbys, _) = resolver.resolve_attributes(groupby)
     if extra_conditions is not None:
         if query is not None:
