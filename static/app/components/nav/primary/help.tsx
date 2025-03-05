@@ -1,15 +1,53 @@
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {SidebarMenu} from 'sentry/components/nav/primary/components';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
+
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+
+function getContactSupportItem({
+  organization,
+}: {
+  organization: Organization;
+}): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  if (zendeskIsLoaded()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        activateZendesk();
+        trackGetsentryAnalytics('zendesk_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    externalHref: `mailto:${supportEmail}`,
+  };
+}
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const contactSupportItem = getContactSupportItem({organization});
 
   return (
     <SidebarMenu
@@ -41,11 +79,7 @@ export function PrimaryNavigationHelp() {
           key: 'help',
           label: t('Get Help'),
           children: [
-            {
-              key: 'support',
-              label: t('Contact Support'),
-              externalHref: `mailto:${ConfigStore.get('supportEmail')}`,
-            },
+            ...(contactSupportItem ? [contactSupportItem] : []),
             {
               key: 'github',
               label: t('Sentry on GitHub'),
