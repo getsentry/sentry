@@ -29,7 +29,7 @@ class GroupSearchViewProject(DefaultFieldsModel):
         unique_together = (("group_search_view", "project"),)
 
 
-class Visibility:
+class GroupSearchViewVisibility:
     ORGANIZATION = "organization"
     OWNER = "owner"
 
@@ -53,7 +53,9 @@ class GroupSearchView(DefaultFieldsModelExisting):
     organization = FlexibleForeignKey("sentry.Organization")
 
     visibility = models.CharField(
-        max_length=16, db_default=Visibility.OWNER, choices=Visibility.as_choices()
+        max_length=16,
+        db_default=GroupSearchViewVisibility.OWNER,
+        choices=GroupSearchViewVisibility.as_choices(),
     )
 
     query = models.TextField()
