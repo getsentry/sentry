@@ -57,7 +57,7 @@ from typing import NamedTuple
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 
 # This SegmentId is an internal identifier used by the redis buffer that is
 # also directly used as raw redis key. the format is
@@ -107,80 +107,96 @@ class RedisSpansBufferV2:
         queue_items = []
         queue_item_has_root_span = []
 
-        with self.client.pipeline(transaction=False) as p:
-            for span in spans:
-                # (parent_span_id) -> [Span]
-                shard = int(span.trace_id, 16) % self.sharding_factor
-                queue_key = f"span-buf:q:{shard}"
-                parent_span_id = span.parent_span_id or span.span_id
+        is_root_span_count = 0
+        has_root_span_count = 0
 
-                is_root_span = self._is_root_span(span)
+        with metrics.timer("sentry.spans.buffer.process_spans.step1"):
+            with self.client.pipeline(transaction=False) as p:
+                for span in spans:
+                    # (parent_span_id) -> [Span]
+                    shard = int(span.trace_id, 16) % self.sharding_factor
+                    queue_key = f"span-buf:q:{shard}"
+                    parent_span_id = span.parent_span_id or span.span_id
 
-                # hack to make redis-cluster-py pipelines work well with
-                # scripts. we cannot use EVALSHA or "the normal way to do
-                # scripts in sentry" easily until we get rid of
-                # redis-cluster-py sentrywide. this probably leaves a bit of
-                # perf on the table as we send the full lua sourcecode with every span.
-                p.eval(
-                    add_buffer_script.script,
-                    1,
-                    f"{span.project_id}:{span.trace_id}",
-                    span.payload,
-                    "true" if is_root_span else "false",
-                    span.span_id,
-                    parent_span_id,
-                    self.max_timeout,
-                )
+                    is_root_span = self._is_root_span(span)
+                    if is_root_span:
+                        is_root_span_count += 1
 
-                queue_keys.append(queue_key)
+                    # hack to make redis-cluster-py pipelines work well with
+                    # scripts. we cannot use EVALSHA or "the normal way to do
+                    # scripts in sentry" easily until we get rid of
+                    # redis-cluster-py sentrywide. this probably leaves a bit of
+                    # perf on the table as we send the full lua sourcecode with every span.
+                    p.eval(
+                        add_buffer_script.script,
+                        1,
+                        f"{span.project_id}:{span.trace_id}",
+                        span.payload,
+                        "true" if is_root_span else "false",
+                        span.span_id,
+                        parent_span_id,
+                        self.max_timeout,
+                    )
 
-            results = iter(p.execute())
-            for item, has_root_span in results:
-                queue_items.append(item)
-                queue_item_has_root_span.append(has_root_span)
+                    queue_keys.append(queue_key)
 
-        with self.client.pipeline(transaction=False) as p:
-            for key, item, has_root_span in zip(queue_keys, queue_items, queue_item_has_root_span):
-                # if the currently processed span is a root span, OR the buffer
-                # already had a root span inside, use a different timeout than
-                # usual.
-                if has_root_span:
-                    timestamp = now + self.span_buffer_root_timeout
-                else:
-                    timestamp = now + self.span_buffer_timeout
+                results = iter(p.execute())
+                for item, has_root_span in results:
+                    queue_items.append(item)
+                    queue_item_has_root_span.append(has_root_span)
 
-                p.zadd(key, {item: timestamp})
-                p.expire(key, self.max_timeout)
+        with metrics.timer("sentry.spans.buffer.process_spans.step2"):
+            with self.client.pipeline(transaction=False) as p:
+                for key, item, has_root_span in zip(
+                    queue_keys, queue_items, queue_item_has_root_span
+                ):
+                    # if the currently processed span is a root span, OR the buffer
+                    # already had a root span inside, use a different timeout than
+                    # usual.
+                    if has_root_span:
+                        has_root_span_count += 1
+                        timestamp = now + self.span_buffer_root_timeout
+                    else:
+                        timestamp = now + self.span_buffer_timeout
 
-            p.execute()
+                    p.zadd(key, {item: timestamp})
+                    p.expire(key, self.max_timeout)
+
+                p.execute()
+
+        metrics.timing("sentry.spans.buffer.process_spans.num_spans", len(spans))
+        metrics.timing("sentry.spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
+        metrics.timing("sentry.spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
 
     def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentId, set[bytes]]:
         cutoff = now
 
-        with self.client.pipeline(transaction=False) as p:
-            for shard in range(self.sharding_factor):
-                key = f"span-buf:q:{shard}"
-                p.zrangebyscore(key, 0, cutoff)
+        with metrics.timer("sentry.spans.buffer.flush_segments.step1"):
+            with self.client.pipeline(transaction=False) as p:
+                for shard in range(self.sharding_factor):
+                    key = f"span-buf:q:{shard}"
+                    p.zrangebyscore(key, 0, cutoff)
 
-            result = p.execute()
+                result = p.execute()
 
         segment_ids = []
 
-        with self.client.pipeline(transaction=False) as p:
-            for segment_span_ids in result:
-                # process return value of zrevrangebyscore
-                for segment_id in segment_span_ids:
-                    # TODO: SSCAN
-                    segment_ids.append(segment_id)
-                    p.smembers(segment_id)
+        with metrics.timer("sentry.spans.buffer.flush_segments.step2"):
+            with self.client.pipeline(transaction=False) as p:
+                for segment_span_ids in result:
+                    # process return value of zrevrangebyscore
+                    for segment_id in segment_span_ids:
+                        # TODO: SSCAN
+                        segment_ids.append(segment_id)
+                        p.smembers(segment_id)
+
+                        if max_segments > 0 and len(segment_ids) >= max_segments:
+                            break
 
                     if max_segments > 0 and len(segment_ids) >= max_segments:
                         break
 
-                if max_segments > 0 and len(segment_ids) >= max_segments:
-                    break
-
-            segments = p.execute()
+                segments = p.execute()
 
         return_segments = {}
 
@@ -191,17 +207,36 @@ class RedisSpansBufferV2:
 
             return_segments[segment_id] = return_segment
 
+        metrics.timing("sentry.spans.buffer.flush_segments.num_segments", len(return_segments))
+
         return return_segments
 
     def done_flush_segments(self, segment_ids: Collection[SegmentId]):
-        with self.client.pipeline(transaction=False) as p:
-            for segment_id in segment_ids:
-                p.delete(segment_id)
-                p.delete(b"span-buf:hrs:" + segment_id)
+        metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))
+        with metrics.timer("sentry.spans.buffer.done_flush_segments"):
+            with self.client.pipeline(transaction=False) as p:
+                for segment_id in segment_ids:
+                    hrs_key = b"span-buf:hrs:" + segment_id
+                    p.get(hrs_key)
+                    p.delete(hrs_key)
+                    p.delete(segment_id)
 
-                # parse trace_id out of SegmentId, then remove from queue
-                trace_id = segment_id.split(b":")[3][:-1]
-                shard = int(trace_id, 16) % self.sharding_factor
-                p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
+                    # parse trace_id out of SegmentId, then remove from queue
+                    trace_id = segment_id.split(b":")[3][:-1]
+                    shard = int(trace_id, 16) % self.sharding_factor
+                    p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
-            p.execute()
+                results = iter(p.execute())
+
+            has_root_span_count = 0
+            for result in results:
+                if result:
+                    has_root_span_count += 1
+
+                next(results)  # DEL hrs_key
+                next(results)  # DEL segment_id
+                next(results)  # ZREM ...
+
+            metrics.timing(
+                "sentry.spans.buffer.done_flush_segments.has_root_span", has_root_span_count
+            )
