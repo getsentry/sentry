@@ -336,11 +336,15 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
             # we should send the webhook for pending installations on the install event in case that's part of the workflow
             install = SentryAppInstallation.objects.get(id=installation_id)
         except SentryAppInstallation.DoesNotExist:
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            error = SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            sentry_sdk.capture_exception(error)
+            raise error
 
         user = user_service.get_user(user_id=user_id)
         if not user:
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_USER)
+            error = SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_USER)
+            sentry_sdk.capture_exception(error)
+            raise error
 
         SentryAppInstallationNotifier(
             sentry_app_installation=install, user=user, action="created"
