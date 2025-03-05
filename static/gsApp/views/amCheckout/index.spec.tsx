@@ -135,6 +135,32 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('button', {name: 'Cancel Subscription'})).toBeInTheDocument();
   });
 
+  it('renders pending cancellation button', async function () {
+    const sub: SubscriptionType = {
+      ...subscription,
+      canCancel: true,
+      cancelAtPeriodEnd: true,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={sub.planTier as PlanTier}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument();
+  });
+
   it('does not renders cancel subscription button if cannot cancel', async function () {
     render(
       <AMCheckout
