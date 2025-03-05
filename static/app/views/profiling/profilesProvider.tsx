@@ -2,7 +2,6 @@ import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -144,12 +143,7 @@ export function TransactionProfileProvider({
         setProfile({type: 'resolved', data: p});
       })
       .catch(err => {
-        // XXX: our API client mock implementation does not mimick the real
-        // implementation, so we need to check for an empty object here. #sad
-        const isEmptyObject = err.toString() === '[object Object]';
-        const message = isEmptyObject
-          ? t('Error: Unable to load profiles')
-          : err.toString();
+        const message = err.toString();
 
         setProfile({type: 'errored', error: message});
         Sentry.captureException(err);

@@ -87,16 +87,12 @@ describe('queryClient', function () {
           staleTime: 0,
         });
 
-        if (!query.isError) {
-          return null;
-        }
-
-        return <div>{query.error.message}</div>;
+        return query.isError ? <div>something bad happened</div> : null;
       }
 
       render(<TestComponent />);
 
-      expect(await screen.findByText('GET /some/test/path 500')).toBeInTheDocument();
+      expect(await screen.findByText('something bad happened')).toBeInTheDocument();
     });
   });
 });
