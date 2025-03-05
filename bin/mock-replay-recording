@@ -5,32 +5,34 @@ Helpful commands:
 
     - Run the consumer.
         - `sentry run consumer ingest-replay-recordings --consumer-group 0`
+        - `sentry run consumer ingest-replay-recordings-buffered --consumer-group 0`
     - Check if offsets are committed correctly.
         - `docker exec -it kafka-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group 0`
 """
 
-from sentry.runner import configure
-
-configure()
 import logging
 import os
 import time
 import uuid
 
 import click
+import django
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.runner import configure
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+
+configure()
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sentry.conf.server")
 
-import django
 
 django.setup()
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
