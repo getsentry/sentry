@@ -204,9 +204,9 @@ def send_alert_webhook(
 
         try:
             send_and_save_webhook_request(sentry_app, request_data)
-        except (ApiHostError, ApiTimeoutError, RequestException, ClientError) as e:
+        except (ApiHostError, ApiTimeoutError, RequestException, ClientError):
             # record success as the preperation portion did not fail
-            lifecycle.record_success(e)
+            lifecycle.record_success()
             raise
 
         # On success, record analytic event for Alert Rule UI Component
