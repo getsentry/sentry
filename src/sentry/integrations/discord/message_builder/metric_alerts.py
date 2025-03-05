@@ -9,7 +9,11 @@ from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, 
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import (
+    AlertContext,
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 
 
 class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
@@ -18,7 +22,7 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
         alert_rule: AlertRule,
         incident: Incident,
         new_status: IncidentStatus,
-        metric_value: float,
+        metric_value: float | None = None,
         chart_url: str | None = None,
     ) -> None:
         self.alert_rule = alert_rule
@@ -28,15 +32,21 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
         self.chart_url = chart_url
 
     def build(self, notification_uuid: str | None = None) -> dict[str, object]:
+        if self.metric_value is None:
+            self.metric_value = get_metric_count_from_incident(self.incident)
+
         data = incident_attachment_info(
-            self.incident,
-            self.new_status,
-            self.metric_value,
-            notification_uuid,
+            AlertContext.from_alert_rule_incident(self.alert_rule),
+            open_period_identifier=self.incident.identifier,
+            organization=self.incident.organization,
+            snuba_query=self.alert_rule.snuba_query,
+            metric_value=self.metric_value,
+            new_status=self.new_status,
+            notification_uuid=notification_uuid,
             referrer="metric_alert_discord",
         )
 
-        description = f"{data['text']}{get_started_at(data['date_started'])}"
+        description = f"{data['text']}{get_started_at(self.incident.date_started)}"
 
         embeds = [
             DiscordMessageEmbed(

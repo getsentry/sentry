@@ -11,7 +11,11 @@ from sentry.eventstore.models import GroupEvent
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import (
+    AlertContext,
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
@@ -31,7 +35,7 @@ PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
@@ -39,7 +43,20 @@ def build_incident_attachment(
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, new_status, metric_value, notification_uuid)
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
+    data = incident_attachment_info(
+        AlertContext.from_alert_rule_incident(incident.alert_rule),
+        open_period_identifier=incident.identifier,
+        organization=incident.organization,
+        snuba_query=incident.alert_rule.snuba_query,
+        new_status=new_status,
+        metric_value=metric_value,
+        notification_uuid=notification_uuid,
+        referrer="metric_alert_sentry_app",
+    )
+
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
