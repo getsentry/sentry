@@ -101,6 +101,7 @@ interface BaseStep {
   title: string;
   type: AutofixStepType;
   active_comment_thread?: CommentThread | null;
+  agent_comment_thread?: CommentThread | null;
   completedMessage?: string;
   key?: string;
   output_stream?: string | null;

@@ -16,6 +16,7 @@ import {
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
+  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
@@ -116,6 +117,7 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
+  agentCommentThread?: CommentThread;
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
@@ -255,11 +257,13 @@ function AutofixSolutionDisplay({
   customSolution,
   solutionSelected,
   changesDisabled,
+  agentCommentThread,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
   const [userCustomSolution, setUserCustomSolution] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const iconFixRef = useRef<HTMLDivElement>(null);
 
   if (!solution || solution.length === 0) {
     return (
@@ -275,7 +279,9 @@ function AutofixSolutionDisplay({
         <CustomSolutionPadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconFix size="sm" />
+              <div ref={iconFixRef}>
+                <IconFix size="sm" />
+              </div>
               {t('Custom Solution')}
             </HeaderText>
             <CopySolutionButton solution={solution} customSolution={customSolution} />
@@ -293,7 +299,9 @@ function AutofixSolutionDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <IconFix size="sm" />
+            <div ref={iconFixRef}>
+              <IconFix size="sm" />
+            </div>
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
@@ -398,6 +406,23 @@ function AutofixSolutionDisplay({
             </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
+        <AnimatePresence>
+          {agentCommentThread && iconFixRef.current && (
+            <AutofixHighlightPopup
+              selectedText="Solution"
+              referenceElement={iconFixRef.current}
+              groupId={groupId}
+              runId={runId}
+              stepIndex={previousDefaultStepIndex ?? 0}
+              retainInsightCardIndex={
+                previousInsightCount !== undefined && previousInsightCount >= 0
+                  ? previousInsightCount
+                  : null
+              }
+              isAgentComment
+            />
+          )}
+        </AnimatePresence>
         <Content>
           {isEditing ? (
             <TextArea
