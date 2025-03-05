@@ -238,7 +238,7 @@ def incident_attachment_info(
         title_link_params["notification_uuid"] = notification_uuid
 
     title_link = build_title_link(
-        str(alert_context.action_identifier_id), organization, title_link_params
+        alert_context.action_identifier_id, organization, title_link_params
     )
 
     return AttachmentInfo(
