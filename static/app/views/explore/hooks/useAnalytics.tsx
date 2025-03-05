@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,6 +22,8 @@ import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMod
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+
+const {info} = Sentry._experiment_log;
 
 export function useTrackAnalytics({
   queryType,
@@ -96,6 +99,24 @@ export function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    info`trace.explorer.metadata:
+      organization: ${organization}
+      dataset: ${dataset}
+      query: ${query}
+      visualizes: ${visualizes}
+      title: ${title}
+      queryType: ${queryType}
+      result_length: ${aggregatesTableResult.result.data?.length}
+      result_missing_root: ${0}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${search.tokens.length}
+      visualizes_count: ${visualizes.length}
+      title: ${title}
+      has_exceeded_performance_usage_limit: ${hasExceededPerformanceUsageLimit}
+      page_source: ${page_source}
+    `;
   }, [
     organization,
     dataset,
@@ -145,6 +166,24 @@ export function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    info`trace.explorer.metadata:
+      organization: ${organization}
+      dataset: ${dataset}
+      query: ${query}
+      visualizes: ${visualizes}
+      title: ${title}
+      queryType: ${queryType}
+      result_length: ${spansTableResult.result.data?.length}
+      result_missing_root: ${0}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${search.tokens.length}
+      visualizes_count: ${visualizes.length}
+      title: ${title}
+      has_exceeded_performance_usage_limit: ${hasExceededPerformanceUsageLimit}
+      page_source: ${page_source}
+    `;
   }, [
     organization,
     dataset,

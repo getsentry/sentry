@@ -20,6 +20,7 @@ type Results = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];

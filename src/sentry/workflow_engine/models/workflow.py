@@ -23,7 +23,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
