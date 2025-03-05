@@ -264,12 +264,28 @@ const setupMockRequests = (organization: Organization) => {
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
+        meta: {
+          fields: {
+            [`${SPM}()`]: 'rate',
+          },
+          units: {
+            [`${SPM}()`]: '1/second',
+          },
+        },
       },
       [`avg(${SPAN_SELF_TIME})`]: {
         data: [
           [1699907700, [{count: 1111.2}]],
           [1699908000, [{count: 2222.8}]],
         ],
+        meta: {
+          fields: {
+            [`avg(${SPAN_SELF_TIME})`]: 'duration',
+          },
+          units: {
+            [`avg(${SPAN_SELF_TIME})`]: 'millisecond',
+          },
+        },
       },
     },
   });
