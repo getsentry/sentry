@@ -1,8 +1,10 @@
 import logging
 import uuid
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Sequence, Set
 from copy import deepcopy
-from typing import Any
+from typing import Any, cast
+
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
 from sentry.event_manager import (
@@ -59,7 +61,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
             )
 
 
-def build_tree(spans):
+def build_tree(spans) -> tuple[dict[str, Any], str | None]:
     span_tree = {}
     root_span_id = None
 
@@ -101,9 +103,9 @@ def dfs(visited, flattened_spans, tree, span_id):
                 stack.append(child["span_id"])
 
 
-def flatten_tree(tree, root_span_id):
+def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[SegmentSpan]:
     visited: Set[str] = set()
-    flattened_spans: list[Mapping[str, Any]] = []
+    flattened_spans: list[SegmentSpan] = []
 
     if root_span_id:
         dfs(visited, flattened_spans, tree, root_span_id)
@@ -134,15 +136,18 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
         job["performance_problems"] = updated_problems
 
 
-def transform_spans_to_event_dict(spans):
-    processed_spans: list[dict[str, Any]] = []
+def transform_spans_to_event_dict(spans: list[SegmentSpan]) -> dict[str, Any] | None:
+    event_spans: list[dict[str, Any]] = []
 
-    span = spans[0]
-    sentry_tags = span.get("sentry_tags", {})
+    segment_span = next((span for span in spans if span.get("is_segment")), None)
+    if not segment_span:
+        return None
+
+    sentry_tags = segment_span.get("sentry_tags", {})
 
     event: dict[str, Any] = {"type": "transaction", "contexts": {}, "level": "info"}
-    event["event_id"] = span.get("event_id")
-    event["project_id"] = span["project_id"]
+    event["event_id"] = segment_span.get("event_id")
+    event["project_id"] = segment_span["project_id"]
     event["transaction"] = sentry_tags.get("transaction")
     event["release"] = sentry_tags.get("release")
     event["environment"] = sentry_tags.get("environment")
@@ -150,32 +155,32 @@ def transform_spans_to_event_dict(spans):
     event["tags"] = [["environment", sentry_tags.get("environment")]]
 
     event["contexts"]["trace"] = {
-        "trace_id": span["trace_id"],
+        "trace_id": segment_span["trace_id"],
         "type": "trace",
         "op": sentry_tags.get("transaction.op"),
-        "span_id": span["span_id"],
+        "span_id": segment_span["span_id"],
     }
 
-    if (profile_id := span.get("profile_id")) is not None:
+    if (profile_id := segment_span.get("profile_id")) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
     for span in spans:
-        sentry_tags = span.get("sentry_tags", {})
+        event_span = cast(dict[str, Any], deepcopy(span))
 
-        if (op := sentry_tags.get("op")) is not None:
-            span["op"] = op
+        if (op := span.get("sentry_tags", {}).get("op")) is not None:
+            event_span["op"] = op
 
-        span["start_timestamp"] = span["start_timestamp_ms"] / 1000
-        span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
+        event_span["start_timestamp"] = span["start_timestamp_ms"] / 1000
+        event_span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
 
-        processed_spans.append(span)
+        event_spans.append(event_span)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    tree, root_span_id = build_tree(processed_spans)
+    tree, root_span_id = build_tree(event_spans)
     flattened_spans = flatten_tree(tree, root_span_id)
     event["spans"] = flattened_spans
 
@@ -195,8 +200,11 @@ def prepare_event_for_occurrence_consumer(event):
     return event_light
 
 
-def process_segment(spans: list[dict[str, Any]]):
+def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     event = transform_spans_to_event_dict(spans)
+    if event is None:
+        # TODO: Handle the case of segments without a defined segment span.
+        return []
 
     event_light = prepare_event_for_occurrence_consumer(event)
 
