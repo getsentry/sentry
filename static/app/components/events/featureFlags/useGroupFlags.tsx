@@ -1,27 +1,35 @@
 import {defined} from 'sentry/utils';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  useApiQuery,
+  type UseApiQueryOptions,
+  type UseApiQueryResult,
+} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {
-  FetchIssueTagsParameters,
-  GroupTag,
-  GroupTagUseQueryOptions,
-} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+interface FetchIssueFlagsParameters {
+  environment: string[] | string | undefined;
+  groupId: string;
+  orgSlug: string;
+  limit?: number;
+}
 
 const makeGroupFlagsQueryKey = ({
   groupId,
   orgSlug,
   environment,
-  readable,
   limit,
-}: FetchIssueTagsParameters): ApiQueryKey => [
+}: FetchIssueFlagsParameters): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/tags/`,
-  {query: {environment, readable, limit, useFlagsBackend: '1'}},
+  {query: {environment, limit, useFlagsBackend: '1'}},
 ];
 
 export default function useGroupFlags(
-  parameters: Omit<FetchIssueTagsParameters, 'orgSlug'>,
-  {enabled = true, ...options}: GroupTagUseQueryOptions = {}
-) {
+  parameters: Omit<FetchIssueFlagsParameters, 'orgSlug'>,
+  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTag[]>> = {}
+): UseApiQueryResult<GroupTag[], RequestError> {
   const organization = useOrganization();
   return useApiQuery<GroupTag[]>(
     makeGroupFlagsQueryKey({
