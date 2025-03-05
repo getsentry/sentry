@@ -3,6 +3,10 @@ from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
+from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     issue_alert_handler_registry,
@@ -95,3 +99,21 @@ class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
     def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         # TODO(iamrajjoshi): Implement this
         pass
+
+    @staticmethod
+    def target(action: Action) -> RpcUser | Team | str | None:
+        if action.target_identifier is None:
+            return None
+
+        if action.target_type == ActionTarget.USER.value:
+            return user_service.get_user(user_id=int(action.target_identifier))
+        elif action.target_type == ActionTarget.TEAM.value:
+            try:
+                return Team.objects.get(id=int(action.target_identifier))
+            except Team.DoesNotExist:
+                pass
+        elif action.target_type == ActionTarget.SPECIFIC.value:
+            # TODO: This is only for email. We should have a way of validating that it's
+            # ok to contact this email.
+            return action.target_identifier
+        return None
