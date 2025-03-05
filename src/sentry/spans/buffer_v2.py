@@ -75,6 +75,10 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 
+def segment_to_span_id(segment_id: SegmentId) -> str:
+    return segment_id.rsplit(b":", 1)[1]
+
+
 # fun fact: namedtuples are faster to construct than dataclasses
 class Span(NamedTuple):
     trace_id: str

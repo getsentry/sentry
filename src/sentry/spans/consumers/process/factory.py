@@ -34,7 +34,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
-from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span
+from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span, segment_to_span_id
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -396,11 +396,18 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
     segment_messages: list[BaseValue[KafkaPayload]] = []
 
     for segment_id, spans_set in flushed_segments.items():
+        # TODO: Check if this is correctly placed
+        segment_span_id = segment_to_span_id(segment_id)
+        if not spans_set:
+            # TODO: Fix a bug where we flush empty segments
+            logger.warning("skipping segment without spans", extra={"segment_id": segment_span_id})
+            continue
+
         segment_spans = []
         for payload in spans_set:
             val = rapidjson.loads(payload)
-            val["segment_id"] = segment_id
-            val["is_segment"] = segment_id == val["span_id"]
+            val["segment_id"] = segment_span_id
+            val["is_segment"] = segment_span_id == val["span_id"]
             segment_spans.append(val)
 
         value = Value(
