@@ -10,6 +10,7 @@ from sentry.replays.consumers.buffered.consumer import (
     Committed,
     Flush,
     FlushBuffer,
+    Flushed,
     Skip,
     TryFlush,
     init,
@@ -186,6 +187,17 @@ def test_missing_headers():
     assert isinstance(gen.send(cmd.msg(cmd.fun())), Nothing)
 
 
+# def test_flush_failure_gcs_outage():
+#     ...
+
+
+# def test_flush_random_exception():
+#     ...
+
+
+# def test_flush
+
+
 def test_buffer_full_semantics():
     runtime = _make_runtime()
 
@@ -234,6 +246,18 @@ def test_buffer_full_semantics():
     cmd = gen.send(cmd.msg(cmd.fun()))
     assert isinstance(cmd, Task)
     assert isinstance(cmd.msg, Flush)
+
+    # Trigger the flush and intercept the effect.
+    cmd = gen.send(cmd.msg)
+    assert isinstance(cmd, Effect)
+    assert cmd.fun == FlushBuffer(runtime.model)
+    assert cmd.msg(1) == Flushed(now=1)
+
+    # Record a successful flush.
+    cmd = gen.send(cmd.msg(now=42))
+    assert runtime.model.last_flushed_at == 42
+    assert len(runtime.model.buffer) == 1
+    assert cmd == Commit(msg=Committed(), value=None)
 
 
 def test_buffer_timeout():
