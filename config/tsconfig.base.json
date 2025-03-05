@@ -115,7 +115,7 @@
       { "name": "@styled/typescript-styled-plugin" }
     ]
   },
-  "include": ["../static/app", "../tests/js"],
+  "include": ["../static/app", "../static/gsApp", "../tests/js"],
   "exclude": ["../node_modules", "../**/*.benchmark.ts"],
   "ts-node": {
     "transpileOnly": true

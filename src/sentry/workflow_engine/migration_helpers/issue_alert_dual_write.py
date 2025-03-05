@@ -46,7 +46,10 @@ def bulk_create_data_conditions(
             dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
 
     filtered_data_conditions = [dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS]
-    DataCondition.objects.bulk_create(filtered_data_conditions)
+
+    # try one by one, keeping errors
+    for dc in filtered_data_conditions:
+        dc.save()
 
 
 def create_if_dcg(

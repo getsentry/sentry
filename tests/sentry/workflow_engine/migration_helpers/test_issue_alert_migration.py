@@ -244,6 +244,52 @@ class IssueAlertMigratorTest(TestCase):
         assert DataConditionGroupAction.objects.all().count() == 0
         assert Action.objects.all().count() == 0
 
+    def test_run__skip_invalid_conditions(self):
+        invalid_conditions = [
+            {
+                "interval": "1h",
+                "id": EventUniqueUserFrequencyConditionWithConditions.id,
+                "value": -1,
+                "comparisonType": "asdf",
+            },
+            {"id": RegressionEventCondition.id},
+        ]
+        self.issue_alert.data["conditions"] = invalid_conditions
+        self.issue_alert.save()
+
+        IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
+
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+
+        assert workflow.when_condition_group
+        conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert conditions.count() == 1
+        assert conditions.filter(
+            type=Condition.REGRESSION_EVENT, comparison=True, condition_result=True
+        ).exists()
+
+        assert DataConditionGroupAction.objects.all().count() == 0
+        assert Action.objects.all().count() == 0
+
+    def test_run__skip_migration_if_no_valid_conditions(self):
+        conditions = [
+            {
+                "interval": "1h",
+                "id": EventUniqueUserFrequencyConditionWithConditions.id,
+                "value": -1,
+                "comparisonType": "asdf",
+            },
+        ]
+        self.issue_alert.data["conditions"] = conditions
+        self.issue_alert.save()
+
+        with pytest.raises(Exception):
+            IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
+
+        assert Workflow.objects.all().count() == 0
+
     def test_run__no_double_migrate(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 

@@ -17,7 +17,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
          * so we need to use a different name, or somehow tell emotion to not create a type intersection.
          */}
-        <NativeHiddenCheckbox ref={ref} type="checkbox" toggleSize={size} {...props} />
+        <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
         <FakeCheckbox size={size}>
           <FakeCheckboxButton size={size} />
         </FakeCheckbox>
@@ -51,7 +51,7 @@ const SwitchWrapper = styled('div')`
 
 const NativeHiddenCheckbox = withChonk(
   styled('input')<{
-    toggleSize: NonNullable<SwitchProps['size']>;
+    nativeSize: NonNullable<SwitchProps['size']>;
   }>`
     position: absolute;
     opacity: 0;
@@ -66,7 +66,7 @@ const NativeHiddenCheckbox = withChonk(
     & + div {
       > div {
         background: ${p => p.theme.border};
-        transform: translateX(${p => ToggleConfig[p.toggleSize].top}px);
+        transform: translateX(${p => ToggleConfig[p.nativeSize].top}px);
       }
     }
 
@@ -75,7 +75,7 @@ const NativeHiddenCheckbox = withChonk(
         background: ${p => p.theme.active};
         transform: translateX(
           ${p =>
-            ToggleConfig[p.toggleSize].top + ToggleWrapperSize[p.toggleSize] * 0.875}px
+            ToggleConfig[p.nativeSize].top + ToggleWrapperSize[p.nativeSize] * 0.875}px
         );
       }
     }
