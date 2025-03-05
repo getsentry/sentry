@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {getInterval} from 'sentry/components/charts/utils';
+import {type Fidelity, getInterval} from 'sentry/components/charts/utils';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -368,7 +368,11 @@ function IssuesWidget({
   );
 }
 
-function usePageFilterChartParams() {
+function usePageFilterChartParams({
+  granularity = 'spans',
+}: {
+  granularity?: Fidelity;
+} = {}) {
   const {selection} = usePageFilters();
 
   const normalizedDateTime = useMemo(
@@ -378,7 +382,7 @@ function usePageFilterChartParams() {
 
   return {
     ...normalizedDateTime,
-    interval: getInterval(selection.datetime, 'low'),
+    interval: getInterval(selection.datetime, granularity),
     project: selection.projects,
   };
 }
@@ -427,7 +431,7 @@ function RequestsWidget({query}: {query?: string}) {
 
       return {
         data: firstSeries.data.map(([time], index) => ({
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
           value: filteredSeries.reduce(
             (acc, series) => acc + series.data[index]?.[1][0]?.count!,
             0
@@ -495,7 +499,7 @@ function DurationWidget({query}: {query?: string}) {
       return {
         data: series.data.map(([time, [value]]) => ({
           value: value?.count!,
-          name: new Date(time).toISOString(),
+          name: new Date(time * 1000).toISOString(),
         })),
         seriesName: field,
         meta: series.meta as EventsMetaType,
@@ -524,7 +528,9 @@ function DurationWidget({query}: {query?: string}) {
 
 function JobsWidget({query}: {query?: string}) {
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const pageFilterChartParams = usePageFilterChartParams({
+    granularity: 'low',
+  });
   const theme = useTheme();
 
   const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
