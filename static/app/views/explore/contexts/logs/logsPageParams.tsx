@@ -33,13 +33,22 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
     name: 'LogsPageParamsContext',
   });
 
-export function LogsPageParamsProvider({children}: {children: React.ReactNode}) {
+export function LogsPageParamsProvider({
+  children,
+  traceId,
+}: {
+  children: React.ReactNode;
+  traceId?: string;
+}) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
   const fields = getLogFieldsFromLocation(location);
   const sortBys = getLogSortBysFromLocation(location, fields);
   const cursor = getLogCursorFromLocation(location);
+  if (traceId) {
+    search.addFilterValues('trace_id', [traceId]);
+  }
 
   return (
     <LogsPageParamsContext.Provider value={{fields, search, sortBys, cursor}}>
