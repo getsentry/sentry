@@ -9,15 +9,13 @@ import {space} from 'sentry/styles/space';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  | 'white'
-  | 'black';
+  'default' | 'info' | 'success' | 'warning' | 'error' | 'promotion' | 'highlight';
+
+/**
+ * @deprecated Do not use these tag types
+ */
+type DeprecatedTagType = 'white' | 'black';
+
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Icon on the left side.
@@ -30,7 +28,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Dictates color scheme of the tag.
    */
-  type?: TagType;
+  type?: TagType | DeprecatedTagType;
 }
 
 export const Tag = forwardRef<HTMLDivElement, TagProps>(
@@ -65,7 +63,7 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
 );
 
 const StyledTag = styled('div')<{
-  type: TagType;
+  type: NonNullable<TagProps['type']>;
 }>`
   font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${p => p.theme.tag[p.type].background};
