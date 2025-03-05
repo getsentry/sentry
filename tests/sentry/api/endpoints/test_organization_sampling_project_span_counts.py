@@ -166,3 +166,38 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
 
         # Verify we get all 200 projects back
         assert len(span_counts) >= 200
+
+
+@freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
+@region_silo_test
+class OrganizationSamplingProjectSpanCountsNoMetricsTest(MetricsEnhancedPerformanceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user)
+        self.project_1 = self.create_project(organization=self.org, name="project_1")
+        self.project_2 = self.create_project(organization=self.org, name="project_2")
+        self.project_3 = self.create_project(organization=self.org, name="project_3")
+        self.project_4 = self.create_project(organization=self.org, name="project_4")
+        self.url = reverse(
+            "sentry-api-0-organization-sampling-root-counts",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
+
+    @django_db_all
+    def test_get_span_counts_with_ingested_data_30d(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.client.get(
+                self.url,
+                data={"statsPeriod": "30d"},
+            )
+
+        assert response.status_code == 200
+
+        data = response.data  # type: ignore[attr-defined]
+        assert data["data"] == []
+        assert data["meta"] == []
+
+        assert data["end"] is None
+        assert data["start"] is None
+        assert data["intervals"] == []
