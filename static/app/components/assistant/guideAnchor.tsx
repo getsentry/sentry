@@ -218,7 +218,7 @@ function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
 
 const GuideAnchorWrapper = styled('span')`
   display: inline-block;
-  width: 100%;
+  max-width: 100%;
 `;
 
 export default GuideAnchor;

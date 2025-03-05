@@ -241,8 +241,8 @@ export function TourGuide({
   useEffect(() => {
     if (isOpen) {
       document
-        .getElementById(id ?? '')
-        ?.scrollIntoView({block: 'center', behavior: 'smooth'});
+        ?.getElementById(id ?? '')
+        ?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
     }
   }, [isOpen, id]);
 
@@ -310,7 +310,7 @@ const TourCloseButton = styled(Button)`
   height: 14px;
 `;
 
-export const TourOverlay = styled(Overlay)`
+const TourOverlay = styled(Overlay)`
   width: 360px;
 `;
 
