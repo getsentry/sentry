@@ -120,7 +120,6 @@ module = [
     "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.organization_projects",
     "sentry.api.endpoints.organization_releases",
-    "sentry.api.endpoints.organization_request_project_creation",
     "sentry.api.endpoints.organization_search_details",
     "sentry.api.endpoints.project_index",
     "sentry.api.endpoints.project_ownership",
