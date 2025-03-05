@@ -84,24 +84,10 @@ def ingest_replay_recordings_options() -> list[click.Option]:
 
 def ingest_replay_recordings_buffered_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings-buffered options."""
-    options = [
-        click.Option(
-            ["--max-buffer-message-count", "max_buffer_message_count"],
-            type=int,
-            default=100,
-        ),
-        click.Option(
-            ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"],
-            type=int,
-            default=2_500_000,
-        ),
-        click.Option(
-            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
-            type=int,
-            default=1,
-        ),
+    return [
+        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=256),
+        click.Option(["--num-threads", "num_threads"], type=int, default=16),
     ]
-    return options
 
 
 def ingest_monitors_options() -> list[click.Option]:
