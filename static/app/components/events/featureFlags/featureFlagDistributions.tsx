@@ -48,15 +48,15 @@ export default function FeatureFlagDistributions({
       switch (orderBy) {
         case OrderBy.NEWEST:
           return tags.sort((a, b) => {
-            const timeA = new Date(a.topValues[0]!.lastSeen);
-            const timeB = new Date(b.topValues[0]!.lastSeen);
-            return timeB.getTime() - timeA.getTime();
+            const dateA = new Date(a.topValues[0]!.lastSeen);
+            const dateB = new Date(b.topValues[0]!.lastSeen);
+            return dateB.getTime() - dateA.getTime();
           });
         case OrderBy.OLDEST:
           return tags.sort((a, b) => {
-            const timeA = new Date(a.topValues[0]!.lastSeen);
-            const timeB = new Date(b.topValues[0]!.lastSeen);
-            return timeA.getTime() - timeB.getTime();
+            const dateA = new Date(a.topValues[0]!.lastSeen);
+            const dateB = new Date(b.topValues[0]!.lastSeen);
+            return dateA.getTime() - dateB.getTime();
           });
         case OrderBy.Z_TO_A:
           return tags.sort((a, b) => b.key.localeCompare(a.key));
