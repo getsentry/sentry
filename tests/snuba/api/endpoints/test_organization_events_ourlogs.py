@@ -136,11 +136,11 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         self.store_ourlogs(logs)
         response = self.do_request(
             {
-                "field": ["log.body"],
+                "field": ["log.body", "timestamp"],
                 "query": "",
                 "cursor": Cursor(0, 2, False, False),
                 "per_page": 2,
-                "orderby": "log.body",
+                "orderby": "timestamp",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
