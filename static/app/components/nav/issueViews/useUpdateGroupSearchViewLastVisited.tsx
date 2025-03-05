@@ -7,20 +7,6 @@ type UpdateGroupSearchViewLastVisitedVariables = {
   viewId: string;
 };
 
-/**
- * Hook to update the last visited timestamp for a group search view.
- * This sends a PUT request to the organization/{org-slug}/group-search-view/visit/:viewId endpoint.
- *
- * @returns A mutation object that can be used to update the last visited timestamp for a group search view.
- *
- * @example
- * ```tsx
- * const {mutate} = useUpdateGroupSearchViewLastVisited();
- *
- * // Later in your code
- * mutate({viewId: '123'});
- * ```
- */
 export function useUpdateGroupSearchViewLastVisited(
   options: Omit<
     UseMutationOptions<void, RequestError, UpdateGroupSearchViewLastVisitedVariables>,
@@ -36,7 +22,7 @@ export function useUpdateGroupSearchViewLastVisited(
       return api.requestPromise(
         `/organizations/${organization.slug}/group-search-view/visit/${viewId}/`,
         {
-          method: 'PUT',
+          method: 'POST',
         }
       );
     },

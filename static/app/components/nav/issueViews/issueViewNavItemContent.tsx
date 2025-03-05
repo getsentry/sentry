@@ -10,6 +10,7 @@ import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueVi
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
 import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -95,6 +96,7 @@ export function IssueViewNavItemContent({
   const [isEditing, setIsEditing] = useState(false);
 
   const {projects} = useProjects();
+  const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
 
   useEffect(() => {
     if (isActive) {
@@ -184,6 +186,7 @@ export function IssueViewNavItemContent({
           if (isInteractingRef.current) {
             e.preventDefault();
           } else {
+            updateViewLastVisited({viewId: view.id});
             trackAnalytics('issue_views.switched_views', {
               leftNav: true,
               organization: organization.slug,

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -37,6 +38,7 @@ export function IssueViewTab({
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
   const {views} = state;
+  const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
 
   const handleDuplicateView = () => {
     const newViewId = generateTempViewId();
@@ -125,7 +127,7 @@ export function IssueViewTab({
   };
 
   return (
-    <TabContentWrap>
+    <TabContentWrap onClick={() => updateViewLastVisited({viewId: view.id})}>
       <EditableTabTitle
         label={view.label}
         isEditing={editingTabKey === view.key}
