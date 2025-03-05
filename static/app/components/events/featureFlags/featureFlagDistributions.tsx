@@ -44,24 +44,24 @@ export default function FeatureFlagDistributions({
   );
 
   const getSortedTags = useCallback(
-    (tags: GroupTag[]) => {
+    (tags: readonly GroupTag[]) => {
       switch (orderBy) {
         case OrderBy.NEWEST:
-          return tags.sort((a, b) => {
+          return tags.toSorted((a, b) => {
             const dateA = new Date(a.topValues[0]!.lastSeen);
             const dateB = new Date(b.topValues[0]!.lastSeen);
             return dateB.getTime() - dateA.getTime();
           });
         case OrderBy.OLDEST:
-          return tags.sort((a, b) => {
+          return tags.toSorted((a, b) => {
             const dateA = new Date(a.topValues[0]!.lastSeen);
             const dateB = new Date(b.topValues[0]!.lastSeen);
             return dateA.getTime() - dateB.getTime();
           });
         case OrderBy.Z_TO_A:
-          return tags.sort((a, b) => b.key.localeCompare(a.key));
+          return tags.toSorted((a, b) => b.key.localeCompare(a.key));
         default:
-          return tags.sort((a, b) => a.key.localeCompare(b.key));
+          return tags.toSorted((a, b) => a.key.localeCompare(b.key));
       }
     },
     [orderBy]
