@@ -155,13 +155,13 @@ class SentryAppFormModel extends FormModel {
 }
 
 type Props = RouteComponentProps<{appSlug?: string}>;
-function makeSentryAppQueryKey(appSlug?: string): ApiQueryKey {
+const makeSentryAppQueryKey = (appSlug?: string): ApiQueryKey => {
   return [`/sentry-apps/${appSlug}/`];
-}
+};
 
-function makeSentryAppApiTokensQueryKey(appSlug?: string): ApiQueryKey {
+const makeSentryAppApiTokensQueryKey = (appSlug?: string): ApiQueryKey => {
   return [`/sentry-apps/${appSlug}/api-tokens/`];
-}
+};
 
 export default function SentryApplicationDetails(props: Props) {
   const {appSlug} = props.params;
@@ -198,13 +198,13 @@ export default function SentryApplicationDetails(props: Props) {
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
-  function normalize(events: any) {
+  const normalize = (events: any) => {
     if (events.length === 0) {
       return events;
     }
 
     return events.map((e: any) => e.split('.').shift());
-  }
+  };
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');
@@ -434,135 +434,128 @@ export default function SentryApplicationDetails(props: Props) {
     verifyInstall = app ? app.verifyInstall : true;
   }
 
-  if (isEditingApp && isPending) {
-    return (
-      <Fragment>
-        <SettingsPageHeader title={headerTitle()} />
-        <LoadingIndicator />
-      </Fragment>
-    );
-  }
-
-  if (isEditingApp && isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
   return (
     <div>
       <SettingsPageHeader title={headerTitle()} />
-      <Form
-        apiMethod={method}
-        apiEndpoint={endpoint}
-        allowUndo
-        initialData={{
-          organization: organization.slug,
-          isAlertable: false,
-          isInternal: isInternal(),
-          schema: {},
-          scopes: [],
-          ...app,
-          verifyInstall, // need to overwrite the value in app for internal if it is true
-        }}
-        model={form}
-        onSubmitSuccess={handleSubmitSuccess}
-        onSubmitError={handleSubmitError}
-        onFieldChange={onFieldChange}
-      >
-        <Observer>
-          {() => {
-            const webhookDisabled = isInternal() && !form.getValue('webhookUrl');
-            return (
-              <Fragment>
-                <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-                {getAvatarChooser(true)}
-                {getAvatarChooser(false)}
-                <PermissionsObserver
-                  webhookDisabled={webhookDisabled}
-                  appPublished={app ? app.status === 'published' : false}
-                  scopes={scopes}
-                  events={events}
-                  newApp={!app}
-                />
-              </Fragment>
-            );
+      {isEditingApp && isPending ? (
+        <LoadingIndicator />
+      ) : isEditingApp && isError ? (
+        <LoadingError onRetry={refetch} />
+      ) : (
+        <Form
+          apiMethod={method}
+          apiEndpoint={endpoint}
+          allowUndo
+          initialData={{
+            organization: organization.slug,
+            isAlertable: false,
+            isInternal: isInternal(),
+            schema: {},
+            scopes: [],
+            ...app,
+            verifyInstall, // need to overwrite the value in app for internal if it is true
           }}
-        </Observer>
+          model={form}
+          onSubmitSuccess={handleSubmitSuccess}
+          onSubmitError={handleSubmitError}
+          onFieldChange={onFieldChange}
+        >
+          <Observer>
+            {() => {
+              const webhookDisabled = isInternal() && !form.getValue('webhookUrl');
+              return (
+                <Fragment>
+                  <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
+                  {getAvatarChooser(true)}
+                  {getAvatarChooser(false)}
+                  <PermissionsObserver
+                    webhookDisabled={webhookDisabled}
+                    appPublished={app ? app.status === 'published' : false}
+                    scopes={scopes}
+                    events={events}
+                    newApp={!app}
+                  />
+                </Fragment>
+              );
+            }}
+          </Observer>
 
-        {app && app.status === 'internal' && (
-          <Panel>
-            {hasTokenAccess() ? (
-              <PanelHeader hasButtons>
-                {t('Tokens')}
-                <Button
-                  size="xs"
-                  icon={<IconAdd isCircled />}
-                  onClick={evt => onAddToken(evt)}
-                  data-test-id="token-add"
-                >
-                  {t('New Token')}
-                </Button>
-              </PanelHeader>
-            ) : (
-              <PanelHeader>{t('Tokens')}</PanelHeader>
-            )}
-            <PanelBody>{renderTokens()}</PanelBody>
-          </Panel>
-        )}
-
-        {app && (
-          <Panel>
-            <PanelHeader>{t('Credentials')}</PanelHeader>
-            <PanelBody>
-              {app.status !== 'internal' && (
-                <FormField name="clientId" label="Client ID">
-                  {({value, id}: any) => (
-                    <TextCopyInput id={id}>
-                      {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
-                    </TextCopyInput>
-                  )}
-                </FormField>
+          {app && app.status === 'internal' && (
+            <Panel>
+              {hasTokenAccess() ? (
+                <PanelHeader hasButtons>
+                  {t('Tokens')}
+                  <Button
+                    size="xs"
+                    icon={<IconAdd isCircled />}
+                    onClick={evt => onAddToken(evt)}
+                    data-test-id="token-add"
+                  >
+                    {t('New Token')}
+                  </Button>
+                </PanelHeader>
+              ) : (
+                <PanelHeader>{t('Tokens')}</PanelHeader>
               )}
-              <FormField
-                name="clientSecret"
-                label="Client Secret"
-                help={t(`Your secret is only available briefly after integration creation. Make
-                    sure to save this value!`)}
-              >
-                {({value, id}: any) =>
-                  value ? (
-                    <Tooltip
-                      disabled={showAuthInfo()}
-                      position="right"
-                      containerDisplayMode="inline"
-                      title={t(
-                        'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
-                      )}
-                    >
+              <PanelBody>{renderTokens()}</PanelBody>
+            </Panel>
+          )}
+
+          {app && (
+            <Panel>
+              <PanelHeader>{t('Credentials')}</PanelHeader>
+              <PanelBody>
+                {app.status !== 'internal' && (
+                  <FormField name="clientId" label="Client ID">
+                    {({value, id}: any) => (
                       <TextCopyInput id={id}>
-                        {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
+                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                       </TextCopyInput>
-                    </Tooltip>
-                  ) : (
-                    <ClientSecret>
-                      <HiddenSecret>{t('hidden')}</HiddenSecret>
-                      {hasTokenAccess() ? (
-                        <Confirm
-                          onConfirm={rotateClientSecret}
-                          message={t(
-                            'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
-                          )}
-                        >
-                          <Button priority="danger">Rotate client secret</Button>
-                        </Confirm>
-                      ) : undefined}
-                    </ClientSecret>
-                  )
-                }
-              </FormField>
-            </PanelBody>
-          </Panel>
-        )}
-      </Form>
+                    )}
+                  </FormField>
+                )}
+                <FormField
+                  name="clientSecret"
+                  label="Client Secret"
+                  help={t(`Your secret is only available briefly after integration creation. Make
+                    sure to save this value!`)}
+                >
+                  {({value, id}: any) =>
+                    value ? (
+                      <Tooltip
+                        disabled={showAuthInfo()}
+                        position="right"
+                        containerDisplayMode="inline"
+                        title={t(
+                          'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
+                        )}
+                      >
+                        <TextCopyInput id={id}>
+                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
+                        </TextCopyInput>
+                      </Tooltip>
+                    ) : (
+                      <ClientSecret>
+                        <HiddenSecret>{t('hidden')}</HiddenSecret>
+                        {hasTokenAccess() ? (
+                          <Confirm
+                            onConfirm={rotateClientSecret}
+                            message={t(
+                              'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                            )}
+                          >
+                            <Button priority="danger">Rotate client secret</Button>
+                          </Confirm>
+                        ) : undefined}
+                      </ClientSecret>
+                    )
+                  }
+                </FormField>
+              </PanelBody>
+            </Panel>
+          )}
+        </Form>
+      )}
     </div>
   );
 }

@@ -206,7 +206,7 @@ describe('Sentry Application Details', function () {
     it('shows logo upload fields', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
@@ -214,7 +214,7 @@ describe('Sentry Application Details', function () {
     it('has inputs for redirectUrl and verifyInstall', async () => {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(
         screen.getByRole('checkbox', {name: 'Verify Installation'})
       ).toBeInTheDocument();
@@ -225,7 +225,7 @@ describe('Sentry Application Details', function () {
     it('shows application data', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
@@ -233,7 +233,7 @@ describe('Sentry Application Details', function () {
     it('renders clientId and clientSecret for public apps', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
@@ -274,7 +274,7 @@ describe('Sentry Application Details', function () {
     it('no inputs for redirectUrl and verifyInstall', async () => {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(
         screen.queryByRole('checkbox', {name: 'Verify Installation'})
       ).not.toBeInTheDocument();
@@ -287,7 +287,7 @@ describe('Sentry Application Details', function () {
     it('shows logo upload fields', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
@@ -295,7 +295,7 @@ describe('Sentry Application Details', function () {
     it('has tokens', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Tokens')).toBeInTheDocument();
       expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
     });
@@ -303,7 +303,7 @@ describe('Sentry Application Details', function () {
     it('shows just clientSecret', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
@@ -345,14 +345,14 @@ describe('Sentry Application Details', function () {
     it('shows masked tokens', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(maskedValue);
     });
 
     it('shows masked clientSecret', async function () {
       renderComponent();
 
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toHaveValue(
         maskedValue
       );
@@ -398,15 +398,15 @@ describe('Sentry Application Details', function () {
         method: 'POST',
         body: [
           SentryAppTokenFixture({
-            token: '392847329',
-            dateCreated: '2018-03-02T18:30:26Z',
-            id: '234',
+            token: '192847129',
+            dateCreated: '2018-01-02T18:10:26Z',
+            id: '214',
           }),
         ],
       });
 
       renderComponent();
-      await screen.findAllByRole('button', {name: 'Save Changes'});
+      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
       expect(screen.getAllByLabelText('Token preview')).toHaveLength(1);
 
