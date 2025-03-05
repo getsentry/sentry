@@ -112,7 +112,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.base",
-    "sentry.api.bases.organization_events",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
     "sentry.api.endpoints.organization_events_facets_performance",
