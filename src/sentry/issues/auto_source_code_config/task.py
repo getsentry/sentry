@@ -22,6 +22,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
+from .constants import METRIC_PREFIX
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
@@ -79,8 +80,7 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
-        if not is_dry_run_platform(platform):
-            set_project_codemappings(code_mappings, installation, project, platform)
+        create_repos_and_code_mappings(code_mappings, installation, project, platform)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
@@ -157,7 +157,7 @@ def get_trees_for_org(
         return trees
 
 
-def set_project_codemappings(
+def create_repos_and_code_mappings(
     code_mappings: list[CodeMapping],
     installation: IntegrationInstallation,
     project: Project,
@@ -167,6 +167,7 @@ def set_project_codemappings(
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
+    dry_run = is_dry_run_platform(platform)
     organization_integration = installation.org_integration
     if not organization_integration:
         raise InstallationNotFoundError
@@ -180,25 +181,38 @@ def set_project_codemappings(
         )
 
         if not repository:
-            repository = Repository.objects.create(
-                name=code_mapping.repo.name,
-                organization_id=organization_id,
-                integration_id=organization_integration.integration_id,
+            if not dry_run:
+                repository = Repository.objects.create(
+                    name=code_mapping.repo.name,
+                    organization_id=organization_id,
+                    integration_id=organization_integration.integration_id,
+                )
+            metrics.incr(
+                key=f"{METRIC_PREFIX}.repository.created",
+                tags={"platform": platform, "dry_run": dry_run},
+                sample_rate=1.0,
             )
 
-        _, created = RepositoryProjectPathConfig.objects.get_or_create(
-            project=project,
-            stack_root=code_mapping.stacktrace_root,
-            defaults={
-                "repository": repository,
-                "organization_integration_id": organization_integration.id,
-                "integration_id": organization_integration.integration_id,
-                "organization_id": organization_integration.organization_id,
-                "source_root": code_mapping.source_path,
-                "default_branch": code_mapping.repo.branch,
-                "automatically_generated": True,
-            },
-        )
-        if created:
-            # Since it is a low volume event, we can sample at 100%
-            metrics.incr(key="code_mappings.created", tags={"platform": platform}, sample_rate=1.0)
+        # The project and stack_root are unique together
+        configs = RepositoryProjectPathConfig.objects.filter(
+            project=project, stack_root=code_mapping.stacktrace_root
+        ).all()
+        if not configs:
+            if not dry_run and repository is not None:
+                RepositoryProjectPathConfig.objects.create(
+                    repository=repository,
+                    project=project,
+                    organization_integration_id=organization_integration.id,
+                    organization_id=organization_integration.organization_id,
+                    integration_id=organization_integration.integration_id,
+                    stack_root=code_mapping.stacktrace_root,
+                    source_root=code_mapping.source_path,
+                    default_branch=code_mapping.repo.branch,
+                    automatically_generated=True,
+                )
+
+            metrics.incr(
+                key=f"{METRIC_PREFIX}.code_mapping.created",
+                tags={"platform": platform, "dry_run": dry_run},
+                sample_rate=1.0,
+            )
