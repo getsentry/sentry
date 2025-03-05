@@ -34,9 +34,13 @@ class AlertRuleTriggerSerializer(Serializer):
             "alertRuleId": str(obj.alert_rule_id),
             "label": obj.label,
             "thresholdType": obj.alert_rule.threshold_type,
-            "alertThreshold": translate_threshold(obj.alert_rule, obj.alert_threshold),
+            "alertThreshold": translate_threshold(
+                obj.alert_rule.comparison_delta, obj.alert_rule.threshold_type, obj.alert_threshold
+            ),
             "resolveThreshold": translate_threshold(
-                obj.alert_rule, obj.alert_rule.resolve_threshold
+                obj.alert_rule.comparison_delta,
+                obj.alert_rule.threshold_type,
+                obj.alert_rule.resolve_threshold,
             ),
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
