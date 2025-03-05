@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Search} from 'sentry/components/search';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -38,18 +37,13 @@ function CommandPalette({Body}: ModalRenderProps) {
                 border-top: 1px solid ${theme.border};
               `}
             renderInput={({getInputProps}) => (
-              <InputGroup>
-                <InputGroup.LeadingItems>
-                  <IconSearch size="sm" />
-                </InputGroup.LeadingItems>
-                <InputWithoutFocusStyles
-                  autoFocus
-                  {...getInputProps({
-                    type: 'text',
-                    placeholder: t('Search for projects, teams, settings, etc\u{2026}'),
-                  })}
-                />
-              </InputGroup>
+              <InputWithoutFocusStyles
+                autoFocus
+                {...getInputProps({
+                  type: 'text',
+                  placeholder: t('Search for projects, teams, settings, etc\u{2026}'),
+                })}
+              />
             )}
           />
         )}
