@@ -149,7 +149,7 @@ def send_and_save_webhook_request(
             error_type = e.__class__.__name__.lower()
             lifecycle.add_extras(
                 {
-                    "event": "send_and_save_webhook_request.timeout",
+                    "reason": "send_and_save_webhook_request.timeout",
                     "error_type": error_type,
                     "organization_id": org_id,
                     "integration_slug": sentry_app.slug,

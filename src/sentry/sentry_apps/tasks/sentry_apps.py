@@ -23,7 +23,11 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
-from sentry.sentry_apps.metrics import SentryAppInteractionEvent, SentryAppInteractionType
+from sentry.sentry_apps.metrics import (
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+    SentryAppWebhookFailureReason,
+)
 from sentry.sentry_apps.models.sentry_app import VALID_EVENTS, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
@@ -66,7 +70,7 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError,),
+    ignore=(ClientError, SentryAppSentryError),
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -232,11 +236,10 @@ def _process_resource_change(
             # Read event from nodestore as Events are heavy in task messages.
             nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
             if not nodedata:
-                extra = {"sender": sender, "action": action, "event_id": instance_id}
-                lifecycle.record_failure(
-                    failure_reason="process_resource_change.event_missing_event", extra=extra
+                raise SentryAppSentryError(
+                    message=f"{SentryAppWebhookFailureReason.MISSING_EVENT}",
+                    webhook_context={"sender": sender, "action": action, "event_id": instance_id},
                 )
-                return
             instance = Event(
                 project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
             )
@@ -264,10 +267,9 @@ def _process_resource_change(
         lifecycle.add_extras(extras={"event_name": event, "instance_id": instance_id})
 
         if event not in VALID_EVENTS:
-            lifecycle.record_failure(
-                failure_reason="invalid_event",
+            raise SentryAppSentryError(
+                message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
             )
-            return
 
         org = None
 
@@ -308,9 +310,12 @@ def _process_resource_change(
 def process_resource_change_bound(
     self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
-    _process_resource_change(
-        action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
-    )
+    try:
+        _process_resource_change(
+            action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
+        )
+    except SentryAppSentryError as e:
+        sentry_sdk.capture_exception(e)
 
 
 @instrumented_task(
@@ -471,18 +476,18 @@ def send_resource_change_webhook(
     ).capture() as lifecycle:
         installation = app_service.installation_by_id(id=installation_id)
         if not installation:
-            logger.info(
-                "send_resource_change_webhook.missing_installation",
-                extra={"installation_id": installation_id, "event": event},
+            error = SentryAppSentryError(
+                message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
+                webhook_context={"installation_id": installation_id, "event": event},
             )
-            return
+            sentry_sdk.capture_exception(error)
+            raise error
 
         try:
             send_webhooks(installation, event, data=data)
         except SentryAppSentryError as e:
             sentry_sdk.capture_exception(e)
-            lifecycle.record_failure(e)
-            return None
+            raise
         except (ApiHostError, ApiTimeoutError, RequestException, ClientError) as e:
             lifecycle.record_halt(e)
             raise
@@ -528,9 +533,13 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             organization_id=installation.organization_id, actor_id=installation.id
         )
     except ServiceHook.DoesNotExist:
-        raise SentryAppSentryError("send_webhooks.missing_servicehook", webhook_context=extras)
+        raise SentryAppSentryError(
+            message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK, webhook_context=extras
+        )
     if event not in servicehook.events:
-        raise SentryAppSentryError("send_webhooks.event_not_in_servicehook", webhook_context=extras)
+        raise SentryAppSentryError(
+            message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK, webhook_context=extras
+        )
 
     # The service hook applies to all projects if there are no
     # ServiceHookProject records. Otherwise we want check if

@@ -24,6 +24,7 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
+from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -367,7 +368,9 @@ class TestProcessResourceChange(TestCase):
         )
         assert len(safe_urlopen.mock_calls) == 0
 
-        assert_failure_metric(mock_record, "process_resource_change.event_missing_event")
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_EVENT)
+        )
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
@@ -380,7 +383,7 @@ class TestProcessResourceChange(TestCase):
     def test_does_not_process_disallowed_event(self, mock_record, safe_urlopen):
         process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
-        assert_failure_metric(mock_record, "invalid_event")
+        assert_failure_metric(mock_record, SentryAppSentryError(message="invalid_event"))
 
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
@@ -898,8 +901,7 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        with pytest.raises(SentryAppSentryError):
-            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
     def test_does_not_send_if_event_not_in_app_events(self, safe_urlopen):
@@ -911,8 +913,7 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        with pytest.raises(SentryAppSentryError):
-            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
 

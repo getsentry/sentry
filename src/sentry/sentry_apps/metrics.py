@@ -26,9 +26,6 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
         tokens = ("sentry_app", self.operation_type, str(outcome))
         return ".".join(tokens)
 
-    def get_event_type(self) -> str:
-        return self.event_type if self.event_type else ""
-
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
             "operation_type": self.operation_type,
@@ -37,6 +34,17 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
-            "event_type": self.get_event_type(),
+            "event_type": self.event_type,
             "operation_type": self.operation_type,
         }
+
+
+class SentryAppWebhookFailureReason(StrEnum):
+    """Reasons why sentry app webhooks can fail"""
+
+    MISSING_SENTRY_APP = "missing_sentry_app"
+    MISSING_INSTALLATION = "missing_installation"
+    MISSING_EVENT = "missing_event"
+    INVALID_EVENT = "invalid_event"
+    MISSING_SERVICEHOOK = "missing_servicehook"
+    EVENT_NOT_IN_SERVCEHOOK = "event_not_in_servicehook"
