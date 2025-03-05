@@ -74,6 +74,6 @@ def fetch_release_registry_data(**kwargs):
     cache.set(LAYER_INDEX_CACHE_KEY, layer_data, CACHE_TTL)
     logger.info(
         "release_registry.fetch.aws-lambda-layers",
-        extra={"layer cache": cache.get(LAYER_INDEX_CACHE_KEY)},
+        extra={"layer_cache": cache.get(LAYER_INDEX_CACHE_KEY)},
     )
     sentry_sdk.capture_message("Fetching release registry")
