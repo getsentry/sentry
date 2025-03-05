@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 from sentry import eventstore
@@ -266,12 +267,88 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
         mock_safe_for_fetching_issues.side_effect = lambda x: x
 
+        pr_files_related: list[PrFile] = [
+            {"filename": "foo.py", "patch": "a", "status": "modified", "changes": 1},
+            {"filename": "bar.py", "patch": "b", "status": "modified", "changes": 1},
+        ]
+        pr_files_unrelated: list[PrFile] = [
+            {"filename": "no.waydude", "patch": "d", "status": "removed", "changes": 1},
+            # No language parser
+        ]
+        filename_to_issues_expected = {
+            pr_file["filename"]: self.issues_with_event_details for pr_file in pr_files_related
+        }
+
+        assert self.gh_repo.provider is not None
+
+        filename_to_issues = get_issues_related_to_file_patches(
+            organization_id=self.organization.id,
+            provider=self.gh_repo.provider,
+            external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
+            pr_files=pr_files_related + pr_files_unrelated,
+        )
+        assert filename_to_issues == filename_to_issues_expected
+
+    @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
+    @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
+    @patch(
+        "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+    )
+    @patch("sentry.seer.fetch_issues_given_patches.get_issues_with_event_details_for_file")
+    def test_get_issues_related_to_file_patches_no_function_names(
+        self,
+        mock_get_issues_with_event_details_for_file: Mock,
+        mock_extract_functions_from_patch: Mock,
+        mock_get_projects_and_filenames_from_source_file: Mock,
+        mock_safe_for_fetching_issues: Mock,
+    ):
+        mock_get_issues_with_event_details_for_file.side_effect = (
+            lambda *args, **kwargs: self.issues_with_event_details
+        )
+        mock_extract_functions_from_patch.return_value = []
+        mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
+        mock_safe_for_fetching_issues.side_effect = lambda x: x
+
         pr_files: list[PrFile] = [
             {"filename": "foo.py", "patch": "a", "status": "modified", "changes": 1},
             {"filename": "bar.py", "patch": "b", "status": "modified", "changes": 1},
         ]
-        filename_to_issues_expected = {
-            pr_file["filename"]: self.issues_with_event_details for pr_file in pr_files
+        filename_to_issues_expected: dict[str, list[dict[str, Any]]] = {}
+
+        assert self.gh_repo.provider is not None
+
+        filename_to_issues = get_issues_related_to_file_patches(
+            organization_id=self.organization.id,
+            provider=self.gh_repo.provider,
+            external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
+            pr_files=pr_files,
+        )
+        assert filename_to_issues == filename_to_issues_expected
+
+    @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
+    @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
+    @patch(
+        "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+    )
+    @patch("sentry.seer.fetch_issues_given_patches.get_issues_with_event_details_for_file")
+    def test_get_issues_related_to_file_patches_no_issues_found(
+        self,
+        mock_get_issues_with_event_details_for_file: Mock,
+        mock_extract_functions_from_patch: Mock,
+        mock_get_projects_and_filenames_from_source_file: Mock,
+        mock_safe_for_fetching_issues: Mock,
+    ):
+        mock_get_issues_with_event_details_for_file.side_effect = lambda *args, **kwargs: []
+        mock_extract_functions_from_patch.return_value = ["world", "planet"]
+        mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
+        mock_safe_for_fetching_issues.side_effect = lambda x: x
+
+        pr_files: list[PrFile] = [
+            {"filename": "foo.py", "patch": "a", "status": "modified", "changes": 1},
+            {"filename": "bar.py", "patch": "b", "status": "modified", "changes": 1},
+        ]
+        filename_to_issues_expected: dict[str, list[dict[str, Any]]] = {
+            pr_file["filename"]: [] for pr_file in pr_files
         }
 
         assert self.gh_repo.provider is not None
