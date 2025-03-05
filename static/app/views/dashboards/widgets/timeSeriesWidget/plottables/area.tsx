@@ -1,9 +1,8 @@
 import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
-
-import {splitSeriesIntoCompleteAndIncomplete} from '../splitSeriesIntoCompleteAndIncomplete';
-import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
+import {splitSeriesIntoCompleteAndIncomplete} from 'sentry/utils/timeSeries/splitSeriesIntoCompleteAndIncomplete';
+import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
 import {
   ContinuousTimeSeries,
@@ -15,9 +14,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {timeSeries, config = {}} = this;
 
-    const {color, unit} = plottingOptions;
-
-    const scaledSeries = this.scaleToUnit(unit);
+    const color = plottingOptions.color ?? config.color ?? undefined;
+    const scaledSeries = this.scaleToUnit(plottingOptions.unit);
 
     const [completeTimeSeries, incompleteTimeSeries] =
       splitSeriesIntoCompleteAndIncomplete(scaledSeries, config.delay ?? 0);
