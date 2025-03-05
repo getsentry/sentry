@@ -100,10 +100,11 @@ export function useTrackAnalytics({
       page_source,
     });
 
-    info(fmt`trace.explorer.metadata:
+    info(
+      fmt`trace.explorer.metadata:
       organization: ${organization.slug}
       dataset: ${dataset}
-      query: ${query}
+      query: [omitted]
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
       title: ${title || ''}
       queryType: ${queryType}
@@ -113,7 +114,9 @@ export function useTrackAnalytics({
       visualizes_count: ${String(String(visualizes).length)}
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
-    `);
+    `,
+      {isAnalytics: true}
+    );
   }, [
     organization,
     dataset,
