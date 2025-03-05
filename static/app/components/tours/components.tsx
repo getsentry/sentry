@@ -228,9 +228,10 @@ export function TourGuide({
   offset,
 }: TourGuideProps) {
   const theme = useTheme();
-  const isStepCountVisible = defined(stepCount) && defined(stepTotal);
+  const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
+  const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
   const {triggerProps, overlayProps, arrowProps} = useOverlay({
     isOpen,
     position,
@@ -266,11 +267,7 @@ export function TourGuide({
             <TourBody id={id}>
               {isTopRowVisible && (
                 <TopRow>
-                  {isStepCountVisible && (
-                    <div>
-                      {stepCount}/{stepTotal}
-                    </div>
-                  )}
+                  <div>{countText}</div>
                   {isDismissVisible && (
                     <TourCloseButton
                       onClick={handleDismiss}
@@ -313,6 +310,7 @@ const TourCloseButton = styled(Button)`
   display: block;
   padding: 0;
   height: 14px;
+  min-height: 14px;
 `;
 
 const TourOverlay = styled(Overlay)`
@@ -320,10 +318,10 @@ const TourOverlay = styled(Overlay)`
 `;
 
 const TopRow = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 15px;
+  align-items: start;
   height: 18px;
-  justify-content: space-between;
-  align-items: center;
   color: ${p => p.theme.inverted.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
