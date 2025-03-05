@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models.groupsearchviewlastseen import GroupSearchViewLastSeen
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.endpoints.test_organization_group_search_views import BaseGSVTestCase
@@ -27,7 +27,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_last_seen_success(self) -> None:
         assert (
-            GroupSearchViewLastSeen.objects.filter(
+            GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
                 user_id=self.user.id,
                 group_search_view=self.view,
@@ -39,7 +39,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         assert response.status_code == 204
 
         # Verify the last_seen record was created
-        last_seen = GroupSearchViewLastSeen.objects.get(
+        last_seen = GroupSearchViewLastVisited.objects.get(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=self.view,
@@ -51,7 +51,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
     def test_update_existing_last_seen(self) -> None:
         # Create an initial last_seen record with an old timestamp
         with freeze_time("2025-02-03 14:52:37"):
-            GroupSearchViewLastSeen.objects.create(
+            GroupSearchViewLastVisited.objects.create(
                 organization=self.organization,
                 user_id=self.user.id,
                 group_search_view=self.view,
@@ -63,7 +63,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         assert response.status_code == 204
 
         # Verify the last_seen record was updated
-        last_seen = GroupSearchViewLastSeen.objects.get(
+        last_seen = GroupSearchViewLastVisited.objects.get(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=self.view,
@@ -102,7 +102,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         assert response.status_code == 204
 
         # Verify the last_seen record was created for the current user
-        last_seen = GroupSearchViewLastSeen.objects.get(
+        last_seen = GroupSearchViewLastVisited.objects.get(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=view,
@@ -114,7 +114,7 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
         assert response.status_code == 404
 
         # Verify no last_seen record was created
-        assert not GroupSearchViewLastSeen.objects.filter(
+        assert not GroupSearchViewLastVisited.objects.filter(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view=self.view,
