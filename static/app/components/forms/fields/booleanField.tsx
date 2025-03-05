@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import Confirm from 'sentry/components/confirm';
-import {Switch} from 'sentry/components/core/switch';
+import {Switch, type SwitchProps} from 'sentry/components/core/switch';
 import FormField from 'sentry/components/forms/formField';
 import {Tooltip} from 'sentry/components/tooltip';
 
@@ -59,12 +59,12 @@ export default class BooleanField extends Component<BooleanFieldProps> {
           const handleChange = this.handleChange.bind(this, value, onChange, onBlur);
 
           const {type: _, ...propsWithoutType} = props;
-          const switchProps = {
+          const switchProps: SwitchProps = {
             ...propsWithoutType,
-            size: 'lg' as React.ComponentProps<typeof Switch>['size'],
-            isActive: !!value,
-            isDisabled: disabled,
-            toggle: handleChange,
+            size: 'lg',
+            checked: !!value,
+            disabled,
+            onClick: handleChange,
           };
 
           if (confirm) {
@@ -79,7 +79,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
                   <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
                     <Switch
                       {...switchProps}
-                      toggle={(e: React.MouseEvent) => {
+                      onClick={e => {
                         // If we have a `confirm` prop and enabling switch
                         // Then show confirm dialog, otherwise propagate change as normal
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

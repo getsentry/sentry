@@ -447,9 +447,9 @@ function ManageDashboards() {
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
-                          isActive={showTemplates}
+                          checked={showTemplates}
                           size="lg"
-                          toggle={toggleTemplates}
+                          onClick={toggleTemplates}
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />

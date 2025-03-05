@@ -94,9 +94,9 @@ class ProjectPluginRow extends PureComponent<Props> {
               </PluginInfo>
               <Switch
                 size="lg"
-                isDisabled={!hasAccess || !canDisable}
-                isActive={enabled}
-                toggle={this.handleChange}
+                disabled={!hasAccess || !canDisable}
+                checked={enabled}
+                onClick={this.handleChange}
               />
             </PluginItem>
           );

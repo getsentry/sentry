@@ -52,8 +52,8 @@ export default function CustomOverride({
       />
       <Switch
         size="lg"
-        isActive={isActive}
-        toggle={() => {
+        checked={isActive}
+        onClick={() => {
           setIsActive(!isActive);
         }}
         css={css`

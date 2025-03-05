@@ -23,19 +23,19 @@ function FeedbackConfigToggle({
     <SwitchWrapper>
       <SwitchItem htmlFor="name">
         {t('Name Required')}
-        <Switch id="name" toggle={onNameToggle} size="lg" isActive={nameToggle} />
+        <Switch id="name" onClick={onNameToggle} size="lg" checked={nameToggle} />
       </SwitchItem>
       <SwitchItem htmlFor="email">
         {t('Email Required')}
-        <Switch id="email" toggle={onEmailToggle} size="lg" isActive={emailToggle} />
+        <Switch id="email" onClick={onEmailToggle} size="lg" checked={emailToggle} />
       </SwitchItem>
       <SwitchItem htmlFor="screenshot">
         {t('Enable Screenshots')}
         <Switch
           id="screenshot"
-          toggle={onScreenshotToggle}
+          onClick={onScreenshotToggle}
           size="lg"
-          isActive={screenshotToggle}
+          checked={screenshotToggle}
         />
       </SwitchItem>
     </SwitchWrapper>

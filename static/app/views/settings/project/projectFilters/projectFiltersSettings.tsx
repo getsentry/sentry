@@ -314,13 +314,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                   </div>
                   <Switch
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    isActive={this.state.subfilters.has(key)}
-                    isDisabled={disabled}
+                    checked={this.state.subfilters.has(key)}
+                    disabled={disabled}
                     css={css`
                       flex-shrink: 0;
                       margin-left: 6;
                     `}
-                    toggle={this.handleToggleSubfilters.bind(this, key)}
+                    onClick={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />
                 </FilterGridItem>

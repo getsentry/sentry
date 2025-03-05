@@ -201,10 +201,10 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
         <PrebuiltSwitch>
           Show Prebuilt
           <Switch
-            isActive={renderPrebuilt}
-            isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
+            checked={renderPrebuilt}
+            disabled={renderPrebuilt && (savedQueries ?? []).length === 0}
             size="lg"
-            toggle={this.togglePrebuilt}
+            onClick={this.togglePrebuilt}
           />
         </PrebuiltSwitch>
         <CompactSelect
