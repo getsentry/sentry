@@ -193,24 +193,24 @@ def create_repos_and_code_mappings(
                 sample_rate=1.0,
             )
 
-        # The project and stack_root are unique together
-        configs = RepositoryProjectPathConfig.objects.filter(
-            project=project, stack_root=code_mapping.stacktrace_root
-        ).all()
-        if not configs:
-            if not dry_run and repository is not None:
-                RepositoryProjectPathConfig.objects.create(
-                    repository=repository,
-                    project=project,
-                    organization_integration_id=organization_integration.id,
-                    organization_id=organization_integration.organization_id,
-                    integration_id=organization_integration.integration_id,
-                    stack_root=code_mapping.stacktrace_root,
-                    source_root=code_mapping.source_path,
-                    default_branch=code_mapping.repo.branch,
-                    automatically_generated=True,
-                )
+        created = False
+        if not dry_run:
+            # The project and stack_root are unique together
+            _, created = RepositoryProjectPathConfig.objects.get_or_create(
+                project=project,
+                stack_root=code_mapping.stacktrace_root,
+                defaults={
+                    "repository": repository,
+                    "organization_integration_id": organization_integration.id,
+                    "integration_id": organization_integration.integration_id,
+                    "organization_id": organization_integration.organization_id,
+                    "source_root": code_mapping.source_path,
+                    "default_branch": code_mapping.repo.branch,
+                    "automatically_generated": True,
+                },
+            )
 
+        if created or dry_run:
             metrics.incr(
                 key=f"{METRIC_PREFIX}.code_mapping.created",
                 tags={"platform": platform, "dry_run": dry_run},
