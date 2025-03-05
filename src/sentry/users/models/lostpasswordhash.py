@@ -59,6 +59,10 @@ class LostPasswordHash(Model):
         cls._send_email("relocate_account", user, hash, {"orgs": orgs})
 
     @classmethod
+    def send_set_password_email(cls, user: User | RpcUser, hash: str, **kwargs: Any) -> None:
+        cls._send_email("set_password", user, hash, extra=kwargs)
+
+    @classmethod
     def _send_email(cls, mode: str, user: User | RpcUser, hash: str, extra: dict[str, Any]) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
@@ -75,6 +79,7 @@ class LostPasswordHash(Model):
         subject = "Password Recovery"
         template = "recover_account"
         if mode == "set_password":
+            subject = "Set Password for Your Sentry.io Account"
             template = "set_password"
         elif mode == "relocate_account":
             template = "relocate_account"
