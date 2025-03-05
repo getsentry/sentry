@@ -11,6 +11,11 @@ const ToggleButtonSize = {
   lg: {width: 24, height: 24, icon: 16, iconOffset: 3},
 };
 
+/** We inject hex colors as background image, which requires escaping the hex characters */
+function urlEscapeHex(hex: string) {
+  return hex.replace('#', '%23');
+}
+
 export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
   toggleSize: NonNullable<SwitchProps['size']>;
 }>`
@@ -18,6 +23,9 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
   opacity: 0;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 
   &:focus-visible + div {
     outline: none;
@@ -35,12 +43,10 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
     border-left: 1px solid ${p => p.theme.colors.dynamic.surface100};
     transition: all 100ms ease-in-out;
 
-
     > div {
       border-radius: ${p => p.theme.radius.sm};
       background: ${p => p.theme.colors.dynamic.surface500};
       border: 1px solid ${p => p.theme.colors.dynamic.surface100};
-      color: ${p => p.theme.colors.dynamic.grayTransparent400};
 
       width: ${p => ToggleButtonSize[p.toggleSize].width}px;
       height: ${p => ToggleButtonSize[p.toggleSize].height}px;
@@ -62,9 +68,8 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
         left: ${p => ToggleButtonSize[p.toggleSize].iconOffset}px;
         background-repeat: no-repeat;
         background-size: ${p => ToggleButtonSize[p.toggleSize].icon}px ${p => ToggleButtonSize[p.toggleSize].icon}px;
-
         transition: transform 500ms linear(0, 0.877 9.4%, 1.08 14.6%, 0.993 30.8%, 1);
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="%23181225" fill-opacity=".63" fill-rule="evenodd" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
+        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.secondary)}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
       }
     }
   }
@@ -79,11 +84,11 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
     > div {
       background: ${p => p.theme.colors.dynamic.surface500};
       border: 1px solid ${p => p.theme.colors.dynamic.blue100};
-      color: ${p => p.theme.colors.dynamic.blue400};
       transform: translateY(-1px) translateX(${p => ToggleWrapperSize[p.toggleSize].width - ToggleButtonSize[p.toggleSize].width}px);
 
       &:after {
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="%237553FF" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');}
+        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.accent)}" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');
+      }
     }
   }
 
