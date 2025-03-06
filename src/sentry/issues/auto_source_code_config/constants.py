@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+METRIC_PREFIX = "auto_source_code_config"
 SUPPORTED_INTEGRATIONS = ["github"]
-
 
 # Any new languages should also require updating the stacktraceLink.tsx
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
