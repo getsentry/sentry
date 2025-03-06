@@ -15,6 +15,13 @@ fi
 
 venv_name=".venv"
 
+# selected ansi colors
+bold="$(tput bold)"
+red="$(tput setaf 1)"
+green="$(tput setaf 2)"
+yellow="$(tput setaf 3)"
+reset="$(tput sgr0)"
+
 # XDG paths' standardized defaults:
 # (see https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables )
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
