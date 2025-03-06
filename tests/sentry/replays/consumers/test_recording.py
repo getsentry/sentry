@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 import uuid
 import zlib
-from collections.abc import Mapping
 from datetime import datetime
 from unittest.mock import ANY, patch
 
@@ -14,37 +13,11 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.consumers.recording_buffered import (
-    RecordingBufferedStrategyFactory,
-    cast_payload_from_bytes,
-)
+from sentry.replays.consumers.recording_two_step import RecordingTwoStepStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
-
-
-def test_multiprocessing_strategy():
-    # num_processes is the only argument that matters. Setting it to `>1` enables
-    # multi-processing.
-    factory = ProcessReplayRecordingStrategyFactory(
-        num_processes=2,
-        num_threads=1,
-        input_block_size=1,
-        max_batch_size=1,
-        max_batch_time=1,
-        output_block_size=1,
-    )
-
-    def _commit(offsets: Mapping[Partition, int], force: bool = False) -> None:
-        raise NotImplementedError
-
-    # Assert the multi-processing step does not fail to initialize.
-    task = factory.create_with_partitions(_commit, {})
-
-    # Clean up after ourselves by terminating the processing pool spawned by the above call.
-    task.terminate()
-    factory.shutdown()
 
 
 class RecordingTestCase(TransactionTestCase):
@@ -139,9 +112,7 @@ class RecordingTestCase(TransactionTestCase):
                 "project_id": self.project.id,
                 "received": int(time.time()),
                 "retention_days": 30,
-                "payload": cast_payload_from_bytes(
-                    f'{{"segment_id":{segment_id}}}\n'.encode() + message
-                ),
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,  # type: ignore[typeddict-item]
                 "replay_event": replay_event,  # type: ignore[typeddict-item]
                 "replay_video": replay_video,  # type: ignore[typeddict-item]
             }
@@ -500,14 +471,9 @@ class ThreadedRecordingTestCase(RecordingTestCase):
     force_synchronous = False
 
 
-# Experimental Buffered Recording Consumer
+# Experimental Two Step Recording Consumer
 
 
-class RecordingBufferedTestCase(RecordingTestCase):
+class RecordingTwoStepTestCase(RecordingTestCase):
     def processing_factory(self):
-        # The options don't matter because we're calling join which commits regardless.
-        return RecordingBufferedStrategyFactory(
-            max_buffer_message_count=1000,
-            max_buffer_size_in_bytes=1000,
-            max_buffer_time_in_seconds=1000,
-        )
+        return RecordingTwoStepStrategyFactory()

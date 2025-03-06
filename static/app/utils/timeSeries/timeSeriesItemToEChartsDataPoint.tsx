@@ -1,4 +1,4 @@
-import type {TimeSeriesItem} from '../common/types';
+import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types';
 
 export function timeSeriesItemToEChartsDataPoint(
   datum: TimeSeriesItem
