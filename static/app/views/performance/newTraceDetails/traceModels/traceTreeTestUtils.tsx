@@ -42,7 +42,23 @@ export function makeTrace(
 }
 
 export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.EAPTrace {
-  return (overrides ?? []) as TraceTree.EAPTrace;
+  return (overrides ?? [
+    makeEAPSpan({
+      event_id: 'eap-span-1',
+      start_timestamp: 1,
+      end_timestamp: 3,
+      is_transaction: true,
+      children: [
+        makeEAPSpan({
+          event_id: 'eap-span-2',
+          start_timestamp: 2,
+          end_timestamp: 3,
+          is_transaction: false,
+          children: [],
+        }),
+      ],
+    }),
+  ]) as TraceTree.EAPTrace;
 }
 
 export function makeTransaction(
