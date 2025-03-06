@@ -168,9 +168,9 @@ def _create_models(segment: SegmentSpan, project: Project) -> None:
     environment_name = sentry_tags.get("environment")
     release_name = sentry_tags.get("release")
     dist_name = sentry_tags.get("dist")
-    date = to_datetime(segment["end_timestamp_precise"])
+    date = to_datetime(segment["end_timestamp_precise"])  # type: ignore[typeddict-item]
 
-    environment = Environment.get_or_create(project=project, environment=environment_name)
+    environment = Environment.get_or_create(project=project, name=environment_name)
 
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
