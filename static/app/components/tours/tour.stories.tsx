@@ -88,6 +88,7 @@ export default storyBook('Tours', story => {
         <li>Define the order of the steps.</li>
         <li>Create the tour context for the components to use.</li>
         <li>Create a usage hook to refine types.</li>
+        <li>Add a tour key to save the viewed/dismissed status.</li>
       </ol>
       <CodeSnippet language="tsx">
         {`import {createContext, useContext} from 'react';
@@ -116,6 +117,11 @@ function useMyTour(): TourContextType<MyTour> {
   }
   return tourContext;
 }
+
+// Step 5. Add a tour key to save the viewed/dismissed status.
+// Note: This should match what's added to 'src/sentry/assistant/guides.py'.
+export const MY_TOUR_KEY = 'tour.my_tour';
+
 `}
       </CodeSnippet>
     </Fragment>

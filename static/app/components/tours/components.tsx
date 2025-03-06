@@ -13,6 +13,7 @@ import {
   type TourStep,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
+import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,35 +50,56 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    * Whether to omit the blurring window.
    */
   omitBlur?: boolean;
+  /**
+   * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
+   */
+  tourKey?: string;
 }
 
 export function TourContextProvider<T extends TourEnumType>({
   children,
   isAvailable,
   isCompleted,
+  tourKey,
   tourContext,
   omitBlur,
   orderedStepIds,
 }: TourContextProviderProps<T>) {
+  const {mutate} = useMutateAssistant();
   const tourContextValue = useTourReducer<T>({
     isAvailable,
     isCompleted,
     isRegistered: false,
     orderedStepIds,
     currentStepId: null,
+    tourKey,
   });
   const {dispatch, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 
   const tourHotkeys = useMemo(() => {
     return [
-      {match: 'Escape', callback: () => dispatch({type: 'END_TOUR'})},
+      {
+        match: 'Escape',
+        callback: () => {
+          if (tourKey) {
+            mutate({guide: tourKey, status: 'dismissed'});
+          }
+          dispatch({type: 'END_TOUR'});
+        },
+      },
       {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
       {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
     ];
-  }, [dispatch]);
+  }, [dispatch, mutate, tourKey]);
 
   useHotkeys(tourHotkeys);
+
+  useEffect(() => {
+    if (isTourActive && tourKey) {
+      mutate({guide: tourKey, status: 'viewed'});
+    }
+  }, [isTourActive, mutate, tourKey]);
 
   return (
     <tourContext.Provider value={tourContextValue}>
@@ -150,14 +172,14 @@ function TourElementContent<T extends TourEnumType>({
   className,
   actions,
 }: TourElementContentProps<T>) {
-  const {currentStepId, dispatch, orderedStepIds, handleStepRegistration} =
+  const {currentStepId, dispatch, orderedStepIds, handleStepRegistration, tourKey} =
     tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
   const hasPreviousStep = stepCount > 1;
   const hasNextStep = stepCount < stepTotal;
   const isOpen = currentStepId === id;
-
+  const {mutate} = useMutateAssistant();
   useEffect(() => handleStepRegistration({id}), [id, handleStepRegistration]);
 
   const defaultActions = useMemo(
@@ -173,13 +195,21 @@ function TourElementContent<T extends TourEnumType>({
             {t('Next')}
           </TourAction>
         ) : (
-          <TourAction size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
+          <TourAction
+            size="xs"
+            onClick={() => {
+              if (tourKey) {
+                mutate({guide: tourKey, status: 'viewed'});
+              }
+              dispatch({type: 'END_TOUR'});
+            }}
+          >
             {t('Finish tour')}
           </TourAction>
         )}
       </ButtonBar>
     ),
-    [hasPreviousStep, hasNextStep, dispatch]
+    [hasPreviousStep, hasNextStep, dispatch, tourKey, mutate]
   );
 
   return (
@@ -190,7 +220,12 @@ function TourElementContent<T extends TourEnumType>({
       className={className}
       isOpen={isOpen}
       position={position}
-      handleDismiss={() => dispatch({type: 'END_TOUR'})}
+      handleDismiss={() => {
+        if (tourKey) {
+          mutate({guide: tourKey, status: 'dismissed'});
+        }
+        dispatch({type: 'END_TOUR'});
+      }}
       stepCount={stepCount}
       stepTotal={stepTotal}
       id={`${id}`}
