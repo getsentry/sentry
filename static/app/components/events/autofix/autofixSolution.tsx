@@ -441,11 +441,9 @@ function AutofixSolutionDisplay({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddInstruction();
-    }
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleAddInstruction();
   };
 
   const handleDeleteItem = useCallback((index: number) => {
@@ -597,25 +595,26 @@ function AutofixSolutionDisplay({
           />
           <AddInstructionWrapper>
             <InstructionsInputWrapper>
-              <InstructionsInput
-                type="text"
-                name="additional-instructions"
-                placeholder={t('Add additional instructions for Autofix...')}
-                value={instructions}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setInstructions(e.target.value)
-                }
-                onKeyDown={handleKeyDown}
-              />
-              <AddStepButton
-                size="xs"
-                onClick={handleAddInstruction}
-                disabled={!instructions.trim()}
-                aria-label={t('Add to solution')}
-                icon={<IconAdd size="xs" />}
-              >
-                <span>{t('Add')}</span>
-              </AddStepButton>
+              <form onSubmit={handleFormSubmit} style={{display: 'flex', width: '100%'}}>
+                <InstructionsInput
+                  type="text"
+                  name="additional-instructions"
+                  placeholder={t('Add additional instructions for Autofix...')}
+                  value={instructions}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setInstructions(e.target.value)
+                  }
+                />
+                <AddStepButton
+                  type="submit"
+                  size="xs"
+                  disabled={!instructions.trim()}
+                  aria-label={t('Add to solution')}
+                  icon={<IconAdd size="xs" />}
+                >
+                  <span>{t('Add')}</span>
+                </AddStepButton>
+              </form>
             </InstructionsInputWrapper>
           </AddInstructionWrapper>
         </Content>
@@ -827,7 +826,7 @@ const InstructionsInput = styled('input')`
   background-color: transparent;
 
   &::placeholder {
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.gray300};
   }
 
   &:focus {
