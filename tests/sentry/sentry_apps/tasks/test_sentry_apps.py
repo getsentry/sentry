@@ -125,7 +125,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             instance_id=group_event.event_id,
             group_id=group_event.group_id,
             occurrence_id=None,
-            rule=self.rule,
+            rule_label=self.rule.label,
             sentry_app_id=9999,
         )
 
@@ -133,7 +133,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         assert_failure_metric(
             mock_record=mock_record,
-            error_msg=f"send_alert_event.{SentryAppWebhookFailureReason.MISSING_SENTRY_APP}",
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP
+            ),
         )
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
@@ -153,15 +155,14 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             instance_id=123,
             group_id=issue.id,
             occurrence_id=None,
-            rule=self.rule,
+            rule_label=self.rule.label,
             sentry_app_id=self.sentry_app.id,
         )
 
         assert not safe_urlopen.called
 
         assert_failure_metric(
-            mock_record=mock_record,
-            error_msg=f"send_alert_event.{SentryAppWebhookFailureReason.MISSING_EVENT}",
+            mock_record, SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_EVENT)
         )
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
@@ -198,7 +199,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert not safe_urlopen.called
         assert_failure_metric(
             mock_record=mock_record,
-            error_msg=f"send_alert_event.{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.MISSING_INSTALLATION
+            ),
         )
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
@@ -438,7 +441,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         requests = buffer.get_requests()
 
         assert len(requests) == 1
-        assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
         # SLO validation
@@ -455,7 +457,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.HALT, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 

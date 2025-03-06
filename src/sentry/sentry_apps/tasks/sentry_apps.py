@@ -119,7 +119,7 @@ def _webhook_event_data(
 @instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_webhook(
-    rule: str,
+    rule_label: str,
     sentry_app_id: int,
     instance_id: str,
     group_id: int,
@@ -130,17 +130,17 @@ def send_alert_webhook(
 ):
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
-        event_type="send_alert_webhook",
+        event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
     ).capture() as lifecycle:
         group = Group.objects.get_from_cache(id=group_id)
         assert group, "Group must exist to get related attributes"
         project = Project.objects.get_from_cache(id=group.project_id)
         organization = Organization.objects.get_from_cache(id=project.organization_id)
-        extra = {
+        extra: dict[str, int | str] = {
             "sentry_app_id": sentry_app_id,
             "project_id": project.id,
             "organization_slug": organization.slug,
-            "rule": rule,
+            "rule": rule_label,
         }
         lifecycle.add_extras(extra)
 
@@ -164,16 +164,7 @@ def send_alert_webhook(
         )
 
         if not nodedata:
-            extra = {
-                "event_id": instance_id,
-                "occurrence_id": occurrence_id,
-                "rule": rule,
-                "sentry_app": sentry_app.slug,
-                "group_id": group_id,
-            }
-            raise SentryAppSentryError(
-                message=SentryAppWebhookFailureReason.MISSING_EVENT, webhook_context=extra
-            )
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_EVENT)
 
         occurrence = None
         if occurrence_id:
@@ -181,8 +172,7 @@ def send_alert_webhook(
 
             if not occurrence:
                 raise SentryAppSentryError(
-                    message=SentryAppWebhookFailureReason.MISSING_ISSUE_OCCURRENCE,
-                    webhook_context={"occurrence_id": occurrence_id, "project_id": project.id},
+                    message=SentryAppWebhookFailureReason.MISSING_ISSUE_OCCURRENCE
                 )
 
         group_event = GroupEvent(
@@ -195,7 +185,7 @@ def send_alert_webhook(
 
         event_context = _webhook_event_data(group_event, group.id, project.id)
 
-        data = {"event": event_context, "triggered_rule": rule}
+        data = {"event": event_context, "triggered_rule": rule_label}
 
         # Attach extra payload to the webhook
         if additional_payload_key and additional_payload:
@@ -205,21 +195,16 @@ def send_alert_webhook(
             resource="event_alert", action="triggered", install=install, data=data
         )
 
-        try:
-            send_and_save_webhook_request(sentry_app, request_data)
-        except (ApiHostError, ApiTimeoutError, RequestException, ClientError):
-            # record success as the preperation portion did not fail
-            lifecycle.record_success()
-            raise
+    send_and_save_webhook_request(sentry_app, request_data)
 
-        # On success, record analytic event for Alert Rule UI Component
-        if request_data.data.get("issue_alert"):
-            analytics.record(
-                "alert_rule_ui_component_webhook.sent",
-                organization_id=organization.id,
-                sentry_app_id=sentry_app_id,
-                event=f"{request_data.resource}.{request_data.action}",
-            )
+    # On success, record analytic event for Alert Rule UI Component
+    if request_data.data.get("issue_alert"):
+        analytics.record(
+            "alert_rule_ui_component_webhook.sent",
+            organization_id=organization.id,
+            sentry_app_id=sentry_app_id,
+            event=f"{request_data.resource}.{request_data.action}",
+        )
 
 
 def _process_resource_change(
@@ -531,7 +516,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule=f.rule.label,
+            rule_label=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )
