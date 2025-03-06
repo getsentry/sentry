@@ -167,8 +167,7 @@ class OrganizationIntegrationSerializer(Serializer):
             config_data = obj.config if include_config else None
         else:
             try:
-                # just doing this to avoid querying for an object we already have
-                installation._org_integration = obj
+                installation.org_integration = obj
                 config_data = installation.get_config_data() if include_config else None  # type: ignore[assignment]
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
