@@ -60,9 +60,11 @@ class LoggingNotification(BaseNotification):
         context["target_identifier"] = self.target_identifier
         return context
 
+    @property
     def template_path(self) -> str:
         return "sentry/emails/generic"
 
+    @property
     def metrics_key(self) -> str:
         return "integrations.notif_class.fake_log"
 

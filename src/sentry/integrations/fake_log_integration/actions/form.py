@@ -3,6 +3,8 @@ from typing import Any
 
 from django import forms
 
+from sentry.utils.forms import set_field_choices
+
 
 class FakeLogServiceForm(forms.Form):
     identifier = forms.CharField(required=True, widget=forms.TextInput())
@@ -13,9 +15,8 @@ class FakeLogServiceForm(forms.Form):
 
         super().__init__(*args, **kwargs)
         self.fields["identifier"].initial = "something_something"
-        self.fields["log_key"].choices = logger_list
         logging.info("sentry.fake_log_service_form_init", extra={"logger": logger_list})
-        self.fields["log_key"].widget.choices = self.fields["log_key"].choices
+        set_field_choices(self.fields["log_key"], logger_list)
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data: dict[str, Any] = super().clean()

@@ -38,6 +38,7 @@ class FakeLogIntegrationRegistration(ActionRegistration):
         client = FakeIntegrationClient(integration)
         message = data["message"]
         target_identifier = self.action.target_identifier
+        assert target_identifier is not None
 
         # Error handling for fake log integrations typically happens here as well.
         client.log(message, target_identifier)
