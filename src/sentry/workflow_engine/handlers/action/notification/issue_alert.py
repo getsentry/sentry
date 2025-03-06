@@ -55,25 +55,20 @@ class BaseIssueAlertHandler(ABC):
         cls, action: Action, mapping: ActionFieldMapping, organization_id: int
     ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
-            if action.config.get("target_identifier") is None:
-                raise ValueError(f"No target identifier found for action type: {action.type}")
-            return {
-                mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value]: action.config.get(
-                    "target_identifier"
-                )
-            }
-        raise ValueError(f"No target identifier key found for action type: {action.type}")
+            target_id = action.config.get("target_identifier")
+
+            if target_id is None:
+                raise ValueError(f"No target_identifier found for action type: {action.type}")
+            return {mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value]: target_id}
+        raise ValueError(f"No target_identifier key found for action type: {action.type}")
 
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value):
-            if action.config.get("target_display") is None:
+            target_display = action.config.get("target_display")
+            if target_display is None:
                 raise ValueError(f"No target display found for action type: {action.type}")
-            return {
-                mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: action.config.get(
-                    "target_display"
-                )
-            }
+            return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: target_display}
         raise ValueError(f"No target display key found for action type: {action.type}")
 
     @classmethod
