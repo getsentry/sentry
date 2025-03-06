@@ -224,30 +224,23 @@ export function getYAxisMaxFn(height: number) {
   };
 }
 
-function groupDataByName(series: BarChartSeries[]): Map<string | number, number[]> {
-  const groupedData = new Map<string | number, number[]>();
-  series.forEach(serie => {
-    serie.data.forEach(({name, value}) => {
-      if (!groupedData.has(name)) {
-        groupedData.set(name, []);
-      }
-      groupedData.get(name)?.push(value);
-    });
-  });
-
-  return groupedData;
+function groupDataByName(
+  series: BarChartSeries[]
+): Record<string, SeriesDataUnit[] | undefined> {
+  const allData = series.flatMap(serie => serie.data);
+  return Object.groupBy<string, SeriesDataUnit>(allData, ({name}) => String(name));
 }
 
 // Adds rounded corners to a single bar or the last item of a stacked bar based on the datapoints
 function updateDataItemBorderRadius(
-  groupedData: Map<string | number, number[]>,
+  groupedData: Record<string, SeriesDataUnit[] | undefined>,
   data: SeriesDataUnit[],
   serieIndex: number
 ) {
   return data.map(dataItem => {
-    const datapointsByName = groupedData.get(dataItem.name) ?? [];
-    const allAreZero = datapointsByName.every(value => value === 0);
-    const lastNonZeroIndex = datapointsByName.map(value => value > 0).lastIndexOf(true);
+    const datapointsByName = groupedData[dataItem.name] ?? [];
+    const allAreZero = datapointsByName.every(value => value.value === 0);
+    const lastNonZeroIndex = datapointsByName.findLastIndex(value => value.value > 0);
     const isLastStackedItem = lastNonZeroIndex === serieIndex;
 
     if (allAreZero || isLastStackedItem) {
@@ -283,7 +276,6 @@ function MiniBarChart({
 }: Props) {
   const theme = useTheme();
   const xAxisLineColor: string = theme.gray200;
-  const groupedData = useMemo(() => groupDataByName(series ?? []), [series]);
 
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {
@@ -291,6 +283,8 @@ function MiniBarChart({
     }
 
     const chartSeries: BarChartSeries[] = [];
+
+    const groupedData = groupDataByName(series);
 
     const colorList = Array.isArray(colors)
       ? colors
@@ -325,15 +319,7 @@ function MiniBarChart({
       chartSeries.push(updated);
     }
     return chartSeries;
-  }, [
-    series,
-    groupedData,
-    emphasisColors,
-    stacked,
-    colors,
-    theme.gray200,
-    theme.purple300,
-  ]);
+  }, [series, emphasisColors, stacked, colors, theme.gray200, theme.purple300]);
 
   const chartOptions = useMemo(() => {
     const yAxisOptions = labelYAxisExtents
