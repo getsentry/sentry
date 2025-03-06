@@ -72,7 +72,10 @@ const getFilterKeySections = (
     },
   ];
 
-  if (organization.features.includes('feature-flag-autocomplete')) {
+  if (
+    organization.features.includes('feature-flag-autocomplete') &&
+    eventFeatureFlags.length > 0
+  ) {
     sections.push({
       value: FieldKind.FEATURE_FLAG,
       label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
