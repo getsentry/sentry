@@ -182,7 +182,7 @@ export function ToolbarSaveAs() {
               fields,
               sortBys,
             })}
-          >{`${t('Compare')}`}</LinkButton>
+          >{`${t('Compare Queries')}`}</LinkButton>
         )}
       </ButtonBar>
     </ToolbarSection>

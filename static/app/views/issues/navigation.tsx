@@ -38,7 +38,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
-              {t('Search')}
+              {t('Feed')}
             </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
               {t('Feedback')}

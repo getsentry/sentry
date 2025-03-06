@@ -107,77 +107,11 @@ def ingest_recording(message_bytes: bytes) -> None:
         ):
             try:
                 message = parse_recording_message(message_bytes)
-                if message.org_id in options.get("replay.consumer.separate-compute-and-io-org-ids"):
-                    _ingest_recording_separated_io_compute(message)
-                else:
-                    _ingest_recording(message)
+                _ingest_recording_separated_io_compute(message)
             except DropSilently:
                 # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
                 # so we ignore it.
                 pass
-
-
-@sentry_sdk.trace
-def _ingest_recording(message: RecordingIngestMessage) -> None:
-    """Ingest recording messages."""
-    set_tag("org_id", message.org_id)
-    set_tag("project_id", message.project_id)
-
-    headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
-    segment = decompress_segment(segment_bytes)
-    _report_size_metrics(len(segment.compressed), len(segment.decompressed))
-
-    # Normalize ingest data into a standardized ingest format.
-    segment_data = RecordingSegmentStorageMeta(
-        project_id=message.project_id,
-        replay_id=message.replay_id,
-        segment_id=headers["segment_id"],
-        retention_days=message.retention_days,
-    )
-
-    if message.replay_video:
-        # Logging org info for bigquery
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "mobile_event",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "size": len(message.replay_video),
-            },
-        )
-
-        # Record video size for COGS analysis.
-        metrics.incr("replays.recording_consumer.replay_video_count")
-        metrics.distribution(
-            "replays.recording_consumer.replay_video_size",
-            len(message.replay_video),
-            unit="byte",
-        )
-
-        dat = zlib.compress(pack(rrweb=segment.decompressed, video=message.replay_video))
-        storage_kv.set(make_recording_filename(segment_data), dat)
-
-        # Track combined payload size.
-        metrics.distribution(
-            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
-        )
-    else:
-        storage_kv.set(make_recording_filename(segment_data), segment.compressed)
-
-    recording_post_processor(message, headers, segment.decompressed, message.replay_event)
-
-    # The first segment records an accepted outcome. This is for billing purposes. Subsequent
-    # segments are not billed.
-    if headers["segment_id"] == 0:
-        track_initial_segment_event(
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            message.key_id,
-            message.received,
-            is_replay_video=message.replay_video is not None,
-        )
 
 
 @sentry_sdk.trace

@@ -111,6 +111,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
+        isSampled,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -169,6 +170,7 @@ export function WidgetCardChartContainer({
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
               sampleCount={sampleCount}
+              isSampled={isSampled}
               minTableColumnWidth={minTableColumnWidth}
             />
           </Fragment>

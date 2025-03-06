@@ -1,7 +1,11 @@
 from datetime import datetime
 
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import (
+    AlertContext,
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import (
     INCIDENT_COLOR_MAPPING,
@@ -24,7 +28,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self,
         incident: Incident,
         new_status: IncidentStatus,
-        metric_value: float,
+        metric_value: float | None = None,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
@@ -44,14 +48,22 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.notification_uuid = notification_uuid
 
     def build(self) -> SlackBody:
+        # (iamrajjoshi): Need this check since the type hint is wrong.
+        if self.metric_value is None:
+            self.metric_value = get_metric_count_from_incident(self.incident)
+
         data = incident_attachment_info(
-            self.incident,
-            self.new_status,
-            self.metric_value,
-            self.notification_uuid,
+            AlertContext.from_alert_rule_incident(self.incident.alert_rule),
+            self.incident.identifier,
+            organization=self.incident.organization,
+            snuba_query=self.incident.alert_rule.snuba_query,
+            metric_value=self.metric_value,
+            new_status=self.new_status,
+            notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )
-        incident_text = f"{data['text']}\n{get_started_at(data['date_started'])}"
+
+        incident_text = f"{data['text']}\n{get_started_at(self.incident.date_started)}"
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]

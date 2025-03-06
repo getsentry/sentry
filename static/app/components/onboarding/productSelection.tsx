@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -196,13 +196,16 @@ export const platformProductAvailability = {
 /**
  * Defines which products are selected per default for each platform
  * If not defined in here, all products are selected
+ *
+ * UPDATE Mar 2025, we're running an experiment that has only error monitoring enabled by default
  */
-const platformDefaultProducts: Partial<Record<PlatformKey, ProductSolution[]>> = {
-  android: [ProductSolution.PERFORMANCE_MONITORING],
-  php: [ProductSolution.PERFORMANCE_MONITORING],
-  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING],
-  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING],
-};
+const platformDefaultProducts = Object.keys(platformProductAvailability).reduce(
+  (acc, key) => {
+    acc[key as PlatformKey] = [];
+    return acc;
+  },
+  {} as Record<PlatformKey, ProductSolution[]>
+);
 
 type ProductProps = {
   /**

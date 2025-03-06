@@ -3341,10 +3341,10 @@ class SpanTestCase(BaseTestCase):
 class _OptionalOurLogData(TypedDict, total=False):
     body: str
     trace_id: str
-    span_id: str
     severity_text: str
     severity_number: int
     trace_flags: int
+    item_id: int
 
 
 class OurLogTestCase(BaseTestCase):

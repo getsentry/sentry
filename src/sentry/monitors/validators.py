@@ -249,7 +249,7 @@ class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(
         scope="project:read",
         required=True,
-        help_text="The project to associate the monitor to.",
+        help_text="The project slug to associate the monitor to.",
     )
     name = serializers.CharField(
         max_length=128,

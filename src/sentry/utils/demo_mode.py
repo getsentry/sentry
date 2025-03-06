@@ -37,6 +37,14 @@ def is_demo_org(organization: Organization | None):
     return organization.id in options.get("demo-mode.orgs")
 
 
+def get_demo_org():
+    if not is_demo_mode_enabled():
+        return None
+
+    org_id = options.get("demo-mode.orgs")[0]
+    return Organization.objects.get(id=org_id)
+
+
 def get_demo_user():
     if not is_demo_mode_enabled():
         return None

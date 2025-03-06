@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import TrialAlert from 'getsentry/views/subscriptionPage/trialAlert';
 
@@ -9,9 +10,13 @@ describe('Subscription > TrialAlert', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
-  beforeEach(() =>
-    jest.spyOn(Date, 'now').mockImplementation(() => new Date('2021-01-01').getTime())
-  );
+  beforeEach(() => {
+    setMockDate(new Date('2021-01-01'));
+  });
+
+  afterEach(() => {
+    resetMockDate();
+  });
 
   it('does not render not on trial', function () {
     const sub = {

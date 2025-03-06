@@ -66,9 +66,9 @@ rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
 sentry-arroyo>=2.19.9
-sentry-kafka-schemas>=1.1.0
+sentry-kafka-schemas>=1.1.1
 sentry-ophio==1.0.0
-sentry-protos>=0.1.61
+sentry-protos>=0.1.62
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.9.6
 sentry-sdk[http2]>=2.22.0

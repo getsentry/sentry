@@ -1,3 +1,5 @@
+from rest_framework.views import APIView
+
 from sentry.api.permissions import (
     DemoSafePermission,
     SentryIsAuthenticated,
@@ -17,27 +19,31 @@ class PermissionsTest(DRFPermissionTestCase):
     superuser_staff_flagged_permission = SuperuserOrStaffFeatureFlaggedPermission()
 
     def test_superuser_permission(self):
-        assert self.superuser_permission.has_permission(self.superuser_request, None)
+        assert self.superuser_permission.has_permission(self.superuser_request, APIView())
 
     def test_staff_permission(self):
-        assert self.staff_permission.has_permission(self.staff_request, None)
+        assert self.staff_permission.has_permission(self.staff_request, APIView())
 
     @override_options({"staff.ga-rollout": True})
     def test_superuser_or_staff_feature_flagged_permission_active_option(self):
         # With active superuser
         assert not self.superuser_staff_flagged_permission.has_permission(
-            self.superuser_request, None
+            self.superuser_request, APIView()
         )
 
         # With active staff
-        assert self.superuser_staff_flagged_permission.has_permission(self.staff_request, None)
+        assert self.superuser_staff_flagged_permission.has_permission(self.staff_request, APIView())
 
     def test_superuser_or_staff_feature_flagged_permission_inactive_option(self):
         # With active staff
-        assert not self.superuser_staff_flagged_permission.has_permission(self.staff_request, None)
+        assert not self.superuser_staff_flagged_permission.has_permission(
+            self.staff_request, APIView()
+        )
 
         # With active superuser
-        assert self.superuser_staff_flagged_permission.has_permission(self.superuser_request, None)
+        assert self.superuser_staff_flagged_permission.has_permission(
+            self.superuser_request, APIView()
+        )
 
 
 class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
@@ -50,16 +56,18 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_has_permission(self):
-        assert self.user_permission.has_permission(self.make_request(self.normal_user), None)
-        assert not self.user_permission.has_permission(self.make_request(self.readonly_user), None)
+        assert self.user_permission.has_permission(self.make_request(self.normal_user), APIView())
+        assert not self.user_permission.has_permission(
+            self.make_request(self.readonly_user), APIView()
+        )
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_has_object_permission(self):
         assert self.user_permission.has_object_permission(
-            self.make_request(self.normal_user), None, None
+            self.make_request(self.normal_user), APIView(), None
         )
         assert not self.user_permission.has_object_permission(
-            self.make_request(self.readonly_user), None, None
+            self.make_request(self.readonly_user), APIView(), None
         )
 
 
@@ -89,40 +97,40 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
     def test_safe_methods(self):
         for method in ("GET", "HEAD", "OPTIONS"):
             assert self.user_permission.has_permission(
-                self.make_request(self.readonly_user, method=method), None
+                self.make_request(self.readonly_user, method=method), APIView()
             )
             assert self.user_permission.has_permission(
-                self.make_request(self.normal_user, method=method), None
+                self.make_request(self.normal_user, method=method), APIView()
             )
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_unsafe_methods(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             assert not self.user_permission.has_permission(
-                self.make_request(self.readonly_user, method=method), None
+                self.make_request(self.readonly_user, method=method), APIView()
             )
             assert self.user_permission.has_permission(
-                self.make_request(self.normal_user, method=method), None
+                self.make_request(self.normal_user, method=method), APIView()
             )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
     def test_safe_method_demo_mode_disabled(self):
         for method in ("GET", "HEAD", "OPTIONS"):
             assert not self.user_permission.has_permission(
-                self.make_request(self.readonly_user, method=method), None
+                self.make_request(self.readonly_user, method=method), APIView()
             )
             assert self.user_permission.has_permission(
-                self.make_request(self.normal_user, method=method), None
+                self.make_request(self.normal_user, method=method), APIView()
             )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
     def test_unsafe_methods_demo_mode_disabled(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             assert not self.user_permission.has_permission(
-                self.make_request(self.readonly_user, method=method), None
+                self.make_request(self.readonly_user, method=method), APIView()
             )
             assert self.user_permission.has_permission(
-                self.make_request(self.normal_user, method=method), None
+                self.make_request(self.normal_user, method=method), APIView()
             )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
@@ -155,7 +163,7 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             organization=readonly_rpc_context,
         )
 
-        assert readonly_rpc_context.member.scopes == READONLY_SCOPES
+        assert readonly_rpc_context.member.scopes == sorted(READONLY_SCOPES)
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": []})
     def test_determine_access_no_demo_users(self):

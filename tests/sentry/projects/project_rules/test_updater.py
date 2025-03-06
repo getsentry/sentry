@@ -1,5 +1,9 @@
+import pytest
+
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
+from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -184,3 +188,44 @@ class TestUpdater(TestCase):
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_dual_create_workflow_engine__errors_on_invalid_conditions(self):
+        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
+
+        conditions = [
+            {
+                "interval": "1h",
+                "id": EventFrequencyCondition.id,
+                "value": "-1",
+                "comparisonType": "asdf",
+            },
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "foo",
+                "match": "is",
+            },
+        ]
+        new_user_id = self.create_user().id
+
+        with pytest.raises(Exception):
+            ProjectRuleUpdater(
+                rule=self.rule,
+                name="Updated Rule",
+                owner=Actor.from_id(new_user_id),
+                project=self.project,
+                action_match="all",
+                filter_match="any",
+                conditions=conditions,
+                environment=None,
+                actions=[
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "name": "Send a notification (for all legacy integrations)",
+                    }
+                ],
+                frequency=5,
+            ).run()
+
+        not_updated_rule = Rule.objects.get(id=self.rule.id)
+        assert not_updated_rule == self.rule
