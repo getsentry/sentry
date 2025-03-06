@@ -53,6 +53,7 @@ from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
+from .groupsearchviewlastvisited import *  # NOQA
 from .groupsearchviewstarred import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA

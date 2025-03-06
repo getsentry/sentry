@@ -1,10 +1,12 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import Link from 'sentry/components/links/link';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -58,6 +60,20 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
     }
   };
 
+  const canEdit = hasEveryAccess(['alerts:write'], {
+    organization,
+    project: monitor.project,
+  });
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
+  const disableProps = {
+    disabled: !canEdit,
+    title: !canEdit ? permissionTooltipText : undefined,
+  };
+
   return (
     <ButtonBar gap={1}>
       <FeedbackWidgetButton />
@@ -65,6 +81,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
         onClick={() => handleUpdate({isMuted: !monitor.isMuted})}
+        {...disableProps}
       >
         {monitor.isMuted ? t('Unmute') : t('Mute')}
       </Button>
@@ -72,12 +89,18 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
         size="sm"
         monitor={monitor}
         onToggleStatus={status => handleUpdate({status})}
+        {...disableProps}
       />
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
-        <Button size="sm" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
+        <Button
+          size="sm"
+          icon={<IconDelete size="xs" />}
+          aria-label={t('Delete')}
+          {...disableProps}
+        />
       </Confirm>
       <LinkButton
         size="sm"
@@ -98,6 +121,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
             project: selection.projects,
           },
         }}
+        {...disableProps}
       >
         {t('Edit Monitor')}
       </LinkButton>

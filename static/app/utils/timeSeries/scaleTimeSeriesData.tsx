@@ -10,16 +10,17 @@ import type {
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
-
 import {
   isADurationUnit,
   isARateUnit,
   isASizeUnit,
   isAUnitConvertibleFieldType,
-} from '../common/typePredicates';
-import type {TimeSeries} from '../common/types';
-
-import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
+} from 'sentry/views/dashboards/widgets/common/typePredicates';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {
+  FALLBACK_TYPE,
+  FALLBACK_UNIT_FOR_FIELD_TYPE,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 export function scaleTimeSeriesData(
   timeSeries: Readonly<TimeSeries>,
