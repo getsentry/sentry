@@ -17,7 +17,7 @@ describe('Request entry', function () {
     ConfigStore.set('user', UserFixture());
   });
 
-  it('displays redacted data', async function () {
+  it('display redacted data', async function () {
     const event = EventFixture({
       entries: [
         {
