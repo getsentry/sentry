@@ -91,9 +91,7 @@ function BaseNumberInput(
   );
 }
 
-const NumberInput = forwardRef(BaseNumberInput);
-
-export default NumberInput;
+export const NumberInput = forwardRef(BaseNumberInput);
 
 const StepWrap = styled('div')<{size?: FormSize}>`
   display: flex;
