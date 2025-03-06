@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import Enum, StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -176,6 +176,25 @@ INTEGRATION_TYPE_TO_PROVIDER = {
 }
 
 
+class _UserIdentity(TypedDict):
+    type: str
+    external_id: str
+    data: dict[str, str]
+    scopes: list[str]
+
+
+class IntegrationData(TypedDict):
+    external_id: str
+    name: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    post_install_data: NotRequired[dict[str, Any]]
+    expect_exists: NotRequired[bool]
+    idp_external_id: NotRequired[str]
+    idp_config: NotRequired[dict[str, Any]]
+    user_identity: NotRequired[_UserIdentity]
+    provider: NotRequired[str]  # maybe unused ???
+
+
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
@@ -263,8 +282,9 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         pass
 
@@ -298,7 +318,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         """
         raise NotImplementedError
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         """
         Given state captured during the setup pipeline, return a dictionary
         of configuration and metadata to store with this integration.

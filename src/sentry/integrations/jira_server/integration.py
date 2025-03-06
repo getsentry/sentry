@@ -21,6 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry import features
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -1299,7 +1300,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         install = state["installation_data"]
         access_token = state["access_token"]
 
