@@ -156,7 +156,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Flutter',
     type: 'framework',
     language: 'flutter',
-    link: 'https://docs.sentry.io/platforms/flutter/',
+    link: 'https://docs.sentry.io/platforms/dart/guides/flutter/',
   },
   {
     id: 'go',
