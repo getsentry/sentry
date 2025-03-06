@@ -11,7 +11,6 @@ from sentry import options
 from sentry.event_manager import (
     Job,
     ProjectsMapping,
-    _calculate_span_grouping,
     _detect_performance_problems,
     _pull_out_data,
     _record_transaction_info,
@@ -24,6 +23,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 
@@ -157,6 +157,19 @@ def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
     return None
 
 
+def _enrich_spans(segment: SegmentSpan | None, spans: list[SegmentSpan]) -> None:
+    for span in spans:
+        if (op := span.get("sentry_tags", {}).get("op")) is not None:
+            span["op"] = op
+
+        # TODO: Add Relay's enrichment here.
+
+    # Calculate grouping hashes for performance issue detection
+    config = load_span_grouping_config()
+    groupings = config.execute_strategy_raw(spans)
+    groupings.write_to_spans(spans)
+
+
 def _create_models(segment: SegmentSpan, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
@@ -215,6 +228,7 @@ def transform_spans_to_event_dict(
         "type": "trace",
         "op": sentry_tags.get("transaction.op"),
         "span_id": segment_span["span_id"],
+        "hash": segment_span["hash"],
     }
 
     if (profile_id := segment_span.get("profile_id")) is not None:
@@ -222,13 +236,8 @@ def transform_spans_to_event_dict(
 
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
-
-        if (op := span.get("sentry_tags", {}).get("op")) is not None:
-            event_span["op"] = op
-
         event_span["start_timestamp"] = span["start_timestamp_ms"] / 1000
         event_span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
-
         event_spans.append(event_span)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
@@ -270,12 +279,12 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     # exact order, where only operations marked with X are relevant to the spans
     # consumer:
     #
-    #  - [ ] _pull_out_data
+    #  - [X] _pull_out_data                            ->  _enrich_spans
     #  - [X] _get_or_create_release_many               ->  _create_models
     #  - [ ] _get_event_user_many
     #  - [ ] _derive_plugin_tags_many
     #  - [ ] _derive_interface_tags_many
-    #  - [X] _calculate_span_grouping
+    #  - [X] _calculate_span_grouping                  ->  _enrich_spans
     #  - [ ] _materialize_metadata_many
     #  - [X] _get_or_create_environment_many           ->  _create_models
     #  - [X] _get_or_create_release_associated_models  ->  _create_models
@@ -288,6 +297,7 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     #  - [X]  _send_occurrence_to_platform
     #  - [X] _record_transaction_info
 
+    _enrich_spans(segment_span, spans)
     _create_models(segment_span, project)
 
     # XXX: Below are old-style functions imported from EventManager that rely on
@@ -308,7 +318,6 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     ]
 
     _pull_out_data(jobs, projects)
-    _calculate_span_grouping(jobs, projects)
 
     if options.get("standalone-spans.detect-performance-problems.enable"):
         _detect_performance_problems(jobs, projects, is_standalone_spans=True)

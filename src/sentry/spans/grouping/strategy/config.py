@@ -30,6 +30,10 @@ class SpanGroupingConfig:
         results = self.strategy.execute(event_data)
         return SpanGroupingResults(self.id, results)
 
+    def execute_strategy_raw(self, spans: list[Any]) -> SpanGroupingResults:
+        results = self.strategy.execute_raw(spans)
+        return SpanGroupingResults(self.id, results)
+
 
 CONFIGURATIONS: dict[str, SpanGroupingConfig] = {}
 

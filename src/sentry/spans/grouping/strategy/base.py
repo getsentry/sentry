@@ -46,6 +46,18 @@ class SpanGroupingStrategy:
 
         return span_groups
 
+    def execute_raw(self, spans: list[Any]) -> dict[str, str]:
+        return {span["span_id"]: self.get_span_group_compat(span) for span in spans}
+
+    def get_span_group_compat(self, span: Span) -> str:
+        # Treat the segment span like get_transaction_span_group for backwards compatibility with transaction events.
+        if span.get("is_segment"):
+            result = Hash()
+            result.update(span["sentry_tags"].get("transaction"))
+            return result.hexdigest()
+        else:
+            return self.get_span_group(span)
+
     def get_transaction_span_group(self, event_data: Any) -> str:
         result = Hash()
         result.update(event_data["transaction"])
