@@ -1,5 +1,7 @@
 import type EventView from 'sentry/utils/discover/eventView';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -48,28 +50,39 @@ export interface OurLogsTableRowDetails {
   };
 }
 
-export function useExploreLogsTableRow(_props: {
+export function useExploreLogsTableRow({
+  log_id,
+  project_id,
+  enabled,
+  dataset = 'ourlogs',
+}: {
   log_id: string | number;
   project_id: string;
+  dataset?: 'ourlogs';
   enabled?: boolean;
 }) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const _project = projects.find(p => p.id === _props.project_id);
+  const api = useApi();
+  const _project = projects.find(p => p.id === project_id);
 
   const {data, isError, isPending} = useQuery<OurLogsTableRowDetails>({
-    queryKey: ['logs-table-row', _props.log_id, _props.project_id],
+    queryKey: ['logs-table-row', log_id, project_id],
+    enabled,
     queryFn: async () => {
       if (!_project) {
         throw new Error('Project not found');
       }
-      const res = await fetch(
-        `/api/0/projects/${organization.slug}/${_project?.slug}/trace-items/${_props.log_id}/?dataset=ourlogs`
+
+      const url = `/projects/${organization.slug}/${_project?.slug}/trace-items/${log_id}/?dataset=${dataset}`;
+
+      const [results, _, __] = await doDiscoverQuery<OurLogsTableRowDetails>(
+        api,
+        url,
+        {}
       );
-      if (!res.ok) {
-        throw new Error('Failed to fetch log details');
-      }
-      return await res.json();
+
+      return results;
     },
   });
 
