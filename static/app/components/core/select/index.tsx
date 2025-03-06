@@ -30,8 +30,6 @@ import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
 
-import Option from './selectOption';
-
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
@@ -524,11 +522,8 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 }
 
 // The generics need to be filled here as forwardRef can't expose generics.
-const RefForwardedSelectControl = forwardRef<
-  typeof ReactSelect<GeneralSelectValue>,
-  ControlProps
->(function RefForwardedSelectControl(props, ref) {
-  return <SelectControl forwardedRef={ref as any} {...props} />;
-});
-
-export default RefForwardedSelectControl;
+export const Select = forwardRef<typeof ReactSelect<GeneralSelectValue>, ControlProps>(
+  function RefForwardedSelectControl(props, ref) {
+    return <SelectControl forwardedRef={ref as any} {...props} />;
+  }
+);
