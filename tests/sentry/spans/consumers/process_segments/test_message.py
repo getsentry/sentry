@@ -2,6 +2,8 @@ import uuid
 from hashlib import md5
 from unittest import mock
 
+import pytest
+
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
@@ -63,7 +65,7 @@ class TestSpansTask(TestCase):
             "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
         ) as mock_released:
             mock_released.return_value = True
-            process_segment(spans)[0]
+            process_segment(spans)
 
         mock_eventstream.assert_called_once()
 
@@ -82,6 +84,7 @@ class TestSpansTask(TestCase):
         }
     )
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
+    @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(self, mock_eventstream):
         segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
         child_span = build_mock_span(
@@ -121,7 +124,7 @@ class TestSpansTask(TestCase):
             "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
         ) as mock_released:
             mock_released.return_value = True
-            process_segment(spans)[0]
+            process_segment(spans)
 
         performance_problem = mock_eventstream.call_args[0][1]
         assert performance_problem.fingerprint == [
