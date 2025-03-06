@@ -222,6 +222,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             processor=datetime_processor,
         ),
         ResolvedColumn(
+            public_alias="cache.hit",
+            internal_name="cache.hit",
+            search_type="boolean",
+        ),
+        ResolvedColumn(
             public_alias=PRECISE_START_TS,
             internal_name="sentry.start_timestamp",
             search_type="number",
