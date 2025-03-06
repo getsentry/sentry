@@ -265,7 +265,7 @@ function RequestDataCard({
       contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
     });
   } else if (typeof data === 'string') {
-    contentItems.push({item: {key: title, subject: title, value: data}, meta: undefined});
+    contentItems.push({item: {key: 'data', subject: 'data', value: data}});
   }
 
   return (

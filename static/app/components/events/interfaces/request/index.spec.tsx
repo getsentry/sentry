@@ -500,7 +500,7 @@ describe('Request entry', function () {
 
     render(<Request event={event} data={event.entries[0]!.data} />);
 
-    const fragmentSection = screen.getAllByText('Fragment')[0];
+    const fragmentSection = screen.getByText('Fragment');
     expect(fragmentSection).toBeInTheDocument();
     expect(fragmentSection?.parentElement).toHaveTextContent('/sentry');
   });
