@@ -351,7 +351,18 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
-            const widgetIndex = dashboard.widgets.indexOf(widget);
+            const widgetIndex = dashboard.widgets.findIndex(
+              w => w.id === widget.id || w.tempId === widget.tempId
+            );
+            if (widgetIndex === -1) {
+              Sentry.setTag('edit_source', 'modal');
+              Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+                level: 'error',
+                extra: {widget, dashboard},
+              });
+              return;
+            }
+
             if (organization.features.includes('dashboards-widget-builder-redesign')) {
               this.onEditWidget(widget);
               return;
@@ -762,8 +773,8 @@ class DashboardDetail extends Component<Props, State> {
     const widgetIndex = currentDashboard.widgets.findIndex(
       w => w.id === widget.id || w.tempId === widget.tempId
     );
-
     if (widgetIndex === -1) {
+      Sentry.setTag('edit_source', 'context-menu');
       Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
         level: 'error',
         extra: {
