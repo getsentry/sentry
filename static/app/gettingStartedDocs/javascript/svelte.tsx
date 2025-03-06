@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -31,7 +32,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getIntegrations = (params: Params) => {
+const getIntegrations = (params: Params): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
     integrations.push(`Sentry.browserTracingIntegration()`);
@@ -55,18 +56,14 @@ const getIntegrations = (params: Params) => {
       }),`);
   }
 
-  if (integrations.length === 0) {
-    return '';
-  }
-
-  return `integrations: [\n${integrations.map(integration => integration.trim()).join(',\n')}]`;
+  return integrations;
 };
 
-const getFurtherConfiguration = (params: Params): string => {
-  const configParts: string[] = [];
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
 
   if (params.isPerformanceSelected) {
-    configParts.push(`
+    dynamicParts.push(`
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
@@ -74,14 +71,14 @@ const getFurtherConfiguration = (params: Params): string => {
   }
 
   if (params.isReplaySelected) {
-    configParts.push(`
+    dynamicParts.push(`
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
   if (params.isProfilingSelected) {
-    configParts.push(`
+    dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
         // Since profilesSampleRate is relative to tracesSampleRate,
         // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
@@ -90,21 +87,16 @@ const getFurtherConfiguration = (params: Params): string => {
         profilesSampleRate: 1.0`);
   }
 
-  return configParts.map(configPart => configPart.trim()).join(',\n');
+  return dynamicParts;
 };
 
 const getSdkSetupSnippet = (params: Params) => {
-  const configParts: string[] = [`dsn: "${params.dsn.public}"`];
-
-  const integrations = getIntegrations(params);
-  if (integrations) {
-    configParts.push(integrations);
-  }
-
-  const furtherConfig = getFurtherConfiguration(params);
-  if (furtherConfig) {
-    configParts.push(furtherConfig);
-  }
+  const config = buildSdkConfig({
+    params,
+    staticParts: [`dsn: "${params.dsn.public}"`],
+    getIntegrations,
+    getDynamicParts,
+  });
 
   return `
 import "./app.css";
@@ -113,7 +105,7 @@ import App from "./App.svelte";
 import * as Sentry from "@sentry/svelte";
 
 Sentry.init({
-  ${configParts.join(',\n  ')}
+  ${config}
 });
 
 const app = new App({
