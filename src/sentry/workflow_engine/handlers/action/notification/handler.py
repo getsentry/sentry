@@ -56,7 +56,7 @@ group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 class NotificationActionHandler(ActionHandler):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configration schema for a Notification Action",
+        "description": "The configuration schema for a Notification Action",
         "type": "object",
         "properties": {
             "target_identifier": {
