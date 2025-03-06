@@ -13,7 +13,6 @@ from sentry.event_manager import (
     ProjectsMapping,
     _calculate_span_grouping,
     _detect_performance_problems,
-    _get_or_create_environment_many,
     _pull_out_data,
     _record_transaction_info,
 )
@@ -193,8 +192,6 @@ def _create_models(segment: SegmentSpan, project: Project) -> None:
         project=project, release=release, environment=environment, datetime=date
     )
 
-    pass
-
 
 def transform_spans_to_event_dict(
     segment_span: SegmentSpan, spans: list[SegmentSpan]
@@ -311,7 +308,6 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     ]
 
     _pull_out_data(jobs, projects)
-    _get_or_create_environment_many(jobs, projects)
     _calculate_span_grouping(jobs, projects)
 
     if options.get("standalone-spans.detect-performance-problems.enable"):
