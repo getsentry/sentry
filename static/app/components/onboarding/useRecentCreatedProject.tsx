@@ -34,7 +34,7 @@ export function useRecentCreatedProject({
   pollUntilFirstEvent,
 }: Props): OnboardingRecentCreatedProject {
   const {isPending: isProjectLoading, data: project} = useApiQuery<Project>(
-    [`/projects/${orgSlug}/${projectSlug}/`],
+    [`/projects/${orgSlug}/${projectSlug}/overview/`],
     {
       staleTime: 0,
       enabled: !!projectSlug,

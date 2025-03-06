@@ -27,6 +27,12 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 
   MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/projects/org-slug/project-slug/overview/',
+    body: projects,
+  });
+
+  MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
     body: [ProjectKeysFixture()[0]],
