@@ -1187,7 +1187,7 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_DESCRIPTION]: {
-    desc: t('Raw description of the span, as received in the transaction event'),
+    desc: t('Description of the span’s operation'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
