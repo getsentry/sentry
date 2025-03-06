@@ -955,7 +955,7 @@ const FirstLastSeenWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   gap: ${space(0.25)};
   align-self: center;
-  width: 120px;
+  width: 130px;
   padding-right: ${space(1)};
   margin-right: ${space(2)};
 

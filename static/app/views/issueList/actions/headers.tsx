@@ -176,7 +176,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
 `;
 
 const FirstLastSeenLabel = styled(IssueStreamHeaderLabel)`
-  width: 120px;
+  width: 130px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
