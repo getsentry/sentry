@@ -2650,6 +2650,44 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             == response.data["detail"].title()
         )
 
+    def test_cache_hit(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "get cache 1",
+                        "measurements": {"cache.hit": {"value": 0}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "get cache 2",
+                        "measurements": {"cache.hit": {"value": 1}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["cache.hit", "description"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "description",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["cache.hit"] is False
+        assert data[1]["cache.hit"] is True
+        assert meta["dataset"] == self.dataset
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self):
         super().test_replay_id()

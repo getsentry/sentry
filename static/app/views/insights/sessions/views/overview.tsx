@@ -25,7 +25,6 @@ import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessio
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -94,7 +93,6 @@ export function SessionsOverview() {
                   <FilterWrapper>
                     <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
                   </FilterWrapper>
-                  <ReleaseAdoption filters={filters} />
                   <ReleaseHealth filters={filters} />
                 </ModuleLayout.Full>
               </Fragment>
