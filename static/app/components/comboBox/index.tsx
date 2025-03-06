@@ -167,7 +167,7 @@ function ComboBox<Value extends string>({
   );
 
   const autosizeCallbackRef = useAutosizeInput({
-    value: inputProps.value as string,
+    value: inputProps.value,
     disabled: !growingInput,
   });
 

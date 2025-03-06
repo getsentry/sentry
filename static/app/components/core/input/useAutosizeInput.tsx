@@ -80,5 +80,5 @@ function resize(input: HTMLInputElement) {
 
 interface UseAutosizeInputOptions {
   disabled?: boolean;
-  value?: string | undefined;
+  value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
