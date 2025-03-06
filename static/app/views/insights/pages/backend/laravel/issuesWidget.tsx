@@ -21,13 +21,14 @@ export function IssuesWidget({query = ''}: {query?: string}) {
   const location = useLocation();
 
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
+  const queryWithDefault = `is:unresolved ${query}`.trim();
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query,
+    queryWithDefault,
     sort: 'freq',
   };
 
@@ -52,7 +53,7 @@ export function IssuesWidget({query = ''}: {query?: string}) {
           <NoGroupsHandler
             api={api}
             organization={organization}
-            query={query}
+            query={queryWithDefault}
             selectedProjectIds={pageFilterChartParams.project}
             groupIds={[]}
             emptyMessage={tct('No [issuesType] issues for the [timePeriod].', {
