@@ -135,9 +135,10 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         you created earlier.
       </p>
       <CodeSnippet language="tsx">
-        {`<TourContextProvider
+        {`<TourContextProvider<MyTour>
   orderedStepIds={ORDERED_MY_TOUR}
   tourContext={MyTourContext}
+  tourKey={MY_TOUR_KEY}
 >
   {/* All focused elements in the tour should be within this provider */}
 </TourContextProvider>`}
@@ -278,7 +279,7 @@ function TourProvider({
   return (
     <SizingWindow>
       <BlurBoundary>
-        <TourContextProvider
+        <TourContextProvider<MyTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}

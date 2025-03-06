@@ -30,7 +30,7 @@ describe('Tour Components', () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
 
       const {container: availableContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -42,7 +42,7 @@ describe('Tour Components', () => {
       expect(within(availableContainer).getByText('Child Content')).toBeInTheDocument();
 
       const {container: unavailableContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable={false}
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -57,7 +57,7 @@ describe('Tour Components', () => {
     it('renders children regardless of completion', () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -76,7 +76,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       const {container: blurContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
@@ -88,7 +88,7 @@ describe('Tour Components', () => {
       expect(within(blurContainer).getByTestId('tour-blur-window')).toBeInTheDocument();
 
       const {container: noBlurContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
@@ -116,7 +116,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           tourKey={tourKey}
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -139,7 +139,7 @@ describe('Tour Components', () => {
     it('renders children regardless of tour state', async () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
       const {container: inactiveContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -164,7 +164,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       const {container: activeContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -192,7 +192,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       const {unmount: unmountFirstStep} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -227,7 +227,7 @@ describe('Tour Components', () => {
       });
 
       const {unmount: unmountSecondStep} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -258,7 +258,7 @@ describe('Tour Components', () => {
       });
 
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -288,7 +288,7 @@ describe('Tour Components', () => {
         handleStepRegistration: mockHandleStepRegistration,
       });
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -339,7 +339,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           tourKey={tourKey}
           isAvailable
           isCompleted={false}
