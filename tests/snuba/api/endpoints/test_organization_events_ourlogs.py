@@ -149,5 +149,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         assert len(data) == 1
         assert data == [
-            {"log.body": "baz"},
+            {
+                "log.body": "baz",
+                "timestamp": "2025-03-05T19:34:42+00:00",
+            },
         ]
