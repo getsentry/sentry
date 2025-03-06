@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from attr import field
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -66,6 +67,7 @@ class ResolvedAttribute:
 class ResolvedColumn(ResolvedAttribute):
     # The internal rpc alias for this column
     internal_name: str
+    is_aggregate: bool = field(default=False, init=False)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -111,6 +113,8 @@ class ResolvedFunction(ResolvedAttribute):
     The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
     """
 
+    is_aggregate: bool
+
     @property
     def proto_definition(
         self,
@@ -149,6 +153,7 @@ class ResolvedAggregate(ResolvedFunction):
     internal_name: Function.ValueType
     # Whether to enable extrapolation
     extrapolation: bool = True
+    is_aggregate: bool = field(default=True, init=False)
 
     @property
     def proto_definition(self) -> AttributeAggregation:
@@ -219,6 +224,7 @@ class AggregateDefinition(FunctionDefinition):
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
     formula_resolver: Callable[[Any], Column.BinaryFormula]
+    is_aggregate: bool
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
@@ -234,6 +240,7 @@ class FormulaDefinition(FunctionDefinition):
             public_alias=alias,
             search_type=search_type,
             formula=self.formula_resolver(resolved_argument),
+            is_aggregate=self.is_aggregate,
             argument=resolved_argument,
             internal_type=self.internal_type,
             processor=self.processor,
