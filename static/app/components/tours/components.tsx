@@ -195,21 +195,13 @@ function TourElementContent<T extends TourEnumType>({
             {t('Next')}
           </TourAction>
         ) : (
-          <TourAction
-            size="xs"
-            onClick={() => {
-              if (tourKey) {
-                mutate({guide: tourKey, status: 'viewed'});
-              }
-              dispatch({type: 'END_TOUR'});
-            }}
-          >
+          <TourAction size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
             {t('Finish tour')}
           </TourAction>
         )}
       </ButtonBar>
     ),
-    [hasPreviousStep, hasNextStep, dispatch, tourKey, mutate]
+    [hasPreviousStep, hasNextStep, dispatch]
   );
 
   return (
