@@ -7,6 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
 import {useNavContext} from 'sentry/components/nav/context';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -27,7 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useUser} from 'sentry/utils/useUser';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -84,7 +84,6 @@ function WidgetBuilderV2({
 
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
-  const user = useUser();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
@@ -98,11 +97,9 @@ function WidgetBuilderV2({
   const {navParentRef} = useNavContext();
   // Check if we have a valid nav reference
   const hasValidNav = Boolean(navParentRef?.current);
+  const prefersStackedNav = usePrefersStackedNav();
 
-  const hasNewNav =
-    hasValidNav &&
-    organization.features.includes('navigation-sidebar-v2') &&
-    user.options.prefersStackedNavigation;
+  const hasNewNav = hasValidNav && prefersStackedNav;
 
   const dimensions = useDimensions({elementRef: navParentRef});
 

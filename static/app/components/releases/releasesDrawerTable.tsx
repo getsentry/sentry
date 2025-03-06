@@ -57,7 +57,6 @@ export function ReleaseDrawerTable({start, end}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases({
-    tableType: 'health',
     filters: [],
     dateRange: {
       start,
