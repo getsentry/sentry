@@ -1,8 +1,5 @@
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    ColumnDefinitions,
     ResolvedColumn,
     VirtualColumnDefinition,
     datetime_processor,
@@ -83,12 +80,3 @@ UPTIME_CHECK_VIRTUAL_CONTEXTS = {
     )
     for key in constants.PROJECT_FIELDS
 }
-
-
-UPTIME_CHECK_DEFINITIONS = ColumnDefinitions(
-    aggregates={},
-    formulas={},
-    columns=UPTIME_CHECK_ATTRIBUTE_DEFINITIONS,
-    contexts=UPTIME_CHECK_VIRTUAL_CONTEXTS,
-    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
-)
