@@ -31,11 +31,12 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
 
 
 def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
+    stacktraces = []
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
-        return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
+        stacktraces = [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
 
     if "stacktrace" in data:
-        return [data["stacktrace"]]
+        stacktraces = [data["stacktrace"]]
 
-    return []
+    return [st for st in stacktraces if st is not None]
