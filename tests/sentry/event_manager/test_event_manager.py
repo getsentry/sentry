@@ -3203,7 +3203,9 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
             ]
 
-    @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
+    @mock.patch(
+        "sentry.dynamic_sampling.rules.helpers.latest_releases.schedule_invalidate_project_config"
+    )
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
         self, mocked_invalidate: mock.MagicMock
     ) -> None:
