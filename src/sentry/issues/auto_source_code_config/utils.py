@@ -10,8 +10,8 @@ def supported_platform(platform: str) -> bool:
     return platform in PLATFORMS_CONFIG
 
 
-def get_supported_languages() -> list[str]:
-    """Return a list of all supported languages"""
+def get_supported_platforms() -> list[str]:
+    """Return a list of all supported platforms"""
     return list(PLATFORMS_CONFIG.keys())
 
 
