@@ -1,10 +1,10 @@
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any
 
 from sentry.integrations.fake_log_integration.log_provider import FakeIntegrationClient
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import ExternalProviders
+from sentry.models.organization import Organization
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
@@ -24,24 +24,61 @@ def send_notification_as_fake_log(
     #
     # We don't have any of this for our sample integration, so we'll just fan out
     # per organization integration x recipient.
-    integrations = integration_service.get_integration(
+    integration = integration_service.get_integration(
         organization_id=notification.organization.id,
-        provider=ExternalProviders.FAKE_LOG,
+        provider="fake-log",
     )
 
-    if integrations is None:
+    if integration is None:
         raise ValueError("No integration found for organization")
 
-    for integration in integrations:
+    for recipient in recipients:
         FakeIntegrationClient(integration).log(
-            notification.title, notification.target_identifier, notification.uuid
+            notification.get_notification_title(
+                provider=ExternalProviders.FAKE_LOG, context=shared_context
+            ),
+            shared_context["target_identifier"],
+            notification.notification_uuid,
         )
 
 
 class LoggingNotification(BaseNotification):
-    def __init__(self, integration: Integration, target_identifier: str):
-        self.integration = integration
+    def __init__(self, organization: Organization, target_recipient: Actor, target_identifier: str):
+        super().__init__(organization=organization)
         self.target_identifier = target_identifier
+        # Passing the recipient here is just for convenience, other notification
+        # classes construct a list of recipients from the target org based
+        # on notification settings per user.
+        self.target_recipient = target_recipient
+
+    def get_notification_providers(self) -> Iterable[ExternalProviders]:
+        # Restricts this notification to only use the `FAKE_LOG` provider
+        return [ExternalProviders.FAKE_LOG]
+
+    def get_context(self) -> MutableMapping[str, Any]:
+        context = super().get_context()
+        context["target_identifier"] = self.target_identifier
+        return context
+
+    def template_path(self) -> str:
+        return "sentry/emails/generic"
+
+    def metrics_key(self) -> str:
+        return "integrations.notif_class.fake_log"
+
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
+        return "FakeLog Title"
+
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
+        return {
+            ExternalProviders.FAKE_LOG: [self.target_recipient],
+        }
 
     def send(self):
+        super().send()
+
+        # This is typically where we do extra logic, like additional analytics
+        # or metrics gathering
         pass

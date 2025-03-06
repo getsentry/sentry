@@ -110,12 +110,15 @@ class ActionTrigger(FlexibleIntEnum):
 
     AUDIT_LOG = 0
     GS_SPIKE_PROTECTION = 100
+    FAKE_LOGGER_EXAMPLE = 200
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return (
             (cls.AUDIT_LOG.value, "audit-log"),
             (cls.GS_SPIKE_PROTECTION.value, "spike-protection"),
+            # Have to manually add the new enum value to the choices list
+            (cls.FAKE_LOGGER_EXAMPLE.value, "fake-log-example"),
         )
 
 
