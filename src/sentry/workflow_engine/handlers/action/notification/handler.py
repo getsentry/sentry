@@ -54,7 +54,23 @@ group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 @action_handler_registry.register(Action.Type.WEBHOOK)
 @action_handler_registry.register(Action.Type.PLUGIN)
 class NotificationActionHandler(ActionHandler):
-    config_schema = {}
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configration schema for a Notification Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {
+                "type": ["string", "null"],
+            },
+            "target_display": {
+                "type": ["string", "null"],
+            },
+            "target_type": {
+                "type": ["integer", "null"],
+                "enum": ActionTarget,
+            },
+        },
+    }
 
     @staticmethod
     def execute(
