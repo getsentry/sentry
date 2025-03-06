@@ -669,9 +669,7 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(0.25)};
-  padding-right: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  padding: ${space(0.25)} ${space(0.5)} ${space(0.5)} ${space(0.25)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
 `;
@@ -813,7 +811,6 @@ const StyledIconChevron = styled(IconChevron)`
 
 const InstructionsInputWrapper = styled('div')`
   display: flex;
-  /* border: 1px solid ${p => p.theme.border}; */
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundSecondary};
   margin-top: ${space(0.5)};
@@ -845,8 +842,5 @@ const AddStepButton = styled(Button)`
 `;
 
 const AddInstructionWrapper = styled('div')`
-  padding-top: ${space(1)};
-  padding-left: ${space(4)};
-  padding-right: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
 `;
